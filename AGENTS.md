@@ -16,10 +16,12 @@ Do not overwrite either source repository while performing integration.
 
 - Compare behaviour, schemas, tests and security controls before selecting an implementation.
 - Record material choices in `docs/integration/DECISION-LOG.md`.
-- Update `docs/integration//COMPARISON-MATRIX.md` with evidence.
+- Update `docs/integration/COMPARISON-MATRIX.md` with evidence.
 - Keep `main` releasable. Perform active integration on `integration`.
-- Astra/Codex and Claude must use separate feature branches for concurrent work.
+- Astra/Codex and Claude must use separate feature branches for concurrent work: `claude/…` and `astra/…` respectively. Neither agent writes to the other's branch.
 - Merge changes through reviewed pull requests.
+- Follow `docs/integration/AGENT-COORDINATION.md` before starting any work. It covers the pre-flight check, how work is claimed, how conflicts are resolved and when to stop and ask. It applies to all three repositories.
+- Claim work by opening a draft pull request as your first act, and record it in `docs/integration/WORK-CLAIMS.md`.
 - Do not describe untested Microsoft 365 behaviour as verified.
 
 ## Product requirements
