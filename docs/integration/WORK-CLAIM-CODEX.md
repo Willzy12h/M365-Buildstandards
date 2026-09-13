@@ -7,4 +7,5 @@
 - Expected files: integration documentation, root README/ignore rules, Claude application/source/tests/build/packaging and its documentation.
 - Authority: user explicitly selected Claude as primary and authorised this work. No live tenant actions are authorised.
 - Existing work: Claude's `claude/github-repo-access-ygieh2` coordination proposal remains untouched. No open pull requests were returned for the three repositories at pre-flight.
-- Status: in progress; draft pull request is the live claim. Implementation verification and handover will be recorded before review.
+- Pull request: https://github.com/Willzy12h/M365-Buildstandards/pull/1
+- Status: implementation and local checks complete; CI/review pending. See TESTING-EVIDENCE.md and HANDOVER.md. Do not merge or treat this build as live tenant acceptance without the outstanding checks.
