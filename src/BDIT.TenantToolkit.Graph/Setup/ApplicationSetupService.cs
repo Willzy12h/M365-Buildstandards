@@ -41,6 +41,7 @@ public sealed class ApplicationSetupService : IAsyncDisposable
             TenantId = tenantId, ClientId = BootstrapClientId,
             ClientLabel = "Microsoft Graph Command Line Tools — temporary application setup",
             Purpose = "Application setup: registration writes and grant inspection", Scopes = SetupScopes,
+            ClientVersion = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(ApplicationSetupService).Assembly)?.InformationalVersion ?? "unknown",
             CacheFile = "" // Never attach the privileged setup identity to a persistent cache.
         }, log, ct).ConfigureAwait(false);
         try

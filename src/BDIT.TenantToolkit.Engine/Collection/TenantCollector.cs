@@ -31,7 +31,7 @@ public sealed class TenantCollector
         _toolkitVersion = toolkitVersion;
     }
 
-    public async Task<TenantSnapshot> CollectAsync(IGraphClient graph, TenantSession session, TenantProfile profile, StandardCatalogue standard, IProgress<CollectionProgress>? progress, CancellationToken ct)
+    public async Task<TenantSnapshot> CollectAsync(IGraphClient graph, TenantSession session, TenantProfile profile, StandardCatalogue standard, IProgress<CollectionProgress>? progress, CancellationToken ct, bool preservePartialOnCancellation = false)
     {
         if (!string.Equals(graph.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The connected tenant does not match the selected profile.");
@@ -55,11 +55,12 @@ public sealed class TenantCollector
         var completed = 0;
         foreach (var (key, def) in standard.Collections)
         {
-            ct.ThrowIfCancellationRequested();
+            if (!preservePartialOnCancellation) ct.ThrowIfCancellationRequested();
             progress?.Report(new CollectionProgress(key, def.Label, completed, total, $"Collecting {def.Label}"));
             var capture = new CollectionCapture { Api = def.ApiVersion == GraphApi.Beta ? "beta" : "v1.0", Path = def.Path };
             try
             {
+                ct.ThrowIfCancellationRequested();
                 var items = new List<JsonObject>();
                 if (def.Singleton)
                     items.Add(await graph.GetAsync(def.ApiVersion, def.Path, ct));
@@ -94,6 +95,12 @@ public sealed class TenantCollector
                 capture.Items = items;
                 capture.Count = items.Count;
                 capture.DetailIncomplete = items.Any(i => i[AssignmentsUnknownKey] is not null || i[SettingsUnknownKey] is not null || i[RelationshipUnknownKey] is not null);
+            }
+            catch (OperationCanceledException) when (preservePartialOnCancellation)
+            {
+                capture.Status = CaptureStatus.Error;
+                capture.Error = "Capture cancelled or time budget reached; this collection is incomplete.";
+                capture.DetailIncomplete = true;
             }
             catch (OperationCanceledException) { throw; }
             catch (ToolkitException ex)

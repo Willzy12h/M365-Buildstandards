@@ -105,7 +105,7 @@ public sealed class GraphClient : IGraphClient
 
     public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
     {
-        GraphRouteAllowList.ValidatePathSyntax(path);
+        ValidateWritePath(path);
         if (Mode != SessionMode.Deployment)
             throw new WriteDeniedException("Write denied: this session is read-only. Connect with deployment access, capture a fresh snapshot and review a new plan.");
         var route = _routes.MatchWrite(api, path, out var existing)
@@ -116,37 +116,57 @@ public sealed class GraphClient : IGraphClient
             throw new WriteDeniedException("POST must target the collection root, not an existing object.");
 
         var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope };
-        WritePayloadGuard.Assert(definition, payload);
+        try { WritePayloadGuard.Assert(definition, payload); }
+        catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
 
         return await SendWriteAsync(api, method == GraphWriteMethod.Post ? HttpMethod.Post : HttpMethod.Patch, path, payload, route, ct);
     }
 
     public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)
     {
-        GraphRouteAllowList.ValidatePathSyntax(path);
+        ValidateWritePath(path);
         if (Mode != SessionMode.Deployment) throw new WriteDeniedException("Recovery requires deployment access.");
         var route = _routes.MatchWrite(api, path, out var existing);
         if (route is null || !existing || api != GraphApi.V1 || !RecoverySafety.Supports(route.BasePath))
             throw new WriteDeniedException("Recovery is restricted to supported individual toolkit policy objects.");
-        RecoverySafety.AssertPayload(route.BasePath, action, payload);
+        try { RecoverySafety.AssertPayload(route.BasePath, action, payload); }
+        catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
         await SendWriteAsync(api, action == RecoveryAction.DeleteCreatedObject ? HttpMethod.Delete : HttpMethod.Patch, path, payload, route, ct);
+    }
+
+    private static void ValidateWritePath(string path)
+    {
+        try { GraphRouteAllowList.ValidatePathSyntax(path); }
+        catch (ConfigurationException ex) { throw new WriteNotSentException(ex.Message, ex); }
     }
 
     private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)
     {
-        var url = Root(api) + path;
-        var body = payload?.ToJsonString(ToolkitJson.Compact);
         var sw = Stopwatch.StartNew();
         HttpResponseMessage response;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(_options.WriteTimeout);
+        HttpRequestMessage request;
         try
         {
-            var token = await _tokens.GetAccessTokenAsync(ct);
-            using var request = new HttpRequestMessage(httpMethod, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(_options.WriteTimeout);
+            var token = await _tokens.GetAccessTokenAsync(timeout.Token);
+            request = new HttpRequestMessage(httpMethod, Root(api) + path);
+            try
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                if (payload is not null) request.Content = new StringContent(payload.ToJsonString(ToolkitJson.Compact), Encoding.UTF8, "application/json");
+                timeout.Token.ThrowIfCancellationRequested();
+            }
+            catch { request.Dispose(); throw; }
+        }
+        catch (Exception ex)
+        {
+            throw new WriteNotSentException("No Graph write request was sent. Reconnect or correct the inputs, then review a fresh plan. " + SensitiveDataScrubber.Scrub(ex.Message), ex);
+        }
+        using var preparedRequest = request;
+        try
+        {
             response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -158,6 +178,11 @@ public sealed class GraphClient : IGraphClient
         {
             _log.Error("Graph", $"{httpMethod.Method} {Describe(path)} failed at transport level; outcome unknown.", ex, TenantId);
             throw new AmbiguousWriteException($"The write to {GraphRouteAllowList.BasePathOf(path)} failed at the network level ({ex.Message}). Its outcome is unknown; reassess before retrying.", ex);
+        }
+        catch (Exception ex)
+        {
+            // Once SendAsync is invoked, even a locally thrown exception cannot prove no request escaped.
+            throw new AmbiguousWriteException("The write transport ended without a definitive response. Reconcile before any further write.", ex);
         }
 
         using (response)

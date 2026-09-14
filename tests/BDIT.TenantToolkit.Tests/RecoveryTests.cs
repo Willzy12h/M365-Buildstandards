@@ -22,7 +22,7 @@ public sealed class RecoveryTests
             Assert.Throws<SafetyViolationException>(() => second.AcquireTenantWriteLease(TestData.TenantA));
         using var next = second.AcquireTenantWriteLease(TestData.TenantA);
     }
-    private sealed class Harness : IDisposable
+    internal sealed class Harness : IDisposable
     {
         public TempRoot Root { get; } = new();
         public FixedClock Clock { get; } = new();
@@ -197,5 +197,28 @@ public sealed class RecoveryTests
         source.Results.Single().ObjectId = Guid.NewGuid().ToString();
         File.WriteAllText(h.Evidence.RunFile(source), ToolkitJson.Serialize(source));
         await Assert.ThrowsAsync<SafetyViolationException>(() => h.Preview(source)); Assert.Empty(h.Graph.RecoveryWrites);
+    }
+
+    [Fact]
+    public async Task Confirmed_not_sent_recovery_is_not_locked_and_a_fresh_preview_is_allowed()
+    {
+        using var h = new Harness(); var source = await h.Deploy(); var plan = await h.Preview(source);
+        h.Graph.RecoveryError = new WriteDeniedException("Route refused before transport");
+        var run = await h.Execute(plan);
+        Assert.Equal(WriteAcceptance.NotAttempted, run.WriteAcceptance); Assert.Equal(ConfigurationVerification.NotRun, run.Verification);
+        Assert.Equal(RunStatus.ReviewRequired, run.Status);
+        h.Evidence.AssertNoUnresolvedRecovery(h.Session.TenantId, new[] { "CA-001" });
+        h.Graph.RecoveryError = null; Assert.NotNull(await h.Preview(source));
+        await Assert.ThrowsAsync<SafetyViolationException>(() => h.Execute(plan)); // Original plans remain single-use.
+    }
+
+    [Fact]
+    public async Task A_followup_exception_never_downgrades_accepted_recovery_to_not_sent()
+    {
+        using var h = new Harness(); var source = await h.Deploy(); h.Object(source)["state"] = "enabled";
+        var plan = await h.Preview(source, RecoveryAction.DisableConditionalAccess);
+        h.Graph.BeforeRecovery = () => { h.Graph.MutateReadback = _ => throw new WriteDeniedException("Follow-up read refused"); return Task.CompletedTask; };
+        var run = await h.Execute(plan, true);
+        Assert.Equal(WriteAcceptance.Accepted, run.WriteAcceptance); Assert.Equal(ConfigurationVerification.Unknown, run.Verification);
     }
 }

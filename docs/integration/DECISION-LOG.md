@@ -18,3 +18,11 @@
 - **INT-011:** user-approved selective recovery for recorded policy creations and supported inactive updates, plus state-only CA disablement. Durable ownership and before/after evidence, fresh preview, typed tenant and explicit drift review are mandatory. Unknown outcomes, assigned Intune objects and unsupported cleanup remain blocked or manual. Implemented with synthetic tests; live acceptance pending.
 - **INT-012:** user-approved licence dashboard and on-demand assigned-user search. Direct-user scope checks use captured service-plan assignments; unresolved group/role/guest/device scopes stay unknown. Do not infer entitlement from seat totals or assign licences automatically. Implemented with synthetic tests; tenant-specific acceptance pending.
 No decision in this PR authorises tenant writes, application registration, consent, subscriptions or a release to production. Source snapshots and digests are evidence, not signatures or automatic rollback.
+
+## Independent review decisions — preview.3
+
+- **INT-013:** explicit transport boundary: only confirmed pre-send failures become NotAttempted. Unknown writes are not resolved through name searches or retries. Accepted outcomes are retained even when follow-up reads fail.
+- **INT-014:** accepted-unverified writes can be re-verified using reads only. Separate source-linked evidence records and safe local mapping finalisation preserve the original audit trail. Read-only assessment access is sufficient.
+- **INT-015:** do not assume no real 1.0.0 evidence exists. Require acknowledged reconciliation of completed, absent-acceptance records against the latest exact ownership/payload and current safe settings. Preserve historical bytes; insufficient evidence remains blocked.
+- **INT-016:** Stop cancels deployment reads immediately but lets an in-flight policy write reach its configured timeout/result. Readback and after-capture each have a 60-second budget; truncated evidence remains explicitly incomplete. Storage/OS hangs are outside these network budgets.
+- **INT-017:** preserve the localhost registration pending a real admin-consent redirect test. UI and documentation explain Stop waiting / Validate setup fallback; no automatic application recreation or consent inference.

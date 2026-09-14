@@ -273,6 +273,7 @@ internal sealed class FakeGraphClient : IGraphClient
     public Func<string, JsonObject, Task>? BeforeWrite { get; set; }
     public Exception? ThrowOnWrite { get; set; }
     public Func<JsonObject, JsonObject>? MutateReadback { get; set; }
+    public Func<string, CancellationToken, Task>? BeforeRead { get; set; }
 
     public FakeGraphClient(StandardCatalogue standard)
     {
@@ -303,6 +304,7 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         Reads.Add(path);
         var (basePath, id, sub) = Resolve(path);
         if (_singles.TryGetValue(basePath, out var single)) return Task.FromResult((JsonObject)single.DeepClone());
@@ -325,6 +327,8 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public async Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        if (BeforeRead is not null) await BeforeRead(path, ct);
         Reads.Add(path);
         var (basePath, id, sub) = Resolve(path);
         if (_collections.TryGetValue(basePath, out var list))

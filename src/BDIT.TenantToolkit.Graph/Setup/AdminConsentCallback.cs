@@ -10,7 +10,7 @@ public sealed record AdminConsentCallbackResult(bool ApprovalReported, string Me
 
 /// <summary>
 /// One temporary native-app localhost callback. Requires no URL reservation or administrator rights.
-/// Microsoft ignores the localhost port when matching a registered native http://localhost redirect.
+/// Uses the documented localhost port-matching convention; admin-consent endpoint acceptance still requires live validation.
 /// No token endpoint, consent grant or tenant write is called by this helper.
 /// </summary>
 public sealed class AdminConsentCallback : IDisposable

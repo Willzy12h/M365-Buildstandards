@@ -73,7 +73,9 @@ public sealed partial class EvidenceStore
     {
         var selected = controls.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (LoadRecoveryRuns(tenantId).Any(r => selected.Contains(r.ControlId)
-            && (r.WriteAcceptance == WriteAcceptance.Unknown || (r.WriteAcceptance == WriteAcceptance.Accepted && (r.Verification != ConfigurationVerification.Pass || r.Status != RunStatus.Completed)))))
+            && (r.WriteAcceptance == WriteAcceptance.Unknown || (r.WriteAcceptance == WriteAcceptance.Accepted
+                && (r.Verification != ConfigurationVerification.Pass || r.Status != RunStatus.Completed)
+                && !HasVerification(tenantId, "Recovery", r.Id, r.IntegrityDigest, r.ControlId)))))
             throw new SafetyViolationException("An earlier recovery write needs reconciliation. No retry or new deployment is permitted for these controls.");
     }
 

@@ -271,7 +271,7 @@ public sealed partial class EvidenceStore
                 var couldHaveWritten = result.Status is ResultStatus.InProgress or ResultStatus.Completed or ResultStatus.Error
                     || result.PlannedAction is nameof(PlanAction.Create) or nameof(PlanAction.Update);
                 var unresolved = result.Status != ResultStatus.NotRun && couldHaveWritten
-                    && (result.WriteAcceptance == WriteAcceptance.Unknown
+                    && ((result.WriteAcceptance == WriteAcceptance.Unknown && !HasAcceptedWrite(run, result))
                         || (result.WriteAcceptance == WriteAcceptance.Accepted && !ProfileValidator.IsGuid(result.ObjectId ?? "")));
                 if (unresolved)
                     throw new PlanValidationException($"{result.ControlId} has an unresolved write in run {run.Id}. A fresh plan or missing search result cannot clear this uncertainty. Preserve the evidence and reconcile manually; this release has no automatic reconciliation override.");

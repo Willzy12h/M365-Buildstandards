@@ -54,6 +54,8 @@ public sealed class Workspace : ObservableObject
     public ReportExporter Exporter { get; }
     public RecoveryService Recovery { get; }
     public LicenceInventory? Licences { get; private set; }
+    public string InterruptedNotice { get; private set; } = "";
+    public string StopGuidance => $"Stop cancels policy reads. An in-flight policy request waits for its {Settings.GraphWriteTimeoutSeconds}-second transport budget. Verification and after-capture each have a 60-second budget and may finish incomplete. Local evidence is saved before closing.";
 
     public ObservableCollection<TenantProfile> Profiles { get; } = new();
     public ObservableCollection<StandardRelease> Releases { get; } = new();
@@ -192,7 +194,7 @@ public sealed class Workspace : ObservableObject
     {
         if (Executor.IsRunning) Control?.Stop();
         else _operationCancellation?.Cancel();
-        ProgressDetail = "Stopping at a safe boundary and finishing evidence…";
+        ProgressDetail = StopGuidance;
     }
 
     public async Task<string> ExportAsync(Func<string> export)
@@ -278,6 +280,8 @@ public sealed class Workspace : ObservableObject
             Profile = profile;
             Connection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
             Evidence.MarkInterruptedRuns(profile.TenantId);
+            var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
+            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
             progress.Report("Checking access (read-only).");
             Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
             await LoadLicencesCoreAsync(includeUsers: false);
@@ -304,6 +308,7 @@ public sealed class Workspace : ObservableObject
         var connection = Connection;
         Connection = null;
         Licences = null;
+        InterruptedNotice = "";
         Access = null;
         Snapshot = null;
         SnapshotIsLive = false;
@@ -477,7 +482,7 @@ public sealed class Workspace : ObservableObject
 
     public void PauseDeployment() => Control?.Pause();
     public void ResumeDeployment() => Control?.Resume();
-    public void StopDeployment() => Control?.Stop();
+    public void StopDeployment() { Control?.Stop(); ProgressDetail = StopGuidance; }
 
     // ---- deviations and manual checks ---------------------------------------------------------------------------------
 
@@ -548,6 +553,21 @@ public sealed class Workspace : ObservableObject
     }
 
     public Task LoadLicencesAsync(bool includeUsers) => RunExclusiveAsync("Reading licences and assignments", _ => LoadLicencesCoreAsync(includeUsers));
+
+    public async Task<WriteVerification?> ReverifyAsync(string runId, string? controlId, bool historical = false)
+    {
+        WriteVerification? result = null;
+        await RunExclusiveAsync("Re-verifying recorded write using read-only requests", async _ =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false;
+            var service = new WriteVerificationService(Evidence, SystemClock.Instance);
+            result = controlId is null
+                ? await service.VerifyRecoveryAsync(connection.Graph, connection.Session, RequireStandard(), runId, OperationToken)
+                : await service.VerifyDeploymentAsync(connection.Graph, connection.Session, RequireStandard(), runId, controlId, historical, OperationToken);
+        });
+        return result;
+    }
 
     private async Task LoadLicencesCoreAsync(bool includeUsers)
     {

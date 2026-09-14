@@ -27,7 +27,7 @@ public sealed class TenantMismatchException : ToolkitException
 }
 
 /// <summary>A write was attempted that the current session or safety rules do not permit.</summary>
-public sealed class WriteDeniedException : ToolkitException
+public sealed class WriteDeniedException : WriteNotSentException
 {
     public WriteDeniedException(string message) : base(message) { }
 }
@@ -92,7 +92,14 @@ public sealed class PermissionException : GraphRequestException
     }
 }
 
-/// <summary>A write request ended without a definitive answer (timeout, connection reset). The outcome is unknown.</summary>
+/// <summary>The transport confirms no HTTP write was sent; the original plan is still single-use.</summary>
+public class WriteNotSentException : ToolkitException
+{
+    public WriteNotSentException(string message) : base(message) { }
+    public WriteNotSentException(string message, Exception? inner) : base(message, inner) { }
+}
+
+/// <summary>A request may have reached Graph; never replay it based on the exception type.</summary>
 public sealed class AmbiguousWriteException : ToolkitException
 {
     public AmbiguousWriteException(string message, Exception? inner) : base(message, inner) { }

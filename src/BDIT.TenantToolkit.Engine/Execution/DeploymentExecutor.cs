@@ -25,6 +25,7 @@ public sealed class ExecutionRequest
     public string? AcknowledgedSnapshotId { get; init; }
     public TimeSpan MaxSnapshotAge { get; init; } = TimeSpan.FromMinutes(20);
     public TimeSpan MaxPlanAge { get; init; } = TimeSpan.FromMinutes(20);
+    public TimeSpan VerificationTimeout { get; init; } = TimeSpan.FromSeconds(60);
 }
 
 /// <summary>
@@ -117,7 +118,7 @@ public sealed class DeploymentExecutor
         var mappings = request.Mappings;
         var failed = false;
         var stopped = false;
-        var ct = CancellationToken.None;
+        var ct = control.ReadCancellation;
 
         try
         {
@@ -158,7 +159,7 @@ public sealed class DeploymentExecutor
                     try
                     {
                         writeInvoked = true;
-                        response = await graph.WriteAsync(def.ApiVersion, method, path, payload, ct);
+                        response = await graph.WriteAsync(def.ApiVersion, method, path, payload, CancellationToken.None);
                     }
                     catch (AmbiguousWriteException ex)
                     {
@@ -208,7 +209,9 @@ public sealed class DeploymentExecutor
                     Journal(run, "Info", $"{row.ControlId}: write accepted; object {id} recorded as toolkit-managed.", row.ControlId);
 
                     progress?.Report($"Reading back {row.ControlId}");
-                    var readback = await RecoveryObjectReader.ReadAsync(graph, def, id, ct);
+                    using var verification = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    verification.CancelAfter(request.VerificationTimeout);
+                    var readback = await RecoveryObjectReader.ReadAsync(graph, def, id, verification.Token);
                     result.AfterObject = (JsonObject)readback.DeepClone();
                     result.ReadbackDigest = CanonicalJson.Sha256(readback);
                     var pass = CanonicalJson.IsSubset(readback, payload) && RecoveryObjectReader.IsInactive(def, readback);
@@ -225,9 +228,10 @@ public sealed class DeploymentExecutor
                 }
                 catch (Exception ex)
                 {
-                    if (!writeInvoked) result.WriteAcceptance = WriteAcceptance.NotAttempted;
+                    if (!writeInvoked || (result.WriteAcceptance != WriteAcceptance.Accepted && ex is WriteNotSentException))
+                        result.WriteAcceptance = WriteAcceptance.NotAttempted;
                     result.Status = result.WriteAcceptance == WriteAcceptance.Accepted ? ResultStatus.Completed : ResultStatus.Error;
-                    if (result.WriteAcceptance == WriteAcceptance.Unknown && ex is GraphRequestException { StatusCode: >= 400 and < 500 })
+                    if (result.WriteAcceptance == WriteAcceptance.Unknown && ex is GraphRequestException { StatusCode: >= 400 and < 500 and not 408 })
                         result.WriteAcceptance = WriteAcceptance.Rejected;
                     result.Configuration = result.WriteAcceptance == WriteAcceptance.NotAttempted ? ConfigurationVerification.NotRun : ConfigurationVerification.Unknown;
                     result.Reason = (result.WriteAcceptance == WriteAcceptance.Accepted ? "Write accepted; follow-up recording or verification failed. " : "")
@@ -263,11 +267,18 @@ public sealed class DeploymentExecutor
             {
                 progress?.Report("Capturing after-change snapshot");
                 Journal(run, "Info", "Collecting after-change snapshot.");
-                var after = await _collector.CollectAsync(graph, session, profile, request.Standard, null, ct);
+                using var afterBudget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                afterBudget.CancelAfter(request.VerificationTimeout);
+                var after = await _collector.CollectAsync(graph, session, profile, request.Standard, null, afterBudget.Token, preservePartialOnCancellation: true);
                 _evidence.SaveSnapshot(after);
                 run.AfterSnapshotId = after.Id;
                 run.AfterComplete = after.Complete;
-                if (!after.Complete) failed = true;
+                if (!after.Complete)
+                {
+                    failed = true;
+                    run.AfterError = control.StopRequested ? "After-change capture cancelled by operator; partial evidence retained."
+                        : afterBudget.IsCancellationRequested ? "After-change capture reached its time budget; partial evidence retained." : "After-change capture is incomplete.";
+                }
             }
             catch (Exception ex)
             {
@@ -318,7 +329,8 @@ public sealed class DeploymentExecutor
         {
             Plan = Copy(request.Plan), Profile = Copy(request.Profile), Standard = standard, Snapshot = snapshot,
             Mappings = mappings, Session = Copy(request.Session), Graph = request.Graph,
-            AcknowledgedSnapshotId = request.AcknowledgedSnapshotId, MaxSnapshotAge = request.MaxSnapshotAge, MaxPlanAge = request.MaxPlanAge
+            AcknowledgedSnapshotId = request.AcknowledgedSnapshotId, MaxSnapshotAge = request.MaxSnapshotAge, MaxPlanAge = request.MaxPlanAge,
+            VerificationTimeout = request.VerificationTimeout
         };
     }
 

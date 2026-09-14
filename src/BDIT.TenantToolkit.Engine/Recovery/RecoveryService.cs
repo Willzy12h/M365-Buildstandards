@@ -17,12 +17,20 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
     public IReadOnlyList<ChangeRegisterRow> Register(string tenantId)
     {
         var recoveries = evidence.LoadRecoveryRuns(tenantId);
+        var verifications = evidence.LoadVerifications(tenantId);
         return evidence.RequireIntactRuns(tenantId).SelectMany(run => run.Results
             .Where(r => r.PlannedAction is nameof(PlanAction.Create) or nameof(PlanAction.Update))
-            .Select(r => new ChangeRegisterRow(run.Id, r.ControlId, r.Name, r.Collection, r.PlannedAction,
-                r.ObjectId ?? "Not returned", r.WrittenAt ?? run.StartedAt, r.WriteAcceptance, r.Configuration,
-                recoveries.FirstOrDefault(x => x.SourceRunId == run.Id && x.ControlId == r.ControlId) is { } recovery
-                    ? $"{recovery.Action}: {recovery.Status} / {recovery.Verification}" : "No recovery attempted"))).ToList();
+            .Select(r =>
+            {
+                var recovery = recoveries.FirstOrDefault(x => x.SourceRunId == run.Id && x.ControlId == r.ControlId);
+                var verified = verifications.FirstOrDefault(v => v.Verified && v.SourceKind == "Deployment" && v.SourceRunId == run.Id && v.SourceDigest == run.IntegrityDigest && v.ControlId == r.ControlId);
+                var recoveryVerified = recovery is not null && verifications.Any(v => v.Verified && v.SourceKind == "Recovery" && v.SourceRunId == recovery.Id && v.SourceDigest == recovery.IntegrityDigest);
+                var detail = recovery is null ? "No recovery attempted" : $"{recovery.Action}: {(recoveryVerified ? "Completed / Pass (re-verified)" : recovery.Status + " / " + recovery.Verification)}";
+                if (verified is not null) detail += $" · Deployment re-verified {verified.At}; original evidence retained.";
+                return new ChangeRegisterRow(run.Id, r.ControlId, r.Name, r.Collection, r.PlannedAction,
+                    r.ObjectId ?? "Not returned", r.WrittenAt ?? run.StartedAt, r.WriteAcceptance,
+                    verified is null ? r.Configuration : ConfigurationVerification.Pass, detail, recovery?.Id, EvidenceStore.IsHistoricalCandidate(run, r));
+            })).ToList();
     }
 
     public async Task<RecoveryPlan> PreviewAsync(IGraphClient graph, TenantSession session, StandardCatalogue standard,
@@ -127,20 +135,22 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
             await graph.RecoverAsync(definition.ApiVersion, plan.Action, definition.BasePath + "/" + plan.ObjectId, plan.Payload, CancellationToken.None);
             run.WriteAcceptance = WriteAcceptance.Accepted;
             evidence.SaveRecoveryRun(run);
+            using var verification = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            verification.CancelAfter(TimeSpan.FromSeconds(60));
             if (plan.Action == RecoveryAction.DeleteCreatedObject)
             {
-                try { run.AfterObject = await RecoveryObjectReader.ReadAsync(graph, definition, plan.ObjectId, CancellationToken.None); }
+                try { run.AfterObject = await graph.GetAsync(definition.ApiVersion, definition.BasePath + "/" + plan.ObjectId, verification.Token); }
                 catch (GraphRequestException ex) when (ex.StatusCode == 404) { run.ObjectAbsent = true; }
                 if (run.ObjectAbsent)
                 {
-                    var remaining = await graph.GetAllAsync(definition.ApiVersion, definition.Path, CancellationToken.None);
+                    var remaining = await graph.GetAllAsync(definition.ApiVersion, definition.Path, verification.Token);
                     run.ObjectAbsent = remaining.All(x => !string.Equals(x["id"]?.GetValue<string>(), plan.ObjectId, StringComparison.OrdinalIgnoreCase));
                 }
                 run.Verification = run.ObjectAbsent ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown;
             }
             else
             {
-                run.AfterObject = await RecoveryObjectReader.ReadAsync(graph, definition, plan.ObjectId, CancellationToken.None);
+                run.AfterObject = await RecoveryObjectReader.ReadAsync(graph, definition, plan.ObjectId, verification.Token);
                 run.Verification = CanonicalJson.IsSubset(run.AfterObject, plan.Payload!) && RecoveryObjectReader.IsInactive(definition, run.AfterObject)
                     ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown;
             }
@@ -158,7 +168,11 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         }
         catch (Exception ex)
         {
-            if (!invoked) run.WriteAcceptance = WriteAcceptance.NotAttempted;
+            if (!invoked || (run.WriteAcceptance != WriteAcceptance.Accepted && ex is WriteNotSentException))
+            {
+                run.WriteAcceptance = WriteAcceptance.NotAttempted;
+                run.Verification = ConfigurationVerification.NotRun;
+            }
             else if (run.WriteAcceptance != WriteAcceptance.Accepted && ex is GraphRequestException { StatusCode: >= 400 and < 500 } request && request.StatusCode != 408)
                 run.WriteAcceptance = WriteAcceptance.Rejected;
             run.Status = RunStatus.ReviewRequired;
@@ -178,7 +192,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         var runs = evidence.RequireIntactRuns(tenant);
         var source = runs.SingleOrDefault(r => r.Id == runId) ?? throw new SafetyViolationException("Source deployment was not found.");
         var item = source.Results.SingleOrDefault(r => r.ControlId == control) ?? throw new SafetyViolationException("Recorded change was not found.");
-        if (item.WriteAcceptance != WriteAcceptance.Accepted || !ProfileValidator.IsGuid(item.ObjectId ?? ""))
+        if (!evidence.HasAcceptedWrite(source, item) || !ProfileValidator.IsGuid(item.ObjectId ?? ""))
             throw new SafetyViolationException("Recovery needs a confirmed write and its exact returned object ID. Unknown writes require manual reconciliation.");
         var definition = standard.FindCollection(item.Collection) ?? throw new SafetyViolationException("Unknown policy collection.");
         if (!definition.Writable || definition.ApiVersion != GraphApi.V1 || !RecoverySafety.Supports(definition.BasePath))
@@ -187,8 +201,8 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         var mapping = mappings.Find(item.ControlId);
         if (mapping is null || mapping.ObjectId != item.ObjectId || mapping.Collection != item.Collection)
             throw new SafetyViolationException("Current ownership does not match this recorded object. Recovery cannot adopt an object by name.");
-        var origin = runs.SelectMany(r => r.Results).Any(r => r.ObjectId == item.ObjectId && r.Collection == item.Collection
-            && r.PlannedAction == nameof(PlanAction.Create) && r.WriteAcceptance == WriteAcceptance.Accepted);
+        var origin = runs.Any(record => record.Results.Any(r => r.ObjectId == item.ObjectId && r.Collection == item.Collection
+            && r.PlannedAction == nameof(PlanAction.Create) && evidence.HasAcceptedWrite(record, r)));
         if (!origin) throw new SafetyViolationException("No confirmed toolkit creation record establishes ownership.");
         if (action == RecoveryAction.DeleteCreatedObject && item.PlannedAction != nameof(PlanAction.Create))
             throw new SafetyViolationException("Select the original creation record to delete this object.");

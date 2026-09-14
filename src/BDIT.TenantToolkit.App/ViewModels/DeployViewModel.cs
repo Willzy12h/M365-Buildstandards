@@ -59,7 +59,7 @@ public sealed class DeployViewModel : PageViewModel
         get
         {
             var run = Workspace.LastRun;
-            if (IsRunning) return "Deployment running. Pause or stop takes effect at the next action boundary; the current write always completes and an after-change snapshot is captured.";
+            if (IsRunning) return "Deployment running. " + Workspace.StopGuidance;
             if (run is null) return "No deployment has been started in this session.";
             return $"Run {run.Id} · {run.Status} · started {run.StartedAt} · ended {run.EndedAt} · before {run.BeforeSnapshotId} · after {run.AfterSnapshotId ?? "not captured"}{(run.AfterComplete == false ? " (INCOMPLETE)" : "")}{(run.Error is null ? "" : " · " + run.Error)}";
         }

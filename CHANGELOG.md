@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0-preview.3 (2026-09-14) — independent review fixes
+
+- Distinguish confirmed pre-request failures from uncertain write outcomes. Auth/guard failures before transport no longer permanently lock a control; original plans remain single-use.
+- Add read-only deployment/recovery re-verification with separate integrity-checked evidence and safe local mapping finalisation. Unknown modern writes remain blocked; completed 1.0.0 records require explicit acknowledgement and fresh exact-ID, ownership and settings checks.
+- Cancel deployment reads on Stop while preserving the in-flight write; bound policy readback and after-capture to 60 seconds and retain incomplete capture evidence.
+- Explain consent redirect fallback to Validate setup, display interrupted runs on Overview and send the current application version during setup sign-in.
+- Extend regression tests and offline UI rendering. Real consent redirects, Graph propagation, recovery and connected shutdown still require authorised tenant validation.
+
 ## 1.1.0-preview.2 (2026-09-14) — recovery and licence visibility
 
 - Added a durable policy change register, selective deletion of recorded creations, restoration of supported inactive updates and reviewed Conditional Access disablement.

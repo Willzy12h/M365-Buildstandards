@@ -104,9 +104,21 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         Validations.Clear();
         var id = mode == SessionMode.Assessment ? AssessmentClientId : DeploymentClientId;
         using var callback = AdminConsentCallback.Create(TenantId.Trim(), id.Trim(), ApplicationSetupService.RequiredScopes(standard, mode));
-        progress.Report("Review Microsoft's administrator consent screen. The toolkit will validate the actual grants after you return.");
+        Outcome = "Review Microsoft's consent screen. If the browser reports AADSTS50011 or a redirect error, stop waiting and select Validate setup. A redirect failure does not prove consent failed.";
+        progress.Report(Outcome);
         OpenBrowser(callback.ConsentUri.ToString());
-        var response = await callback.WaitAsync(Workspace.OperationToken);
+        AdminConsentCallbackResult response;
+        try { response = await callback.WaitAsync(Workspace.OperationToken); }
+        catch (TimeoutException)
+        {
+            Outcome = "The browser callback timed out. Select Validate setup to read actual grants; do not recreate the applications or infer consent failure from the missing callback.";
+            return;
+        }
+        catch (OperationCanceledException) when (Workspace.OperationToken.IsCancellationRequested)
+        {
+            Outcome = "Stopped waiting for the browser. Consent may already exist. Select Validate setup to check the actual grants.";
+            return;
+        }
         Outcome = response.Message;
         if (context != ValidationContext) throw new ConfigurationException("Setup inputs changed while consent was open. Validate the current IDs again.");
         if (response.ApprovalReported && ProfileValidator.IsGuid(AssessmentClientId.Trim()) && ProfileValidator.IsGuid(DeploymentClientId.Trim()))

@@ -23,3 +23,9 @@ Stop waits for the current application/enterprise-application pair and after evi
 - [Microsoft first-party application identity](https://learn.microsoft.com/en-us/troubleshoot/entra/entra-id/governance/verify-first-party-apps-sign-in).
 
 Live bootstrap sign-in, consent propagation, creation and engineer access remain unverified until authorised tenant testing.
+
+### Localhost consent redirect: live check still required
+
+The registration uses `http://localhost`; the listener uses a temporary port. Microsoft's [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url) describe localhost port matching, while the [administrator consent endpoint](https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent) requires a registered redirect URI. These pages were checked on 14 September 2026, but do not independently establish this specific admin-consent flow in a real tenant.
+
+Test it first in the disposable tenant. If the browser shows AADSTS50011 or cannot return to the listener, stop waiting in the toolkit and choose **Validate setup**. Consent may already have been granted; validation reads actual grants rather than trusting the callback. Do not recreate applications or assume consent failed because the redirect did. Record the actual redirect outcome before changing registration semantics.

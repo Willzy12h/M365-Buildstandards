@@ -101,6 +101,12 @@ internal static class Program
                         scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
                         SaveImage(content, size, Path.Combine(output, nav.Key + "-bottom-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                         scroller.ScrollToTop(); content.UpdateLayout(); Pump();
+                        if (nav.Key == "recovery")
+                        {
+                            scroller.ScrollToVerticalOffset(scroller.ScrollableHeight / 2); content.UpdateLayout(); Pump();
+                            SaveImage(content, size, Path.Combine(output, "recovery-verification-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                            scroller.ScrollToTop(); content.UpdateLayout(); Pump();
+                        }
                     }
                     if (nav.Key == "plan")
                     {

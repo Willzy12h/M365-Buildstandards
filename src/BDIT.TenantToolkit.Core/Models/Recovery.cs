@@ -53,4 +53,5 @@ public sealed class RecoveryRun
 }
 
 public sealed record ChangeRegisterRow(string RunId, string ControlId, string Name, string Collection,
-    string Action, string ObjectId, string At, string Acceptance, string Verification, string RecoveryStatus);
+    string Action, string ObjectId, string At, string Acceptance, string Verification, string RecoveryStatus,
+    string? RecoveryRunId = null, bool Historical = false);

@@ -2,6 +2,8 @@
 
 ## Current work
 
+Preview.3 addresses Claude's review of `6712d8e`: explicit not-sent write classification, read-only re-verification, acknowledged historical evidence reconciliation, cancellable deployment reads and bounded follow-up capture. See [review dispositions](CLAUDE-REVIEW-RESPONSE.md). Original records remain unchanged; unknown modern requests remain blocked.
+
 [PR #2](https://github.com/Willzy12h/M365-Buildstandards/pull/2), branch `astra/engineer-workflow`, targets integration and depends on [PR #1](https://github.com/Willzy12h/M365-Buildstandards/pull/1). Until #1 is merged, #2 includes its imported source. Both source repositories and Claude's coordination branch remain untouched. Merge through review.
 
 The user authorised source development of app setup, account/exclusion automation, usability, selective recovery and licence visibility, and explicitly approved PR publication. No live tenant, consent or registration actions were performed in this development session.
@@ -29,7 +31,7 @@ See [testing evidence](TESTING-EVIDENCE.md) for actual checks. Source and synthe
 | P1 | Implemented but live-unverified | Capture pagination/details, actual permissions/licensing, all 12 candidate recipes, readback and supported inactive PATCH cases |
 | P1 | Connected-session-unverified | Sign-in/capture/setup/policy cancellation and shutdown, network failure and recovery |
 | P1 | Implemented; synthetic tests only | In an authorised disposable tenant, create a disabled/unassigned candidate, remove it and confirm absence; test restoration and reviewed CA disablement with full evidence |
-| P1 | Manual recovery | Ambiguous writes require manual reconciliation. No automatic rollback/adoption/delete-and-retry; retain evidence. A supported reconciliation/resume UI remains future work |
+| P1 | Manual recovery for unknown acceptance | Accepted writes now have read-only re-verification. Truly ambiguous requests still require separately reviewed reconciliation; no automatic rollback/adoption/delete-and-retry |
 | P2 | Limited validation | Group-based assignment, PIM/custom-role effectiveness and Intune RBAC are not inferred from direct role/assignment reads |
 | P2 | Acceptance pending | Human keyboard, screen-reader, high-DPI and representative large-tenant usability testing; offline rendering is narrower evidence |
 | P2 | Manual-only scope | 33 controls have no creation recipe. Add each only with reviewed settings, supported API behaviour, safeguards and tests |

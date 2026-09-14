@@ -6,12 +6,17 @@ using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
+public sealed record RecoveryAttemptChoice(string Id, string Summary);
+
 public sealed class RecoveryViewModel : PageViewModel
 {
     private ChangeRegisterRow? _selected;
     private RecoveryPlan? _plan;
     private string _tenant = "", _typedTenant = "", _result = "";
     private bool _approved, _reviewedDrift;
+    private bool _historicalAcknowledged;
+    private IReadOnlyList<RecoveryRun> _recoveryRuns = Array.Empty<RecoveryRun>();
+    private RecoveryAttemptChoice? _selectedRecovery;
     public RecoveryViewModel(ShellViewModel shell) : base(shell, "Undo and recovery")
     {
         LoadRegisterCommand = Command(LoadRegisterAsync, () => Workspace.Profile is not null && Workspace.Idle);
@@ -19,6 +24,9 @@ public sealed class RecoveryViewModel : PageViewModel
         PreviewRestoreCommand = Command(() => Preview(RecoveryAction.RestoreUpdate), CanPreview);
         PreviewDisableCommand = Command(() => Preview(RecoveryAction.DisableConditionalAccess), CanPreview);
         ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.Idle && Plan is not null && Approved);
+        ReverifyDeploymentCommand = Command(() => Reverify(false), () => Workspace.IsConnected && Workspace.Idle && Selected is not null
+            && (Selected.Acceptance == WriteAcceptance.Accepted || (Selected.Historical && HistoricalAcknowledged)));
+        ReverifyRecoveryCommand = Command(() => Reverify(true), () => Workspace.IsConnected && Workspace.Idle && SelectedRecovery is not null);
     }
     public ObservableCollection<ChangeRegisterRow> Changes { get; } = new();
     public ICommand LoadRegisterCommand { get; }
@@ -26,7 +34,23 @@ public sealed class RecoveryViewModel : PageViewModel
     public ICommand PreviewRestoreCommand { get; }
     public ICommand PreviewDisableCommand { get; }
     public ICommand ExecuteCommand { get; }
-    public ChangeRegisterRow? Selected { get => _selected; set { if (SetProperty(ref _selected, value)) ClearApproval(); } }
+    public ICommand ReverifyDeploymentCommand { get; }
+    public ICommand ReverifyRecoveryCommand { get; }
+    public ObservableCollection<RecoveryAttemptChoice> RecoveryAttempts { get; } = new();
+    public RecoveryAttemptChoice? SelectedRecovery { get => _selectedRecovery; set => SetProperty(ref _selectedRecovery, value); }
+    public bool HistoricalAcknowledged { get => _historicalAcknowledged; set => SetProperty(ref _historicalAcknowledged, value); }
+    public ChangeRegisterRow? Selected
+    {
+        get => _selected;
+        set
+        {
+            if (!SetProperty(ref _selected, value)) return;
+            ClearApproval(); HistoricalAcknowledged = false; RecoveryAttempts.Clear();
+            foreach (var run in _recoveryRuns.Where(r => r.SourceRunId == value?.RunId && r.ControlId == value?.ControlId && r.WriteAcceptance == WriteAcceptance.Accepted))
+                RecoveryAttempts.Add(new(run.Id, $"{run.Action} · {run.Status} / {run.Verification} · {run.StartedAt} · {run.Id}"));
+            SelectedRecovery = RecoveryAttempts.FirstOrDefault();
+        }
+    }
     public RecoveryPlan? Plan { get => _plan; private set { SetProperty(ref _plan, value); OnPropertyChanged(nameof(PreviewText)); OnPropertyChanged(nameof(CurrentSettings)); OnPropertyChanged(nameof(RestorationSettings)); } }
     public bool Approved { get => _approved; set => SetProperty(ref _approved, value); }
     public bool ReviewedDrift { get => _reviewedDrift; set => SetProperty(ref _reviewedDrift, value); }
@@ -44,9 +68,21 @@ public sealed class RecoveryViewModel : PageViewModel
         await Workspace.RunExclusiveAsync("Reading the durable change register", async _ =>
         {
             var rows = await Task.Run(() => Workspace.Recovery.Register(tenant));
+            _recoveryRuns = await Task.Run(() => Workspace.Evidence.LoadRecoveryRuns(tenant));
             Changes.Clear(); foreach (var row in rows) Changes.Add(row);
             Selected = null;
         });
+    }
+    private async Task Reverify(bool recovery)
+    {
+        var selected = Selected ?? throw new ToolkitException("Select a recorded change.");
+        var id = recovery ? SelectedRecovery?.Id ?? throw new ToolkitException("Select an accepted recovery attempt.") : selected.RunId;
+        var historical = HistoricalAcknowledged;
+        ClearApproval();
+        var record = await Workspace.ReverifyAsync(id, recovery ? null : selected.ControlId, historical);
+        Result = record is null ? "Re-verification stopped before completion. No tenant write was sent."
+            : $"Re-verification {(record.Verified ? "passed" : "incomplete")} · {record.Detail}\nEvidence: {record.Id}";
+        await LoadRegisterAsync();
     }
     private async Task Preview(RecoveryAction action)
     {
@@ -66,6 +102,6 @@ public sealed class RecoveryViewModel : PageViewModel
     public override void Refresh()
     {
         var tenant = Workspace.Session?.TenantId ?? Workspace.Profile?.TenantId ?? "";
-        if (_tenant != tenant || !Workspace.IsConnected) { _tenant = tenant; Changes.Clear(); Selected = null; ClearApproval(); Result = ""; }
+        if (_tenant != tenant || !Workspace.IsConnected) { _tenant = tenant; _recoveryRuns = Array.Empty<RecoveryRun>(); Changes.Clear(); Selected = null; RecoveryAttempts.Clear(); SelectedRecovery = null; ClearApproval(); Result = ""; }
     }
 }

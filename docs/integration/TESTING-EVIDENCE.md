@@ -1,5 +1,16 @@
 # Testing evidence — 14 September 2026
 
+## Independent review fixes — 1.1.0-preview.3
+
+- Complete local Windows Release suite: **237 passed, 0 failed, 0 skipped**. Build-Portable ran the suite after a solution build with **0 warnings / 0 errors**. The previous targeted pass was 90/90, followed by 236/236 before adding malformed-write-route coverage.
+- New tests prove pre-token/pre-route/pre-send cancellation failures send no HTTP write, and engine/recovery record NotAttempted without permanently blocking a fresh plan. Follow-up failures preserve Accepted.
+- Re-verification tests cover delayed CA/Intune deletion, read-only deployment checks, restore mapping finalisation, state-only containment, repeated read verification, unknown-write refusal, tenant/ownership/drift gates, cancellation, corrupted verification evidence and acknowledged 1.0.0 reconciliation with unchanged original files.
+- Hung-preflight and after-capture-budget tests exercise Stop, truthful terminal states and retained incomplete evidence. They do not simulate operating-system or disk hangs.
+- Offline WPF harness: **26 page/size combinations, 26 synthetic PNGs, 0 binding errors**, including the new recovery verification panel; idle-window shutdown passed. New panel inspected at 1180x760. No tenant calls.
+- Local SDK 8.0.425, workspace offline NuGet feed; no fresh vulnerability audit is claimed. Self-contained win-x64 packaging uses the repository build script. Current GitHub validation is available through [PR #2 checks](https://github.com/Willzy12h/M365-Buildstandards/pull/2/checks); verify the submitted head's conclusion rather than relying on previous green runs.
+
+No real tenant evidence was inspected or migrated. Real token revocation, admin-consent localhost redirect, Graph replication, connected shutdown timing and human accessibility remain acceptance tasks. See [Claude review response](CLAUDE-REVIEW-RESPONSE.md). Historical preview.2 evidence below is preserved separately.
+
 ## Engineer workflow preview 1.1.0-preview.2
 
 This section describes PR #2; the 110-test baseline import below is historical evidence.

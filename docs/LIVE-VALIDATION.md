@@ -18,6 +18,7 @@ Unit tests exercise safety logic with a scripted Graph client. They cannot prove
 | Enable deployment access | Second sign-in with the deployment registration; mode badge turns amber; write scopes observed |
 | Disconnect, then reconnect | A fresh Microsoft sign-in is required (cache removed) |
 | Token expiry during a long capture | Silent renewal works; if Microsoft requires interaction the operation fails with a clear reconnect message |
+| Admin-consent browser return on temporary localhost port | Record whether callback succeeds. On AADSTS50011/failed redirect, stop waiting and Validate setup; inspect actual grants before any further creation |
 
 ## Collection
 
@@ -78,6 +79,9 @@ Start with one disposable candidate and confirm its exact returned ID before tes
 | Assigned Intune object or missing creation/ownership evidence | Recovery blocked; separate administrative procedure required |
 | Interrupted/uncertain recovery request | No retry; intent/outcome retained; affected control blocked pending reconciliation |
 | Recovery accepted but readback unavailable | Accepted and unverified displayed separately; preserve evidence and independently verify outcome |
+| After delayed deletion, choose Re-verify recovery in assessment mode | Reads only: direct 404 plus complete collection absence, separate verification evidence, mapping finalised; original recovery record unchanged and no second DELETE |
+| Accepted deployment readback fails, then Re-verify deployment | Exact ID, latest ownership, matching settings and disabled/unassigned state verified; no repeated POST/PATCH |
+| Re-verify an Unknown modern write | Refused even if a search returns nothing; original block retained |
 
 Record actual device/sign-in effects separately from Graph configuration verification. See [recovery](RECOVERY.md) for supported routes and limitations.
 
@@ -86,7 +90,9 @@ Record actual device/sign-in effects separately from Graph configuration verific
 | Check | Expected |
 |---|---|
 | Disconnect the network during a write | Run stops with *Review required*; acceptance and configuration remain truthful. A returned ID/mapping may already be recorded; unknown acceptance is not failure proof. After capture is attempted and affected controls remain blocked pending reconciliation |
-| Close the window during a run | Prompt explains the in-flight write completes; window closes after the after-change capture |
+| Close or Stop during a hung preflight/readback/after-capture | Reads cancel; incomplete after evidence retained. An in-flight policy request keeps its configured timeout (default 100 s). Record actual elapsed time; readback and after-capture each have a 60 s budget when not cancelled |
+| Force token renewal failure before a policy request in an approved disposable test | NotAttempted / NotRun and Review required, no HTTP mutation, fresh reviewed plan allowed; original plan remains single-use |
+| Start after an interrupted policy run | Overview calls attention to interrupted evidence; unknown outcomes remain blocked |
 | 429 throttling during capture | Reads retry honouring `Retry-After`; log shows the wait |
 
 ## Reports

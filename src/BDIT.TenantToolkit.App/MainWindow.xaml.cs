@@ -22,7 +22,7 @@ public partial class MainWindow : Window
         {
             var deploying = shell.Workspace.Executor.IsRunning;
             var message = deploying
-                ? "A deployment is in progress.\n\nThe toolkit will stop at the next safe boundary, finish the current write, capture the after-change snapshot and then close.\n\nStop and close?"
+                ? "A deployment is in progress.\n\n" + shell.Workspace.StopGuidance + "\n\nStop and close?"
                 : "An operation is in progress.\n\nThe toolkit will request cancellation, wait for the operation to finish and disconnect before closing.\n\nStop and close?";
             var result = MessageBox.Show(message, deploying ? "Deployment in progress" : "Operation in progress", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;

@@ -25,7 +25,7 @@ public sealed class OverviewViewModel : PageViewModel
     public LicenceSummary? Selected { get => _selected; set { if (SetProperty(ref _selected, value)) { RefreshUsers(); OnPropertyChanged(nameof(SelectedDetail)); } } }
     public string SelectedDetail => Selected is null ? "Select a licence, then load user assignments. Search by name, sign-in name or object ID." : Selected.Product + " — " + Selected.Detail;
     public string Summary => Workspace.Session is null ? "Connect to a tenant to see its actual subscriptions and licence assignments."
-        : $"{Workspace.Session.TenantName} · {Workspace.Session.PrimaryDomain}\n{Workspace.Session.TenantId}";
+        : $"{Workspace.Session.TenantName} · {Workspace.Session.PrimaryDomain}\n{Workspace.Session.TenantId}\n{Workspace.InterruptedNotice}";
     public string ReportStatus => Workspace.Licences is not { } report ? "Licence inventory has not been loaded."
         : $"Captured {report.CapturedAt} · subscriptions: {(report.SubscriptionsComplete ? "collected" : "incomplete")} · user assignments: {(report.UsersComplete ? "collected" : "not complete")}\n{report.SubscriptionError} {report.UserError}";
     public string UserStatus => Workspace.Licences?.UsersComplete == true ? $"{Users.Count} matching assigned users displayed." : "User counts and scope are unknown until a complete assignment read succeeds.";

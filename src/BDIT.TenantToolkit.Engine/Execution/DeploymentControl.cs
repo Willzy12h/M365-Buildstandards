@@ -5,6 +5,8 @@ public sealed class DeploymentControl
 {
     private volatile bool _paused;
     private volatile bool _stop;
+    private readonly CancellationTokenSource _reads = new();
+    public CancellationToken ReadCancellation => _reads.Token;
 
     public bool Paused => _paused;
     public bool StopRequested => _stop;
@@ -16,6 +18,7 @@ public sealed class DeploymentControl
     {
         _stop = true;
         _paused = false;
+        _reads.Cancel();
     }
 
     public async Task WaitWhilePausedAsync(CancellationToken ct)

@@ -86,6 +86,60 @@ public class ExecutorTests
     }
 
     [Fact]
+    public async Task Explicit_not_sent_failure_does_not_block_a_fresh_plan()
+    {
+        using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        h.Graph.ThrowOnWrite = new WriteNotSentException("Token renewal failed before send", new AuthenticationRequiredException("Reconnect"));
+        var run = await h.RunAsync(plan, snapshot);
+        Assert.Equal(WriteAcceptance.NotAttempted, run.Results.Single().WriteAcceptance);
+        Assert.Equal(ConfigurationVerification.NotRun, run.Results.Single().Configuration); Assert.Equal(RunStatus.ReviewRequired, run.Status);
+        h.Graph.ThrowOnWrite = null; var (_, fresh) = await h.CaptureAndPlanAsync("CA-001");
+        h.Evidence.AssertPlanHasNotRun(fresh);
+        Assert.Throws<PlanValidationException>(() => h.Evidence.AssertPlanHasNotRun(plan));
+    }
+
+    [Fact]
+    public async Task Stop_cancels_a_hung_preflight_without_sending_a_write_and_saves_partial_capture()
+    {
+        using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        h.Graph.BeforeRead = async (_, token) => { entered.TrySetResult(); await Task.Delay(Timeout.Infinite, token); };
+        var control = new DeploymentControl(); var task = h.RunAsync(plan, snapshot, control);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(2)); control.Stop();
+        var run = await task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Empty(h.Graph.Writes); Assert.Equal(WriteAcceptance.NotAttempted, run.Results.Single().WriteAcceptance);
+        Assert.False(run.AfterComplete); Assert.Contains("cancelled by operator", run.AfterError);
+        Assert.NotNull(h.Evidence.LoadSnapshot(h.Session.TenantId, run.AfterSnapshotId!));
+        Assert.DoesNotContain(run.Results, r => r.Status == ResultStatus.InProgress);
+    }
+
+    [Fact]
+    public async Task After_capture_has_one_total_budget_and_preserves_accepted_write()
+    {
+        using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        h.Graph.BeforeWrite = (_, _) =>
+        {
+            h.Graph.BeforeRead = (_, token) => Task.Delay(Timeout.Infinite, token);
+            return Task.CompletedTask;
+        };
+        var run = await h.Executor.StartAsync(new ExecutionRequest { Plan = plan, Profile = h.Profile, Standard = h.Standard,
+            Snapshot = snapshot, Mappings = h.Evidence.LoadMappings(h.Session.TenantId), Session = h.Session, Graph = h.Graph,
+            AcknowledgedSnapshotId = snapshot.Id, VerificationTimeout = TimeSpan.FromMilliseconds(50) }, new(), null).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Single(h.Graph.Writes); Assert.Equal(WriteAcceptance.Accepted, run.Results.Single().WriteAcceptance);
+        Assert.False(run.AfterComplete); Assert.Contains("time budget", run.AfterError);
+    }
+
+    [Fact]
+    public async Task Followup_authentication_failure_does_not_erase_accepted_write()
+    {
+        using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        h.Graph.MutateReadback = _ => throw new AuthenticationRequiredException("Follow-up token expired");
+        var run = await h.RunAsync(plan, snapshot);
+        Assert.Equal(WriteAcceptance.Accepted, run.Results.Single().WriteAcceptance);
+        Assert.Equal(ConfigurationVerification.Unknown, run.Results.Single().Configuration);
+    }
+
+    [Fact]
     public async Task Unknown_write_intent_is_durable_before_the_graph_request()
     {
         using var h = new Harness();
@@ -380,7 +434,8 @@ public class ExecutorTests
         var control = new DeploymentControl();
         h.Graph.BeforeWrite = (_, _) => { control.Stop(); return Task.CompletedTask; };
         var run = await h.RunAsync(plan, snapshot, control);
-        Assert.Equal(RunStatus.Stopped, run.Status);
+        Assert.Equal(RunStatus.ReviewRequired, run.Status);
+        Assert.False(run.AfterComplete); // Stop preserves partial evidence rather than waiting for uncancellable reads.
         Assert.Single(h.Graph.Writes);
         Assert.Equal(ResultStatus.Completed, run.Results[0].Status);
         Assert.Equal(ResultStatus.NotRun, run.Results[1].Status);
@@ -406,7 +461,8 @@ public class ExecutorTests
         var run = await runTask;
         Assert.False(h.Executor.IsRunning);
         Assert.Single(h.Graph.Writes);
-        Assert.Equal(RunStatus.Stopped, run.Status);
+        Assert.Equal(RunStatus.ReviewRequired, run.Status);
+        Assert.False(run.AfterComplete); // Stop preserves partial evidence rather than waiting for uncancellable reads.
         Assert.Equal(ResultStatus.Completed, run.Results[0].Status);
     }
 

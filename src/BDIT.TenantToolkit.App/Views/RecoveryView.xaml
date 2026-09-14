@@ -22,6 +22,15 @@
         <Button Content="Preview disable CA" Command="{Binding PreviewDisableCommand}" Style="{StaticResource WarningButton}"/>
       </WrapPanel>
     </StackPanel></Border>
+    <Border Style="{StaticResource Card}"><StackPanel>
+      <TextBlock Text="Re-verify an accepted write" Style="{StaticResource H2}"/>
+      <TextBlock Text="Uses fresh GET requests only. Keeps the original write record and adds verification evidence. A successful recovery check finalises the local ownership entry. Unknown modern writes remain blocked." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+      <CheckBox Content="For a completed 1.0.0 record, I acknowledge its historical completion and request current ownership/settings verification." IsChecked="{Binding HistoricalAcknowledged}" Margin="0,0,0,12"/>
+      <Button Content="Re-verify selected deployment" Command="{Binding ReverifyDeploymentCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+      <TextBlock Text="Accepted recovery attempt" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+      <ComboBox ItemsSource="{Binding RecoveryAttempts}" SelectedItem="{Binding SelectedRecovery}" DisplayMemberPath="Summary" AutomationProperties.Name="Accepted recovery attempt to re-verify"/>
+      <Button Content="Re-verify selected recovery" Command="{Binding ReverifyRecoveryCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    </StackPanel></Border>
     <Border Style="{StaticResource WarnPanel}"><StackPanel>
       <TextBlock Text="Review the recovery action" Style="{StaticResource H2}"/>
       <TextBlock Text="{Binding PreviewText}"/>
