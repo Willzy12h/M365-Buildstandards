@@ -1,24 +1,24 @@
 # Live Microsoft 365 validation required
 
-Unit tests exercise safety logic with a scripted Graph client. They cannot prove that Microsoft Graph accepts every payload or that permissions behave as documented. Complete the following in an explicitly authorised BDIT test tenant before the toolkit is used against a client tenant. Record outcomes on the Manual checks page of the test tenant profile. Approve a disposable test scope separately; repository development does not authorise these operations.
+Unit tests exercise safety logic with a scripted Graph client. They cannot prove that Microsoft Graph accepts every payload or that permissions behave as documented. Complete the following in an explicitly authorised test tenant before the toolkit is used against a client tenant. Record outcomes on the Manual checks page of the test tenant profile. Approve a disposable test scope separately; repository development does not authorise these operations.
 
 ## Environment
 
 1. A test tenant with Business Premium (Entra ID P1, Intune Plan 1) and at least two test users, one Windows device enrolled in Intune, one iOS device if available.
-2. Use the application setup wizard to create **BDIT Tenant Assessment** and **BDIT Tenant Deployment** in the authorised test tenant, or validate existing IDs. Each is a single-tenant public client with redirect URI `http://localhost`; consent and engineer assignment are separate. See [application setup](APPLICATION-SETUP.md).
+2. Use the application setup wizard to create **M365 BuildStandard Assessment Tool** and **M365 BuildStandard Deployment Tool** in the authorised test tenant, or validate existing IDs. Each uses separate WAM, browser and exact web-consent redirects; review those configured by the wizard. See [application setup](APPLICATION-SETUP.md).
 3. Two emergency access accounts, one named location (office), one MAM-only group.
 
 ## Authentication and connection
 
 | Check | Expected |
 |---|---|
-| Connect read-only with the assessment registration | Browser sign-in completes; header shows tenant name, primary domain, "verified", operator resolved and verified |
+| Connect read-only with the assessment registration | Windows sign-in pop-up completes; header shows tenant name, primary domain, "verified", operator resolved and verified |
 | Connect with the wrong tenant ID in the profile | Connection refused with a tenant mismatch message; no snapshot possible |
 | Connect with an account lacking read roles | Access check lists the failing collections with the expected scope |
-| Enable deployment access | Second sign-in with the deployment registration; mode badge turns amber; write scopes observed |
-| Disconnect, then reconnect | A fresh Microsoft sign-in is required (cache removed) |
+| Connect for deployment | Application-specific sign-in with the deployment registration; mode badge turns amber; write scopes observed |
+| Disconnect, then reconnect | Microsoft acquires a new application token; Windows may reuse its existing signed-in account |
 | Token expiry during a long capture | Silent renewal works; if Microsoft requires interaction the operation fails with a clear reconnect message |
-| Admin-consent browser return on temporary localhost port | Record whether callback succeeds. On AADSTS50011/failed redirect, stop waiting and Validate setup; inspect actual grants before any further creation |
+| Admin consent at the exact registered callback | `http://localhost:8400/m365-consent/` returns completion; Graph validation shows full operational grants. Test both new setup and explicit-ID repair of the previously failing registration. |
 
 ## Collection
 
@@ -48,7 +48,7 @@ Unit tests exercise safety logic with a scripted Graph client. They cannot prove
 
 ## Deployment (each recipe once)
 
-For each of CA-001, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009, CA-010, CMP-WIN-001, CMP-IOS-001 and CFG-WIN-003:
+For each of CA-001, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009, CA-010, CMP-WIN-001, CMP-IOS-001, CFG-WIN-003, CFG-WIN-001 and CFG-WIN-007:
 
 | Check | Expected |
 |---|---|
@@ -101,3 +101,11 @@ Record actual device/sign-in effects separately from Graph configuration verific
 |---|---|
 | Engineer HTML and client summary | Names, not GUIDs, for groups, users and locations; client summary contains no raw JSON |
 | Excel export opened in Excel | Every cell is text; a display name beginning with `=` does not execute |
+
+## Preview.4 acceptance additions
+
+- Verify WAM popup, browser fallback, cancellation and failed reauthentication retaining the existing session. Confirm the expected target tenant and operator throughout.
+- Inspect new and explicitly repaired app names, custom icon, GitHub homepage/support URLs, exact redirects and assignment requirement. Inspect each actual requested/configured/granted scope; bootstrap scopes must not be confused with operational scopes.
+- Test included engineer assignment versus omitted assignment; separately test the delegated-admin access check with authorised GDAP roles. No directory role is granted by the toolkit.
+- Review every supplied BitLocker field and every omitted recovery/algorithm/removable option in Intune. Confirm the 14-character PIN setting has no effect while TPM PINs are prohibited. Verify no assignments. Then separately authorise a compatible pilot-device test of encryption, recovery escrow and recovery access.
+- Confirm optional long paths on a compatible pilot device/application after separate assignment. Test selective recovery of each unassigned candidate and refused recovery while assigned. Policy deletion must never be described as device decryption.

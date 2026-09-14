@@ -43,6 +43,8 @@ public sealed class TenantConnectionService
     private readonly IToolkitLog _log;
     private readonly HttpClient _http;
     private readonly string _toolkitVersion;
+    public IntPtr ParentWindowHandle { get; set; }
+    public string LoginHint { get; set; } = "";
 
     public TenantConnectionService(ToolkitSettings settings, ToolkitPaths paths, HttpClient http, IToolkitLog log, string toolkitVersion)
     {
@@ -65,7 +67,7 @@ public sealed class TenantConnectionService
     {
         var client = _settings.ResolveClient(mode, profile)
             ?? throw new ConfigurationException(mode == SessionMode.Deployment
-                ? "No deployment application is configured. Register the BDIT Tenant Deployment application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
+                ? "No deployment application is configured. Register the M365 BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
                 : "No assessment application is configured and the Microsoft Graph PowerShell fallback is disabled. Record an assessment client ID in config/toolkit.settings.json.");
 
         var scopes = ScopesFor(mode, standard);
@@ -83,7 +85,8 @@ public sealed class TenantConnectionService
             Scopes = scopes,
             CacheFile = cacheFile,
             Timeout = TimeSpan.FromMinutes(_settings.SignInTimeoutMinutes),
-            ClientVersion = _toolkitVersion
+            ClientVersion = _toolkitVersion, ClientName = _settings.ProductName,
+            ParentWindowHandle = ParentWindowHandle, UseSystemBrowser = _settings.UseSystemBrowser, LoginHint = LoginHint
         }, _log, ct);
 
         var routes = GraphRouteAllowList.FromStandard(standard);
@@ -146,7 +149,7 @@ public sealed class TenantConnectionService
             {
                 if (!client.IsSharedFallback)
                     throw new ConfigurationException("The assessment application's token contains write permissions. Assessment must use a registration with read scopes only; remove the write permissions from that registration or use a separate deployment registration.");
-                session.Notices.Add("The shared Microsoft Graph PowerShell application returned previously consented write scopes. The toolkit blocks every write in assessment mode, but the token itself is not read-only. Register a dedicated BDIT Tenant Assessment application for token-level isolation.");
+                session.Notices.Add("The shared Microsoft Graph PowerShell application returned previously consented write scopes. The toolkit blocks every write in assessment mode, but the token itself is not read-only. Register a dedicated M365 BuildStandard Assessment Tool application for token-level isolation.");
             }
             if (client.IsSharedFallback)
                 session.Notices.Add("Connected through the shared Microsoft Graph PowerShell application. This is acceptable for read-only assessment only.");

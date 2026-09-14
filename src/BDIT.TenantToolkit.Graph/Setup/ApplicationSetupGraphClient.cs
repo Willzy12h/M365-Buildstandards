@@ -11,7 +11,7 @@ using BDIT.TenantToolkit.Graph.Auth;
 
 namespace BDIT.TenantToolkit.Graph.Setup;
 
-/// <summary>Separate setup transport. It cannot write grants, credentials, roles, policies or existing objects.</summary>
+/// <summary>Restricted registration setup and engineer app assignment. No grants, credentials, directory roles or policies.</summary>
 internal sealed class ApplicationSetupGraphClient(HttpClient http, IAccessTokenProvider tokens, IToolkitLog log)
 {
     private const string Root = "https://graph.microsoft.com/v1.0";
@@ -46,7 +46,8 @@ internal sealed class ApplicationSetupGraphClient(HttpClient http, IAccessTokenP
     {
         if (path == "/applications")
         {
-            var allowed = new[] { "displayName", "signInAudience", "publicClient", "requiredResourceAccess" };
+            ValidateRegistration(payload, "");
+            var allowed = new[] { "displayName", "signInAudience", "publicClient", "requiredResourceAccess", "web", "info", "description", "isFallbackPublicClient" };
             if (payload.Any(p => !allowed.Contains(p.Key)) || payload["signInAudience"]?.GetValue<string>() != "AzureADMyOrg"
                 || string.IsNullOrWhiteSpace(payload["displayName"]?.GetValue<string>())
                 || payload["publicClient"] is not JsonObject pc || pc.Count != 1
@@ -67,26 +68,82 @@ internal sealed class ApplicationSetupGraphClient(HttpClient http, IAccessTokenP
         return SendAsync(HttpMethod.Post, path, payload, ct);
     }
 
-    private async Task<JsonObject> SendAsync(HttpMethod method, string path, JsonObject? payload, CancellationToken ct)
+    public Task ConfigureApplicationAsync(string objectId, string clientId, JsonObject payload, CancellationToken ct)
+    {
+        if (payload.Count != 1) ValidateRegistration(payload, clientId);
+        if (!ProfileValidator.IsGuid(objectId) || !ProfileValidator.IsGuid(clientId)
+            || payload.Any(p => p.Key is not ("displayName" or "signInAudience" or "publicClient" or "requiredResourceAccess" or "web" or "info" or "description" or "isFallbackPublicClient"))
+            || !JsonNode.DeepEquals(payload["publicClient"], SetupRegistration.PublicClient(clientId))
+            || (payload.ContainsKey("signInAudience") && payload["signInAudience"]?.GetValue<string>() != "AzureADMyOrg")
+            || (payload.ContainsKey("web") && !CanonicalJson.IsSubset(payload["web"], SetupRegistration.Web())))
+            throw new WriteDeniedException("Only reviewed dedicated-tool registration settings are supported.");
+        return SendAsync(HttpMethod.Patch, "/applications/" + objectId, payload, ct);
+    }
+
+    private static void ValidateRegistration(JsonObject payload, string clientId)
+    {
+        var allowed = new[] { "displayName", "signInAudience", "publicClient", "requiredResourceAccess", "web", "info", "description", "isFallbackPublicClient" };
+        if (payload.Count != allowed.Length || payload.Any(p => !allowed.Contains(p.Key))
+            || payload["signInAudience"]?.GetValue<string>() != "AzureADMyOrg"
+            || string.IsNullOrWhiteSpace(payload["displayName"]?.GetValue<string>())
+            || payload["isFallbackPublicClient"]?.GetValue<bool>() != true
+            || !JsonNode.DeepEquals(payload["publicClient"], SetupRegistration.PublicClient(clientId))
+            || !JsonNode.DeepEquals(payload["web"], SetupRegistration.Web())
+            || !JsonNode.DeepEquals(payload["info"], new JsonObject { ["marketingUrl"] = SetupRegistration.HomePage, ["supportUrl"] = SetupRegistration.HomePage + "/issues" })
+            || payload["requiredResourceAccess"] is not JsonArray { Count: 1 } resources
+            || resources[0] is not JsonObject { Count: 2 } resource
+            || resource["resourceAppId"]?.GetValue<string>() != ApplicationSetupService.GraphApplicationId
+            || resource["resourceAccess"] is not JsonArray { Count: > 0 } scopes
+            || scopes.Any(s => s is not JsonObject { Count: 2 } o || o["type"]?.GetValue<string>() != "Scope" || !ProfileValidator.IsGuid(o["id"]?.GetValue<string>())))
+            throw new WriteDeniedException("Setup requires the reviewed single-tenant delegated Graph registration, exact product redirects and project URLs.");
+    }
+
+    public Task ConfigurePrincipalAsync(string id, JsonObject payload, CancellationToken ct)
+    {
+        if (!ProfileValidator.IsGuid(id) || payload.Count != 3 || payload["homepage"]?.GetValue<string>() != SetupRegistration.HomePage
+            || string.IsNullOrWhiteSpace(payload["displayName"]?.GetValue<string>()) || payload["appRoleAssignmentRequired"]?.GetValue<bool>() != true)
+            throw new WriteDeniedException("Enterprise-app configuration is restricted to the reviewed name, project homepage and required assignment.");
+        return SendAsync(HttpMethod.Patch, "/servicePrincipals/" + id, payload, ct);
+    }
+
+    public Task AssignEngineerAsync(string resourceId, string engineerId, JsonObject payload, CancellationToken ct)
+    {
+        if (!ProfileValidator.IsGuid(resourceId) || !ProfileValidator.IsGuid(engineerId) || payload.Count != 3
+            || payload["resourceId"]?.GetValue<string>() != resourceId || payload["principalId"]?.GetValue<string>() != engineerId
+            || payload["appRoleId"]?.GetValue<string>() != Guid.Empty.ToString())
+            throw new WriteDeniedException("Only the reviewed engineer's default application assignment is permitted. Directory roles are not granted.");
+        return SendAsync(HttpMethod.Post, "/servicePrincipals/" + resourceId + "/appRoleAssignedTo", payload, ct);
+    }
+
+    public Task UploadLogoAsync(string id, byte[] bytes, CancellationToken ct)
+    {
+        if (!ProfileValidator.IsGuid(id) || !bytes.SequenceEqual(ProductLogo.Read())) throw new WriteDeniedException("Only the bundled product icon can be uploaded.");
+        return SendAsync(HttpMethod.Put, "/applications/" + id + "/logo", null, ct, bytes);
+    }
+
+    private async Task<JsonObject> SendAsync(HttpMethod method, string path, JsonObject? payload, CancellationToken ct, byte[]? binary = null)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
         var basePath = path.Split('?')[0];
-        if (!Regex.IsMatch(basePath, "^/(organization|me|applications(?:/" + GuidPart + ")?|servicePrincipals(?:/" + GuidPart + "(?:/appRoleAssignments|/appRoleAssignedTo)?)?|oauth2PermissionGrants)$", RegexOptions.CultureInvariant))
+        if (!Regex.IsMatch(basePath, "^/(organization|me|applications(?:/" + GuidPart + "(?:/logo)?)?|servicePrincipals(?:/" + GuidPart + "(?:/appRoleAssignments|/appRoleAssignedTo)?)?|oauth2PermissionGrants)$", RegexOptions.CultureInvariant))
             throw new WriteDeniedException("Graph route is outside application setup.");
         var read = method == HttpMethod.Get;
         var forceRefresh = false;
         while (true)
         {
-            var token = await tokens.GetAccessTokenAsync(forceRefresh, ct);
+            string token;
+            try { token = await tokens.GetAccessTokenAsync(forceRefresh, ct); }
+            catch (Exception ex) when (!read) { throw new WriteNotSentException("Setup token acquisition failed before sending a request.", ex); }
             using var request = new HttpRequestMessage(method, Root + path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             if (payload is not null) request.Content = new StringContent(payload.ToJsonString(ToolkitJson.Compact), Encoding.UTF8, "application/json");
+            if (binary is not null) { request.Content = new ByteArrayContent(binary); request.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png"); }
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(TimeSpan.FromSeconds(100));
             HttpResponseMessage response;
             try { response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token); }
-            catch (Exception ex) when (!read && ex is HttpRequestException or OperationCanceledException)
+            catch (Exception ex) when (!read)
             {
                 throw new AmbiguousWriteException("Application setup write outcome is unknown. Do not repeat creation; inspect the saved journal and reconcile by object/client ID first.", ex);
             }
@@ -101,6 +158,7 @@ internal sealed class ApplicationSetupGraphClient(HttpClient http, IAccessTokenP
                 try
                 {
                     var body = await response.Content.ReadAsStringAsync(timeout.Token);
+                    if (!read && string.IsNullOrWhiteSpace(body)) return new JsonObject();
                     return ToolkitJson.ParseNode(body) as JsonObject ?? throw new JsonException("Expected an object.");
                 }
                 catch (Exception ex) when (ex is JsonException or OperationCanceledException or HttpRequestException)

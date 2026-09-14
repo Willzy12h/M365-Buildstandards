@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:BDIT.TenantToolkit.App.ViewModels"
         xmlns:views="clr-namespace:BDIT.TenantToolkit.App.Views"
         Title="{Binding WindowTitle}" Height="940" Width="1480" MinHeight="760" MinWidth="1180"
-        Background="{StaticResource BgWindow}" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgWindow}" WindowStartupLocation="CenterScreen" Icon="Assets/buildstandard.png"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" Closing="OnClosing">
   <Window.Resources>
     <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><views:OverviewView/></DataTemplate>
@@ -26,9 +26,7 @@
     <DockPanel Background="{StaticResource BgNav}">
       <Border DockPanel.Dock="Top" Padding="22,26,18,24">
         <StackPanel>
-          <Border Width="34" Height="34" CornerRadius="7" Background="#2A80C6" HorizontalAlignment="Left" Margin="0,0,0,14">
-            <Path Data="M 17,5 L 29,17 L 17,29 L 5,17 Z M 17,10 L 10,17 L 17,24 L 24,17 Z" Fill="White" Stretch="None"/>
-          </Border>
+          <Image Source="Assets/buildstandard.png" Width="38" Height="38" HorizontalAlignment="Left" Margin="0,0,0,14"/>
           <TextBlock Text="{Binding ProductName}" Foreground="White" FontWeight="SemiBold" FontSize="17" LineHeight="23"/>
           <TextBlock Text="ENGINEER WORKSPACE" Foreground="#A9C4DC" FontSize="10" Margin="0,7,0,0"/>
         </StackPanel>

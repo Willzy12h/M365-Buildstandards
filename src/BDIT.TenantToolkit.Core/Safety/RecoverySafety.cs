@@ -5,6 +5,9 @@ namespace BDIT.TenantToolkit.Core.Safety;
 
 public static class RecoverySafety
 {
+    // Beta is limited to the device-configuration resource used by the reviewed BitLocker recipe.
+    public static bool Supports(GraphApi api, string path) => Supports(path)
+        && (api == GraphApi.V1 || api == GraphApi.Beta && path == "/deviceManagement/deviceConfigurations");
     public static bool Supports(string path) => path is ConditionalAccessSafety.ConditionalAccessPolicyPath
         or "/deviceManagement/deviceConfigurations" or "/deviceManagement/deviceCompliancePolicies";
 

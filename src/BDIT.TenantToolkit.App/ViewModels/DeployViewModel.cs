@@ -69,7 +69,7 @@ public sealed class DeployViewModel : PageViewModel
     {
         var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
         var confirm = System.Windows.MessageBox.Show(
-            "Deployment access signs you in again with the BDIT Tenant Deployment application and requests write permissions for this tenant.\n\n" +
+            "Deployment access signs you in again with the M365 BuildStandard Deployment Tool application and requests write permissions for this tenant.\n\n" +
             "Any capture, assessment and plan from the read-only session are discarded and must be repeated in the deployment session.\n\nNothing is written until you confirm a reviewed plan. Continue?",
             "Enable deployment access", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;

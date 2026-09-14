@@ -63,7 +63,7 @@ public static class MarkdownReports
                 if (c.Differences.Count > 0)
                 {
                     sb.AppendLine();
-                    sb.AppendLine("| Setting | Current | BDIT standard | Result |");
+                    sb.AppendLine("| Setting | Current | build standard | Result |");
                     sb.AppendLine("|---|---|---|---|");
                     foreach (var d in c.Differences) sb.AppendLine($"| `{E(d.Setting)}` | {E(d.Current)} | {E(d.Standard)} | {(d.Match ? "Match" : "Different")} |");
                 }

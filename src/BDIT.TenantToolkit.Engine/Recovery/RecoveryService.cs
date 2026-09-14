@@ -195,7 +195,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         if (!evidence.HasAcceptedWrite(source, item) || !ProfileValidator.IsGuid(item.ObjectId ?? ""))
             throw new SafetyViolationException("Recovery needs a confirmed write and its exact returned object ID. Unknown writes require manual reconciliation.");
         var definition = standard.FindCollection(item.Collection) ?? throw new SafetyViolationException("Unknown policy collection.");
-        if (!definition.Writable || definition.ApiVersion != GraphApi.V1 || !RecoverySafety.Supports(definition.BasePath))
+        if (!definition.Writable || !RecoverySafety.Supports(definition.ApiVersion, definition.BasePath))
             throw new SafetyViolationException("Automated recovery is not supported for this object type.");
         var mappings = evidence.LoadMappings(tenant);
         var mapping = mappings.Find(item.ControlId);

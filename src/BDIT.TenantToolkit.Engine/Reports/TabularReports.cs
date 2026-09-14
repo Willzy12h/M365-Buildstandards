@@ -76,10 +76,10 @@ public static class TabularReports
             .Add("Unable to assess", s.UnableToAssess).Add("Requires manual review", s.RequiresManualReview).Add("Licence unavailable", s.LicenceUnavailable)
             .Add("Not applicable", s.NotApplicable).Add("Actionable critical", s.CriticalActionable).Add("Actionable high", s.HighActionable)
             .Add("Actionable medium", s.MediumActionable).Add("Actionable low", s.LowActionable)
-            .Add("Interpretation", "Assessment compares captured settings with the BDIT Build Standard. It is read-only and is not a security certification. Unknown data is reported as unknown, never as absent.");
+            .Add("Interpretation", "Assessment compares captured settings with the M365 Build Standard. It is read-only and is not a security certification. Unknown data is reported as unknown, never as absent.");
 
         var findings = new Sheet("Findings", new[] { "Control", "Name", "Category", "Severity", "Status", "Reason", "Expected production state", "Expected production assignment", "Best matching object", "Object state", "Toolkit-managed", "Deviation" });
-        var differences = new Sheet("Differences", new[] { "Control", "Candidate object", "Object ID", "Setting", "Current value", "BDIT standard", "Match" });
+        var differences = new Sheet("Differences", new[] { "Control", "Candidate object", "Object ID", "Setting", "Current value", "build standard", "Match" });
         foreach (var f in r.Findings)
         {
             var best = f.BestCandidate;

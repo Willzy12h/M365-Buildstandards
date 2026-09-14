@@ -1,10 +1,12 @@
-# BDIT Microsoft 365 Tenant Toolkit
+# M365 BuildStandard Tool
 
-A Windows application for Blue Diamond IT to capture tenant configuration, compare it with a versioned build standard, and prepare controlled deployment candidates.
+A Windows application for engineers to capture tenant configuration, compare it with a versioned build standard, and prepare controlled deployment candidates.
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**1.1.0-preview.3 — engineering review candidate.** Includes selective policy recovery, read-only re-verification, a licence overview and searchable user assignments. Live tenant sign-in, app setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md), [Claude review response](docs/integration/CLAUDE-REVIEW-RESPONSE.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+**1.1.0-preview.4 — engineering review candidate.** Includes selective policy recovery, read-only re-verification, a licence overview and searchable user assignments. Live tenant sign-in, app setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md), [Claude review response](docs/integration/CLAUDE-REVIEW-RESPONSE.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+
+To repair an existing preview installation, enter its exact assessment/deployment client IDs in **Application setup**, preview and approve the displayed changes, approve each app's permission list, then validate and continue. This updates registration redirects and branding through the reviewed workflow.
 
 ## Workflow and scope
 
@@ -14,11 +16,11 @@ Start on **Overview and licences**, choose **Connect / change access**, and conn
 
 To recover a recorded policy change, use **Undo and recovery → Load change register**, select the original creation or latest update and preview the action. The tool captures fresh evidence, displays current settings and consequences, and requires explicit approval and the tenant ID. Supported actions delete toolkit-created policies, restore recorded inactive updates, or disable unexpectedly active Conditional Access policies. See [recovery](docs/RECOVERY.md) for the supported scope and limitations.
 
-Standard 2026.09.3 contains **45 controls, 12 creation recipes and 13 collection definitions**. The remaining controls have no creation recipe. This is not full automation of the standard.
+Standard 2026.09.4 contains **45 controls, 14 creation recipes and 14 collection definitions**. See [device automation](docs/DEVICE-AUTOMATION.md) for the supplied BitLocker settings and optional long paths. The remaining controls have no creation recipe. This is not full automation of the standard.
 
 If a policy write was accepted but its readback failed, select it in **Undo and recovery → Re-verify**. This performs reads and records fresh verification without repeating the write. Completed 1.0.0 records require explicit historical acknowledgement and matching ownership/settings. Unknown modern write outcomes remain blocked. Stop cancels deployment reads; an in-flight policy write retains its configured timeout (100 seconds by default). Readback and after-capture each have a 60-second budget, with incomplete evidence clearly reported.
 
-Authentication is delegated, with separate assessment/deployment registrations. The [application setup wizard](docs/APPLICATION-SETUP.md) previews and creates both registrations and enterprise applications, guides administrator consent and validates configuration, grants and engineer assignment. It uses a separate privileged session; app-only authentication is not implemented. Connect once without saving a profile, or opt in to remembering the client.
+Authentication is delegated, with separate assessment/deployment registrations. The [application setup wizard](docs/APPLICATION-SETUP.md) previews, creates or explicitly repairs both registrations and enterprise applications, guides administrator consent and validates configuration, grants and engineer assignment. Windows sign-in uses a Microsoft pop-up, with browser fallback. Setup can assign the approved engineer, uses a registered consent callback and continues directly to connection. It uses a separate privileged session; app-only authentication is not implemented. Connect once without saving a profile, or opt in to remembering the client.
 
 Resolve exclusion accounts by sign-in address, object ID or display name. Select the exact result, purpose and reason, then apply it to the tenant's plan inputs. The planner shows names and IDs, retains dedicated emergency-access and delegated-creator safeguards, and invalidates prior plans after changes. An admin-style name never automatically grants an exclusion. One-time connections still retain local audit evidence.
 

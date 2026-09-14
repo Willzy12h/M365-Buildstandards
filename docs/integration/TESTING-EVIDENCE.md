@@ -1,5 +1,16 @@
 # Testing evidence — 14 September 2026
 
+## Engineer workflow preview 1.1.0-preview.4
+
+- Windows Release solution build: **0 warnings, 0 errors**. Complete local suite: **250 passed, 0 failed, 0 skipped**. The build script generated the self-contained win-x64 portable package.
+- New setup coverage includes explicit-ID repair, exact consent/native redirects, branding writes with empty HTTP 204 responses, current-engineer assignment, preservation of unconsented state, input drift/credentials rejection, disallowed redirect/credential/app-only payloads, pre-send setup auth failures and no replay of uncertain follow-up writes.
+- The actual shipped BitLocker and long-path payloads pass synthetic planning, durable execution/readback and selective deletion/absence tests; assigned objects are protected. Beta recovery is limited to the device-configuration route and uncertain DELETE is attempted once.
+- Offline WPF harness: **26 page/size combinations, 26 synthetic PNGs, 0 binding errors**, including top/bottom setup screens at 1180x760 and 1480x940. Idle-window shutdown passed. The setup permission text encoding was corrected and renders repeated.
+- Standard 2026.09.3 bytes remain unchanged (SHA-256 `a498550d2cbeb0dccefe78bde8bb955a7113096de338d680741222e1d3c20e9d`). New 2026.09.4 has 45 controls, 14 recipes and 14 collections. MSAL Broker 4.89.0 / NativeInterop 0.20.6 were restored from the workspace feed; no fresh local vulnerability audit is claimed.
+
+Live WAM/browser authentication, existing registration repair, admin consent and branding propagation, GDAP, Intune omitted defaults, device encryption/escrow and long-path effects remain unverified. No live tenant actions or real evidence migration occurred. See [live acceptance](../LIVE-VALIDATION.md), [application setup](../APPLICATION-SETUP.md) and [device automation](../DEVICE-AUTOMATION.md). GitHub checks must be read for the new submitted head, not inferred from previous green runs.
+
+
 ## Independent review fixes — 1.1.0-preview.3
 
 - Complete local Windows Release suite: **237 passed, 0 failed, 0 skipped**. Build-Portable ran the suite after a solution build with **0 warnings / 0 errors**. The previous targeted pass was 90/90, followed by 236/236 before adding malformed-write-route coverage.

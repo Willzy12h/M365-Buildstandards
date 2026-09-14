@@ -5,7 +5,7 @@ namespace BDIT.TenantToolkit.Core.Models;
 
 public enum GraphApi { V1, Beta }
 
-/// <summary>A versioned BDIT Build Standard release loaded from standards/&lt;release&gt;.json.</summary>
+/// <summary>A versioned M365 Build Standard release loaded from standards/&lt;release&gt;.json.</summary>
 public sealed class StandardCatalogue
 {
     public const int SupportedSchemaVersion = 3;

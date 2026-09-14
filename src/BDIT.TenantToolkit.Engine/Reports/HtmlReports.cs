@@ -52,8 +52,8 @@ public static class HtmlReports
     public static string Engineer(AssessmentResult r)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Tenant Assessment - {r.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Engineer report</div>");
+        Head(sb, $"M365 BuildStandard Assessment Tool - {r.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Engineer report</div>");
         sb.Append("<h1>Tenant assessment: ").Append(H(r.TenantName)).Append("</h1>");
         sb.Append("<dl class=\"meta\">");
         Meta(sb, "Primary domain", r.PrimaryDomain); Meta(sb, "Tenant ID", r.TenantId); Meta(sb, "Client label", r.ClientLabel);
@@ -100,7 +100,7 @@ public static class HtmlReports
         Table(sb, TabularReports.AssessmentSheets(r)[3]);
 
         sb.Append("<footer><p><b>This assessment compares a saved capture.</b> Generating the assessment does not modify tenant configuration. Changes from separate deployment runs are recorded in their own evidence. Matches are not a security certification and do not prove effective user or device behaviour.</p>")
-          .Append("<p>BDIT Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");
+          .Append("<p>M365 Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");
         return sb.ToString();
     }
 
@@ -150,7 +150,7 @@ public static class HtmlReports
                 sb.Append("<p>State: ").Append(H(StatusLabels.For(c.Enforcement))).Append(" · Targeting: ").Append(H(c.AssignmentSummary)).Append(c.ToolkitManaged ? " · created by the toolkit" : "").Append(" · ").Append(c.Matched).Append('/').Append(c.Total).Append(" settings match</p>");
                 if (c.Differences.Count > 0)
                 {
-                    sb.Append("<table><thead><tr><th>Setting</th><th>Current</th><th>BDIT standard</th><th>Result</th></tr></thead><tbody>");
+                    sb.Append("<table><thead><tr><th>Setting</th><th>Current</th><th>build standard</th><th>Result</th></tr></thead><tbody>");
                     foreach (var d in c.Differences)
                         sb.Append("<tr><td><code>").Append(H(d.Setting)).Append("</code></td><td>").Append(H(d.Current)).Append("</td><td>").Append(H(d.Standard)).Append("</td><td class=\"").Append(d.Match ? "match\">Match" : "diff\">Different").Append("</td></tr>");
                     sb.Append("</tbody></table>");
@@ -234,8 +234,8 @@ public static class HtmlReports
     public static string Run(DeploymentRun run, IReadOnlyList<JournalEntry> journal)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Deployment Run - {run.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
+        Head(sb, $"M365 Deployment Run - {run.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
         var sheets = TabularReports.RunSheets(run, journal);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);
@@ -252,8 +252,8 @@ public static class HtmlReports
     public static string Drift(DriftReport d)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Tenant Drift - {d.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
+        Head(sb, $"M365 Tenant Drift - {d.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
         var sheets = TabularReports.DriftSheets(d);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);

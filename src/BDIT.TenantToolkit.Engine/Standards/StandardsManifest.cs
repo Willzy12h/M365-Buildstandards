@@ -12,7 +12,7 @@ namespace BDIT.TenantToolkit.Engine.Standards;
 public sealed class StandardsManifest
 {
     public const string FileName = "manifest.json";
-    public const string Note = "SHA-256 integrity digests of the BDIT Build Standard release files. Detects modification after release; this is not a cryptographic signature.";
+    public const string Note = "SHA-256 integrity digests of the M365 Build Standard release files. Detects modification after release; this is not a cryptographic signature.";
 
     public string Algorithm { get; set; } = "SHA-256";
     public string GeneratedAt { get; set; } = "";

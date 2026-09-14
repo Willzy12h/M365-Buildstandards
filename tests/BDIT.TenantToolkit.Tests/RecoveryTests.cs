@@ -26,14 +26,15 @@ public sealed class RecoveryTests
     {
         public TempRoot Root { get; } = new();
         public FixedClock Clock { get; } = new();
-        public StandardCatalogue Standard { get; } = TestData.Standard();
+        public StandardCatalogue Standard { get; }
         public TenantProfile Profile { get; } = TestData.Profile();
         public TenantSession Session { get; } = TestData.Session();
         public EvidenceStore Evidence { get; }
         public FakeGraphClient Graph { get; }
         public RecoveryService Recovery { get; }
-        public Harness()
+        public Harness(StandardCatalogue? standard = null)
         {
+            Standard = standard ?? TestData.Standard();
             Evidence = new(Root.Paths, NullLog.Instance); Graph = new(Standard); Recovery = new(Evidence, Clock);
             foreach (var (key, capture) in TestData.Snapshot(Standard).Collections)
                 foreach (var item in capture.Items) Graph.Add(Standard.Collections[key].BasePath, (JsonObject)item.DeepClone());

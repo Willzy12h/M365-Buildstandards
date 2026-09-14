@@ -10,7 +10,7 @@ namespace BDIT.TenantToolkit.Engine.Standards;
 
 public sealed record StandardRelease(string FileName, string Release, string Status);
 
-/// <summary>Loads and validates BDIT Build Standard releases and enforces manifest integrity before use.</summary>
+/// <summary>Loads and validates M365 Build Standard releases and enforces manifest integrity before use.</summary>
 public sealed partial class StandardsLoader
 {
     private static readonly HashSet<string> Severities = new(StringComparer.OrdinalIgnoreCase) { "Critical", "High", "Medium", "Low", "Informational" };
@@ -54,7 +54,7 @@ public sealed partial class StandardsLoader
         var digest = manifest.Verify(_paths.StandardsDirectory, fileName);
         var catalogue = Parse(File.ReadAllText(path), fileName);
         catalogue.IntegrityDigest = digest;
-        _log.Info("Standards", $"Loaded BDIT Build Standard {catalogue.Release} ({fileName}, digest {digest[..12]}…) with {catalogue.Controls.Count} controls.");
+        _log.Info("Standards", $"Loaded M365 Build Standard {catalogue.Release} ({fileName}, digest {digest[..12]}…) with {catalogue.Controls.Count} controls.");
         return catalogue;
     }
 

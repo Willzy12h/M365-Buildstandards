@@ -2,7 +2,7 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
       <TextBlock Text="01 / CONNECT TO A CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="Start with read-only access" Style="{StaticResource H1}"/>
-      <TextBlock Text="Choose a saved client or connect once. Microsoft handles your credentials and MFA in the browser." Style="{StaticResource Lead}"/>
+      <TextBlock Text="Choose a saved client or connect once. Microsoft handles credentials and MFA in a Windows sign-in window. Browser fallback is available below." Style="{StaticResource Lead}"/>
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Saved clients" Style="{StaticResource H2}"/>
@@ -21,7 +21,7 @@
           <TextBlock Text="Primary domain (reference label)" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditDomain, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Primary domain"/>
           <Expander Header="Application IDs and setup" IsExpanded="True" Margin="0,0,0,12">
             <StackPanel Margin="0,12,0,0">
-              <TextBlock Text="Use separate assessment and deployment applications. Leave tenant-specific IDs empty to use the configured toolkit defaults." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+              <TextBlock Text="Assessment has read-only permissions. Deployment has separate write permissions. Setup creates or repairs both and fills these IDs for you." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
               <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <StackPanel><TextBlock Text="Assessment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditAssessmentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Assessment client ID"/></StackPanel>
                 <StackPanel Grid.Column="2"><TextBlock Text="Deployment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditDeploymentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Deployment client ID"/></StackPanel>
@@ -41,6 +41,7 @@
               <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="75" TextWrapping="Wrap"/>
             </StackPanel>
           </Expander>
+          <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
           <CheckBox Content="Remember this connection on this computer" IsChecked="{Binding RememberConnection, Mode=TwoWay}"/>
           <TextBlock Text="Leave unticked for a one-time connection. Captures and run evidence are still retained locally." Style="{StaticResource Muted}" Margin="0,0,0,16"/>
           <WrapPanel><Button Content="Connect read-only" Command="{Binding ConnectAssessmentCommand}"/><Button Content="Save client details" Command="{Binding SaveProfileCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
@@ -49,7 +50,7 @@
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Current connection and access" Style="{StaticResource H2}"/><TextBlock Text="{Binding ConnectionText}" Margin="0,0,0,14"/>
-          <WrapPanel><Button Content="Check access" Command="{Binding CheckAccessCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Enable deployment access" Command="{Binding ConnectDeploymentCommand}" Style="{StaticResource WarningButton}"/></WrapPanel>
+          <WrapPanel><Button Content="Check access" Command="{Binding CheckAccessCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Connect for deployment" Command="{Binding ConnectDeploymentCommand}" Style="{StaticResource WarningButton}"/></WrapPanel>
           <TextBlock Text="Deployment uses a separate write-capable sign-in. Tenant changes still require a reviewed plan, complete before-change evidence and tenant confirmation." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
           <Expander Header="Access check results">
             <StackPanel Margin="0,10,0,0">

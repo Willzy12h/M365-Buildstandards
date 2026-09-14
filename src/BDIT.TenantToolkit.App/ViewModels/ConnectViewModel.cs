@@ -33,7 +33,7 @@ public sealed class ConnectViewModel : PageViewModel
         AddExclusionCommand = Sync(AddExclusion, () => Workspace.Idle && SelectedAccount is not null);
         RemoveExclusionCommand = Sync(RemoveExclusion, () => Workspace.Idle && SelectedExclusion is not null);
         ApplyExclusionsCommand = Sync(() => { Workspace.ApplyProfileToSession(FormToProfile(), RememberConnection); LookupStatus = "Exclusions applied. Any previous plan is invalid; capture and review a new plan."; }, () => Workspace.IsConnected && Workspace.Idle);
-        OpenSetupCommand = Sync(() => { Shell.Page<ApplicationSetupViewModel>().UseTenant(EditTenantId, EditCompany); Shell.Navigate("setup"); });
+        OpenSetupCommand = Sync(OpenSetup);
         Refresh();
     }
 
@@ -50,6 +50,15 @@ public sealed class ConnectViewModel : PageViewModel
     public string ExclusionPurpose { get => _exclusionPurpose; set => SetProperty(ref _exclusionPurpose, value); }
     public string LookupStatus { get => _lookupStatus; private set => SetProperty(ref _lookupStatus, value); }
     public bool RememberConnection { get => _rememberConnection; set => SetProperty(ref _rememberConnection, value); }
+    public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
+    private void OpenSetup()
+    {
+        var setup = Shell.Page<ApplicationSetupViewModel>();
+        setup.UseTenant(EditTenantId.Trim(), EditCompany);
+        setup.AssessmentClientId = EditAssessmentClientId.Trim();
+        setup.DeploymentClientId = EditDeploymentClientId.Trim();
+        Shell.Navigate("setup");
+    }
     public ExclusionAccount? SelectedAccount { get => _selectedAccount; set => SetProperty(ref _selectedAccount, value); }
     public ExclusionAccount? SelectedExclusion { get => _selectedExclusion; set => SetProperty(ref _selectedExclusion, value); }
     public ICommand SearchAccountsCommand { get; }
@@ -132,7 +141,7 @@ public sealed class ConnectViewModel : PageViewModel
             var assessment = Workspace.Settings.ResolveClient(SessionMode.Assessment, profile);
             var deployment = Workspace.Settings.ResolveClient(SessionMode.Deployment, profile);
             return "Assessment sign-in uses: " + (assessment is null ? "nothing configured (set assessmentClientId in config/toolkit.settings.json)" : $"{assessment.Value.Label} ({assessment.Value.ClientId})")
-                + Environment.NewLine + "Deployment sign-in uses: " + (deployment is null ? "not configured - deployment unavailable until deploymentClientId is set" : $"{deployment.Value.Label} ({deployment.Value.ClientId})");
+                + Environment.NewLine + "Deployment sign-in uses: " + (deployment is null ? "setup needed - select Connect for deployment to open the setup wizard" : $"{deployment.Value.Label} ({deployment.Value.ClientId})");
         }
     }
 
@@ -141,7 +150,7 @@ public sealed class ConnectViewModel : PageViewModel
         get
         {
             var s = Workspace.Session;
-            if (s is null) return "Not connected. Sign in with your tenant account; Microsoft handles credentials and MFA in your browser. Local administrator rights are not required.";
+            if (s is null) return "Not connected. Sign in with your tenant account; Microsoft handles credentials and MFA in the Windows sign-in window (or your selected browser fallback). Local administrator rights are not required.";
             return $"Connected to {s.TenantName} ({s.PrimaryDomain}) as {s.Account} in {s.Mode} mode via {s.ClientLabel}.";
         }
     }
@@ -222,23 +231,28 @@ public sealed class ConnectViewModel : PageViewModel
     {
         var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
         LoadForm(profile);
+        var previous = Workspace.Connection;
         await Workspace.ConnectAsync(profile, SessionMode.Assessment);
+        if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }
 
-    private async Task ConnectAsync(SessionMode mode)
+    public async Task ConnectAsync(SessionMode mode)
     {
         var profile = RememberConnection ? Workspace.SaveProfile(FormToProfile()) : ProfileValidator.Validate(FormToProfile(), DateTimeOffset.UtcNow);
         EditId = profile.Id;
+        if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
         if (mode == SessionMode.Deployment)
         {
             var confirm = System.Windows.MessageBox.Show(
-                "Deployment access signs you in again with the BDIT Tenant Deployment application and requests write permissions.\n\n" +
+                "Connect with the M365 BuildStandard Deployment Tool to request the reviewed write permissions. Microsoft may reuse your existing Windows sign-in.\n\n" +
                 "Nothing is written until you build a plan, acknowledge the before-change snapshot and confirm the tenant ID. Continue?",
-                "Enable deployment access", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                "Connect for deployment", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
             if (confirm != System.Windows.MessageBoxResult.Yes) return;
         }
+        var previous = Workspace.Connection;
         await Workspace.ConnectAsync(profile, mode);
+        if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }
 

@@ -3,7 +3,7 @@ namespace BDIT.TenantToolkit.Core.Configuration;
 /// <summary>
 /// Resolves the portable folder layout. Everything the toolkit reads or writes lives under one root:
 ///   app/        the application (published output)
-///   standards/  BDIT Build Standard releases plus manifest.json
+///   standards/  M365 Build Standard releases plus manifest.json
 ///   config/     toolkit.settings.json
 ///   data/       profiles and per-tenant evidence (never shared between tenants)
 ///   logs/       diagnostic logs

@@ -14,10 +14,9 @@ public sealed class AdminConsentCallbackTests
     private const string Client = "22222222-2222-2222-2222-222222222222";
 
     [Fact]
-    public void UriUsesExplicitTenantScopesAndRandomStateWithNativeLocalhostRedirect()
+    public void UriUsesExactRegisteredConsentRedirectAndRandomState()
     {
         using var first = Create();
-        using var second = Create();
         Assert.Equal("login.microsoftonline.com", first.ConsentUri.Host);
         Assert.Equal($"/{Tenant}/v2.0/adminconsent", first.ConsentUri.AbsolutePath);
         var query = Query(first.ConsentUri);
@@ -27,7 +26,10 @@ public sealed class AdminConsentCallbackTests
         Assert.Equal("localhost", first.RedirectUri.Host);
         Assert.NotEqual(80, first.RedirectUri.Port);
         Assert.Equal(64, query["state"].Length);
+        first.Dispose();
+        using var second = Create();
         Assert.NotEqual(query["state"], Query(second.ConsentUri)["state"]);
+        Assert.Equal(SetupRegistration.ConsentRedirect, first.RedirectUri.AbsoluteUri);
         Assert.Throws<ConfigurationException>(() => AdminConsentCallback.Create("common", Client, new[] { "User.Read" }));
         Assert.Throws<ConfigurationException>(() => AdminConsentCallback.Create(Tenant, Client, new[] { ".default" }));
     }
@@ -106,7 +108,7 @@ public sealed class AdminConsentCallbackTests
             Assert.Contains("Cache-Control: no-store, no-transform", response);
             Assert.Contains("Referrer-Policy: no-referrer", response);
             Assert.Contains("X-Content-Type-Options: nosniff", response);
-            Assert.Contains("BLUE DIAMOND IT", response);
+            Assert.Contains("M365 BUILDSTANDARD", response);
             Assert.Contains("Segoe UI", response);
         }
     }
@@ -150,7 +152,7 @@ public sealed class AdminConsentCallbackTests
         {
             await client.ConnectAsync(IPAddress.Loopback, callback.RedirectUri.Port, timeout.Token);
             using var stream = client.GetStream();
-            var request = Encoding.ASCII.GetBytes($"GET /?{Success(callback)} HTTP/1.1\r\nHost: {callback.RedirectUri.Authority}\r\nConnection: close\r\n\r\n");
+            var request = Encoding.ASCII.GetBytes($"GET {callback.RedirectUri.AbsolutePath}?{Success(callback)} HTTP/1.1\r\nHost: {callback.RedirectUri.Authority}\r\nConnection: close\r\n\r\n");
             await stream.WriteAsync(request, timeout.Token);
             client.Client.Shutdown(SocketShutdown.Send);
         }

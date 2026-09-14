@@ -275,10 +275,15 @@ public sealed class Workspace : ObservableObject
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
             var standard = RequireStandard();
+            Connections.ParentWindowHandle = AuthenticationWindow();
+            Connections.LoginHint = Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
+            Plan = null;
+            AcknowledgedSnapshotId = null;
+            var nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
             await DisconnectCoreAsync();
             await DisconnectSetupCoreAsync();
             Profile = profile;
-            Connection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
+            Connection = nextConnection;
             Evidence.MarkInterruptedRuns(profile.TenantId);
             var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
             InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
@@ -321,12 +326,20 @@ public sealed class Workspace : ObservableObject
 
     public Task ConnectApplicationSetupAsync(string tenantId) => RunExclusiveAsync("Signing in for application setup", async progress =>
     {
+        if (ApplicationSetup is { } existing && string.Equals(existing.Identity.TenantId, tenantId.Trim(), StringComparison.OrdinalIgnoreCase))
+            return;
+        Plan = null; AcknowledgedSnapshotId = null;
+        var nextSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken,
+            AuthenticationWindow(), Settings.UseSystemBrowser, Session?.Account ?? "");
         await DisconnectCoreAsync();
         await DisconnectSetupCoreAsync();
-        ApplicationSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken);
+        ApplicationSetup = nextSetup;
     });
 
     public Task DisconnectApplicationSetupAsync() => RunExclusiveAsync("Closing privileged setup session", _ => DisconnectSetupCoreAsync());
+
+    private static IntPtr AuthenticationWindow() => System.Windows.Application.Current?.MainWindow is { } window
+        ? new System.Windows.Interop.WindowInteropHelper(window).EnsureHandle() : IntPtr.Zero;
 
     private async Task DisconnectSetupCoreAsync()
     {

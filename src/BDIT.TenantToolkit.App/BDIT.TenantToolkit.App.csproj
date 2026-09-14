@@ -6,7 +6,8 @@
     <AssemblyName>BDIT.TenantToolkit.App</AssemblyName>
     <RootNamespace>BDIT.TenantToolkit.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Description>BDIT Microsoft 365 Tenant Toolkit desktop application.</Description>
+    <ApplicationIcon>..\BDIT.TenantToolkit.Graph\Assets\buildstandard.ico</ApplicationIcon>
+    <Description>M365 BuildStandard Tool desktop application.</Description>
     <!-- Published as a self-contained win-x64 folder by build/Build-Portable.ps1; trimming and single-file are not used because WPF does not support them safely. -->
     <PublishTrimmed>false</PublishTrimmed>
     <PublishSingleFile>false</PublishSingleFile>
@@ -14,6 +15,7 @@
     <StartupObject>BDIT.TenantToolkit.App.App</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="..\BDIT.TenantToolkit.Graph\Assets\buildstandard.png" Link="Assets\buildstandard.png" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />

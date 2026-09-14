@@ -127,7 +127,7 @@ public sealed class GraphClient : IGraphClient
         ValidateWritePath(path);
         if (Mode != SessionMode.Deployment) throw new WriteDeniedException("Recovery requires deployment access.");
         var route = _routes.MatchWrite(api, path, out var existing);
-        if (route is null || !existing || api != GraphApi.V1 || !RecoverySafety.Supports(route.BasePath))
+        if (route is null || !existing || !RecoverySafety.Supports(api, route.BasePath))
             throw new WriteDeniedException("Recovery is restricted to supported individual toolkit policy objects.");
         try { RecoverySafety.AssertPayload(route.BasePath, action, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }

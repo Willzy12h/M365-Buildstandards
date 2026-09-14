@@ -143,7 +143,7 @@ public sealed class WriteVerificationService(EvidenceStore evidence, IClock cloc
     private static CollectionDefinition Definition(StandardCatalogue standard, string collection)
     {
         var definition = standard.FindCollection(collection) ?? throw new SafetyViolationException("Unknown collection.");
-        if (!definition.Writable || definition.ApiVersion != GraphApi.V1 || !RecoverySafety.Supports(definition.BasePath))
+        if (!definition.Writable || !RecoverySafety.Supports(definition.ApiVersion, definition.BasePath))
             throw new SafetyViolationException("Re-verification is limited to supported policy collections.");
         return definition;
     }

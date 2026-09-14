@@ -9,8 +9,8 @@ namespace BDIT.TenantToolkit.Graph.Setup;
 public sealed record AdminConsentCallbackResult(bool ApprovalReported, string Message);
 
 /// <summary>
-/// One temporary native-app localhost callback. Requires no URL reservation or administrator rights.
-/// Uses the documented localhost port-matching convention; admin-consent endpoint acceptance still requires live validation.
+/// Temporary callback at the exact registered web redirect. Requires no URL reservation or administrator rights.
+/// Separate from MSAL's native sign-in callback; no port-matching exemption is assumed for admin consent.
 /// No token endpoint, consent grant or tenant write is called by this helper.
 /// </summary>
 public sealed class AdminConsentCallback : IDisposable
@@ -34,14 +34,18 @@ public sealed class AdminConsentCallback : IDisposable
         // Validate IDs and exact scopes before reserving a local port.
         _ = ApplicationSetupService.AdminConsentUri(tenantId, clientId, explicitRequiredScopes);
         _lifetime = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        _listener = new TcpListener(IPAddress.Loopback, 0) { ExclusiveAddressUse = true };
+        _listener = new TcpListener(IPAddress.Loopback, new Uri(SetupRegistration.ConsentRedirect).Port) { ExclusiveAddressUse = true };
         try
         {
             _listener.Start(4);
-            var port = ((IPEndPoint)_listener.LocalEndpoint).Port;
-            RedirectUri = new Uri($"http://localhost:{port}/");
+            RedirectUri = new Uri(SetupRegistration.ConsentRedirect);
             ConsentUri = ApplicationSetupService.BuildAdminConsentUri(tenantId, clientId, explicitRequiredScopes, RedirectUri.AbsoluteUri, Encoding.ASCII.GetString(_state));
             _expiryRegistration = _lifetime.Token.Register(static listener => ((TcpListener)listener!).Stop(), _listener);
+        }
+        catch (SocketException ex)
+        {
+            _listener.Stop(); _lifetime.Dispose();
+            throw new BDIT.TenantToolkit.Core.ConfigurationException("The registered consent callback port 8400 is unavailable. Close another tool consent window, then retry. Validate setup can still check existing grants.", ex);
         }
         catch { _listener.Stop(); _lifetime.Dispose(); throw; }
     }
@@ -99,7 +103,8 @@ public sealed class AdminConsentCallback : IDisposable
         var lines = header.Split("\r\n", StringSplitOptions.None);
         var first = lines[0].Split(' ');
         if (first.Length != 3 || first[0] != "GET" || first[2] is not ("HTTP/1.0" or "HTTP/1.1")) return null;
-        if (!first[1].StartsWith("/?", StringComparison.Ordinal) || first[1].Contains('#')) return null;
+        var prefix = RedirectUri.AbsolutePath + "?";
+        if (!first[1].StartsWith(prefix, StringComparison.Ordinal) || first[1].Contains('#')) return null;
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var line in lines.Skip(1).Where(l => l.Length > 0))
         {
@@ -109,7 +114,7 @@ public sealed class AdminConsentCallback : IDisposable
         if (!headers.TryGetValue("Host", out var host) || !string.Equals(host, RedirectUri.Authority, StringComparison.OrdinalIgnoreCase)) return null;
         if (headers.ContainsKey("Transfer-Encoding") || (headers.TryGetValue("Content-Length", out var length) && length != "0")) return null;
         var query = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var pair in first[1][2..].Split('&'))
+        foreach (var pair in first[1][prefix.Length..].Split('&'))
         {
             var equals = pair.IndexOf('=');
             if (equals <= 0) return null;
@@ -154,7 +159,7 @@ public sealed class AdminConsentCallback : IDisposable
             : result.ApprovalReported ? "The approval response has been received. Return to the toolkit while it checks the actual permissions in Microsoft Graph."
             : "Microsoft did not report successful approval. Return to the toolkit to review the next step.";
         const string style = "*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:32px;background:#0b1930;color:#14243a;font-family:Segoe UI,Arial,sans-serif;line-height:1.6}main{width:100%;max-width:640px;border-top:6px solid #2196dc;border-radius:12px;background:#fff;padding:40px;box-shadow:0 20px 60px #0004}.brand{margin:0 0 24px;color:#126caa;font-size:13px;font-weight:700;letter-spacing:1.8px}h1{margin:0 0 18px;font-size:28px;line-height:1.25}p{margin:0 0 18px}.foot{margin:28px 0 0;padding-top:18px;border-top:1px solid #dce5ee;color:#536478;font-size:14px}@media(max-width:480px){body{padding:16px}main{padding:28px}h1{font-size:24px}}";
-        var body = Encoding.UTF8.GetBytes($"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{title}</title><style>{style}</style></head><body><main><p class=\"brand\">BLUE DIAMOND IT · M365 TOOLKIT</p><h1>{title}</h1><p>{message}</p><p class=\"foot\">You can close this browser tab.</p></main></body></html>");
+        var body = Encoding.UTF8.GetBytes($"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{title}</title><style>{style}</style></head><body><main><p class=\"brand\">M365 BUILDSTANDARD · M365 TOOLKIT</p><h1>{title}</h1><p>{message}</p><p class=\"foot\">You can close this browser tab.</p></main></body></html>");
         var status = result is null ? "400 Bad Request" : "200 OK";
         var header = Encoding.ASCII.GetBytes($"HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {body.Length}\r\nCache-Control: no-store, no-transform\r\nPragma: no-cache\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n");
         await stream.WriteAsync(header, ct).ConfigureAwait(false);

@@ -16,7 +16,7 @@ public sealed class ReportExporter
     public ReportExporter(ToolkitPaths paths, string companyName)
     {
         _paths = paths;
-        _companyName = string.IsNullOrWhiteSpace(companyName) ? "Blue Diamond IT" : companyName;
+        _companyName = string.IsNullOrWhiteSpace(companyName) ? "M365 BuildStandard" : companyName;
     }
 
     public static string SafeName(string value)

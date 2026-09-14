@@ -12,11 +12,11 @@ namespace BDIT.TenantToolkit.Graph.Setup;
 /// Temporary, explicitly initiated setup session. Normal assessment/deployment clients never gain these routes.
 /// Creation, consent and effective access are separate stages. No tenant operations run merely by constructing this service.
 /// </summary>
-public sealed class ApplicationSetupService : IAsyncDisposable
+public sealed partial class ApplicationSetupService : IAsyncDisposable
 {
     public const string BootstrapClientId = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
     public const string GraphApplicationId = "00000003-0000-0000-c000-000000000000";
-    public static IReadOnlyList<string> SetupScopes { get; } = Array.AsReadOnly(new[] { "User.Read", "Application.ReadWrite.All", "Directory.Read.All" });
+    public static IReadOnlyList<string> SetupScopes { get; } = Array.AsReadOnly(new[] { "User.Read", "Application.ReadWrite.All", "Directory.Read.All", "AppRoleAssignment.ReadWrite.All" });
     private readonly ApplicationSetupGraphClient _graph;
     private readonly MsalAuthenticator? _authenticator;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -34,13 +34,15 @@ public sealed class ApplicationSetupService : IAsyncDisposable
         _graph = new ApplicationSetupGraphClient(http, tokens, log);
     }
 
-    public static async Task<ApplicationSetupService> ConnectAsync(HttpClient http, string tenantId, IToolkitLog log, CancellationToken ct)
+    public static async Task<ApplicationSetupService> ConnectAsync(HttpClient http, string tenantId, IToolkitLog log, CancellationToken ct,
+        IntPtr parentWindowHandle = default, bool useSystemBrowser = false, string loginHint = "")
     {
         var auth = await MsalAuthenticator.SignInAsync(new SignInRequest
         {
             TenantId = tenantId, ClientId = BootstrapClientId,
             ClientLabel = "Microsoft Graph Command Line Tools — temporary application setup",
             Purpose = "Application setup: registration writes and grant inspection", Scopes = SetupScopes,
+            ParentWindowHandle = parentWindowHandle, UseSystemBrowser = useSystemBrowser, LoginHint = loginHint,
             ClientVersion = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(ApplicationSetupService).Assembly)?.InformationalVersion ?? "unknown",
             CacheFile = "" // Never attach the privileged setup identity to a persistent cache.
         }, log, ct).ConfigureAwait(false);
@@ -66,7 +68,8 @@ public sealed class ApplicationSetupService : IAsyncDisposable
         return scopes;
     }
 
-    public async Task<ApplicationSetupPlan> PreviewAsync(StandardCatalogue standard, string namePrefix, CancellationToken ct)
+    public async Task<ApplicationSetupPlan> PreviewAsync(StandardCatalogue standard, string namePrefix, CancellationToken ct,
+        string assessmentClientId = "", string deploymentClientId = "", bool assignOperator = false)
     {
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -80,17 +83,26 @@ public sealed class ApplicationSetupService : IAsyncDisposable
             {
                 TenantId = Identity.TenantId, TenantName = Text(tenant, "displayName"), OperatorId = Identity.AccountObjectId,
                 OperatorName = Identity.Account, StandardHash = CanonicalJson.Sha256Value(standard), StandardRelease = standard.Release,
-                GraphServicePrincipalId = RequireGuid(resource, "id"), CreatedAt = DateTimeOffset.UtcNow
+                GraphServicePrincipalId = RequireGuid(resource, "id"), CreatedAt = DateTimeOffset.UtcNow,
+                AssignOperator = assignOperator, LogoDigest = ProductLogo.Digest
             };
             foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
             {
-                var row = new ApplicationSetupRow { Mode = mode, DisplayName = namePrefix + (mode == SessionMode.Assessment ? " Tenant Assessment" : " Tenant Deployment") };
+                var row = new ApplicationSetupRow { Mode = mode, DisplayName = namePrefix + (mode == SessionMode.Assessment ? " Assessment Tool" : " Deployment Tool") };
                 foreach (var scope in RequiredScopes(standard, mode))
                 {
                     if (!scopeMap.TryGetValue(scope, out var permission)) throw new ConfigurationException($"Microsoft Graph does not advertise the enabled delegated permission {scope}. Setup is blocked.");
                     row.Permissions.Add(permission);
                 }
                 row.ApplicationPayload = ApplicationPayload(row);
+                var explicitId = mode == SessionMode.Assessment ? assessmentClientId.Trim() : deploymentClientId.Trim();
+                if (explicitId.Length > 0)
+                {
+                    if (Same(assessmentClientId.Trim(), deploymentClientId.Trim())) throw new ConfigurationException("Use different IDs for assessment and deployment.");
+                    await PrepareExistingAsync(row, explicitId, ct).ConfigureAwait(false);
+                    plan.Rows.Add(row);
+                    continue;
+                }
                 row.ExistingMatches = await FindNameMatchesAsync(row.DisplayName, ct).ConfigureAwait(false);
                 if (row.ExistingMatches.Count > 0)
                 {
@@ -130,7 +142,8 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                 throw new PlanValidationException("Tenant, operator or standard changed. Preview application setup again.");
             if (plan.CreatedAt > DateTimeOffset.UtcNow.AddMinutes(1) || DateTimeOffset.UtcNow - plan.CreatedAt > TimeSpan.FromMinutes(5))
                 throw new PlanValidationException("The application setup plan expired. Preview again.");
-            var selected = plan.Rows.Where(r => r.Status == "Create").ToList();
+            if (plan.LogoDigest != ProductLogo.Digest) throw new PlanValidationException("The product icon changed. Preview setup again.");
+            var selected = plan.Rows.Where(r => r.Status is "Create" or "Configure existing").ToList();
             if (selected.Count == 0) throw new PlanValidationException("No missing application is eligible for creation.");
             AssertNoUnresolvedSetup(Path.GetFullPath(evidenceDirectory));
             await VerifyIdentityAsync(ct).ConfigureAwait(false);
@@ -141,13 +154,16 @@ public sealed class ApplicationSetupService : IAsyncDisposable
             {
                 if (row.Permissions.Any(p => !currentScopes.TryGetValue(p.Name, out var current) || !Same(p.Id, current.Id)))
                     throw new PlanValidationException("Graph permission definitions changed. Preview again.");
+                if (row.Status == "Configure existing") { await AssertExistingUnchangedAsync(row, ct).ConfigureAwait(false); continue; }
                 if ((await FindNameMatchesAsync(row.DisplayName, ct).ConfigureAwait(false)).Count > 0)
                     throw new PlanValidationException("An application with a planned name appeared after preview. Review existing client IDs before continuing.");
             }
             var result = new ApplicationSetupResult
             {
                 TenantId = Identity.TenantId, OperatorId = Identity.AccountObjectId, PlanId = plan.Id, StartedAt = DateTimeOffset.UtcNow,
-                Rows = plan.Rows.Select(r => new ApplicationSetupItemResult { Mode = r.Mode, DisplayName = r.DisplayName, Status = r.Status == "Create" ? "Not run" : "Review existing", Reason = r.Reason }).ToList()
+                Rows = plan.Rows.Select(r => new ApplicationSetupItemResult { Mode = r.Mode, DisplayName = r.DisplayName, ClientId = r.ClientId,
+                    ApplicationObjectId = r.ApplicationObjectId, ServicePrincipalId = r.ServicePrincipalId,
+                    Status = selected.Contains(r) ? "Not run" : "Review existing", Reason = r.Reason }).ToList()
             };
             result.EvidenceDirectory = Path.Combine(Path.GetFullPath(evidenceDirectory), "app-setup-" + result.Id);
             Directory.CreateDirectory(result.EvidenceDirectory);
@@ -169,13 +185,16 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                     {
                         // Fresh identity and name checks occur immediately before each candidate's first write.
                         await VerifyIdentityAsync(ct).ConfigureAwait(false);
-                        if ((await FindNameMatchesAsync(row.DisplayName, ct).ConfigureAwait(false)).Count != 0)
+                        if (row.Status == "Configure existing") await AssertExistingUnchangedAsync(row, ct).ConfigureAwait(false);
+                        else if ((await FindNameMatchesAsync(row.DisplayName, ct).ConfigureAwait(false)).Count != 0)
                             throw new PlanValidationException("A matching application appeared. Creation stopped without adopting it.");
                         // Finish one application/enterprise-application pair at an action boundary. A UI stop does
                         // not cancel an in-flight registration write; timeouts still produce an ambiguous outcome.
                         using var action = new CancellationTokenSource(TimeSpan.FromMinutes(5));
                         var actionToken = action.Token;
                         item.Status = "In progress";
+                        if (row.Status == "Create")
+                        {
                         item.ApplicationWrite = "Intent recorded";
                         SaveResult(result);
                         Journal(result, "Create application", row.Mode, CanonicalJson.Sha256(row.ApplicationPayload));
@@ -192,19 +211,25 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                         item.ServicePrincipalWrite = "Accepted";
                         item.ServicePrincipalId = RequireCreatedGuid(sp, "id");
                         SaveResult(result);
+                        }
+                        await CompleteRegistrationAsync(result, item, row, plan.AssignOperator, actionToken).ConfigureAwait(false);
                         var readApp = await _graph.GetAsync("/applications/" + item.ApplicationObjectId + AppSelect, actionToken).ConfigureAwait(false);
                         var readSp = await _graph.GetAsync("/servicePrincipals/" + item.ServicePrincipalId + SpSelect, actionToken).ConfigureAwait(false);
                         after.Add(new JsonObject { ["application"] = readApp.DeepClone(), ["servicePrincipal"] = readSp.DeepClone() });
-                        if (!CanonicalJson.IsSubset(readApp, row.ApplicationPayload) || !Same(Text(readSp, "appId"), item.ClientId)
+                        var expectedApp = ApplicationPayload(row); expectedApp["publicClient"] = SetupRegistration.PublicClient(item.ClientId);
+                        if (!CanonicalJson.IsSubset(readApp, expectedApp) || !Same(Text(readSp, "appId"), item.ClientId)
                             || readSp["appRoleAssignmentRequired"]?.GetValue<bool>() != true)
                             throw new ConfigurationException("Registration writes were accepted, but readback did not confirm the reviewed settings.");
                         item.ConfigurationVerification = "Passed";
-                        item.Status = "Created — consent pending";
-                        item.Reason = "Registration and enterprise application readback passed. Administrator consent, engineer assignment and effective-access checks remain separate.";
+                        item.Status = "Configured — consent pending";
+                        item.Reason = "Registration and enterprise application readback passed. Continue with both permission approvals, then connect directly from setup.";
                         SaveResult(result);
                     }
                     catch (Exception ex)
                     {
+                        if (item.AdditionalWrites.LastOrDefault() is { Acceptance: "Intent recorded" } extra)
+                            extra.Acceptance = ex is WriteNotSentException or WriteDeniedException or SafetyViolationException or AuthenticationRequiredException
+                                ? "Not attempted" : ex is GraphRequestException ? "Rejected" : "Unknown";
                         if (ex is AmbiguousWriteException)
                         {
                             if (item.ServicePrincipalWrite == "Intent recorded") item.ServicePrincipalWrite = "Unknown";
@@ -213,8 +238,10 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                         }
                         else
                         {
-                            if (item.ServicePrincipalWrite == "Intent recorded") item.ServicePrincipalWrite = ex is GraphRequestException ? "Rejected" : "Not confirmed";
-                            if (item.ApplicationWrite == "Intent recorded") item.ApplicationWrite = ex is GraphRequestException ? "Rejected" : "Not confirmed";
+                            var acceptance = ex is WriteNotSentException or WriteDeniedException or SafetyViolationException or AuthenticationRequiredException
+                                ? "Not attempted" : ex is GraphRequestException ? "Rejected" : "Not confirmed";
+                            if (item.ServicePrincipalWrite == "Intent recorded") item.ServicePrincipalWrite = acceptance;
+                            if (item.ApplicationWrite == "Intent recorded") item.ApplicationWrite = acceptance;
                             item.Status = item.ApplicationWrite == "Accepted" ? "Partially completed — review" : "Failed";
                         }
                         item.Reason = SafeError(ex);
@@ -238,7 +265,7 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                     result.AfterComplete = true;
                 }
                 catch (Exception ex) { result.AfterError = SafeError(ex); result.Status = "Review required"; }
-                if (result.Status == "Running") result.Status = "Creation complete — consent and access checks pending";
+                if (result.Status == "Running") result.Status = "Setup complete — consent and access checks pending";
                 result.EndedAt = DateTimeOffset.UtcNow;
                 SaveResult(result);
             }
@@ -273,8 +300,11 @@ public sealed class ApplicationSetupService : IAsyncDisposable
                     if (!Same(Text(app, "appId"), clientId) || !Same(Text(sp, "appId"), clientId) || !Same(Text(sp, "appOwnerOrganizationId"), Identity.TenantId))
                         row.Issues.Add("Registration or enterprise application does not identify the requested tenant/client.");
                     if (Text(app, "signInAudience") != "AzureADMyOrg") row.Issues.Add("The application is not single-tenant.");
-                    if (app["publicClient"]?["redirectUris"] is not JsonArray redirects || !redirects.Any(r => r?.GetValue<string>() == "http://localhost"))
-                        row.Issues.Add("Desktop public-client redirect http://localhost is missing.");
+                    if (app["publicClient"]?["redirectUris"] is not JsonArray redirects || !redirects.Any(r => r?.GetValue<string>() == "http://localhost")
+                        || !redirects.Any(r => Same(r?.GetValue<string>() ?? "", SetupRegistration.BrokerRedirect(clientId))))
+                        row.Issues.Add("Windows pop-up or browser sign-in redirect is missing. Preview configuration for this existing ID.");
+                    if (app["web"]?["redirectUris"] is not JsonArray webRedirects || !webRedirects.Any(r => r?.GetValue<string>() == SetupRegistration.ConsentRedirect))
+                        row.Issues.Add("Administrator-consent web redirect is missing. Preview configuration for this existing ID before approving permissions.");
                     if (app["requiredResourceAccess"] is not JsonArray required) throw new ConfigurationException("Required permissions could not be read.");
                     foreach (var api in required.OfType<JsonObject>())
                     {
@@ -320,7 +350,7 @@ public sealed class ApplicationSetupService : IAsyncDisposable
 
     /// <summary>Opens Microsoft's separate approval experience. Always validate grants afterwards; redirect success is not evidence.</summary>
     public static Uri AdminConsentUri(string tenantId, string clientId, IEnumerable<string>? scopes = null)
-        => BuildAdminConsentUri(tenantId, clientId, scopes, "http://localhost", Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
+        => BuildAdminConsentUri(tenantId, clientId, scopes, SetupRegistration.ConsentRedirect, Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
 
     internal static Uri BuildAdminConsentUri(string tenantId, string clientId, IEnumerable<string>? scopes, string redirectUri, string state)
     {
@@ -373,7 +403,10 @@ public sealed class ApplicationSetupService : IAsyncDisposable
     private static JsonObject ApplicationPayload(ApplicationSetupRow row) => new()
     {
         ["displayName"] = row.DisplayName, ["signInAudience"] = "AzureADMyOrg",
-        ["publicClient"] = new JsonObject { ["redirectUris"] = new JsonArray("http://localhost") },
+        ["publicClient"] = SetupRegistration.PublicClient(row.ClientId.Length == 0 ? null : row.ClientId),
+        ["web"] = SetupRegistration.Web(), ["isFallbackPublicClient"] = true,
+        ["description"] = "M365 BuildStandard Tool: " + row.Mode + ". Delegated engineer access; no unattended credentials.",
+        ["info"] = new JsonObject { ["marketingUrl"] = SetupRegistration.HomePage, ["supportUrl"] = SetupRegistration.HomePage + "/issues" },
         ["requiredResourceAccess"] = new JsonArray(new JsonObject
         {
             ["resourceAppId"] = GraphApplicationId,
@@ -384,8 +417,8 @@ public sealed class ApplicationSetupService : IAsyncDisposable
     {
         var node = ToolkitJson.ToNode(plan)!.AsObject(); node.Remove("planHash"); return CanonicalJson.Sha256(node);
     }
-    private const string AppSelect = "?$select=id,appId,displayName,signInAudience,publicClient,requiredResourceAccess";
-    private const string SpSelect = "?$select=id,appId,displayName,appOwnerOrganizationId,appRoleAssignmentRequired,accountEnabled";
+    private const string AppSelect = "?$select=id,appId,displayName,signInAudience,publicClient,requiredResourceAccess,web,info,description,isFallbackPublicClient,passwordCredentials,keyCredentials,appRoles";
+    private const string SpSelect = "?$select=id,appId,displayName,appOwnerOrganizationId,appRoleAssignmentRequired,accountEnabled,homepage";
     private static string Text(JsonObject obj, string key) => obj[key]?.GetValue<string>() ?? "";
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     private static string RequireGuid(JsonObject obj, string key) => ProfileValidator.IsGuid(Text(obj, key)) ? Text(obj, key) : throw new ConfigurationException("Graph did not return a valid " + key + ".");
@@ -405,7 +438,8 @@ public sealed class ApplicationSetupService : IAsyncDisposable
             if (!File.Exists(resultFile)) throw new PlanValidationException("A previous setup has no final result. Reconcile its local evidence before creating more applications.");
             var previous = ToolkitJson.Deserialize<ApplicationSetupResult>(File.ReadAllText(resultFile));
             if (previous.EndedAt is null || previous.Rows.Any(r => r.Status.StartsWith("Outcome unknown", StringComparison.Ordinal)
-                || r.ApplicationWrite is "Unknown" or "Intent recorded" or "Not confirmed" || r.ServicePrincipalWrite is "Unknown" or "Intent recorded" or "Not confirmed"))
+                || r.ApplicationWrite is "Unknown" or "Intent recorded" or "Not confirmed" || r.ServicePrincipalWrite is "Unknown" or "Intent recorded" or "Not confirmed"
+                || r.AdditionalWrites.Any(w => w.Acceptance is "Unknown" or "Intent recorded")))
                 throw new PlanValidationException("A previous application setup write is unresolved. Inspect its evidence and reconcile in Entra before another creation attempt; a fresh preview does not make retry safe.");
         }
     }

@@ -2,6 +2,9 @@
 
 ## Current work
 
+Preview.4 adds WAM sign-in, exact registered admin-consent callback, explicit existing-app repair, custom icon/GitHub metadata, approved engineer assignment and direct setup-to-connect handoff. Standard 2026.09.4 adds the supplied BitLocker candidate and optional long paths (14 recipes); other policy defaults require user input. See [application setup](../APPLICATION-SETUP.md) and [device automation](../DEVICE-AUTOMATION.md). Previous source namespaces and standard 2026.09.3 remain for compatibility and evidence. All new Microsoft interactions still require authorised live validation.
+
+
 Preview.3 addresses Claude's review of `6712d8e`: explicit not-sent write classification, read-only re-verification, acknowledged historical evidence reconciliation, cancellable deployment reads and bounded follow-up capture. See [review dispositions](CLAUDE-REVIEW-RESPONSE.md). Original records remain unchanged; unknown modern requests remain blocked.
 
 [PR #2](https://github.com/Willzy12h/M365-Buildstandards/pull/2), branch `astra/engineer-workflow`, targets integration and depends on [PR #1](https://github.com/Willzy12h/M365-Buildstandards/pull/1). Until #1 is merged, #2 includes its imported source. Both source repositories and Claude's coordination branch remain untouched. Merge through review.

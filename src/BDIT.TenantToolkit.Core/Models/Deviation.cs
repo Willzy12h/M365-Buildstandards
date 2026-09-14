@@ -8,7 +8,7 @@ public enum DeviationKind
     NotApplicable
 }
 
-/// <summary>An approved departure from the BDIT standard, bound to one tenant and one control.</summary>
+/// <summary>An approved departure from the build standard, bound to one tenant and one control.</summary>
 public sealed class Deviation
 {
     public string Id { get; set; } = "";

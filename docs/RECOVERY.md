@@ -10,7 +10,7 @@
 
 | Operation | Scope | Important boundary |
 |---|---|---|
-| Delete a recorded creation | Toolkit-created v1.0 Conditional Access, device configuration and device compliance policies | Requires a confirmed creation ID and matching ownership. Intune assignments must already be empty. A fresh 404 and collection read confirm absence before the mapping is removed. |
+| Delete a recorded creation | Toolkit-created v1.0 Conditional Access, device configuration and device compliance policies; beta device configurations for BitLocker | Requires a confirmed creation ID and matching ownership. Intune assignments must already be empty. A fresh 404 and collection read confirm absence before the mapping is removed. |
 | Restore an update | Latest mapped update with complete recorded before-values | Restores only the fields changed by that update. Blocks later drift, missing before-values, reactivation and assignment changes. |
 | Disable Conditional Access | Recorded toolkit-created CA policy, including unexpected activation or changed targeting | Explicitly review drift. Sends only `state: disabled`; retains current stored targeting and exclusions. Other policies may still affect sign-in. |
 
@@ -43,3 +43,5 @@ Digests detect accidental evidence changes; they are not signatures or protectio
 Synthetic tests cover durable intent, exact IDs, deletion and absence, update restoration, unexpected activation, assignment/drift/tenant/approval gates, uncertain writes and shared-store exclusion. Real tenant recovery remains unverified; see [testing evidence](integration/TESTING-EVIDENCE.md).
 
 The supported routes follow Microsoft's [Conditional Access deletion](https://learn.microsoft.com/en-us/graph/api/conditionalaccesspolicy-delete?view=graph-rest-1.0), [partial update](https://learn.microsoft.com/en-us/graph/api/conditionalaccesspolicy-update?view=graph-rest-1.0), [device configuration deletion](https://learn.microsoft.com/en-us/graph/api/intune-deviceconfig-windows10generalconfiguration-delete?view=graph-rest-1.0) and [compliance deletion](https://learn.microsoft.com/en-us/graph/api/intune-deviceconfig-windows10compliancepolicy-delete?view=graph-rest-1.0) documentation, checked on 14 September 2026. Tenant permissions and Intune RBAC still require validation.
+
+BitLocker policy recovery removes or restores policy configuration only. It does not decrypt devices or undo device-side encryption. See [device automation](DEVICE-AUTOMATION.md).

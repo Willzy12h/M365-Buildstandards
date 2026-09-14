@@ -2,6 +2,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
 using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Broker;
 
 namespace BDIT.TenantToolkit.Graph.Auth;
 
@@ -22,9 +23,12 @@ public sealed class SignInRequest
     public IReadOnlyList<string> Scopes { get; init; } = Array.Empty<string>();
     public string CacheFile { get; init; } = "";
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
-    public string ClientName { get; init; } = "BDIT Tenant Toolkit";
+    public string ClientName { get; init; } = "M365 BuildStandard Tool";
     public string ClientVersion { get; init; } = "1.0.0";
     public string Purpose { get; init; } = "";
+    public IntPtr ParentWindowHandle { get; init; }
+    public bool UseSystemBrowser { get; init; }
+    public string LoginHint { get; init; } = "";
 }
 
 public sealed class SignInOutcome
@@ -88,12 +92,19 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         if (!ProfileValidator.IsGuid(request.ClientId)) throw new ConfigurationException("Sign-in requires an application (client) ID GUID.");
         if (request.Scopes.Count == 0) throw new ConfigurationException("Sign-in requires at least one scope.");
 
-        var pca = PublicClientApplicationBuilder.Create(request.ClientId)
+        var builder = PublicClientApplicationBuilder.Create(request.ClientId)
             .WithAuthority(AzureCloudInstance.AzurePublic, request.TenantId)
             .WithRedirectUri("http://localhost")
             .WithClientName(request.ClientName)
-            .WithClientVersion(request.ClientVersion)
-            .Build();
+            .WithClientVersion(request.ClientVersion);
+        var broker = OperatingSystem.IsWindows() && !request.UseSystemBrowser;
+        if (broker)
+        {
+            if (request.ParentWindowHandle == IntPtr.Zero) throw new ConfigurationException("Windows sign-in needs the tool's parent window. Use the browser option if Windows sign-in is unavailable.");
+            builder.WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows));
+            builder.WithParentActivityOrWindow(() => request.ParentWindowHandle);
+        }
+        var pca = builder.Build();
         if (!string.IsNullOrWhiteSpace(request.CacheFile))
         {
             if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Persistent token protection requires Windows.");
@@ -106,16 +117,16 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         AuthenticationResult result;
         try
         {
-            log.Info("Auth", $"Opening Microsoft sign-in in the system browser for tenant {request.TenantId} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
-            result = await pca.AcquireTokenInteractive(scopes)
-                .WithPrompt(Prompt.SelectAccount)
-                .WithUseEmbeddedWebView(false)
-                .WithSystemWebViewOptions(new SystemWebViewOptions
+            log.Info("Auth", $"Opening Microsoft sign-in in {(broker ? "a Windows pop-up" : "the system browser")} for tenant {request.TenantId} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
+            var interactive = pca.AcquireTokenInteractive(scopes);
+            if (string.IsNullOrWhiteSpace(request.LoginHint)) interactive.WithPrompt(Prompt.SelectAccount);
+            else interactive.WithLoginHint(request.LoginHint);
+            if (!broker) interactive.WithUseEmbeddedWebView(false).WithSystemWebViewOptions(new SystemWebViewOptions
                 {
-                    HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>You can close this tab and return to the BDIT Tenant Toolkit.</p></body></html>",
-                    HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to the BDIT Tenant Toolkit and try again.</p></body></html>"
-                })
-                .ExecuteAsync(timeout.Token);
+                    HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to M365 BuildStandard Tool. This temporary sign-in page can now be closed.</p></body></html>",
+                    HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
+                });
+            result = await interactive.ExecuteAsync(timeout.Token);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {

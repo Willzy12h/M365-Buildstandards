@@ -1,31 +1,41 @@
 # Application setup
 
-The wizard provisions the toolkit's own delegated assessment and deployment identities. It does not deploy arbitrary enterprise applications, create secrets, grant directory roles or implement app-only authentication.
+1. Enter the client label and tenant ID on Connect. Select **Set up or validate applications**. If deployment has no configured app, **Connect for deployment** opens the same wizard.
+2. Authorise the temporary setup sign-in. Windows Web Account Manager (WAM) opens Microsoft's own sign-in window; select the browser fallback if needed. Setup reuses a connected setup session for the same tenant.
+3. Leave both IDs blank for new registrations, or enter the exact IDs of existing dedicated tool registrations to repair them. Preview the full name, permissions and payload for each. Optionally include assignment of the current setup engineer to both enterprise apps; this is an application assignment, not a directory role.
+4. Review and approve setup, then type the tenant ID. The wizard saves before evidence and each write outcome. It creates or configures the reviewed registrations, registers sign-in/consent redirects, uploads the original tool icon, sets GitHub URLs and applies the approved engineer assignment. Client IDs fill automatically.
+5. Approve **assessment consent** and **deployment consent** separately on Microsoft's page. These grant the listed operational scopes, not the temporary setup scopes. The UI then reads actual grants and displays required, configured, granted and missing counts. Revalidate after propagation delays.
+6. Choose **Continue read-only** or **Continue to deployment** when ready. The selected application's sign-in and read-only access checks follow directly. Microsoft may reuse Windows sign-in, but app-specific token acquisition and any required consent/MFA remain necessary.
 
-1. On Connect, enter the tenant ID and choose **Set up tenant applications**. Alternatively open Application setup from the workflow rail.
-2. Review the separate privileged sign-in. It requests `User.Read`, `Application.ReadWrite.All` and `Directory.Read.All` through Microsoft Graph Command Line Tools. Use a suitably authorised application administrator. Creating a service principal and granting consent require appropriate Entra roles as well as OAuth permissions; these are separate checks.
-3. Preview both registrations. Permission names and IDs are resolved from the tenant's Graph service principal and the loaded standard. Review both rows, descriptions and exact payload. A name collision blocks creation of that row; enter an existing client ID explicitly for validation.
-4. Approve the listed permissions and type the tenant ID. The five-minute, single-use plan is bound to tenant, operator and standard. Before evidence is written and re-read before any request. Both applications are single-tenant public clients with engineer assignment required. Creation requests permissions; it does not itself grant consent.
-5. Review Microsoft's administrator-consent screen for each app, then assign authorised engineers in Entra. A temporary loopback listener presents a local completion page and verifies the response state and tenant. The browser response is not proof of granted permissions: the toolkit then reads actual configuration and grants. Select **Validate setup** again after any propagation delay. The listener expires after five minutes and requires no local administrator rights.
-6. Validation separates exact configured scopes, tenant-wide consent, direct current-engineer assignment and effective access. Group-based assignment is not confirmed by this check. Use the IDs on Connect, then sign in with the application and run the access checks. Roles, licensing, PIM, group membership, Intune RBAC and successful writes are not proven by a consent grant.
+Two registrations preserve a token-level read-only boundary: **M365 BuildStandard Assessment Tool** has read scopes; **M365 BuildStandard Deployment Tool** also has the required write scopes. The normal client never grants its own access. Both are delegated, single-tenant public clients, with assignment required and no secrets. Admin consent does not itself prove directory roles, Intune RBAC, licences or successful deployment.
 
-Closing the setup session removes its in-memory tokens; it does not revoke consent already granted in Entra. Tenant configuration and setup evidence remain local. Do not commit these records to Git.
+## Setup permissions and delegated administrators
 
-Stop waits for the current application/enterprise-application pair and after evidence before ending. If a write outcome is unknown, creation is blocked until manual reconciliation. Do not delete evidence to force a retry. Use the recorded client/object IDs and timestamps to inspect Entra; explicit-ID validation is read-only. There is no automatic deletion, rollback or repair of existing registrations.
+The temporary Microsoft Graph Command Line Tools sign-in requests `User.Read`, `Directory.Read.All`, `Application.ReadWrite.All` and `AppRoleAssignment.ReadWrite.All`. The last permission is used only for the explicitly approved current-engineer default app assignment. The toolkit never grants directory roles, writes consent grants directly or stores credentials. Microsoft may display its own first-party branding for that bootstrap identity; the two tool apps use the custom icon and project URLs.
+
+Use an identity with appropriate rights in the target tenant. For partner/GDAP or group access, direct assignment may not be visible. After configuration and consent are verified, **Check delegated-admin deployment access** permits an actual target-tenant sign-in and read-only access check. It does not bypass Microsoft's assignment/role enforcement or promise GDAP compatibility for every endpoint. Tenant and returned operator identity are still verified. Group expansion, PIM activation, custom roles and partner-specific endpoint behaviour require live testing.
+
+## Redirects and existing-app repair
+
+- Desktop sign-in: WAM uses `ms-appx-web://microsoft.aad.brokerplugin/{client-id}`; browser fallback uses the native `http://localhost` registration.
+- Administrator consent: exact web redirect `http://localhost:8400/m365-consent/`. It is separate from the native redirect; the code no longer assumes an ephemeral-port exemption for admin consent.
+- The wizard verifies this registered callback before opening consent. An older registration must be explicitly previewed and repaired first. If port 8400 is occupied, close the other consent window. No alternate unregistered port is silently used.
+- The five-minute listener checks state, tenant, Host and request shape. Browser success is not permission evidence. Stop or timeout leaves **Validate setup** available to inspect actual grants.
+
+Existing-ID repair is restricted to tenant-owned, single-tenant, delegated Graph tool apps without credentials, exposed roles or application-permission grants. It replaces only displayed supported registration fields, logo and enterprise-app properties. Preview and execution check object identity and drift. It never adopts an app by name or silently revokes existing consent; unexpected grants block readiness and need explicit administrative review.
+
+## Evidence and limits
+
+Plans are single-use and expire after five minutes. Intent is durably recorded before each request; accepted registration, logo, property and assignment writes are separately recorded. Configuration readback, consent and access checks remain distinct. Logo upload acceptance is recorded; portal replication is not independently verified. No write is automatically retried after an uncertain response.
+
+Stop finishes the current registration sequence (five-minute action budget) and attempts after evidence (100-second budget). This is separate from policy deployment's stop behaviour. Unknown setup writes block further setup in the evidence root; preserve the journal and reconcile by exact IDs. There is no automatic app deletion, consent revocation, engineer-assignment removal or registration rollback. Closing setup clears local in-memory tokens, not persistent Entra consent or the operating system's signed-in account.
 
 ## Microsoft references checked 14 September 2026
 
-- [Create application](https://learn.microsoft.com/en-us/graph/api/application-post-applications?view=graph-rest-1.0) and [application permission configuration](https://learn.microsoft.com/en-us/graph/tutorial-applications-basics).
-- [Create service principal and supported administrator roles](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-serviceprincipals?view=graph-rest-1.0).
-- [Read delegated consent grants](https://learn.microsoft.com/en-us/graph/api/oauth2permissiongrant-list?view=graph-rest-1.0).
+- [WAM desktop integration](https://learn.microsoft.com/en-us/entra/msal/dotnet/acquiring-tokens/desktop-mobile/wam).
 - [Administrator consent endpoint](https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent).
-- [Engineer assignments](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list-approleassignedto?view=graph-rest-1.0) and [application permission assignments](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list-approleassignments?view=graph-rest-1.0).
-- [Microsoft first-party application identity](https://learn.microsoft.com/en-us/troubleshoot/entra/entra-id/governance/verify-first-party-apps-sign-in).
+- [Application settings and logo update](https://learn.microsoft.com/en-us/graph/api/application-update?view=graph-rest-1.0).
+- [Enterprise-app properties](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-update?view=graph-rest-1.0).
+- [Engineer app assignment](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-approleassignedto?view=graph-rest-1.0).
 
-Live bootstrap sign-in, consent propagation, creation and engineer access remain unverified until authorised tenant testing.
-
-### Localhost consent redirect: live check still required
-
-The registration uses `http://localhost`; the listener uses a temporary port. Microsoft's [redirect URI restrictions](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url) describe localhost port matching, while the [administrator consent endpoint](https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent) requires a registered redirect URI. These pages were checked on 14 September 2026, but do not independently establish this specific admin-consent flow in a real tenant.
-
-Test it first in the disposable tenant. If the browser shows AADSTS50011 or cannot return to the listener, stop waiting in the toolkit and choose **Validate setup**. Consent may already have been granted; validation reads actual grants rather than trusting the callback. Do not recreate applications or assume consent failed because the redirect did. Record the actual redirect outcome before changing registration semantics.
+Source and synthetic tests do not establish live WAM, bootstrap consent, GDAP, grant propagation or portal branding acceptance. Test the complete flow in the authorised disposable tenant first.

@@ -20,6 +20,11 @@ public sealed class ApplicationSetupRow
     public List<SetupPermission> Permissions { get; set; } = new();
     public JsonObject ApplicationPayload { get; set; } = new();
     public List<JsonObject> ExistingMatches { get; set; } = new();
+    public string ClientId { get; set; } = "";
+    public string ApplicationObjectId { get; set; } = "";
+    public string ServicePrincipalId { get; set; } = "";
+    public JsonObject? ExistingApplication { get; set; }
+    public JsonObject? ExistingPrincipal { get; set; }
 }
 
 public sealed class ApplicationSetupPlan
@@ -36,6 +41,8 @@ public sealed class ApplicationSetupPlan
     public List<ApplicationSetupRow> Rows { get; set; } = new();
     public JsonObject Before { get; set; } = new();
     public string PlanHash { get; set; } = "";
+    public bool AssignOperator { get; set; }
+    public string LogoDigest { get; set; } = "";
 }
 
 public sealed class ApplicationSetupItemResult
@@ -50,6 +57,14 @@ public sealed class ApplicationSetupItemResult
     public string ServicePrincipalWrite { get; set; } = "Not attempted";
     public string ConfigurationVerification { get; set; } = "Not checked";
     public string Reason { get; set; } = "";
+    public List<SetupWriteRecord> AdditionalWrites { get; set; } = new();
+}
+
+public sealed class SetupWriteRecord
+{
+    public string Action { get; set; } = "";
+    public string PayloadDigest { get; set; } = "";
+    public string Acceptance { get; set; } = "Not attempted";
 }
 
 public sealed class ApplicationSetupResult
@@ -65,7 +80,7 @@ public sealed class ApplicationSetupResult
     public bool AfterComplete { get; set; }
     public string AfterError { get; set; } = "";
     public List<ApplicationSetupItemResult> Rows { get; set; } = new();
-    public string NextSteps { get; set; } = "Review administrator consent and assign authorised engineers to each enterprise application in Microsoft Entra. Then validate permissions and reconnect using the chosen application IDs. No role assignments, secrets or automatic rollback are created.";
+    public string NextSteps { get; set; } = "Approve each application permission list, then validate configuration, actual grants and engineer assignment. Continue directly into assessment or deployment. Application setup has no automatic rollback; directory roles and secrets are never created.";
 }
 
 public sealed class ApplicationPermissionValidation
@@ -83,6 +98,8 @@ public sealed class ApplicationPermissionValidation
     public List<string> ConfiguredScopes { get; set; } = new();
     public List<string> GrantedScopes { get; set; } = new();
     public List<string> Issues { get; set; } = new();
+    public List<string> MissingScopes => RequiredScopes.Except(GrantedScopes, StringComparer.OrdinalIgnoreCase).ToList();
+    public string PermissionSummary => $"Required {RequiredScopes.Count} · configured {ConfiguredScopes.Count} · tenant-wide granted {GrantedScopes.Count} · missing {MissingScopes.Count}";
     public string AccessStatus { get; set; } = "Not tested. Reconnect using this application to check effective access; grants do not prove roles, licensing or successful writes.";
 }
 

@@ -237,8 +237,21 @@ internal static class Program
             }
             typeof(ApplicationSetupViewModel).GetField("_plan", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(vm, plan);
             vm.PlanRows.Clear(); foreach (var row in plan.Rows) vm.PlanRows.Add(row); vm.SelectedRow = vm.PlanRows[0];
-            vm.Validations.Add(new ApplicationPermissionValidation { Mode = SessionMode.Assessment, ClientId = Id(3), ConfigurationValid = true, ConsentComplete = false, AssignmentRequired = true,
-                EngineerAssignmentStatus = "Synthetic assignment not confirmed", Issues = new() { "Administrator consent and engineer assignment are still required." } });
+            vm.Validations.Clear();
+            foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
+            {
+                var scopes = ApplicationSetupService.RequiredScopes(shell.Workspace.RequireStandard(), mode);
+                var ready = mode == SessionMode.Assessment;
+                vm.Validations.Add(new ApplicationPermissionValidation { Mode = mode, ClientId = ready ? Id(3) : Id(4),
+                    ConfigurationValid = true, ConsentComplete = ready, AssignmentRequired = true, EngineerAssignmentConfirmed = true,
+                    EngineerAssignmentStatus = "Synthetic engineer assignment verified",
+                    RequiredScopes = scopes, ConfiguredScopes = scopes.ToList(), GrantedScopes = ready ? scopes.ToList() : scopes.Take(scopes.Count - 2).ToList(),
+                    Issues = ready ? new() : new() { "Two required permissions are still missing; approve deployment consent, then validate." } });
+            }
+            typeof(ApplicationSetupViewModel).GetField("_validatedContext", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .SetValue(vm, typeof(ApplicationSetupViewModel).GetProperty("ValidationContext", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(vm));
+            if (!vm.ContinueAssessmentCommand.CanExecute(null) || vm.ContinueDeploymentCommand.CanExecute(null))
+                throw new InvalidOperationException("Setup handoff did not distinguish ready assessment from missing deployment consent.");
         }
     }
 

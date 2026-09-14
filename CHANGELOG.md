@@ -1,3 +1,10 @@
+# 1.1.0-preview.4
+
+- Windows sign-in pop-up and browser fallback; exact registered administrator-consent callback.
+- Reviewed existing-app repair, custom icon/GitHub branding, engineer assignment and clearer permission counts/handoff.
+- Generic product naming; versioned BitLocker and optional long-path candidates, including bounded beta policy recovery.
+- Original standards/evidence retained. Live authentication, consent and device effects remain unverified.
+
 # Changelog
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
