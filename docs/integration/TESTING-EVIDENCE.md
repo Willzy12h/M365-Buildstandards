@@ -14,6 +14,10 @@ This section describes PR #2; the 110-test baseline import below is historical e
 
 [PR #2 checks](https://github.com/Willzy12h/M365-Buildstandards/pull/2/checks) validate the submitted commit independently, including Windows tests, portable packaging, offline UI rendering, standards and tracked-source/configuration checks. Check the run conclusion for the current head; local results are not a substitute for CI.
 
+Confirmed GitHub evidence: [run 34817971384](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/34817971384), code commit `1ff9fe0741b9e95531c0f56adc20f5eba5fafc90`, succeeded in all three jobs. The Windows log confirms 211 passing tests, zero build warnings/errors, self-contained packaging and 24 UI images / 26 combinations with zero binding errors. Test, package and synthetic UI artifacts were uploaded. Subsequent handover-only changes do not change the tested code.
+
+The local preview.2 package was independently launched with an empty synthetic data root: a WPF window opened, standard 2026.09.3 loaded all 45 controls, and normal close exited with code 0. All 280 staged-file checksums matched; the ZIP contained no populated runtime data/log/report folders, token caches or saved profiles. Local and CI ZIP hashes differ because package manifests include build time/machine/runtime metadata. Verify the sidecar accompanying the chosen package.
+
 Human keyboard/screen-reader/high-DPI testing, connected-session shutdown, real sign-in, app creation, consent, assignments, Graph collection, policy acceptance and recovery remain unverified. This is an internal preview, not live-tenant acceptance. No live tenant operation was performed.
 
 ## Source baselines
