@@ -129,10 +129,10 @@ public static class TabularReports
             .Add("Started", run.StartedAt).Add("Ended", run.EndedAt ?? "").Add("Actor", run.Actor.Account).Add("Actor object ID", run.Actor.ObjectId)
             .Add("Application", run.Actor.ClientId).Add("Before snapshot", run.BeforeSnapshotId).Add("After snapshot", run.AfterSnapshotId ?? "")
             .Add("After snapshot complete", run.AfterComplete?.ToString() ?? "").Add("After snapshot error", run.AfterError ?? "").Add("Error", run.Error ?? "")
-            .Add("Validation", "Configuration readback confirms Graph accepted the settings. It does not prove effective user, device or sign-in behaviour; functional testing is still required.");
-        var results = new Sheet("Results", new[] { "Control", "Name", "Collection", "Planned action", "Outcome", "Object ID", "Configuration readback", "Functional verification", "Reason", "Payload digest", "Written" });
+            .Add("Validation", "Write acceptance and configuration readback are separate outcomes. Readback Pass means returned settings matched requested values; Unknown means verification is incomplete. Functional user, device or sign-in testing is still required.");
+        var results = new Sheet("Results", new[] { "Control", "Name", "Collection", "Planned action", "Outcome", "Write acceptance", "Object ID", "Configuration readback", "Functional verification", "Reason", "Payload digest", "Written" });
         foreach (var x in run.Results)
-            results.Add(x.ControlId, x.Name, x.Collection, x.PlannedAction, x.Status, x.ObjectId ?? "", x.Configuration, x.Verification, x.Reason ?? "", x.PayloadDigest ?? "", x.WrittenAt ?? "");
+            results.Add(x.ControlId, x.Name, x.Collection, x.PlannedAction, x.Status, x.WriteAcceptance, x.ObjectId ?? "", x.Configuration, x.Verification, x.Reason ?? "", x.PayloadDigest ?? "", x.WrittenAt ?? "");
         var log = new Sheet("Journal", new[] { "Sequence", "At", "Level", "Control", "Message" });
         foreach (var j in journal) log.Add(j.Sequence, j.At, j.Level, j.ControlId ?? "", j.Message);
         return new[] { meta, results, log };

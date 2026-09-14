@@ -99,7 +99,7 @@ public static class HtmlReports
         sb.Append("<h2>Collection status</h2>");
         Table(sb, TabularReports.AssessmentSheets(r)[3]);
 
-        sb.Append("<footer><p><b>Assessment performed read-only.</b> No tenant configuration was modified. Matches compare captured settings with the BDIT Build Standard; they are not a security certification and do not prove effective user or device behaviour.</p>")
+        sb.Append("<footer><p><b>This assessment compares a saved capture.</b> Generating the assessment does not modify tenant configuration. Changes from separate deployment runs are recorded in their own evidence. Matches are not a security certification and do not prove effective user or device behaviour.</p>")
           .Append("<p>BDIT Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");
         return sb.ToString();
     }
@@ -212,7 +212,7 @@ public static class HtmlReports
             sb.Append("</ul>");
         }
         sb.Append("<h2>Next steps</h2><p>").Append(H(companyName)).Append(" recommends agreeing the priority items first. Changes are introduced in stages, tested with a pilot group, and only enforced after validation, so day-to-day work is not disrupted.</p>");
-        sb.Append("<footer><p>This review was performed read-only; no changes were made to your Microsoft 365 environment. It reflects configuration at ").Append(H(r.CapturedAt)).Append(" and is not a security certification.</p></footer></body></html>");
+        sb.Append("<footer><p>This review compares configuration captured at ").Append(H(r.CapturedAt)).Append(" with the agreed standard. Any implementation changes are recorded separately. This is not a security certification.</p></footer></body></html>");
         return sb.ToString();
     }
 
@@ -243,7 +243,7 @@ public static class HtmlReports
         sb.Append("<div class=\"note warn\">Every object created by this run is disabled (Conditional Access) or unassigned (Intune). Assignment, activation and functional testing are separate engineering steps.</div>");
         sb.Append("<h2>Results</h2>"); Table(sb, sheets[1]);
         sb.Append("<h2>Journal</h2>"); Table(sb, sheets[2]);
-        sb.Append("<footer><p>Configuration readback confirms that Microsoft Graph accepted the requested settings; it does not prove effective device or sign-in behaviour.</p></footer></body></html>");
+        sb.Append("<footer><p>Write acceptance and configuration readback are separate outcomes. A readback Pass means the returned settings matched the requested values; Unknown means verification is incomplete. Functional device or sign-in behaviour still requires testing.</p></footer></body></html>");
         return sb.ToString();
     }
 

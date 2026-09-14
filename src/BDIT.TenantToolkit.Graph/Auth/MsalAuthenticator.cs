@@ -9,6 +9,8 @@ namespace BDIT.TenantToolkit.Graph.Auth;
 public interface IAccessTokenProvider
 {
     Task<string> GetAccessTokenAsync(CancellationToken ct);
+    /// <summary>Forces silent renewal after a rejected read token; never starts interactive sign-in.</summary>
+    Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct);
 }
 
 public sealed class SignInRequest
@@ -22,6 +24,7 @@ public sealed class SignInRequest
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
     public string ClientName { get; init; } = "BDIT Tenant Toolkit";
     public string ClientVersion { get; init; } = "1.0.0";
+    public string Purpose { get; init; } = "";
 }
 
 public sealed class SignInOutcome
@@ -91,7 +94,11 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             .WithClientName(request.ClientName)
             .WithClientVersion(request.ClientVersion)
             .Build();
-        TokenCacheProtection.Attach(pca.UserTokenCache, request.CacheFile, log);
+        if (!string.IsNullOrWhiteSpace(request.CacheFile))
+        {
+            if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Persistent token protection requires Windows.");
+            TokenCacheProtection.Attach(pca.UserTokenCache, request.CacheFile, log);
+        }
 
         var scopes = request.Scopes.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -99,7 +106,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         AuthenticationResult result;
         try
         {
-            log.Info("Auth", $"Opening Microsoft sign-in in the system browser for tenant {request.TenantId} ({request.ClientLabel}, {request.Mode}).", request.TenantId);
+            log.Info("Auth", $"Opening Microsoft sign-in in the system browser for tenant {request.TenantId} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
             result = await pca.AcquireTokenInteractive(scopes)
                 .WithPrompt(Prompt.SelectAccount)
                 .WithUseEmbeddedWebView(false)
@@ -122,23 +129,26 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         if (!string.Equals(result.TenantId, request.TenantId, StringComparison.OrdinalIgnoreCase))
         {
             try { await pca.RemoveAsync(result.Account); } catch (MsalException) { }
-            TokenCacheProtection.Delete(request.CacheFile, log);
+            if (OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(request.CacheFile)) TokenCacheProtection.Delete(request.CacheFile, log);
             throw new TenantMismatchException($"Microsoft returned a token for tenant {result.TenantId}, not the requested tenant {request.TenantId}. Connection rejected.");
         }
 
         return new MsalAuthenticator(pca, scopes, request.TenantId, request.CacheFile, log, result, request.ClientId);
     }
 
-    public async Task<string> GetAccessTokenAsync(CancellationToken ct)
+    public Task<string> GetAccessTokenAsync(CancellationToken ct) => GetAccessTokenAsync(false, ct);
+
+    public async Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct)
     {
         await _gate.WaitAsync(ct);
         try
         {
             if (_disconnected || _account is null) throw new AuthenticationRequiredException("Not connected. Sign in again.");
-            if (_accessToken is not null && _expiresOn > DateTimeOffset.UtcNow.AddMinutes(5)) return _accessToken;
+            if (!forceRefresh && _accessToken is not null && _expiresOn > DateTimeOffset.UtcNow.AddMinutes(5)) return _accessToken;
+            if (forceRefresh) _accessToken = null;
             try
             {
-                var result = await _pca.AcquireTokenSilent(_scopes, _account).ExecuteAsync(ct);
+                var result = await _pca.AcquireTokenSilent(_scopes, _account).WithForceRefresh(forceRefresh).ExecuteAsync(ct);
                 if (!string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal))
                     throw new AuthenticationRequiredException("The authenticated identity changed during silent renewal. Disconnect and reconnect.");
@@ -180,7 +190,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                 _log.Warn("Auth", $"Account removal reported {ex.ErrorCode}; the cache file is deleted regardless.");
             }
             _account = null;
-            TokenCacheProtection.Delete(_cacheFile, _log);
+            if (OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(_cacheFile)) TokenCacheProtection.Delete(_cacheFile, _log);
             _log.Info("Auth", "Disconnected; cached tokens removed.", _tenantId);
         }
         finally

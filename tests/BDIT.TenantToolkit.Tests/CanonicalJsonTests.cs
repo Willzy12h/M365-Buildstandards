@@ -7,6 +7,17 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class CanonicalJsonTests
 {
+    [Theory]
+    [InlineData("{}", "{\"setting\":null}", false)]
+    [InlineData("{\"setting\":null}", "{\"setting\":null}", true)]
+    [InlineData("{\"nested\":{}}", "{\"nested\":{\"setting\":null}}", false)]
+    [InlineData("{\"items\":[{}]}", "{\"items\":[{\"setting\":null}]}", false)]
+    [InlineData("{\"setting\":false}", "{\"setting\":null}", false)]
+    public void Subset_distinguishes_missing_members_from_explicit_null(string actual, string wanted, bool matches)
+    {
+        Assert.Equal(matches, CanonicalJson.IsSubset(ToolkitJson.ParseNode(actual), ToolkitJson.ParseNode(wanted)));
+    }
+
     [Fact]
     public void Canonical_form_is_independent_of_key_order_and_whitespace()
     {

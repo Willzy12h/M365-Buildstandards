@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Evidence;
 
 namespace BDIT.TenantToolkit.Engine.Planning;
 
@@ -26,6 +27,7 @@ public sealed class PlanValidationContext
     public required TenantSnapshot Snapshot { get; init; }
     public required ManagedObjectMappings Mappings { get; init; }
     public required TenantSession Session { get; init; }
+    public IReadOnlyList<Deviation> Deviations { get; init; } = Array.Empty<Deviation>();
     public string? AcknowledgedSnapshotId { get; init; }
     public required DateTimeOffset Now { get; init; }
     public TimeSpan MaxSnapshotAge { get; init; } = TimeSpan.FromMinutes(20);
@@ -51,8 +53,7 @@ public sealed class DeploymentPlanner
     public static string StandardDigest(StandardCatalogue standard) =>
         string.IsNullOrEmpty(standard.IntegrityDigest) ? CanonicalJson.Sha256Value(standard) : standard.IntegrityDigest;
 
-    public static string SnapshotDigest(TenantSnapshot snapshot) =>
-        string.IsNullOrEmpty(snapshot.IntegrityDigest) ? Evidence.EvidenceIntegrity.Compute(snapshot) : snapshot.IntegrityDigest;
+    public static string SnapshotDigest(TenantSnapshot snapshot) => EvidenceIntegrity.Compute(snapshot);
 
     public static string ComputeDigest(DeploymentPlan plan)
     {
@@ -93,9 +94,11 @@ public sealed class DeploymentPlanner
             ProfileDigest = CanonicalJson.Sha256Value(profile),
             Release = standard.Release,
             StandardDigest = StandardDigest(standard),
+            StandardContentDigest = CanonicalJson.Sha256Value(standard),
             SnapshotId = snapshot.Id,
             SnapshotDigest = SnapshotDigest(snapshot),
             MappingsDigest = CanonicalJson.Sha256Value(request.Mappings),
+            DeviationsDigest = CanonicalJson.Sha256Value(request.Deviations),
             OperatorObjectId = session.OperatorObjectId ?? "",
             OperatorAccount = session.Account,
             ClientId = session.ClientId,
@@ -120,7 +123,7 @@ public sealed class DeploymentPlanner
             ExpectedProductionAssignment = control.ExpectedProduction.Assignment,
             SafeState = control.SafeDeployment.State
         };
-        foreach (var dep in control.Dependencies) row.Warnings.Add($"Depends on {dep}; confirm it is in place before enabling this control.");
+        foreach (var dep in control.Dependencies) row.Warnings.Add($"Activation prerequisite {dep}: confirm it is in place before enabling or assigning this candidate. Creating a disabled/unassigned candidate does not fulfil it.");
 
         var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
         if (deviation is not null)
@@ -143,6 +146,10 @@ public sealed class DeploymentPlanner
             row.Reason = $"The {def.Label} collection is assessed but not written by this release of the toolkit.";
             return row;
         }
+        var incomplete = SnapshotRequirements.IncompleteReason(snapshot, standard);
+        if (incomplete is not null) { row.Reason = incomplete; return row; }
+        var licenceReason = LicenceReadiness(control, snapshot);
+        if (licenceReason is not null) { row.Reason = licenceReason; return row; }
         if (!snapshot.Collections.TryGetValue(control.Collection!, out var capture) || !capture.Usable)
         {
             row.Reason = $"The {def.Label} collection is unavailable or incomplete in the snapshot; absence cannot be inferred, so nothing will be created.";
@@ -173,6 +180,7 @@ public sealed class DeploymentPlanner
                 return row;
             }
             ConditionalAccessSafety.InjectUserExclusions(payload, profile.Parameters.EmergencyAccountIds);
+            ConditionalAccessSafety.InjectUserExclusions(payload, profile.Parameters.AdditionalExclusionAccountIds);
             if (profile.Parameters.CaExclusionGroupId.Length > 0) InjectGroupExclusion(payload, profile.Parameters.CaExclusionGroupId);
             if (mapping?.OperatorExclusion is not null && ProfileValidator.IsGuid(mapping.OperatorExclusion.ObjectId))
                 ConditionalAccessSafety.InjectUserExclusions(payload, new[] { mapping.OperatorExclusion.ObjectId });
@@ -196,6 +204,8 @@ public sealed class DeploymentPlanner
 
         try { WritePayloadGuard.Assert(def, payload); }
         catch (SafetyViolationException ex) { row.Reason = ex.Message; return row; }
+        var referenceReason = CreationReferenceProblem(def, payload, standard, snapshot);
+        if (referenceReason is not null) { row.Reason = referenceReason; return row; }
 
         var items = capture.Items;
         var nameKey = def.NameProperty;
@@ -236,6 +246,12 @@ public sealed class DeploymentPlanner
 
         var current = owned!;
         row.Before = current;
+        if (mapping.LastApplied is null || !string.Equals(mapping.Collection, row.Collection, StringComparison.Ordinal))
+        {
+            row.Action = PlanAction.Manual;
+            row.Reason = "The ownership record lacks the last applied settings or identifies a different collection. Reconcile it before updating.";
+            return row;
+        }
         if (isConditionalAccess && !string.Equals(current["state"]?.GetValue<string>(), ConditionalAccessSafety.SafeState, StringComparison.OrdinalIgnoreCase))
         {
             row.Action = PlanAction.Manual;
@@ -291,35 +307,54 @@ public sealed class DeploymentPlanner
     {
         if (!string.Equals(plan.TenantId, ctx.Profile.TenantId, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(plan.TenantId, ctx.Snapshot.TenantId, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(plan.TenantId, ctx.Session.TenantId, StringComparison.OrdinalIgnoreCase))
+            || !string.Equals(plan.TenantId, ctx.Session.TenantId, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(plan.TenantId, ctx.Mappings.TenantId, StringComparison.OrdinalIgnoreCase)
+            || ctx.Deviations.Any(d => !string.Equals(plan.TenantId, d.TenantId, StringComparison.OrdinalIgnoreCase)))
             throw new TenantMismatchException($"Plan is bound to tenant {plan.TenantId}; the connected tenant, profile or snapshot differ. Execution blocked.");
         if (ctx.Session.Mode != SessionMode.Deployment)
             throw new PlanValidationException("Connect with deployment access before executing a plan.");
+        if (!ctx.Session.TenantVerified || !ctx.Session.OperatorVerified || !ProfileValidator.IsGuid(ctx.Session.OperatorObjectId ?? ""))
+            throw new PlanValidationException("Deployment requires a verified tenant and current operator identity. Reconnect before planning.");
         if (!string.Equals(plan.OperatorObjectId, ctx.Session.OperatorObjectId ?? "", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(plan.OperatorAccount, ctx.Session.Account, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(plan.ClientId, ctx.Session.ClientId, StringComparison.OrdinalIgnoreCase))
             throw new PlanValidationException("The authentication context changed since the plan was built (different account or application). Rebuild the plan.");
-        if (plan.ProfileDigest != CanonicalJson.Sha256Value(ctx.Profile))
+        if (plan.ProfileId != ctx.Profile.Id || plan.ProfileDigest != CanonicalJson.Sha256Value(ctx.Profile))
             throw new PlanValidationException("The client profile changed after the plan was built. Rebuild the plan.");
-        if (plan.StandardDigest != StandardDigest(ctx.Standard))
+        if (plan.Release != ctx.Standard.Release || plan.StandardDigest != StandardDigest(ctx.Standard)
+            || plan.StandardContentDigest != CanonicalJson.Sha256Value(ctx.Standard))
             throw new PlanValidationException("The Build Standard changed after the plan was built. Rebuild the plan.");
         if (plan.SnapshotId != ctx.Snapshot.Id || plan.SnapshotDigest != SnapshotDigest(ctx.Snapshot))
             throw new PlanValidationException("The snapshot changed after the plan was built. Capture and review a new plan.");
         if (plan.MappingsDigest != CanonicalJson.Sha256Value(ctx.Mappings))
             throw new PlanValidationException("The managed-object mapping changed after the plan was built. Rebuild the plan.");
+        if (plan.DeviationsDigest != CanonicalJson.Sha256Value(ctx.Deviations))
+            throw new PlanValidationException("The deviation register changed after the plan was built. Rebuild the plan.");
         if (ComputeDigest(plan) != plan.PlanDigest)
             throw new PlanValidationException("Plan integrity check failed: the plan content differs from its digest. Rebuild the plan.");
-        if (!Timestamps.TryParse(ctx.Snapshot.CapturedAt, out var captured) || ctx.Now - captured > ctx.MaxSnapshotAge)
+        if (ctx.MaxSnapshotAge <= TimeSpan.Zero || ctx.MaxPlanAge <= TimeSpan.Zero)
+            throw new PlanValidationException("Plan and snapshot age limits must be positive.");
+        if (!Timestamps.TryParse(ctx.Snapshot.CapturedAt, out var captured) || captured > ctx.Now || ctx.Now - captured > ctx.MaxSnapshotAge)
             throw new PlanValidationException($"The snapshot is older than {ctx.MaxSnapshotAge.TotalMinutes:0} minutes. Capture the tenant again and rebuild the plan.");
-        if (!Timestamps.TryParse(plan.CreatedAt, out var created) || ctx.Now - created > ctx.MaxPlanAge)
+        if (!Timestamps.TryParse(plan.CreatedAt, out var created) || created > ctx.Now || created < captured || ctx.Now - created > ctx.MaxPlanAge)
             throw new PlanValidationException($"The plan is older than {ctx.MaxPlanAge.TotalMinutes:0} minutes. Rebuild it.");
         if (!string.Equals(ctx.AcknowledgedSnapshotId, ctx.Snapshot.Id, StringComparison.OrdinalIgnoreCase))
             throw new PlanValidationException("Review and acknowledge the before-change snapshot before deploying.");
+        SnapshotRequirements.AssertComplete(ctx.Snapshot, ctx.Standard);
+        if (plan.Rows.Select(r => r.ControlId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != plan.Rows.Count)
+            throw new PlanValidationException("The plan contains duplicate controls. Rebuild it before deployment.");
         var writes = plan.WriteRows.ToList();
         if (writes.Count == 0) throw new PlanValidationException("The plan contains no supported changes.");
         foreach (var row in writes)
         {
             if (row.Payload is null) throw new PlanValidationException($"{row.ControlId}: write row has no payload.");
             var def = ctx.Standard.FindCollection(row.Collection) ?? throw new PlanValidationException($"{row.ControlId}: unknown collection '{row.Collection}'.");
+            var control = ctx.Standard.FindControl(row.ControlId) ?? throw new PlanValidationException($"Unknown control {row.ControlId}.");
+            var expected = BuildRow(control, ctx.Standard, ctx.Snapshot, ctx.Profile, ctx.Mappings, ctx.Deviations, ctx.Session,
+                NameResolver.FromSnapshot(ctx.Snapshot), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId));
+            if (!expected.IsWrite || expected.Action != row.Action || expected.Collection != row.Collection || expected.ObjectId != row.ObjectId
+                || CanonicalJson.Serialize(expected.Payload) != CanonicalJson.Serialize(row.Payload))
+                throw new PlanValidationException($"{row.ControlId}: the write is not ready or differs from the current reviewed recipe. {expected.Reason}");
             WritePayloadGuard.Assert(def, row.Payload);
             if (ConditionalAccessSafety.IsConditionalAccess(def))
             {
@@ -333,5 +368,47 @@ public sealed class DeploymentPlanner
             if (row.Action == PlanAction.Update && !ProfileValidator.IsGuid(row.ObjectId ?? ""))
                 throw new PlanValidationException($"{row.ControlId}: update row has no valid object ID.");
         }
+    }
+
+    private static string? LicenceReadiness(ControlDefinition control, TenantSnapshot snapshot)
+    {
+        if (control.Licence.ServicePlans.Count == 0) return null;
+        var licences = LicenceEvaluator.FromSnapshot(snapshot);
+        if (!licences.Available) return "Required licences could not be verified. Capture subscribed licences before preparing this change.";
+        var missing = control.Licence.ServicePlans.Where(p => !licences.Has(p)).ToList();
+        return missing.Count == 0 ? null : "Required service plan(s) not available: " + string.Join(", ", missing) + ". Check tenant licensing before preparing this change.";
+    }
+
+    /// <summary>Resolve concrete creation references. Catalogue Dependencies remain activation/manual checks.</summary>
+    private static string? CreationReferenceProblem(CollectionDefinition def, JsonObject payload, StandardCatalogue standard, TenantSnapshot snapshot)
+    {
+        if (!ConditionalAccessSafety.IsConditionalAccess(def)) return null;
+        var references = new (string Path, string Route)[]
+        {
+            (Path: "conditions.users.includeUsers", Route: "/users"), ("conditions.users.excludeUsers", "/users"),
+            ("conditions.users.includeGroups", "/groups"), ("conditions.users.excludeGroups", "/groups"),
+            ("conditions.locations.includeLocations", "/identity/conditionalAccess/namedLocations"),
+            ("conditions.locations.excludeLocations", "/identity/conditionalAccess/namedLocations")
+        };
+        foreach (var (path, route) in references)
+        {
+            JsonNode? node = payload;
+            foreach (var part in path.Split('.')) node = (node as JsonObject)?[part];
+            if (node is not JsonArray values) continue;
+            foreach (var value in values)
+            {
+                if (value is not JsonValue scalar || !scalar.TryGetValue<string>(out var id))
+                    return $"Creation prerequisite {path}: every reference must be an object ID or a supported targeting value.";
+                if ((route == "/users" && id is "All" or "None" or "GuestsOrExternalUsers")
+                    || (route.EndsWith("/namedLocations", StringComparison.Ordinal) && id is "All" or "AllTrusted")) continue;
+                if (!ProfileValidator.IsGuid(id)) return $"Creation prerequisite {path}: '{id}' is not a valid object ID or supported targeting value.";
+                var key = standard.Collections.FirstOrDefault(c => c.Value.BasePath == route).Key;
+                if (key is null || !snapshot.Collections.TryGetValue(key, out var capture) || !capture.Usable)
+                    return $"Creation prerequisite {path}: the referenced object {id} cannot be verified from complete tenant evidence.";
+                if (!capture.Items.Any(i => string.Equals(i["id"]?.GetValue<string>(), id, StringComparison.OrdinalIgnoreCase)))
+                    return $"Creation prerequisite {path}: object {id} is missing from the captured tenant. Resolve this reference before creating the candidate.";
+            }
+        }
+        return null;
     }
 }

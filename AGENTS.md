@@ -28,7 +28,7 @@ Do not overwrite either source repository while performing integration.
 - Capture a complete pre-change snapshot before tenant writes.
 - Show tenant identity, primary domain, signed-in identity and permission mode.
 - Highlight write-capable access.
-- Keep Conditional Access candidates disabled and Intune candidates unassigned. Preserve stored CA targeting/exclusions in the baseline; see INT-004 for the unresolved historical targeting wording.
+- Keep Conditional Access candidates disabled and Intune candidates unassigned. Preserve stored CA targeting/exclusions in the baseline; see INT-004 for preserved baseline targeting and outstanding live rollout acceptance.
 - Resolve and display Microsoft Graph object names and IDs.
 - Support standard versioning, comparison and backfill.
 - Produce structured action results and complete before/after evidence.

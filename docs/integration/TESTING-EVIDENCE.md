@@ -1,11 +1,26 @@
 # Testing evidence — 14 September 2026
 
+## Engineer workflow preview 1.1.0-preview.1
+
+This section describes PR #2; the 110-test baseline import below is historical evidence.
+
+- Release Windows solution build: zero warnings and zero errors. MSAL token-cache Windows guards remove the original platform warnings.
+- Automated tests: final regression-suite result recorded in the PR checks and local TRX. New cases cover incomplete evidence, stale/tampered plans, licences/references, exclusions, missing versus null, ambiguous-write history, terminal states, forced GET-token renewal, isolated app setup and correlated consent callbacks.
+- Real WPF views constructed offline: all 11 pages at 1480x940 and 1180x760, 22 combinations, no binding errors. Sixteen PNGs captured using synthetic data; primary-button contrast, plan density and clipped control IDs were corrected and re-rendered. The harness throws if asked to contact a tenant. Source is tests/BDIT.TenantToolkit.UiReview and CI uploads the renders.
+- Local response-filtering software (AdGuard) altered localhost HTTP test responses. Exact callback response headers, escaping and absence of reflected parameters are therefore checked directly against emitted bytes; socket tests separately enforce correlation, rejection, cancellation and successful valid completion. A rejected request may return HTTP 400 or a TCP reset; it must never complete approval. Security filtering was not disabled.
+- A transient Windows evidence-file replacement lock was reproduced. Only local atomic replacement retries sharing/access errors, for at most 300 ms in total; permanent failure remains explicit. Graph writes are never retried. A reader-lock regression test covers this distinction.
+- Local restore uses the workspace offline feed described below. It does not establish a current package vulnerability audit. GitHub CI performs the normal online restore separately.
+
+[PR #2 checks](https://github.com/Willzy12h/M365-Buildstandards/pull/2/checks) validate the submitted commit independently, including Windows tests, portable packaging, offline UI rendering, standards and tracked-source/configuration checks. Check the run conclusion for the current head; local results are not a substitute for CI.
+
+Human keyboard/screen-reader/high-DPI testing, connected-session shutdown, real sign-in, app creation, consent, assignments, Graph collection, policy acceptance and recovery remain unverified. This is an internal preview, not live-tenant acceptance. No live tenant operation was performed.
+
 ## Source baselines
 
 - Claude main 337c8e6: [Windows CI failed](https://github.com/Willzy12h/m365-Tenant-Toolkit-Claude/actions/runs/34625802405). Newer documentation-only 21d8fea also [failed](https://github.com/Willzy12h/m365-Tenant-Toolkit-Claude/actions/runs/34627546140). Local original build reproduced 13 missing reporting-type errors after successful dependency restore; tests could not run against that source.
 - Asta main 020c69b: [CI succeeded](https://github.com/Willzy12h/m365-tenant-console-Asta/actions/runs/34624562838). Newer documentation-only 84f32c2 also [succeeded](https://github.com/Willzy12h/m365-tenant-console-Asta/actions/runs/34628240515). Asta tests were inspected selectively, not rerun locally.
 
-## Local Windows checks
+## Baseline import local Windows checks
 
 Used existing .NET SDK 8.0.425 in the original local Claude checkout, read-only. No SDK or runtime installed machine-wide. Dependency restore used copies of existing NuGet package archives in workspace-local cache/feed folders because this sandbox could not restore from api.nuget.org. This is not evidence of a fresh online restore or package vulnerability audit; CI checks the normal restore independently.
 
@@ -18,7 +33,7 @@ Used existing .NET SDK 8.0.425 in the original local Claude checkout, read-only.
 7. Independent review caught the master's inherited evidence/ pattern hiding EvidenceStore.cs. Anchored runtime evidence/connections/exports/snapshots paths, staged EvidenceStore.cs, and checked every selected original source path against the Git index. CI explicitly checks EvidenceStore.cs too.
 8. Local Build-Portable.ps1 -SkipTests completed after the passing suite, publishing a self-contained win-x64 application and ZIP/checksum. A limited process smoke test created a WPF window, loaded standard 2026.09.3 and closed gracefully with exit code 0. It used an empty synthetic workspace and did not sign in. This does not verify GUI interactions or connected-session shutdown.
 
-## PR verification
+## Baseline PR verification
 
 [PR #1 checks](https://github.com/Willzy12h/M365-Buildstandards/pull/1/checks) are the source of truth for normal GitHub-hosted restore, Windows build/tests, portable packaging, standard checks and tracked-evidence/configuration checks. Portable ZIP and SHA-256 sidecar are review artifacts, not a production release. Test results are uploaded even on failure.
 

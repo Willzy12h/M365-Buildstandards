@@ -1,0 +1,263 @@
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using BDIT.TenantToolkit.App.Services;
+using BDIT.TenantToolkit.App.ViewModels;
+using BDIT.TenantToolkit.Core.Configuration;
+using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Graph;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Graph;
+using BDIT.TenantToolkit.Graph.Auth;
+using BDIT.TenantToolkit.Graph.Setup;
+using BDIT.TenantToolkit.Engine.Standards;
+
+internal static class Program
+{
+    private const string Tenant = "11111111-1111-1111-1111-111111111111";
+    private const string Operator = "22222222-2222-2222-2222-222222222222";
+    private static string Id(int number) => "aaaaaaaa-aaaa-aaaa-aaaa-" + number.ToString("D12");
+    private static readonly string Stamp = DateTimeOffset.UtcNow.ToString("O");
+
+    [STAThread]
+    private static int Main(string[] args)
+    {
+        var source = Path.GetFullPath(args.Length > 0 ? args[0] : Environment.CurrentDirectory);
+        var output = Path.GetFullPath(args.Length > 1 ? args[1] : Path.Combine(Environment.CurrentDirectory, "dist", "ui-review"));
+        Directory.CreateDirectory(output);
+        var fixtureRoot = Path.Combine(output, "synthetic-portable-root-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(fixtureRoot);
+        CopyFolder(Path.Combine(source, "standards"), Path.Combine(fixtureRoot, "standards"));
+        StandardsManifest.Write(Path.Combine(fixtureRoot, "standards"), StandardsManifest.Generate(
+            Path.Combine(fixtureRoot, "standards"), "Offline UI harness — copied synthetic fixture only", DateTimeOffset.UtcNow));
+        CopyFolder(Path.Combine(source, "config"), Path.Combine(fixtureRoot, "config"));
+        var traces = new BindingTrace();
+        PresentationTraceSources.DataBindingSource.Listeners.Add(traces);
+        PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Warning | SourceLevels.Error;
+        var records = new List<object>();
+        try
+        {
+            // Use a base Application and load the product resource dictionary; never invoke production startup or authentication.
+            var app = new Application();
+            var document = System.Xml.Linq.XDocument.Load(Path.Combine(source, "src", "BDIT.TenantToolkit.App", "App.xaml"));
+            var resource = new System.Xml.Linq.XElement(document.Descendants(System.Xml.Linq.XName.Get("ResourceDictionary", "http://schemas.microsoft.com/winfx/2006/xaml/presentation")).First());
+            resource.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml");
+            resource.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "infra", "clr-namespace:BDIT.TenantToolkit.App.Infrastructure;assembly=BDIT.TenantToolkit.App");
+            foreach (var element in resource.Descendants().Where(e => e.Name.NamespaceName == "clr-namespace:BDIT.TenantToolkit.App.Infrastructure"))
+                element.Name = System.Xml.Linq.XName.Get(element.Name.LocalName, "clr-namespace:BDIT.TenantToolkit.App.Infrastructure;assembly=BDIT.TenantToolkit.App");
+            app.Resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(resource.ToString());
+            app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var paths = ToolkitPaths.Resolve(fixtureRoot); paths.EnsureWritableFolders();
+            using var logger = new ToolkitLogger(paths.LogsDirectory, LogLevel.Debug);
+            var workspace = new Workspace(paths, ToolkitSettings.Load(paths.SettingsFile), logger, diagnostics: true);
+            workspace.Initialise();
+            if (workspace.Standard is null) throw new InvalidOperationException("Synthetic standards did not load: " + workspace.StandardError);
+            var shell = new ShellViewModel(workspace);
+            var window = new BDIT.TenantToolkit.App.MainWindow { DataContext = shell };
+            if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
+            content.DataContext = shell;
+            SeedWorkspace(workspace);
+            SeedConnect(shell.Page<ConnectViewModel>());
+            var focus = new HashSet<string>(new[] { "connect", "setup", "assessment", "plan", "deploy" }, StringComparer.Ordinal);
+            foreach (var size in new[] { new Size(1480, 940), new Size(1180, 760) })
+            {
+                foreach (var nav in shell.NavItems)
+                {
+                    traces.Context = nav.Key + " " + size.Width + "x" + size.Height;
+                    Set(workspace, nameof(Workspace.ApplicationSetup), nav.Key == "setup" ? SyntheticSetup() : null);
+                    typeof(Workspace).GetMethod("Notify", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(workspace, null);
+                    shell.Navigate(nav.Key);
+                    SeedPage(shell, nav.Key);
+                    content.Width = size.Width; content.Height = size.Height;
+                    content.Measure(size); content.Arrange(new Rect(size)); content.UpdateLayout();
+                    Pump(); content.UpdateLayout(); Pump();
+                    var visualCount = Descendants(content).Count();
+                    var controls = Descendants(content).OfType<UserControl>().ToList();
+                    if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
+                    if (focus.Contains(nav.Key))
+                    {
+                        var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+                        bitmap.Render(content);
+                        var file = Path.Combine(output, nav.Key + "-" + (int)size.Width + "x" + (int)size.Height + ".png");
+                        using var stream = File.Create(file); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(stream);
+                        var pixels = new byte[(int)size.Width * (int)size.Height * 4]; bitmap.CopyPixels(pixels, (int)size.Width * 4, 0);
+                        var colours = new HashSet<int>();
+                        for (var i = 0; i < pixels.Length; i += 1024) colours.Add(BitConverter.ToInt32(pixels, i));
+                        if (colours.Count < 4) throw new InvalidOperationException("Rendered image appears empty: " + file);
+                    }
+                    records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
+                    if (nav.Key is "connect" or "setup")
+                    {
+                        var scroller = Descendants(controls[0]).OfType<ScrollViewer>().First();
+                        scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
+                        SaveImage(content, size, Path.Combine(output, nav.Key + "-bottom-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        scroller.ScrollToTop(); content.UpdateLayout(); Pump();
+                    }
+                    if (nav.Key == "plan")
+                    {
+                        var tabs = Descendants(controls[0]).OfType<TabControl>().First();
+                        tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
+                        SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                    }
+                }
+            }
+            Pump();
+            // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
+            Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
+            Set<ApplicationSetupService?>(workspace, nameof(Workspace.ApplicationSetup), null);
+            var closed = false;
+            window.Closed += (_, _) => closed = true;
+            window.ShowInTaskbar = false; window.ShowActivated = false;
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = -10000; window.Top = -10000;
+            window.Show(); window.Close();
+            var deadline = Stopwatch.StartNew();
+            while (!closed && deadline.Elapsed < TimeSpan.FromSeconds(5)) { Pump(); Thread.Sleep(10); }
+            if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
+                throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
+            File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            logger.Flush();
+            Console.WriteLine($"Rendered 16 synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
+            return traces.Messages.Count == 0 ? 0 : 2;
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText(Path.Combine(output, "harness-error.txt"), ex.ToString());
+            File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
+
+    private static void SeedWorkspace(Workspace workspace)
+    {
+        var standard = workspace.RequireStandard();
+        var profile = new TenantProfile { Id = Id(1), TenantId = Tenant, Company = "Synthetic client — UI review only", Domain = "example.invalid", AssessmentClientId = Id(3), DeploymentClientId = Id(4),
+            Parameters = new TenantParameters { EmergencyAccountIds = new() { Id(5), Id(6) } } };
+        workspace.ApplyProfileToSession(profile, save: false);
+        var session = new TenantSession { TenantId = Tenant, TenantName = profile.Company, PrimaryDomain = profile.Domain, Account = "engineer@example.invalid", AccountObjectId = Operator,
+            ClientId = profile.DeploymentClientId, ClientLabel = "Synthetic deployment application", Mode = SessionMode.Deployment, TenantVerified = true, ConnectedAt = Stamp,
+            OperatorObjectId = Operator, OperatorDisplayName = "Synthetic engineer", OperatorUpn = "engineer@example.invalid", OperatorVerified = true,
+            Scopes = ApplicationSetupService.RequiredScopes(standard, SessionMode.Deployment), Notices = new() { "OFFLINE SYNTHETIC UI FIXTURE. No live tenant connection or writes." } };
+        Set(workspace, nameof(Workspace.Connection), new ConnectedTenant(session, new OfflineGraph(), authenticator: null));
+        var snapshot = new TenantSnapshot { Id = Id(10), TenantId = Tenant, TenantName = profile.Company, PrimaryDomain = profile.Domain, CapturedAt = Stamp, Complete = true, StandardRelease = standard.Release,
+            IdentitySource = "Synthetic fixture — not tenant evidence", CapturedBy = session.Account };
+        foreach (var (key, definition) in standard.Collections)
+            snapshot.Collections[key] = new CollectionCapture { Status = CaptureStatus.Collected, Api = definition.Api, Path = definition.Path };
+        if (snapshot.Collections.TryGetValue("conditionalAccess", out var ca))
+        {
+            ca.Items.Add(JsonNode.Parse("""{"id":"aaaaaaaa-aaaa-aaaa-aaaa-000000000100","displayName":"Synthetic Require MFA","state":"disabled","conditions":{"users":{"includeUsers":["All"],"excludeUsers":["aaaaaaaa-aaaa-aaaa-aaaa-000000000005"]}},"grantControls":{"operator":"OR","builtInControls":["mfa"]}}""")!.AsObject()); ca.Count = 1;
+        }
+        Set(workspace, nameof(Workspace.Snapshot), snapshot); Set(workspace, nameof(Workspace.SnapshotIsLive), true);
+        var assessment = new AssessmentResult { Id = Id(11), TenantId = Tenant, TenantName = profile.Company, PrimaryDomain = profile.Domain, CapturedAt = Stamp, AssessedAt = Stamp, AssessedBy = session.Account,
+            Release = standard.Release, StandardDigest = standard.IntegrityDigest, SnapshotId = snapshot.Id, SnapshotComplete = true, Limitations = new() { "Offline UI fixture only. No collection or assessment was performed against a real tenant." } };
+        var statuses = new[] { FindingStatus.Missing, FindingStatus.PartialMatch, FindingStatus.SettingsMatchNotEnforced, FindingStatus.RequiresManualReview, FindingStatus.Compliant, FindingStatus.UnableToAssess };
+        foreach (var (control, index) in standard.Controls.Select((c, i) => (c, i)))
+            assessment.Findings.Add(new ControlFinding { ControlId = control.Id, Name = control.Name, Category = control.Category, Collection = control.Collection, Severity = "High", Status = statuses[index % statuses.Length],
+                Reason = index % 2 == 0 ? "Synthetic missing configuration. Review the candidate and exclusions before deployment." : "Synthetic partial match. Targeting and effective protection still require engineer review.",
+                DesiredState = "Reviewed build standard configuration", EngineerAction = "Inspect settings, confirm scope and record evidence.", BusinessImpact = "Illustrative review finding only." });
+        assessment.Summary = new AssessmentSummary { Total = assessment.Findings.Count, Missing = 8, PartialMatch = 8, SettingsMatchNotEnforced = 8, RequiresManualReview = 7, Compliant = 7, UnableToAssess = 7 };
+        Set(workspace, nameof(Workspace.Assessment), assessment);
+        var plan = new DeploymentPlan { Id = Id(12), TenantId = Tenant, TenantName = profile.Company, ProfileId = profile.Id, Release = standard.Release, CreatedAt = Stamp, OperatorAccount = session.Account,
+            PlanDigest = new string('a', 64), SnapshotId = snapshot.Id, Rows = standard.Controls.Where(c => c.HasRecipe).Take(4).Select((c, i) => new PlanRow { ControlId = c.Id, Name = c.Name, Collection = c.Collection ?? "", Action = i < 2 ? PlanAction.Create : PlanAction.Manual,
+                Reason = "Synthetic reviewed candidate; no actual plan execution is possible in this harness.", SafeState = "disabled", ExpectedProductionState = "enabled after review", ExpectedProductionAssignment = "approved pilot scope",
+                Payload = new JsonObject { ["displayName"] = "Synthetic " + c.Name, ["state"] = "disabled", ["conditions"] = new JsonObject { ["users"] = new JsonObject { ["includeUsers"] = new JsonArray("All"), ["excludeUsers"] = new JsonArray(Id(5), Id(6)) } } }, Warnings = new() { "Emergency accounts and delegated creator remain excluded until deliberately reviewed." } }).ToList() };
+        Set(workspace, nameof(Workspace.Plan), plan);
+        var run = new DeploymentRun { Id = Id(13), TenantId = Tenant, TenantName = profile.Company, StartedAt = Stamp, EndedAt = Stamp, BeforeSnapshotId = snapshot.Id, AfterSnapshotId = Id(14), AfterComplete = false,
+            Status = RunStatus.ReviewRequired, Error = "Synthetic verification failure illustrates honest result reporting.", Release = standard.Release,
+            Results = plan.Rows.Select((r, i) => new RunResult { ControlId = r.ControlId, Name = r.Name, Collection = r.Collection, PlannedAction = r.Action.ToString(), Status = i == 0 ? ResultStatus.Completed : i == 1 ? ResultStatus.Error : ResultStatus.NotRun,
+                WriteAcceptance = i < 2 ? WriteAcceptance.Accepted : WriteAcceptance.NotAttempted, Configuration = i == 0 ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown,
+                Verification = "Functional verification pending", Reason = "Offline synthetic result — no write occurred." }).ToList() };
+        Set(workspace, nameof(Workspace.LastRun), run);
+        workspace.Logger.Info("UI review", "OFFLINE SYNTHETIC DATA. No authentication, Graph collection or tenant write was called.");
+    }
+
+    private static void SeedConnect(ConnectViewModel vm)
+    {
+        vm.EditCompany = "Synthetic client — UI review only"; vm.EditTenantId = Tenant; vm.EditDomain = "example.invalid";
+        vm.EditAssessmentClientId = Id(3); vm.EditDeploymentClientId = Id(4); vm.AccountQuery = "emergency@example.invalid";
+        vm.AccountMatches.Add(new ExclusionAccount { TenantId = Tenant, ObjectId = Id(5), DisplayName = "Emergency access account 01", UserPrincipalName = "emergency01@example.invalid", ResolvedAt = Stamp });
+        vm.AccountMatches.Add(new ExclusionAccount { TenantId = Tenant, ObjectId = Id(6), DisplayName = "Emergency access account 02", UserPrincipalName = "emergency02@example.invalid", ResolvedAt = Stamp });
+        vm.SelectedAccount = vm.AccountMatches.FirstOrDefault(); vm.ExclusionReason = "Synthetic emergency access account review.";
+    }
+
+    private static void SeedPage(ShellViewModel shell, string key)
+    {
+        if (key == "connect" && shell.Page<ConnectViewModel>().AccountMatches.Count == 0) SeedConnect(shell.Page<ConnectViewModel>());
+        if (key == "plan") shell.Page<PlanViewModel>().SelectedRow = shell.Page<PlanViewModel>().Rows.FirstOrDefault();
+        if (key == "setup")
+        {
+            var vm = shell.Page<ApplicationSetupViewModel>();
+            vm.TenantId = Tenant; vm.NamePrefix = "Synthetic"; vm.AssessmentClientId = Id(3); vm.DeploymentClientId = Id(4);
+            var plan = new ApplicationSetupPlan { TenantId = Tenant, TenantName = "Synthetic client — UI review only", OperatorId = Operator, OperatorName = "engineer@example.invalid", CreatedAt = DateTimeOffset.UtcNow,
+                StandardRelease = shell.Workspace.RequireStandard().Release, PlanHash = new string('a', 64) };
+            foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
+            {
+                var row = new ApplicationSetupRow { Mode = mode, DisplayName = "Synthetic Tenant " + mode, Status = "Create", Reason = "OFFLINE preview only. No application will be created.",
+                    Permissions = ApplicationSetupService.RequiredScopes(shell.Workspace.RequireStandard(), mode).Select((s, i) => new SetupPermission { Id = Id(200 + i), Name = s, AdminConsentRequired = true, Description = "Synthetic permission description for layout review." }).ToList(),
+                    ApplicationPayload = new JsonObject { ["displayName"] = "Synthetic Tenant " + mode, ["signInAudience"] = "AzureADMyOrg", ["publicClient"] = new JsonObject { ["redirectUris"] = new JsonArray("http://localhost") } } };
+                plan.Rows.Add(row);
+            }
+            typeof(ApplicationSetupViewModel).GetField("_plan", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(vm, plan);
+            vm.PlanRows.Clear(); foreach (var row in plan.Rows) vm.PlanRows.Add(row); vm.SelectedRow = vm.PlanRows[0];
+            vm.Validations.Add(new ApplicationPermissionValidation { Mode = SessionMode.Assessment, ClientId = Id(3), ConfigurationValid = true, ConsentComplete = false, AssignmentRequired = true,
+                EngineerAssignmentStatus = "Synthetic assignment not confirmed", Issues = new() { "Administrator consent and engineer assignment are still required." } });
+        }
+    }
+
+    private static ApplicationSetupService SyntheticSetup() => new(new HttpClient(new NoNetworkHandler()), new NoTokens(),
+        new SignInOutcome { TenantId = Tenant, AccountObjectId = Operator, Account = "engineer@example.invalid", Scopes = ApplicationSetupService.SetupScopes }, NullLog.Instance);
+    private static void SaveImage(FrameworkElement content, Size size, string file)
+    {
+        var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(content);
+        using var stream = File.Create(file); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(stream);
+    }
+    private static void Set<T>(Workspace workspace, string property, T value) => typeof(Workspace).GetProperty(property)!.SetValue(workspace, value);
+    private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.ApplicationIdle, new Action(() => { }));
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        { var child = VisualTreeHelper.GetChild(root, i); yield return child; foreach (var descendant in Descendants(child)) yield return descendant; }
+    }
+    private static void CopyFolder(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var file in Directory.EnumerateFiles(source)) File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+        foreach (var folder in Directory.EnumerateDirectories(source)) CopyFolder(folder, Path.Combine(destination, Path.GetFileName(folder)));
+    }
+    private sealed class BindingTrace : TraceListener
+    {
+        public string Context { get; set; } = "startup";
+        public List<string> Messages { get; } = new();
+        public override void Write(string? message) { if (!string.IsNullOrWhiteSpace(message)) Messages.Add(Context + ": " + message); }
+        public override void WriteLine(string? message) => Write(message);
+    }
+    private sealed class NoTokens : IAccessTokenProvider
+    {
+        public Task<string> GetAccessTokenAsync(CancellationToken ct) => throw new InvalidOperationException("Authentication is forbidden in the offline UI harness.");
+        public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) => GetAccessTokenAsync(ct);
+    }
+    private sealed class NoNetworkHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new InvalidOperationException("Network is forbidden in the offline UI harness.");
+    }
+    private sealed class OfflineGraph : IGraphClient
+    {
+        public string TenantId => Tenant;
+        public SessionMode Mode => SessionMode.Deployment;
+        public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Graph calls are forbidden in the offline UI harness.");
+        public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Graph calls are forbidden in the offline UI harness.");
+        public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("Tenant writes are forbidden in the offline UI harness.");
+    }
+}

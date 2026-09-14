@@ -203,6 +203,18 @@ internal static class TestData
         };
         foreach (var (key, def) in standard.Collections)
             snapshot.Collections[key] = new CollectionCapture { Status = CaptureStatus.Collected, Api = def.Api, Path = def.Path, Items = new List<JsonObject>(), Count = 0 };
+        // References required by synthetic CA recipes really exist in the synthetic tenant.
+        if (snapshot.Collections.TryGetValue("users", out var users))
+        {
+            users.Items.Add(new JsonObject { ["id"] = Emergency, ["displayName"] = "Emergency access" });
+            users.Items.Add(new JsonObject { ["id"] = Operator, ["displayName"] = "Engineer" });
+            users.Count = users.Items.Count;
+        }
+        if (snapshot.Collections.TryGetValue("namedLocations", out var locations))
+        {
+            locations.Items.Add(new JsonObject { ["id"] = Office, ["displayName"] = "Office" });
+            locations.Count = locations.Items.Count;
+        }
         if (withLicence)
         {
             var sku = ToolkitJson.ParseObject("""{"id":"sku1","skuPartNumber":"SPB","servicePlans":[{"servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"},{"servicePlanName":"INTUNE_A","provisioningStatus":"Success"}]}""");

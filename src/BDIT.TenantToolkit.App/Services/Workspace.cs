@@ -16,6 +16,7 @@ using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Standards;
 using BDIT.TenantToolkit.Graph;
+using BDIT.TenantToolkit.Graph.Setup;
 
 namespace BDIT.TenantToolkit.App.Services;
 
@@ -30,6 +31,10 @@ public sealed class Workspace : ObservableObject
     private bool _busy;
     private string _busyMessage = "";
     private string _progressDetail = "";
+    private CancellationTokenSource? _operationCancellation;
+    private TaskCompletionSource? _operationCompletion;
+    public CancellationToken OperationToken => _operationCancellation?.Token ?? CancellationToken.None;
+    public bool ShutdownComplete { get; private set; }
 
     public ToolkitPaths Paths { get; }
     public ToolkitSettings Settings { get; }
@@ -55,6 +60,7 @@ public sealed class Workspace : ObservableObject
     public string? StandardError { get; private set; }
     public TenantProfile? Profile { get; private set; }
     public ConnectedTenant? Connection { get; private set; }
+    public ApplicationSetupService? ApplicationSetup { get; private set; }
     public TenantSession? Session => Connection?.Session;
     public AccessReport? Access { get; private set; }
     public TenantSnapshot? Snapshot { get; private set; }
@@ -145,6 +151,8 @@ public sealed class Workspace : ObservableObject
 
     private void Notify()
     {
+        OnPropertyChanged(nameof(Session));
+        OnPropertyChanged(nameof(ApplicationSetup));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(IsDeploymentSession));
         StateChanged?.Invoke();
@@ -156,12 +164,19 @@ public sealed class Workspace : ObservableObject
     {
         if (Busy) throw new ToolkitException("Another operation is already running. Wait for it to finish.");
         Busy = true;
+        _operationCancellation = new CancellationTokenSource();
+        _operationCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         BusyMessage = message;
         ProgressDetail = "";
         var progress = new Progress<string>(p => ProgressDetail = p);
         try { await operation(progress); }
+        catch (OperationCanceledException) when (_operationCancellation.IsCancellationRequested)
+        { Logger.Info("App", "Operation cancelled. Review any captured evidence before continuing."); }
         finally
         {
+            _operationCancellation.Dispose();
+            _operationCancellation = null;
+            _operationCompletion.TrySetResult();
             Busy = false;
             BusyMessage = "";
             ProgressDetail = "";
@@ -169,11 +184,46 @@ public sealed class Workspace : ObservableObject
         }
     }
 
+    public void CancelOperation()
+    {
+        if (Executor.IsRunning) Control?.Stop();
+        else _operationCancellation?.Cancel();
+        ProgressDetail = "Stopping at a safe boundary and finishing evidence…";
+    }
+
+    public async Task<string> ExportAsync(Func<string> export)
+    {
+        var file = "";
+        await RunExclusiveAsync("Writing report", async progress =>
+        {
+            progress.Report("Creating the report. Closing waits for the file to finish.");
+            file = await Task.Run(export);
+        });
+        return file;
+    }
+
+    public void ApplyProfileToSession(TenantProfile input, bool save)
+    {
+        var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        if (Connection is not null && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("These settings belong to another tenant. Reconnect before applying them.");
+        if (save) profile = SaveProfile(profile);
+        Profile = profile;
+        Plan = null;
+        AcknowledgedSnapshotId = null;
+        Assessment = null;
+        Notify();
+    }
+
     // ---- profiles ------------------------------------------------------------------------------------------------
 
     public TenantProfile SaveProfile(TenantProfile input)
     {
+        if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
         var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        if (Connection is not null && Profile?.Id == profile.Id
+            && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("Disconnect before changing the tenant ID of the connected profile.");
         var all = Profiles.ToList();
         // One saved client per tenant: evidence, managed-object mappings and deviations are all keyed by tenant ID, so a
         // second profile for the same tenant would silently split a client's history in two.
@@ -220,17 +270,18 @@ public sealed class Workspace : ObservableObject
         {
             var standard = RequireStandard();
             await DisconnectCoreAsync();
+            await DisconnectSetupCoreAsync();
             Profile = profile;
-            Connection = await Connections.ConnectAsync(profile, mode, standard, progress, CancellationToken.None);
+            Connection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
             Evidence.MarkInterruptedRuns(profile.TenantId);
             progress.Report("Checking access (read-only).");
-            Access = await Connections.CheckAccessAsync(Connection, standard, progress, CancellationToken.None);
+            Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
         });
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
     {
         var connection = RequireConnection();
-        Access = await Connections.CheckAccessAsync(connection, RequireStandard(), progress, CancellationToken.None);
+        Access = await Connections.CheckAccessAsync(connection, RequireStandard(), progress, OperationToken);
         Plan = null;
         AcknowledgedSnapshotId = null;
     });
@@ -239,6 +290,7 @@ public sealed class Workspace : ObservableObject
     {
         if (Busy) throw new ToolkitException("Stop the active run and wait for evidence collection before disconnecting.");
         await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
         Notify();
     }
 
@@ -254,6 +306,22 @@ public sealed class Workspace : ObservableObject
         AcknowledgedSnapshotId = null;
         Control = null;
         if (connection is not null) await connection.DisposeAsync();
+    }
+
+    public Task ConnectApplicationSetupAsync(string tenantId) => RunExclusiveAsync("Signing in for application setup", async progress =>
+    {
+        await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
+        ApplicationSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken);
+    });
+
+    public Task DisconnectApplicationSetupAsync() => RunExclusiveAsync("Closing privileged setup session", _ => DisconnectSetupCoreAsync());
+
+    private async Task DisconnectSetupCoreAsync()
+    {
+        var setup = ApplicationSetup;
+        ApplicationSetup = null;
+        if (setup is not null) await setup.DisposeAsync();
     }
 
     public ConnectedTenant RequireConnection()
@@ -273,7 +341,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         var collectionProgress = new Progress<CollectionProgress>(p => ((IProgress<string>)progress).Report($"{p.Message} ({p.Completed}/{p.Total})"));
-        var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, standard, collectionProgress, CancellationToken.None);
+        var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, standard, collectionProgress, OperationToken);
         Evidence.SaveSnapshot(snapshot);
         Snapshot = snapshot;
         SnapshotIsLive = true;
@@ -354,6 +422,7 @@ public sealed class Workspace : ObservableObject
             Snapshot = snapshot,
             Mappings = Evidence.LoadMappings(profile.TenantId),
             Session = connection.Session,
+            Deviations = Evidence.LoadDeviations(profile.TenantId),
             AcknowledgedSnapshotId = AcknowledgedSnapshotId,
             Now = DateTimeOffset.UtcNow,
             MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
@@ -387,7 +456,10 @@ public sealed class Workspace : ObservableObject
             Snapshot = snapshot,
             Mappings = mappings,
             Session = connection.Session,
-            Graph = connection.Graph
+            Graph = connection.Graph,
+            AcknowledgedSnapshotId = AcknowledgedSnapshotId,
+            MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
+            MaxPlanAge = TimeSpan.FromMinutes(Settings.PlanMaxAgeMinutes)
         }, Control, progress);
         Plan = null;
         AcknowledgedSnapshotId = null;
@@ -474,13 +546,18 @@ public sealed class Workspace : ObservableObject
     /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
     public async Task ShutdownAsync()
     {
+        if (ShutdownComplete) return;
+        CancelOperation();
         if (Executor.IsRunning)
         {
             Logger.Warn("App", "Shutdown requested while a deployment is in flight; waiting for the current write and after-change evidence.");
             await Executor.WaitForCompletionAsync(Control);
         }
+        if (_operationCompletion is not null) await _operationCompletion.Task;
         await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
         Logger.Info("App", "Toolkit closed.");
         Logger.Flush();
+        ShutdownComplete = true;
     }
 }

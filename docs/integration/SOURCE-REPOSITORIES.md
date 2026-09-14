@@ -13,6 +13,10 @@ Inspected 13–14 September 2026. [PR #1](https://github.com/Willzy12h/M365-Buil
 
 Repositories: [master](https://github.com/Willzy12h/M365-Buildstandards), [Claude](https://github.com/Willzy12h/m365-Tenant-Toolkit-Claude), [Asta](https://github.com/Willzy12h/m365-tenant-console-Asta).
 
+## Integrated preview
+
+The engineer-workflow feature branch and [PR #2](https://github.com/Willzy12h/M365-Buildstandards/pull/2) start from the verified baseline import `3db6c5a3b3426869ac6803c1472db057563818a9`. New setup, safety, account lookup and UI work is authored in the master repository. It does not represent a newer Claude or Asta source upload. Both PRs target integration and remain subject to review.
+
 ## Report recovery provenance
 
 Six files existed as untracked local source in the original Claude checkout under src/BDIT.TenantToolkit.Engine/Reports/. They were absent from both inspected remote refs. They are recovered source, **not attributable to a published source commit**. Copied without alteration; these SHA-256 values describe the original bytes (Git may normalise line endings).

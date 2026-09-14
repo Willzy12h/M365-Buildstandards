@@ -127,7 +127,7 @@ public static class CanonicalJson
                 if (actual is not JsonObject actualObject) return false;
                 foreach (var pair in wantedObject)
                 {
-                    actualObject.TryGetPropertyValue(pair.Key, out var actualMember);
+                    if (!actualObject.TryGetPropertyValue(pair.Key, out var actualMember)) return false;
                     if (!IsSubset(actualMember, pair.Value)) return false;
                 }
                 return true;
@@ -231,15 +231,21 @@ public static class CanonicalJson
 
     /// <summary>Navigates a dotted path produced by <see cref="Leaves"/>.</summary>
     public static JsonNode? At(JsonNode? node, string path)
+        => TryAt(node, path, out var value) ? value : null;
+
+    /// <summary>Unlike At, reports whether the member exists when its value is JSON null.</summary>
+    public static bool TryAt(JsonNode? node, string path, out JsonNode? value)
     {
-        if (string.IsNullOrEmpty(path)) return node;
+        value = node;
+        if (string.IsNullOrEmpty(path)) return true;
         var current = node;
         foreach (var segment in path.Split('.'))
         {
             if (current is JsonObject obj && obj.TryGetPropertyValue(segment, out var next)) current = next;
-            else return null;
+            else { value = null; return false; }
         }
-        return current;
+        value = current;
+        return true;
     }
 
     /// <summary>Order-insensitive normalisation used by drift comparison: arrays are sorted by canonical text.</summary>

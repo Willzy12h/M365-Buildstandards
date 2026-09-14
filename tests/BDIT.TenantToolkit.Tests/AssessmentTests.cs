@@ -8,6 +8,22 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class AssessmentTests
 {
+    [Fact]
+    public void Nullable_setting_missing_from_graph_is_not_a_settings_match()
+    {
+        var payload = ToolkitJson.ParseObject("""{"displayName":"Nullable policy","setting":null}""");
+        var def = new CollectionDefinition { Label = "Policies", Path = "/policies" };
+        var rule = new AssessmentRule { Mode = AssessmentMode.Settings };
+        var missing = ToolkitJson.ParseObject("""{"id":"synthetic","displayName":"Nullable policy"}""");
+        var candidate = Assert.Single(AssessmentEngine.FindCandidates(new[] { missing }, payload, rule, def, new NameResolver(), TestData.Mappings()));
+        Assert.False(candidate.SettingsMatch);
+        Assert.Contains(candidate.Differences, d => d.Setting == "setting" && !d.Match && d.Current == "Missing — not returned" && d.Standard == "null");
+        missing["setting"] = null;
+        candidate = Assert.Single(AssessmentEngine.FindCandidates(new[] { missing }, payload, rule, def, new NameResolver(), TestData.Mappings()));
+        Assert.True(candidate.SettingsMatch);
+        Assert.Contains(candidate.Differences, d => d.Setting == "setting" && d.Match && d.Current == "null");
+    }
+
     private static readonly FixedClock Clock = new();
     private static readonly AssessmentEngine Engine = new(Clock, "test");
 

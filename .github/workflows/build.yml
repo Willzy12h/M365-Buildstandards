@@ -44,6 +44,21 @@ jobs:
         shell: pwsh
         run: ./build/Build-Portable.ps1 -SkipTests
 
+      - name: Render offline WPF workflows and check bindings
+        shell: pwsh
+        run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release -- "$pwd" "$pwd/dist/ui-review"
+
+      - name: Upload synthetic UI review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-ui-review
+          path: |
+            dist/ui-review/*.png
+            dist/ui-review/verification.json
+            dist/ui-review/binding-errors.txt
+            dist/ui-review/harness-error.txt
+
       - name: Upload portable review package
         uses: actions/upload-artifact@v4
         with:

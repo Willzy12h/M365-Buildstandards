@@ -166,6 +166,7 @@ public sealed class GraphClient : IGraphClient
         var path = url.Length > Root(api).Length ? url[Root(api).Length..] : url;
         var attempt = 0;
         var refreshedToken = false;
+        var forceRefreshNext = false;
         while (true)
         {
             attempt++;
@@ -173,7 +174,8 @@ public sealed class GraphClient : IGraphClient
             HttpResponseMessage response;
             try
             {
-                var token = await _tokens.GetAccessTokenAsync(ct);
+                var token = await _tokens.GetAccessTokenAsync(forceRefreshNext, ct);
+                forceRefreshNext = false;
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -219,6 +221,7 @@ public sealed class GraphClient : IGraphClient
                 {
                     refreshedToken = true;
                     _log.Warn("Graph", $"GET {Describe(path)} returned 401; renewing the token silently once.", TenantId);
+                    forceRefreshNext = true;
                     continue;
                 }
                 if (status == 401)

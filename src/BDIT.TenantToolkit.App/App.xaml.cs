@@ -65,7 +65,9 @@ public partial class App : Application
     {
         try
         {
-            _workspace?.ShutdownAsync().GetAwaiter().GetResult();
+            // MainWindow awaits cooperative shutdown while the dispatcher is still running.
+            // Never synchronously block the UI thread on asynchronous token/evidence cleanup here.
+            _logger?.Flush();
             StartupNote($"Exit {Timestamps.Format(DateTimeOffset.UtcNow)} code {e.ApplicationExitCode}");
         }
         catch (Exception ex)

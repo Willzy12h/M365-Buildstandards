@@ -72,7 +72,7 @@ public static class MarkdownReports
         }
         sb.AppendLine("---");
         sb.AppendLine();
-        sb.AppendLine("_Assessment performed read-only. No tenant configuration was modified. Unknown data is reported as unknown, never as absent._");
+        sb.AppendLine("_This assessment compares a saved capture. Generating it does not modify tenant settings; changes from separate deployment runs are recorded in their own evidence. Unknown data is reported as unknown, never as absent._");
         return sb.ToString();
     }
 
@@ -120,9 +120,9 @@ public static class MarkdownReports
         sb.AppendLine();
         foreach (var row in TabularReports.RunSheets(run, journal)[0].Rows.Skip(1)) sb.AppendLine($"- {E(row[0])}: {E(row[1])}");
         sb.AppendLine();
-        sb.AppendLine("| Control | Planned | Outcome | Object | Readback | Reason |");
-        sb.AppendLine("|---|---|---|---|---|---|");
-        foreach (var x in run.Results) sb.AppendLine($"| {E(x.ControlId)} | {E(x.PlannedAction)} | {E(x.Status)} | `{E(x.ObjectId)}` | {E(x.Configuration)} | {E(x.Reason)} |");
+        sb.AppendLine("| Control | Planned | Outcome | Write acceptance | Object | Readback | Reason |");
+        sb.AppendLine("|---|---|---|---|---|---|---|");
+        foreach (var x in run.Results) sb.AppendLine($"| {E(x.ControlId)} | {E(x.PlannedAction)} | {E(x.Status)} | {E(x.WriteAcceptance)} | `{E(x.ObjectId)}` | {E(x.Configuration)} | {E(x.Reason)} |");
         sb.AppendLine();
         sb.AppendLine("## Journal");
         sb.AppendLine();

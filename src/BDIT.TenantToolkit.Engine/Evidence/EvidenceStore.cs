@@ -66,9 +66,29 @@ public sealed class EvidenceStore
                 writer.Flush();
                 stream.Flush(true);
             }
-            File.Move(temp, file, overwrite: true);
+            try
+            {
+                for (var attempt = 0; ; attempt++)
+                {
+                    try { File.Move(temp, file, overwrite: true); break; }
+                    catch (Exception ex) when (attempt < 4 && IsTemporaryReplacementLock(ex))
+                    {
+                        // Windows scanners/readers can briefly deny replacement after close. Retry only the local
+                        // rename of already-flushed bytes; this never repeats a Graph request or changes its outcome.
+                        Thread.Sleep(20 << attempt);
+                    }
+                }
+            }
+            finally
+            {
+                try { if (File.Exists(temp)) File.Delete(temp); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
         }
     }
+
+    private static bool IsTemporaryReplacementLock(Exception ex) =>
+        (ex is IOException or UnauthorizedAccessException) && (ex.HResult & 0xffff) is 5 or 32 or 33;
 
     public T? ReadJson<T>(string file) where T : class
     {
@@ -136,17 +156,33 @@ public sealed class EvidenceStore
         var id = SafeId(snapshotId);
         var dir = SnapshotsDirectory(tenantId);
         if (!Directory.Exists(dir)) return null;
-        var file = Directory.EnumerateFiles(dir, $"*-{id}.json").FirstOrDefault();
+        var matches = Directory.EnumerateFiles(dir, $"*-{id}.json").Take(2).ToList();
+        if (matches.Count > 1) throw new ConfigurationException("Multiple files use this snapshot ID. Reconcile the evidence before deployment.");
+        var file = matches.SingleOrDefault();
         if (file is null) return null;
         var snapshot = ReadJson<TenantSnapshot>(file);
         if (snapshot is null) return null;
         AssertTenant(tenantId, snapshot.TenantId, "Snapshot");
+        if (!string.Equals(snapshot.Id, snapshotId, StringComparison.OrdinalIgnoreCase))
+            throw new ConfigurationException("The stored snapshot ID does not match the requested evidence.");
         if (!EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest))
             _log.Warn("Evidence", $"Snapshot {snapshot.Id} failed its integrity digest check; treat it as modified.", tenantId);
         return snapshot;
     }
 
     public bool SnapshotIntegrityIntact(TenantSnapshot snapshot) => EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest);
+
+    public TenantSnapshot RequireDeploymentSnapshot(TenantSnapshot expected, StandardCatalogue standard)
+    {
+        var stored = LoadSnapshot(expected.TenantId, expected.Id)
+            ?? throw new PlanValidationException("The acknowledged before-change snapshot is not saved. Capture and save it before deploying.");
+        if (!SnapshotIntegrityIntact(stored) || !SnapshotIntegrityIntact(expected))
+            throw new PlanValidationException("The before-change snapshot failed its integrity check. Capture and review a new snapshot.");
+        if (EvidenceIntegrity.Compute(stored) != EvidenceIntegrity.Compute(expected))
+            throw new PlanValidationException("The saved before-change snapshot differs from the reviewed snapshot. Rebuild the plan.");
+        SnapshotRequirements.AssertComplete(stored, standard);
+        return stored;
+    }
 
     public IReadOnlyList<SnapshotSummary> ListSnapshots(string tenantId)
     {
@@ -214,6 +250,34 @@ public sealed class EvidenceStore
 
     private string RunsDirectory(string tenantId) => Path.Combine(TenantDirectory(tenantId), "runs");
 
+    public void AssertPlanHasNotRun(DeploymentPlan plan)
+    {
+        var directory = RunsDirectory(plan.TenantId);
+        if (!Directory.Exists(directory)) return;
+        var controls = plan.WriteRows.Select(r => r.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+        {
+            // Do not silently skip unreadable history: it may describe the previous ambiguous attempt.
+            var run = ReadJson<DeploymentRun>(file) ?? throw new ConfigurationException("Previous run evidence is empty. Reconcile it before deploying.");
+            AssertTenant(plan.TenantId, run.TenantId, "Previous run");
+            if (!EvidenceIntegrity.Verify(run, run.IntegrityDigest))
+                throw new PlanValidationException("Previous run evidence failed its integrity check. Reconcile it before deploying.");
+            if (string.Equals(run.PlanId, plan.Id, StringComparison.OrdinalIgnoreCase))
+                throw new PlanValidationException("This plan already has a deployment attempt. Reconcile its results, capture fresh evidence and review a new plan; existing plans are never replayed.");
+            foreach (var result in run.Results.Where(r => controls.Contains(r.ControlId)))
+            {
+                // Fresh snapshots cannot prove an ambiguous create did not succeed: Graph may be eventually consistent.
+                var couldHaveWritten = result.Status is ResultStatus.InProgress or ResultStatus.Completed or ResultStatus.Error
+                    || result.PlannedAction is nameof(PlanAction.Create) or nameof(PlanAction.Update);
+                var unresolved = result.Status != ResultStatus.NotRun && couldHaveWritten
+                    && (result.WriteAcceptance == WriteAcceptance.Unknown
+                        || (result.WriteAcceptance == WriteAcceptance.Accepted && !ProfileValidator.IsGuid(result.ObjectId ?? "")));
+                if (unresolved)
+                    throw new PlanValidationException($"{result.ControlId} has an unresolved write in run {run.Id}. A fresh plan or missing search result cannot clear this uncertainty. Preserve the evidence and reconcile manually; this release has no automatic reconciliation override.");
+            }
+        }
+    }
+
     public string RunFile(DeploymentRun run) => Path.Combine(RunsDirectory(run.TenantId), $"{StampFor(run.StartedAt)}-{SafeId(run.Id)}.json");
 
     public void SaveRun(DeploymentRun run)
@@ -265,7 +329,21 @@ public sealed class EvidenceStore
             run.Error = "The previous toolkit session ended before final evidence was captured. Reassess the tenant and reconcile before further writes.";
             run.EndedAt ??= Timestamps.Format(DateTimeOffset.UtcNow);
             foreach (var r in run.Results)
-                if (r.Status is ResultStatus.Pending or ResultStatus.InProgress) r.Status = r.Status == ResultStatus.InProgress ? ResultStatus.Error : ResultStatus.NotRun;
+            {
+                if (r.Status == ResultStatus.InProgress)
+                {
+                    r.Status = ResultStatus.Error;
+                    r.WriteAcceptance = WriteAcceptance.Unknown;
+                    r.Reason = "The previous session ended during a write. Reconcile its outcome before retrying.";
+                }
+                else if (r.Status == ResultStatus.Pending)
+                {
+                    r.Status = ResultStatus.NotRun;
+                    r.WriteAcceptance = WriteAcceptance.NotAttempted;
+                }
+                if (r.Configuration == ConfigurationVerification.Pending)
+                    r.Configuration = r.Status == ResultStatus.NotRun ? ConfigurationVerification.NotRun : ConfigurationVerification.Unknown;
+            }
             SaveRun(run);
             count++;
         }

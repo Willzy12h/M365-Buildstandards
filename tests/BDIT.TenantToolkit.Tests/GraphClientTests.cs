@@ -17,7 +17,9 @@ public class GraphClientTests
     private sealed class StubTokens : IAccessTokenProvider
     {
         public int Calls;
+        public int ForceRefreshes;
         public Task<string> GetAccessTokenAsync(CancellationToken ct) { Calls++; return Task.FromResult("token-" + Calls); }
+        public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) { if (forceRefresh) ForceRefreshes++; return GetAccessTokenAsync(ct); }
     }
 
     private sealed class ScriptedHandler : HttpMessageHandler
@@ -186,6 +188,18 @@ public class GraphClientTests
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() => client.GetAsync(GraphApi.V1, "/organization", CancellationToken.None));
         Assert.Equal(2, handler.Requests.Count);
         Assert.Equal(2, tokens.Calls);
+        Assert.Equal(1, tokens.ForceRefreshes);
+    }
+
+    [Fact]
+    public async Task Unauthorized_write_is_not_replayed_or_force_refreshed()
+    {
+        var (client, handler, tokens) = Create();
+        handler.Enqueue(HttpStatusCode.Unauthorized);
+        await Assert.ThrowsAsync<GraphRequestException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/identity/conditionalAccess/policies", ToolkitJson.ParseObject("""{"displayName":"x","state":"disabled"}"""), CancellationToken.None));
+        Assert.Single(handler.Requests);
+        Assert.Equal(0, tokens.ForceRefreshes);
     }
 
     [Fact]

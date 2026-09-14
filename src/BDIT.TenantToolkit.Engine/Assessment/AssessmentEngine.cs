@@ -355,14 +355,14 @@ public sealed class AssessmentEngine
             var matched = 0;
             foreach (var (path, value) in wanted)
             {
-                var current = CanonicalJson.At(item, path);
-                var match = CanonicalJson.IsSubset(current, value);
+                var present = CanonicalJson.TryAt(item, path, out var current);
+                var match = present && CanonicalJson.IsSubset(current, value);
                 if (match) matched++;
                 differences.Add(new PropertyDifference
                 {
                     Setting = path,
-                    Current = current is null ? "Missing — not returned" : names.Render(current),
-                    Standard = names.Render(value),
+                    Current = !present ? "Missing — not returned" : current is null ? "null" : names.Render(current),
+                    Standard = value is null ? "null" : names.Render(value),
                     Match = match
                 });
             }

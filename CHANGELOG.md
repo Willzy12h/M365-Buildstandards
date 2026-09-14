@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0-preview.1 (2026-09-14) — controlled setup and engineer workflow
+
+- Added a separate delegated app-setup wizard: permission preview, two single-tenant registrations and enterprise apps, explicit creation approval, consent links and configuration/grant/engineer-assignment validation.
+- Added one-time connections and tenant-bound account lookup with exclusions, purpose, reason and persistent-effect review. Dedicated emergency-access and creator safeguards remain.
+- Enforced complete durable snapshots and all plan bindings inside the executor, licence/reference readiness, single-use plans and truthful write acceptance/readback reporting.
+- Fixed forced silent renewal after read 401, missing-versus-null comparison, unexpected terminal results and inaccurate client-report wording.
+- Redesigned the Windows shell and pages, added cooperative stop/shutdown and moved exports off the UI thread.
+- Review build only. Live app setup, consent, policy acceptance and functional tenant outcomes remain unverified. Scope remains 45 controls and 12 creation recipes.
+
 ## 1.1.0 (unreleased) - equivalent configuration and usability
 
 ### Assessment

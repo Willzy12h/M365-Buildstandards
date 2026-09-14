@@ -5,7 +5,7 @@ Unit tests prove the safety logic with a scripted Graph client. They cannot prov
 ## Environment
 
 1. A test tenant with Business Premium (Entra ID P1, Intune Plan 1) and at least two test users, one Windows device enrolled in Intune, one iOS device if available.
-2. Two application registrations in the BDIT tenant: **BDIT Tenant Assessment** (read scopes listed in the standard plus `User.Read`, `Organization.Read.All`, `RoleManagement.Read.Directory`) and **BDIT Tenant Deployment** (read plus write scopes). Public client, redirect URI `http://localhost`. Admin consent granted in the test tenant.
+2. Use the application setup wizard to create **BDIT Tenant Assessment** and **BDIT Tenant Deployment** in the authorised test tenant, or validate existing IDs. Each is a single-tenant public client with redirect URI `http://localhost`; consent and engineer assignment are separate. See [application setup](APPLICATION-SETUP.md).
 3. Two emergency access accounts, one named location (office), one MAM-only group.
 
 ## Authentication and connection
@@ -15,7 +15,7 @@ Unit tests prove the safety logic with a scripted Graph client. They cannot prov
 | Connect read-only with the assessment registration | Browser sign-in completes; header shows tenant name, primary domain, "verified", operator resolved and verified |
 | Connect with the wrong tenant ID in the profile | Connection refused with a tenant mismatch message; no snapshot possible |
 | Connect with an account lacking read roles | Access check lists the failing collections with the expected scope |
-| Enable deployment access | Second sign-in with the deployment registration; mode badge turns red; write scopes observed |
+| Enable deployment access | Second sign-in with the deployment registration; mode badge turns amber; write scopes observed |
 | Disconnect, then reconnect | A fresh Microsoft sign-in is required (cache removed) |
 | Token expiry during a long capture | Silent renewal works; if Microsoft requires interaction the operation fails with a clear reconnect message |
 
@@ -44,7 +44,9 @@ For each of CA-001, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009, CA-0
 | Graph accepts the create payload | HTTP 201, object ID returned, readback *Pass* |
 | Conditional Access object in the portal | State **Off**; emergency accounts and the operator in excluded users; expected include targeting present |
 | Intune object in the portal | No assignments |
-| Run the same plan again | Plan rows are *NoChange*; no duplicate objects |
+| Run the same plan again | Rejected as already used; no Graph write |
+| Capture again and build a fresh plan after verified creation | Owned matching candidates produce *NoChange*; no duplicate objects |
+| Fresh plan after an unresolved write | Affected control remains blocked pending manual reconciliation; no replay |
 | Edit the created object in the portal, then plan again | Row is *Drift*; the toolkit refuses to update it |
 | Enable the created Conditional Access policy manually, then plan again | Row is *Manual*; the toolkit refuses to touch active policies |
 | Create an unrelated policy with the standard name, then plan | Row is *Conflict*; nothing is adopted or created |

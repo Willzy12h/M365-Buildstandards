@@ -7,6 +7,7 @@ namespace BDIT.TenantToolkit.App;
 public partial class MainWindow : Window
 {
     private bool _closeApproved;
+    private bool _closing;
 
     public MainWindow() => InitializeComponent();
 
@@ -15,18 +16,32 @@ public partial class MainWindow : Window
     {
         if (_closeApproved) return;
         if (DataContext is not ShellViewModel shell) return;
-        if (!shell.Workspace.Executor.IsRunning) return;
-
         e.Cancel = true;
-        var result = MessageBox.Show(
-            "A deployment is in progress.\n\nThe toolkit will stop at the next safe boundary, finish the current write, capture the after-change snapshot and then close. Nothing is abandoned mid-write.\n\nStop and close?",
-            "Deployment in progress", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
-
+        if (_closing) return;
+        if (shell.Workspace.Busy)
+        {
+            var deploying = shell.Workspace.Executor.IsRunning;
+            var message = deploying
+                ? "A deployment is in progress.\n\nThe toolkit will stop at the next safe boundary, finish the current write, capture the after-change snapshot and then close.\n\nStop and close?"
+                : "An operation is in progress.\n\nThe toolkit will request cancellation, wait for the operation to finish and disconnect before closing.\n\nStop and close?";
+            var result = MessageBox.Show(message, deploying ? "Deployment in progress" : "Operation in progress", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+        }
+        _closing = true;
         IsEnabled = false;
         Title = shell.WindowTitle + " - finishing evidence before closing";
-        await shell.Workspace.Executor.WaitForCompletionAsync(shell.Workspace.Control);
-        _closeApproved = true;
-        Close();
+        try
+        {
+            await shell.Workspace.ShutdownAsync();
+            _closeApproved = true;
+            // Shutdown can complete synchronously; let the current Closing event unwind first.
+            _ = Dispatcher.BeginInvoke(new Action(Close));
+        }
+        catch (Exception ex)
+        {
+            shell.ShowError(ex);
+            IsEnabled = true;
+            _closing = false;
+        }
     }
 }

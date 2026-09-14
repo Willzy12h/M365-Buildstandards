@@ -4,7 +4,7 @@ A Windows application for Blue Diamond IT to capture tenant configuration, compa
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**Development review candidate: live tenant deployment is unverified.** The [handover](docs/integration/HANDOVER.md) records safety gaps, including incomplete-snapshot enforcement, execution terminal states, token renewal and missing-versus-null comparison. Passing builds do not resolve these.
+**1.1.0-preview.1 — engineering review candidate.** The evidence, execution, token-renewal and missing/null defects have focused offline regression coverage. Live tenant sign-in, app setup and policy deployment still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
 ## Workflow and scope
 
@@ -12,11 +12,13 @@ Connect read-only → capture → inspect/export → compare → select changes 
 
 Standard 2026.09.3 contains **45 controls, 12 creation recipes and 13 collection definitions**. The remaining controls have no creation recipe. This is not full automation of the standard.
 
-Authentication is delegated, with separate assessment/deployment registrations. App-only and integrated app provisioning are not implemented. Connections currently use saved profiles; a one-time workflow is a candidate port.
+Authentication is delegated, with separate assessment/deployment registrations. The [application setup wizard](docs/APPLICATION-SETUP.md) previews and creates both registrations and enterprise applications, guides administrator consent and validates configuration, grants and engineer assignment. It uses a separate privileged session; app-only authentication is not implemented. Connect once without saving a profile, or opt in to remembering the client.
+
+Resolve exclusion accounts by sign-in address, object ID or display name. Select the exact result, purpose and reason, then apply it to the tenant's plan inputs. The planner shows names and IDs, retains dedicated emergency-access and delegated-creator safeguards, and invalidates prior plans after changes. An admin-style name never automatically grants an exclusion. One-time connections still retain local audit evidence.
 
 Conditional Access candidates are disabled with stored targeting and exclusions. Intune candidates are unassigned. The historical CA wording "disabled and unassigned" remains unresolved; this import does not change targeting. Creator exclusions persist until deliberately reviewed.
 
-The Graph client blocks assessment writes. The implementation includes guarded PATCH updates to owned inactive objects; it is not create-only. Ambiguous writes need manual reconciliation. Snapshots are evidence, not automatic rollback.
+The Graph client blocks assessment writes. The executor independently validates durable complete snapshots, plan/input integrity, licensing, creation references, ownership and drift. Plans are single-use after a run begins. Guarded PATCH updates are limited to owned inactive objects. Ambiguous writes need manual reconciliation. Snapshots are evidence, not automatic rollback.
 
 ## Build and package
 

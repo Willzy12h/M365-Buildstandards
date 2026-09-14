@@ -1,5 +1,19 @@
 # Behavioural comparison
 
+## Integrated workflow update — 14 September 2026
+
+This update supersedes the baseline gaps below where named implementation and checks now exist. Source comparisons remain historical evidence.
+
+| Area | Claude baseline | Asta reference | Integrated recommendation | Evidence / remaining checks |
+|---|---|---|---|---|
+| Evidence/execution | Partial boundary validation, incomplete terminal states | Stronger workflow safeguards worth retaining | Executor reloads complete durable evidence, rebuilds write rows and binds all inputs; unresolved writes cannot be replayed | Executor/Planner regressions; live failure checks pending |
+| Account exclusions | Raw IDs and creator safeguards | Friendly identity/parameter workflows | Explicit tenant-bound lookup, purpose/reason, names plus IDs; emergency and creator safeguards preserved | AccountResolver/planner tests; live lookup pending |
+| Connections | Always saves profile | One-time connection option | One-time default, opt-in saved profile, durable evidence retained | WPF implementation; interactive sign-in pending |
+| App setup | External registration setup | Onboarding reference only | Separate privileged delegated setup, permission preview, explicit creation, browser consent and Graph validation | ApplicationSetupTests; live setup/consent/assignment pending |
+| UI/reports | Dense panels, collection/create colours implied success | Useful inspect/export/progress workflows | Shared semantic colours, persistent identity/access, structured plan/results and background exports | Build and offline rendering; human acceptance pending |
+
+## Original source comparison
+
 Source evidence uses the pinned revisions in [SOURCE-REPOSITORIES.md](SOURCE-REPOSITORIES.md). Claude paths are relative to the imported baseline; Asta paths refer to its source repository. "Implemented" below means code inspection; checks actually run are separate in [TESTING-EVIDENCE.md](TESTING-EVIDENCE.md).
 
 | Area | Claude implementation | Asta implementation | Recommended state | Evidence / remaining checks |

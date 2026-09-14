@@ -32,7 +32,7 @@ Describe the problem and resulting behaviour.
 - [ ] Assessment remains read-only.
 - [ ] Pre-change snapshots remain enforced.
 - [ ] Writes remain previewable and selective.
-- [ ] Conditional Access creation remains safely disabled and unassigned.
+- [ ] Conditional Access creation remains disabled with reviewed stored targeting/exclusions; Intune candidates remain unassigned.
 - [ ] Partial failures produce structured results.
 - [ ] Retry behaviour was considered.
 

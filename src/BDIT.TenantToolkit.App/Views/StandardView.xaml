@@ -1,14 +1,15 @@
 <UserControl x:Class="BDIT.TenantToolkit.App.Views.StandardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Grid Margin="24">
+  <Grid Margin="28,24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
     <StackPanel Grid.Row="0">
+      <TextBlock Text="STANDARD &amp; REFERENCE" Style="{StaticResource Eyebrow}"/>
       <TextBlock Text="BDIT Build Standard" Style="{StaticResource H1}"/>
-      <TextBlock Style="{StaticResource Lead}" Text="The catalogue is the standard. Expected production state documents the finished tenant; safe deployment documents the only state the toolkit creates."/>
+      <TextBlock Style="{StaticResource Lead}" Text="Review each control, its expected production state and candidate creation recipe. Manual controls remain visible alongside automation."/>
       <Border Style="{StaticResource Panel}">
         <StackPanel>
           <TextBlock Text="{Binding HeaderText}"/>
@@ -18,7 +19,7 @@
             <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" Style="{StaticResource SecondaryButton}"/>
             <TextBlock Text="Category" VerticalAlignment="Center" Margin="12,0,6,10"/>
             <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
-            <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200"/>
+            <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -28,7 +29,7 @@
         <ColumnDefinition Width="2*"/>
         <ColumnDefinition Width="3*"/>
       </Grid.ColumnDefinitions>
-      <ListBox Grid.Column="0" ItemsSource="{Binding Controls}" SelectedItem="{Binding Selected, Mode=TwoWay}" Margin="0,0,14,0" BorderBrush="{StaticResource Line}">
+      <ListBox Grid.Column="0" ItemsSource="{Binding Controls}" SelectedItem="{Binding Selected, Mode=TwoWay}" Margin="0,0,20,0" BorderBrush="{StaticResource Line}">
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="4">

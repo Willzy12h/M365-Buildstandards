@@ -43,9 +43,9 @@ public sealed class ConfigurationViewModel : PageViewModel
     {
         CaptureCommand = Command(Workspace.CaptureAsync, () => Workspace.IsConnected && Workspace.Idle);
         LoadStoredCommand = Sync(() => { if (SelectedStored is not null) Workspace.LoadStoredSnapshot(SelectedStored.Id); }, () => SelectedStored is not null && Workspace.Idle);
-        ExportJsonCommand = Sync(() => Export(ExportFormat.Json), () => Workspace.Snapshot is not null);
-        ExportCsvCommand = Sync(() => Export(ExportFormat.Csv), () => Workspace.Snapshot is not null);
-        ExportXlsxCommand = Sync(() => Export(ExportFormat.Xlsx), () => Workspace.Snapshot is not null);
+        ExportJsonCommand = Command(() => Export(ExportFormat.Json), () => Workspace.Snapshot is not null);
+        ExportCsvCommand = Command(() => Export(ExportFormat.Csv), () => Workspace.Snapshot is not null);
+        ExportXlsxCommand = Command(() => Export(ExportFormat.Xlsx), () => Workspace.Snapshot is not null);
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
         CopySummaryCommand = CopyText(() => SnapshotText);
         Refresh();
@@ -103,10 +103,11 @@ public sealed class ConfigurationViewModel : PageViewModel
         }
     }
 
-    private void Export(ExportFormat format)
+    private async Task Export(ExportFormat format)
     {
         var snapshot = Workspace.Snapshot ?? throw new ToolkitException("Read the tenant configuration first.");
-        _lastExportFile = Workspace.Exporter.ExportSnapshot(snapshot, Workspace.Standard, format);
+        var standard = Workspace.Standard;
+        _lastExportFile = await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, standard, format));
         var objects = snapshot.Collections.Values.Sum(c => c.Count);
         LastExport = $"Exported {objects} object(s) from {snapshot.Collections.Count(c => c.Value.Status == CaptureStatus.Collected)} collection(s): {_lastExportFile}";
         OnPropertyChanged(nameof(LastExport));

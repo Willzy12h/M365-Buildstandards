@@ -18,6 +18,16 @@
 
 Dependency direction: App → Engine → Graph → Core. Tests reference Core, Graph and Engine.
 
+## Integrated engineer workflow (1.1 preview)
+
+`Graph/Setup/ApplicationSetupService` owns a separate, in-memory privileged setup identity and narrow transport. It resolves delegated scope IDs, previews two registrations, creates only approved new registrations/service principals and validates actual configuration, consent and direct engineer assignment. Consent uses Microsoft's browser flow; no directory roles, grants or secrets are written by the service. Normal assessment/deployment routes cannot create applications. See [application setup](APPLICATION-SETUP.md).
+
+`Engine/Identity/AccountResolver` resolves explicit UPN/object-ID/display-name searches. `TenantProfile.ExclusionAccounts` stores tenant-bound identity, purpose, reason, time and selecting operator. Dedicated emergency IDs remain distinct from additional approved exceptions; both are merged into reviewed CA candidates with the delegated creator. Profile and exclusion changes invalidate plans.
+
+The executor reloads complete, integrity-checked before evidence plus current mappings and deviations, rebuilds reviewed write rows, freezes inputs and checks durable state before each request. Plans bind profile, operator, app, standard file/content, snapshot, mappings and deviations. Updates retain ownership, inactive-state and drift checks. Write acceptance and configuration verification are separate; historical records without acceptance display Unknown without changing their original digest.
+
+`Workspace` serialises operations, owns cancellation and awaits active work before async shutdown. Policy writes stop at safe action boundaries; setup completes the current app/SP pair and after evidence. Exports run on a worker task. The shell shows tenant/account/access, including setup and broader shared-fallback token scopes. See [design system](DESIGN-SYSTEM.md).
+
 ## Graph routing
 
 - A collection in the standard declares `api` (`v1.0` or `beta`), `path`, `scope`, optional `write`, `assignments`, `children`, `relationship`, `singleton`, `nameProperty`.

@@ -263,4 +263,62 @@ public class PlannerTests
         Assert.Throws<SafetyViolationException>(() => WritePayloadGuard.Assert(compliance, assigned));
         WritePayloadGuard.Assert(compliance, ToolkitJson.ParseObject("""{"displayName":"x"}"""));
     }
+
+    [Fact]
+    public void Missing_required_licence_blocks_candidate_creation()
+    {
+        var standard = TestData.Standard();
+        var snapshot = TestData.Snapshot(standard, withLicence: false);
+        var row = Assert.Single(Build(standard, snapshot, ids: new[] { "CA-001" }).Rows);
+        Assert.Equal(PlanAction.Blocked, row.Action);
+        Assert.Contains("AAD_PREMIUM", row.Reason, StringComparison.Ordinal);
+        Assert.Null(row.Payload);
+    }
+
+    [Fact]
+    public void Missing_creation_reference_blocks_but_activation_prerequisite_remains_a_warning()
+    {
+        var standard = TestData.Standard();
+        standard.FindControl("CA-001")!.Dependencies.Add("ID-001");
+        var snapshot = TestData.Snapshot(standard);
+        var row = Assert.Single(Build(standard, snapshot, ids: new[] { "CA-001" }).Rows);
+        Assert.Equal(PlanAction.Create, row.Action);
+        Assert.Contains(row.Warnings, w => w.Contains("Activation prerequisite ID-001", StringComparison.Ordinal));
+        snapshot.Collections["namedLocations"].Items.Clear();
+        snapshot.Collections["namedLocations"].Count = 0;
+        row = Assert.Single(Build(standard, snapshot, ids: new[] { "CA-001" }).Rows);
+        Assert.Equal(PlanAction.Blocked, row.Action);
+        Assert.Contains("Creation prerequisite", row.Reason, StringComparison.Ordinal);
+        Assert.Contains(TestData.Office, row.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Additional_exclusions_are_injected_and_must_resolve_in_the_tenant()
+    {
+        var standard = TestData.Standard();
+        // Even a recipe without a template must preserve the reviewed exclusion accounts.
+        standard.FindControl("CA-003")!.Payload!["conditions"]!["users"]!["excludeUsers"] = new JsonArray();
+        var profile = TestData.Profile();
+        profile.Parameters.AdditionalExclusionAccountIds.Add(TestData.Mam);
+        var snapshot = TestData.Snapshot(standard);
+        Assert.Equal(PlanAction.Blocked, Assert.Single(Build(standard, snapshot, profile, ids: new[] { "CA-003" }).Rows).Action);
+        snapshot.Collections["users"].Items.Add(new JsonObject { ["id"] = TestData.Mam, ["displayName"] = "Chosen exclusion" });
+        snapshot.Collections["users"].Count++;
+        var row = Assert.Single(Build(standard, snapshot, profile, ids: new[] { "CA-003" }).Rows);
+        Assert.Equal(PlanAction.Create, row.Action);
+        Assert.Contains(TestData.Mam, ConditionalAccessSafety.ExcludedUsers(row.Payload!));
+        profile.Parameters.EmergencyAccountIds.Clear();
+        Assert.Equal(PlanAction.Blocked, Assert.Single(Build(standard, snapshot, profile, ids: new[] { "CA-003" }).Rows).Action);
+    }
+
+    [Fact]
+    public void Cached_source_digest_does_not_hide_in_memory_standard_changes()
+    {
+        var standard = TestData.Standard();
+        standard.IntegrityDigest = "unchanged-source-file-digest";
+        var snapshot = TestData.Snapshot(standard);
+        var plan = Build(standard, snapshot);
+        standard.Controls[0].Payload!["description"] = "Changed after review";
+        Assert.Throws<PlanValidationException>(() => DeploymentPlanner.Validate(plan, Context(standard, snapshot)));
+    }
 }
