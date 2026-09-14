@@ -217,7 +217,7 @@ internal static class TestData
         }
         if (withLicence)
         {
-            var sku = ToolkitJson.ParseObject("""{"id":"sku1","skuPartNumber":"SPB","servicePlans":[{"servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"},{"servicePlanName":"INTUNE_A","provisioningStatus":"Success"}]}""");
+            var sku = ToolkitJson.ParseObject("""{"id":"sku1","skuPartNumber":"SPB","capabilityStatus":"Enabled","prepaidUnits":{"enabled":25},"servicePlans":[{"servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"},{"servicePlanName":"INTUNE_A","provisioningStatus":"Success"}]}""");
             snapshot.Collections["licences"].Items.Add(sku);
             snapshot.Collections["licences"].Count = 1;
         }
@@ -266,6 +266,10 @@ internal sealed class FakeGraphClient : IGraphClient
     public SessionMode Mode { get; set; } = SessionMode.Deployment;
     public List<(GraphWriteMethod Method, string Path, JsonObject Payload)> Writes { get; } = new();
     public List<string> Reads { get; } = new();
+    public List<(RecoveryAction Action, string Path, JsonObject? Payload)> RecoveryWrites { get; } = new();
+    public Func<Task>? BeforeRecovery { get; set; }
+    public Exception? RecoveryError { get; set; }
+    public bool IgnoreRecovery { get; set; }
     public Func<string, JsonObject, Task>? BeforeWrite { get; set; }
     public Exception? ThrowOnWrite { get; set; }
     public Func<JsonObject, JsonObject>? MutateReadback { get; set; }
@@ -357,5 +361,17 @@ internal sealed class FakeGraphClient : IGraphClient
         var existing = list.First(i => string.Equals(i["id"]?.GetValue<string>(), id, StringComparison.OrdinalIgnoreCase));
         foreach (var pair in payload) existing[pair.Key] = pair.Value?.DeepClone();
         return new JsonObject();
+    }
+
+    public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)
+    {
+        if (BeforeRecovery is not null) await BeforeRecovery();
+        RecoveryWrites.Add((action, path, payload is null ? null : (JsonObject)payload.DeepClone()));
+        if (RecoveryError is not null) throw RecoveryError;
+        if (IgnoreRecovery) return;
+        var (basePath, id, _) = Resolve(path);
+        var existing = _collections[basePath].Single(i => i["id"]?.GetValue<string>() == id);
+        if (action == RecoveryAction.DeleteCreatedObject) _collections[basePath].Remove(existing);
+        else foreach (var pair in payload!) existing[pair.Key] = pair.Value?.DeepClone();
     }
 }

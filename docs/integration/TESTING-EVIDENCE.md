@@ -1,12 +1,13 @@
 # Testing evidence — 14 September 2026
 
-## Engineer workflow preview 1.1.0-preview.1
+## Engineer workflow preview 1.1.0-preview.2
 
 This section describes PR #2; the 110-test baseline import below is historical evidence.
 
 - Release Windows solution build: zero warnings and zero errors. MSAL token-cache Windows guards remove the original platform warnings.
-- Automated tests: final regression-suite result recorded in the PR checks and local TRX. New cases cover incomplete evidence, stale/tampered plans, licences/references, exclusions, missing versus null, ambiguous-write history, terminal states, forced GET-token renewal, isolated app setup and correlated consent callbacks.
-- Real WPF views constructed offline: all 11 pages at 1480x940 and 1180x760, 22 combinations, no binding errors. Sixteen PNGs captured using synthetic data; primary-button contrast, plan density and clipped control IDs were corrected and re-rendered. The harness throws if asked to contact a tenant. Source is tests/BDIT.TenantToolkit.UiReview and CI uploads the renders.
+- Automated tests: **211 passed, 0 failed, 0 skipped** in the complete local Release suite. New coverage includes recovery deletion/absence, restoration, unexpected CA activation, approval/tenant/drift/assignment gates, shared evidence-store exclusion, licence counts/user search/scope, HTTP 408/5xx ambiguity and earlier preview safety boundaries. TRX retained locally.
+- The immediately preceding full run passed 210/211 and encountered a reset on the valid localhost callback after invalid requests. The unchanged complete rerun passed. This remains evidence of local callback-test intermittency, not proof of production consent acceptance. Earlier GitHub CI exposed IPv6 fallback delays; the test transport now connects to the IPv4 listener explicitly while retaining the validated localhost URI/Host.
+- Real WPF views constructed offline: all 13 pages at 1480x940 and 1180x760, 26 combinations, no binding errors. Twenty-four PNGs captured using synthetic data, including licence and recovery views. The harness also opens and closes an idle window and requires completed shutdown. The harness throws if asked to contact a tenant. Source is tests/BDIT.TenantToolkit.UiReview and CI uploads the renders.
 - Local response-filtering software (AdGuard) altered localhost HTTP test responses. Exact callback response headers, escaping and absence of reflected parameters are therefore checked directly against emitted bytes; socket tests separately enforce correlation, rejection, cancellation and successful valid completion. A rejected request may return HTTP 400 or a TCP reset; it must never complete approval. Security filtering was not disabled.
 - A transient Windows evidence-file replacement lock was reproduced. Only local atomic replacement retries sharing/access errors, for at most 300 ms in total; permanent failure remains explicit. Graph writes are never retried. A reader-lock regression test covers this distinction.
 - Local restore uses the workspace offline feed described below. It does not establish a current package vulnerability audit. GitHub CI performs the normal online restore separately.

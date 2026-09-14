@@ -1,5 +1,7 @@
 # Unresolved tenant writes
 
+Confirmed and owned policy changes can now be reviewed in [Undo and recovery](../RECOVERY.md). This is distinct from uncertain requests: missing IDs or unknown acceptance cannot be converted into ownership by searching for a matching name. Recovery itself also persists intent and blocks affected controls after an uncertain or incompletely verified operation.
+
 Before sending a tenant write, the executor durably records its payload digest and an Unknown write-acceptance outcome. A crash between recording intent and receiving a response therefore cannot present the write as definitely unattempted.
 
 Once a run exists, its plan cannot be replayed. A fresh plan also cannot write a control whose earlier run records Unknown acceptance, or Accepted without a valid object ID. A new capture returning no object does not clear the block: Microsoft Graph can be eventually consistent. Other controls can still be reviewed separately. Malformed or modified prior run evidence blocks deployment until it is reconciled.

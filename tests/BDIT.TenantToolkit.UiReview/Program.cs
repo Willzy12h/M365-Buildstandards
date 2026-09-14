@@ -67,7 +67,7 @@ internal static class Program
             content.DataContext = shell;
             SeedWorkspace(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
-            var focus = new HashSet<string>(new[] { "connect", "setup", "assessment", "plan", "deploy" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy" }, StringComparer.Ordinal);
             foreach (var size in new[] { new Size(1480, 940), new Size(1180, 760) })
             {
                 foreach (var nav in shell.NavItems)
@@ -95,7 +95,7 @@ internal static class Program
                         if (colours.Count < 4) throw new InvalidOperationException("Rendered image appears empty: " + file);
                     }
                     records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
-                    if (nav.Key is "connect" or "setup")
+                    if (nav.Key is "connect" or "setup" or "overview" or "recovery")
                     {
                         var scroller = Descendants(controls[0]).OfType<ScrollViewer>().First();
                         scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
@@ -127,7 +127,7 @@ internal static class Program
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
             File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
-            Console.WriteLine($"Rendered 16 synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
+            Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
         }
         catch (Exception ex)
@@ -150,6 +150,12 @@ internal static class Program
             OperatorObjectId = Operator, OperatorDisplayName = "Synthetic engineer", OperatorUpn = "engineer@example.invalid", OperatorVerified = true,
             Scopes = ApplicationSetupService.RequiredScopes(standard, SessionMode.Deployment), Notices = new() { "OFFLINE SYNTHETIC UI FIXTURE. No live tenant connection or writes." } };
         Set(workspace, nameof(Workspace.Connection), new ConnectedTenant(session, new OfflineGraph(), authenticator: null));
+        Set(workspace, nameof(Workspace.Licences), new LicenceInventory
+        {
+            TenantId = Tenant, CapturedAt = Stamp, SubscriptionsComplete = true, UsersComplete = true,
+            Subscriptions = new() { JsonNode.Parse("""{"skuId":"aaaaaaaa-aaaa-aaaa-aaaa-000000000200","skuPartNumber":"SYNTHETIC_BUSINESS_PREMIUM","capabilityStatus":"Enabled","appliesTo":"User","prepaidUnits":{"enabled":25,"warning":0,"suspended":0},"consumedUnits":18,"servicePlans":[{"servicePlanId":"aaaaaaaa-aaaa-aaaa-aaaa-000000000201","servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"}]}""")!.AsObject() },
+            Users = new() { JsonNode.Parse("""{"id":"22222222-2222-2222-2222-222222222222","displayName":"Synthetic engineer","userPrincipalName":"engineer@example.invalid","accountEnabled":true,"userType":"Member","assignedLicenses":[{"skuId":"aaaaaaaa-aaaa-aaaa-aaaa-000000000200","disabledPlans":[]}],"assignedPlans":[{"servicePlanId":"aaaaaaaa-aaaa-aaaa-aaaa-000000000201","capabilityStatus":"Enabled"}]}""")!.AsObject() }
+        });
         var snapshot = new TenantSnapshot { Id = Id(10), TenantId = Tenant, TenantName = profile.Company, PrimaryDomain = profile.Domain, CapturedAt = Stamp, Complete = true, StandardRelease = standard.Release,
             IdentitySource = "Synthetic fixture — not tenant evidence", CapturedBy = session.Account };
         foreach (var (key, definition) in standard.Collections)
@@ -194,6 +200,21 @@ internal static class Program
     private static void SeedPage(ShellViewModel shell, string key)
     {
         if (key == "connect" && shell.Page<ConnectViewModel>().AccountMatches.Count == 0) SeedConnect(shell.Page<ConnectViewModel>());
+        if (key == "recovery")
+        {
+            var vm = shell.Page<RecoveryViewModel>();
+            vm.Changes.Clear();
+            vm.Changes.Add(new ChangeRegisterRow(Id(300), "CA-001", "Synthetic Require MFA", "conditionalAccess", "Create", Id(301), Stamp, "Accepted", "Unknown", "No recovery attempted"));
+            vm.Selected = vm.Changes[0];
+            typeof(RecoveryViewModel).GetProperty(nameof(RecoveryViewModel.Plan))!.SetValue(vm, new RecoveryPlan
+            {
+                Id = Id(302), TenantId = Tenant, SourceRunId = Id(300), ControlId = "CA-001", Name = "Synthetic Require MFA", Collection = "conditionalAccess", ObjectId = Id(301),
+                CreatedAt = Stamp, Action = RecoveryAction.DisableConditionalAccess, DriftDetected = true,
+                Consequence = "Disable this toolkit-created Conditional Access policy. Its current targeting and exclusions remain stored, but enforcement stops. Other policies can still affect sign-in.",
+                CurrentObject = new JsonObject { ["id"] = Id(301), ["displayName"] = "Synthetic Require MFA", ["state"] = "enabled", ["conditions"] = new JsonObject { ["users"] = new JsonObject { ["includeUsers"] = new JsonArray("All"), ["excludeUsers"] = new JsonArray(Id(5)) } } },
+                Payload = new JsonObject { ["state"] = "disabled" }
+            });
+        }
         if (key == "plan") shell.Page<PlanViewModel>().SelectedRow = shell.Page<PlanViewModel>().Rows.FirstOrDefault();
         if (key == "setup")
         {

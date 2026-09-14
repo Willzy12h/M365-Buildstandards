@@ -223,6 +223,7 @@ public sealed class ConnectViewModel : PageViewModel
         var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
         LoadForm(profile);
         await Workspace.ConnectAsync(profile, SessionMode.Assessment);
+        Shell.Navigate("overview");
     }
 
     private async Task ConnectAsync(SessionMode mode)
@@ -238,6 +239,7 @@ public sealed class ConnectViewModel : PageViewModel
             if (confirm != System.Windows.MessageBoxResult.Yes) return;
         }
         await Workspace.ConnectAsync(profile, mode);
+        Shell.Navigate("overview");
     }
 
     public override void Refresh()

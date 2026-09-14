@@ -9,6 +9,7 @@ using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Planning;
+using BDIT.TenantToolkit.Engine.Recovery;
 
 namespace BDIT.TenantToolkit.Engine.Execution;
 
@@ -78,6 +79,7 @@ public sealed class DeploymentExecutor
 
     private async Task<DeploymentRun> ExecuteAsync(ExecutionRequest request, DeploymentControl control, IProgress<string>? progress)
     {
+        using var lease = _evidence.AcquireTenantWriteLease(request.Session.TenantId);
         request = ValidateAndFreeze(request);
         var plan = request.Plan;
         var profile = request.Profile;
@@ -135,7 +137,9 @@ public sealed class DeploymentExecutor
                     AssertInputsStillCurrent(request);
                     progress?.Report($"Preflight {row.ControlId}");
                     Journal(run, "Info", $"Preflight {row.ControlId}: re-reading live state.", row.ControlId);
-                    await PreflightAsync(graph, def, row, mappings, ct);
+                    result.BeforeObject = await PreflightAsync(graph, def, row, mappings, ct);
+                    result.BeforeMapping = mappings.Find(row.ControlId) is { } beforeMapping ? Copy(beforeMapping) : null;
+                    result.WrittenPayload = (JsonObject)payload.DeepClone();
 
                     WritePayloadGuard.Assert(def, payload);
                     if (control.StopRequested) { stopped = true; break; }
@@ -168,7 +172,6 @@ public sealed class DeploymentExecutor
                     result.WrittenAt = Timestamps.Format(_clock.UtcNow);
                     result.WriteAcceptance = WriteAcceptance.Accepted;
                     result.Status = ResultStatus.Completed;
-                    _evidence.SaveRun(run);
 
                     var objectId = row.Action == PlanAction.Update ? row.ObjectId : response["id"]?.GetValue<string>();
                     if (!ProfileValidator.IsGuid(objectId ?? ""))
@@ -182,6 +185,7 @@ public sealed class DeploymentExecutor
                     }
                     var id = objectId!.ToLowerInvariant();
                     result.ObjectId = id;
+                    _evidence.SaveRun(run); // Persist the returned ID before mapping or readback can fail.
 
                     var existing = mappings.Find(row.ControlId);
                     mappings.ByControl[row.ControlId] = new ManagedObjectMapping
@@ -204,14 +208,10 @@ public sealed class DeploymentExecutor
                     Journal(run, "Info", $"{row.ControlId}: write accepted; object {id} recorded as toolkit-managed.", row.ControlId);
 
                     progress?.Report($"Reading back {row.ControlId}");
-                    var readback = await graph.GetAsync(def.ApiVersion, def.BasePath.TrimEnd('/') + "/" + id, ct);
-                    if (!string.IsNullOrEmpty(def.Relationship))
-                    {
-                        var relationshipName = def.Relationship.Split('?')[0].Trim('/');
-                        readback[relationshipName] = ToArray(await graph.GetAllAsync(def.ApiVersion, def.BasePath.TrimEnd('/') + "/" + id + "/" + def.Relationship, ct));
-                    }
+                    var readback = await RecoveryObjectReader.ReadAsync(graph, def, id, ct);
+                    result.AfterObject = (JsonObject)readback.DeepClone();
                     result.ReadbackDigest = CanonicalJson.Sha256(readback);
-                    var pass = CanonicalJson.IsSubset(readback, payload);
+                    var pass = CanonicalJson.IsSubset(readback, payload) && RecoveryObjectReader.IsInactive(def, readback);
                     result.Configuration = pass ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown;
                     _evidence.SaveRun(run);
                     if (!pass)
@@ -338,7 +338,7 @@ public sealed class DeploymentExecutor
             throw new PlanValidationException("The plan or before-change snapshot expired during execution. Capture and review a fresh plan.");
     }
 
-    private async Task PreflightAsync(IGraphClient graph, CollectionDefinition def, PlanRow row, ManagedObjectMappings mappings, CancellationToken ct)
+    private async Task<JsonObject?> PreflightAsync(IGraphClient graph, CollectionDefinition def, PlanRow row, ManagedObjectMappings mappings, CancellationToken ct)
     {
         var isConditionalAccess = ConditionalAccessSafety.IsConditionalAccess(def);
         if (row.Action == PlanAction.Update)
@@ -347,12 +347,7 @@ public sealed class DeploymentExecutor
             var mapping = mappings.Find(row.ControlId) ?? throw new SafetyViolationException($"{row.ControlId}: no ownership mapping for object {objectId}; refusing to update an object the toolkit does not own.");
             if (!string.Equals(mapping.ObjectId, objectId, StringComparison.OrdinalIgnoreCase))
                 throw new SafetyViolationException($"{row.ControlId}: the plan targets {objectId} but the toolkit owns {mapping.ObjectId}. Rebuild the plan.");
-            var actual = await graph.GetAsync(def.ApiVersion, def.BasePath.TrimEnd('/') + "/" + objectId, ct);
-            if (!string.IsNullOrEmpty(def.Relationship))
-            {
-                var relationshipName = def.Relationship.Split('?')[0].Trim('/');
-                actual[relationshipName] = ToArray(await graph.GetAllAsync(def.ApiVersion, def.BasePath.TrimEnd('/') + "/" + objectId + "/" + def.Relationship, ct));
-            }
+            var actual = await RecoveryObjectReader.ReadAsync(graph, def, objectId, ct);
             if (mapping.LastApplied is not null && !CanonicalJson.IsSubset(actual, mapping.LastApplied))
                 throw new SafetyViolationException($"{row.ControlId}: live drift detected since planning; the object no longer matches what the toolkit last applied.");
             if (isConditionalAccess && !string.Equals(actual["state"]?.GetValue<string>(), ConditionalAccessSafety.SafeState, StringComparison.OrdinalIgnoreCase))
@@ -362,7 +357,7 @@ public sealed class DeploymentExecutor
                 var assignments = await graph.GetAllAsync(def.ApiVersion, def.BasePath.TrimEnd('/') + "/" + objectId + "/assignments", ct);
                 if (assignments.Count > 0) throw new SafetyViolationException($"{row.ControlId}: the object has been assigned since planning; inactive-only updates are supported.");
             }
-            return;
+            return actual;
         }
 
         var current = await graph.GetAllAsync(def.ApiVersion, def.Path, ct);
@@ -377,6 +372,7 @@ public sealed class DeploymentExecutor
             if (overlapping.Count > 0)
                 throw new SafetyViolationException($"{row.ControlId}: an object with matching settings appeared since the snapshot was taken ({string.Join(", ", overlapping.Select(c => c.Name))}). Reconcile before creating.");
         }
+        return null;
     }
 
     private void Journal(DeploymentRun run, string level, string message, string? controlId = null)

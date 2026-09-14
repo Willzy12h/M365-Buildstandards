@@ -22,4 +22,8 @@ public interface IGraphClient
 
     /// <summary>Creates or updates an object. Never retried. Throws <see cref="AmbiguousWriteException"/> when the outcome is unknown.</summary>
     Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct);
+
+    /// <summary>Separate recovery boundary; implementations must restrict supported routes/actions and never retry writes.</summary>
+    Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support recovery writes.");
 }

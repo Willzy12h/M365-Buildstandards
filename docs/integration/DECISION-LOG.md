@@ -13,4 +13,8 @@
 | INT-009 | 2026-09-14 | One-time connection is default; saving a profile is optional, but local audit evidence remains durable | Selective Asta workflow integration | Implemented |
 | INT-010 | 2026-09-14 | Green means verified/pass; amber marks write access or warnings; blue indicates collection/planning; grey means unknown/pending | Current user requested coherent design for engineering decisions | Implemented; see DESIGN-SYSTEM |
 
+## Recovery and licensing decisions — 14 September 2026
+
+- **INT-011:** user-approved selective recovery for recorded policy creations and supported inactive updates, plus state-only CA disablement. Durable ownership and before/after evidence, fresh preview, typed tenant and explicit drift review are mandatory. Unknown outcomes, assigned Intune objects and unsupported cleanup remain blocked or manual. Implemented with synthetic tests; live acceptance pending.
+- **INT-012:** user-approved licence dashboard and on-demand assigned-user search. Direct-user scope checks use captured service-plan assignments; unresolved group/role/guest/device scopes stay unknown. Do not infer entitlement from seat totals or assign licences automatically. Implemented with synthetic tests; tenant-specific acceptance pending.
 No decision in this PR authorises tenant writes, application registration, consent, subscriptions or a release to production. Source snapshots and digests are evidence, not signatures or automatic rollback.

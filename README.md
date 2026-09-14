@@ -4,11 +4,15 @@ A Windows application for Blue Diamond IT to capture tenant configuration, compa
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**1.1.0-preview.1 — engineering review candidate.** The evidence, execution, token-renewal and missing/null defects have focused offline regression coverage. Live tenant sign-in, app setup and policy deployment still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+**1.1.0-preview.2 — engineering review candidate.** Includes selective policy recovery, a licence overview and searchable user assignments. Live tenant sign-in, app setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
 ## Workflow and scope
 
 Connect read-only → capture → inspect/export → compare → select changes → check dependencies → review exact plan → deploy authorised candidates → verify/export.
+
+Start on **Overview and licences**, choose **Connect / change access**, and connect read-only. Subscription counts load after connection. Choose **Load user assignments**, select a subscription and search by name, sign-in address or object ID. Build a plan to view the supported user-scope checks. See [licensing](docs/LICENSING.md) for count definitions and unknown results.
+
+To recover a recorded policy change, use **Undo and recovery → Load change register**, select the original creation or latest update and preview the action. The tool captures fresh evidence, displays current settings and consequences, and requires explicit approval and the tenant ID. Supported actions delete toolkit-created policies, restore recorded inactive updates, or disable unexpectedly active Conditional Access policies. See [recovery](docs/RECOVERY.md) for the supported scope and limitations.
 
 Standard 2026.09.3 contains **45 controls, 12 creation recipes and 13 collection definitions**. The remaining controls have no creation recipe. This is not full automation of the standard.
 

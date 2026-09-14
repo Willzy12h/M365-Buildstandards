@@ -489,13 +489,14 @@ public sealed class LicenceEvaluator
         var evaluator = new LicenceEvaluator { Available = true };
         foreach (var sku in capture.Items)
         {
+            if (sku["capabilityStatus"]?.GetValue<string>() != "Enabled" || sku["prepaidUnits"]?["enabled"] is not JsonValue units || !units.TryGetValue<int>(out var count) || count <= 0) continue;
             if (sku["servicePlans"] is not JsonArray plans) continue;
             foreach (var plan in plans)
             {
                 if (plan is not JsonObject p) continue;
                 var name = p["servicePlanName"]?.GetValue<string>();
                 var status = p["provisioningStatus"]?.GetValue<string>() ?? "";
-                if (!string.IsNullOrEmpty(name) && !string.Equals(status, "Disabled", StringComparison.OrdinalIgnoreCase)) evaluator._plans.Add(name);
+                if (!string.IsNullOrEmpty(name) && string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase)) evaluator._plans.Add(name);
             }
         }
         return evaluator;

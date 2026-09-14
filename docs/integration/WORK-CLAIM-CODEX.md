@@ -4,7 +4,8 @@
 
 - Branch: `astra/engineer-workflow`, based on baseline PR #1 commit `3db6c5a3b3426869ac6803c1472db057563818a9`.
 - PR: https://github.com/Willzy12h/M365-Buildstandards/pull/2, target integration. Baseline dependency is explicit while #1 remains unmerged.
-- Scope: user-authorised executor/evidence/authentication fixes, delegated enterprise-app setup, account/exclusion lookup, one-time connections and WPF design.
+- Scope: user-authorised executor/evidence/authentication fixes, delegated enterprise-app setup, account/exclusion lookup, one-time connections, WPF design, selective policy recovery and licence overview/user-scope checks.
+- Published preview parent: `d5c132dc649159d71c50f67394f8a5a136771f8f`. Further recovery/licensing work stays on this feature branch; no merge or production release is implied.
 - Pre-flight found PR #1 only; source branches and Claude's coordination work remain preserved.
 - No live tenant operations. See TESTING-EVIDENCE.md and HANDOVER.md.
 

@@ -1,0 +1,42 @@
+<UserControl x:Class="BDIT.TenantToolkit.App.Views.RecoveryView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28,24">
+    <TextBlock Text="CONTROLLED RECOVERY" Style="{StaticResource Eyebrow}"/>
+    <TextBlock Text="Undo and recovery" Style="{StaticResource H1}"/>
+    <TextBlock Text="Inspect every recorded policy write. Preview the exact object and consequences before removing a toolkit-created policy, restoring its latest supported update or disabling an unexpectedly active Conditional Access candidate." Style="{StaticResource Lead}"/>
+    <Border Style="{StaticResource Card}"><StackPanel>
+      <DockPanel><Button DockPanel.Dock="Right" Content="Load change register" Command="{Binding LoadRegisterCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="Durable change register" Style="{StaticResource H2}"/></DockPanel>
+      <DataGrid ItemsSource="{Binding Changes}" SelectedItem="{Binding Selected}" Height="230" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
+          <DataGridTextColumn Header="Policy" Binding="{Binding Name}" Width="*"/>
+          <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="75"/>
+          <DataGridTextColumn Header="Write" Binding="{Binding Acceptance}" Width="110"/>
+          <DataGridTextColumn Header="Readback" Binding="{Binding Verification}" Width="100"/>
+          <DataGridTextColumn Header="Object ID" Binding="{Binding ObjectId}" Width="275"/>
+        </DataGrid.Columns>
+      </DataGrid>
+      <TextBlock Text="{Binding Selected.RecoveryStatus}" Style="{StaticResource Muted}" Margin="0,10,0,10"/>
+      <WrapPanel>
+        <Button Content="Preview removal" Command="{Binding PreviewDeleteCommand}" Style="{StaticResource SecondaryButton}"/>
+        <Button Content="Preview restore update" Command="{Binding PreviewRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
+        <Button Content="Preview disable CA" Command="{Binding PreviewDisableCommand}" Style="{StaticResource WarningButton}"/>
+      </WrapPanel>
+    </StackPanel></Border>
+    <Border Style="{StaticResource WarnPanel}"><StackPanel>
+      <TextBlock Text="Review the recovery action" Style="{StaticResource H2}"/>
+      <TextBlock Text="{Binding PreviewText}"/>
+      <TabControl Margin="0,14,0,12" Height="260">
+        <TabItem Header="Current object"><TextBox Text="{Binding CurrentSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
+        <TabItem Header="Restoration / containment settings"><TextBox Text="{Binding RestorationSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
+      </TabControl>
+      <StackPanel IsEnabled="{Binding Workspace.Idle}">
+        <CheckBox Content="I have reviewed the exact object, targeting, exclusions and recovery consequences." IsChecked="{Binding Approved}"/>
+        <CheckBox Content="Where drift is shown, I explicitly approve acting on the displayed current state." IsChecked="{Binding ReviewedDrift}" Margin="0,8,0,12"/>
+        <TextBlock Text="Type the tenant ID to confirm" Style="{StaticResource FieldLabel}"/>
+        <TextBox Text="{Binding TypedTenant, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Recovery tenant confirmation"/>
+        <Button Content="Apply reviewed recovery" Command="{Binding ExecuteCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+      </StackPanel>
+    </StackPanel></Border>
+    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Recovery result" Style="{StaticResource H2}"/><TextBlock Text="{Binding Result}"/><TextBlock Text="A snapshot cannot reverse device settings, sign-in effects or other administrators' changes. Accepted writes and verified outcomes are recorded separately; uncertain writes are never retried automatically." Style="{StaticResource Muted}" Margin="0,12,0,0"/></StackPanel></Border>
+  </StackPanel></ScrollViewer>
+</UserControl>

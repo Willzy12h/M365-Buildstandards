@@ -30,6 +30,10 @@ The executor reloads complete, integrity-checked before evidence plus current ma
 
 ## Graph routing
 
+`Engine/Recovery/RecoveryService` derives single-use recovery plans from intact deployment records and fresh complete evidence. A dedicated Graph recovery method permits bodyless DELETE, guarded restoration PATCH or state-only CA disablement on three supported v1.0 policy routes. Normal writes do not gain general deletion capability. Exact returned IDs are saved before ownership/readback steps. `EvidenceStore` shares a per-tenant process lock between policy deployment and recovery; both retain ambiguous outcomes. See [recovery](RECOVERY.md).
+
+`Engine/Assessment/LicenceInventoryService` performs paginated read-only subscription/user capture and derives counts, searchable assigned users and conservative direct-user scope checks. `OverviewViewModel` exposes these without inferring unsupported group, guest, role or device eligibility. Captures remain tenant-local. See [licensing](LICENSING.md).
+
 - A collection in the standard declares `api` (`v1.0` or `beta`), `path`, `scope`, optional `write`, `assignments`, `children`, `relationship`, `singleton`, `nameProperty`.
 - `GraphRouteAllowList.FromStandard` turns collections into read routes and, where `write` is present, write routes. Six fixed diagnostic routes are added (`/organization`, `/me`, `/roleManagement/directory/roleAssignments`, `/subscribedSkus`, `/users`, `/groups`).
 - `GraphClient` refuses any path that is not on the list, and any write that is not the collection root (POST) or root/`{guid}` (PATCH) of a writable collection.

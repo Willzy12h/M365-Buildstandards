@@ -35,7 +35,7 @@ public static class EvidenceIntegrity
 /// embedded tenant ID, so evidence from one client can never be substituted for another. Writes are atomic
 /// (temp file + rename) and important records carry an integrity digest.
 /// </summary>
-public sealed class EvidenceStore
+public sealed partial class EvidenceStore
 {
     private readonly ToolkitPaths _paths;
     private readonly IToolkitLog _log;
@@ -252,6 +252,7 @@ public sealed class EvidenceStore
 
     public void AssertPlanHasNotRun(DeploymentPlan plan)
     {
+        AssertNoUnresolvedRecovery(plan.TenantId, plan.WriteRows.Select(r => r.ControlId));
         var directory = RunsDirectory(plan.TenantId);
         if (!Directory.Exists(directory)) return;
         var controls = plan.WriteRows.Select(r => r.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);

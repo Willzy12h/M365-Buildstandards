@@ -14,6 +14,7 @@ using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
 using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Recovery;
 using BDIT.TenantToolkit.Engine.Standards;
 using BDIT.TenantToolkit.Graph;
 using BDIT.TenantToolkit.Graph.Setup;
@@ -51,6 +52,8 @@ public sealed class Workspace : ObservableObject
     public DeploymentExecutor Executor { get; }
     public DriftAnalyser Drift { get; }
     public ReportExporter Exporter { get; }
+    public RecoveryService Recovery { get; }
+    public LicenceInventory? Licences { get; private set; }
 
     public ObservableCollection<TenantProfile> Profiles { get; } = new();
     public ObservableCollection<StandardRelease> Releases { get; } = new();
@@ -88,6 +91,7 @@ public sealed class Workspace : ObservableObject
         Logger = logger;
         Diagnostics = diagnostics;
         Evidence = new EvidenceStore(paths, logger);
+        Recovery = new RecoveryService(Evidence, SystemClock.Instance);
         Standards = new StandardsLoader(paths, logger);
         Connections = new TenantConnectionService(settings, paths, _http, logger, ToolkitVersion.Current);
         Collector = new TenantCollector(logger, SystemClock.Instance, ToolkitVersion.Current);
@@ -276,6 +280,7 @@ public sealed class Workspace : ObservableObject
             Evidence.MarkInterruptedRuns(profile.TenantId);
             progress.Report("Checking access (read-only).");
             Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
+            await LoadLicencesCoreAsync(includeUsers: false);
         });
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
@@ -298,6 +303,7 @@ public sealed class Workspace : ObservableObject
     {
         var connection = Connection;
         Connection = null;
+        Licences = null;
         Access = null;
         Snapshot = null;
         SnapshotIsLive = false;
@@ -539,6 +545,43 @@ public sealed class Workspace : ObservableObject
         var before = Evidence.LoadSnapshot(profile.TenantId, beforeId) ?? throw new ToolkitException("Before snapshot not found.");
         var after = Evidence.LoadSnapshot(profile.TenantId, afterId) ?? throw new ToolkitException("After snapshot not found.");
         return Drift.Compare(before, after, RequireStandard(), profile, Evidence.LoadMappings(profile.TenantId), Evidence.LoadDeviations(profile.TenantId));
+    }
+
+    public Task LoadLicencesAsync(bool includeUsers) => RunExclusiveAsync("Reading licences and assignments", _ => LoadLicencesCoreAsync(includeUsers));
+
+    private async Task LoadLicencesCoreAsync(bool includeUsers)
+    {
+        var connection = RequireConnection();
+        Licences = await new LicenceInventoryService(SystemClock.Instance).CaptureAsync(connection.Graph, connection.Session.TenantId, includeUsers, OperationToken);
+        var file = System.IO.Path.Combine(Paths.TenantDirectory(connection.Session.TenantId), "licensing", Guid.NewGuid() + ".json");
+        Evidence.WriteJsonAtomic(file, Licences);
+    }
+
+    public async Task<RecoveryPlan> PreviewRecoveryAsync(string runId, string controlId, RecoveryAction action)
+    {
+        RecoveryPlan? result = null;
+        await RunExclusiveAsync("Capturing evidence and previewing recovery", async progress =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null;
+            var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, RequireStandard(), new Progress<CollectionProgress>(p => progress.Report(p.Message)), OperationToken);
+            Evidence.SaveSnapshot(snapshot);
+            Snapshot = snapshot; SnapshotIsLive = true;
+            result = await Recovery.PreviewAsync(connection.Graph, connection.Session, RequireStandard(), snapshot, runId, controlId, action, OperationToken);
+        });
+        return result!;
+    }
+
+    public async Task<RecoveryRun> ExecuteRecoveryAsync(RecoveryPlan plan, string tenantConfirmation, bool approved, bool reviewedDrift)
+    {
+        RecoveryRun? result = null;
+        await RunExclusiveAsync("Applying reviewed recovery", async _ =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false;
+            result = await Recovery.ExecuteAsync(connection.Graph, connection.Session, RequireStandard(), plan, tenantConfirmation, approved, reviewedDrift, OperationToken);
+        });
+        return result!;
     }
 
     // ---- shutdown ------------------------------------------------------------------------------------------------------

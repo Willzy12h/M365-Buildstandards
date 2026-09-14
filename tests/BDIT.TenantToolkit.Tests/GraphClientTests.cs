@@ -14,6 +14,43 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class GraphClientTests
 {
+    [Fact]
+    public async Task Recovery_DELETE_is_bodyless_single_attempt_and_requires_deployment_object_route()
+    {
+        var (client, handler, _) = Create();
+        var path = "/identity/conditionalAccess/policies/" + TestData.Emergency;
+        handler.Enqueue(HttpStatusCode.NoContent, "");
+        await client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, path, null, CancellationToken.None);
+        Assert.Equal(HttpMethod.Delete, handler.Requests.Single().Method); Assert.Equal("", handler.Bodies.Single());
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, "/identity/conditionalAccess/policies", null, CancellationToken.None));
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, "/users/" + TestData.Operator, null, CancellationToken.None));
+        var (readOnly, readHandler, _) = Create(SessionMode.Assessment);
+        await Assert.ThrowsAsync<WriteDeniedException>(() => readOnly.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, path, null, CancellationToken.None));
+        Assert.Empty(readHandler.Requests);
+    }
+
+    [Theory]
+    [InlineData(408)]
+    [InlineData(500)]
+    [InlineData(503)]
+    public async Task Recovery_failure_is_ambiguous_and_is_never_retried(int status)
+    {
+        var (client, handler, _) = Create(); handler.Enqueue((HttpStatusCode)status);
+        await Assert.ThrowsAsync<AmbiguousWriteException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject,
+            "/deviceManagement/deviceCompliancePolicies/" + TestData.Emergency, null, CancellationToken.None));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Recovery_cannot_enable_or_assign_or_disguise_an_extra_write_as_containment()
+    {
+        var (client, handler, _) = Create(); var path = "/identity/conditionalAccess/policies/" + TestData.Emergency;
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DisableConditionalAccess, path,
+            new JsonObject { ["state"] = "disabled", ["conditions"] = new JsonObject() }, CancellationToken.None));
+        await Assert.ThrowsAsync<SafetyViolationException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.RestoreUpdate, path,
+            new JsonObject { ["state"] = "enabled" }, CancellationToken.None));
+        Assert.Empty(handler.Requests);
+    }
     private sealed class StubTokens : IAccessTokenProvider
     {
         public int Calls;

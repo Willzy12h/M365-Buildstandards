@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0-preview.2 (2026-09-14) — recovery and licence visibility
+
+- Added a durable policy change register, selective deletion of recorded creations, restoration of supported inactive updates and reviewed Conditional Access disablement.
+- Recorded exact returned IDs, write payloads and before/after objects. Recovery previews bind tenant, engineer, application, standard, source run, ownership and fresh evidence; writes are single-use and uncertain outcomes block further writes.
+- Added tenant overview subscription counts, searchable assigned users and conservative licence checks for directly resolved Conditional Access user scopes. Failed or unsupported checks remain unknown.
+- Tightened service-plan checks to active, provisioned subscriptions with enabled capacity. Recovery and deployment share a tenant evidence-store lock.
+- Expanded synthetic safety and WPF coverage. Fixed idle window shutdown and IPv6 fallback delays in localhost callback tests. No live tenant acceptance is claimed.
+
 ## 1.1.0-preview.1 (2026-09-14) — controlled setup and engineer workflow
 
 - Added a separate delegated app-setup wizard: permission preview, two single-tenant registrations and enterprise apps, explicit creation approval, consent links and configuration/grant/engineer-assignment validation.

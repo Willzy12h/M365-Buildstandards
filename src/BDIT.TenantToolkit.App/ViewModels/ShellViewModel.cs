@@ -63,6 +63,7 @@ public sealed class ShellViewModel : ObservableObject
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
+        NavItems.Add(new NavItem { Key = "overview", Step = "", Title = "Overview and licences" });
         NavItems.Add(new NavItem { Key = "connect", Step = "1", Title = "Connect" });
         NavItems.Add(new NavItem { Key = "setup", Step = "+", Title = "Application setup" });
         NavItems.Add(new NavItem { Key = "configuration", Step = "2", Title = "Configuration" });
@@ -70,11 +71,14 @@ public sealed class ShellViewModel : ObservableObject
         NavItems.Add(new NavItem { Key = "deviations", Step = "4", Title = "Deviations" });
         NavItems.Add(new NavItem { Key = "plan", Step = "5", Title = "Plan changes" });
         NavItems.Add(new NavItem { Key = "deploy", Step = "6", Title = "Deploy" });
+        NavItems.Add(new NavItem { Key = "recovery", Step = "", Title = "Undo and recovery" });
         NavItems.Add(new NavItem { Key = "history", Step = "", Title = "Evidence and drift" });
         NavItems.Add(new NavItem { Key = "checks", Step = "", Title = "Manual checks" });
         NavItems.Add(new NavItem { Key = "standard", Step = "", Title = "Build Standard" });
         NavItems.Add(new NavItem { Key = "settings", Step = "", Title = "Settings and diagnostics" });
 
+        _pages["overview"] = new OverviewViewModel(this);
+        _pages["recovery"] = new RecoveryViewModel(this);
         _pages["connect"] = new ConnectViewModel(this);
         _pages["setup"] = new ApplicationSetupViewModel(this);
         _pages["configuration"] = new ConfigurationViewModel(this);
@@ -105,7 +109,7 @@ public sealed class ShellViewModel : ObservableObject
             }
         };
         if (workspace.StandardError is not null) ErrorMessage = workspace.StandardError;
-        Navigate("connect");
+        Navigate("overview");
     }
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }

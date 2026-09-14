@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
 
 namespace BDIT.TenantToolkit.Core.Models;
 
@@ -68,6 +69,14 @@ public sealed class RunResult
     public string? PayloadDigest { get; set; }
     public string? WrittenAt { get; set; }
     public string? ReadbackDigest { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? WrittenPayload { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? BeforeObject { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? AfterObject { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ManagedObjectMapping? BeforeMapping { get; set; }
 }
 
 /// <summary>Durable record of one deployment attempt: what was planned, what happened, and the before/after evidence.</summary>

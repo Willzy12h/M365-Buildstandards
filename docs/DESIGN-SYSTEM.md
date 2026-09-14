@@ -2,7 +2,7 @@
 
 ## Purpose and workflow
 
-A native WPF workspace for deliberate tenant assessment and reviewed deployment. The navy navigation rail follows Connect → Configuration → Assessment → Deviations → Plan → Deploy, with application setup, evidence, manual checks and standards available alongside it. The persistent header identifies the tenant, operator and permission mode. Setup uses its own privileged session and must identify that session explicitly.
+A native WPF workspace for deliberate tenant assessment and reviewed deployment. The default Overview and licences page exposes subscription counts and searchable assignments. Undo and recovery groups the recorded change, current settings, consequence and approval into a separate workflow. The navy navigation rail follows Connect → Configuration → Assessment → Deviations → Plan → Deploy, with application setup, evidence, manual checks and standards available alongside it. The persistent header identifies the tenant, operator and permission mode. Setup uses its own privileged session and must identify that session explicitly.
 
 Each page has one clear title and a short purpose statement. Primary actions use blue; secondary actions use outlined white buttons; incidental copy/open actions use quiet text buttons. Export options are grouped so they do not compete with capture or assessment. Planning separates selecting controls from reviewing the exact payload. Deployment presents readiness, tenant confirmation and verification as separate sections.
 

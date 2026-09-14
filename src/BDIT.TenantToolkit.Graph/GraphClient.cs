@@ -118,9 +118,24 @@ public sealed class GraphClient : IGraphClient
         var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope };
         WritePayloadGuard.Assert(definition, payload);
 
+        return await SendWriteAsync(api, method == GraphWriteMethod.Post ? HttpMethod.Post : HttpMethod.Patch, path, payload, route, ct);
+    }
+
+    public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)
+    {
+        GraphRouteAllowList.ValidatePathSyntax(path);
+        if (Mode != SessionMode.Deployment) throw new WriteDeniedException("Recovery requires deployment access.");
+        var route = _routes.MatchWrite(api, path, out var existing);
+        if (route is null || !existing || api != GraphApi.V1 || !RecoverySafety.Supports(route.BasePath))
+            throw new WriteDeniedException("Recovery is restricted to supported individual toolkit policy objects.");
+        RecoverySafety.AssertPayload(route.BasePath, action, payload);
+        await SendWriteAsync(api, action == RecoveryAction.DeleteCreatedObject ? HttpMethod.Delete : HttpMethod.Patch, path, payload, route, ct);
+    }
+
+    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)
+    {
         var url = Root(api) + path;
-        var body = payload.ToJsonString(ToolkitJson.Compact);
-        var httpMethod = method == GraphWriteMethod.Post ? HttpMethod.Post : HttpMethod.Patch;
+        var body = payload?.ToJsonString(ToolkitJson.Compact);
         var sw = Stopwatch.StartNew();
         HttpResponseMessage response;
         try
@@ -129,7 +144,7 @@ public sealed class GraphClient : IGraphClient
             using var request = new HttpRequestMessage(httpMethod, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, "application/json");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(_options.WriteTimeout);
             response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
@@ -155,7 +170,7 @@ public sealed class GraphClient : IGraphClient
                 if (string.IsNullOrWhiteSpace(text)) return new JsonObject();
                 return ToolkitJson.ParseNode(text) as JsonObject ?? new JsonObject();
             }
-            if (status is 502 or 503 or 504)
+            if (status == 408 || status >= 500)
                 throw new AmbiguousWriteException($"Graph returned HTTP {status} for the write to {GraphRouteAllowList.BasePathOf(path)}. The gateway response does not prove the write was rejected; reconcile before retrying.", null);
             throw BuildError(status, httpMethod.Method, path, text, route);
         }

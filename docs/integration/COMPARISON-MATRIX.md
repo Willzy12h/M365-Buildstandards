@@ -38,4 +38,9 @@ Source evidence uses the pinned revisions in [SOURCE-REPOSITORIES.md](SOURCE-REP
 | Coverage/live validation | 45 controls, 12 recipes; source marks live validation outstanding | Broader app setup/auth workflows exist, but code is not live proof | Stabilise current scope, defer extra workloads | standard 2026.09.3; docs/LIVE-VALIDATION.md; Asta connection/setup paths |
 | Automated verification | Original CI fails; recovered local solution/test evidence recorded separately | Main and latest coordination-branch CI succeeded | Use both as evidence with limits | CI links in testing evidence. Neither proves GUI or live Graph |
 
-Asta features worth considering next: one-time connections, sign-in cancellation, log filtering/follow controls and grouped configuration navigation. App provisioning and app-only are deferred capabilities, not automatic port commitments.
+The matrix above records source-baseline behaviour. The integrated preview now adds one-time connections, cancellation, isolated delegated app provisioning, explicit exclusions and the redesigned WPF workflow. App-only remains deferred. Recovery and licensing additions are new integrated work, rather than evidence that either source previously implemented them.
+
+| Integrated area | Recommended state implemented | Evidence / remaining checks |
+|---|---|---|
+| Policy recovery | Exact-ID register; selective deletion, inactive-update restoration and reviewed CA disablement | RecoveryService, RecoveryTests; live acceptance and uncertain-write reconciliation remain outstanding |
+| Licence overview | Subscription counts, assigned-user search, direct-user scope results | LicenceInventoryService, LicensingTests; unsupported scope remains unknown |

@@ -179,7 +179,18 @@ public sealed class AdminConsentCallbackTests
     {
         // Honour Content-Length/chunked completion instead of requiring TCP EOF after a complete response.
         // Local filtering software can rewrite framing; incomplete valid responses must still throw.
-        using var handler = new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false };
+        using var handler = new SocketsHttpHandler
+        {
+            UseProxy = false, AllowAutoRedirect = false,
+            ConnectCallback = async (_, token) =>
+            {
+                // The listener binds IPv4 loopback. Avoid repeated IPv6 fallback delays in this bounded test.
+                // The request URI and Host header remain localhost and are still validated by production code.
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                try { await socket.ConnectAsync(IPAddress.Loopback, callback.RedirectUri.Port, token); return new NetworkStream(socket, ownsSocket: true); }
+                catch { socket.Dispose(); throw; }
+            }
+        };
         using var client = new HttpClient(handler);
         using var request = new HttpRequestMessage(new HttpMethod(method), new Uri(callback.RedirectUri, "?" + query))
         { Version = HttpVersion.Version11, VersionPolicy = HttpVersionPolicy.RequestVersionExact };
