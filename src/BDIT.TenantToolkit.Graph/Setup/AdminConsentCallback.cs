@@ -75,7 +75,18 @@ public sealed class AdminConsentCallback : IDisposable
                     using var stream = client.GetStream();
                     var header = await ReadHeadersAsync(stream, request.Token).ConfigureAwait(false);
                     var result = ParseCallback(header);
-                    try { await RespondAsync(stream, result, request.Token).ConfigureAwait(false); }
+                    try
+                    {
+                        await RespondAsync(stream, result, request.Token).ConfigureAwait(false);
+                        // Deliver a FIN after the complete response before disposing the socket.
+                        // Immediate close with unread peer bytes can reset an otherwise valid callback.
+                        client.Client.Shutdown(SocketShutdown.Send);
+                        using var drain = CancellationTokenSource.CreateLinkedTokenSource(request.Token);
+                        drain.CancelAfter(TimeSpan.FromMilliseconds(250));
+                        var remaining = new byte[1024];
+                        try { await stream.ReadAsync(remaining, drain.Token).ConfigureAwait(false); }
+                        catch (OperationCanceledException) when (!request.IsCancellationRequested) { }
+                    }
                     catch (Exception ex) when (result is not null && !wait.IsCancellationRequested && (ex is IOException or SocketException or OperationCanceledException))
                     {
                         // Correlation is already complete. Closing the browser must not discard its response.

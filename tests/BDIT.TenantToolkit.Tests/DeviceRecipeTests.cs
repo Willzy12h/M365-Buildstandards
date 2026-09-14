@@ -82,7 +82,7 @@ public sealed class DeviceRecipeTests
     }
 
     [Fact]
-    public async Task Beta_recovery_is_restricted_to_device_configuration_and_never_replayed()
+    public async Task Beta_recovery_refuses_Conditional_Access_and_never_replays_device_deletion()
     {
         var handler = new Handler();
         var routes = GraphRouteAllowList.Only(new[] {
@@ -97,7 +97,25 @@ public sealed class DeviceRecipeTests
         await Assert.ThrowsAsync<AmbiguousWriteException>(() => graph.RecoverAsync(GraphApi.Beta, RecoveryAction.DeleteCreatedObject,
             "/deviceManagement/deviceConfigurations/" + TestData.Operator, null, default));
         Assert.Equal(1, handler.Requests);
-        Assert.False(RecoverySafety.Supports(GraphApi.Beta, "/deviceManagement/deviceCompliancePolicies"));
+    }
+
+    [Theory]
+    [InlineData("/deviceManagement/deviceConfigurations", true)]
+    [InlineData("/deviceManagement/deviceCompliancePolicies", true)]
+    [InlineData("/deviceManagement/configurationPolicies", true)]
+    [InlineData("/deviceManagement/deviceEnrollmentConfigurations", true)]
+    [InlineData("/deviceManagement/windowsAutopilotDeploymentProfiles", true)]
+    [InlineData("/deviceAppManagement/mobileApps", true)]
+    [InlineData("/deviceAppManagement/iosManagedAppProtections", true)]
+    [InlineData("/deviceAppManagement/androidManagedAppProtections", true)]
+    [InlineData("/identity/conditionalAccess/policies", false)]
+    [InlineData("/users", false)]
+    [InlineData("/groups", false)]
+    [InlineData("/deviceManagement", false)]
+    [InlineData("/deviceManagement/deviceCompliancePolicies/arbitrary", false)]
+    public void Beta_recovery_supports_only_the_explicit_candidate_collection_allow_list(string path, bool permitted)
+    {
+        Assert.Equal(permitted, RecoverySafety.Supports(GraphApi.Beta, path));
     }
     private sealed class Tokens : IAccessTokenProvider
     {
