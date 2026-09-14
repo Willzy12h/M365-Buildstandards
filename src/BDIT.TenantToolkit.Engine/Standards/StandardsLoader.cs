@@ -98,7 +98,8 @@ public sealed partial class StandardsLoader
         foreach (var p in c.Parameters)
         {
             if (!ParameterKeyPattern().IsMatch(p.Key)) throw new ConfigurationException($"Parameter key '{p.Key}' is invalid.");
-            if (p.Type is not ("guid" or "guidList")) throw new ConfigurationException($"Parameter '{p.Key}' type must be guid or guidList.");
+            if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray"))
+                throw new ConfigurationException($"Parameter '{p.Key}' has an unsupported type.");
         }
         if (c.Controls.Count == 0) throw new ConfigurationException("Standard defines no controls.");
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

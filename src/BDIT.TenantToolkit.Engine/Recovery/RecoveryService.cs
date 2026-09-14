@@ -41,6 +41,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         AssertFresh(captured.CapturedAt, TimeSpan.FromMinutes(20));
         var (source, item, definition, mappings) = RequireSource(session.TenantId, standard, runId, controlId, action);
         evidence.AssertNoUnresolvedRecovery(session.TenantId, new[] { controlId });
+        evidence.AssertNoUnresolvedReviewedChanges(session.TenantId, new[] { controlId });
         var current = await RecoveryObjectReader.ReadAsync(graph, definition, item.ObjectId!, ct);
         JsonObject? payload = null;
         var drift = item.AfterObject is null || CanonicalJson.Sha256(item.AfterObject) != CanonicalJson.Sha256(current);
@@ -58,7 +59,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         // Assignment removal is a different operation, with different consequences and dependencies.
         if (definition.Assignments && current[RecoveryObjectReader.AssignmentsKey] is not JsonArray { Count: 0 })
             throw new SafetyViolationException("This object is assigned. Review and remove its assignments separately before recovery; this tool will not silently remove targeting.");
-        RecoverySafety.AssertPayload(definition.BasePath, action, payload);
+        RecoverySafety.AssertPayload(definition.BasePath, action, payload, definition.ApiVersion);
         var plan = new RecoveryPlan
         {
             Id = Guid.NewGuid().ToString(), TenantId = session.TenantId, OperatorId = session.OperatorObjectId!, ClientId = session.ClientId,
@@ -106,13 +107,14 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         if (source.IntegrityDigest != plan.SourceRunDigest || CanonicalJson.Sha256Value(mappings) != plan.MappingsDigest)
             throw new SafetyViolationException("Recorded writes or ownership changed; preview recovery again.");
         evidence.AssertNoUnresolvedRecovery(plan.TenantId, new[] { plan.ControlId });
+        evidence.AssertNoUnresolvedReviewedChanges(plan.TenantId, new[] { plan.ControlId });
         var current = await RecoveryObjectReader.ReadAsync(graph, definition, plan.ObjectId, ct);
         if (CanonicalJson.Sha256(current) != CanonicalJson.Sha256(plan.CurrentObject))
             throw new SafetyViolationException("The object changed after recovery review. No write was made; preview its current state again.");
         var expectedPayload = plan.Action == RecoveryAction.RestoreUpdate ? RestorePayload(item, definition)
             : plan.Action == RecoveryAction.DisableConditionalAccess ? new JsonObject { ["state"] = "disabled" } : null;
         if (CanonicalJson.Sha256(expectedPayload) != CanonicalJson.Sha256(plan.Payload)) throw new SafetyViolationException("Recovery payload differs from recorded evidence.");
-        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload);
+        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload, definition.ApiVersion);
         ct.ThrowIfCancellationRequested();
         var run = new RecoveryRun
         {
@@ -227,7 +229,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
             payload[key] = item.BeforeObject[key]?.DeepClone();
         }
         if (!RecoveryObjectReader.IsInactive(definition, item.BeforeObject)) throw new SafetyViolationException("Restoration cannot reactivate or reassign a policy.");
-        RecoverySafety.AssertPayload(definition.BasePath, RecoveryAction.RestoreUpdate, payload);
+        RecoverySafety.AssertPayload(definition.BasePath, RecoveryAction.RestoreUpdate, payload, definition.ApiVersion);
         return payload;
     }
 

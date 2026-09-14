@@ -1,5 +1,14 @@
 # Testing evidence — 14 September 2026
 
+## Expanded automation and follow-up review — preview.6
+
+- Final Windows Release solution compilation with SDK 8.0.425 and existing packages: **0 warnings, 0 errors**. The local standards integrity manifest was regenerated. No new package restore or vulnerability audit is claimed.
+- No test suite, new tests, GUI rendering, portable install, live sign-in, Graph writes, device assignment or package deployment was run for this increment. The user explicitly requested implementation without further testing. Existing CI was not disabled.
+- Source checks confirmed existing Graph page/loop caps, generic route signatures, ProfileValidator namespace and implicit LINQ imports. Added per-item pagination checks, shutdown diagnostics/exception containment and null guards.
+- New standard JSON was generated from unchanged 2026.09.5: 45 controls, 37 recipes. This inventory is not runtime or live payload verification.
+- Prior preview.5 test/build results below are historical and do not validate these changes.
+
+
 ## Policy automation code — preview.5
 
 - Full Windows Release solution build: **0 warnings, 0 errors**.

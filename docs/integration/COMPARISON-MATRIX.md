@@ -1,5 +1,9 @@
 # Behavioural comparison
 
+## Preview.6 extension
+
+The source comparisons below remain historical. The integrated code now provides 37 candidate recipes, explicit tenant-setting/activation/assignment actions, supplied-package publication and external-service readiness checks. See [coverage by control](../AUTOMATION-COVERAGE.md) for client inputs, recovery limits and the four remaining human workflows. Release compilation is confirmed; these added behaviours have not been tested against Graph or through the GUI.
+
 ## Integrated workflow update — 14 September 2026
 
 This update supersedes the baseline gaps below where named implementation and checks now exist. Source comparisons remain historical evidence.

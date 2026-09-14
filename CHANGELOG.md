@@ -1,3 +1,12 @@
+# 1.1.0-preview.6
+
+- Expand to 37 candidate recipes, with typed tenant inputs, broader Graph JSON imports and saved local standards.
+- Add reviewed tenant compliance/authentication/MDM changes, CA activation/report-only, group assignment/removal and Autopatch device enrolment/removal, with before-evidence and read-only re-verification.
+- Add encrypted Win32 package publishing for client-supplied RMM/endpoint installers; retain app/version/file IDs and forbid automatic write replay.
+- Integrate policy/import/LAPS/package/readiness workflows into WPF. Four identity/service controls retain explicit external/engineer steps.
+- Log unexpected deployment completion errors, show a shutdown summary, contain close-handler exceptions, tighten paging item validation and add null guards.
+- Compilation only for this increment. Tests and live/GUI acceptance were not performed at the user's request.
+
 # 1.1.0-preview.5
 
 - Add Windows LAPS, Defender Antivirus, firewall and target-tenant Defender EDR candidates in standard 2026.09.5 (18 recipes; 27 manual controls).

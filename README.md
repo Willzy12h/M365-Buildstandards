@@ -4,7 +4,7 @@ A Windows application for engineers to capture tenant configuration, compare it 
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**1.1.0-preview.5 — engineering review candidate.** Includes selective policy recovery, read-only re-verification, licensing, device-policy imports and an Entra LAPS prerequisite API. Import/prerequisite UI integration is pending. Live tenant sign-in, setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+**1.1.0-preview.6 — implementation preview, not tenant-accepted.** Standard 2026.09.6 has 45 controls and 37 candidate recipes. Policy automation now includes input/import UI, saved tenant-local candidate standards, Entra LAPS, reviewed tenant settings and activation/assignment, Autopatch device enrolment, Win32 package publishing and readiness checks. Tests were not run for this increment at the user's request. See [automation coverage](docs/AUTOMATION-COVERAGE.md), [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
 To repair an existing preview installation, enter its exact assessment/deployment client IDs in **Application setup**, preview and approve the displayed changes, approve each app's permission list, then validate and continue. This updates registration redirects and branding through the reviewed workflow.
 
@@ -24,7 +24,7 @@ Authentication is delegated, with separate assessment/deployment registrations. 
 
 Resolve exclusion accounts by sign-in address, object ID or display name. Select the exact result, purpose and reason, then apply it to the tenant's plan inputs. The planner shows names and IDs, retains dedicated emergency-access and delegated-creator safeguards, and invalidates prior plans after changes. An admin-style name never automatically grants an exclusion. One-time connections still retain local audit evidence.
 
-Conditional Access candidates are disabled with stored targeting and exclusions. Intune candidates are unassigned. The historical CA wording "disabled and unassigned" remains unresolved; this import does not change targeting. Creator exclusions persist until deliberately reviewed.
+Conditional Access candidates are disabled with stored targeting and exclusions. Intune candidates are unassigned. Use **Policy automation** for separately approved activation/targeting and removal of assignments; creation itself never assigns. The historical CA wording "disabled and unassigned" remains unresolved; this import does not change targeting. Creator exclusions persist until deliberately reviewed.
 
 The Graph client blocks assessment writes. The executor independently validates durable complete snapshots, plan/input integrity, licensing, creation references, ownership and drift. Plans are single-use after a run begins. Guarded PATCH updates are limited to owned inactive objects. Ambiguous writes need manual reconciliation. Snapshots are evidence, not automatic rollback.
 

@@ -57,6 +57,7 @@ public sealed class TenantConnectionService
 
     public IReadOnlyList<string> ScopesFor(SessionMode mode, StandardCatalogue standard)
     {
+        ArgumentNullException.ThrowIfNull(standard);
         var scopes = new List<string>(DiagnosticScopes);
         scopes.AddRange(standard.ReadScopes());
         if (mode == SessionMode.Deployment) scopes.AddRange(standard.WriteScopes());

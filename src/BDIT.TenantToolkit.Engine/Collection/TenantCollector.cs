@@ -86,7 +86,11 @@ public sealed class TenantCollector
                     }
                     if (!string.IsNullOrEmpty(def.Children))
                     {
-                        try { item[SettingsKey] = ToArray(await graph.GetAllAsync(def.ApiVersion, objectPath + "/" + def.Children.Trim('/'), ct)); }
+                        try
+                        {
+                            item[SettingsKey] = ToArray(await graph.GetAllAsync(def.ApiVersion, objectPath + "/" + def.Children.Trim('/'), ct));
+                            item[def.Children.Split('?')[0].Trim('/')] = item[SettingsKey]!.DeepClone();
+                        }
                         catch (ToolkitException ex) { item[SettingsUnknownKey] = true; _log.Warn("Collect", $"{def.Label}: child settings unavailable for {id}: {ex.Message}", profile.TenantId); }
                     }
                 }

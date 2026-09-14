@@ -19,6 +19,7 @@ public sealed class StandardCatalogue
     public Dictionary<string, CollectionDefinition> Collections { get; set; } = new(StringComparer.Ordinal);
     public List<ParameterDefinition> Parameters { get; set; } = new();
     public List<ControlDefinition> Controls { get; set; } = new();
+    public List<string>? AdditionalWriteScopes { get; set; }
 
     /// <summary>SHA-256 of the file bytes as verified against standards/manifest.json. Set by the loader, not part of the file.</summary>
     [JsonIgnore] public string IntegrityDigest { get; set; } = "";
@@ -34,7 +35,8 @@ public sealed class StandardCatalogue
         Collections.Values.Select(c => c.Scope).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase);
 
     public IEnumerable<string> WriteScopes() =>
-        Collections.Values.Select(c => c.Write).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).Distinct(StringComparer.OrdinalIgnoreCase);
+        Collections.Values.Select(c => c.Write).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!)
+            .Concat(AdditionalWriteScopes ?? Enumerable.Empty<string>()).Distinct(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>Describes one Microsoft Graph collection that the assessment reads.</summary>
@@ -67,7 +69,7 @@ public sealed class ParameterDefinition
 {
     public string Key { get; set; } = "";
     public string Label { get; set; } = "";
-    /// <summary>"guid" or "guidList".</summary>
+    /// <summary>guid, guidList, string, integer, boolean or jsonArray; validated before resolving a recipe.</summary>
     public string Type { get; set; } = "guid";
     public bool Required { get; set; }
     public string Description { get; set; } = "";

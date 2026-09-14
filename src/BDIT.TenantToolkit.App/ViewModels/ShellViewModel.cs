@@ -81,6 +81,8 @@ public sealed class ShellViewModel : ObservableObject
         _pages["recovery"] = new RecoveryViewModel(this);
         _pages["connect"] = new ConnectViewModel(this);
         _pages["setup"] = new ApplicationSetupViewModel(this);
+        NavItems.Add(new NavItem { Key = "automation", Step = "+", Title = "Policy automation" });
+        _pages["automation"] = new AutomationViewModel(this);
         _pages["configuration"] = new ConfigurationViewModel(this);
         _pages["assessment"] = new AssessmentViewModel(this);
         _pages["deviations"] = new DeviationsViewModel(this);

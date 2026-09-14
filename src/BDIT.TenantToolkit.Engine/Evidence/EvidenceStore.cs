@@ -253,6 +253,7 @@ public sealed partial class EvidenceStore
     public void AssertPlanHasNotRun(DeploymentPlan plan)
     {
         AssertNoUnresolvedRecovery(plan.TenantId, plan.WriteRows.Select(r => r.ControlId));
+        AssertNoUnresolvedReviewedChanges(plan.TenantId);
         var directory = RunsDirectory(plan.TenantId);
         if (!Directory.Exists(directory)) return;
         var controls = plan.WriteRows.Select(r => r.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);

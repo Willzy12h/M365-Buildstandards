@@ -92,7 +92,11 @@ public sealed class GraphClient : IGraphClient
                 throw new GraphRequestException(200, "GET", path, null, "Expected a Graph collection ('value' array) but none was returned.");
             foreach (var item in value)
             {
-                if (item is JsonObject obj) items.Add((JsonObject)obj.DeepClone());
+                if (items.Count >= _options.MaxItems)
+                    throw new GraphRequestException(0, "GET", path, "limit", "Collection item limit exceeded; collection is incomplete.");
+                if (item is not JsonObject obj)
+                    throw new GraphRequestException(200, "GET", path, "shape", "Collection contains a non-object item; collection is incomplete.");
+                items.Add((JsonObject)obj.DeepClone());
             }
             if (items.Count > _options.MaxItems)
                 throw new GraphRequestException(0, "GET", path, "limit", "Collection safety limit exceeded; refusing to continue.");
@@ -106,6 +110,9 @@ public sealed class GraphClient : IGraphClient
     public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
     {
         ValidateWritePath(path);
+        if (path.Equals("/deviceManagement", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/policies/authenticationMethodsPolicy", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/policies/mobileDeviceManagementPolicies", StringComparison.OrdinalIgnoreCase) || path.StartsWith(ReviewedChangeSafety.UpdatesPath, StringComparison.OrdinalIgnoreCase))
+            throw new WriteDeniedException("Tenant settings require a separate reviewed change.");
         if (GraphRouteAllowList.BasePathOf(path).StartsWith(EntraLapsSafety.Path, StringComparison.OrdinalIgnoreCase))
             throw new WriteDeniedException("Entra LAPS requires the dedicated reviewed prerequisite operation; generic policy writes are denied.");
         if (Mode != SessionMode.Deployment)
@@ -131,7 +138,7 @@ public sealed class GraphClient : IGraphClient
         var route = _routes.MatchWrite(api, path, out var existing);
         if (route is null || !existing || !RecoverySafety.Supports(api, route.BasePath))
             throw new WriteDeniedException("Recovery is restricted to supported individual toolkit policy objects.");
-        try { RecoverySafety.AssertPayload(route.BasePath, action, payload); }
+        try { RecoverySafety.AssertPayload(route.BasePath, action, payload, api); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
         await SendWriteAsync(api, action == RecoveryAction.DeleteCreatedObject ? HttpMethod.Delete : HttpMethod.Patch, path, payload, route, ct);
     }
@@ -162,6 +169,75 @@ public sealed class GraphClient : IGraphClient
     {
         try { GraphRouteAllowList.ValidatePathSyntax(path); }
         catch (ConfigurationException ex) { throw new WriteNotSentException(ex.Message, ex); }
+    }
+
+    public async Task<JsonObject> WriteWin32ContentAsync(string appId, string? versionId, string? fileId, Win32ContentAction action, JsonObject payload, CancellationToken ct)
+    {
+        GraphRoute route; string path;
+        try
+        {
+            if (Mode != SessionMode.Deployment) throw new WriteDeniedException("Application publishing requires deployment access.");
+            path = Win32ContentSafety.Path(appId, versionId, fileId, action, payload);
+            route = _routes.MatchRead(GraphApi.Beta, path) ?? throw new WriteDeniedException("Application publishing is not declared in this standard.");
+            if (route.BasePath != Win32ContentSafety.Root || route.WriteScope != "DeviceManagementApps.ReadWrite.All") throw new WriteDeniedException("Application publishing scope is missing.");
+            ct.ThrowIfCancellationRequested();
+        }
+        catch (Exception ex) { throw new WriteNotSentException(SensitiveDataScrubber.Scrub(ex.Message), ex); }
+        return await SendWriteAsync(GraphApi.Beta, action == Win32ContentAction.PublishVersion ? HttpMethod.Patch : HttpMethod.Post, path, payload, route, CancellationToken.None);
+    }
+
+    public async Task UploadEncryptedPackageAsync(Uri storageUri, Stream content, long length, CancellationToken ct)
+    {
+        if (Mode != SessionMode.Deployment || storageUri.Scheme != "https" || storageUri.Port != 443 || storageUri.UserInfo.Length != 0
+            || !storageUri.Host.EndsWith(".blob.core.windows.net", StringComparison.OrdinalIgnoreCase) || storageUri.Fragment.Length != 0 || length <= 0)
+            throw new WriteNotSentException("Only the Graph-returned Azure public-cloud package storage endpoint is supported.");
+        // Never put Graph authorisation headers on blob requests, follow redirects, or log the signed URI.
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromMinutes(2) };
+        var blocks = new List<string>(); var buffer = new byte[4 * 1024 * 1024]; long sent = 0;
+        while (sent < length)
+        {
+            ct.ThrowIfCancellationRequested(); var count = 0; var expected = (int)Math.Min(buffer.Length, length - sent);
+            while (count < expected)
+            {
+                var n = await content.ReadAsync(buffer.AsMemory(count, expected - count), ct);
+                if (n == 0) throw new ToolkitException("Encrypted package ended early.");
+                count += n;
+            }
+            var id = Convert.ToBase64String(Encoding.ASCII.GetBytes(blocks.Count.ToString("D8", CultureInfo.InvariantCulture)));
+            using var body = new ByteArrayContent(buffer, 0, count);
+            await Put("?comp=block&blockid=" + Uri.EscapeDataString(id), body);
+            blocks.Add(id); sent += count;
+        }
+        using var list = new StringContent("<BlockList>" + string.Concat(blocks.Select(b => "<Latest>" + b + "</Latest>")) + "</BlockList>", Encoding.UTF8, "application/xml");
+        await Put("?comp=blocklist", list);
+        async Task Put(string query, HttpContent body)
+        {
+            var url = storageUri.AbsoluteUri + (storageUri.Query.Length == 0 ? query : "&" + query[1..]);
+            using var req = new HttpRequestMessage(HttpMethod.Put, url) { Content = body };
+            req.Headers.TryAddWithoutValidation("x-ms-version", "2021-12-02");
+            try
+            {
+                using var response = await http.SendAsync(req, ct);
+                if (!response.IsSuccessStatusCode) throw new ToolkitException("Encrypted package upload returned HTTP " + (int)response.StatusCode + ". No request is retried.");
+            }
+            catch (HttpRequestException) { throw new ToolkitException("Encrypted package upload failed at transport. The signed storage URL is not logged."); }
+        }
+    }
+
+    public async Task ApplyReviewedChangeAsync(ReviewedChangePlan plan, CancellationToken ct)
+    {
+        GraphRoute route;
+        try
+        {
+            if (Mode != SessionMode.Deployment || plan.TenantId != TenantId) throw new WriteDeniedException("Reviewed changes require deployment access in the bound tenant.");
+            ValidateWritePath(plan.Path);
+            ReviewedChangeSafety.Assert(plan);
+            route = _routes.MatchRead(plan.Api, plan.Path) ?? throw new WriteDeniedException("Reviewed route is outside the loaded standard.");
+            if (route.WriteScope != plan.RequiredScope) throw new WriteDeniedException("The standard has not declared the required write permission.");
+            ct.ThrowIfCancellationRequested();
+        }
+        catch (Exception ex) { throw new WriteNotSentException(SensitiveDataScrubber.Scrub(ex.Message), ex); }
+        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
     private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)

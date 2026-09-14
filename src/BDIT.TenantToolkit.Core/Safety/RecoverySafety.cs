@@ -5,13 +5,16 @@ namespace BDIT.TenantToolkit.Core.Safety;
 
 public static class RecoverySafety
 {
-    // Beta is limited to the device-configuration resource used by the reviewed BitLocker recipe.
+    // Conditional Access recovery remains v1.0; each Intune collection declares its own API version.
     public static bool Supports(GraphApi api, string path) => Supports(path)
-        && (api == GraphApi.V1 || api == GraphApi.Beta && path == "/deviceManagement/deviceConfigurations");
+        && (api == GraphApi.V1 || api == GraphApi.Beta && path != ConditionalAccessSafety.ConditionalAccessPolicyPath);
     public static bool Supports(string path) => path is ConditionalAccessSafety.ConditionalAccessPolicyPath
-        or "/deviceManagement/deviceConfigurations" or "/deviceManagement/deviceCompliancePolicies";
+        or "/deviceManagement/deviceConfigurations" or "/deviceManagement/deviceCompliancePolicies"
+        or "/deviceManagement/configurationPolicies" or "/deviceManagement/deviceEnrollmentConfigurations"
+        or "/deviceManagement/windowsAutopilotDeploymentProfiles" or "/deviceAppManagement/mobileApps"
+        or "/deviceAppManagement/iosManagedAppProtections" or "/deviceAppManagement/androidManagedAppProtections";
 
-    public static void AssertPayload(string path, RecoveryAction action, JsonObject? payload)
+    public static void AssertPayload(string path, RecoveryAction action, JsonObject? payload, GraphApi api = GraphApi.V1)
     {
         if (!Supports(path) || !Enum.IsDefined(action)) throw new WriteDeniedException("Unsupported recovery route or action.");
         if (action == RecoveryAction.DeleteCreatedObject)
@@ -23,6 +26,6 @@ public static class RecoverySafety
         if (action == RecoveryAction.DisableConditionalAccess
             && (path != ConditionalAccessSafety.ConditionalAccessPolicyPath || payload.Count != 1 || ConditionalAccessSafety.State(payload) != "disabled"))
             throw new WriteDeniedException("Containment may only set a Conditional Access policy to disabled.");
-        WritePayloadGuard.Assert(new CollectionDefinition { Path = path }, payload);
+        WritePayloadGuard.Assert(new CollectionDefinition { Path = path, Api = api == GraphApi.Beta ? "beta" : "v1.0" }, payload);
     }
 }

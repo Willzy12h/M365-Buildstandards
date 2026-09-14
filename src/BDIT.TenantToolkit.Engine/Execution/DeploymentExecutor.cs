@@ -46,6 +46,7 @@ public sealed class DeploymentExecutor
     public DeploymentRun? CurrentRun { get; private set; }
     public Task? CurrentTask { get; private set; }
     public bool IsRunning => CurrentTask is { IsCompleted: false };
+    public string CompletionError { get; private set; } = "";
 
     public DeploymentExecutor(EvidenceStore evidence, TenantCollector collector, IToolkitLog log, IClock clock, string toolkitVersion)
     {
@@ -61,6 +62,7 @@ public sealed class DeploymentExecutor
         lock (_gate)
         {
             if (IsRunning) throw new ToolkitException("A deployment is already running.");
+            CompletionError = "";
             var task = ExecuteAsync(request, control, progress);
             CurrentTask = task;
             return task;
@@ -74,7 +76,13 @@ public sealed class DeploymentExecutor
         var task = CurrentTask;
         if (task is not null)
         {
-            try { await task; } catch (Exception) { }
+            try { await task; }
+            catch (Exception ex)
+            {
+                CompletionError = "Deployment ended with an unexpected error while closing. Evidence may be incomplete. Review the run and diagnostic log before any further change. "
+                    + SensitiveDataScrubber.Scrub(ex.Message);
+                _log.Error("Deploy", CompletionError, ex, CurrentRun?.TenantId);
+            }
         }
     }
 
@@ -352,6 +360,7 @@ public sealed class DeploymentExecutor
 
     private async Task<JsonObject?> PreflightAsync(IGraphClient graph, CollectionDefinition def, PlanRow row, ManagedObjectMappings mappings, CancellationToken ct)
     {
+        if (row.Payload is not null) await CandidateReferenceValidator.ValidateAsync(graph, row.Payload, ct);
         var isConditionalAccess = ConditionalAccessSafety.IsConditionalAccess(def);
         if (row.Action == PlanAction.Update)
         {

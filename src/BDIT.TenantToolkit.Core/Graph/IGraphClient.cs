@@ -27,6 +27,14 @@ public interface IGraphClient
     Task EnableEntraLapsAsync(JsonObject reviewedBefore, CancellationToken ct) =>
         throw new WriteDeniedException("This Graph implementation does not support Entra LAPS enablement.");
 
+    Task ApplyReviewedChangeAsync(ReviewedChangePlan plan, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support reviewed tenant changes.");
+
+    Task<JsonObject> WriteWin32ContentAsync(string appId, string? versionId, string? fileId, Win32ContentAction action, JsonObject payload, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support Win32 package publishing.");
+    Task UploadEncryptedPackageAsync(Uri storageUri, Stream content, long length, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support encrypted package upload.");
+
     /// <summary>Separate recovery boundary; implementations must restrict supported routes/actions and never retry writes.</summary>
     Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct) =>
         throw new WriteDeniedException("This Graph implementation does not support recovery writes.");

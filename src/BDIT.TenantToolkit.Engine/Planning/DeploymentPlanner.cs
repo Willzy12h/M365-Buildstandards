@@ -159,6 +159,7 @@ public sealed class DeploymentPlanner
         JsonObject payload;
         try
         {
+            PolicyInputValidator.ValidateUsed(control.Payload!, standard, parameters);
             payload = (JsonObject)CanonicalJson.Resolve(control.Payload, parameters)!;
         }
         catch (MissingParameterException ex)
@@ -273,7 +274,7 @@ public sealed class DeploymentPlanner
             row.Reason = "The current settings differ from what the toolkit last applied. Something else changed this object; review before the toolkit touches it again.";
             return row;
         }
-        if (!string.IsNullOrEmpty(def.Relationship) && !CanonicalJson.IsSubset(current, payload))
+        if ((!string.IsNullOrEmpty(def.Relationship) || !string.IsNullOrEmpty(def.Children)) && !CanonicalJson.IsSubset(current, payload))
         {
             row.Action = PlanAction.Manual;
             row.Reason = "Updating this object's related settings (for example compliance actions) requires a separate procedure; review manually.";

@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Net.Http;
 using System.Windows;
 using BDIT.TenantToolkit.App.Infrastructure;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
@@ -188,6 +190,46 @@ public sealed class Workspace : ObservableObject
             ProgressDetail = "";
             Notify();
         }
+    }
+
+    public void InvalidatePolicyState()
+    {
+        Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false; Assessment = null;
+        Notify();
+    }
+
+    public void UseImportedStandard(DevicePolicyImport import)
+    {
+        if (Busy || IsConnected) throw new ToolkitException("Disconnect before changing the standard so the next connection requests the correct routes and permissions.");
+        var tenant = Profile?.TenantId ?? throw new ToolkitException("Select the target tenant profile first.");
+        var directory = Path.Combine(Paths.TenantDirectory(tenant), "catalogues");
+        var text = ToolkitJson.Serialize(import.Standard);
+        var file = Path.Combine(directory, import.Standard.Release + ".json");
+        Evidence.WriteJsonAtomic(file, import.Standard);
+        Evidence.WriteJsonAtomic(file + ".integrity.json", new { sha256 = CanonicalJson.Sha256Hex(text), import.SourceDigest, import.RemovedProperties });
+        import.Standard.IntegrityDigest = CanonicalJson.Sha256Hex(text);
+        Standard = import.Standard; Standard.SourceFileName = Path.GetFileName(file);
+        StandardError = null; InvalidatePolicyState();
+    }
+
+    public IReadOnlyList<string> LocalCandidates()
+    {
+        if (Profile is null) return Array.Empty<string>();
+        var directory = Path.Combine(Paths.TenantDirectory(Profile.TenantId), "catalogues");
+        return Directory.Exists(directory) ? Directory.GetFiles(directory, "import-*.json").Where(f => !f.EndsWith(".integrity.json", StringComparison.Ordinal)).Select(Path.GetFileName).OfType<string>().Order().ToList() : Array.Empty<string>();
+    }
+
+    public void LoadLocalCandidate(string fileName)
+    {
+        if (Busy || IsConnected) throw new ToolkitException("Disconnect before loading another candidate standard.");
+        if (!LocalCandidates().Contains(fileName, StringComparer.Ordinal)) throw new ConfigurationException("Select a saved candidate from this tenant.");
+        var file = Path.Combine(Paths.TenantDirectory(Profile!.TenantId), "catalogues", fileName);
+        var text = File.ReadAllText(file);
+        var integrity = ToolkitJson.ParseObject(File.ReadAllText(file + ".integrity.json"));
+        var digest = CanonicalJson.Sha256Hex(text);
+        if (integrity["sha256"]?.ToString() != digest) throw new IntegrityException("Local candidate does not match its recorded digest.");
+        Standard = StandardsLoader.Parse(text, fileName); Standard.IntegrityDigest = digest; StandardError = null;
+        InvalidatePolicyState();
     }
 
     public void CancelOperation()
@@ -624,7 +666,7 @@ public sealed class Workspace : ObservableObject
     {
         if (ShutdownComplete) return;
         CancelOperation();
-        if (Executor.IsRunning)
+        if (Executor.CurrentTask is not null)
         {
             Logger.Warn("App", "Shutdown requested while a deployment is in flight; waiting for the current write and after-change evidence.");
             await Executor.WaitForCompletionAsync(Control);

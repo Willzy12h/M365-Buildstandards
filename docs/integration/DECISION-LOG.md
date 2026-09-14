@@ -1,5 +1,13 @@
 # Integration decisions
 
+## Preview.6 automation and follow-up review (14 September 2026)
+
+- Complete implementation paths across the 45 existing controls: 37 candidate recipes, four reviewed tenant-action workflows and four readiness/engineer workflows. Preserve historical standard releases; ship the new catalogue as 2026.09.6.
+- Tenant-wide settings, activation, assignment and Autopatch category enrolment use separate immutable previews, explicit approval, durable intent, exact target resolution and read-only verification. They are never ordinary candidate creation. Device-side rollback is not promised.
+- Accept reviewed client inputs and narrowly supported Graph exports for settings that cannot be inferred. Store-to-Win32 import is supported for the four optional application controls when the app is unavailable through Intune's Store source. Package publication consumes an existing encrypted .intunewin file; installer execution, package creation and vendor credentials remain external.
+- Apple/Google ownership, emergency-access validation and privileged-role decisions retain human steps. Readiness checks do not imply those requirements are complete. Autopatch enrolment does not implement ring creation or OS release approval.
+- The user requested code completion without running tests. Compile the solution and review the diff; preserve existing CI. New tenant and UI behaviour remains unverified. See [review dispositions](FOLLOW-UP-REVIEW.md) and [coverage](../AUTOMATION-COVERAGE.md).
+
 ## Preview.5 policy-code decision (14 September 2026)
 
 User requested code first, with UI integration later, and authorised SME defaults informed by Cyber Essentials/NIST. Add LAPS, Defender Antivirus, firewall and EDR candidates without activating or assigning them. Restrict import to supported Graph policy shapes; reject arbitrary settings and tenant onboarding blobs. Entra LAPS enablement is a separate approved tenant-wide operation using the documented full PUT, preserving all registration settings, with durable before/intent/after evidence and read-only re-verification. Do not expose a generic singleton write or automatic LAPS disable/rollback. All new live behaviour remains unverified; see [API handover](../POLICY-AUTOMATION-CODE.md).

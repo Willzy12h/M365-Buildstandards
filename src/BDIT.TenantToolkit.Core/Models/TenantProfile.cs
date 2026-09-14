@@ -38,6 +38,8 @@ public sealed class ExclusionAccount
 /// <summary>Client-specific values substituted into catalogue templates. All identifiers are Entra object IDs.</summary>
 public sealed class TenantParameters
 {
+    /// <summary>Optional, non-secret per-control inputs. Null preserves historical evidence serialisation.</summary>
+    public Dictionary<string, JsonNode?>? PolicyInputs { get; set; }
     public List<string> EmergencyAccountIds { get; set; } = new();
     public List<string> AdditionalExclusionAccountIds { get; set; } = new();
     public string OfficeLocationId { get; set; } = "";
@@ -61,6 +63,11 @@ public sealed class TenantParameters
         foreach (var id in EmergencyAccountIds.Concat(AdditionalExclusionAccountIds).Distinct(StringComparer.OrdinalIgnoreCase)) emergencyAndGuests.Add(id);
         emergencyAndGuests.Add("GuestsOrExternalUsers");
         values["emergencyAndGuestIds"] = EmergencyAccountIds.Count == 0 ? null : emergencyAndGuests;
+        foreach (var (key, value) in PolicyInputs ?? new())
+        {
+            if (values.ContainsKey(key)) throw new ConfigurationException("Policy inputs cannot replace built-in identity parameters.");
+            values[key] = value?.DeepClone();
+        }
         return values;
     }
 
@@ -100,6 +107,7 @@ public static partial class ProfileValidator
             UpdatedAt = Timestamps.Format(now),
             Parameters = new TenantParameters
             {
+                PolicyInputs = input.Parameters?.PolicyInputs?.ToDictionary(p => p.Key, p => p.Value?.DeepClone(), StringComparer.Ordinal),
                 AdditionalExclusionAccountIds = (input.Parameters?.AdditionalExclusionAccountIds ?? new List<string>())
                     .Select(v => (v ?? "").Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList(),
                 EmergencyAccountIds = (input.Parameters?.EmergencyAccountIds ?? new List<string>())

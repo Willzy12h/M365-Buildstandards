@@ -84,6 +84,7 @@ public static class WritePayloadGuard
             throw new SafetyViolationException("Assignment writes are not supported. Objects are created unassigned; assignment is an explicit post-creation engineering step.");
         if (ConditionalAccessSafety.IsConditionalAccess(definition))
             ConditionalAccessSafety.AssertSafeCandidate(payload);
+        PolicyCandidateSafety.Assert(definition, payload);
         if (payload["@odata.type"]?.ToString() == "#microsoft.graph.windowsDefenderAdvancedThreatProtectionConfiguration")
         {
             if (definition.ApiVersion != GraphApi.Beta || payload["advancedThreatProtectionAutoPopulateOnboardingBlob"] is not JsonValue auto
