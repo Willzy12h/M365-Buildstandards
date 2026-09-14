@@ -94,6 +94,13 @@ internal static class Program
                         for (var i = 0; i < pixels.Length; i += 1024) colours.Add(BitConverter.ToInt32(pixels, i));
                         if (colours.Count < 4) throw new InvalidOperationException("Rendered image appears empty: " + file);
                     }
+                    if (nav.Key == "setup")
+                    {
+                        var results = Descendants(content).OfType<ItemsControl>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Application setup results");
+                        Pump(); content.UpdateLayout();
+                        results.BringIntoView(); Pump(); content.UpdateLayout();
+                        SaveImage(content, size, Path.Combine(output, $"setup-writes-{(int)size.Width}x{(int)size.Height}.png"));
+                    }
                     records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
                     if (nav.Key is "connect" or "setup" or "overview" or "recovery")
                     {
@@ -237,6 +244,14 @@ internal static class Program
             }
             typeof(ApplicationSetupViewModel).GetField("_plan", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(vm, plan);
             vm.PlanRows.Clear(); foreach (var row in plan.Rows) vm.PlanRows.Add(row); vm.SelectedRow = vm.PlanRows[0];
+            vm.Results.Clear();
+            vm.Results.Add(new ApplicationSetupItemResult { Mode = SessionMode.Deployment, DisplayName = "Synthetic Deployment Tool", ClientId = Id(4),
+                Status = "Partially completed — review", ConfigurationVerification = "Incomplete", Reason = "Synthetic delayed homepage readback; no tenant writes.",
+                AdditionalWrites = new() {
+                    new() { Action = "Configure registration", Acceptance = "Accepted" },
+                    new() { Action = "Set original tool icon", Acceptance = "Accepted" },
+                    new() { Action = "Configure enterprise app", Acceptance = "Accepted" }
+                } });
             vm.Validations.Clear();
             foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
             {

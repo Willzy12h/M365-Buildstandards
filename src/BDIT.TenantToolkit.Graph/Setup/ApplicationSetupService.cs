@@ -218,7 +218,8 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                         after.Add(new JsonObject { ["application"] = readApp.DeepClone(), ["servicePrincipal"] = readSp.DeepClone() });
                         var expectedApp = ApplicationPayload(row); expectedApp["publicClient"] = SetupRegistration.PublicClient(item.ClientId);
                         if (!CanonicalJson.IsSubset(readApp, expectedApp) || !Same(Text(readSp, "appId"), item.ClientId)
-                            || readSp["appRoleAssignmentRequired"]?.GetValue<bool>() != true)
+                            || readSp["appRoleAssignmentRequired"]?.GetValue<bool>() != true
+                            || Text(readSp, "displayName") != row.DisplayName || Text(readSp, "homepage") != SetupRegistration.HomePage)
                             throw new ConfigurationException("Registration writes were accepted, but readback did not confirm the reviewed settings.");
                         item.ConfigurationVerification = "Passed";
                         item.Status = "Configured — consent pending";
@@ -242,7 +243,8 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                                 ? "Not attempted" : ex is GraphRequestException ? "Rejected" : "Not confirmed";
                             if (item.ServicePrincipalWrite == "Intent recorded") item.ServicePrincipalWrite = acceptance;
                             if (item.ApplicationWrite == "Intent recorded") item.ApplicationWrite = acceptance;
-                            item.Status = item.ApplicationWrite == "Accepted" ? "Partially completed — review" : "Failed";
+                            item.Status = item.ApplicationWrite == "Accepted" || item.AdditionalWrites.Any(w => w.Acceptance == "Accepted")
+                                ? "Partially completed — review" : "Failed";
                         }
                         item.Reason = SafeError(ex);
                         item.ConfigurationVerification = "Incomplete";

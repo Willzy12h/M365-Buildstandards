@@ -46,8 +46,21 @@
           <TextBlock Text="Review both applications and their permissions above. Existing IDs permit only the displayed dedicated-tool repairs. Each write has before-change evidence and a recorded outcome; name matches alone never establish ownership." Style="{StaticResource Muted}" Margin="0,0,0,16"/>
           <CheckBox IsChecked="{Binding PermissionsApproved, Mode=TwoWay}"><TextBlock Text="I approve the previewed registration changes, delegated permission configuration, branding and selected engineer assignment."/></CheckBox>
           <TextBlock Text="Type the target tenant ID in full" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Confirmation, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Confirm application setup tenant ID"/>
-          <Button Content="Apply approved setup" Command="{Binding CreateCommand}" HorizontalAlignment="Left"/>
-          <DataGrid ItemsSource="{Binding Results}" MaxHeight="300" Margin="0,10,0,0" AutomationProperties.Name="Application creation results"><DataGrid.Columns><DataGridTextColumn Header="Application" Binding="{Binding DisplayName}" Width="220"/><DataGridTextColumn Header="Outcome" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="App write" Binding="{Binding ApplicationWrite}" Width="120"/><DataGridTextColumn Header="Enterprise app write" Binding="{Binding ServicePrincipalWrite}" Width="160"/><DataGridTextColumn Header="Verification" Binding="{Binding ConfigurationVerification}" Width="130"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" MinWidth="180"/><DataGridTextColumn Header="Client ID" Binding="{Binding ClientId}" Width="300"/></DataGrid.Columns></DataGrid>
+          <Button Content="Apply approved setup" Command="{Binding CreateCommand}" HorizontalAlignment="Left"/><TextBlock Text="Each application shows its full outcome and every configuration, icon and engineer-assignment write. Creation results apply only to new apps." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
+          <ItemsControl ItemsSource="{Binding Results}" Margin="0,10,0,0" AutomationProperties.Name="Application setup results"><ItemsControl.ItemTemplate><DataTemplate>
+            <Border Padding="16" Margin="0,0,0,12" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6"><StackPanel>
+              <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="15"/>
+              <TextBlock Margin="0,5,0,8" FontFamily="Consolas" FontSize="11"><Run Text="Client ID: "/><Run Text="{Binding ClientId, Mode=OneWay}"/></TextBlock>
+              <TextBlock FontWeight="SemiBold"><Run Text="Outcome: "/><Run Text="{Binding Status, Mode=OneWay}"/></TextBlock>
+              <TextBlock Margin="0,5,0,8"><Run Text="Configuration verification: "/><Run Text="{Binding ConfigurationVerification, Mode=OneWay}"/></TextBlock>
+              <TextBlock Text="{Binding Reason}" Margin="0,0,0,8"/>
+              <Expander Header="Each write outcome" IsExpanded="True"><StackPanel Margin="0,8,0,0">
+                <TextBlock><Run Text="New registration creation: "/><Run Text="{Binding ApplicationWrite, Mode=OneWay}"/></TextBlock>
+                <TextBlock Margin="0,5,0,0"><Run Text="New enterprise app creation: "/><Run Text="{Binding ServicePrincipalWrite, Mode=OneWay}"/></TextBlock>
+                <ItemsControl ItemsSource="{Binding AdditionalWrites}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Margin="0,5,0,0"><Run Text="{Binding Action, Mode=OneWay}"/>: <Run Text="{Binding Acceptance, Mode=OneWay}"/></TextBlock></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+              </StackPanel></Expander>
+            </StackPanel></Border>
+          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">

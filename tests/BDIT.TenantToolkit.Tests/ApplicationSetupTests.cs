@@ -56,6 +56,7 @@ public sealed class ApplicationSetupTests
         public bool FailFirstWriteAmbiguously { get; set; }
         public bool TimeoutStatusOnWrite { get; set; }
         public int FailWriteNumber { get; set; }
+        public bool IgnorePrincipalHomepage { get; set; }
         public Action<CancellationToken>? OnWrite { get; set; }
         private int _next = 10;
         public FakeGraph(StandardCatalogue standard)
@@ -94,7 +95,9 @@ public sealed class ApplicationSetupTests
                 {
                     var collection = path.StartsWith("/applications/") ? Applications : Principals;
                     var target = collection.Single(a => Value(a, "id") == path.Split('/')[2]);
-                    foreach (var pair in item) target[pair.Key] = pair.Value?.DeepClone();
+                    foreach (var pair in item)
+                        if (!(IgnorePrincipalHomepage && path.StartsWith("/servicePrincipals/") && pair.Key == "homepage"))
+                            target[pair.Key] = pair.Value?.DeepClone();
                     return new HttpResponseMessage(HttpStatusCode.NoContent);
                 }
                 if (path.EndsWith("/appRoleAssignedTo"))
@@ -392,6 +395,20 @@ public sealed class ApplicationSetupTests
         var graph = new ApplicationSetupGraphClient(new HttpClient(f.Handler), f.TokenProvider, NullLog.Instance);
         await Assert.ThrowsAsync<WriteDeniedException>(() => graph.CreateAsync("/applications", payload, default));
         Assert.Empty(f.Handler.Writes);
+    }
+
+    [Fact]
+    public async Task Accepted_existing_app_update_with_unconfirmed_homepage_is_reported_as_partial()
+    {
+        using var f = new Fixture(); var created = await f.Execute(await f.Preview());
+        f.Handler.Principals[0]["homepage"] = "https://example.invalid/old";
+        f.Handler.IgnorePrincipalHomepage = true;
+        var plan = await f.Service.PreviewAsync(f.Standard, "Test", default, created.Rows[0].ClientId, created.Rows[1].ClientId);
+        var result = await f.Execute(plan);
+        Assert.Equal("Partially completed — review", result.Rows[0].Status);
+        Assert.Equal("Incomplete", result.Rows[0].ConfigurationVerification);
+        Assert.All(result.Rows[0].AdditionalWrites, w => Assert.Equal("Accepted", w.Acceptance));
+        Assert.Equal("Not run", result.Rows[1].Status);
     }
 
     [Fact]
