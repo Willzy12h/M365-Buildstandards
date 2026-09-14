@@ -106,6 +106,8 @@ public sealed class GraphClient : IGraphClient
     public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
     {
         ValidateWritePath(path);
+        if (GraphRouteAllowList.BasePathOf(path).StartsWith(EntraLapsSafety.Path, StringComparison.OrdinalIgnoreCase))
+            throw new WriteDeniedException("Entra LAPS requires the dedicated reviewed prerequisite operation; generic policy writes are denied.");
         if (Mode != SessionMode.Deployment)
             throw new WriteDeniedException("Write denied: this session is read-only. Connect with deployment access, capture a fresh snapshot and review a new plan.");
         var route = _routes.MatchWrite(api, path, out var existing)
@@ -132,6 +134,28 @@ public sealed class GraphClient : IGraphClient
         try { RecoverySafety.AssertPayload(route.BasePath, action, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
         await SendWriteAsync(api, action == RecoveryAction.DeleteCreatedObject ? HttpMethod.Delete : HttpMethod.Patch, path, payload, route, ct);
+    }
+
+    public async Task EnableEntraLapsAsync(JsonObject reviewedBefore, CancellationToken ct)
+    {
+        GraphRoute route;
+        JsonObject payload;
+        try
+        {
+            if (Mode != SessionMode.Deployment) throw new WriteDeniedException("Entra LAPS enablement requires deployment access.");
+            route = _routes.MatchWrite(GraphApi.V1, EntraLapsSafety.Path, out _)
+                ?? throw new WriteDeniedException("The loaded standard does not permit Entra LAPS enablement.");
+            if (route.WriteScope != EntraLapsSafety.WriteScope) throw new WriteDeniedException("Incorrect Entra LAPS permission declaration.");
+            var before = EntraLapsSafety.WritableState(reviewedBefore);
+            var current = await GetAsync(GraphApi.V1, EntraLapsSafety.Path, ct);
+            if (!EntraLapsSafety.SameState(before, current)) throw new SafetyViolationException("Device registration settings changed since preview. Review a fresh plan.");
+            if (EntraLapsSafety.IsEnabled(current)) return;
+            payload = EntraLapsSafety.EnablePayload(current);
+            ct.ThrowIfCancellationRequested();
+        }
+        catch (Exception ex) { throw new WriteNotSentException("Entra LAPS write was not sent. " + SensitiveDataScrubber.Scrub(ex.Message), ex); }
+        // Once dispatched, allow the bounded write request to finish even if the operator stops reads.
+        await SendWriteAsync(GraphApi.V1, HttpMethod.Put, EntraLapsSafety.Path, payload, route, CancellationToken.None);
     }
 
     private static void ValidateWritePath(string path)

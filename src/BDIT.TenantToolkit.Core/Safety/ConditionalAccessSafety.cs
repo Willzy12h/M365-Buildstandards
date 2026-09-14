@@ -84,5 +84,13 @@ public static class WritePayloadGuard
             throw new SafetyViolationException("Assignment writes are not supported. Objects are created unassigned; assignment is an explicit post-creation engineering step.");
         if (ConditionalAccessSafety.IsConditionalAccess(definition))
             ConditionalAccessSafety.AssertSafeCandidate(payload);
+        if (payload["@odata.type"]?.ToString() == "#microsoft.graph.windowsDefenderAdvancedThreatProtectionConfiguration")
+        {
+            if (definition.ApiVersion != GraphApi.Beta || payload["advancedThreatProtectionAutoPopulateOnboardingBlob"] is not JsonValue auto
+                || !auto.TryGetValue<bool>(out var enabled) || !enabled
+                || payload.Any(p => p.Key.Contains("Offboarding", StringComparison.OrdinalIgnoreCase)
+                    || p.Key is "advancedThreatProtectionOnboardingBlob" or "advancedThreatProtectionOnboardingFilename"))
+                throw new SafetyViolationException("EDR candidates must use beta target-tenant automatic onboarding. Imported onboarding/offboarding data is forbidden.");
+        }
     }
 }

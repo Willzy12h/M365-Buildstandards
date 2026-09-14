@@ -287,6 +287,8 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public void Add(string basePath, JsonObject item) => _collections[basePath].Add(item);
 
+    public void SetSingleton(string path, JsonObject item) => _singles[path] = (JsonObject)item.DeepClone();
+
     private (string Base, string? Id, string? Sub) Resolve(string path)
     {
         var basePath = path.Split('?')[0].TrimEnd('/');

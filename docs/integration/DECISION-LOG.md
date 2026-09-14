@@ -1,5 +1,9 @@
 # Integration decisions
 
+## Preview.5 policy-code decision (14 September 2026)
+
+User requested code first, with UI integration later, and authorised SME defaults informed by Cyber Essentials/NIST. Add LAPS, Defender Antivirus, firewall and EDR candidates without activating or assigning them. Restrict import to supported Graph policy shapes; reject arbitrary settings and tenant onboarding blobs. Entra LAPS enablement is a separate approved tenant-wide operation using the documented full PUT, preserving all registration settings, with durable before/intent/after evidence and read-only re-verification. Do not expose a generic singleton write or automatic LAPS disable/rollback. All new live behaviour remains unverified; see [API handover](../POLICY-AUTOMATION-CODE.md).
+
 | ID | Date | Decision | Reason / authority | Status |
 |---|---|---|---|---|
 | INT-001 | Original | Preserve source repositories; develop shared product in master through reviewed PRs | Existing accepted decision and current user instruction | Accepted |

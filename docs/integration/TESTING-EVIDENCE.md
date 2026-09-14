@@ -1,5 +1,13 @@
 # Testing evidence — 14 September 2026
 
+## Policy automation code — preview.5
+
+- Full Windows Release solution build: **0 warnings, 0 errors**.
+- Full Release test suite: **295 passed, 0 failed, 0 skipped**; 44 new cases cover imports, LAPS prerequisite evidence/approval/drift, full-PUT preservation, not-sent/rejected/ambiguous outcomes, read-only re-verification, cancellation and all four candidate deployment/recovery paths. TRX retained locally as `work/test-results-policy/policy-automation.trx`.
+- Standard 2026.09.5 parses: **45 controls, 18 recipes, 15 collections**. Historical releases are unchanged. Only four control definitions differ from 2026.09.4.
+- Used existing SDK 8.0.425 and workspace NuGet packages without restore. This is not a fresh vulnerability audit. PR checks provide separate clean restore/package evidence when completed for the submitted commit.
+- No UI changes or new manual GUI acceptance were performed. Import and Entra LAPS service integration is pending. No live tenant write, consent, device assignment, Defender onboarding or LAPS password retrieval was performed.
+
 ## Engineer workflow preview 1.1.0-preview.4
 
 - Windows Release solution build: **0 warnings, 0 errors**. Complete local suite: **251 passed, 0 failed, 0 skipped**. The build script generated the self-contained win-x64 portable package.

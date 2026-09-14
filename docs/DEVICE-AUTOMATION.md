@@ -1,5 +1,7 @@
 # Windows device candidates
 
+For the current 2026.09.5 LAPS, antivirus, firewall and EDR additions, see [policy automation APIs](POLICY-AUTOMATION-CODE.md). The BitLocker and long-path settings below remain unchanged.
+
 Standard **2026.09.4** adds two optional reviewed creation recipes. Both create an **unassigned** policy, record its exact object ID, read it back and support selective removal while still unassigned. Creation never assigns policies or starts device encryption. The standard now has 45 controls, 14 recipes and 14 collection definitions.
 
 ## BitLocker: CFG-WIN-001

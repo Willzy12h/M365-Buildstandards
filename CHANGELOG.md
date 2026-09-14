@@ -1,3 +1,10 @@
+# 1.1.0-preview.5
+
+- Add Windows LAPS, Defender Antivirus, firewall and target-tenant Defender EDR candidates in standard 2026.09.5 (18 recipes; 27 manual controls).
+- Add a bounded Graph JSON import API with type/URI validation, explicit source-metadata removal and a fresh catalogue digest.
+- Add Entra LAPS preview, approved full-PUT enablement, preserved registration settings, durable evidence and read-only re-verification. Unknown writes are never retried.
+- Add LAPS prerequisite and Defender EDR entitlement gates. Import and prerequisite UI integration is deferred to the next UI pass. Live tenant/device behaviour remains unverified.
+
 # 1.1.0-preview.4
 
 - Windows sign-in pop-up and browser fallback; exact registered administrator-consent callback.

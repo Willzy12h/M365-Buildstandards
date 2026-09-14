@@ -4,7 +4,7 @@ A Windows application for engineers to capture tenant configuration, compare it 
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**1.1.0-preview.4 — engineering review candidate.** Includes selective policy recovery, read-only re-verification, a licence overview and searchable user assignments. Live tenant sign-in, app setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md), [Claude review response](docs/integration/CLAUDE-REVIEW-RESPONSE.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+**1.1.0-preview.5 — engineering review candidate.** Includes selective policy recovery, read-only re-verification, licensing, device-policy imports and an Entra LAPS prerequisite API. Import/prerequisite UI integration is pending. Live tenant sign-in, setup, deployment and recovery still need authorised acceptance testing. See the [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
 To repair an existing preview installation, enter its exact assessment/deployment client IDs in **Application setup**, preview and approve the displayed changes, approve each app's permission list, then validate and continue. This updates registration redirects and branding through the reviewed workflow.
 
@@ -16,7 +16,7 @@ Start on **Overview and licences**, choose **Connect / change access**, and conn
 
 To recover a recorded policy change, use **Undo and recovery → Load change register**, select the original creation or latest update and preview the action. The tool captures fresh evidence, displays current settings and consequences, and requires explicit approval and the tenant ID. Supported actions delete toolkit-created policies, restore recorded inactive updates, or disable unexpectedly active Conditional Access policies. See [recovery](docs/RECOVERY.md) for the supported scope and limitations.
 
-Standard 2026.09.4 contains **45 controls, 14 creation recipes and 14 collection definitions**. See [device automation](docs/DEVICE-AUTOMATION.md) for the supplied BitLocker settings and optional long paths. The remaining controls have no creation recipe. This is not full automation of the standard.
+Standard 2026.09.5 contains **45 controls, 18 creation recipes and 15 collection definitions**. It adds LAPS, Defender Antivirus, firewall and EDR candidates. See [policy automation APIs](docs/POLICY-AUTOMATION-CODE.md) for settings, supported imports and the Entra LAPS prerequisite, and [device automation](docs/DEVICE-AUTOMATION.md) for the preserved BitLocker/long-path recipes. The remaining 27 controls have no creation recipe.
 
 If a policy write was accepted but its readback failed, select it in **Undo and recovery → Re-verify**. This performs reads and records fresh verification without repeating the write. Completed 1.0.0 records require explicit historical acknowledgement and matching ownership/settings. Unknown modern write outcomes remain blocked. Stop cancels deployment reads; an in-flight policy write retains its configured timeout (100 seconds by default). Readback and after-capture each have a 60-second budget, with incomplete evidence clearly reported.
 

@@ -47,6 +47,8 @@ The matrix above records source-baseline behaviour. The integrated preview now a
 
 ## Preview.4 additions
 
+Preview.5 adds four data-driven Windows candidates and a restricted Graph-export importer on the existing Claude engine. A separate Entra LAPS service preserves the full registration policy during approved enablement. No Asta runtime or UI rewrite is introduced. All four candidates are covered by synthetic deployment/removal tests, and LAPS by actual HTTP-adapter tests with synthetic responses. UI integration and live device/Graph acceptance remain pending; see [policy code handover](../POLICY-AUTOMATION-CODE.md).
+
 | Area | Recommended current behaviour | Evidence / remaining check |
 |---|---|---|
 | Desktop identity | WAM pop-up, browser fallback, tenant/operator binding retained | Builds and offline guards; live WAM/GDAP required |

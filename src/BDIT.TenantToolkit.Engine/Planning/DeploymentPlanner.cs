@@ -204,6 +204,8 @@ public sealed class DeploymentPlanner
 
         try { WritePayloadGuard.Assert(def, payload); }
         catch (SafetyViolationException ex) { row.Reason = ex.Message; return row; }
+        var deviceProblem = DeviceCandidateReadiness.Problem(payload, standard, snapshot);
+        if (deviceProblem is not null) { row.Reason = deviceProblem; return row; }
         var referenceReason = CreationReferenceProblem(def, payload, standard, snapshot);
         if (referenceReason is not null) { row.Reason = referenceReason; return row; }
 
