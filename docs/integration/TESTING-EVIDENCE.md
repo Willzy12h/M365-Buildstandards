@@ -1,5 +1,15 @@
 # Testing evidence — 15 September 2026
 
+## Directory prerequisites and administrator-access assessment — preview.8
+
+- Authored in the same sandbox, which still cannot download any .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence for this increment.
+- New synthetic coverage: `DirectoryPrerequisiteSafetyTests` (an empty security group is accepted; members, owners, dynamic rules, role-assignable and `@odata.bind` payloads are refused; mail-enabled, non-security, unified and badly named groups are refused; a named location is refused if trusted, a country location, empty, or carrying a range that is not a whole CIDR of the declared family, or extra range properties), and a standards test asserting 53 controls, 45 recipes, writable group and named-location collections, every prerequisite payload passing the write guard, and ID-003 declaring `AtLeast`/`AtMost` signals against `directoryRoles`.
+- Standard 2026.09.8 was generated from 2026.09.7: eight prerequisite controls added, the groups collection given a write scope and a wider `$select` so a created group can be compared with its recipe, named locations given a write scope, a `directoryRoles` collection added and ID-003 given equivalence signals. No existing recipe payload changed.
+- Not verified: that Graph accepts these group and named-location payloads, that `/directoryRoles` with a `members` relationship reads as expected under the existing `RoleManagement.Read.Directory` scope, and that a created group is returned by the widened `$select`. All three need the first real capture.
+- No live tenant, consent, registration, write or GUI acceptance was performed.
+
+# Testing evidence — 15 September 2026 (preview.7)
+
 ## Evidence-based assessment, cancellation and persistence fixes — preview.7
 
 - Authored in a sandbox that could not download any .NET SDK (egress blocked to every Microsoft download host), so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence for this increment; read the check for the exact commit rather than this document.

@@ -85,6 +85,7 @@ public static class WritePayloadGuard
         if (ConditionalAccessSafety.IsConditionalAccess(definition))
             ConditionalAccessSafety.AssertSafeCandidate(payload);
         PolicyCandidateSafety.Assert(definition, payload);
+        DirectoryPrerequisiteSafety.Assert(definition, payload);
         if (payload["@odata.type"]?.ToString() == "#microsoft.graph.windowsDefenderAdvancedThreatProtectionConfiguration")
         {
             if (definition.ApiVersion != GraphApi.Beta || payload["advancedThreatProtectionAutoPopulateOnboardingBlob"] is not JsonValue auto

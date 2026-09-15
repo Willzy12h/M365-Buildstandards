@@ -1,11 +1,12 @@
-# Automation coverage — 2026.09.7
+# Automation coverage — 2026.09.8
 
 Use **Policy automation** for inputs, imports, prerequisites, assignments, packages and readiness. Create policy/app candidates through the existing **Plan → Deploy** workflow. Candidates stay disabled/unassigned until a separate activation is explicitly approved.
 
-**45 controls: 37 candidate recipes, 4 reviewed tenant-action workflows (3 of them assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows.** This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
+**53 controls: 45 candidate recipes (8 of them directory prerequisites added in 2026.09.8), 4 reviewed tenant-action workflows (3 assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows. 49 of 53 controls report automatically.** This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
 
 ## Required client inputs
 
+- Public IP ranges (CIDR) of the office egress for the named location. Confirm them with the client; an internal range or a stale address silently excludes the wrong network. Everything else about the prerequisites is generated.
 - Android minimum supported OS; ESP blocking app IDs already published in this tenant (Office is excluded from ESP).
 - Reviewed OneDrive and Edge Settings Catalogue instances or policy JSON exports including their separate settings collection. This release does not guess Microsoft setting identifiers, browser preferences, or foreign tenant IDs. The engine resolves definition IDs/choices before creation. Import requires explicit GUID replacements, including GUIDs embedded in string values.
 - Store IDs for Chrome, Adobe Reader, OneDrive and Teams. Only Intune-compatible Microsoft Store identifiers are accepted; a community winget ID is not sufficient. If a product is unavailable through that source, import a supported Win32 metadata export for that control and publish its client-approved .intunewin package.
@@ -16,9 +17,17 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 
 | Control | Requirement | Implementation path | Inputs / remaining review |
 | --- | --- | --- | --- |
+| PRE-001 | GRP - Managed Users | Candidate recipe | Membership populated by an engineer |
+| PRE-002 | GRP - Managed Windows Devices | Candidate recipe | Membership populated by an engineer |
+| PRE-003 | GRP - Office Install Ready | Candidate recipe | Membership populated by an engineer |
+| PRE-004 | GRP - MAM Only Users | Candidate recipe | Membership populated by an engineer; recorded as mamGroupId |
+| PRE-005 | GRP - Pilot Devices | Candidate recipe | Membership populated by an engineer; recorded as pilotGroupId |
+| PRE-006 | GRP - Autopilot Devices | Candidate recipe | Membership populated by an engineer |
+| PRE-007 | GRP - Conditional Access Exclusions | Candidate recipe | Normally empty; recorded as caExclusionGroupId |
+| PRE-008 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
 | ID-001 | Emergency access accounts | Readiness check plus engineer/external step | Review scope and prerequisites |
 | ID-002 | Authentication methods and Temporary Access Pass | Assessed from the authentication methods policy (Authenticator and TAP enabled, SMS and voice disabled); changed through reviewed authentication-method actions | Number-matching enforcement, emergency-account sign-in and removal of existing SMS/voice registrations remain engineer checks |
-| ID-003 | Administrator access | Readiness check plus engineer/external step | Review scope and prerequisites |
+| ID-003 | Administrator access | Assessed from directory role membership (two to four permanent Global Administrators) | Eligible Privileged Identity Management assignments, dedicated-account and licence checks remain engineer checks |
 | CA-001 | Require MFA | Candidate recipe | emergencyAccountIds, officeLocationId |
 | CA-003 | Block legacy authentication | Candidate recipe | emergencyAccountIds |
 | CA-004 | Block unsupported platforms | Candidate recipe | Review scope and prerequisites |
@@ -63,6 +72,10 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 | UPD-001 | Windows Autopatch | Reviewed Autopatch category enrolment/removal | Review scope and prerequisites |
 
 ## Consequences and recovery
+
+- Prerequisite groups are created empty with assigned membership. No member, owner, dynamic rule, mail enablement or role-assignable flag is written, so a created group grants nothing until an engineer populates it. Deleting a toolkit-created group removes it from every policy that already references it.
+- The office named location is created untrusted. Marking it trusted changes risk evaluation for every Conditional Access policy in the tenant and is a separate decision. Only IPv4/IPv6 CIDR ranges supplied as a reviewed input are written; country locations are refused.
+- Deployment mode now requests Group.ReadWrite.All. That permission is wider than any object the toolkit writes with it: creation is restricted to the collection root by the route allow list and the payload by the creation guard, but the consent itself covers all groups. Re-consent is required on both registrations before prerequisites can be created; assessment mode remains read-only.
 
 - CA activation changes only state, preserving stored targeting and exclusions. It requires two emergency accounts and the current operator retained in user exclusions. Report-only and disabled containment are separate choices.
 - Intune assignment writes replace the empty candidate assignment list with explicitly selected groups. Removal clears all current assignments from an owned object. Removing assignments does not guarantee settings reverse on devices. Device/user group exclusion semantics must be reviewed.

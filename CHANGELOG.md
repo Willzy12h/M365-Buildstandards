@@ -1,3 +1,12 @@
+# 1.1.0-preview.8
+
+- Standard 2026.09.8 provisions the directory objects every other control depends on through the existing Plan → Deploy path: seven security groups (managed users, managed Windows devices, Office install ready, MAM-only users, pilot devices, Autopilot devices, Conditional Access exclusions) and the office IP named location. This closes the gap that left an engineer building groups by hand before any assignment or Conditional Access recipe could be used.
+- Group and named-location creation is constrained by a new guard rather than trusted from the recipe: only empty, assigned-membership security groups (no member, owner, dynamic rule, mail enablement or role-assignable flag), and only untrusted IP named locations carrying client-confirmed IPv4/IPv6 CIDR ranges. Existing objects are still never adopted by name or modified.
+- ID-003 (administrator access) is assessed from directory role membership: covered when between two and four accounts hold Global Administrator directly. It cannot see eligible Privileged Identity Management assignments, so that remains an engineer check.
+- Deployment mode now requests Group.ReadWrite.All and Conditional Access write for named locations. Both registrations need administrator consent again; assessment mode is unchanged and stays read-only.
+- 53 controls, 45 recipes, 23 collections. 49 of 53 controls now report automatically.
+- CI is the only build and test evidence for this increment; the authoring environment could not run the .NET SDK. No live tenant, consent or write was performed.
+
 # 1.1.0-preview.7
 
 - Standard 2026.09.7 assesses ID-002 (authentication methods and TAP), ENR-001 (MDM scope) and CMP-001 (tenant compliance default) from captured evidence using equivalence signals, so 40 of 45 controls now report automatically; the reviewed tenant actions that change them are unchanged. Equivalence paths can address array elements by key (`authenticationMethodConfigurations[id=Sms].state`).

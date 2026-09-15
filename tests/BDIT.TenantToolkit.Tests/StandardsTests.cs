@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.Tests;
 
@@ -151,5 +152,48 @@ public class StandardsTests
         // Manual-by-nature controls carry no equivalence claim: nothing readable proves them.
         foreach (var id in new[] { "ID-001", "ID-003", "ENR-005", "ENR-006", "UPD-001" })
             Assert.Null(catalogue.FindControl(id)!.Equivalence);
+    }
+
+    /// <summary>
+    /// From 2026.09.8 the directory objects every other control depends on are provisioned through the same
+    /// Plan → Deploy path as a policy: empty security groups and an untrusted office named location. Administrator
+    /// access is assessed from directory role membership instead of being left to an engineer's cross-reference.
+    /// </summary>
+    [Fact]
+    public void Latest_shipped_standard_provisions_directory_prerequisites()
+    {
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.8.json"));
+        if (!File.Exists(file)) return;
+        var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+        Assert.Equal("2026.09.8", catalogue.Release);
+        Assert.Equal(53, catalogue.Controls.Count);
+        Assert.Equal(45, catalogue.Controls.Count(c => c.HasRecipe));
+
+        // Both prerequisite collections must be writable, or every prerequisite control plans as Manual.
+        Assert.True(catalogue.Collections["groups"].Writable);
+        Assert.True(catalogue.Collections["namedLocations"].Writable);
+
+        foreach (var control in catalogue.Controls.Where(c => c.Id.StartsWith("PRE-", StringComparison.Ordinal)))
+        {
+            Assert.True(control.HasRecipe);
+            var def = catalogue.Collections[control.Collection!];
+            WritePayloadGuard.Assert(def, (JsonObject)control.Payload!.DeepClone());
+        }
+
+        var groups = catalogue.Controls.Where(c => c.Collection == "groups").ToList();
+        Assert.Equal(7, groups.Count);
+        foreach (var group in groups)
+        {
+            Assert.Equal("none", group.SafeDeployment.Assignment);
+            Assert.Equal(group.Name, group.Payload!["displayName"]!.GetValue<string>());
+        }
+        Assert.Equal("#microsoft.graph.ipNamedLocation", catalogue.FindControl("PRE-008")!.Payload!["@odata.type"]!.GetValue<string>());
+        Assert.False(catalogue.FindControl("PRE-008")!.Payload!["isTrusted"]!.GetValue<bool>());
+
+        var adminAccess = catalogue.FindControl("ID-003")!;
+        Assert.Equal("directoryRoles", adminAccess.Equivalence!.Collection);
+        Assert.True(catalogue.Collections.ContainsKey("directoryRoles"));
+        Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtMost);
+        Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtLeast);
     }
 }

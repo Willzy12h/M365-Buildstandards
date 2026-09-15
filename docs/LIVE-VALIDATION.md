@@ -59,6 +59,20 @@ Unit tests exercise safety logic with a scripted Graph client. They cannot prove
 
 The `authenticationMethodConfigurations[id=…]` paths assume Graph returns the singleton policy with its configurations inline and `id` values `MicrosoftAuthenticator`, `Sms`, `Voice`, `TemporaryAccessPass`, `Email`. Confirm against the first real capture and adjust the standard, not the code, if they differ.
 
+## Directory prerequisites (2026.09.8)
+
+| Step | Expected | Result |
+| --- | --- | --- |
+| Connect in deployment mode after re-consent | Group.ReadWrite.All is granted and the access check reports the Groups and Named locations write scopes as observed | |
+| Plan PRE-001 to PRE-007 in a tenant with none of the groups | Seven Create rows, each an empty security group | |
+| Plan PRE-001 where a group of that name already exists | Conflict, not adoption or a duplicate | |
+| Execute the prerequisite rows | Groups created with no members or owners; each readable through the widened groups capture and recorded in the change register | |
+| Re-plan immediately after creation | No change for each created group, never a repeated update | |
+| Plan PRE-008 without officeIpRanges | Blocked with the missing-input reason, nothing written | |
+| Plan and execute PRE-008 with reviewed ranges | Untrusted IP named location created with exactly those ranges | |
+| Assess ID-003 | Global Administrator member count observed, covered between two and four, caveat raised at five or more | |
+| Assess ID-003 where the members read fails | Reported as unknown, never as compliant or missing | |
+
 ## Deployment (each recipe once)
 
 For each of CA-001, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009, CA-010, CMP-WIN-001, CMP-IOS-001, CFG-WIN-003, CFG-WIN-001 and CFG-WIN-007:
