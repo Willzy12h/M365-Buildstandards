@@ -1,5 +1,14 @@
 # Testing evidence — 15 September 2026
 
+## Client build standard document — preview.10
+
+- Same sandbox, no .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence.
+- New synthetic coverage: `BuildStandardDocumentTests` (every control reaches the HTML and Markdown documents with its own wording; payloads, Graph paths, service hostnames and unresolved templates stay out; delivery wording follows whether a control is created, read or manual; required and defaulted inputs are separated, and the tenant identifier is never presented as something to ask a client for).
+- Not verified: how the document reads to an actual client, and printing to PDF from a browser.
+- No live tenant, consent, registration, write or GUI acceptance was performed.
+
+# Testing evidence — 15 September 2026 (preview.9)
+
 ## Input form, reviewed defaults and built-in targeting — preview.9
 
 - Same sandbox, still no .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence.

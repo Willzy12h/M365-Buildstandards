@@ -21,6 +21,15 @@
             <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
             <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
           </WrapPanel>
+          <TextBlock Text="Client build standard document" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+          <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Text="Writes the client-facing description of this release: what each control protects, what it means in practice, and what the client still has to supply. Generated from the loaded standard, so it cannot describe a setting the toolkit would not apply."/>
+          <WrapPanel Margin="0,6,0,0">
+            <TextBlock Text="Prepared for" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <TextBox Text="{Binding ClientName, UpdateSourceTrigger=PropertyChanged}" Width="220" Margin="0,0,12,0" AutomationProperties.Name="Client name for the build standard document"/>
+            <Button Content="Export document (HTML)" Command="{Binding ExportDocumentCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+            <Button Content="Export document (Markdown)" Command="{Binding ExportDocumentMarkdownCommand}" Style="{StaticResource SecondaryButton}"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding LastExport}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
         </StackPanel>
       </Border>
     </StackPanel>

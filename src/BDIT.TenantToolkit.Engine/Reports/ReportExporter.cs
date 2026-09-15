@@ -89,6 +89,27 @@ public sealed class ReportExporter
         };
     }
 
+    /// <summary>
+    /// Writes the client-facing build standard for a named client. Generated from the catalogue, so it always
+    /// describes the configuration the toolkit would actually apply from this release.
+    /// </summary>
+    public string ExportBuildStandard(StandardCatalogue standard, string clientName, DateTimeOffset now, ExportFormat format)
+    {
+        var client = string.IsNullOrWhiteSpace(clientName) ? "Client" : clientName.Trim();
+        var date = now.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB"));
+        var iso = Timestamps.Format(now);
+        return format switch
+        {
+            ExportFormat.ClientHtml or ExportFormat.Html =>
+                WriteText(Target("build-standard", client + "-" + standard.Release, iso, "html"),
+                    BuildStandardDocument.Html(standard, client, _companyName, date)),
+            ExportFormat.Markdown =>
+                WriteText(Target("build-standard", client + "-" + standard.Release, iso, "md"),
+                    BuildStandardDocument.Markdown(standard, client, _companyName, date)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "The build standard document exports as HTML or Markdown.")
+        };
+    }
+
     private static string WriteText(string file, string content)
     {
         File.WriteAllText(file, content, new System.Text.UTF8Encoding(false));
