@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
+using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.Tests;
 
