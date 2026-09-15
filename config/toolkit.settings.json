@@ -8,7 +8,7 @@
   "allowMicrosoftGraphPowerShellFallback": true,
   "useSystemBrowser": false,
 
-  "defaultStandardRelease": "2026.09.8",
+  "defaultStandardRelease": "2026.09.9",
   "snapshotMaxAgeMinutes": 20,
   "planMaxAgeMinutes": 20,
   "signInTimeoutMinutes": 5,

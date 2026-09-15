@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
@@ -50,6 +51,12 @@ public sealed class AutomationViewModel : PageViewModel
         Refresh();
     }
     public ObservableCollection<ControlDefinition> Controls { get; } = new();
+
+    /// <summary>
+    /// One labelled field per client input the standard declares, generated from its parameter list so the page stays
+    /// correct when the standard gains an input. The JSON box remains for imports and paste, but nothing requires it.
+    /// </summary>
+    public ObservableCollection<PolicyInputField> InputFields { get; } = new();
     public IReadOnlyList<ReviewedChangeKind> Kinds { get; } = Enum.GetValues<ReviewedChangeKind>();
     public ICommand SaveInputsCommand { get; }
     public ICommand ChooseImportCommand { get; }
@@ -90,14 +97,48 @@ public sealed class AutomationViewModel : PageViewModel
     private void SaveInputs()
     {
         var profile = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(Workspace.Profile!));
-        var values = ToolkitJson.ParseObject(PolicyInputs);
-        foreach (var (key, _) in values)
-            if (!Workspace.RequireStandard().Parameters.Any(p => p.Key == key) || key is "emergencyAccountIds" or "officeLocationId" or "mamGroupId" or "pilotGroupId" or "caExclusionGroupId" or "tenantId")
-                throw new ConfigurationException("Unknown or reserved policy input: " + key);
-        profile.Parameters.PolicyInputs = values.ToDictionary(p => p.Key, p => p.Value?.DeepClone(), StringComparer.Ordinal);
+        var values = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
+
+        foreach (var field in InputFields)
+        {
+            if (Reserved(field.Key)) continue;
+            if (field.TryRead(out var node)) values[field.Key] = node;
+        }
+
+        var problems = InputFields.Where(f => f.HasProblem).Select(f => f.Label + ": " + f.Problem).ToList();
+        if (problems.Count > 0)
+            throw new ConfigurationException("Correct these inputs and save again.\n" + string.Join("\n", problems));
+
+        profile.Parameters.PolicyInputs = values;
         Workspace.SaveProfile(profile); Workspace.InvalidatePolicyState(); ClearApproval();
-        Result = "Policy inputs saved to the tenant profile. Capture and review a new plan.";
+        PolicyInputs = ToolkitJson.Serialize(values);
+        BuildInputFields();
+        var supplied = values.Count;
+        var missing = InputFields.Count(f => f.IsRequired && f.Value.Trim().Length == 0);
+        Result = $"Saved {supplied} client input(s) to the tenant profile."
+            + (missing > 0 ? $" {missing} required input(s) are still empty; the controls that use them cannot be created yet." : "")
+            + " Capture and review a new plan.";
     }
+
+    /// <summary>Identity inputs are held on the profile itself and set through the exclusion workflow, not here.</summary>
+    private static bool Reserved(string key) =>
+        key is "emergencyAccountIds" or "emergencyAndGuestIds" or "officeLocationId" or "mamGroupId"
+            or "pilotGroupId" or "caExclusionGroupId" or "tenantId";
+
+    private void BuildInputFields()
+    {
+        InputFields.Clear();
+        var standard = Workspace.Standard;
+        if (standard is null) return;
+        var current = Workspace.Profile?.Parameters.PolicyInputs ?? new();
+        var now = DateTimeOffset.UtcNow;
+        foreach (var parameter in standard.Parameters.Where(p => !Reserved(p.Key)))
+        {
+            current.TryGetValue(parameter.Key, out var value);
+            InputFields.Add(new PolicyInputField(parameter, value, now));
+        }
+    }
+
     private void ChooseImport()
     {
         var dialog = new OpenFileDialog { Filter = "Graph policy JSON (*.json)|*.json", Title = "Select a policy export" };
@@ -213,6 +254,7 @@ public sealed class AutomationViewModel : PageViewModel
         {
             _tenant = tenant; ClearApproval(); Result = ""; Readiness.Clear();
             PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
+            BuildInputFields();
             _lastRunId = _lastLapsRunId = _lastPackageRunId = "";
             try
             {

@@ -54,6 +54,7 @@ public sealed class PlanViewModel : PageViewModel
     }
 
     public string RowDetail => SelectedRow is null ? "Select a plan row to see the exact proposed change." :
+        (SelectedRow.UsesDefaultInputs ? "USES A SHIPPED DEFAULT — confirm the values below with the client before assigning or enabling this policy.\n\n" : "") +
         $"{SelectedRow.ControlId} {SelectedRow.Name} · {SelectedRow.Action}\n{SelectedRow.Reason}\nSafe state written: {SelectedRow.SafeState} · Expected production: {SelectedRow.ExpectedProductionState} / {SelectedRow.ExpectedProductionAssignment}" +
         (SelectedRow.OperatorExclusion is null ? "" : $"\nOperator excluded: {SelectedRow.OperatorExclusion.UserPrincipalName} [{SelectedRow.OperatorExclusion.ObjectId}]") +
         (SelectedRow.Warnings.Count == 0 ? "" : "\n" + string.Join("\n", SelectedRow.Warnings.Select(w => "Warning: " + w)));

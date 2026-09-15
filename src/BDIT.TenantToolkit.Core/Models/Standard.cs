@@ -73,6 +73,29 @@ public sealed class ParameterDefinition
     public string Type { get; set; } = "guid";
     public bool Required { get; set; }
     public string Description { get; set; } = "";
+
+    /// <summary>
+    /// Value used when the client profile carries none, so a candidate can still be created. A defaulted input always
+    /// raises a warning on the plan row: the candidate is inert until assigned, and the engineer confirms the value
+    /// before it is. Identity inputs - emergency accounts, the office location, targeting groups - never carry a
+    /// default, because a wrong exclusion is how a tenant locks itself out.
+    /// </summary>
+    public JsonNode? Default { get; set; }
+
+    /// <summary>
+    /// Date the default was last checked against the vendor's supported releases (yyyy-MM-dd). Minimum operating
+    /// system versions go stale within months, so the interface reports a default older than
+    /// <see cref="StaleAfter"/> instead of presenting it as current.
+    /// </summary>
+    public string ReviewedOn { get; set; } = "";
+
+    public static readonly TimeSpan StaleAfter = TimeSpan.FromDays(90);
+
+    [JsonIgnore] public bool HasDefault => Default is not null;
+
+    /// <summary>True when this default was reviewed long enough ago that it should be re-checked before use.</summary>
+    public bool IsStale(DateTimeOffset now) =>
+        HasDefault && DateTimeOffset.TryParse(ReviewedOn, out var reviewed) && now - reviewed > StaleAfter;
 }
 
 public sealed class ControlDefinition
@@ -93,6 +116,13 @@ public sealed class ControlDefinition
     public ExpectedProduction ExpectedProduction { get; set; } = new();
     public SafeDeployment SafeDeployment { get; set; } = new();
     public JsonObject? Payload { get; set; }
+
+    /// <summary>
+    /// Marks a group this standard creates as the tenant's exclusion list: "users" or "devices". Conditional Access
+    /// candidates exclude the user list automatically once it exists, so the exempt population is readable in one
+    /// place instead of being spread across each policy's own exclusions.
+    /// </summary>
+    public string ExclusionRole { get; set; } = "";
     /// <summary>Optional declared test for "is this control covered by whatever the tenant already has". See <see cref="EquivalenceRule"/>.</summary>
     public EquivalenceRule? Equivalence { get; set; }
     public List<string> Dependencies { get; set; } = new();

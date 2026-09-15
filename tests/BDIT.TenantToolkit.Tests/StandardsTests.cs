@@ -206,4 +206,37 @@ public class StandardsTests
         Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtMost);
         Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtLeast);
     }
+
+    /// <summary>
+    /// From 2026.09.9 the standard targets the built-in All users and All devices populations and creates groups only
+    /// where something has to be named: the two exclusion groups, the unenrolled-mobile population and the pilot set.
+    /// Reviewable inputs carry a dated default so a candidate is created with a warning instead of being blocked.
+    /// </summary>
+    [Fact]
+    public void Latest_shipped_standard_targets_built_in_populations_and_defaults_reviewable_inputs()
+    {
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.9.json"));
+        if (!File.Exists(file)) return;
+        var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+        Assert.Equal("2026.09.9", catalogue.Release);
+        Assert.Equal(50, catalogue.Controls.Count);
+        Assert.Equal(4, catalogue.Controls.Count(c => c.Collection == "groups"));
+
+        // Every policy targets a built-in population and names only the group it excludes.
+        foreach (var control in catalogue.Controls.Where(c => c.HasRecipe && c.Collection != "groups" && c.Collection != "namedLocations"))
+            Assert.Contains("built-in", control.ExpectedProduction.Assignment, StringComparison.OrdinalIgnoreCase);
+
+        // Identity inputs must never carry a default: a wrong exclusion is how a tenant locks itself out.
+        foreach (var key in new[] { "emergencyAccountIds", "officeLocationId", "mamGroupId", "officeIpRanges" })
+            Assert.False(catalogue.Parameters.Single(p => p.Key == key).HasDefault, key + " must not default");
+
+        var android = catalogue.Parameters.Single(p => p.Key == "androidMinimumVersion");
+        Assert.Equal("14", android.Default!.GetValue<string>());
+        Assert.False(android.IsStale(DateTimeOffset.Parse(android.ReviewedOn).AddDays(30)));
+        Assert.True(android.IsStale(DateTimeOffset.Parse(android.ReviewedOn).AddDays(120)));
+
+        // Reviewed minimum operating system versions, recorded with the release that checked them.
+        Assert.Equal("10.0.26200.0", catalogue.FindControl("CMP-WIN-001")!.Payload!["osMinimumVersion"]!.GetValue<string>());
+        Assert.Equal("26.7", catalogue.FindControl("CMP-IOS-001")!.Payload!["osMinimumVersion"]!.GetValue<string>());
+    }
 }

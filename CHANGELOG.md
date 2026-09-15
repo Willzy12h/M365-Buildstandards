@@ -1,3 +1,13 @@
+# 1.1.0-preview.9
+
+- Client inputs are entered as a generated form, one labelled field per input, instead of one hand-written JSON object. A list is typed the way people write lists, separated by commas or new lines, and a wrong value is explained beside the field it was entered in rather than when a plan later refuses to build. The saved JSON remains visible, read-only, behind an expander.
+- A reviewable input the client has not supplied now falls back to a dated default and creates the candidate with a warning, instead of blocking the control. The candidate is inert either way, and the plan row says which value was assumed and that it must be confirmed before assigning. Identity inputs - emergency accounts, the office location, targeting groups - declare no default and still block, because a plausible but wrong exclusion is how a tenant locks itself out. A default older than 90 days reports itself as needing a re-check.
+- Standard 2026.09.9 targets the built-in All users and All devices populations. Groups are created only where a population has to be named: user and device policy exclusions, unenrolled mobile users, and pilot devices. The managed-users, managed-devices, Office-install and Autopilot groups are gone; the built-in targets replace them.
+- Reviewed minimum operating system versions: Windows 10.0.26200.0 (the 25H2 family; 24H2 Home and Pro reach end of updates on 13 October 2026), iOS 26.7 (the security-patched previous major; iOS 27 shipped in September 2026), Android 14 (Google issues security bulletins for 14 and later).
+- An optional identifier list may now be empty, so an Enrolment Status Page with no blocking application is expressible.
+- 50 controls, 42 recipes. Windows Autopatch is unchanged and remains deployment-mode only: the beta Windows updates namespace exposes no read-only permission.
+- CI is the only build and test evidence for this increment; the authoring environment could not run the .NET SDK. No live tenant, consent or write was performed.
+
 # 1.1.0-preview.8
 
 - Standard 2026.09.8 provisions the directory objects every other control depends on through the existing Plan → Deploy path: seven security groups (managed users, managed Windows devices, Office install ready, MAM-only users, pilot devices, Autopilot devices, Conditional Access exclusions) and the office IP named location. This closes the gap that left an engineer building groups by hand before any assignment or Conditional Access recipe could be used.

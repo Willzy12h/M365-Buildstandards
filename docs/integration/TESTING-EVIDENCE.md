@@ -1,5 +1,16 @@
 # Testing evidence — 15 September 2026
 
+## Input form, reviewed defaults and built-in targeting — preview.9
+
+- Same sandbox, still no .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence.
+- New synthetic coverage: `PolicyInputParserTests` (identifier lists typed with commas, new lines or mixed spacing; a bad identifier named in the problem text; empty text meaning "not supplied" rather than an error; invalid JSON and a JSON object where an array is required; per-type acceptance; render and read round-trips) and `PolicyInputDefaultsTests` (a missing reviewable input takes the default and warns; a supplied value is never replaced; an input the payload does not use is untouched; an identity input is never defaulted; a default older than 90 days says so).
+- Standard 2026.09.9 was generated from 2026.09.8: prerequisite groups reduced from seven to four, expected production targeting moved to the built-in populations, minimum iOS raised to 26.7, and dated defaults added for the Android minimum version and Enrolment Status Page blocking applications.
+- Minimum operating system versions were checked against vendor support on 15 September 2026, not carried over from training. Windows 11 build families 26100 (24H2) and 26200 (25H2), with 24H2 Home and Pro ending 13 October 2026. Android 14 and later receive Google security bulletins; 13 ended in March 2026. iOS 27 shipped in September 2026 alongside 26.7.
+- Not verified: that the generated form renders correctly in WPF beyond the synthetic harness, and everything already listed as unverified for preview.8.
+- No live tenant, consent, registration, write or GUI acceptance was performed.
+
+# Testing evidence — 15 September 2026 (preview.8)
+
 ## Directory prerequisites and administrator-access assessment — preview.8
 
 - Authored in the same sandbox, which still cannot download any .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence for this increment.
