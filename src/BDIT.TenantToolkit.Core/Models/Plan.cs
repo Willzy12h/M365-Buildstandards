@@ -45,6 +45,13 @@ public sealed class PlanRow
     public string SafeState { get; set; } = "";
     public string ExpectedProductionState { get; set; } = "";
     public string ExpectedProductionAssignment { get; set; } = "";
+
+    /// <summary>
+    /// True when at least one reviewable input fell back to the standard's shipped default because the client profile
+    /// carried none. The candidate is still inert, and <see cref="Warnings"/> names each value, but it must not be
+    /// assigned or enabled until an engineer confirms them.
+    /// </summary>
+    public bool UsesDefaultInputs { get; set; }
     public List<string> Warnings { get; set; } = new();
 
     [JsonIgnore] public bool IsWrite => Action is PlanAction.Create or PlanAction.Update;

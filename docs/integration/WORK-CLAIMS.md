@@ -11,6 +11,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-11 | Claude | M365-Buildstandards | documentation | `claude/github-repo-access-ygieh2` | #3 | Open |
 | 2026-09-15 | Claude | M365-Buildstandards | assessment, collection, evidence persistence, tests, standard 2026.09.7 | `claude/github-repo-access-ygieh2` (merges PR #2) | #3 | Open |
 | 2026-09-15 | Claude | M365-Buildstandards | build standard data, planning, deployment safety, assessment, standard 2026.09.8 | `claude/github-repo-access-ygieh2` | #3 | Open |
+| 2026-09-15 | Claude | M365-Buildstandards | interface, planning, build standard data, standard 2026.09.9 | `claude/github-repo-access-ygieh2` | none yet | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 

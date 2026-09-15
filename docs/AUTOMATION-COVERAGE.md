@@ -1,13 +1,13 @@
-# Automation coverage — 2026.09.8
+# Automation coverage — 2026.09.9
 
 Use **Policy automation** for inputs, imports, prerequisites, assignments, packages and readiness. Create policy/app candidates through the existing **Plan → Deploy** workflow. Candidates stay disabled/unassigned until a separate activation is explicitly approved.
 
-**53 controls: 45 candidate recipes (8 of them directory prerequisites added in 2026.09.8), 4 reviewed tenant-action workflows (3 assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows. 49 of 53 controls report automatically.** This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
+**50 controls: 42 candidate recipes (5 of them prerequisites), 4 reviewed tenant-action workflows (3 assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows. 46 of 50 controls report automatically.** Policies target the built-in All users and All devices populations; the groups the toolkit creates exist to be excluded from them. This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
 
 ## Required client inputs
 
 - Public IP ranges (CIDR) of the office egress for the named location. Confirm them with the client; an internal range or a stale address silently excludes the wrong network. Everything else about the prerequisites is generated.
-- Android minimum supported OS; ESP blocking app IDs already published in this tenant (Office is excluded from ESP).
+- Android minimum supported OS and Enrolment Status Page blocking app IDs. Both now ship a dated default (Android 14; no blocking applications), so leaving them empty creates the candidate with a warning instead of blocking it. Minimum Windows build 10.0.26200.0 and minimum iOS 26.7 are recorded in the recipes and were reviewed on 15 September 2026.
 - Reviewed OneDrive and Edge Settings Catalogue instances or policy JSON exports including their separate settings collection. This release does not guess Microsoft setting identifiers, browser preferences, or foreign tenant IDs. The engine resolves definition IDs/choices before creation. Import requires explicit GUID replacements, including GUIDs embedded in string values.
 - Store IDs for Chrome, Adobe Reader, OneDrive and Teams. Only Intune-compatible Microsoft Store identifiers are accepted; a community winget ID is not sufficient. If a product is unavailable through that source, import a supported Win32 metadata export for that control and publish its client-approved .intunewin package.
 - RMM and third-party endpoint agent .intunewin packages, installation/uninstall commands and detection rules. The code publishes supplied packages; it does not generate vendor installers, embed tenant tokens, create vendor subscriptions, or prove console check-in.
@@ -17,14 +17,11 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 
 | Control | Requirement | Implementation path | Inputs / remaining review |
 | --- | --- | --- | --- |
-| PRE-001 | GRP - Managed Users | Candidate recipe | Membership populated by an engineer |
-| PRE-002 | GRP - Managed Windows Devices | Candidate recipe | Membership populated by an engineer |
-| PRE-003 | GRP - Office Install Ready | Candidate recipe | Membership populated by an engineer |
-| PRE-004 | GRP - MAM Only Users | Candidate recipe | Membership populated by an engineer; recorded as mamGroupId |
-| PRE-005 | GRP - Pilot Devices | Candidate recipe | Membership populated by an engineer; recorded as pilotGroupId |
-| PRE-006 | GRP - Autopilot Devices | Candidate recipe | Membership populated by an engineer |
-| PRE-007 | GRP - Conditional Access Exclusions | Candidate recipe | Normally empty; recorded as caExclusionGroupId |
-| PRE-008 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
+| PRE-001 | GRP - Policy Exclusions Users | Candidate recipe | Emergency accounts and the deploying engineer are added by an engineer |
+| PRE-002 | GRP - Policy Exclusions Devices | Candidate recipe | Build and test machines only |
+| PRE-003 | GRP - MAM Only Users | Candidate recipe | No built-in equivalent; population named explicitly |
+| PRE-004 | GRP - Pilot Devices | Candidate recipe | Optional; the staged step before All devices |
+| PRE-005 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
 | ID-001 | Emergency access accounts | Readiness check plus engineer/external step | Review scope and prerequisites |
 | ID-002 | Authentication methods and Temporary Access Pass | Assessed from the authentication methods policy (Authenticator and TAP enabled, SMS and voice disabled); changed through reviewed authentication-method actions | Number-matching enforcement, emergency-account sign-in and removal of existing SMS/voice registrations remain engineer checks |
 | ID-003 | Administrator access | Assessed from directory role membership (two to four permanent Global Administrators) | Eligible Privileged Identity Management assignments, dedicated-account and licence checks remain engineer checks |
@@ -73,6 +70,8 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 
 ## Consequences and recovery
 
+- Targeting uses the built-in All users and All devices populations, so a policy reaches everyone it should without a membership list to maintain. Each assignment names one exclusion group, which is the only membership an engineer has to keep current.
+- A reviewable input the client has not supplied falls back to the standard's dated default and the plan row warns, naming the value and saying it must be confirmed before assignment. Identity inputs carry no default and still block the control.
 - Prerequisite groups are created empty with assigned membership. No member, owner, dynamic rule, mail enablement or role-assignable flag is written, so a created group grants nothing until an engineer populates it. Deleting a toolkit-created group removes it from every policy that already references it.
 - The office named location is created untrusted. Marking it trusted changes risk evaluation for every Conditional Access policy in the tenant and is a separate decision. Only IPv4/IPv6 CIDR ranges supplied as a reviewed input are written; country locations are refused.
 - Deployment mode now requests Group.ReadWrite.All. That permission is wider than any object the toolkit writes with it: creation is restricted to the collection root by the route allow list and the payload by the creation guard, but the consent itself covers all groups. Re-consent is required on both registrations before prerequisites can be created; assessment mode remains read-only.

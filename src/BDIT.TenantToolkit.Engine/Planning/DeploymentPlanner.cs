@@ -82,7 +82,7 @@ public sealed class DeploymentPlanner
         {
             var control = standard.FindControl(id);
             if (control is null) continue;
-            rows.Add(BuildRow(control, standard, snapshot, profile, request.Mappings, request.Deviations, session, names, parameters));
+            rows.Add(BuildRow(control, standard, snapshot, profile, request.Mappings, request.Deviations, session, names, parameters, _clock.UtcNow));
         }
 
         var plan = new DeploymentPlan
@@ -111,7 +111,8 @@ public sealed class DeploymentPlanner
     }
 
     private static PlanRow BuildRow(ControlDefinition control, StandardCatalogue standard, TenantSnapshot snapshot, TenantProfile profile,
-        ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, TenantSession session, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters)
+        ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, TenantSession session, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters,
+        DateTimeOffset now)
     {
         var row = new PlanRow
         {
@@ -159,8 +160,13 @@ public sealed class DeploymentPlanner
         JsonObject payload;
         try
         {
-            PolicyInputValidator.ValidateUsed(control.Payload!, standard, parameters);
-            payload = (JsonObject)CanonicalJson.Resolve(control.Payload, parameters)!;
+            // A reviewable setting the client has not supplied yet falls back to the standard's default and warns,
+            // rather than blocking the whole control. Identity inputs declare no default, so they still block here.
+            var defaults = PolicyInputDefaults.Apply(control.Payload!, standard, parameters, now);
+            foreach (var warning in defaults.Warnings) row.Warnings.Add(warning);
+            row.UsesDefaultInputs = defaults.Warnings.Count > 0;
+            PolicyInputValidator.ValidateUsed(control.Payload!, standard, defaults.Values);
+            payload = (JsonObject)CanonicalJson.Resolve(control.Payload, defaults.Values)!;
         }
         catch (MissingParameterException ex)
         {
@@ -354,7 +360,7 @@ public sealed class DeploymentPlanner
             var def = ctx.Standard.FindCollection(row.Collection) ?? throw new PlanValidationException($"{row.ControlId}: unknown collection '{row.Collection}'.");
             var control = ctx.Standard.FindControl(row.ControlId) ?? throw new PlanValidationException($"Unknown control {row.ControlId}.");
             var expected = BuildRow(control, ctx.Standard, ctx.Snapshot, ctx.Profile, ctx.Mappings, ctx.Deviations, ctx.Session,
-                NameResolver.FromSnapshot(ctx.Snapshot), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId));
+                NameResolver.FromSnapshot(ctx.Snapshot), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId), ctx.Now);
             if (!expected.IsWrite || expected.Action != row.Action || expected.Collection != row.Collection || expected.ObjectId != row.ObjectId
                 || CanonicalJson.Serialize(expected.Payload) != CanonicalJson.Serialize(row.Payload))
                 throw new PlanValidationException($"{row.ControlId}: the write is not ready or differs from the current reviewed recipe. {expected.Reason}");

@@ -19,9 +19,25 @@
    </StackPanel></TabItem>
    <TabItem Header="Policy inputs and imports"><StackPanel Margin="16">
     <TextBlock Text="Client policy inputs" Style="{StaticResource H2}"/>
-    <TextBlock Text="Enter a JSON object using the named inputs above. GUID lists are JSON arrays; minimum OS versions and Store IDs are strings. Never enter credentials, tokens or private keys." Style="{StaticResource Muted}"/>
-    <TextBox Text="{Binding PolicyInputs, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="170" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Policy input JSON"/>
+    <TextBlock Text="Fill in what the client has confirmed. Anything left empty either uses the reviewed default shown beside the field, or blocks only the controls that need it. Never enter credentials, tokens or private keys." Style="{StaticResource Muted}"/>
+    <ItemsControl ItemsSource="{Binding InputFields}" AutomationProperties.Name="Client policy inputs">
+     <ItemsControl.ItemTemplate><DataTemplate>
+      <Border Style="{StaticResource Panel}" Margin="0,0,0,8"><StackPanel>
+       <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}"/>
+       <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+       <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MaxHeight="90"
+                VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label}"/>
+       <TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+       <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+       <TextBlock Text="{Binding Problem}" Foreground="{StaticResource Danger}" TextWrapping="Wrap"
+                  Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
+      </StackPanel></Border>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
     <Button Content="Save inputs" Command="{Binding SaveInputsCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Expander Header="Saved input JSON (read-only)" Margin="0,8,0,0">
+     <TextBox Text="{Binding PolicyInputs, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" Height="120" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Saved policy input JSON"/>
+    </Expander>
     <TextBlock Text="Import a Graph policy export" Style="{StaticResource H2}" Margin="0,16,0,8"/>
     <TextBlock Text="Disconnect first. Imports create a local candidate standard under the selected tenant's data folder. Source assignments and metadata are removed; foreign GUID values need explicit replacements." Style="{StaticResource Muted}"/>
     <WrapPanel><Button Content="Choose JSON" Command="{Binding ChooseImportCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="{Binding ImportFile}" VerticalAlignment="Center"/></WrapPanel>
