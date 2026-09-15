@@ -1,3 +1,8 @@
+# 1.1.0-preview.11
+
+- The offline interface harness now captures the Build Standard and Policy automation pages as images, seeded with a supplied value and a rejected one so both states of the generated input form are visible. Every page was already materialised and binding-checked; these two were the pages a reviewer most needs to see and were the only ones not pictured.
+- Added [testing this build](docs/TESTING-THIS-BUILD.md): where to download the ready-to-run package, how to unblock it, what to review without connecting a tenant, the order to follow when connecting one, and the known limits of this preview.
+
 # 1.1.0-preview.10
 
 - Added the client-facing build standard document, generated from the loaded standard rather than written by hand. It gives each control in plain English: what it protects, what good looks like, what happens without it, how it is applied, who it applies to, and what the client still has to supply or has had assumed on their behalf. It ends with a table of everything still waiting on the client. Exported as HTML or Markdown from the Build Standard page, prepared for a named client.

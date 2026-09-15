@@ -67,7 +67,10 @@ internal static class Program
             content.DataContext = shell;
             SeedWorkspace(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy" }, StringComparer.Ordinal);
+            // Pages that are captured as images for human review. Every page is still materialised and binding-checked
+            // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
+            // enters client inputs and reads the build standard.
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "automation", "standard" }, StringComparer.Ordinal);
             foreach (var size in new[] { new Size(1480, 940), new Size(1180, 760) })
             {
                 foreach (var nav in shell.NavItems)
@@ -229,6 +232,22 @@ internal static class Program
             });
         }
         if (key == "plan") shell.Page<PlanViewModel>().SelectedRow = shell.Page<PlanViewModel>().Rows.FirstOrDefault();
+        if (key == "standard")
+        {
+            var vm = shell.Page<StandardViewModel>();
+            vm.Selected = vm.Controls.FirstOrDefault();
+            vm.ClientName = "Synthetic client — UI review only";
+        }
+        if (key == "automation")
+        {
+            var vm = shell.Page<AutomationViewModel>();
+            vm.SelectedControl ??= vm.Controls.FirstOrDefault();
+            // One supplied value and one rejected value, so the reviewer sees both states of the generated form.
+            var list = vm.InputFields.FirstOrDefault(f => f.Type == "guidList");
+            if (list is not null) { list.Value = Id(11) + ", " + Id(12); list.TryRead(out _); }
+            var text = vm.InputFields.FirstOrDefault(f => f.Type == "guid");
+            if (text is not null) { text.Value = "not-an-object-id"; text.TryRead(out _); }
+        }
         if (key == "setup")
         {
             var vm = shell.Page<ApplicationSetupViewModel>();
