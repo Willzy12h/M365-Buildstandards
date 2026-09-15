@@ -53,9 +53,23 @@ public sealed class TenantCollector
 
         var total = standard.Collections.Count;
         var completed = 0;
+        var cancelled = false;
         foreach (var (key, def) in standard.Collections)
         {
             if (!preservePartialOnCancellation) ct.ThrowIfCancellationRequested();
+            if (cancelled)
+            {
+                // Once cancellation has been observed nothing further is read. The remaining collections are recorded as
+                // not attempted, never as read failures, so partial evidence stays truthful about what was and was not tried.
+                snapshot.Collections[key] = new CollectionCapture
+                {
+                    Api = def.ApiVersion == GraphApi.Beta ? "beta" : "v1.0", Path = def.Path, Status = CaptureStatus.NotAttempted,
+                    Error = "Not attempted: the capture was cancelled before this collection was read.", DetailIncomplete = true
+                };
+                completed++;
+                progress?.Report(new CollectionProgress(key, def.Label, completed, total, $"{def.Label}: not attempted (capture cancelled)"));
+                continue;
+            }
             progress?.Report(new CollectionProgress(key, def.Label, completed, total, $"Collecting {def.Label}"));
             var capture = new CollectionCapture { Api = def.ApiVersion == GraphApi.Beta ? "beta" : "v1.0", Path = def.Path };
             try
@@ -105,6 +119,7 @@ public sealed class TenantCollector
                 capture.Status = CaptureStatus.Error;
                 capture.Error = "Capture cancelled or time budget reached; this collection is incomplete.";
                 capture.DetailIncomplete = true;
+                cancelled = true;
             }
             catch (OperationCanceledException) { throw; }
             catch (ToolkitException ex)

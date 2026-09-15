@@ -52,6 +52,32 @@ public class CollectorAndProfileTests
     }
 
     [Fact]
+    public async Task Cancelled_partial_capture_stops_reading_and_records_the_rest_as_not_attempted()
+    {
+        var standard = TestData.Standard();
+        var fake = new FakeGraphClient(standard);
+        var collector = new TenantCollector(NullLog.Instance, new FixedClock(), "test");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var snapshot = await collector.CollectAsync(fake, TestData.Session(), TestData.Profile(), standard, null, cancellation.Token, preservePartialOnCancellation: true);
+
+        Assert.False(snapshot.Complete);
+        Assert.Empty(fake.Reads);
+        Assert.Equal(standard.Collections.Count, snapshot.Collections.Count);
+        var firstKey = standard.Collections.Keys.First();
+        Assert.Equal(CaptureStatus.Error, snapshot.Collections[firstKey].Status);
+        Assert.Contains("cancelled", snapshot.Collections[firstKey].Error, StringComparison.OrdinalIgnoreCase);
+        foreach (var key in standard.Collections.Keys.Skip(1))
+        {
+            Assert.Equal(CaptureStatus.NotAttempted, snapshot.Collections[key].Status);
+            Assert.False(snapshot.Collections[key].Usable);
+        }
+        // Without partial preservation, cancellation is an exception exactly as before.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => collector.CollectAsync(fake, TestData.Session(), TestData.Profile(), standard, null, cancellation.Token));
+    }
+
+    [Fact]
     public void Profile_validation_normalises_and_rejects_bad_values()
     {
         var now = DateTimeOffset.UtcNow;

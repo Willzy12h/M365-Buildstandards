@@ -122,4 +122,33 @@ public class StandardsTests
                 Assert.Equal("disabled", control.Payload!["state"]!.GetValue<string>());
         }
     }
+
+    /// <summary>
+    /// From 2026.09.7 the three controls that are changed only through reviewed tenant actions are assessed from the
+    /// collections the toolkit already captures. They stay manual-mode (no recipe, no Plan → Deploy path) but declare
+    /// equivalence signals, so a report shows the tenant's actual state instead of "requires manual review".
+    /// </summary>
+    [Fact]
+    public void Latest_shipped_standard_assesses_reviewed_action_controls_from_evidence()
+    {
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.7.json"));
+        if (!File.Exists(file)) return;
+        var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+        Assert.Equal("2026.09.7", catalogue.Release);
+        Assert.Equal(45, catalogue.Controls.Count);
+        Assert.Equal(37, catalogue.Controls.Count(c => c.HasRecipe));
+        foreach (var id in new[] { "ID-002", "ENR-001", "CMP-001" })
+        {
+            var control = catalogue.FindControl(id)!;
+            Assert.Equal(AssessmentMode.Manual, control.Assessment.Mode);
+            Assert.Null(control.Payload);
+            Assert.NotNull(control.Equivalence);
+            Assert.NotEmpty(control.Equivalence!.Required);
+            Assert.True(catalogue.Collections.ContainsKey(control.Equivalence.Collection ?? control.Collection!));
+        }
+        Assert.Contains(catalogue.FindControl("ID-002")!.Equivalence!.Signals, s => s.Path.Contains("[id=Sms]", StringComparison.Ordinal));
+        // Manual-by-nature controls carry no equivalence claim: nothing readable proves them.
+        foreach (var id in new[] { "ID-001", "ID-003", "ENR-005", "ENR-006", "UPD-001" })
+            Assert.Null(catalogue.FindControl(id)!.Equivalence);
+    }
 }

@@ -183,8 +183,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         finally
         {
             run.EndedAt = Timestamps.Format(clock.UtcNow);
-            try { evidence.SaveRecoveryRun(run); }
-            catch (Exception ex) { run.Status = RunStatus.ReviewRequired; run.Reason = "Final recovery evidence could not be saved: " + SensitiveDataScrubber.Scrub(ex.Message); }
+            EvidencePersistence.SaveTerminal(() => evidence.SaveRecoveryRun(run), message => { run.Status = RunStatus.ReviewRequired; run.Reason = EvidencePersistence.Append(run.Reason, message); });
         }
         return run;
     }

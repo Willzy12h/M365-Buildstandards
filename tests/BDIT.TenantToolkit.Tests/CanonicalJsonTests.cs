@@ -64,6 +64,24 @@ public class CanonicalJsonTests
     }
 
     [Fact]
+    public void TryAt_selects_array_elements_by_key_value_without_touching_dotted_paths()
+    {
+        var policy = ToolkitJson.ParseObject("""{"authenticationMethodConfigurations":[{"id":"Sms","state":"disabled"},{"id":"MicrosoftAuthenticator","state":"enabled","featureSettings":{"numberMatchingRequiredState":{"state":"enabled"}}}],"plain":{"state":"x"}}""");
+
+        Assert.True(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=Sms].state", out var sms));
+        Assert.Equal("disabled", sms!.GetValue<string>());
+        Assert.True(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=microsoftauthenticator].featureSettings.numberMatchingRequiredState.state", out var matching));
+        Assert.Equal("enabled", matching!.GetValue<string>());
+        Assert.Equal("x", CanonicalJson.At(policy, "plain.state")!.GetValue<string>());
+
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=Voice].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "plain[state=x].state", out _));
+        Assert.Null(CanonicalJson.At(policy, "authenticationMethodConfigurations[state=enabled].missing"));
+    }
+
+    [Fact]
     public void Normalise_makes_array_order_irrelevant_and_drops_keys()
     {
         var a = ToolkitJson.ParseNode("""{"items":[{"id":"b"},{"id":"a"}],"@odata.etag":"1"}""");

@@ -233,7 +233,13 @@ public static class CanonicalJson
     public static JsonNode? At(JsonNode? node, string path)
         => TryAt(node, path, out var value) ? value : null;
 
-    /// <summary>Unlike At, reports whether the member exists when its value is JSON null.</summary>
+    /// <summary>
+    /// Unlike At, reports whether the member exists when its value is JSON null. A segment written as
+    /// <c>name[key=value]</c> selects the first element of the array at <c>name</c> whose <c>key</c> member equals
+    /// <c>value</c> (string comparison, case-insensitive), so a policy that Graph returns as one object holding an array
+    /// of typed configurations - the authentication methods policy, for example - can be addressed by element identity:
+    /// <c>authenticationMethodConfigurations[id=Sms].state</c>. The value must not contain a dot.
+    /// </summary>
     public static bool TryAt(JsonNode? node, string path, out JsonNode? value)
     {
         value = node;
@@ -241,8 +247,29 @@ public static class CanonicalJson
         var current = node;
         foreach (var segment in path.Split('.'))
         {
-            if (current is JsonObject obj && obj.TryGetPropertyValue(segment, out var next)) current = next;
+            var name = segment;
+            string? selectorKey = null, selectorValue = null;
+            var open = segment.IndexOf('[', StringComparison.Ordinal);
+            if (open > 0 && segment.EndsWith("]", StringComparison.Ordinal))
+            {
+                var selector = segment[(open + 1)..^1];
+                var equals = selector.IndexOf('=', StringComparison.Ordinal);
+                if (equals <= 0 || equals == selector.Length - 1) { value = null; return false; }
+                name = segment[..open];
+                selectorKey = selector[..equals];
+                selectorValue = selector[(equals + 1)..];
+            }
+            if (current is JsonObject obj && obj.TryGetPropertyValue(name, out var next)) current = next;
             else { value = null; return false; }
+            if (selectorKey is not null)
+            {
+                current = current is JsonArray array
+                    ? array.OfType<JsonObject>().FirstOrDefault(element =>
+                        element[selectorKey] is JsonValue candidate && candidate.TryGetValue<string>(out var text)
+                        && string.Equals(text, selectorValue, StringComparison.OrdinalIgnoreCase))
+                    : null;
+                if (current is null) { value = null; return false; }
+            }
         }
         value = current;
         return true;

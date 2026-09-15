@@ -93,7 +93,7 @@ public sealed class EntraLapsService(EvidenceStore evidence, IClock clock)
             run.Status = RunStatus.ReviewRequired;
             run.Error = SensitiveDataScrubber.Scrub(ex.Message);
         }
-        finally { run.EndedAt = clock.UtcNow; evidence.SaveEntraLapsRun(run); }
+        finally { run.EndedAt = clock.UtcNow; EvidencePersistence.SaveTerminal(() => evidence.SaveEntraLapsRun(run), message => { run.Status = RunStatus.ReviewRequired; run.Error = EvidencePersistence.Append(run.Error, message); }); }
         return run;
     }
 

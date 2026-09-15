@@ -46,6 +46,19 @@ Unit tests exercise safety logic with a scripted Graph client. They cannot prove
 | Policy with the standard name but different settings | *Partial match* with property-level differences |
 | Approved deviation for a missing control | *Compliant (approved deviation)*; the underlying finding appears in the notes |
 
+## Evidence-based assessment of reviewed-action controls (2026.09.7)
+
+| Check | Expected |
+|---|---|
+| Capture a tenant with Authenticator and TAP enabled, SMS and voice disabled | ID-002 reports *Partial match — equivalent configuration observed* naming the authentication methods policy; never *Compliant* |
+| Same tenant with SMS still enabled | ID-002 lists the policy with the SMS signal unmatched; the closest-object note names it |
+| TAP reusable or lifetime over 60 minutes | The caveat is shown alongside the match |
+| MDM policy applies to all users | ENR-001 partial match; with *selected* the caveat "Applies to selected groups only" appears |
+| Intune tenant setting secure-by-default on / off | CMP-001 partial match / signal unmatched |
+| Authentication policy read denied (revoke `Policy.Read.AuthenticationMethod`) | ID-002 *Unable to assess*, never *Missing*; the note says the collection was not usable |
+
+The `authenticationMethodConfigurations[id=…]` paths assume Graph returns the singleton policy with its configurations inline and `id` values `MicrosoftAuthenticator`, `Sms`, `Voice`, `TemporaryAccessPass`, `Email`. Confirm against the first real capture and adjust the standard, not the code, if they differ.
+
 ## Deployment (each recipe once)
 
 For each of CA-001, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009, CA-010, CMP-WIN-001, CMP-IOS-001, CFG-WIN-003, CFG-WIN-001 and CFG-WIN-007:
@@ -109,3 +122,9 @@ Record actual device/sign-in effects separately from Graph configuration verific
 - Test included engineer assignment versus omitted assignment; separately test the delegated-admin access check with authorised GDAP roles. No directory role is granted by the toolkit.
 - Review every supplied BitLocker field and every omitted recovery/algorithm/removable option in Intune. Confirm the 14-character PIN setting has no effect while TPM PINs are prohibited. Verify no assignments. Then separately authorise a compatible pilot-device test of encryption, recovery escrow and recovery access.
 - Confirm optional long paths on a compatible pilot device/application after separate assignment. Test selective recovery of each unassigned candidate and refused recovery while assigned. Policy deletion must never be described as device decryption.
+
+## Cancellation evidence
+
+| Check | Expected |
+|---|---|
+| Stop during the after-change capture | The run is *Review required* with *After-change capture cancelled by operator; partial evidence retained*; the collection being read is *Error (cancelled)* and every later collection is *Not attempted*, not an error |

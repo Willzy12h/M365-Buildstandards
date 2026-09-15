@@ -1,3 +1,11 @@
+# 1.1.0-preview.7
+
+- Standard 2026.09.7 assesses ID-002 (authentication methods and TAP), ENR-001 (MDM scope) and CMP-001 (tenant compliance default) from captured evidence using equivalence signals, so 40 of 45 controls now report automatically; the reviewed tenant actions that change them are unchanged. Equivalence paths can address array elements by key (`authenticationMethodConfigurations[id=Sms].state`).
+- Cancelling a partial capture (operator stop, verification time budget) now stops reading at the first cancellation and records every remaining collection as *Not attempted* instead of a read error, so after-change evidence says what was and was not tried.
+- Terminal evidence saves in the LAPS, reviewed-change, package-publishing and recovery services no longer mask the exception that ended the run; a save failure is recorded on the run and retried once, matching the deployment executor.
+- Added synthetic tests for the reviewed-change guard (every kind: authentication methods, TAP, MDM scope, tenant compliance, CA activation, assignment, Autopatch, and that plan free-text cannot widen a route or payload), Entra LAPS payload preservation, capture cancellation and the equivalence array selector. These are the first tests covering the preview.6 write surface.
+- CI is the only build and test evidence for this increment; the authoring environment could not run the .NET SDK. No live tenant, consent or write was performed.
+
 # 1.1.0-preview.6
 
 - Expand to 37 candidate recipes, with typed tenant inputs, broader Graph JSON imports and saved local standards.

@@ -1,8 +1,8 @@
-# Automation coverage — 2026.09.6
+# Automation coverage — 2026.09.7
 
 Use **Policy automation** for inputs, imports, prerequisites, assignments, packages and readiness. Create policy/app candidates through the existing **Plan → Deploy** workflow. Candidates stay disabled/unassigned until a separate activation is explicitly approved.
 
-**45 controls: 37 candidate recipes, 4 reviewed tenant-action workflows, 4 readiness/engineer workflows.** This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
+**45 controls: 37 candidate recipes, 4 reviewed tenant-action workflows (3 of them assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows.** This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
 
 ## Required client inputs
 
@@ -17,7 +17,7 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 | Control | Requirement | Implementation path | Inputs / remaining review |
 | --- | --- | --- | --- |
 | ID-001 | Emergency access accounts | Readiness check plus engineer/external step | Review scope and prerequisites |
-| ID-002 | Authentication methods and Temporary Access Pass | Reviewed authentication-method actions | Review scope and prerequisites |
+| ID-002 | Authentication methods and Temporary Access Pass | Assessed from the authentication methods policy (Authenticator and TAP enabled, SMS and voice disabled); changed through reviewed authentication-method actions | Number-matching enforcement, emergency-account sign-in and removal of existing SMS/voice registrations remain engineer checks |
 | ID-003 | Administrator access | Readiness check plus engineer/external step | Review scope and prerequisites |
 | CA-001 | Require MFA | Candidate recipe | emergencyAccountIds, officeLocationId |
 | CA-003 | Block legacy authentication | Candidate recipe | emergencyAccountIds |
@@ -28,13 +28,13 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 | CA-008 | Corporate mobile compliance | Candidate recipe | emergencyAccountIds, officeLocationId, mamGroupId |
 | CA-009 | Secure security-info registration | Candidate recipe | emergencyAccountIds, officeLocationId |
 | CA-010 | Secure device registration | Candidate recipe | officeLocationId |
-| ENR-001 | Automatic MDM enrolment | Reviewed MDM enrolment scope change | Review scope and prerequisites |
+| ENR-001 | Automatic MDM enrolment | Assessed from the MDM enrolment policies (Intune policy applies to all users); changed through the reviewed MDM scope action | Licensing and Entra-join state remain engineer checks |
 | ENR-002 | Enrolment restrictions | Candidate recipe | Review scope and prerequisites |
 | ENR-003 | Windows Autopilot profile | Candidate recipe | Review scope and prerequisites |
 | ENR-004 | Enrolment Status Page | Candidate recipe | espBlockingAppIds |
 | ENR-005 | Apple MDM ownership and certificate | Readiness check plus engineer/external step | Review scope and prerequisites |
 | ENR-006 | Managed Google Play connection | Readiness check plus engineer/external step | Review scope and prerequisites |
-| CMP-001 | Devices with no compliance policy | Reviewed tenant compliance setting | Review scope and prerequisites |
+| CMP-001 | Devices with no compliance policy | Assessed from Intune tenant settings (secure-by-default on); changed through the reviewed tenant compliance action | Compliance policy assignment and CA device requirements remain separate controls |
 | CMP-WIN-001 | Windows core compliance | Candidate recipe | Review scope and prerequisites |
 | CMP-WIN-002 | Defender compliance supplement | Candidate recipe | Review scope and prerequisites |
 | CMP-IOS-001 | iOS and iPadOS compliance | Candidate recipe | Review scope and prerequisites |

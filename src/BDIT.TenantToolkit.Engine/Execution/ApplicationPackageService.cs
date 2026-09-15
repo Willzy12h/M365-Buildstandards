@@ -109,7 +109,7 @@ public sealed class ApplicationPackageService(EvidenceStore evidence, IClock clo
             // Do not persist Graph error bodies, signed storage URIs or encryption material.
             run.Error = "Package publishing stopped (" + ex.GetType().Name + "). Review recorded stage acceptance and IDs. No failed write is automatically replayed; encryption and storage credentials are never saved.";
         }
-        finally { run.EndedAt = clock.UtcNow; evidence.SavePackageRun(run); }
+        finally { run.EndedAt = clock.UtcNow; EvidencePersistence.SaveTerminal(() => evidence.SavePackageRun(run), message => { run.Status = RunStatus.ReviewRequired; run.Error = EvidencePersistence.Append(run.Error, message); }); }
         return run;
         async Task<JsonObject> Write(Win32ContentAction action, JsonObject body)
         {

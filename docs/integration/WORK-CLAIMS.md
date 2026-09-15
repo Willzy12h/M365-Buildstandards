@@ -8,7 +8,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 | Claimed | Agent | Repository | Feature area | Branch | Pull request | Status |
 |---|---|---|---|---|---|---|
-| 2026-09-11 | Claude | M365-Buildstandards | documentation | `claude/github-repo-access-ygieh2` | — | Open |
+| 2026-09-11 | Claude | M365-Buildstandards | documentation | `claude/github-repo-access-ygieh2` | #3 | Open |
+| 2026-09-15 | Claude | M365-Buildstandards | assessment, collection, evidence persistence, tests, standard 2026.09.7 | `claude/github-repo-access-ygieh2` (merges PR #2) | #3 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 

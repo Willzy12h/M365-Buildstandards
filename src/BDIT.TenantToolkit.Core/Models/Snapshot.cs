@@ -7,6 +7,8 @@ public static class CaptureStatus
 {
     public const string Collected = "Collected";
     public const string Error = "Error";
+    /// <summary>Never read: capture was cancelled before this collection was reached. Distinct from a read that was tried and failed.</summary>
+    public const string NotAttempted = "Not attempted";
 }
 
 /// <summary>A read-only capture of tenant configuration, stored locally as evidence and used for assessment, planning and drift.</summary>

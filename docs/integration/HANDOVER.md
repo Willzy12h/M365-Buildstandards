@@ -39,18 +39,18 @@ See [testing evidence](TESTING-EVIDENCE.md) for actual checks. Source and synthe
 | Priority | State | Required verification / next work |
 |---|---|---|
 | P1 | Implemented but live-unverified | Authorised tenant: bootstrap sign-in, app creation, consent propagation, direct engineer assignment, separate assessment/deployment sign-in |
-| P1 | Implemented but live-unverified | Capture pagination/details, actual permissions/licensing, all 18 candidate recipes, readback and supported inactive PATCH cases |
+| P1 | Implemented but live-unverified | Capture pagination/details, actual permissions/licensing, all 37 candidate recipes, readback and supported inactive PATCH cases |
 | P1 | Connected-session-unverified | Sign-in/capture/setup/policy cancellation and shutdown, network failure and recovery |
 | P1 | Implemented; synthetic tests only | In an authorised disposable tenant, create a disabled/unassigned candidate, remove it and confirm absence; test restoration and reviewed CA disablement with full evidence |
 | P1 | Manual recovery for unknown acceptance | Accepted writes now have read-only re-verification. Truly ambiguous requests still require separately reviewed reconciliation; no automatic rollback/adoption/delete-and-retry |
 | P2 | Limited validation | Group-based assignment, PIM/custom-role effectiveness and Intune RBAC are not inferred from direct role/assignment reads |
 | P2 | Acceptance pending | Human keyboard, screen-reader, high-DPI and representative large-tenant usability testing; offline rendering is narrower evidence |
-| P2 | Manual-only scope | 27 controls have no creation recipe. Add each only with reviewed settings, supported API behaviour, safeguards and tests |
+| P2 | Manual-only scope | 8 controls have no creation recipe. ID-002, ENR-001 and CMP-001 are assessed from evidence and changed through reviewed tenant actions; ID-001, ID-003, ENR-005, ENR-006 and UPD-001 need an engineer or vendor portal. Add a recipe only with reviewed settings, supported API behaviour, safeguards and tests |
 | Later | Deferred | App-only identity, automatic policy activation/assignment, cloud interface and extra workloads |
 
 The next concrete acceptance task is **application setup → consent → engineer assignment → read-only capture → licence/user checks**, followed by candidate creation and selective recovery in an explicitly authorised disposable scope. The user plans to test the expanded preview. Repository approval does not authorise tenant operations.
 
-Additional creation recipes remain follow-on work. Current manual controls often need client choices, provider dependencies or API validation; do not invent minimum OS versions, Defender risk thresholds or device targeting to claim broader automation. The four-policy SME batch is implemented as candidates; keep the current 18 recipes explicit.
+Additional creation recipes remain follow-on work. Current manual controls often need client choices, provider dependencies or API validation; do not invent minimum OS versions, Defender risk thresholds or device targeting to claim broader automation. The four-policy SME batch is implemented as candidates; keep the current 37 recipes explicit.
 
 Model preference: advise the user when a different model suits the next task. Astra with High reasoning is recommended for recovery, authentication, deployment safety and architecture; reserve faster models such as Spark for bounded low-risk presentation changes. This is guidance, not a claim that a model setting was changed.
 

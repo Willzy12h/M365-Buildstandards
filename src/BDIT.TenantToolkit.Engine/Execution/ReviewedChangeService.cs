@@ -185,7 +185,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             if (run.WriteAcceptance is WriteAcceptance.NotAttempted or WriteAcceptance.Rejected) run.Verification = ConfigurationVerification.NotRun;
             run.Status = RunStatus.ReviewRequired; run.Error = SensitiveDataScrubber.Scrub(ex.Message);
         }
-        finally { run.EndedAt = clock.UtcNow; evidence.SaveReviewedChangeRun(run); }
+        finally { run.EndedAt = clock.UtcNow; EvidencePersistence.SaveTerminal(() => evidence.SaveReviewedChangeRun(run), message => { run.Status = RunStatus.ReviewRequired; run.Error = EvidencePersistence.Append(run.Error, message); }); }
         return run;
     }
 

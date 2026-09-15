@@ -1,4 +1,13 @@
-# Testing evidence — 14 September 2026
+# Testing evidence — 15 September 2026
+
+## Evidence-based assessment, cancellation and persistence fixes — preview.7
+
+- Authored in a sandbox that could not download any .NET SDK (egress blocked to every Microsoft download host), so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence for this increment; read the check for the exact commit rather than this document.
+- New synthetic coverage: `ReviewedChangeSafetyTests` (authentication-method state changes, TAP fixed settings and single group, MDM scope limited to the Intune policy and `all`, tenant compliance preserving other settings, CA activation state-only on v1.0 by ID, group assignment/removal, Autopatch 1–50 distinct devices, and that plan free-text route/method/permission/API cannot widen a change); Entra LAPS payload preservation and refusal of unknown properties; capture cancellation marks remaining collections *Not attempted* and reads nothing further; `CanonicalJson.TryAt` array selector; 2026.09.7 declares equivalence on ID-002, ENR-001 and CMP-001 and on no manual-by-nature control.
+- Standard 2026.09.7 was generated from 2026.09.6 with equivalence rules added to three controls and their manual instructions updated; no recipe payload changed. The CI `standard` job checks every release for disabled Conditional Access state and absent assignments.
+- No live tenant, consent, registration, write or GUI acceptance was performed. The authentication methods, MDM policy and tenant settings shapes the equivalence paths rely on are taken from the Graph v1.0/beta resource documentation as previously recorded in AUTOMATION-COVERAGE.md and must be confirmed against a real capture.
+
+# Testing evidence — 14 September 2026 (historical)
 
 ## Expanded automation and follow-up review — preview.6
 
