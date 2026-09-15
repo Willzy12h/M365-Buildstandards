@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Standards;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
@@ -12,19 +13,45 @@ public sealed class StandardViewModel : PageViewModel
     private ControlDefinition? _selected;
     private string _search = "";
     private string _category = "All";
+    private string _clientName = "";
+    private string _lastExport = "";
 
     public StandardViewModel(ShellViewModel shell) : base(shell, "Build Standard")
     {
         SelectReleaseCommand = Sync(() => { if (SelectedRelease is not null && !Workspace.TrySelectStandard(SelectedRelease.FileName)) throw new Core.ConfigurationException(Workspace.StandardError ?? "Standard could not be loaded."); }, () => SelectedRelease is not null && Workspace.Idle);
+        ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.ClientHtml), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportDocumentMarkdownCommand = Command(() => ExportDocument(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
         Refresh();
     }
 
     public ICommand SelectReleaseCommand { get; }
+    public ICommand ExportDocumentCommand { get; }
+    public ICommand ExportDocumentMarkdownCommand { get; }
     public ObservableCollection<StandardRelease> Releases => Workspace.Releases;
     public ObservableCollection<ControlDefinition> Controls { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
 
     public StandardRelease? SelectedRelease { get => _selectedRelease; set => SetProperty(ref _selectedRelease, value); }
+
+    /// <summary>Name the document is prepared for. Defaults to the selected client so the common case needs no typing.</summary>
+    public string ClientName
+    {
+        get => _clientName.Length > 0 ? _clientName : Workspace.Profile?.Company ?? "";
+        set => SetProperty(ref _clientName, value);
+    }
+
+    public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
+
+    /// <summary>
+    /// Writes the client-facing build standard for the loaded release. It is generated rather than written, so it
+    /// cannot describe a setting the toolkit would not apply.
+    /// </summary>
+    private async Task ExportDocument(ExportFormat format)
+    {
+        var standard = Workspace.RequireStandard();
+        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportBuildStandard(standard, ClientName, DateTimeOffset.UtcNow, format));
+        LastExport = "Build standard document written: " + file;
+    }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
     public string Category { get => _category; set { if (SetProperty(ref _category, value)) ApplyFilter(); } }
 

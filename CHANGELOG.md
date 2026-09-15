@@ -1,3 +1,9 @@
+# 1.1.0-preview.10
+
+- Added the client-facing build standard document, generated from the loaded standard rather than written by hand. It gives each control in plain English: what it protects, what good looks like, what happens without it, how it is applied, who it applies to, and what the client still has to supply or has had assumed on their behalf. It ends with a table of everything still waiting on the client. Exported as HTML or Markdown from the Build Standard page, prepared for a named client.
+- The document deliberately excludes payloads, Graph paths and object identifiers. Those belong in the engineer reports, and a test holds the client document to it.
+- Generating rather than writing is the point: a document maintained separately from the recipes drifts from them within a release or two, and then it describes a tenant nobody has.
+
 # 1.1.0-preview.9
 
 - Client inputs are entered as a generated form, one labelled field per input, instead of one hand-written JSON object. A list is typed the way people write lists, separated by commas or new lines, and a wrong value is explained beside the field it was entered in rather than when a plan later refuses to build. The saved JSON remains visible, read-only, behind an expander.
