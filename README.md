@@ -8,6 +8,10 @@ Claude's C#/.NET implementation is the primary baseline. Asta remains a referenc
 
 To repair an existing preview installation, enter its exact assessment/deployment client IDs in **Application setup**, preview and approve the displayed changes, approve each app's permission list, then validate and continue. This updates registration redirects and branding through the reviewed workflow.
 
+## Testing this build
+
+A green build publishes a ready-to-run Windows package and a set of offline screenshots of every page. See [testing this build](docs/TESTING-THIS-BUILD.md) for how to download, unblock and run it, what to review without connecting a tenant, and the order to follow when you do connect one.
+
 ## Workflow and scope
 
 Connect read-only → capture → inspect/export → compare → select changes → check dependencies → review exact plan → deploy authorised candidates → verify/export.
