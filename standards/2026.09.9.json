@@ -81,7 +81,8 @@
       "path": "/groups?$select=id,displayName,description,mailNickname,mailEnabled,securityEnabled,groupTypes,membershipRule",
       "scope": "Group.Read.All",
       "label": "Groups",
-      "write": "Group.ReadWrite.All"
+      "write": "Group.ReadWrite.All",
+      "relationship": "members"
     },
     "users": {
       "api": "v1.0",
@@ -384,7 +385,8 @@
         "groupTypes": []
       },
       "equivalence": null,
-      "documentationNotes": "Assigned membership only. Dynamic membership rules, mail-enabled and role-assignable groups are refused by the creation guard, and existing groups are never adopted by name or modified."
+      "documentationNotes": "Assigned membership only. Dynamic membership rules, mail-enabled and role-assignable groups are refused by the creation guard, and existing groups are never adopted by name or modified.",
+      "exclusionRole": "users"
     },
     {
       "id": "PRE-002",
@@ -425,7 +427,8 @@
         "groupTypes": []
       },
       "equivalence": null,
-      "documentationNotes": "Assigned membership only. Dynamic membership rules, mail-enabled and role-assignable groups are refused by the creation guard, and existing groups are never adopted by name or modified."
+      "documentationNotes": "Assigned membership only. Dynamic membership rules, mail-enabled and role-assignable groups are refused by the creation guard, and existing groups are never adopted by name or modified.",
+      "exclusionRole": "devices"
     },
     {
       "id": "PRE-003",

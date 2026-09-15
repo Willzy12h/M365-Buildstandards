@@ -116,6 +116,13 @@ public sealed class ControlDefinition
     public ExpectedProduction ExpectedProduction { get; set; } = new();
     public SafeDeployment SafeDeployment { get; set; } = new();
     public JsonObject? Payload { get; set; }
+
+    /// <summary>
+    /// Marks a group this standard creates as the tenant's exclusion list: "users" or "devices". Conditional Access
+    /// candidates exclude the user list automatically once it exists, so the exempt population is readable in one
+    /// place instead of being spread across each policy's own exclusions.
+    /// </summary>
+    public string ExclusionRole { get; set; } = "";
     /// <summary>Optional declared test for "is this control covered by whatever the tenant already has". See <see cref="EquivalenceRule"/>.</summary>
     public EquivalenceRule? Equivalence { get; set; }
     public List<string> Dependencies { get; set; } = new();

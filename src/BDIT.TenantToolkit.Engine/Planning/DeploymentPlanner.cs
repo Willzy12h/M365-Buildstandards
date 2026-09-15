@@ -189,6 +189,12 @@ public sealed class DeploymentPlanner
             ConditionalAccessSafety.InjectUserExclusions(payload, profile.Parameters.EmergencyAccountIds);
             ConditionalAccessSafety.InjectUserExclusions(payload, profile.Parameters.AdditionalExclusionAccountIds);
             if (profile.Parameters.CaExclusionGroupId.Length > 0) InjectGroupExclusion(payload, profile.Parameters.CaExclusionGroupId);
+
+            // Once the standard's exclusion group exists, every candidate excludes it, so the exempt population is one
+            // group an engineer can open rather than a list repeated in each policy.
+            var exclusions = ExclusionGroupCoverage.ForUsers(standard, snapshot, mappings, session, profile.Parameters.EmergencyAccountIds, names);
+            if (exclusions.GroupId is not null) InjectGroupExclusion(payload, exclusions.GroupId);
+            foreach (var warning in exclusions.Warnings) row.Warnings.Add(warning);
             if (mapping?.OperatorExclusion is not null && ProfileValidator.IsGuid(mapping.OperatorExclusion.ObjectId))
                 ConditionalAccessSafety.InjectUserExclusions(payload, new[] { mapping.OperatorExclusion.ObjectId });
 
