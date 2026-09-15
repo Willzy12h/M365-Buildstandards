@@ -60,9 +60,11 @@ public sealed class DeploymentPlan
     public string ProfileDigest { get; set; } = "";
     public string Release { get; set; } = "";
     public string StandardDigest { get; set; } = "";
+    public string StandardContentDigest { get; set; } = "";
     public string SnapshotId { get; set; } = "";
     public string SnapshotDigest { get; set; } = "";
     public string MappingsDigest { get; set; } = "";
+    public string DeviationsDigest { get; set; } = "";
     public string OperatorObjectId { get; set; } = "";
     public string OperatorAccount { get; set; } = "";
     public string ClientId { get; set; } = "";

@@ -1,5 +1,7 @@
 # Source register
 
+Preview.6 continues PR #2 from master feature commit `713535cd6f7738624801221317169de12aa4753f` (preview.5). The new policy catalogue, implementation and follow-up review fixes are authored in this master feature branch. They are not a newer Claude/Asta source upload. Neither source repository, `integration`, nor `main` was modified by this increment.
+
 Inspected 13–14 September 2026. [PR #1](https://github.com/Willzy12h/M365-Buildstandards/pull/1) targets integration. No open PRs were returned across the three repositories at initial pre-flight; recheck before parallel work.
 
 | Repository / ref | Verified commit | Interpretation |
@@ -12,6 +14,10 @@ Inspected 13–14 September 2026. [PR #1](https://github.com/Willzy12h/M365-Buil
 | Master claude/github-repo-access-ygieh2 | 55820d7a6a373592c8f6d9aff355fc80a44afb31 | Unmerged coordination protocol, work claim and proposed INT-002; preserved separately |
 
 Repositories: [master](https://github.com/Willzy12h/M365-Buildstandards), [Claude](https://github.com/Willzy12h/m365-Tenant-Toolkit-Claude), [Asta](https://github.com/Willzy12h/m365-tenant-console-Asta).
+
+## Integrated preview
+
+The engineer-workflow feature branch and [PR #2](https://github.com/Willzy12h/M365-Buildstandards/pull/2) start from the verified baseline import `3db6c5a3b3426869ac6803c1472db057563818a9`. New setup, safety, account lookup and UI work is authored in the master repository. It does not represent a newer Claude or Asta source upload. Both PRs target integration and remain subject to review.
 
 ## Report recovery provenance
 

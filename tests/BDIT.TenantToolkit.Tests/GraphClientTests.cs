@@ -14,10 +14,85 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class GraphClientTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Token_failure_is_explicitly_not_sent_for_deployment_and_recovery(bool recovery)
+    {
+        var (client, handler, tokens) = Create(); tokens.Failure = new AuthenticationRequiredException("Reconnect required");
+        var ex = await Assert.ThrowsAsync<WriteNotSentException>(async () =>
+        {
+            if (recovery) await client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject,
+                "/identity/conditionalAccess/policies/" + TestData.Operator, null, CancellationToken.None);
+            else await client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies",
+                new JsonObject { ["displayName"] = "Test", ["state"] = "disabled" }, CancellationToken.None);
+        });
+        Assert.IsType<AuthenticationRequiredException>(ex.InnerException); Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Invalid_write_path_is_explicitly_not_sent()
+    {
+        var (client, handler, _) = Create();
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/groups/../users", new JsonObject(), CancellationToken.None));
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject,
+            "/groups/../users", null, CancellationToken.None));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Cancellation_before_send_is_not_ambiguous()
+    {
+        var (client, handler, _) = Create(); using var stop = new CancellationTokenSource(); stop.Cancel();
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject,
+            "/identity/conditionalAccess/policies/" + TestData.Operator, null, stop.Token));
+        Assert.Empty(handler.Requests);
+    }
+    [Fact]
+    public async Task Recovery_DELETE_is_bodyless_single_attempt_and_requires_deployment_object_route()
+    {
+        var (client, handler, _) = Create();
+        var path = "/identity/conditionalAccess/policies/" + TestData.Emergency;
+        handler.Enqueue(HttpStatusCode.NoContent, "");
+        await client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, path, null, CancellationToken.None);
+        Assert.Equal(HttpMethod.Delete, handler.Requests.Single().Method); Assert.Equal("", handler.Bodies.Single());
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, "/identity/conditionalAccess/policies", null, CancellationToken.None));
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, "/users/" + TestData.Operator, null, CancellationToken.None));
+        var (readOnly, readHandler, _) = Create(SessionMode.Assessment);
+        await Assert.ThrowsAsync<WriteDeniedException>(() => readOnly.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject, path, null, CancellationToken.None));
+        Assert.Empty(readHandler.Requests);
+    }
+
+    [Theory]
+    [InlineData(408)]
+    [InlineData(500)]
+    [InlineData(503)]
+    public async Task Recovery_failure_is_ambiguous_and_is_never_retried(int status)
+    {
+        var (client, handler, _) = Create(); handler.Enqueue((HttpStatusCode)status);
+        await Assert.ThrowsAsync<AmbiguousWriteException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DeleteCreatedObject,
+            "/deviceManagement/deviceCompliancePolicies/" + TestData.Emergency, null, CancellationToken.None));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Recovery_cannot_enable_or_assign_or_disguise_an_extra_write_as_containment()
+    {
+        var (client, handler, _) = Create(); var path = "/identity/conditionalAccess/policies/" + TestData.Emergency;
+        await Assert.ThrowsAsync<WriteDeniedException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.DisableConditionalAccess, path,
+            new JsonObject { ["state"] = "disabled", ["conditions"] = new JsonObject() }, CancellationToken.None));
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.RecoverAsync(GraphApi.V1, RecoveryAction.RestoreUpdate, path,
+            new JsonObject { ["state"] = "enabled" }, CancellationToken.None));
+        Assert.Empty(handler.Requests);
+    }
     private sealed class StubTokens : IAccessTokenProvider
     {
         public int Calls;
-        public Task<string> GetAccessTokenAsync(CancellationToken ct) { Calls++; return Task.FromResult("token-" + Calls); }
+        public int ForceRefreshes;
+        public Exception? Failure;
+        public Task<string> GetAccessTokenAsync(CancellationToken ct) { Calls++; return Failure is null ? Task.FromResult("token-" + Calls) : Task.FromException<string>(Failure); }
+        public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) { if (forceRefresh) ForceRefreshes++; return GetAccessTokenAsync(ct); }
     }
 
     private sealed class ScriptedHandler : HttpMessageHandler
@@ -115,9 +190,9 @@ public class GraphClientTests
     {
         var (client, handler, _) = Create();
         var enabled = ToolkitJson.ParseObject("""{"displayName":"x","state":"enabled"}""");
-        await Assert.ThrowsAsync<SafetyViolationException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies", enabled, CancellationToken.None));
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies", enabled, CancellationToken.None));
         var reportOnly = ToolkitJson.ParseObject("""{"displayName":"x","state":"enabledForReportingButNotEnforced"}""");
-        await Assert.ThrowsAsync<SafetyViolationException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies", reportOnly, CancellationToken.None));
+        await Assert.ThrowsAsync<WriteNotSentException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies", reportOnly, CancellationToken.None));
         var ok = ToolkitJson.ParseObject("""{"displayName":"x"}""");
         await Assert.ThrowsAsync<WriteDeniedException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/groups", ok, CancellationToken.None));
         await Assert.ThrowsAsync<WriteDeniedException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies/not-a-guid", ok, CancellationToken.None));
@@ -186,6 +261,18 @@ public class GraphClientTests
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() => client.GetAsync(GraphApi.V1, "/organization", CancellationToken.None));
         Assert.Equal(2, handler.Requests.Count);
         Assert.Equal(2, tokens.Calls);
+        Assert.Equal(1, tokens.ForceRefreshes);
+    }
+
+    [Fact]
+    public async Task Unauthorized_write_is_not_replayed_or_force_refreshed()
+    {
+        var (client, handler, tokens) = Create();
+        handler.Enqueue(HttpStatusCode.Unauthorized);
+        await Assert.ThrowsAsync<GraphRequestException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/identity/conditionalAccess/policies", ToolkitJson.ParseObject("""{"displayName":"x","state":"disabled"}"""), CancellationToken.None));
+        Assert.Single(handler.Requests);
+        Assert.Equal(0, tokens.ForceRefreshes);
     }
 
     [Fact]

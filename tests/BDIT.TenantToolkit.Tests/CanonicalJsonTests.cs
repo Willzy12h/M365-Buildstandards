@@ -7,6 +7,17 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class CanonicalJsonTests
 {
+    [Theory]
+    [InlineData("{}", "{\"setting\":null}", false)]
+    [InlineData("{\"setting\":null}", "{\"setting\":null}", true)]
+    [InlineData("{\"nested\":{}}", "{\"nested\":{\"setting\":null}}", false)]
+    [InlineData("{\"items\":[{}]}", "{\"items\":[{\"setting\":null}]}", false)]
+    [InlineData("{\"setting\":false}", "{\"setting\":null}", false)]
+    public void Subset_distinguishes_missing_members_from_explicit_null(string actual, string wanted, bool matches)
+    {
+        Assert.Equal(matches, CanonicalJson.IsSubset(ToolkitJson.ParseNode(actual), ToolkitJson.ParseNode(wanted)));
+    }
+
     [Fact]
     public void Canonical_form_is_independent_of_key_order_and_whitespace()
     {
@@ -50,6 +61,24 @@ public class CanonicalJsonTests
         Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(template, new Dictionary<string, JsonNode?>()));
         Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(template, new Dictionary<string, JsonNode?> { ["ids"] = new JsonArray() }));
         Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(template, new Dictionary<string, JsonNode?> { ["ids"] = JsonValue.Create("") }));
+    }
+
+    [Fact]
+    public void TryAt_selects_array_elements_by_key_value_without_touching_dotted_paths()
+    {
+        var policy = ToolkitJson.ParseObject("""{"authenticationMethodConfigurations":[{"id":"Sms","state":"disabled"},{"id":"MicrosoftAuthenticator","state":"enabled","featureSettings":{"numberMatchingRequiredState":{"state":"enabled"}}}],"plain":{"state":"x"}}""");
+
+        Assert.True(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=Sms].state", out var sms));
+        Assert.Equal("disabled", sms!.GetValue<string>());
+        Assert.True(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=microsoftauthenticator].featureSettings.numberMatchingRequiredState.state", out var matching));
+        Assert.Equal("enabled", matching!.GetValue<string>());
+        Assert.Equal("x", CanonicalJson.At(policy, "plain.state")!.GetValue<string>());
+
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=Voice].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "authenticationMethodConfigurations[id=].state", out _));
+        Assert.False(CanonicalJson.TryAt(policy, "plain[state=x].state", out _));
+        Assert.Null(CanonicalJson.At(policy, "authenticationMethodConfigurations[state=enabled].missing"));
     }
 
     [Fact]

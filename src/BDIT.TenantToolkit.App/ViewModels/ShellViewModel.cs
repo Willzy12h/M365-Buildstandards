@@ -58,22 +58,31 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>Copies its command parameter to the clipboard; bound from Copy buttons across the pages.</summary>
     public ICommand CopyCommand { get; }
     public ICommand CopyDetailsCommand { get; }
+    public ICommand CancelOperationCommand { get; }
 
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
+        NavItems.Add(new NavItem { Key = "overview", Step = "", Title = "Overview and licences" });
         NavItems.Add(new NavItem { Key = "connect", Step = "1", Title = "Connect" });
+        NavItems.Add(new NavItem { Key = "setup", Step = "+", Title = "Application setup" });
         NavItems.Add(new NavItem { Key = "configuration", Step = "2", Title = "Configuration" });
         NavItems.Add(new NavItem { Key = "assessment", Step = "3", Title = "Assessment" });
         NavItems.Add(new NavItem { Key = "deviations", Step = "4", Title = "Deviations" });
         NavItems.Add(new NavItem { Key = "plan", Step = "5", Title = "Plan changes" });
         NavItems.Add(new NavItem { Key = "deploy", Step = "6", Title = "Deploy" });
+        NavItems.Add(new NavItem { Key = "recovery", Step = "", Title = "Undo and recovery" });
         NavItems.Add(new NavItem { Key = "history", Step = "", Title = "Evidence and drift" });
         NavItems.Add(new NavItem { Key = "checks", Step = "", Title = "Manual checks" });
         NavItems.Add(new NavItem { Key = "standard", Step = "", Title = "Build Standard" });
         NavItems.Add(new NavItem { Key = "settings", Step = "", Title = "Settings and diagnostics" });
 
+        _pages["overview"] = new OverviewViewModel(this);
+        _pages["recovery"] = new RecoveryViewModel(this);
         _pages["connect"] = new ConnectViewModel(this);
+        _pages["setup"] = new ApplicationSetupViewModel(this);
+        NavItems.Add(new NavItem { Key = "automation", Step = "+", Title = "Policy automation" });
+        _pages["automation"] = new AutomationViewModel(this);
         _pages["configuration"] = new ConfigurationViewModel(this);
         _pages["assessment"] = new AssessmentViewModel(this);
         _pages["deviations"] = new DeviationsViewModel(this);
@@ -87,8 +96,9 @@ public sealed class ShellViewModel : ObservableObject
         NavigateCommand = new RelayCommand(p => { if (p is NavItem item) Navigate(item.Key); });
         CopyCommand = new RelayCommand(p => CopyToClipboard(p as string ?? p?.ToString() ?? ""));
         CopyDetailsCommand = new RelayCommand(() => CopyToClipboard(DetailsText));
-        DisconnectCommand = new AsyncCommand(Workspace.DisconnectAsync, ShowError, () => Workspace.IsConnected && Workspace.Idle);
+        DisconnectCommand = new AsyncCommand(Workspace.DisconnectAsync, ShowError, () => (Workspace.IsConnected || Workspace.ApplicationSetup is not null) && Workspace.Idle);
         ClearErrorCommand = new RelayCommand(() => ErrorMessage = "");
+        CancelOperationCommand = new RelayCommand(Workspace.CancelOperation, () => Workspace.Busy);
 
         workspace.StateChanged += () => RaiseHeader();
         workspace.PropertyChanged += (_, e) =>
@@ -101,7 +111,7 @@ public sealed class ShellViewModel : ObservableObject
             }
         };
         if (workspace.StandardError is not null) ErrorMessage = workspace.StandardError;
-        Navigate("connect");
+        Navigate("overview");
     }
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
@@ -152,11 +162,14 @@ public sealed class ShellViewModel : ObservableObject
     public string ProductName => Workspace.Settings.ProductName.ToUpperInvariant();
     public string WindowTitle => $"{Workspace.Settings.ProductName} {Workspace.Version}";
     public bool IsConnected => Workspace.IsConnected;
-    public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment;
-    public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment;
-    public string ModeBadge => Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? "DEPLOYMENT ACCESS - WRITES POSSIBLE" : "READ-ONLY ASSESSMENT";
-    public string TenantTitle => Workspace.Session?.TenantName is { Length: > 0 } name ? name : Workspace.Profile?.Company ?? "No client selected";
-    public string TenantSubtitle => Workspace.Session is not null
+    public bool HeaderHasConnection => Workspace.IsConnected || Workspace.ApplicationSetup is not null;
+    public string HeaderAccount => Workspace.ApplicationSetup?.Identity.Account ?? Workspace.Session?.Account ?? "No active connection";
+    public string HeaderTenantId => Workspace.ApplicationSetup?.Identity.TenantId ?? Workspace.Session?.TenantId ?? "—";
+    public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session?.HasWriteScopes == true || Workspace.ApplicationSetup is not null;
+    public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.HasWriteScopes == false;
+    public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? "DEPLOYMENT ACCESS — WRITES POSSIBLE" : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
+    public string TenantTitle => Workspace.ApplicationSetup is not null ? "Application setup tenant" : Workspace.Session?.TenantName is { Length: > 0 } name ? name : Workspace.Profile?.Company ?? "No client selected";
+    public string TenantSubtitle => Workspace.ApplicationSetup is { } setup ? setup.Identity.TenantId + " · setup identity verified" : Workspace.Session is not null
         ? (Workspace.Session.PrimaryDomain.Length > 0 ? Workspace.Session.PrimaryDomain : Workspace.Session.TenantId) + (Workspace.Session.TenantVerified ? " · verified" : " · NOT verified")
         : Workspace.Profile?.TenantId ?? "Choose or create a client on the Connect page";
     public string StandardText => Workspace.Standard is null ? "No Build Standard loaded" : $"Build Standard {Workspace.Standard.Release} · {Workspace.Standard.IntegrityDigest[..Math.Min(12, Workspace.Standard.IntegrityDigest.Length)]}";
@@ -167,7 +180,7 @@ public sealed class ShellViewModel : ObservableObject
         get
         {
             var s = Workspace.Session;
-            if (s is null) return "Not connected. A saved profile is not an authenticated connection.";
+            if (s is null) return Workspace.ApplicationSetup is { } setup ? $"Privileged application setup session\nTenant: {setup.Identity.TenantId}\nAccount: {setup.Identity.Account}\nOperator: {setup.Identity.AccountObjectId}\nSetup scopes: {string.Join(", ", setup.Identity.Scopes)}" : "Not connected. A saved profile is not an authenticated connection.";
             var sb = new StringBuilder();
             sb.AppendLine("Tenant ID:      " + s.TenantId);
             sb.AppendLine("Account:        " + s.Account);
@@ -186,6 +199,9 @@ public sealed class ShellViewModel : ObservableObject
     private void RaiseHeader()
     {
         OnPropertyChanged(nameof(IsConnected));
+        OnPropertyChanged(nameof(HeaderHasConnection));
+        OnPropertyChanged(nameof(HeaderAccount));
+        OnPropertyChanged(nameof(HeaderTenantId));
         OnPropertyChanged(nameof(IsDeploymentSession));
         OnPropertyChanged(nameof(IsAssessmentSession));
         OnPropertyChanged(nameof(ModeBadge));

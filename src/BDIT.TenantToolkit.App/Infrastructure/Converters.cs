@@ -39,14 +39,14 @@ public sealed class StatusToBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var text = value?.ToString() ?? "";
-        if (text.Contains("Compliant", StringComparison.OrdinalIgnoreCase) || text is "Pass" or "Completed" or "Collected" or "NoChange" or "Create" or "Update")
+        if (text is "Compliant" or "Pass" or "Verified")
             return Good;
-        if (text.Contains("Missing", StringComparison.OrdinalIgnoreCase) || text is "Error" or "Fail" or "Conflict" or "Drift" or "Review required" or "Interrupted" || text.Contains("Removed", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains("Missing", StringComparison.OrdinalIgnoreCase) || text is "Error" or "Fail" or "Conflict" or "Blocked" or "Drift" or "Review required" or "Interrupted" || text.Contains("Removed", StringComparison.OrdinalIgnoreCase))
             return Bad;
         if (text.Contains("Partial", StringComparison.OrdinalIgnoreCase) || text.Contains("Manual", StringComparison.OrdinalIgnoreCase) || text.Contains("Unable", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Pending" or "Blocked" or "Unknown" or "Stopped" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
+            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Stopped" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
             return Warn;
-        if (text is "NotApplicable" or "Deviation" or "In progress" or "Running") return Info;
+        if (text is "Create" or "Update" or "Collected" or "Completed" or "Accepted" or "NoChange" or "NotApplicable" or "Deviation" or "In progress" or "InProgress" or "Running") return Info;
         return Neutral;
     }
 

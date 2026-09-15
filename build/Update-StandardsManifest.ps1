@@ -29,7 +29,7 @@ $manifest = [ordered]@{
     algorithm   = 'SHA-256'
     generatedAt = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
     generatedBy = $GeneratedBy
-    noteText    = 'SHA-256 integrity digests of the BDIT Build Standard release files. Detects modification after release; this is not a cryptographic signature.'
+    noteText    = 'SHA-256 integrity digests of the M365 Build Standard release files. Detects modification after release; this is not a cryptographic signature.'
     files       = $files
 }
 $path = Join-Path $StandardsDirectory 'manifest.json'

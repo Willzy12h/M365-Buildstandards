@@ -11,14 +11,28 @@
 | Project | Responsibility |
 |---|---|
 | `BDIT.TenantToolkit.Core` | Models (profile, standard, snapshot, assessment, deviation, plan, run, mapping, drift, session), the `IGraphClient` contract, canonical JSON (`CanonicalJson`), the safety rules (`ConditionalAccessSafety`, `WritePayloadGuard`), paths, settings, logging and secret scrubbing. No I/O beyond files and no network. |
-| `BDIT.TenantToolkit.Graph` | `MsalAuthenticator` (system browser, tenant-pinned authority, DPAPI cache), `GraphRouteAllowList`, `GraphClient` (v1.0/beta roots, bounded read retries, no write retries, payload guard), `TenantConnectionService` (verify organisation and operator, access check). |
+| `BDIT.TenantToolkit.Graph` | `MsalAuthenticator` (Windows WAM pop-up with system-browser fallback, tenant-pinned authority, DPAPI cache), `GraphRouteAllowList`, `GraphClient` (v1.0/beta roots, bounded read retries, no write retries, payload guard), `TenantConnectionService` (verify organisation and operator, access check). |
 | `BDIT.TenantToolkit.Engine` | `StandardsLoader` and `StandardsManifest`, `TenantCollector`, `AssessmentEngine` and `NameResolver`, `DeploymentPlanner`, `DeploymentExecutor`, `DriftAnalyser`, `EvidenceStore`, reports (`HtmlReports`, `MarkdownReports`, `TabularReports`, `CsvWriter`, `XlsxWriter`, `ReportExporter`). |
 | `BDIT.TenantToolkit.App` | WPF shell. `Workspace` is the composition root and state machine; page view models are thin; views are XAML only. |
 | `BDIT.TenantToolkit.Tests` | xUnit tests around every safety boundary with a scripted `FakeGraphClient` and a scripted `HttpMessageHandler`. |
 
 Dependency direction: App → Engine → Graph → Core. Tests reference Core, Graph and Engine.
 
+## Integrated engineer workflow (1.1 preview)
+
+`Graph/Setup/ApplicationSetupService` owns a separate, in-memory privileged setup identity and narrow transport. It resolves delegated scope IDs, previews two registrations, creates approved registrations/service principals or repairs explicitly selected dedicated tool IDs and validates actual configuration, consent and direct engineer assignment. Consent uses Microsoft's browser flow; no directory roles, grants or secrets are written by the service. Normal assessment/deployment routes cannot create applications. See [application setup](APPLICATION-SETUP.md).
+
+`Engine/Identity/AccountResolver` resolves explicit UPN/object-ID/display-name searches. `TenantProfile.ExclusionAccounts` stores tenant-bound identity, purpose, reason, time and selecting operator. Dedicated emergency IDs remain distinct from additional approved exceptions; both are merged into reviewed CA candidates with the delegated creator. Profile and exclusion changes invalidate plans.
+
+The executor reloads complete, integrity-checked before evidence plus current mappings and deviations, rebuilds reviewed write rows, freezes inputs and checks durable state before each request. Plans bind profile, operator, app, standard file/content, snapshot, mappings and deviations. Updates retain ownership, inactive-state and drift checks. Write acceptance and configuration verification are separate; historical records without acceptance display Unknown without changing their original digest.
+
+`Workspace` serialises operations, owns cancellation and awaits active work before async shutdown. Policy writes stop at safe action boundaries; setup completes the current app/SP pair and after evidence. Exports run on a worker task. The shell shows tenant/account/access, including setup and broader shared-fallback token scopes. See [design system](DESIGN-SYSTEM.md).
+
 ## Graph routing
+
+`Engine/Recovery/RecoveryService` derives single-use recovery plans from intact deployment records and fresh complete evidence. A dedicated Graph recovery method permits bodyless DELETE, guarded restoration PATCH or state-only CA disablement on three supported v1.0 policy routes plus the beta device-configuration route used for BitLocker. Normal writes do not gain general deletion capability. Exact returned IDs are saved before ownership/readback steps. `EvidenceStore` shares a per-tenant process lock between policy deployment and recovery; both retain ambiguous outcomes. See [recovery](RECOVERY.md).
+
+`Engine/Assessment/LicenceInventoryService` performs paginated read-only subscription/user capture and derives counts, searchable assigned users and conservative direct-user scope checks. `OverviewViewModel` exposes these without inferring unsupported group, guest, role or device eligibility. Captures remain tenant-local. See [licensing](LICENSING.md).
 
 - A collection in the standard declares `api` (`v1.0` or `beta`), `path`, `scope`, optional `write`, `assignments`, `children`, `relationship`, `singleton`, `nameProperty`.
 - `GraphRouteAllowList.FromStandard` turns collections into read routes and, where `write` is present, write routes. Six fixed diagnostic routes are added (`/organization`, `/me`, `/roleManagement/directory/roleAssignments`, `/subscribedSkus`, `/users`, `/groups`).

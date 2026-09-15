@@ -203,9 +203,21 @@ internal static class TestData
         };
         foreach (var (key, def) in standard.Collections)
             snapshot.Collections[key] = new CollectionCapture { Status = CaptureStatus.Collected, Api = def.Api, Path = def.Path, Items = new List<JsonObject>(), Count = 0 };
+        // References required by synthetic CA recipes really exist in the synthetic tenant.
+        if (snapshot.Collections.TryGetValue("users", out var users))
+        {
+            users.Items.Add(new JsonObject { ["id"] = Emergency, ["displayName"] = "Emergency access" });
+            users.Items.Add(new JsonObject { ["id"] = Operator, ["displayName"] = "Engineer" });
+            users.Count = users.Items.Count;
+        }
+        if (snapshot.Collections.TryGetValue("namedLocations", out var locations))
+        {
+            locations.Items.Add(new JsonObject { ["id"] = Office, ["displayName"] = "Office" });
+            locations.Count = locations.Items.Count;
+        }
         if (withLicence)
         {
-            var sku = ToolkitJson.ParseObject("""{"id":"sku1","skuPartNumber":"SPB","servicePlans":[{"servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"},{"servicePlanName":"INTUNE_A","provisioningStatus":"Success"}]}""");
+            var sku = ToolkitJson.ParseObject("""{"id":"sku1","skuPartNumber":"SPB","capabilityStatus":"Enabled","prepaidUnits":{"enabled":25},"servicePlans":[{"servicePlanName":"AAD_PREMIUM","provisioningStatus":"Success"},{"servicePlanName":"INTUNE_A","provisioningStatus":"Success"}]}""");
             snapshot.Collections["licences"].Items.Add(sku);
             snapshot.Collections["licences"].Count = 1;
         }
@@ -254,9 +266,14 @@ internal sealed class FakeGraphClient : IGraphClient
     public SessionMode Mode { get; set; } = SessionMode.Deployment;
     public List<(GraphWriteMethod Method, string Path, JsonObject Payload)> Writes { get; } = new();
     public List<string> Reads { get; } = new();
+    public List<(RecoveryAction Action, string Path, JsonObject? Payload)> RecoveryWrites { get; } = new();
+    public Func<Task>? BeforeRecovery { get; set; }
+    public Exception? RecoveryError { get; set; }
+    public bool IgnoreRecovery { get; set; }
     public Func<string, JsonObject, Task>? BeforeWrite { get; set; }
     public Exception? ThrowOnWrite { get; set; }
     public Func<JsonObject, JsonObject>? MutateReadback { get; set; }
+    public Func<string, CancellationToken, Task>? BeforeRead { get; set; }
 
     public FakeGraphClient(StandardCatalogue standard)
     {
@@ -269,6 +286,8 @@ internal sealed class FakeGraphClient : IGraphClient
     public List<JsonObject> Collection(string basePath) => _collections[basePath];
 
     public void Add(string basePath, JsonObject item) => _collections[basePath].Add(item);
+
+    public void SetSingleton(string path, JsonObject item) => _singles[path] = (JsonObject)item.DeepClone();
 
     private (string Base, string? Id, string? Sub) Resolve(string path)
     {
@@ -287,6 +306,7 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         Reads.Add(path);
         var (basePath, id, sub) = Resolve(path);
         if (_singles.TryGetValue(basePath, out var single)) return Task.FromResult((JsonObject)single.DeepClone());
@@ -309,6 +329,8 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public async Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        if (BeforeRead is not null) await BeforeRead(path, ct);
         Reads.Add(path);
         var (basePath, id, sub) = Resolve(path);
         if (_collections.TryGetValue(basePath, out var list))
@@ -345,5 +367,17 @@ internal sealed class FakeGraphClient : IGraphClient
         var existing = list.First(i => string.Equals(i["id"]?.GetValue<string>(), id, StringComparison.OrdinalIgnoreCase));
         foreach (var pair in payload) existing[pair.Key] = pair.Value?.DeepClone();
         return new JsonObject();
+    }
+
+    public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)
+    {
+        if (BeforeRecovery is not null) await BeforeRecovery();
+        RecoveryWrites.Add((action, path, payload is null ? null : (JsonObject)payload.DeepClone()));
+        if (RecoveryError is not null) throw RecoveryError;
+        if (IgnoreRecovery) return;
+        var (basePath, id, _) = Resolve(path);
+        var existing = _collections[basePath].Single(i => i["id"]?.GetValue<string>() == id);
+        if (action == RecoveryAction.DeleteCreatedObject) _collections[basePath].Remove(existing);
+        else foreach (var pair in payload!) existing[pair.Key] = pair.Value?.DeepClone();
     }
 }

@@ -1,13 +1,14 @@
 {
-  "productName": "BDIT Tenant Toolkit",
-  "companyName": "Blue Diamond IT",
+  "productName": "M365 BuildStandard Tool",
+  "companyName": "M365 BuildStandard",
   "accentColour": "#1769AA",
 
   "assessmentClientId": "",
   "deploymentClientId": "",
   "allowMicrosoftGraphPowerShellFallback": true,
+  "useSystemBrowser": false,
 
-  "defaultStandardRelease": "2026.09.3",
+  "defaultStandardRelease": "2026.09.8",
   "snapshotMaxAgeMinutes": 20,
   "planMaxAgeMinutes": 20,
   "signInTimeoutMinutes": 5,

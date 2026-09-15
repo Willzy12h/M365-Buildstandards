@@ -33,12 +33,12 @@ public sealed class AssessmentViewModel : PageViewModel
     public AssessmentViewModel(ShellViewModel shell) : base(shell, "Assessment")
     {
         ReassessCommand = Sync(Workspace.RunAssessment, () => Workspace.Snapshot is not null && Workspace.Idle);
-        ExportHtmlCommand = Sync(() => Export(ExportFormat.Html), () => Workspace.Assessment is not null);
-        ExportMarkdownCommand = Sync(() => Export(ExportFormat.Markdown), () => Workspace.Assessment is not null);
-        ExportJsonCommand = Sync(() => Export(ExportFormat.Json), () => Workspace.Assessment is not null);
-        ExportCsvCommand = Sync(() => Export(ExportFormat.Csv), () => Workspace.Assessment is not null);
-        ExportXlsxCommand = Sync(() => Export(ExportFormat.Xlsx), () => Workspace.Assessment is not null);
-        ExportClientCommand = Sync(() => Export(ExportFormat.ClientHtml), () => Workspace.Assessment is not null);
+        ExportHtmlCommand = Command(() => Export(ExportFormat.Html), () => Workspace.Assessment is not null);
+        ExportMarkdownCommand = Command(() => Export(ExportFormat.Markdown), () => Workspace.Assessment is not null);
+        ExportJsonCommand = Command(() => Export(ExportFormat.Json), () => Workspace.Assessment is not null);
+        ExportCsvCommand = Command(() => Export(ExportFormat.Csv), () => Workspace.Assessment is not null);
+        ExportXlsxCommand = Command(() => Export(ExportFormat.Xlsx), () => Workspace.Assessment is not null);
+        ExportClientCommand = Command(() => Export(ExportFormat.ClientHtml), () => Workspace.Assessment is not null);
         CopyDetailCommand = CopyText(() => SelectedDetail + Environment.NewLine + string.Join(Environment.NewLine, Notes));
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
         Refresh();
@@ -149,10 +149,10 @@ public sealed class AssessmentViewModel : PageViewModel
         }
     }
 
-    private void Export(ExportFormat format)
+    private async Task Export(ExportFormat format)
     {
         var a = Workspace.Assessment ?? throw new ToolkitException("Run an assessment first.");
-        _lastExportFile = Workspace.Exporter.ExportAssessment(a, format);
+        _lastExportFile = await Workspace.ExportAsync(() => Workspace.Exporter.ExportAssessment(a, format));
         LastExport = "Exported: " + _lastExportFile;
         RaiseAll();
     }

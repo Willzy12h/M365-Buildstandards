@@ -20,12 +20,12 @@ public sealed class HistoryViewModel : PageViewModel
     {
         RefreshCommand = Sync(Refresh);
         CompareCommand = Sync(Compare, () => Before is not null && After is not null && Before.Id != After.Id);
-        ExportRunHtmlCommand = Sync(() => ExportRun(ExportFormat.Html), () => SelectedRun is not null);
-        ExportRunJsonCommand = Sync(() => ExportRun(ExportFormat.Json), () => SelectedRun is not null);
-        ExportRunXlsxCommand = Sync(() => ExportRun(ExportFormat.Xlsx), () => SelectedRun is not null);
-        ExportDriftHtmlCommand = Sync(() => ExportDrift(ExportFormat.Html), () => Drift is not null);
-        ExportDriftMarkdownCommand = Sync(() => ExportDrift(ExportFormat.Markdown), () => Drift is not null);
-        ExportDriftXlsxCommand = Sync(() => ExportDrift(ExportFormat.Xlsx), () => Drift is not null);
+        ExportRunHtmlCommand = Command(() => ExportRun(ExportFormat.Html), () => SelectedRun is not null);
+        ExportRunJsonCommand = Command(() => ExportRun(ExportFormat.Json), () => SelectedRun is not null);
+        ExportRunXlsxCommand = Command(() => ExportRun(ExportFormat.Xlsx), () => SelectedRun is not null);
+        ExportDriftHtmlCommand = Command(() => ExportDrift(ExportFormat.Html), () => Drift is not null);
+        ExportDriftMarkdownCommand = Command(() => ExportDrift(ExportFormat.Markdown), () => Drift is not null);
+        ExportDriftXlsxCommand = Command(() => ExportDrift(ExportFormat.Xlsx), () => Drift is not null);
         OpenSnapshotCommand = Sync(() => { if (Before is not null) Workspace.LoadStoredSnapshot(Before.Id); }, () => Before is not null && Workspace.Idle);
         Refresh();
     }
@@ -101,16 +101,16 @@ public sealed class HistoryViewModel : PageViewModel
         SelectedDriftItem = null;
     }
 
-    private void ExportRun(ExportFormat format)
+    private async Task ExportRun(ExportFormat format)
     {
         var run = SelectedRun ?? throw new ToolkitException("Select a run first.");
-        LastExport = "Exported: " + Workspace.Exporter.ExportRun(run, Workspace.Evidence.ReadJournal(run.TenantId, run.Id), format);
+        LastExport = "Exported: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportRun(run, Workspace.Evidence.ReadJournal(run.TenantId, run.Id), format));
     }
 
-    private void ExportDrift(ExportFormat format)
+    private async Task ExportDrift(ExportFormat format)
     {
         var drift = Drift ?? throw new ToolkitException("Compare two captures first.");
-        LastExport = "Exported: " + Workspace.Exporter.ExportDrift(drift, format);
+        LastExport = "Exported: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportDrift(drift, format));
     }
 
     public override void Refresh()

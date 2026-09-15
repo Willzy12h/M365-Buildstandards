@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Restores, builds, tests, publishes and packages the BDIT Tenant Toolkit as a portable ZIP.
+  Restores, builds, tests, publishes and packages the M365 BuildStandard Tool as a portable ZIP.
 .DESCRIPTION
   Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> regenerate standards manifest ->
   dotnet publish (self-contained win-x64, framework-dependent runtime NOT required on the engineer's PC) ->
@@ -40,7 +40,7 @@ $version = ($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where
 if (-not $version) { throw 'Version not found in Directory.Build.props' }
 
 $dist = if ($OutputDirectory) { $OutputDirectory } else { Join-Path $root 'dist' }
-$stageName = "BDIT-Tenant-Toolkit-$version-$Runtime"
+$stageName = "M365-BuildStandard-Tool-$version-$Runtime"
 $stage = Join-Path $dist $stageName
 $zip = Join-Path $dist "$stageName.zip"
 if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
@@ -69,7 +69,7 @@ Invoke-Step 'Stage package contents' {
 
     $runtimeVersion = (Get-ChildItem -LiteralPath (Join-Path $stage 'app') -Filter 'System.Private.CoreLib.dll' -Recurse | Select-Object -First 1).VersionInfo.ProductVersion
     $manifest = [ordered]@{
-        product        = 'BDIT Microsoft 365 Tenant Toolkit'
+        product        = 'M365 BuildStandard Tool'
         version        = $version
         runtime        = $Runtime
         selfContained  = $true
@@ -80,9 +80,11 @@ Invoke-Step 'Stage package contents' {
         standards      = (Get-ChildItem -LiteralPath (Join-Path $stage 'standards') -Filter '*.json' | Where-Object { $_.Name -ne 'manifest.json' } | ForEach-Object { $_.Name })
         nugetPackages  = @(
             @{ name = 'Microsoft.Identity.Client'; version = '4.89.0' },
+            @{ name = 'Microsoft.Identity.Client.Broker'; version = '4.89.0' },
+            @{ name = 'Microsoft.Identity.Client.NativeInterop'; version = '0.20.6' },
             @{ name = 'System.Security.Cryptography.ProtectedData'; version = '8.0.0' }
         )
-        note           = 'Internal BDIT tool, unsigned. SHA256SUMS.txt and the ZIP .sha256 file detect modification in transit; verify them before first use. Allow app\BDIT.TenantToolkit.App.exe in any application-control policy by path or hash.'
+        note           = 'Preview tool, unsigned. SHA256SUMS.txt and the ZIP .sha256 file detect modification in transit; verify them before first use. Allow app\BDIT.TenantToolkit.App.exe in any application-control policy by path or hash.'
     }
     [IO.File]::WriteAllText((Join-Path $stage 'VERSION.json'), (($manifest | ConvertTo-Json -Depth 5) + "`n"), [Text.UTF8Encoding]::new($false))
 }

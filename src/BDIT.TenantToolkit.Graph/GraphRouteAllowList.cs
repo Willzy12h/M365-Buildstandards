@@ -1,5 +1,6 @@
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.Graph;
 
@@ -39,11 +40,17 @@ public sealed class GraphRouteAllowList
                 throw new ConfigurationException($"Collection '{key}' path must start with '/'.");
             list._routes.Add(new GraphRoute(def.ApiVersion, def.BasePath.TrimEnd('/'), def.Scope, def.Write, key));
         }
+        if (standard.AdditionalWriteScopes?.Contains("WindowsUpdates.ReadWrite.All", StringComparer.Ordinal) == true)
+            list._routes.Add(new GraphRoute(GraphApi.Beta, ReviewedChangeSafety.UpdatesPath, "WindowsUpdates.ReadWrite.All", "WindowsUpdates.ReadWrite.All", "windowsUpdates"));
+        list._routes.Add(new GraphRoute(GraphApi.V1, "/deviceManagement/applePushNotificationCertificate", "DeviceManagementServiceConfig.Read.All", null, "applePush"));
+        list._routes.Add(new GraphRoute(GraphApi.Beta, "/deviceManagement/configurationSettings", "DeviceManagementConfiguration.Read.All", null, "settingDefinitions"));
+        list._routes.Add(new GraphRoute(GraphApi.Beta, "/deviceManagement/androidManagedStoreAccountEnterpriseSettings", "DeviceManagementServiceConfig.Read.All", null, "googlePlay"));
         return list;
     }
 
     public static GraphRouteAllowList Only(IEnumerable<GraphRoute> routes)
     {
+        ArgumentNullException.ThrowIfNull(routes);
         var list = new GraphRouteAllowList();
         list._routes.AddRange(routes);
         return list;
@@ -54,7 +61,7 @@ public sealed class GraphRouteAllowList
         var basePath = BasePathOf(path);
         return _routes
             .Where(r => r.Api == api && (string.Equals(basePath, r.BasePath, StringComparison.OrdinalIgnoreCase)
-                                          || basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase)))
+                                          || r.BasePath != "/deviceManagement" && basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(r => r.BasePath.Length)
             .FirstOrDefault();
     }
@@ -68,7 +75,7 @@ public sealed class GraphRouteAllowList
         foreach (var route in _routes.Where(r => r.Writable && r.Api == api))
         {
             if (string.Equals(basePath, route.BasePath, StringComparison.OrdinalIgnoreCase)) return route;
-            if (basePath.StartsWith(route.BasePath + "/", StringComparison.OrdinalIgnoreCase))
+            if (route.BasePath != "/deviceManagement" && basePath.StartsWith(route.BasePath + "/", StringComparison.OrdinalIgnoreCase))
             {
                 var remainder = basePath[(route.BasePath.Length + 1)..];
                 if (ProfileValidator.IsGuid(remainder))

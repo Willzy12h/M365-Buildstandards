@@ -38,7 +38,7 @@ public partial class App : Application
 
             var settings = ToolkitSettings.Load(paths.SettingsFile);
             _logger = new ToolkitLogger(paths.LogsDirectory, Diagnostics ? LogLevel.Debug : ToolkitLogger.ParseLevel(settings.LogLevel));
-            _logger.Info("App", $"BDIT Tenant Toolkit {ToolkitVersion.Current} starting (diagnostics={Diagnostics}). Root: {paths.Root}");
+            _logger.Info("App", $"M365 BuildStandard Tool {ToolkitVersion.Current} starting (diagnostics={Diagnostics}). Root: {paths.Root}");
 
             _workspace = new Workspace(paths, settings, _logger, Diagnostics);
             _workspace.Initialise();
@@ -53,10 +53,10 @@ public partial class App : Application
             StartupNote("FATAL " + ex.GetType().Name + ": " + ex.Message);
             _logger?.Error("App", "Start-up failed.", ex);
             MessageBox.Show(
-                "The BDIT Tenant Toolkit could not start.\n\n" + ex.Message + "\n\n" +
+                "The M365 BuildStandard Tool could not start.\n\n" + ex.Message + "\n\n" +
                 (_startupLog is null ? "" : "Details: " + _startupLog + "\n") +
                 "Run Start-Diagnostics.cmd for verbose logging.",
-                "BDIT Tenant Toolkit", MessageBoxButton.OK, MessageBoxImage.Error);
+                "M365 BuildStandard Tool", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -65,7 +65,9 @@ public partial class App : Application
     {
         try
         {
-            _workspace?.ShutdownAsync().GetAwaiter().GetResult();
+            // MainWindow awaits cooperative shutdown while the dispatcher is still running.
+            // Never synchronously block the UI thread on asynchronous token/evidence cleanup here.
+            _logger?.Flush();
             StartupNote($"Exit {Timestamps.Format(DateTimeOffset.UtcNow)} code {e.ApplicationExitCode}");
         }
         catch (Exception ex)
@@ -83,7 +85,7 @@ public partial class App : Application
     {
         _logger?.Error("App", "Unhandled UI exception.", e.Exception);
         MessageBox.Show("An unexpected error occurred. The operation was not completed.\n\n" + SensitiveDataScrubber.Scrub(e.Exception.Message),
-            "BDIT Tenant Toolkit", MessageBoxButton.OK, MessageBoxImage.Error);
+            "M365 BuildStandard Tool", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 

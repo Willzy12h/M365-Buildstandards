@@ -49,6 +49,7 @@ public sealed class PlanViewModel : PageViewModel
             OnPropertyChanged(nameof(RowDetail));
             OnPropertyChanged(nameof(PayloadJson));
             OnPropertyChanged(nameof(BeforeJson));
+            OnPropertyChanged(nameof(ExclusionsText));
         }
     }
 
@@ -58,14 +59,34 @@ public sealed class PlanViewModel : PageViewModel
         (SelectedRow.Warnings.Count == 0 ? "" : "\n" + string.Join("\n", SelectedRow.Warnings.Select(w => "Warning: " + w)));
     public string PayloadJson => SelectedRow?.Payload?.ToJsonString(ToolkitJson.Options) ?? "No automated change";
     public string BeforeJson => SelectedRow?.Before?.ToJsonString(ToolkitJson.Options) ?? "No existing object will be modified";
+    public string ExclusionsText
+    {
+        get
+        {
+            if (SelectedRow?.Collection != "conditionalAccess") return "User exclusions apply to Conditional Access candidates. Intune candidates remain unassigned.";
+            var users = SelectedRow.Payload?["conditions"]?["users"]?["excludeUsers"] as System.Text.Json.Nodes.JsonArray;
+            if (users is null) return "No candidate user exclusions to display.";
+            var lines = new List<string> { "These stored exclusions continue to apply if this policy is later enabled:" };
+            foreach (var node in users)
+            {
+                var id = node?.GetValue<string>() ?? "";
+                var metadata = Workspace.Profile?.ExclusionAccounts.FirstOrDefault(a => string.Equals(a.ObjectId, id, StringComparison.OrdinalIgnoreCase));
+                var captured = Workspace.Snapshot?.Collections.GetValueOrDefault("users")?.Items.FirstOrDefault(u => u["id"]?.GetValue<string>() == id);
+                var label = metadata?.UserPrincipalName ?? captured?["userPrincipalName"]?.GetValue<string>() ?? id;
+                var reason = metadata?.Reason ?? (id == Workspace.Session?.OperatorObjectId ? "Delegated creator safeguard" : "Configured emergency or standard exclusion");
+                lines.Add($"{label} [{id}] — {reason}");
+            }
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
 
     public string PlanText
     {
         get
         {
             var p = Workspace.Plan;
-            if (p is null) return Workspace.SnapshotIsLive ? "Select controls and build a plan. Conditional Access candidates are created disabled; Intune objects are created unassigned." : "Read the live tenant configuration first (stored captures cannot be planned against).";
-            return $"Plan {p.Id} · created {p.CreatedAt} · {p.Rows.Count(r => r.Action == PlanAction.Create)} to create · {p.Rows.Count(r => r.Action == PlanAction.Update)} to update · {p.Rows.Count(r => !r.IsWrite)} not automated · digest {p.PlanDigest[..12]}… · operator {p.OperatorAccount}";
+            if (p is null) return Workspace.SnapshotIsLive ? "Select controls to prepare a plan" : "Capture the live tenant before planning";
+            return $"{p.Rows.Count(r => r.Action == PlanAction.Create)} to create · {p.Rows.Count(r => r.Action == PlanAction.Update)} to update · {p.Rows.Count(r => !r.IsWrite)} without a write";
         }
     }
 
@@ -75,7 +96,7 @@ public sealed class PlanViewModel : PageViewModel
         {
             if (!Workspace.IsConnected) return "Not connected.";
             var mode = Workspace.IsDeploymentSession ? "deployment access" : "read-only assessment";
-            return $"Session: {mode}. Plans are bound to the signed-in account and application; build the plan in the session you will deploy from. Selected: {Controls.Count(c => c.IsSelected)} control(s).";
+            return $"{Controls.Count(c => c.IsSelected)} control(s) selected · {mode}. Build the plan in the session used to deploy.";
         }
     }
 

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Engine.Identity;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -11,6 +13,10 @@ public sealed class ConnectViewModel : PageViewModel
     private string _editId = "", _editCompany = "", _editTenantId = "", _editDomain = "", _editAssessmentClientId = "", _editDeploymentClientId = "";
     private string _editEmergencyIds = "", _editOfficeLocationId = "", _editMamGroupId = "", _editPilotGroupId = "", _editCaExclusionGroupId = "", _editNotes = "";
     private string _accessSummary = "";
+    private string _accountQuery = "", _exclusionReason = "", _exclusionPurpose = "Emergency access", _lookupStatus = "Connect read-only, then search by full sign-in address or display name.";
+    private bool _rememberConnection;
+    private ExclusionAccount? _selectedAccount, _selectedExclusion;
+    private List<string> _additionalIds = new();
 
     public ConnectViewModel(ShellViewModel shell) : base(shell, "Connect")
     {
@@ -23,6 +29,11 @@ public sealed class ConnectViewModel : PageViewModel
         CopyAccessCommand = CopyText(AccessReportText);
         ConnectDeploymentCommand = Command(() => ConnectAsync(SessionMode.Deployment), () => Workspace.Idle);
         CheckAccessCommand = Command(Workspace.CheckAccessAsync, () => Workspace.IsConnected && Workspace.Idle);
+        SearchAccountsCommand = Command(SearchAccountsAsync, () => Workspace.IsConnected && Workspace.Idle);
+        AddExclusionCommand = Sync(AddExclusion, () => Workspace.Idle && SelectedAccount is not null);
+        RemoveExclusionCommand = Sync(RemoveExclusion, () => Workspace.Idle && SelectedExclusion is not null);
+        ApplyExclusionsCommand = Sync(() => { Workspace.ApplyProfileToSession(FormToProfile(), RememberConnection); LookupStatus = "Exclusions applied. Any previous plan is invalid; capture and review a new plan."; }, () => Workspace.IsConnected && Workspace.Idle);
+        OpenSetupCommand = Sync(OpenSetup);
         Refresh();
     }
 
@@ -31,6 +42,30 @@ public sealed class ConnectViewModel : PageViewModel
     public ObservableCollection<AccessCheck> AccessReads { get; } = new();
     public ObservableCollection<AccessCheck> AccessWrites { get; } = new();
     public ObservableCollection<string> AccessNotes { get; } = new();
+    public ObservableCollection<ExclusionAccount> AccountMatches { get; } = new();
+    public ObservableCollection<ExclusionAccount> ExclusionAccounts { get; } = new();
+    public string[] ExclusionPurposes { get; } = { "Emergency access", "Approved exception" };
+    public string AccountQuery { get => _accountQuery; set => SetProperty(ref _accountQuery, value); }
+    public string ExclusionReason { get => _exclusionReason; set => SetProperty(ref _exclusionReason, value); }
+    public string ExclusionPurpose { get => _exclusionPurpose; set => SetProperty(ref _exclusionPurpose, value); }
+    public string LookupStatus { get => _lookupStatus; private set => SetProperty(ref _lookupStatus, value); }
+    public bool RememberConnection { get => _rememberConnection; set => SetProperty(ref _rememberConnection, value); }
+    public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
+    private void OpenSetup()
+    {
+        var setup = Shell.Page<ApplicationSetupViewModel>();
+        setup.UseTenant(EditTenantId.Trim(), EditCompany);
+        setup.AssessmentClientId = EditAssessmentClientId.Trim();
+        setup.DeploymentClientId = EditDeploymentClientId.Trim();
+        Shell.Navigate("setup");
+    }
+    public ExclusionAccount? SelectedAccount { get => _selectedAccount; set => SetProperty(ref _selectedAccount, value); }
+    public ExclusionAccount? SelectedExclusion { get => _selectedExclusion; set => SetProperty(ref _selectedExclusion, value); }
+    public ICommand SearchAccountsCommand { get; }
+    public ICommand AddExclusionCommand { get; }
+    public ICommand RemoveExclusionCommand { get; }
+    public ICommand ApplyExclusionsCommand { get; }
+    public ICommand OpenSetupCommand { get; }
 
     public ICommand NewProfileCommand { get; }
     public ICommand SaveProfileCommand { get; }
@@ -88,8 +123,8 @@ public sealed class ConnectViewModel : PageViewModel
     public string EditCompany { get => _editCompany; set => SetProperty(ref _editCompany, value); }
     public string EditTenantId { get => _editTenantId; set => SetProperty(ref _editTenantId, value); }
     public string EditDomain { get => _editDomain; set => SetProperty(ref _editDomain, value); }
-    public string EditAssessmentClientId { get => _editAssessmentClientId; set => SetProperty(ref _editAssessmentClientId, value); }
-    public string EditDeploymentClientId { get => _editDeploymentClientId; set => SetProperty(ref _editDeploymentClientId, value); }
+    public string EditAssessmentClientId { get => _editAssessmentClientId; set { if (SetProperty(ref _editAssessmentClientId, value)) OnPropertyChanged(nameof(ApplicationText)); } }
+    public string EditDeploymentClientId { get => _editDeploymentClientId; set { if (SetProperty(ref _editDeploymentClientId, value)) OnPropertyChanged(nameof(ApplicationText)); } }
     public string EditEmergencyIds { get => _editEmergencyIds; set => SetProperty(ref _editEmergencyIds, value); }
     public string EditOfficeLocationId { get => _editOfficeLocationId; set => SetProperty(ref _editOfficeLocationId, value); }
     public string EditMamGroupId { get => _editMamGroupId; set => SetProperty(ref _editMamGroupId, value); }
@@ -102,11 +137,11 @@ public sealed class ConnectViewModel : PageViewModel
     {
         get
         {
-            var profile = Selected;
+            var profile = new TenantProfile { AssessmentClientId = EditAssessmentClientId, DeploymentClientId = EditDeploymentClientId };
             var assessment = Workspace.Settings.ResolveClient(SessionMode.Assessment, profile);
             var deployment = Workspace.Settings.ResolveClient(SessionMode.Deployment, profile);
             return "Assessment sign-in uses: " + (assessment is null ? "nothing configured (set assessmentClientId in config/toolkit.settings.json)" : $"{assessment.Value.Label} ({assessment.Value.ClientId})")
-                + Environment.NewLine + "Deployment sign-in uses: " + (deployment is null ? "not configured - deployment unavailable until deploymentClientId is set" : $"{deployment.Value.Label} ({deployment.Value.ClientId})");
+                + Environment.NewLine + "Deployment sign-in uses: " + (deployment is null ? "setup needed - select Connect for deployment to open the setup wizard" : $"{deployment.Value.Label} ({deployment.Value.ClientId})");
         }
     }
 
@@ -115,7 +150,7 @@ public sealed class ConnectViewModel : PageViewModel
         get
         {
             var s = Workspace.Session;
-            if (s is null) return "Not connected. Sign in with your tenant account; Microsoft handles credentials and MFA in your browser. Local administrator rights are not required.";
+            if (s is null) return "Not connected. Sign in with your tenant account; Microsoft handles credentials and MFA in the Windows sign-in window (or your selected browser fallback). Local administrator rights are not required.";
             return $"Connected to {s.TenantName} ({s.PrimaryDomain}) as {s.Account} in {s.Mode} mode via {s.ClientLabel}.";
         }
     }
@@ -128,6 +163,12 @@ public sealed class ConnectViewModel : PageViewModel
 
     private void LoadForm(TenantProfile? p)
     {
+        RememberConnection = p is not null;
+        AccountMatches.Clear();
+        SelectedAccount = null;
+        ExclusionAccounts.Clear();
+        foreach (var account in p?.ExclusionAccounts ?? new()) ExclusionAccounts.Add(account);
+        _additionalIds = p?.Parameters.AdditionalExclusionAccountIds.ToList() ?? new();
         EditId = p?.Id ?? "";
         EditCompany = p?.Company ?? "";
         EditTenantId = p?.TenantId ?? "";
@@ -152,10 +193,12 @@ public sealed class ConnectViewModel : PageViewModel
         AssessmentClientId = EditAssessmentClientId,
         DeploymentClientId = EditDeploymentClientId,
         Notes = EditNotes,
+        ExclusionAccounts = ExclusionAccounts.ToList(),
         CreatedAt = Selected?.CreatedAt ?? "",
         Parameters = new TenantParameters
         {
             EmergencyAccountIds = EditEmergencyIds.Split(new[] { ',', ';', ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).ToList(),
+            AdditionalExclusionAccountIds = _additionalIds.ToList(),
             OfficeLocationId = EditOfficeLocationId,
             MamGroupId = EditMamGroupId,
             PilotGroupId = EditPilotGroupId,
@@ -188,28 +231,38 @@ public sealed class ConnectViewModel : PageViewModel
     {
         var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
         LoadForm(profile);
+        var previous = Workspace.Connection;
         await Workspace.ConnectAsync(profile, SessionMode.Assessment);
+        if (ReferenceEquals(previous, Workspace.Connection)) return;
+        Shell.Navigate("overview");
     }
 
-    private async Task ConnectAsync(SessionMode mode)
+    public async Task ConnectAsync(SessionMode mode)
     {
-        var profile = Workspace.SaveProfile(FormToProfile());
-        Selected = Profiles.FirstOrDefault(p => p.Id == profile.Id);
+        var profile = RememberConnection ? Workspace.SaveProfile(FormToProfile()) : ProfileValidator.Validate(FormToProfile(), DateTimeOffset.UtcNow);
+        EditId = profile.Id;
+        if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
         if (mode == SessionMode.Deployment)
         {
             var confirm = System.Windows.MessageBox.Show(
-                "Deployment access signs you in again with the BDIT Tenant Deployment application and requests write permissions.\n\n" +
+                "Connect with the M365 BuildStandard Deployment Tool to request the reviewed write permissions. Microsoft may reuse your existing Windows sign-in.\n\n" +
                 "Nothing is written until you build a plan, acknowledge the before-change snapshot and confirm the tenant ID. Continue?",
-                "Enable deployment access", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                "Connect for deployment", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
             if (confirm != System.Windows.MessageBoxResult.Yes) return;
         }
+        var previous = Workspace.Connection;
         await Workspace.ConnectAsync(profile, mode);
+        if (ReferenceEquals(previous, Workspace.Connection)) return;
+        Shell.Navigate("overview");
     }
 
     public override void Refresh()
     {
         if (Selected is null && Workspace.Profile is not null)
-            Selected = Profiles.FirstOrDefault(p => p.Id == Workspace.Profile.Id);
+        {
+            var saved = Profiles.FirstOrDefault(p => p.Id == Workspace.Profile.Id);
+            if (saved is not null) Selected = saved;
+        }
         AccessRoles.Clear();
         AccessReads.Clear();
         AccessWrites.Clear();
@@ -229,5 +282,52 @@ public sealed class ConnectViewModel : PageViewModel
             AccessSummary = $"Checked {a.At} for {a.Account} · Global Administrator: {a.GlobalAdministrator} · {a.CandidateRecipes} automated recipes, {a.ManualControls} manual controls.";
         }
         RaiseAll();
+    }
+
+    public void UseApplicationIds(string tenantId, string assessmentId, string deploymentId)
+    {
+        if (!string.Equals(EditTenantId, tenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("App setup belongs to another tenant. Select that client before applying its application IDs.");
+        EditAssessmentClientId = assessmentId;
+        EditDeploymentClientId = deploymentId;
+        LookupStatus = "Application IDs filled in. Connect read-only to verify effective access.";
+    }
+
+    private Task SearchAccountsAsync() => Workspace.RunExclusiveAsync("Resolving account names", async progress =>
+    {
+        AccountMatches.Clear();
+        SelectedAccount = null;
+        var connection = Workspace.RequireConnection();
+        var matches = await AccountResolver.SearchAsync(connection.Graph, EditTenantId, AccountQuery, Workspace.OperationToken);
+        foreach (var match in matches) AccountMatches.Add(match);
+        LookupStatus = matches.Count == 0 ? "No matching user. Check the sign-in address and tenant." : $"{matches.Count} match(es). Select the exact account, its purpose and reason before adding.";
+    });
+
+    private void AddExclusion()
+    {
+        var account = SelectedAccount ?? throw new ConfigurationException("Select the exact resolved account first.");
+        var session = Workspace.RequireConnection().Session;
+        if (!string.Equals(EditTenantId, account.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(session.TenantId, account.TenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("Resolve this account again in the selected tenant.");
+        if (ExclusionReason.Trim().Length < 8) throw new ConfigurationException("Record why this account should be excluded (at least 8 characters).");
+        if (ExclusionAccounts.Any(a => a.ObjectId == account.ObjectId)) throw new ConfigurationException("This account is already in the exclusion list.");
+        var selected = new ExclusionAccount { TenantId = account.TenantId, ObjectId = account.ObjectId, DisplayName = account.DisplayName,
+            UserPrincipalName = account.UserPrincipalName, Purpose = ExclusionPurpose, Reason = ExclusionReason.Trim(), ResolvedAt = account.ResolvedAt, SelectedBy = session.Account };
+        ExclusionAccounts.Add(selected);
+        var emergencyIds = FormToProfile().Parameters.EmergencyAccountIds;
+        if (ExclusionPurpose == "Emergency access") { emergencyIds.Add(account.ObjectId); EditEmergencyIds = string.Join(", ", emergencyIds.Distinct(StringComparer.OrdinalIgnoreCase)); }
+        else _additionalIds.Add(account.ObjectId);
+        Workspace.Logger.Info("Exclusions", $"Selected {selected.UserPrincipalName} ({selected.ObjectId}) as {selected.Purpose}: {selected.Reason}", account.TenantId);
+        LookupStatus = "Selected locally. Apply exclusions to use them in the next plan. They continue to apply after CA is enabled.";
+    }
+
+    private void RemoveExclusion()
+    {
+        var account = SelectedExclusion ?? throw new ConfigurationException("Select an exclusion first.");
+        var emergencyIds = FormToProfile().Parameters.EmergencyAccountIds.Where(id => !string.Equals(id, account.ObjectId, StringComparison.OrdinalIgnoreCase));
+        EditEmergencyIds = string.Join(", ", emergencyIds);
+        _additionalIds.RemoveAll(id => string.Equals(id, account.ObjectId, StringComparison.OrdinalIgnoreCase));
+        ExclusionAccounts.Remove(account);
+        LookupStatus = "Removed from the local selection. Apply exclusions to invalidate any existing plan. Existing tenant policies are unchanged.";
     }
 }

@@ -18,8 +18,10 @@ Do not overwrite either source repository while performing integration.
 - Record material choices in `docs/integration/DECISION-LOG.md`.
 - Update `docs/integration/COMPARISON-MATRIX.md` with evidence.
 - Keep `main` releasable. Perform active integration on `integration`.
-- Astra/Codex and Claude must use separate feature branches for concurrent work.
+- Astra/Codex and Claude must use separate feature branches for concurrent work: `claude/…` and `astra/…` respectively. Neither agent writes to the other's branch.
 - Merge changes through reviewed pull requests.
+- Follow `docs/integration/AGENT-COORDINATION.md` before starting any work. It covers the pre-flight check, how work is claimed, how conflicts are resolved and when to stop and ask. It applies to all three repositories.
+- Claim work by opening a draft pull request as your first act, and record it in `docs/integration/WORK-CLAIMS.md`.
 - Do not describe untested Microsoft 365 behaviour as verified.
 
 ## Product requirements
@@ -28,7 +30,7 @@ Do not overwrite either source repository while performing integration.
 - Capture a complete pre-change snapshot before tenant writes.
 - Show tenant identity, primary domain, signed-in identity and permission mode.
 - Highlight write-capable access.
-- Keep Conditional Access candidates disabled and Intune candidates unassigned. Preserve stored CA targeting/exclusions in the baseline; see INT-004 for the unresolved historical targeting wording.
+- Keep Conditional Access candidates disabled and Intune candidates unassigned. Preserve stored CA targeting/exclusions in the baseline; see INT-004 for preserved baseline targeting and outstanding live rollout acceptance.
 - Resolve and display Microsoft Graph object names and IDs.
 - Support standard versioning, comparison and backfill.
 - Produce structured action results and complete before/after evidence.

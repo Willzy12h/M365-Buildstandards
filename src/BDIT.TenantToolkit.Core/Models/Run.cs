@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
+
 namespace BDIT.TenantToolkit.Core.Models;
 
 public static class RunStatus
@@ -24,6 +27,15 @@ public static class ConfigurationVerification
     public const string Pending = "Pending";
     public const string Pass = "Pass";
     public const string Unknown = "Unknown";
+    public const string NotRun = "Not run";
+}
+
+public static class WriteAcceptance
+{
+    public const string NotAttempted = "Not attempted";
+    public const string Unknown = "Unknown";
+    public const string Accepted = "Accepted";
+    public const string Rejected = "Rejected";
 }
 
 public sealed class RunActor
@@ -41,6 +53,15 @@ public sealed class RunResult
     public string Collection { get; set; } = "";
     public string PlannedAction { get; set; } = "";
     public string Status { get; set; } = ResultStatus.Pending;
+    // Preserve absent fields in older digested evidence; absence is displayed as Unknown.
+    [JsonPropertyName("writeAcceptance"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RecordedWriteAcceptance { get; set; }
+    [JsonIgnore]
+    public string WriteAcceptance
+    {
+        get => RecordedWriteAcceptance ?? global::BDIT.TenantToolkit.Core.Models.WriteAcceptance.Unknown;
+        set => RecordedWriteAcceptance = value;
+    }
     public string? ObjectId { get; set; }
     public string Configuration { get; set; } = ConfigurationVerification.Pending;
     public string Verification { get; set; } = "Functional user, device or sign-in testing required";
@@ -48,6 +69,14 @@ public sealed class RunResult
     public string? PayloadDigest { get; set; }
     public string? WrittenAt { get; set; }
     public string? ReadbackDigest { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? WrittenPayload { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? BeforeObject { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonObject? AfterObject { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ManagedObjectMapping? BeforeMapping { get; set; }
 }
 
 /// <summary>Durable record of one deployment attempt: what was planned, what happened, and the before/after evidence.</summary>

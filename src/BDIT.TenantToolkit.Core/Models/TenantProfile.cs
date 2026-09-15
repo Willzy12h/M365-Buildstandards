@@ -16,15 +16,32 @@ public sealed class TenantProfile
     public string DeploymentClientId { get; set; } = "";
 
     public TenantParameters Parameters { get; set; } = new();
+    public List<ExclusionAccount> ExclusionAccounts { get; set; } = new();
     public string Notes { get; set; } = "";
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
 }
 
+/// <summary>Tenant-bound, explicitly selected user identity. Metadata is local evidence, never a name-based exemption.</summary>
+public sealed class ExclusionAccount
+{
+    public string TenantId { get; set; } = "";
+    public string ObjectId { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string UserPrincipalName { get; set; } = "";
+    public string Purpose { get; set; } = "Emergency access";
+    public string Reason { get; set; } = "";
+    public string ResolvedAt { get; set; } = "";
+    public string SelectedBy { get; set; } = "";
+}
+
 /// <summary>Client-specific values substituted into catalogue templates. All identifiers are Entra object IDs.</summary>
 public sealed class TenantParameters
 {
+    /// <summary>Optional, non-secret per-control inputs. Null preserves historical evidence serialisation.</summary>
+    public Dictionary<string, JsonNode?>? PolicyInputs { get; set; }
     public List<string> EmergencyAccountIds { get; set; } = new();
+    public List<string> AdditionalExclusionAccountIds { get; set; } = new();
     public string OfficeLocationId { get; set; } = "";
     public string MamGroupId { get; set; } = "";
     public string PilotGroupId { get; set; } = "";
@@ -36,16 +53,21 @@ public sealed class TenantParameters
         var values = new Dictionary<string, JsonNode?>(StringComparer.Ordinal)
         {
             ["tenantId"] = JsonValue.Create(tenantId),
-            ["emergencyAccountIds"] = ToArray(EmergencyAccountIds),
+            ["emergencyAccountIds"] = EmergencyAccountIds.Count == 0 ? null : ToArray(EmergencyAccountIds.Concat(AdditionalExclusionAccountIds).Distinct(StringComparer.OrdinalIgnoreCase)),
             ["officeLocationId"] = ToScalar(OfficeLocationId),
             ["mamGroupId"] = ToScalar(MamGroupId),
             ["pilotGroupId"] = ToScalar(PilotGroupId),
             ["caExclusionGroupId"] = ToScalar(CaExclusionGroupId)
         };
         var emergencyAndGuests = new JsonArray();
-        foreach (var id in EmergencyAccountIds) emergencyAndGuests.Add(id);
+        foreach (var id in EmergencyAccountIds.Concat(AdditionalExclusionAccountIds).Distinct(StringComparer.OrdinalIgnoreCase)) emergencyAndGuests.Add(id);
         emergencyAndGuests.Add("GuestsOrExternalUsers");
         values["emergencyAndGuestIds"] = EmergencyAccountIds.Count == 0 ? null : emergencyAndGuests;
+        foreach (var (key, value) in PolicyInputs ?? new())
+        {
+            if (values.ContainsKey(key)) throw new ConfigurationException("Policy inputs cannot replace built-in identity parameters.");
+            values[key] = value?.DeepClone();
+        }
         return values;
     }
 
@@ -85,6 +107,9 @@ public static partial class ProfileValidator
             UpdatedAt = Timestamps.Format(now),
             Parameters = new TenantParameters
             {
+                PolicyInputs = input.Parameters?.PolicyInputs?.ToDictionary(p => p.Key, p => p.Value?.DeepClone(), StringComparer.Ordinal),
+                AdditionalExclusionAccountIds = (input.Parameters?.AdditionalExclusionAccountIds ?? new List<string>())
+                    .Select(v => (v ?? "").Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList(),
                 EmergencyAccountIds = (input.Parameters?.EmergencyAccountIds ?? new List<string>())
                     .Select(v => (v ?? "").Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList(),
                 OfficeLocationId = (input.Parameters?.OfficeLocationId ?? "").Trim().ToLowerInvariant(),
@@ -99,8 +124,18 @@ public static partial class ProfileValidator
         if (profile.DeploymentClientId.Length > 0 && !IsGuid(profile.DeploymentClientId)) throw new ConfigurationException("Deployment application ID must be a GUID.");
         if (profile.AssessmentClientId.Length > 0 && profile.AssessmentClientId == profile.DeploymentClientId)
             throw new ConfigurationException("Assessment and deployment applications must be different registrations so read-only tokens cannot carry write permissions.");
-        foreach (var id in profile.Parameters.EmergencyAccountIds)
+        foreach (var id in profile.Parameters.EmergencyAccountIds.Concat(profile.Parameters.AdditionalExclusionAccountIds))
             if (!IsGuid(id)) throw new ConfigurationException("Emergency accounts must be recorded as user object IDs (GUIDs).");
+        foreach (var account in input.ExclusionAccounts ?? new())
+        {
+            if (!string.Equals(account.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase) || !IsGuid(account.ObjectId))
+                throw new ConfigurationException("An exclusion belongs to another tenant or has an invalid object ID. Resolve the account again in the connected tenant.");
+            if (account.Purpose is not ("Emergency access" or "Approved exception") || account.Reason.Trim().Length < 8)
+                throw new ConfigurationException("Each selected exclusion needs a purpose and a meaningful reason.");
+            if (profile.Parameters.EmergencyAccountIds.Concat(profile.Parameters.AdditionalExclusionAccountIds).Contains(account.ObjectId, StringComparer.OrdinalIgnoreCase))
+                profile.ExclusionAccounts.Add(new ExclusionAccount { TenantId = profile.TenantId, ObjectId = account.ObjectId.ToLowerInvariant(), DisplayName = account.DisplayName,
+                    UserPrincipalName = account.UserPrincipalName, Purpose = account.Purpose, Reason = account.Reason.Trim(), ResolvedAt = account.ResolvedAt, SelectedBy = account.SelectedBy });
+        }
         foreach (var (label, value) in new[]
                  {
                      ("Office named-location ID", profile.Parameters.OfficeLocationId),

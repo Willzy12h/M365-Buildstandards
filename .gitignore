@@ -14,6 +14,7 @@ data/
 .env
 .env.*
 *.pfx
+*.intunewin
 *.p12
 *.pem
 *.key

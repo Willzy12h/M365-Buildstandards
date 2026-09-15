@@ -49,6 +49,33 @@ public class EquivalenceTests
     }
 
     [Fact]
+    public void Singleton_policy_arrays_are_evaluated_by_element_key_so_authentication_methods_can_be_assessed()
+    {
+        var def = new CollectionDefinition { Api = "v1.0", Path = "/policies/authenticationMethodsPolicy", Scope = "Policy.Read.AuthenticationMethod", Singleton = true, Label = "Authentication methods policy" };
+        var policy = ToolkitJson.ParseObject("""{"id":"authenticationMethodsPolicy","displayName":"Authentication Methods Policy","authenticationMethodConfigurations":[{"id":"MicrosoftAuthenticator","state":"enabled"},{"id":"Sms","state":"enabled"},{"id":"Voice","state":"disabled"},{"id":"TemporaryAccessPass","state":"enabled","isUsableOnce":false}]}""");
+        var capture = new CollectionCapture { Status = CaptureStatus.Collected, Api = "v1.0", Path = def.Path, Items = { policy }, Count = 1 };
+        var rule = new EquivalenceRule
+        {
+            Note = "test",
+            Signals =
+            {
+                new() { Key = "auth", Label = "Authenticator enabled", Path = "authenticationMethodConfigurations[id=MicrosoftAuthenticator].state", Operator = SignalOperator.Equals, Value = "enabled" },
+                new() { Key = "sms", Label = "SMS disabled", Path = "authenticationMethodConfigurations[id=Sms].state", Operator = SignalOperator.Equals, Value = "disabled" }
+            },
+            Caveats = { new() { Key = "tap", Label = "TAP reusable", Path = "authenticationMethodConfigurations[id=TemporaryAccessPass].isUsableOnce", Operator = SignalOperator.Equals, Value = false } }
+        };
+
+        var observation = Assert.Single(EquivalenceEvaluator.Evaluate(rule, capture, def, new NameResolver()));
+        Assert.False(observation.Covered);
+        Assert.True(observation.Signals.Single(s => s.Key == "auth").Matched);
+        Assert.False(observation.Signals.Single(s => s.Key == "sms").Matched);
+        Assert.Contains(observation.Caveats, c => c.StartsWith("TAP reusable", StringComparison.Ordinal));
+
+        policy["authenticationMethodConfigurations"]![1]!["state"] = "disabled";
+        Assert.True(Assert.Single(EquivalenceEvaluator.Evaluate(rule, capture, def, new NameResolver())).Covered);
+    }
+
+    [Fact]
     public void Differently_named_policy_meeting_every_condition_is_a_partial_match_not_missing()
     {
         var finding = Assess(ClientMfaPolicy());

@@ -4,6 +4,8 @@ using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.Tests;
 
@@ -121,5 +123,87 @@ public class StandardsTests
             foreach (var control in catalogue.Controls.Where(c => c.Collection == "conditionalAccess" && c.HasRecipe))
                 Assert.Equal("disabled", control.Payload!["state"]!.GetValue<string>());
         }
+    }
+
+    /// <summary>
+    /// From 2026.09.7 the three controls that are changed only through reviewed tenant actions are assessed from the
+    /// collections the toolkit already captures. They stay manual-mode (no recipe, no Plan → Deploy path) but declare
+    /// equivalence signals, so a report shows the tenant's actual state instead of "requires manual review".
+    /// </summary>
+    [Fact]
+    public void Latest_shipped_standard_assesses_reviewed_action_controls_from_evidence()
+    {
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.7.json"));
+        if (!File.Exists(file)) return;
+        var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+        Assert.Equal("2026.09.7", catalogue.Release);
+        Assert.Equal(45, catalogue.Controls.Count);
+        Assert.Equal(37, catalogue.Controls.Count(c => c.HasRecipe));
+        foreach (var id in new[] { "ID-002", "ENR-001", "CMP-001" })
+        {
+            var control = catalogue.FindControl(id)!;
+            Assert.Equal(AssessmentMode.Manual, control.Assessment.Mode);
+            Assert.Null(control.Payload);
+            Assert.NotNull(control.Equivalence);
+            Assert.NotEmpty(control.Equivalence!.Required);
+            Assert.True(catalogue.Collections.ContainsKey(control.Equivalence.Collection ?? control.Collection!));
+        }
+        Assert.Contains(catalogue.FindControl("ID-002")!.Equivalence!.Signals, s => s.Path.Contains("[id=Sms]", StringComparison.Ordinal));
+        // Manual-by-nature controls carry no equivalence claim: nothing readable proves them.
+        foreach (var id in new[] { "ID-001", "ID-003", "ENR-005", "ENR-006", "UPD-001" })
+            Assert.Null(catalogue.FindControl(id)!.Equivalence);
+    }
+
+    /// <summary>
+    /// From 2026.09.8 the directory objects every other control depends on are provisioned through the same
+    /// Plan → Deploy path as a policy: empty security groups and an untrusted office named location. Administrator
+    /// access is assessed from directory role membership instead of being left to an engineer's cross-reference.
+    /// </summary>
+    [Fact]
+    public void Latest_shipped_standard_provisions_directory_prerequisites()
+    {
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.8.json"));
+        if (!File.Exists(file)) return;
+        var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+        Assert.Equal("2026.09.8", catalogue.Release);
+        Assert.Equal(53, catalogue.Controls.Count);
+        Assert.Equal(45, catalogue.Controls.Count(c => c.HasRecipe));
+
+        // Both prerequisite collections must be writable, or every prerequisite control plans as Manual.
+        Assert.True(catalogue.Collections["groups"].Writable);
+        Assert.True(catalogue.Collections["namedLocations"].Writable);
+
+        // The planner resolves reviewed client inputs before the guard sees a payload, so the named location's
+        // ipRanges placeholder is resolved here the same way; a raw template is never written.
+        var inputs = new Dictionary<string, JsonNode?>(StringComparer.Ordinal)
+        {
+            ["officeIpRanges"] = new JsonArray(new JsonObject
+            {
+                ["@odata.type"] = "#microsoft.graph.iPv4CidrRange", ["cidrAddress"] = "203.0.113.0/24"
+            })
+        };
+        foreach (var control in catalogue.Controls.Where(c => c.Id.StartsWith("PRE-", StringComparison.Ordinal)))
+        {
+            Assert.True(control.HasRecipe);
+            var def = catalogue.Collections[control.Collection!];
+            var payload = (JsonObject)CanonicalJson.Resolve(control.Payload, inputs)!;
+            WritePayloadGuard.Assert(def, payload);
+        }
+
+        var groups = catalogue.Controls.Where(c => c.Collection == "groups").ToList();
+        Assert.Equal(7, groups.Count);
+        foreach (var group in groups)
+        {
+            Assert.Equal("none", group.SafeDeployment.Assignment);
+            Assert.Equal(group.Name, group.Payload!["displayName"]!.GetValue<string>());
+        }
+        Assert.Equal("#microsoft.graph.ipNamedLocation", catalogue.FindControl("PRE-008")!.Payload!["@odata.type"]!.GetValue<string>());
+        Assert.False(catalogue.FindControl("PRE-008")!.Payload!["isTrusted"]!.GetValue<bool>());
+
+        var adminAccess = catalogue.FindControl("ID-003")!;
+        Assert.Equal("directoryRoles", adminAccess.Equivalence!.Collection);
+        Assert.True(catalogue.Collections.ContainsKey("directoryRoles"));
+        Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtMost);
+        Assert.Contains(adminAccess.Equivalence.Signals, s => s.Operator == SignalOperator.AtLeast);
     }
 }

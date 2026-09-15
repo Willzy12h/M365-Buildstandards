@@ -32,4 +32,6 @@
 
 ## Concurrent work
 
+The operating protocol for two agents working at once is `AGENT-COORDINATION.md`: pre-flight check, claiming work by draft pull request, branch ownership, feature areas, merge order and conflict resolution. Read it before starting. Current claims are in `WORK-CLAIMS.md`.
+
 Astra/Codex and Claude should not make unrelated direct commits to `integration`. Each creates a feature branch from the same current integration commit and opens a pull request. This keeps changes attributable and allows the other implementation to review the diff.

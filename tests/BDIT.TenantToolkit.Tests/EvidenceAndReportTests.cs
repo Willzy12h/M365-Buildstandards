@@ -10,6 +10,32 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class EvidenceAndReportTests
 {
+    [Fact]
+    public async Task Atomic_evidence_replacement_tolerates_a_brief_windows_reader_lock()
+    {
+        if (!OperatingSystem.IsWindows()) return; // Unix permits replacing an open file.
+        using var root = new TempRoot();
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var file = Path.Combine(root.Root, "atomic-lock.json");
+        store.WriteJsonAtomic(file, new { Value = "before" });
+        Task replace;
+        using (var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (var started = new ManualResetEventSlim())
+        {
+            replace = Task.Factory.StartNew(() =>
+            {
+                started.Set();
+                store.WriteJsonAtomic(file, new { Value = "after" });
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+            Thread.Sleep(70);
+            Assert.False(replace.IsCompleted, "Replacement must wait for the temporary reader lock instead of failing immediately.");
+        }
+        await replace;
+        Assert.Contains("after", File.ReadAllText(file), StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFiles(root.Root, "atomic-lock.json.*.tmp"));
+    }
+
     [Theory]
     [InlineData("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.abcdefghijk.lmnopqrstuv", "eyJhbGciOiJIUzI1NiJ9")]
     [InlineData("{\"access_token\":\"secret-value\"}", "secret-value")]
@@ -106,6 +132,8 @@ public class EvidenceAndReportTests
         Assert.DoesNotContain("\"@odata", client, StringComparison.Ordinal);
         Assert.DoesNotContain("grantControls", client, StringComparison.Ordinal);
         Assert.Contains("Require MFA", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("no changes were made", client, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Any implementation changes are recorded separately", client, StringComparison.Ordinal);
 
         var md = MarkdownReports.Engineer(result);
         Assert.Contains("# Tenant assessment", md, StringComparison.Ordinal);
@@ -116,6 +144,46 @@ public class EvidenceAndReportTests
         Assert.Equal(new[] { "Summary", "Findings", "Differences", "Equivalent configuration", "Equivalence caveats", "Collection status", "Deviations", "Limitations" },
             sheets.Select(s => s.Name));
         Assert.Contains(sheets[1].Rows.Skip(1), r => r[0] == "CA-001" && r[4].Contains("not enforced", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Run_exports_preserve_accepted_write_with_unknown_configuration()
+    {
+        var run = new DeploymentRun
+        {
+            TenantId = TestData.TenantA, TenantName = "Synthetic tenant", Status = RunStatus.ReviewRequired, AfterComplete = false,
+            Results = new List<RunResult>
+            {
+                new() { ControlId = "CA-001", Status = ResultStatus.Completed, WriteAcceptance = WriteAcceptance.Accepted,
+                    Configuration = ConfigurationVerification.Unknown, Reason = "Readback failed; reconcile before retrying." }
+            }
+        };
+        var journal = Array.Empty<JournalEntry>();
+        var sheets = TabularReports.RunSheets(run, journal);
+        var results = sheets.Single(s => s.Name == "Results");
+        var row = Assert.Single(results.Rows.Skip(1));
+        Assert.Equal("Accepted", row[Array.IndexOf(results.Rows[0], "Write acceptance")]);
+        Assert.Equal("Unknown", row[Array.IndexOf(results.Rows[0], "Configuration readback")]);
+        foreach (var text in new[] { HtmlReports.Run(run, journal), MarkdownReports.Run(run, journal), CsvWriter.Write(results.Rows) })
+        {
+            Assert.Contains("Write acceptance", text, StringComparison.Ordinal);
+            Assert.Contains("Accepted", text, StringComparison.Ordinal);
+            Assert.Contains("Unknown", text, StringComparison.Ordinal);
+        }
+        using var zip = new ZipArchive(new MemoryStream(XlsxWriter.Write(sheets)), ZipArchiveMode.Read);
+        using var reader = new StreamReader(zip.GetEntry("xl/worksheets/sheet2.xml")!.Open());
+        var xml = reader.ReadToEnd();
+        Assert.Contains("Write acceptance", xml, StringComparison.Ordinal);
+        Assert.Contains(">Accepted<", xml, StringComparison.Ordinal);
+        Assert.Contains(">Unknown<", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Legacy_run_without_acceptance_field_is_unknown_not_not_attempted()
+    {
+        var result = BDIT.TenantToolkit.Core.Json.ToolkitJson.Deserialize<RunResult>("""{"controlId":"CA-001","status":"Completed"}""");
+        Assert.Equal(WriteAcceptance.Unknown, result.WriteAcceptance);
+        Assert.DoesNotContain("writeAcceptance", BDIT.TenantToolkit.Core.Json.ToolkitJson.Serialize(result), StringComparison.Ordinal);
     }
 
     [Fact]

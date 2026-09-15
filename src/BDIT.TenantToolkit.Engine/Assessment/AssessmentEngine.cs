@@ -355,14 +355,14 @@ public sealed class AssessmentEngine
             var matched = 0;
             foreach (var (path, value) in wanted)
             {
-                var current = CanonicalJson.At(item, path);
-                var match = CanonicalJson.IsSubset(current, value);
+                var present = CanonicalJson.TryAt(item, path, out var current);
+                var match = present && CanonicalJson.IsSubset(current, value);
                 if (match) matched++;
                 differences.Add(new PropertyDifference
                 {
                     Setting = path,
-                    Current = current is null ? "Missing — not returned" : names.Render(current),
-                    Standard = names.Render(value),
+                    Current = !present ? "Missing — not returned" : current is null ? "null" : names.Render(current),
+                    Standard = value is null ? "null" : names.Render(value),
                     Match = match
                 });
             }
@@ -489,13 +489,14 @@ public sealed class LicenceEvaluator
         var evaluator = new LicenceEvaluator { Available = true };
         foreach (var sku in capture.Items)
         {
+            if (sku["capabilityStatus"]?.GetValue<string>() != "Enabled" || sku["prepaidUnits"]?["enabled"] is not JsonValue units || !units.TryGetValue<int>(out var count) || count <= 0) continue;
             if (sku["servicePlans"] is not JsonArray plans) continue;
             foreach (var plan in plans)
             {
                 if (plan is not JsonObject p) continue;
                 var name = p["servicePlanName"]?.GetValue<string>();
                 var status = p["provisioningStatus"]?.GetValue<string>() ?? "";
-                if (!string.IsNullOrEmpty(name) && !string.Equals(status, "Disabled", StringComparison.OrdinalIgnoreCase)) evaluator._plans.Add(name);
+                if (!string.IsNullOrEmpty(name) && string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase)) evaluator._plans.Add(name);
             }
         }
         return evaluator;

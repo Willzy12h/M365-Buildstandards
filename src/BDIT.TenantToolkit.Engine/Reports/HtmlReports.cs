@@ -52,8 +52,8 @@ public static class HtmlReports
     public static string Engineer(AssessmentResult r)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Tenant Assessment - {r.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Engineer report</div>");
+        Head(sb, $"M365 BuildStandard Assessment Tool - {r.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Engineer report</div>");
         sb.Append("<h1>Tenant assessment: ").Append(H(r.TenantName)).Append("</h1>");
         sb.Append("<dl class=\"meta\">");
         Meta(sb, "Primary domain", r.PrimaryDomain); Meta(sb, "Tenant ID", r.TenantId); Meta(sb, "Client label", r.ClientLabel);
@@ -99,8 +99,8 @@ public static class HtmlReports
         sb.Append("<h2>Collection status</h2>");
         Table(sb, TabularReports.AssessmentSheets(r)[3]);
 
-        sb.Append("<footer><p><b>Assessment performed read-only.</b> No tenant configuration was modified. Matches compare captured settings with the BDIT Build Standard; they are not a security certification and do not prove effective user or device behaviour.</p>")
-          .Append("<p>BDIT Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");
+        sb.Append("<footer><p><b>This assessment compares a saved capture.</b> Generating the assessment does not modify tenant configuration. Changes from separate deployment runs are recorded in their own evidence. Matches are not a security certification and do not prove effective user or device behaviour.</p>")
+          .Append("<p>M365 Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");
         return sb.ToString();
     }
 
@@ -150,7 +150,7 @@ public static class HtmlReports
                 sb.Append("<p>State: ").Append(H(StatusLabels.For(c.Enforcement))).Append(" · Targeting: ").Append(H(c.AssignmentSummary)).Append(c.ToolkitManaged ? " · created by the toolkit" : "").Append(" · ").Append(c.Matched).Append('/').Append(c.Total).Append(" settings match</p>");
                 if (c.Differences.Count > 0)
                 {
-                    sb.Append("<table><thead><tr><th>Setting</th><th>Current</th><th>BDIT standard</th><th>Result</th></tr></thead><tbody>");
+                    sb.Append("<table><thead><tr><th>Setting</th><th>Current</th><th>build standard</th><th>Result</th></tr></thead><tbody>");
                     foreach (var d in c.Differences)
                         sb.Append("<tr><td><code>").Append(H(d.Setting)).Append("</code></td><td>").Append(H(d.Current)).Append("</td><td>").Append(H(d.Standard)).Append("</td><td class=\"").Append(d.Match ? "match\">Match" : "diff\">Different").Append("</td></tr>");
                     sb.Append("</tbody></table>");
@@ -212,7 +212,7 @@ public static class HtmlReports
             sb.Append("</ul>");
         }
         sb.Append("<h2>Next steps</h2><p>").Append(H(companyName)).Append(" recommends agreeing the priority items first. Changes are introduced in stages, tested with a pilot group, and only enforced after validation, so day-to-day work is not disrupted.</p>");
-        sb.Append("<footer><p>This review was performed read-only; no changes were made to your Microsoft 365 environment. It reflects configuration at ").Append(H(r.CapturedAt)).Append(" and is not a security certification.</p></footer></body></html>");
+        sb.Append("<footer><p>This review compares configuration captured at ").Append(H(r.CapturedAt)).Append(" with the agreed standard. Any implementation changes are recorded separately. This is not a security certification.</p></footer></body></html>");
         return sb.ToString();
     }
 
@@ -234,8 +234,8 @@ public static class HtmlReports
     public static string Run(DeploymentRun run, IReadOnlyList<JournalEntry> journal)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Deployment Run - {run.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
+        Head(sb, $"M365 Deployment Run - {run.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
         var sheets = TabularReports.RunSheets(run, journal);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);
@@ -243,7 +243,7 @@ public static class HtmlReports
         sb.Append("<div class=\"note warn\">Every object created by this run is disabled (Conditional Access) or unassigned (Intune). Assignment, activation and functional testing are separate engineering steps.</div>");
         sb.Append("<h2>Results</h2>"); Table(sb, sheets[1]);
         sb.Append("<h2>Journal</h2>"); Table(sb, sheets[2]);
-        sb.Append("<footer><p>Configuration readback confirms that Microsoft Graph accepted the requested settings; it does not prove effective device or sign-in behaviour.</p></footer></body></html>");
+        sb.Append("<footer><p>Write acceptance and configuration readback are separate outcomes. A readback Pass means the returned settings matched the requested values; Unknown means verification is incomplete. Functional device or sign-in behaviour still requires testing.</p></footer></body></html>");
         return sb.ToString();
     }
 
@@ -252,8 +252,8 @@ public static class HtmlReports
     public static string Drift(DriftReport d)
     {
         var sb = new StringBuilder();
-        Head(sb, $"BDIT Tenant Drift - {d.TenantName}");
-        sb.Append("<div class=\"brand\">BDIT Microsoft 365 Tenant Toolkit · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
+        Head(sb, $"M365 Tenant Drift - {d.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
         var sheets = TabularReports.DriftSheets(d);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);

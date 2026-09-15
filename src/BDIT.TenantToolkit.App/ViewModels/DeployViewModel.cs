@@ -22,15 +22,15 @@ public sealed class DeployViewModel : PageViewModel
     {
         EnableDeploymentCommand = Command(EnableDeploymentAsync, () => Workspace.Profile is not null && Workspace.Idle && !Workspace.IsDeploymentSession);
         CaptureCommand = Command(Workspace.CaptureAsync, () => Workspace.IsConnected && Workspace.Idle);
-        ExportBeforeCommand = Sync(ExportBefore, () => Workspace.Snapshot is not null && Workspace.SnapshotIsLive);
+        ExportBeforeCommand = Command(ExportBefore, () => Workspace.Snapshot is not null && Workspace.SnapshotIsLive);
         AcknowledgeCommand = Sync(Workspace.AcknowledgeSnapshot, () => Workspace.Snapshot is not null && Workspace.SnapshotIsLive && Workspace.Idle);
         DeployCommand = Command(DeployAsync, () => CanDeploy);
         PauseCommand = Sync(Workspace.PauseDeployment, () => IsRunning && !(Workspace.Control?.Paused ?? false));
         ResumeCommand = Sync(Workspace.ResumeDeployment, () => IsRunning && (Workspace.Control?.Paused ?? false));
         StopCommand = Sync(Workspace.StopDeployment, () => IsRunning);
-        ExportRunHtmlCommand = Sync(() => ExportRun(ExportFormat.Html), () => Workspace.LastRun is not null);
-        ExportRunJsonCommand = Sync(() => ExportRun(ExportFormat.Json), () => Workspace.LastRun is not null);
-        ExportRunXlsxCommand = Sync(() => ExportRun(ExportFormat.Xlsx), () => Workspace.LastRun is not null);
+        ExportRunHtmlCommand = Command(() => ExportRun(ExportFormat.Html), () => Workspace.LastRun is not null);
+        ExportRunJsonCommand = Command(() => ExportRun(ExportFormat.Json), () => Workspace.LastRun is not null);
+        ExportRunXlsxCommand = Command(() => ExportRun(ExportFormat.Xlsx), () => Workspace.LastRun is not null);
         Refresh();
     }
 
@@ -59,7 +59,7 @@ public sealed class DeployViewModel : PageViewModel
         get
         {
             var run = Workspace.LastRun;
-            if (IsRunning) return "Deployment running. Pause or stop takes effect at the next action boundary; the current write always completes and an after-change snapshot is captured.";
+            if (IsRunning) return "Deployment running. " + Workspace.StopGuidance;
             if (run is null) return "No deployment has been started in this session.";
             return $"Run {run.Id} · {run.Status} · started {run.StartedAt} · ended {run.EndedAt} · before {run.BeforeSnapshotId} · after {run.AfterSnapshotId ?? "not captured"}{(run.AfterComplete == false ? " (INCOMPLETE)" : "")}{(run.Error is null ? "" : " · " + run.Error)}";
         }
@@ -69,17 +69,18 @@ public sealed class DeployViewModel : PageViewModel
     {
         var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
         var confirm = System.Windows.MessageBox.Show(
-            "Deployment access signs you in again with the BDIT Tenant Deployment application and requests write permissions for this tenant.\n\n" +
+            "Deployment access signs you in again with the M365 BuildStandard Deployment Tool application and requests write permissions for this tenant.\n\n" +
             "Any capture, assessment and plan from the read-only session are discarded and must be repeated in the deployment session.\n\nNothing is written until you confirm a reviewed plan. Continue?",
             "Enable deployment access", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
         await Workspace.ConnectAsync(profile, SessionMode.Deployment);
     }
 
-    private void ExportBefore()
+    private async Task ExportBefore()
     {
         var snapshot = Workspace.Snapshot ?? throw new ToolkitException("Capture the tenant first.");
-        LastExport = "Exported before-change capture: " + Workspace.Exporter.ExportSnapshot(snapshot, Workspace.Standard, ExportFormat.Json);
+        var standard = Workspace.Standard;
+        LastExport = "Exported before-change capture: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, standard, ExportFormat.Json));
     }
 
     private async Task DeployAsync()
@@ -92,11 +93,11 @@ public sealed class DeployViewModel : PageViewModel
         Refresh();
     }
 
-    private void ExportRun(ExportFormat format)
+    private async Task ExportRun(ExportFormat format)
     {
         var run = Workspace.LastRun ?? throw new ToolkitException("No run to export.");
         var journal = Workspace.Evidence.ReadJournal(run.TenantId, run.Id);
-        LastExport = "Exported: " + Workspace.Exporter.ExportRun(run, journal, format);
+        LastExport = "Exported: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportRun(run, journal, format));
     }
 
     public override void Refresh()
@@ -113,8 +114,8 @@ public sealed class DeployViewModel : PageViewModel
         Prerequisites.Add(new PrerequisiteRow
         {
             Step = "2. Write scopes",
-            Status = session?.Mode != SessionMode.Deployment ? "Pending" : missingScopes.Count == 0 ? "Observed" : "Missing",
-            Detail = missingScopes.Count == 0 ? "Scope observation does not prove API acceptance." : "Missing: " + string.Join(", ", missingScopes)
+            Status = session?.Mode != SessionMode.Deployment ? "Pending" : Workspace.Access is null ? "Unknown" : missingScopes.Count == 0 ? "Observed" : "Missing",
+            Detail = Workspace.Access is null ? "Run the access check before relying on scope observations." : missingScopes.Count == 0 ? "Scope observation does not prove API acceptance." : "Missing: " + string.Join(", ", missingScopes)
         });
         Prerequisites.Add(new PrerequisiteRow
         {

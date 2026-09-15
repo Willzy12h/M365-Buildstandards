@@ -20,6 +20,22 @@ public interface IGraphClient
     /// <summary>Follows @odata.nextLink pages. Throws if a page cannot be read; never returns a partial list silently.</summary>
     Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct);
 
-    /// <summary>Creates or updates an object. Never retried. Throws <see cref="AmbiguousWriteException"/> when the outcome is unknown.</summary>
+    /// <summary>Creates or updates an object. Never retried. Only WriteNotSentException confirms no request was sent; arbitrary exceptions remain uncertain.</summary>
     Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct);
+
+    /// <summary>Dedicated full PUT preserving a reviewed device registration policy. Never retries or disables LAPS.</summary>
+    Task EnableEntraLapsAsync(JsonObject reviewedBefore, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support Entra LAPS enablement.");
+
+    Task ApplyReviewedChangeAsync(ReviewedChangePlan plan, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support reviewed tenant changes.");
+
+    Task<JsonObject> WriteWin32ContentAsync(string appId, string? versionId, string? fileId, Win32ContentAction action, JsonObject payload, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support Win32 package publishing.");
+    Task UploadEncryptedPackageAsync(Uri storageUri, Stream content, long length, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support encrypted package upload.");
+
+    /// <summary>Separate recovery boundary; implementations must restrict supported routes/actions and never retry writes.</summary>
+    Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support recovery writes.");
 }

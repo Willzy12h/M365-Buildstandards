@@ -1,5 +1,23 @@
 # Behavioural comparison
 
+## Preview.6 extension
+
+The source comparisons below remain historical. The integrated code now provides 37 candidate recipes, explicit tenant-setting/activation/assignment actions, supplied-package publication and external-service readiness checks. See [coverage by control](../AUTOMATION-COVERAGE.md) for client inputs, recovery limits and the four remaining human workflows. Release compilation is confirmed; these added behaviours have not been tested against Graph or through the GUI.
+
+## Integrated workflow update — 14 September 2026
+
+This update supersedes the baseline gaps below where named implementation and checks now exist. Source comparisons remain historical evidence.
+
+| Area | Claude baseline | Asta reference | Integrated recommendation | Evidence / remaining checks |
+|---|---|---|---|---|
+| Evidence/execution | Partial boundary validation, incomplete terminal states | Stronger workflow safeguards worth retaining | Executor reloads complete durable evidence, rebuilds write rows and binds all inputs; unresolved writes cannot be replayed | Executor/Planner regressions; live failure checks pending |
+| Account exclusions | Raw IDs and creator safeguards | Friendly identity/parameter workflows | Explicit tenant-bound lookup, purpose/reason, names plus IDs; emergency and creator safeguards preserved | AccountResolver/planner tests; live lookup pending |
+| Connections | Always saves profile | One-time connection option | One-time default, opt-in saved profile, durable evidence retained | WPF implementation; interactive sign-in pending |
+| App setup | External registration setup | Onboarding reference only | Separate privileged delegated setup, permission preview, explicit creation, browser consent and Graph validation | ApplicationSetupTests; live setup/consent/assignment pending |
+| UI/reports | Dense panels, collection/create colours implied success | Useful inspect/export/progress workflows | Shared semantic colours, persistent identity/access, structured plan/results and background exports | Build and offline rendering; human acceptance pending |
+
+## Original source comparison
+
 Source evidence uses the pinned revisions in [SOURCE-REPOSITORIES.md](SOURCE-REPOSITORIES.md). Claude paths are relative to the imported baseline; Asta paths refer to its source repository. "Implemented" below means code inspection; checks actually run are separate in [TESTING-EVIDENCE.md](TESTING-EVIDENCE.md).
 
 | Area | Claude implementation | Asta implementation | Recommended state | Evidence / remaining checks |
@@ -24,4 +42,19 @@ Source evidence uses the pinned revisions in [SOURCE-REPOSITORIES.md](SOURCE-REP
 | Coverage/live validation | 45 controls, 12 recipes; source marks live validation outstanding | Broader app setup/auth workflows exist, but code is not live proof | Stabilise current scope, defer extra workloads | standard 2026.09.3; docs/LIVE-VALIDATION.md; Asta connection/setup paths |
 | Automated verification | Original CI fails; recovered local solution/test evidence recorded separately | Main and latest coordination-branch CI succeeded | Use both as evidence with limits | CI links in testing evidence. Neither proves GUI or live Graph |
 
-Asta features worth considering next: one-time connections, sign-in cancellation, log filtering/follow controls and grouped configuration navigation. App provisioning and app-only are deferred capabilities, not automatic port commitments.
+The matrix above records source-baseline behaviour. The integrated preview now adds one-time connections, cancellation, isolated delegated app provisioning, explicit exclusions and the redesigned WPF workflow. App-only remains deferred. Recovery and licensing additions are new integrated work, rather than evidence that either source previously implemented them.
+
+| Integrated area | Recommended state implemented | Evidence / remaining checks |
+|---|---|---|
+| Policy recovery | Exact-ID register; selective deletion, inactive-update restoration and reviewed CA disablement | RecoveryService, RecoveryTests; live acceptance and uncertain-write reconciliation remain outstanding |
+| Licence overview | Subscription counts, assigned-user search, direct-user scope results | LicenceInventoryService, LicensingTests; unsupported scope remains unknown |
+
+## Preview.4 additions
+
+Preview.5 adds four data-driven Windows candidates and a restricted Graph-export importer on the existing Claude engine. A separate Entra LAPS service preserves the full registration policy during approved enablement. No Asta runtime or UI rewrite is introduced. All four candidates are covered by synthetic deployment/removal tests, and LAPS by actual HTTP-adapter tests with synthetic responses. UI integration and live device/Graph acceptance remain pending; see [policy code handover](../POLICY-AUTOMATION-CODE.md).
+
+| Area | Recommended current behaviour | Evidence / remaining check |
+|---|---|---|
+| Desktop identity | WAM pop-up, browser fallback, tenant/operator binding retained | Builds and offline guards; live WAM/GDAP required |
+| App setup | Exact consent callback, explicit-ID repair, reviewed engineer assignment, actual scope counts | Synthetic transport/evidence/repair tests; live consent/branding required |
+| Device automation | Supplied BitLocker and optional long paths; unassigned candidates and selective recovery | Shipped-payload deployment/recovery tests; portal defaults, escrow and device effects required |

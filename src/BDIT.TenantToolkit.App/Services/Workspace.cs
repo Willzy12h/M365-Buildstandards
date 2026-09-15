@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Net.Http;
 using System.Windows;
 using BDIT.TenantToolkit.App.Infrastructure;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
@@ -14,8 +16,10 @@ using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
 using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Recovery;
 using BDIT.TenantToolkit.Engine.Standards;
 using BDIT.TenantToolkit.Graph;
+using BDIT.TenantToolkit.Graph.Setup;
 
 namespace BDIT.TenantToolkit.App.Services;
 
@@ -30,6 +34,10 @@ public sealed class Workspace : ObservableObject
     private bool _busy;
     private string _busyMessage = "";
     private string _progressDetail = "";
+    private CancellationTokenSource? _operationCancellation;
+    private TaskCompletionSource? _operationCompletion;
+    public CancellationToken OperationToken => _operationCancellation?.Token ?? CancellationToken.None;
+    public bool ShutdownComplete { get; private set; }
 
     public ToolkitPaths Paths { get; }
     public ToolkitSettings Settings { get; }
@@ -46,6 +54,10 @@ public sealed class Workspace : ObservableObject
     public DeploymentExecutor Executor { get; }
     public DriftAnalyser Drift { get; }
     public ReportExporter Exporter { get; }
+    public RecoveryService Recovery { get; }
+    public LicenceInventory? Licences { get; private set; }
+    public string InterruptedNotice { get; private set; } = "";
+    public string StopGuidance => $"Stop cancels policy reads. An in-flight policy request waits for its {Settings.GraphWriteTimeoutSeconds}-second transport budget. Verification and after-capture each have a 60-second budget and may finish incomplete. Local evidence is saved before closing.";
 
     public ObservableCollection<TenantProfile> Profiles { get; } = new();
     public ObservableCollection<StandardRelease> Releases { get; } = new();
@@ -55,6 +67,7 @@ public sealed class Workspace : ObservableObject
     public string? StandardError { get; private set; }
     public TenantProfile? Profile { get; private set; }
     public ConnectedTenant? Connection { get; private set; }
+    public ApplicationSetupService? ApplicationSetup { get; private set; }
     public TenantSession? Session => Connection?.Session;
     public AccessReport? Access { get; private set; }
     public TenantSnapshot? Snapshot { get; private set; }
@@ -82,6 +95,7 @@ public sealed class Workspace : ObservableObject
         Logger = logger;
         Diagnostics = diagnostics;
         Evidence = new EvidenceStore(paths, logger);
+        Recovery = new RecoveryService(Evidence, SystemClock.Instance);
         Standards = new StandardsLoader(paths, logger);
         Connections = new TenantConnectionService(settings, paths, _http, logger, ToolkitVersion.Current);
         Collector = new TenantCollector(logger, SystemClock.Instance, ToolkitVersion.Current);
@@ -145,6 +159,8 @@ public sealed class Workspace : ObservableObject
 
     private void Notify()
     {
+        OnPropertyChanged(nameof(Session));
+        OnPropertyChanged(nameof(ApplicationSetup));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(IsDeploymentSession));
         StateChanged?.Invoke();
@@ -156,12 +172,19 @@ public sealed class Workspace : ObservableObject
     {
         if (Busy) throw new ToolkitException("Another operation is already running. Wait for it to finish.");
         Busy = true;
+        _operationCancellation = new CancellationTokenSource();
+        _operationCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         BusyMessage = message;
         ProgressDetail = "";
         var progress = new Progress<string>(p => ProgressDetail = p);
         try { await operation(progress); }
+        catch (OperationCanceledException) when (_operationCancellation.IsCancellationRequested)
+        { Logger.Info("App", "Operation cancelled. Review any captured evidence before continuing."); }
         finally
         {
+            _operationCancellation.Dispose();
+            _operationCancellation = null;
+            _operationCompletion.TrySetResult();
             Busy = false;
             BusyMessage = "";
             ProgressDetail = "";
@@ -169,11 +192,86 @@ public sealed class Workspace : ObservableObject
         }
     }
 
+    public void InvalidatePolicyState()
+    {
+        Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false; Assessment = null;
+        Notify();
+    }
+
+    public void UseImportedStandard(DevicePolicyImport import)
+    {
+        if (Busy || IsConnected) throw new ToolkitException("Disconnect before changing the standard so the next connection requests the correct routes and permissions.");
+        var tenant = Profile?.TenantId ?? throw new ToolkitException("Select the target tenant profile first.");
+        var directory = Path.Combine(Paths.TenantDirectory(tenant), "catalogues");
+        var text = ToolkitJson.Serialize(import.Standard);
+        var file = Path.Combine(directory, import.Standard.Release + ".json");
+        Evidence.WriteJsonAtomic(file, import.Standard);
+        Evidence.WriteJsonAtomic(file + ".integrity.json", new { sha256 = CanonicalJson.Sha256Hex(text), import.SourceDigest, import.RemovedProperties });
+        import.Standard.IntegrityDigest = CanonicalJson.Sha256Hex(text);
+        Standard = import.Standard; Standard.SourceFileName = Path.GetFileName(file);
+        StandardError = null; InvalidatePolicyState();
+    }
+
+    public IReadOnlyList<string> LocalCandidates()
+    {
+        if (Profile is null) return Array.Empty<string>();
+        var directory = Path.Combine(Paths.TenantDirectory(Profile.TenantId), "catalogues");
+        return Directory.Exists(directory) ? Directory.GetFiles(directory, "import-*.json").Where(f => !f.EndsWith(".integrity.json", StringComparison.Ordinal)).Select(Path.GetFileName).OfType<string>().Order().ToList() : Array.Empty<string>();
+    }
+
+    public void LoadLocalCandidate(string fileName)
+    {
+        if (Busy || IsConnected) throw new ToolkitException("Disconnect before loading another candidate standard.");
+        if (!LocalCandidates().Contains(fileName, StringComparer.Ordinal)) throw new ConfigurationException("Select a saved candidate from this tenant.");
+        var file = Path.Combine(Paths.TenantDirectory(Profile!.TenantId), "catalogues", fileName);
+        var text = File.ReadAllText(file);
+        var integrity = ToolkitJson.ParseObject(File.ReadAllText(file + ".integrity.json"));
+        var digest = CanonicalJson.Sha256Hex(text);
+        if (integrity["sha256"]?.ToString() != digest) throw new IntegrityException("Local candidate does not match its recorded digest.");
+        Standard = StandardsLoader.Parse(text, fileName); Standard.IntegrityDigest = digest; StandardError = null;
+        InvalidatePolicyState();
+    }
+
+    public void CancelOperation()
+    {
+        if (Executor.IsRunning) Control?.Stop();
+        else _operationCancellation?.Cancel();
+        ProgressDetail = StopGuidance;
+    }
+
+    public async Task<string> ExportAsync(Func<string> export)
+    {
+        var file = "";
+        await RunExclusiveAsync("Writing report", async progress =>
+        {
+            progress.Report("Creating the report. Closing waits for the file to finish.");
+            file = await Task.Run(export);
+        });
+        return file;
+    }
+
+    public void ApplyProfileToSession(TenantProfile input, bool save)
+    {
+        var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        if (Connection is not null && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("These settings belong to another tenant. Reconnect before applying them.");
+        if (save) profile = SaveProfile(profile);
+        Profile = profile;
+        Plan = null;
+        AcknowledgedSnapshotId = null;
+        Assessment = null;
+        Notify();
+    }
+
     // ---- profiles ------------------------------------------------------------------------------------------------
 
     public TenantProfile SaveProfile(TenantProfile input)
     {
+        if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
         var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        if (Connection is not null && Profile?.Id == profile.Id
+            && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("Disconnect before changing the tenant ID of the connected profile.");
         var all = Profiles.ToList();
         // One saved client per tenant: evidence, managed-object mappings and deviations are all keyed by tenant ID, so a
         // second profile for the same tenant would silently split a client's history in two.
@@ -219,18 +317,27 @@ public sealed class Workspace : ObservableObject
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
             var standard = RequireStandard();
+            Connections.ParentWindowHandle = AuthenticationWindow();
+            Connections.LoginHint = Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
+            Plan = null;
+            AcknowledgedSnapshotId = null;
+            var nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
             await DisconnectCoreAsync();
+            await DisconnectSetupCoreAsync();
             Profile = profile;
-            Connection = await Connections.ConnectAsync(profile, mode, standard, progress, CancellationToken.None);
+            Connection = nextConnection;
             Evidence.MarkInterruptedRuns(profile.TenantId);
+            var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
+            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
             progress.Report("Checking access (read-only).");
-            Access = await Connections.CheckAccessAsync(Connection, standard, progress, CancellationToken.None);
+            Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
+            await LoadLicencesCoreAsync(includeUsers: false);
         });
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
     {
         var connection = RequireConnection();
-        Access = await Connections.CheckAccessAsync(connection, RequireStandard(), progress, CancellationToken.None);
+        Access = await Connections.CheckAccessAsync(connection, RequireStandard(), progress, OperationToken);
         Plan = null;
         AcknowledgedSnapshotId = null;
     });
@@ -239,6 +346,7 @@ public sealed class Workspace : ObservableObject
     {
         if (Busy) throw new ToolkitException("Stop the active run and wait for evidence collection before disconnecting.");
         await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
         Notify();
     }
 
@@ -246,6 +354,8 @@ public sealed class Workspace : ObservableObject
     {
         var connection = Connection;
         Connection = null;
+        Licences = null;
+        InterruptedNotice = "";
         Access = null;
         Snapshot = null;
         SnapshotIsLive = false;
@@ -254,6 +364,30 @@ public sealed class Workspace : ObservableObject
         AcknowledgedSnapshotId = null;
         Control = null;
         if (connection is not null) await connection.DisposeAsync();
+    }
+
+    public Task ConnectApplicationSetupAsync(string tenantId) => RunExclusiveAsync("Signing in for application setup", async progress =>
+    {
+        if (ApplicationSetup is { } existing && string.Equals(existing.Identity.TenantId, tenantId.Trim(), StringComparison.OrdinalIgnoreCase))
+            return;
+        Plan = null; AcknowledgedSnapshotId = null;
+        var nextSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken,
+            AuthenticationWindow(), Settings.UseSystemBrowser, Session?.Account ?? "");
+        await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
+        ApplicationSetup = nextSetup;
+    });
+
+    public Task DisconnectApplicationSetupAsync() => RunExclusiveAsync("Closing privileged setup session", _ => DisconnectSetupCoreAsync());
+
+    private static IntPtr AuthenticationWindow() => System.Windows.Application.Current?.MainWindow is { } window
+        ? new System.Windows.Interop.WindowInteropHelper(window).EnsureHandle() : IntPtr.Zero;
+
+    private async Task DisconnectSetupCoreAsync()
+    {
+        var setup = ApplicationSetup;
+        ApplicationSetup = null;
+        if (setup is not null) await setup.DisposeAsync();
     }
 
     public ConnectedTenant RequireConnection()
@@ -273,7 +407,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         var collectionProgress = new Progress<CollectionProgress>(p => ((IProgress<string>)progress).Report($"{p.Message} ({p.Completed}/{p.Total})"));
-        var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, standard, collectionProgress, CancellationToken.None);
+        var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, standard, collectionProgress, OperationToken);
         Evidence.SaveSnapshot(snapshot);
         Snapshot = snapshot;
         SnapshotIsLive = true;
@@ -354,6 +488,7 @@ public sealed class Workspace : ObservableObject
             Snapshot = snapshot,
             Mappings = Evidence.LoadMappings(profile.TenantId),
             Session = connection.Session,
+            Deviations = Evidence.LoadDeviations(profile.TenantId),
             AcknowledgedSnapshotId = AcknowledgedSnapshotId,
             Now = DateTimeOffset.UtcNow,
             MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
@@ -387,7 +522,10 @@ public sealed class Workspace : ObservableObject
             Snapshot = snapshot,
             Mappings = mappings,
             Session = connection.Session,
-            Graph = connection.Graph
+            Graph = connection.Graph,
+            AcknowledgedSnapshotId = AcknowledgedSnapshotId,
+            MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
+            MaxPlanAge = TimeSpan.FromMinutes(Settings.PlanMaxAgeMinutes)
         }, Control, progress);
         Plan = null;
         AcknowledgedSnapshotId = null;
@@ -399,7 +537,7 @@ public sealed class Workspace : ObservableObject
 
     public void PauseDeployment() => Control?.Pause();
     public void ResumeDeployment() => Control?.Resume();
-    public void StopDeployment() => Control?.Stop();
+    public void StopDeployment() { Control?.Stop(); ProgressDetail = StopGuidance; }
 
     // ---- deviations and manual checks ---------------------------------------------------------------------------------
 
@@ -469,18 +607,75 @@ public sealed class Workspace : ObservableObject
         return Drift.Compare(before, after, RequireStandard(), profile, Evidence.LoadMappings(profile.TenantId), Evidence.LoadDeviations(profile.TenantId));
     }
 
+    public Task LoadLicencesAsync(bool includeUsers) => RunExclusiveAsync("Reading licences and assignments", _ => LoadLicencesCoreAsync(includeUsers));
+
+    public async Task<WriteVerification?> ReverifyAsync(string runId, string? controlId, bool historical = false)
+    {
+        WriteVerification? result = null;
+        await RunExclusiveAsync("Re-verifying recorded write using read-only requests", async _ =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false;
+            var service = new WriteVerificationService(Evidence, SystemClock.Instance);
+            result = controlId is null
+                ? await service.VerifyRecoveryAsync(connection.Graph, connection.Session, RequireStandard(), runId, OperationToken)
+                : await service.VerifyDeploymentAsync(connection.Graph, connection.Session, RequireStandard(), runId, controlId, historical, OperationToken);
+        });
+        return result;
+    }
+
+    private async Task LoadLicencesCoreAsync(bool includeUsers)
+    {
+        var connection = RequireConnection();
+        Licences = await new LicenceInventoryService(SystemClock.Instance).CaptureAsync(connection.Graph, connection.Session.TenantId, includeUsers, OperationToken);
+        var file = System.IO.Path.Combine(Paths.TenantDirectory(connection.Session.TenantId), "licensing", Guid.NewGuid() + ".json");
+        Evidence.WriteJsonAtomic(file, Licences);
+    }
+
+    public async Task<RecoveryPlan> PreviewRecoveryAsync(string runId, string controlId, RecoveryAction action)
+    {
+        RecoveryPlan? result = null;
+        await RunExclusiveAsync("Capturing evidence and previewing recovery", async progress =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null;
+            var snapshot = await Collector.CollectAsync(connection.Graph, connection.Session, Profile!, RequireStandard(), new Progress<CollectionProgress>(p => progress.Report(p.Message)), OperationToken);
+            Evidence.SaveSnapshot(snapshot);
+            Snapshot = snapshot; SnapshotIsLive = true;
+            result = await Recovery.PreviewAsync(connection.Graph, connection.Session, RequireStandard(), snapshot, runId, controlId, action, OperationToken);
+        });
+        return result!;
+    }
+
+    public async Task<RecoveryRun> ExecuteRecoveryAsync(RecoveryPlan plan, string tenantConfirmation, bool approved, bool reviewedDrift)
+    {
+        RecoveryRun? result = null;
+        await RunExclusiveAsync("Applying reviewed recovery", async _ =>
+        {
+            var connection = RequireConnection();
+            Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false;
+            result = await Recovery.ExecuteAsync(connection.Graph, connection.Session, RequireStandard(), plan, tenantConfirmation, approved, reviewedDrift, OperationToken);
+        });
+        return result!;
+    }
+
     // ---- shutdown ------------------------------------------------------------------------------------------------------
 
     /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
     public async Task ShutdownAsync()
     {
-        if (Executor.IsRunning)
+        if (ShutdownComplete) return;
+        CancelOperation();
+        if (Executor.CurrentTask is not null)
         {
             Logger.Warn("App", "Shutdown requested while a deployment is in flight; waiting for the current write and after-change evidence.");
             await Executor.WaitForCompletionAsync(Control);
         }
+        if (_operationCompletion is not null) await _operationCompletion.Task;
         await DisconnectCoreAsync();
+        await DisconnectSetupCoreAsync();
         Logger.Info("App", "Toolkit closed.");
         Logger.Flush();
+        ShutdownComplete = true;
     }
 }
