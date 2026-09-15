@@ -1,0 +1,25 @@
+<Project>
+  <!-- Shared build settings for every project in the M365 BuildStandard Tool solution. -->
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <NeutralLanguage>en-GB</NeutralLanguage>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Company>M365 BuildStandard</Company>
+    <Product>M365 BuildStandard Tool</Product>
+    <Authors>M365 BuildStandard</Authors>
+    <Copyright>Copyright (c) M365 BuildStandard</Copyright>
+    <Version>1.1.0-preview.6</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0-preview.6</InformationalVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Nullability diagnostics are reported as warnings and must be reviewed; they are never suppressed. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1848;CA2007</NoWarn>
+  </PropertyGroup>
+</Project>

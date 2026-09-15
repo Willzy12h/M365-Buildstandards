@@ -5,15 +5,16 @@ runtime/node/
 runtime/powershell/
 runtime/graph/
 data/
-connections/
-evidence/
-exports/
-snapshots/
+/connections/
+/evidence/
+/exports/
+/snapshots/
 *.log
 *.zip
 .env
 .env.*
 *.pfx
+*.intunewin
 *.p12
 *.pem
 *.key
@@ -21,3 +22,22 @@ snapshots/
 .idea/
 .DS_Store
 Thumbs.db
+
+# .NET build outputs and local SDK
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+.dotnet/
+portable/
+app/
+logs/
+
+# Anchor generated reports: an unanchored reports/ also ignores C# Reports/ source on Windows.
+/reports/
+*.csv.zip
+config/toolkit.settings.local.json
+standards/manifest.json
+*.tmp

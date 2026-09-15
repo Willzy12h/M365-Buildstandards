@@ -1,0 +1,19 @@
+{
+  "productName": "M365 BuildStandard Tool",
+  "companyName": "M365 BuildStandard",
+  "accentColour": "#1769AA",
+
+  "assessmentClientId": "",
+  "deploymentClientId": "",
+  "allowMicrosoftGraphPowerShellFallback": true,
+  "useSystemBrowser": false,
+
+  "defaultStandardRelease": "2026.09.6",
+  "snapshotMaxAgeMinutes": 20,
+  "planMaxAgeMinutes": 20,
+  "signInTimeoutMinutes": 5,
+  "graphReadTimeoutSeconds": 120,
+  "graphWriteTimeoutSeconds": 100,
+  "maxRetryAfterSeconds": 300,
+  "logLevel": "Information"
+}

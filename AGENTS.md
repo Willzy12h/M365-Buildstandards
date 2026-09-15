@@ -30,7 +30,7 @@ Do not overwrite either source repository while performing integration.
 - Capture a complete pre-change snapshot before tenant writes.
 - Show tenant identity, primary domain, signed-in identity and permission mode.
 - Highlight write-capable access.
-- Keep Conditional Access creation disabled and unassigned until reviewed.
+- Keep Conditional Access candidates disabled and Intune candidates unassigned. Preserve stored CA targeting/exclusions in the baseline; see INT-004 for preserved baseline targeting and outstanding live rollout acceptance.
 - Resolve and display Microsoft Graph object names and IDs.
 - Support standard versioning, comparison and backfill.
 - Produce structured action results and complete before/after evidence.
@@ -48,6 +48,14 @@ Do not overwrite either source repository while performing integration.
 
 - Maintain Windows portability and avoid mandatory administrator rights.
 - Keep tenant collection and mutation logic outside the interface layer.
-- Make write operations previewable, selective, independently reported and safe to retry.
+- Make writes previewable, selective and independently reported. Never automatically retry an ambiguous tenant write; require reconciliation and a fresh reviewed plan.
 - Update tests and documentation when behaviour changes.
 - Run the applicable automated checks before opening a pull request.
+
+## Current baseline and safety
+
+- Claude's C#/.NET implementation is the primary baseline by current user instruction. Read docs/integration/BASELINE-REVIEW.md and HANDOVER.md before implementation work.
+- Open a draft PR early to claim your area; target integration and do not overwrite another contributor's branch. Read existing open PRs before starting.
+- A baseline import is not safety acceptance. Fix known evidence/execution/renewal gaps before authorised live deployment testing.
+- Test changes affecting safety with a case that would fail if the safeguard were removed. Never weaken a test simply to make a suite pass; explain any correction to a stale test contract.
+- Record exact validation: source inspection, build, tests, GUI and live Graph are different evidence.

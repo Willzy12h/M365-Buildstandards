@@ -1,0 +1,56 @@
+<UserControl x:Class="BDIT.TenantToolkit.App.Views.OverviewView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28,24">
+    <TextBlock Text="TENANT WORKSPACE" Style="{StaticResource Eyebrow}"/>
+    <TextBlock Text="Overview and licences" Style="{StaticResource H1}"/>
+    <TextBlock Text="{Binding Summary}" Style="{StaticResource Lead}"/>
+    <WrapPanel Margin="0,0,0,12">
+      <Button Content="Connect / change access" Command="{Binding ConnectCommand}" Style="{StaticResource SecondaryButton}"/>
+      <Button Content="Refresh subscriptions" Command="{Binding RefreshLicencesCommand}" Style="{StaticResource SecondaryButton}"/>
+      <Button Content="Load user assignments" Command="{Binding LoadAssignmentsCommand}" Style="{StaticResource PrimaryButton}"/>
+    </WrapPanel>
+    <Border Style="{StaticResource Card}"><StackPanel>
+      <TextBlock Text="Current subscriptions" Style="{StaticResource H2}"/>
+      <TextBlock Text="{Binding ReportStatus}" Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+      <DataGrid ItemsSource="{Binding Licences}" SelectedItem="{Binding Selected}" Height="220" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Product / SKU" Binding="{Binding Product}" Width="2*"/>
+          <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+          <DataGridTextColumn Header="Seats" Binding="{Binding Enabled, TargetNullValue=Unknown}" Width="100"/>
+          <DataGridTextColumn Header="Assigned" Binding="{Binding Consumed, TargetNullValue=Unknown}" Width="90"/>
+          <DataGridTextColumn Header="Available" Binding="{Binding Available, TargetNullValue=Unknown}" Width="90"/>
+          <DataGridTextColumn Header="Warning" Binding="{Binding Warning, TargetNullValue=Unknown}" Width="80"/>
+          <DataGridTextColumn Header="Suspended" Binding="{Binding Suspended, TargetNullValue=Unknown}" Width="95"/>
+        </DataGrid.Columns>
+      </DataGrid>
+      <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}" Margin="0,12,0,0"/>
+    </StackPanel></Border>
+    <Border Style="{StaticResource Card}"><StackPanel>
+      <TextBlock Text="Assigned users" Style="{StaticResource H2}"/>
+      <TextBlock Text="Search the selected licence by name, sign-in name or object ID" Style="{StaticResource FieldLabel}"/>
+      <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search assigned users"/>
+      <TextBlock Text="{Binding UserStatus}" Style="{StaticResource Muted}" Margin="0,4,0,10"/>
+      <DataGrid ItemsSource="{Binding Users}" Height="230" AutoGenerateColumns="False" IsReadOnly="True">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+          <DataGridTextColumn Header="Sign-in name" Binding="{Binding UserPrincipalName}" Width="1.5*"/>
+          <DataGridTextColumn Header="Account" Binding="{Binding AccountStatus}" Width="90"/>
+          <DataGridTextColumn Header="Object ID" Binding="{Binding ObjectId}" Width="270"/>
+          <DataGridTextColumn Header="Disabled service plans" Binding="{Binding DisabledPlans}" Width="200"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </StackPanel></Border>
+    <Border Style="{StaticResource Card}"><StackPanel>
+      <TextBlock Text="Policy licence scope" Style="{StaticResource H2}"/>
+      <TextBlock Text="Build a plan to resolve direct Conditional Access user targeting. Group, role, guest and Intune device targeting remain explicit review items. Subscription capacity alone does not prove entitlement." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+      <DataGrid ItemsSource="{Binding Scope}" Height="260" AutoGenerateColumns="False" IsReadOnly="True">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
+          <DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="175"/>
+          <DataGridTextColumn Header="Users" Binding="{Binding TargetUsers, TargetNullValue=Unknown}" Width="100"/>
+          <DataGridTextColumn Header="Eligible" Binding="{Binding EligibleUsers, TargetNullValue=Unknown}" Width="90"/>
+          <DataGridTextColumn Header="Evidence / remaining check" Binding="{Binding Detail}" Width="*"><DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="5"/></Style></DataGridTextColumn.ElementStyle></DataGridTextColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </StackPanel></Border>
+  </StackPanel></ScrollViewer>
+</UserControl>
