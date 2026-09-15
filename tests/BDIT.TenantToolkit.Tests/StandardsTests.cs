@@ -173,11 +173,21 @@ public class StandardsTests
         Assert.True(catalogue.Collections["groups"].Writable);
         Assert.True(catalogue.Collections["namedLocations"].Writable);
 
+        // The planner resolves reviewed client inputs before the guard sees a payload, so the named location's
+        // ipRanges placeholder is resolved here the same way; a raw template is never written.
+        var inputs = new Dictionary<string, JsonNode?>(StringComparer.Ordinal)
+        {
+            ["officeIpRanges"] = new JsonArray(new JsonObject
+            {
+                ["@odata.type"] = "#microsoft.graph.iPv4CidrRange", ["cidrAddress"] = "203.0.113.0/24"
+            })
+        };
         foreach (var control in catalogue.Controls.Where(c => c.Id.StartsWith("PRE-", StringComparison.Ordinal)))
         {
             Assert.True(control.HasRecipe);
             var def = catalogue.Collections[control.Collection!];
-            WritePayloadGuard.Assert(def, (JsonObject)control.Payload!.DeepClone());
+            var payload = (JsonObject)CanonicalJson.Resolve(control.Payload, inputs)!;
+            WritePayloadGuard.Assert(def, payload);
         }
 
         var groups = catalogue.Controls.Where(c => c.Collection == "groups").ToList();
