@@ -105,8 +105,11 @@ public class ExecutorTests
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         h.Graph.BeforeRead = async (_, token) => { entered.TrySetResult(); await Task.Delay(Timeout.Infinite, token); };
         var control = new DeploymentControl(); var task = h.RunAsync(plan, snapshot, control);
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(2)); control.Stop();
-        var run = await task.WaitAsync(TimeSpan.FromSeconds(2));
+        // Wall-clock allowances only: the contract is that Stop ends the run without a write and with partial evidence
+        // saved. Two seconds was enough on a quiet runner and not on a loaded one (the same commit passed and failed
+        // in parallel CI runs), so the budget is generous; the assertions below are unchanged.
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)); control.Stop();
+        var run = await task.WaitAsync(TimeSpan.FromSeconds(15));
         Assert.Empty(h.Graph.Writes); Assert.Equal(WriteAcceptance.NotAttempted, run.Results.Single().WriteAcceptance);
         Assert.False(run.AfterComplete); Assert.Contains("cancelled by operator", run.AfterError);
         Assert.NotNull(h.Evidence.LoadSnapshot(h.Session.TenantId, run.AfterSnapshotId!));
