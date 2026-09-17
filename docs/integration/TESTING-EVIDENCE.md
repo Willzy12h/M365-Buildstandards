@@ -1,4 +1,14 @@
-# Testing evidence — 15 September 2026
+# Testing evidence — 17 September 2026
+
+## Windows Hello configured end to end — preview.12
+
+- Same sandbox, no .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence.
+- New synthetic coverage: `WindowsHelloRecipeTests` (enabled on a hardware security device with TPM 1.2 excluded; provisioning not forced and PIN recovery allowed; minimum length eight with a digit required and the three character-class rules left unset; expiration zero and no history; biometrics and security keys present and not placed under the tenant node; phone sign-in, enhanced anti-spoofing and cloud Kerberos trust absent; ten unique device-scoped Passport paths).
+- The composition value convention (1 requires a class, 2 forbids it, unset permits it) and the two device-scoped paths for biometrics and security keys were checked against published Microsoft CSP documentation on 17 September 2026 rather than recalled. Microsoft's own site is unreachable from this environment, so they were confirmed through mirrored documentation and should be re-checked against the Intune portal on first deployment.
+- Not verified: that a device accepts these settings, that a user can enrol a PIN under them, and that biometric and security key sign-in work. All three need the pilot device the control's engineer action calls for.
+- No live tenant, consent, registration, write or GUI acceptance was performed.
+
+# Testing evidence — 15 September 2026 (preview.10)
 
 ## Client build standard document — preview.10
 
