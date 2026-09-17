@@ -11,7 +11,10 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-11 | Claude | M365-Buildstandards | documentation | `claude/github-repo-access-ygieh2` | #3 | Merged |
 | 2026-09-15 | Claude | M365-Buildstandards | assessment, collection, evidence persistence, tests, standard 2026.09.7 | `claude/github-repo-access-ygieh2` (merges PR #2) | #3 | Merged |
 | 2026-09-15 | Claude | M365-Buildstandards | build standard data, planning, deployment safety, assessment, standard 2026.09.8 | `claude/github-repo-access-ygieh2` | #3 | Merged |
-| 2026-09-15 | Claude | M365-Buildstandards | interface, planning, build standard data, standard 2026.09.9 | `claude/github-repo-access-ygieh2` | none yet | Open |
+| 2026-09-15 | Claude | M365-Buildstandards | interface, planning, build standard data, standard 2026.09.9 | `claude/github-repo-access-ygieh2` | #4 | Merged |
+| 2026-09-15 | Claude | M365-Buildstandards | evidence and reporting (client build standard document) | `claude/github-repo-access-ygieh2` | #5 | Merged |
+| 2026-09-15 | Claude | M365-Buildstandards | interface review harness, documentation | `claude/github-repo-access-ygieh2` | #6 | Merged |
+| 2026-09-17 | Claude | M365-Buildstandards | build standard data (Windows Hello, standard 2026.09.10) | `claude/github-repo-access-ygieh2` | #7 | Merged |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
