@@ -1,3 +1,10 @@
+# 1.1.0-preview.12
+
+- Standard 2026.09.10 configures Windows Hello for Business end to end instead of only enabling it. The dedicated policy now sets a minimum eight-character PIN requiring at least one digit, permits but does not require letters and special characters, never expires the PIN, allows PIN recovery, excludes TPM 1.2, and permits biometric and FIDO2 security key sign-in. The tenant enrolment setting still stays Not configured.
+- Composition rules follow the CSP convention where 1 requires a character class and 2 forbids it, so lowercase, uppercase and special characters are left unset, which permits them without demanding them. A test pins that, because setting 2 by mistake would forbid the class outright.
+- Deliberately not configured: phone sign-in, which is a retired feature; enhanced anti-spoofing and Enhanced Sign-in Security, which depend on specific hardware and silently disable biometrics on devices that lack it; and cloud Kerberos trust, because this standard targets cloud-only tenants. A hybrid client needs that one added deliberately, or users sign in with Hello and are then prompted for a password by the file server.
+- Maximum PIN length and PIN history are omitted: a maximum only constrains a user who wants a longer PIN, and history only acts when PINs expire.
+
 # 1.1.0-preview.11
 
 - The offline interface harness now captures the Build Standard and Policy automation pages as images, seeded with a supplied value and a rejected one so both states of the generated input form are visible. Every page was already materialised and binding-checked; these two were the pages a reviewer most needs to see and were the only ones not pictured.
