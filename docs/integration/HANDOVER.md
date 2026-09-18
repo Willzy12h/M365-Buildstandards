@@ -1,5 +1,9 @@
 # Handover and priorities
 
+## Architecture roadmap
+
+The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
+
 ## Current work
 
 Preview.12 is the current state of `integration` (Claude, pull requests [#3](https://github.com/Willzy12h/M365-Buildstandards/pull/3) to [#7](https://github.com/Willzy12h/M365-Buildstandards/pull/7), all merged; branch `claude/github-repo-access-ygieh2` is level with `integration` and holds nothing unmerged). Standard 2026.09.10, 50 controls, 42 recipes, 46 reporting automatically.
