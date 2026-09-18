@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDIT.TenantToolkit.Engine",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDIT.TenantToolkit.App", "src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj", "{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDIT.TenantToolkit.Cli", "src\BDIT.TenantToolkit.Cli\BDIT.TenantToolkit.Cli.csproj", "{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A06}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDIT.TenantToolkit.Tests", "tests\BDIT.TenantToolkit.Tests\BDIT.TenantToolkit.Tests.csproj", "{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A05}"
 EndProject
 Global
@@ -38,6 +40,10 @@ Global
 		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A05}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A05}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A1D3C2E-0C4B-4D7E-9B1A-2E5F7C9D0A06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

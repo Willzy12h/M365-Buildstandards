@@ -4,6 +4,14 @@ Written to be executed by a language model, not read by a human sponsor. It stat
 
 Baseline for every measurement here: `integration` at preview.12, standard 2026.09.10. Engine 6,029 lines, tests 5,418, app 4,861, core 2,786, graph 2,061. Standards 23,647 lines across eight release files.
 
+## Status
+
+| Workstream | State | Note |
+| --- | --- | --- |
+| W3 headless runner | **Done** | `src/BDIT.TenantToolkit.Cli`, offline. Conformance tests in `HeadlessRunnerTests`. |
+| W0, W2, W9 | **Blocked, do not start** | Astra holds an open claim (pull request #9, branch `astra/review-fixes`) over Core safety, Engine planning, assessment, evidence and reporting, tests, and a new standards release. Per the coordination protocol the draft pull request is the claim. Wait for it to merge, then re-read this document: its findings may already be fixed, and the line numbers here will have moved. |
+| W1, W4, W5, W6, W7, W8 | Not started | W1 also touches the standards release Astra has claimed. W4 now has its prerequisite. |
+
 ## How to use this document
 
 Take one workstream at a time, in the order given under Sequencing. Do not start a workstream whose dependency is unmerged. Each workstream states its acceptance criteria as things a test or a command can decide; if you cannot make the criterion machine-checkable, say so in the pull request rather than declaring it met.
@@ -123,9 +131,15 @@ A release manifest names the controls it includes and any per-release override, 
 
 ---
 
-## W3. Headless runner
+## W3. Headless runner — DONE
 
-**Problem.** The Engine is a clean library but has exactly one consumer, so the seam is asserted rather than proven. There is also no way to assess a tenant without a person at a desktop.
+Delivered as `src/BDIT.TenantToolkit.Cli`, assembly name `bdit`. Commands: `releases`, `report --snapshot <file>`, `document --client <name>`. It is offline: it reads evidence the application already captured and never authenticates, so no token, no Graph client and no write path is reachable. `HeadlessRunnerTests` asserts the absence of every write-capable type, that nothing authenticates, and that each command refuses rather than reporting an empty result.
+
+It required no engine change, which is the result that matters: the seam is real, not asserted.
+
+What is deliberately not there: live capture. That needs interactive authentication, which needs either a window handle or the system-browser path, and adding it would give this assembly a token. If a future runner needs to capture, put the capture in a second executable and keep this one incapable of writing.
+
+**Original problem statement, kept for context.** The Engine is a clean library but has exactly one consumer, so the seam is asserted rather than proven. There is also no way to assess a tenant without a person at a desktop.
 
 **Target.** `src/BDIT.TenantToolkit.Cli`, a console application over the existing Engine. Read-only by construction: it takes an assessment-mode session and has no reference to `DeploymentExecutor`, `ReviewedChangeService`, `ApplicationPackageService` or `RecoveryService`.
 

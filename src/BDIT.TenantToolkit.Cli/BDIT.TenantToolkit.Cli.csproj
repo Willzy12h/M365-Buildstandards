@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>bdit</AssemblyName>
+    <RootNamespace>BDIT.TenantToolkit.Cli</RootNamespace>
+    <Description>Headless, offline reporting over the toolkit engine. Reads captured evidence; never connects to a tenant.</Description>
+    <!-- The engine depends on the Graph project, which protects its token cache with Windows DPAPI. -->
+    <SupportedOSPlatform>windows</SupportedOSPlatform>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
+  </ItemGroup>
+</Project>
