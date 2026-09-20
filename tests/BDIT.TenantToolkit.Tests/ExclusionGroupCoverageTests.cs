@@ -21,7 +21,7 @@ public class ExclusionGroupCoverageTests
     private static StandardCatalogue Standard() => new()
     {
         Collections = { ["groups"] = new CollectionDefinition { Path = "/groups", Label = "Groups", Relationship = "members" } },
-        Controls = { new ControlDefinition { Id = "PRE-001", Name = "GRP - Policy Exclusions Users", Collection = "groups", ExclusionRole = "users" } }
+        Controls = { new ControlDefinition { Id = "PRE-001", Name = "GRP - Policy Exclusions Users", Collection = "groups", ExclusionRole = "users", Payload = new JsonObject { ["displayName"] = "GRP - Policy Exclusions Users", ["mailNickname"] = "grp-exclusions" } } }
     };
 
     private static TenantSnapshot Snapshot(JsonObject? group) => new()
@@ -52,12 +52,21 @@ public class ExclusionGroupCoverageTests
     }
 
     private static ManagedObjectMappings Mapped() =>
-        new() { ByControl = { ["PRE-001"] = new ManagedObjectMapping { ControlId = "PRE-001", ObjectId = GroupId, Collection = "groups" } } };
+        new() { ByControl = { ["PRE-001"] = new ManagedObjectMapping { ControlId = "PRE-001", ObjectId = GroupId, Collection = "groups", LastApplied = new JsonObject { ["displayName"] = "GRP - Policy Exclusions Users", ["mailNickname"] = "grp-exclusions" } } } };
 
     private static TenantSession Session() => new() { OperatorObjectId = OperatorId, OperatorUpn = "engineer@example.test" };
 
     private static ExclusionGroupCoverage.Result Run(JsonObject? group, ManagedObjectMappings mappings) =>
         ExclusionGroupCoverage.ForUsers(Standard(), Snapshot(group), mappings, Session(), new[] { EmergencyId }, NameResolver.FromSnapshot(Snapshot(group)));
+
+    [Fact]
+    public void A_reused_control_ID_cannot_exclude_the_former_managed_users_group()
+    {
+        var mappings = Mapped();
+        mappings.ByControl["PRE-001"].LastApplied!["displayName"] = "GRP - Managed Users";
+        mappings.ByControl["PRE-001"].LastApplied!["mailNickname"] = "grp-managed-users";
+        Assert.Throws<BDIT.TenantToolkit.Core.SafetyViolationException>(() => Run(Group(Members(OperatorId, EmergencyId)), mappings));
+    }
 
     [Fact]
     public void A_group_holding_the_engineer_and_the_emergency_account_is_used_without_complaint()

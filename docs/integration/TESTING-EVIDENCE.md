@@ -1,5 +1,23 @@
 # Testing evidence — 17 September 2026
 
+## Preview.13 independent review fixes — 21 September 2026
+
+Branch `astra/review-fixes`, [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9), base integration `d4e1e9a`.
+
+- Local Windows .NET SDK 8.0.425: full synthetic suite **495 passed / 0 failed / 0 skipped**, captured in ignored `TestResults/review-fixes.trx`.
+- Windows Release solution build: **0 warnings / 0 errors**. Portable self-contained win-x64 package built successfully.
+- Offline WPF harness: **44 images / 28 page-size combinations / 0 binding issues**; includes expanded prerequisite guidance, explicit All users/All devices choices, same-tenant input refresh and idle shutdown. This does not establish human accessibility or live authentication behaviour.
+- Published .3–.10 standard files are unchanged. .11 parses with 50 controls, 42 recipes and 23 collections. No live tenant data, credentials or outputs are committed.
+- Independent read-only code check found no blocking issue in directory creation-only routes, exclusion-purpose checks, historical digest compatibility or .11 identity mapping.
+- CI evidence must come from this PR's current head; consult its checks for the exact run and counts. Local results above are not CI evidence.
+
+Fixture corrections: `ExclusionGroupCoverageTests` now supplies the recorded original group payload needed to establish purpose; existing assertions remain. `BuildStandardDocumentTests` and `WindowsHelloRecipeTests` now fail when required catalogue fixtures are missing rather than silently returning. New test fixtures were corrected to contain complete group-member reads and to exercise a supported device-configuration update; a separate regression preserves the existing manual-only compliance/related-settings update rule. No existing assertion was weakened.
+
+New tests exposed two additional implementation gaps fixed here: numeric array-count limits must accept in-memory integer nodes, and an explicitly empty optional ESP application list must resolve without allowing empty emergency/identity lists.
+
+Not verified: application registration, admin consent, tokens/permissions against Graph, policy acceptance or device effects, real Autopilot/LAPS/Hello setup, production rollback, keyboard/screen-reader/high-DPI human acceptance. No live operation was attempted. Disposable-tenant testing remains the maintainer's decision.
+
+
 ## Windows Hello configured end to end — preview.12
 
 - Same sandbox, no .NET SDK, so **no local build or test run was possible**. The GitHub `build` job on the submitted head is the only compilation and test evidence.

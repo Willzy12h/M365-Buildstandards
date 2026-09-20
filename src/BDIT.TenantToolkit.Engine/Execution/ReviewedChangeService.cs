@@ -8,6 +8,7 @@ using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Recovery;
 using BDIT.TenantToolkit.Engine.Assessment;
+using BDIT.TenantToolkit.Engine.Planning;
 
 namespace BDIT.TenantToolkit.Engine.Execution;
 
@@ -16,7 +17,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
 {
     public async Task<ReviewedChangePlan> PreviewAsync(IGraphClient graph, TenantSession session, TenantProfile profile,
         StandardCatalogue standard, TenantSnapshot snapshot, ReviewedChangeKind kind, string controlId, string objectId,
-        IEnumerable<string> included, IEnumerable<string> excluded, CancellationToken ct, IEnumerable<string>? deviceIds = null)
+        IEnumerable<string> included, IEnumerable<string> excluded, CancellationToken ct, IEnumerable<string>? deviceIds = null, AssignmentPopulation population = AssignmentPopulation.Groups)
     {
         AssertSession(graph, session, false);
         using var lease = evidence.AcquireTenantWriteLease(session.TenantId);
@@ -35,6 +36,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             StandardDigest = CanonicalJson.Sha256Value(standard), ProfileDigest = CanonicalJson.Sha256Value(profile),
             SnapshotId = stored.Id, SnapshotDigest = stored.IntegrityDigest, MappingsDigest = CanonicalJson.Sha256Value(mappings),
             CreatedAt = clock.UtcNow, Kind = kind, ControlId = controlId, ObjectId = objectId,
+            Population = population == AssignmentPopulation.Groups ? null : population,
             IncludeGroups = included.Select(g => g.Trim().ToLowerInvariant()).ToList(), ExcludeGroups = excluded.Select(g => g.Trim().ToLowerInvariant()).ToList(),
             DeviceIds = (deviceIds ?? Enumerable.Empty<string>()).Select(g => g.Trim().ToLowerInvariant()).ToList() };
         using var reads = CancellationTokenSource.CreateLinkedTokenSource(ct); reads.CancelAfter(TimeSpan.FromSeconds(60));
@@ -45,6 +47,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             if (group["id"]?.ToString() != id || group["securityEnabled"]?.ToString() != "true") throw new SafetyViolationException("Target is not a verified security group.");
             p.ResolvedTargets.Add((p.ExcludeGroups.Contains(id) ? "EXCLUDE " : "INCLUDE ") + group["displayName"] + " [" + id + "]");
         }
+        if (population != AssignmentPopulation.Groups) p.ResolvedTargets.Add("INCLUDE " + (population == AssignmentPopulation.AllUsers ? "All users (Intune built-in)" : "All devices (Intune built-in)"));
         if (ReviewedChangeSafety.IsUpdates(kind))
         {
             if (session.Mode != SessionMode.Deployment) throw new WriteDeniedException("Autopatch API reads also require WindowsUpdates.ReadWrite.All. Use deployment access for this preview.");
@@ -77,6 +80,12 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             p.Before = await RecoveryObjectReader.ReadAsync(graph, def, p.ObjectId, reads.Token);
             if (kind is not (ReviewedChangeKind.RemoveAssignments or ReviewedChangeKind.DisableConditionalAccess))
             {
+                var recipe = standard.FindControl(controlId);
+                if (recipe?.Payload is not null)
+                {
+                    PolicyInputDefaults.AssertCandidateUsesConfirmedInputs(recipe.Payload, standard,
+                        profile.Parameters.ToTemplateValues(profile.TenantId), m.LastApplied, clock.UtcNow);
+                }
                 if (!RecoveryObjectReader.IsInactive(def, p.Before)) throw new SafetyViolationException("Activation requires a disabled or unassigned candidate. Remove existing assignments separately.");
                 var check = (JsonObject)p.Before.DeepClone();
                 if (def.Children is not null) check["settings"] = check[def.Children.Split('?')[0]]?.DeepClone();
@@ -84,7 +93,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
                 if (ConditionalAccessSafety.IsConditionalAccess(def))
                 {
                     var required = profile.Parameters.EmergencyAccountIds.Concat(profile.Parameters.AdditionalExclusionAccountIds).Append(session.OperatorObjectId!);
-                    if (profile.Parameters.EmergencyAccountIds.Count < 2 || required.Any(id => !ConditionalAccessSafety.ExcludedUsers(p.Before).Contains(id, StringComparer.OrdinalIgnoreCase)))
+                    if (profile.Parameters.EmergencyAccountIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() < 2 || required.Any(id => !ConditionalAccessSafety.ExcludedUsers(p.Before).Contains(id, StringComparer.OrdinalIgnoreCase)))
                         throw new SafetyViolationException("Activation requires two emergency accounts and the operator retained in user exclusions.");
                 }
                 if (def.BasePath == "/deviceAppManagement/mobileApps" && p.Before["publishingState"]?.ToString() != "published")
@@ -94,10 +103,10 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             {
                 if (!def.Assignments) throw new SafetyViolationException("Assignments were not collected for this object.");
                 p.Path += "/assign"; p.Method = "POST";
-                p.Payload = ReviewedChangeSafety.AssignmentPayload(def.BasePath, p.IncludeGroups, p.ExcludeGroups);
+                p.Payload = ReviewedChangeSafety.AssignmentPayload(def.BasePath, p.IncludeGroups, p.ExcludeGroups, population);
                 p.Consequence = kind == ReviewedChangeKind.RemoveAssignments
                     ? "Remove ALL current assignments from this toolkit-created object. Device settings may persist; this is containment, not device rollback."
-                    : "Replace the empty assignment list with exactly these groups. Group membership is dynamic and can change later. Exclusions apply only according to Intune targeting rules; review user versus device group use. Required app installs may begin.";
+                    : "Replace the empty assignment list with exactly the reviewed population and exclusions. Group membership is dynamic and can change later. Exclusions apply only according to Intune targeting rules; review user versus device group use. Required app installs may begin.";
             }
             else
             {
@@ -195,7 +204,8 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
         using var lease = evidence.AcquireTenantWriteLease(session.TenantId);
         var run = evidence.LoadReviewedChangeRuns(session.TenantId).Single(r => r.Id == runId);
         var p = evidence.RequireReviewedChangePlan(session.TenantId, run.Id);
-        if (run.PlanDigest != p.IntegrityDigest || run.WriteAcceptance != WriteAcceptance.Accepted || p.StandardDigest != CanonicalJson.Sha256Value(standard))
+        if (run.PlanDigest != p.IntegrityDigest || run.WriteAcceptance != WriteAcceptance.Accepted
+            || !StandardDigestCompatibility.MatchesForReadOnlyVerification(standard, p.StandardDigest))
             throw new SafetyViolationException("Re-verification needs an accepted write and the original standard.");
         var v = new ReviewedChangeVerification { TenantId = session.TenantId, RunId = runId, RunDigest = run.IntegrityDigest, OperatorId = session.OperatorObjectId!, CheckedAt = clock.UtcNow };
         try { using var reads = CancellationTokenSource.CreateLinkedTokenSource(ct); reads.CancelAfter(TimeSpan.FromSeconds(60)); v.After = await ReadAsync(graph, standard, p, reads.Token); v.Verified = Matches(p, v.After); }

@@ -56,7 +56,7 @@ public sealed class WriteVerificationService(EvidenceStore evidence, IClock cloc
         if (run.Status == RunStatus.Running || run.WriteAcceptance != WriteAcceptance.Accepted)
             throw new SafetyViolationException("Only accepted recovery writes can be re-verified. Unknown requests cannot be retried or resolved by a missing search result.");
         var plan = evidence.RequireRecoveryPlan(session.TenantId, run.Id);
-        if (CanonicalJson.Sha256Value(standard) != plan.StandardDigest)
+        if (!StandardDigestCompatibility.MatchesForReadOnlyVerification(standard, plan.StandardDigest))
             throw new SafetyViolationException("Load the original reviewed standard before re-verifying this recovery.");
         if (run.PlanDigest != plan.IntegrityDigest || run.ObjectId != plan.ObjectId || run.Action != plan.Action || run.ControlId != plan.ControlId)
             throw new IntegrityException("Recovery run and original preview do not agree.");

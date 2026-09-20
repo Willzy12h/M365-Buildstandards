@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
@@ -36,6 +37,13 @@ public static class ExclusionGroupCoverage
             {
                 $"The exclusion group '{control.Name}' has not been created yet, so this policy names its exclusions individually. Create {control.Id} first to keep the exempt population in one readable place."
             });
+
+        // A reused catalogue ID is not proof that the recorded object has the same purpose.
+        // PRE-001 changed from all managed users to exclusions in .9; never turn that population into an exemption.
+        if (mapping.Collection != control.Collection || mapping.LastApplied is null
+            || mapping.LastApplied["mailNickname"]?.ToString() != control.Payload?["mailNickname"]?.ToString()
+            || mapping.LastApplied["displayName"]?.ToString() != control.Payload?["displayName"]?.ToString())
+            throw new SafetyViolationException("The recorded exclusion group belongs to a different or unknown prerequisite purpose. Reconcile its original release and exact ID; it will not be excluded automatically.");
 
         var group = snapshot.Collections.TryGetValue(control.Collection ?? "groups", out var capture)
             ? capture.Items.FirstOrDefault(i => string.Equals(i["id"]?.GetValue<string>(), mapping.ObjectId, StringComparison.OrdinalIgnoreCase))

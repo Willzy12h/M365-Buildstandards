@@ -6,12 +6,15 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using BDIT.TenantToolkit.App.Services;
 using BDIT.TenantToolkit.App.ViewModels;
+using BDIT.TenantToolkit.App.Views;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Graph;
@@ -67,6 +70,7 @@ internal static class Program
             content.DataContext = shell;
             SeedWorkspace(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
+            VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
@@ -97,6 +101,10 @@ internal static class Program
                         for (var i = 0; i < pixels.Length; i += 1024) colours.Add(BitConverter.ToInt32(pixels, i));
                         if (colours.Count < 4) throw new InvalidOperationException("Rendered image appears empty: " + file);
                     }
+                    if (nav.Key is "standard" or "plan" or "automation")
+                        CapturePrerequisites(content, size, output, nav.Key);
+                    if (nav.Key == "automation")
+                        CaptureAssignmentPopulations(shell, content, size, output);
                     if (nav.Key == "setup")
                     {
                         var results = Descendants(content).OfType<ItemsControl>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Application setup results");
@@ -122,6 +130,7 @@ internal static class Program
                     {
                         var tabs = Descendants(controls[0]).OfType<TabControl>().First();
                         tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
+                        CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
                 }
@@ -141,7 +150,7 @@ internal static class Program
             if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
                 throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
-            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
             Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
@@ -231,17 +240,22 @@ internal static class Program
                 Payload = new JsonObject { ["state"] = "disabled" }
             });
         }
-        if (key == "plan") shell.Page<PlanViewModel>().SelectedRow = shell.Page<PlanViewModel>().Rows.FirstOrDefault();
+        if (key == "plan")
+        {
+            var vm = shell.Page<PlanViewModel>();
+            vm.SelectedRow = vm.Rows.FirstOrDefault();
+            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "ENR-003");
+        }
         if (key == "standard")
         {
             var vm = shell.Page<StandardViewModel>();
-            vm.Selected = vm.Controls.FirstOrDefault();
+            vm.Selected = vm.Controls.First(c => c.Id == "CFG-WIN-003");
             vm.ClientName = "Synthetic client — UI review only";
         }
         if (key == "automation")
         {
             var vm = shell.Page<AutomationViewModel>();
-            vm.SelectedControl ??= vm.Controls.FirstOrDefault();
+            vm.SelectedControl = vm.Controls.First(c => c.Id == "CFG-WIN-002");
             // One supplied value and one rejected value, so the reviewer sees both states of the generated form.
             var list = vm.InputFields.FirstOrDefault(f => f.Type == "guidList");
             if (list is not null) { list.Value = Id(11) + ", " + Id(12); list.TryRead(out _); }
@@ -287,6 +301,119 @@ internal static class Program
             if (!vm.ContinueAssessmentCommand.CanExecute(null) || vm.ContinueDeploymentCommand.CanExecute(null))
                 throw new InvalidOperationException("Setup handoff did not distinguish ready assessment from missing deployment consent.");
         }
+    }
+
+    private static void VerifyInputRefresh(ShellViewModel shell)
+    {
+        // A same-tenant catalogue/profile reload must refresh the form; ordinary page refresh must retain unsaved edits.
+        var workspace = shell.Workspace;
+        var originalStandard = workspace.RequireStandard();
+        var originalProfile = workspace.Profile!;
+        var vm = shell.Page<AutomationViewModel>();
+        try
+        {
+            var catalogue = ToolkitJson.Deserialize<StandardCatalogue>(ToolkitJson.Serialize(originalStandard));
+            catalogue.Parameters.Add(new ParameterDefinition { Key = "syntheticReloadInput", Type = "string", Label = "Synthetic reload input" });
+            Set(workspace, nameof(Workspace.Standard), catalogue);
+            vm.Refresh();
+            var field = vm.InputFields.Single(f => f.Key == "syntheticReloadInput");
+            field.Value = "unsaved edit";
+            vm.Refresh();
+            if (vm.InputFields.Single(f => f.Key == field.Key).Value != "unsaved edit")
+                throw new InvalidOperationException("An ordinary refresh discarded an unsaved policy input.");
+            var profile = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(originalProfile));
+            profile.Parameters.PolicyInputs ??= new();
+            profile.Parameters.PolicyInputs[field.Key] = JsonValue.Create("reloaded profile value");
+            Set(workspace, nameof(Workspace.Profile), profile);
+            vm.Refresh();
+            if (vm.InputFields.Single(f => f.Key == field.Key).Value != "reloaded profile value")
+                throw new InvalidOperationException("Reloading the same tenant did not refresh saved policy inputs.");
+        }
+        finally
+        {
+            Set(workspace, nameof(Workspace.Standard), originalStandard);
+            Set(workspace, nameof(Workspace.Profile), originalProfile);
+            vm.Refresh();
+        }
+        if (vm.InputFields.Any(f => f.Key == "syntheticReloadInput"))
+            throw new InvalidOperationException("Switching back to the original catalogue left a stale policy input.");
+    }
+
+    private static void CapturePrerequisites(FrameworkElement content, Size size, string output, string page)
+    {
+        var panel = Descendants(content).OfType<PrerequisitePanel>().FirstOrDefault(p => p.Items?.Count > 0)
+            ?? throw new InvalidOperationException("Expected prerequisite guidance was not bound on " + page);
+        var expander = Descendants(panel).OfType<Expander>().Single();
+        expander.IsExpanded = true;
+        content.UpdateLayout(); Pump();
+        var title = panel.Items![0].Title;
+        if (!Descendants(panel).OfType<TextBlock>().Any(t => t.Text == title))
+            throw new InvalidOperationException("Expanded prerequisite detail did not materialise on " + page);
+        panel.BringIntoView(); content.UpdateLayout(); Pump();
+        var heading = Descendants(panel).OfType<TextBlock>().First(t => t.Text == title);
+        var visibleHeading = VisibleBounds(heading, content);
+        if (visibleHeading.Width < 80 || visibleHeading.Height < heading.ActualHeight - 1)
+            throw new InvalidOperationException("Prerequisite title is clipped or outside the viewport on " + page);
+        if (page is "standard" or "plan" or "plan-review") AssertUsableControlList(content, page);
+        SaveImage(content, size, Path.Combine(output, $"{page}-prerequisites-{(int)size.Width}x{(int)size.Height}.png"));
+        expander.IsExpanded = false;
+        content.UpdateLayout(); Pump();
+    }
+
+    private static Rect VisibleBounds(FrameworkElement element, FrameworkElement root)
+    {
+        var bounds = element.TransformToAncestor(root).TransformBounds(new Rect(element.RenderSize));
+        bounds.Intersect(new Rect(root.RenderSize));
+        for (DependencyObject? ancestor = VisualTreeHelper.GetParent(element); ancestor is not null && ancestor != root;
+             ancestor = VisualTreeHelper.GetParent(ancestor))
+        {
+            if (ancestor is FrameworkElement frame && (frame.ClipToBounds || frame is ScrollContentPresenter))
+                bounds.Intersect(frame.TransformToAncestor(root).TransformBounds(new Rect(frame.RenderSize)));
+        }
+        return bounds;
+    }
+
+    private static void AssertUsableControlList(FrameworkElement content, string page)
+    {
+        var name = page == "standard" ? "Standard controls" : page == "plan" ? "Controls to include in the plan" : "Planned actions";
+        var list = Descendants(content).OfType<ItemsControl>().Single(c => System.Windows.Automation.AutomationProperties.GetName(c) == name);
+        var viewport = Descendants(list).OfType<ScrollContentPresenter>().First();
+        var visible = VisibleBounds(viewport, content);
+        var rows = Descendants(list).OfType<FrameworkElement>().Where(e => e is DataGridRow or ListBoxItem)
+            .Count(e => VisibleBounds(e, content).Height >= 18);
+        if (visible.Height < 100 || visible.Width < 250 || rows < 2)
+            throw new InvalidOperationException($"Expanded guidance left the {page} list unusable: {visible.Width:0}x{visible.Height:0}, {rows} visible rows.");
+    }
+
+    private static void CaptureAssignmentPopulations(ShellViewModel shell, FrameworkElement content, Size size, string output)
+    {
+        var vm = shell.Page<AutomationViewModel>();
+        vm.SelectedControl = vm.Controls.First(c => c.Id == "CMP-WIN-001");
+        vm.Kind = ReviewedChangeKind.AssignGroups;
+        vm.IncludedGroups = "";
+        vm.ExcludedGroups = Id(40);
+        var tabs = Descendants(content).OfType<TabControl>().First();
+        tabs.SelectedIndex = 3;
+        content.UpdateLayout(); Pump();
+        var population = Descendants(content).OfType<ComboBox>().Single(c =>
+            System.Windows.Automation.AutomationProperties.GetName(c) == "Assignment population");
+        foreach (var target in new[] { AssignmentPopulation.AllUsers, AssignmentPopulation.AllDevices })
+        {
+            vm.SelectedPopulation = target;
+            content.UpdateLayout(); Pump();
+            if ((population.Parent as FrameworkElement)?.Visibility != Visibility.Visible || !Equals(population.SelectedItem, target))
+                throw new InvalidOperationException("Built-in assignment population selection was not displayed.");
+            population.BringIntoView(); content.UpdateLayout(); Pump();
+            SaveImage(content, size, Path.Combine(output, $"automation-target-{target}-{(int)size.Width}x{(int)size.Height}.png"));
+        }
+        vm.Kind = ReviewedChangeKind.SecureCompliance;
+        content.UpdateLayout(); Pump();
+        if ((population.Parent as FrameworkElement)?.Visibility != Visibility.Collapsed)
+            throw new InvalidOperationException("Assignment population remained visible for a non-assignment action.");
+        vm.SelectedPopulation = AssignmentPopulation.Groups;
+        vm.ExcludedGroups = "";
+        tabs.SelectedIndex = 0;
+        content.UpdateLayout(); Pump();
     }
 
     private static ApplicationSetupService SyntheticSetup() => new(new HttpClient(new NoNetworkHandler()), new NoTokens(),

@@ -364,6 +364,8 @@ public sealed class DeploymentExecutor
         var isConditionalAccess = ConditionalAccessSafety.IsConditionalAccess(def);
         if (row.Action == PlanAction.Update)
         {
+            if (DirectoryPrerequisiteSafety.IsCreationOnlyPath(def.BasePath))
+                throw new SafetyViolationException("Directory prerequisites are creation-only; existing objects cannot be changed by a candidate plan.");
             var objectId = row.ObjectId ?? throw new PlanValidationException("Update row without object ID.");
             var mapping = mappings.Find(row.ControlId) ?? throw new SafetyViolationException($"{row.ControlId}: no ownership mapping for object {objectId}; refusing to update an object the toolkit does not own.");
             if (!string.Equals(mapping.ObjectId, objectId, StringComparison.OrdinalIgnoreCase))

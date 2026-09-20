@@ -7,6 +7,7 @@ using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Execution;
+using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Prerequisites;
 using BDIT.TenantToolkit.Engine.Standards;
 using Microsoft.Win32;
@@ -18,6 +19,8 @@ public sealed class AutomationViewModel : PageViewModel
     private string _inputs = "{}", _importFile = "", _name = "", _replacements = "{}", _objectId = "", _include = "", _exclude = "", _typedTenant = "", _result = "", _tenant = "";
     private ControlDefinition? _control;
     private ReviewedChangeKind _kind = ReviewedChangeKind.SecureCompliance;
+    private AssignmentPopulation _population = AssignmentPopulation.Groups;
+    private string _inputContext = "";
     private ReviewedChangePlan? _plan;
     private EntraLapsPlan? _lapsPlan;
     private bool _approved;
@@ -58,6 +61,9 @@ public sealed class AutomationViewModel : PageViewModel
     /// </summary>
     public ObservableCollection<PolicyInputField> InputFields { get; } = new();
     public IReadOnlyList<ReviewedChangeKind> Kinds { get; } = Enum.GetValues<ReviewedChangeKind>();
+    public IReadOnlyList<AssignmentPopulation> Populations { get; } = Enum.GetValues<AssignmentPopulation>();
+    public AssignmentPopulation SelectedPopulation { get => _population; set { if (SetProperty(ref _population, value)) ClearApproval(); } }
+    public bool IsAssignmentAction => Kind == ReviewedChangeKind.AssignGroups;
     public ICommand SaveInputsCommand { get; }
     public ICommand ChooseImportCommand { get; }
     public ICommand ImportCommand { get; }
@@ -76,7 +82,7 @@ public sealed class AutomationViewModel : PageViewModel
     public ICommand LoadCandidateCommand { get; }
     public ObservableCollection<ServiceReadiness> Readiness { get; } = new();
     public ControlDefinition? SelectedControl { get => _control; set { if (SetProperty(ref _control, value)) { ClearApproval(); OnPropertyChanged(nameof(Requirements)); } } }
-    public ReviewedChangeKind Kind { get => _kind; set { if (SetProperty(ref _kind, value)) ClearApproval(); } }
+    public ReviewedChangeKind Kind { get => _kind; set { if (SetProperty(ref _kind, value)) { ClearApproval(); OnPropertyChanged(nameof(IsAssignmentAction)); } } }
     public string PolicyInputs { get => _inputs; set => SetProperty(ref _inputs, value); }
     public string ImportFile { get => _importFile; set => SetProperty(ref _importFile, value); }
     public string CandidateName { get => _name; set => SetProperty(ref _name, value); }
@@ -97,22 +103,24 @@ public sealed class AutomationViewModel : PageViewModel
     private void SaveInputs()
     {
         var profile = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(Workspace.Profile!));
-        var values = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
+        var edits = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
 
         foreach (var field in InputFields)
         {
             if (Reserved(field.Key)) continue;
-            if (field.TryRead(out var node)) values[field.Key] = node;
+            edits[field.Key] = field.TryRead(out var node) ? node : null;
         }
 
         var problems = InputFields.Where(f => f.HasProblem).Select(f => f.Label + ": " + f.Problem).ToList();
         if (problems.Count > 0)
             throw new ConfigurationException("Correct these inputs and save again.\n" + string.Join("\n", problems));
 
+        var values = PolicyInputParser.MergeInputs(profile.Parameters.PolicyInputs ?? new Dictionary<string, JsonNode?>(), edits);
         profile.Parameters.PolicyInputs = values;
         Workspace.SaveProfile(profile); Workspace.InvalidatePolicyState(); ClearApproval();
         PolicyInputs = ToolkitJson.Serialize(values);
         BuildInputFields();
+        _inputContext = InputContext();
         var supplied = values.Count;
         var missing = InputFields.Count(f => f.IsRequired && f.Value.Trim().Length == 0);
         Result = $"Saved {supplied} client input(s) to the tenant profile."
@@ -139,6 +147,14 @@ public sealed class AutomationViewModel : PageViewModel
         }
     }
 
+    // Tenant ID alone does not identify a form: switching release or reloading a profile can change its fields and values.
+    private string InputContext() => CanonicalJson.Sha256Value(new
+    {
+        Catalogue = Workspace.Standard?.Parameters,
+        Release = Workspace.Standard?.Release,
+        Profile = Workspace.Profile
+    });
+
     private void ChooseImport()
     {
         var dialog = new OpenFileDialog { Filter = "Graph policy JSON (*.json)|*.json", Title = "Select a policy export" };
@@ -161,7 +177,8 @@ public sealed class AutomationViewModel : PageViewModel
             var c = Workspace.RequireConnection();
             _plan = await new ReviewedChangeService(Workspace.Evidence, SystemClock.Instance).PreviewAsync(c.Graph, c.Session, Workspace.Profile!,
                 Workspace.RequireStandard(), Workspace.Snapshot ?? throw new ToolkitException("Capture tenant configuration first."), Kind,
-                SelectedControl?.Id ?? Kind.ToString(), ObjectId.Trim(), Ids(IncludedGroups), Ids(ExcludedGroups), Workspace.OperationToken, Ids(DeviceIds));
+                SelectedControl?.Id ?? Kind.ToString(), ObjectId.Trim(), Ids(IncludedGroups), Ids(ExcludedGroups), Workspace.OperationToken, Ids(DeviceIds),
+                population: IsAssignmentAction ? SelectedPopulation : AssignmentPopulation.Groups);
         });
         OnPropertyChanged(nameof(PreviewText));
     }
@@ -253,8 +270,6 @@ public sealed class AutomationViewModel : PageViewModel
         if (_tenant != tenant)
         {
             _tenant = tenant; ClearApproval(); Result = ""; Readiness.Clear();
-            PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
-            BuildInputFields();
             _lastRunId = _lastLapsRunId = _lastPackageRunId = "";
             try
             {
@@ -268,6 +283,14 @@ public sealed class AutomationViewModel : PageViewModel
                 Result = "Local automation evidence could not be loaded. Keep the evidence files and review Activity before continuing.";
                 Workspace.Logger.Error("Automation", Result, ex, tenant);
             }
+        }
+        var inputContext = InputContext();
+        if (_inputContext != inputContext)
+        {
+            _inputContext = inputContext;
+            PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
+            BuildInputFields();
+            ClearApproval();
         }
         if (!Workspace.IsConnected) ClearApproval();
         var local = Workspace.LocalCandidates();

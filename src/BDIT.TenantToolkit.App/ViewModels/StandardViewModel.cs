@@ -43,8 +43,7 @@ public sealed class StandardViewModel : PageViewModel
     public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
 
     /// <summary>
-    /// Writes the client-facing build standard for the loaded release. It is generated rather than written, so it
-    /// cannot describe a setting the toolkit would not apply.
+    /// Writes the proposed catalogue for the loaded release; tenant assessment and deployment evidence are separate.
     /// </summary>
     private async Task ExportDocument(ExportFormat format)
     {
@@ -112,8 +111,9 @@ public sealed class StandardViewModel : PageViewModel
 
     private void ApplyFilter()
     {
+        var selectedId = Selected?.Id;
         Controls.Clear();
-        if (Workspace.Standard is null) return;
+        if (Workspace.Standard is null) { Selected = null; return; }
         var q = Search.Trim();
         foreach (var c in Workspace.Standard.Controls)
         {
@@ -121,5 +121,6 @@ public sealed class StandardViewModel : PageViewModel
             if (q.Length > 0 && !c.Id.Contains(q, StringComparison.OrdinalIgnoreCase) && !c.Name.Contains(q, StringComparison.OrdinalIgnoreCase) && !c.Purpose.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
             Controls.Add(c);
         }
+        Selected = Controls.FirstOrDefault(c => c.Id == selectedId);
     }
 }

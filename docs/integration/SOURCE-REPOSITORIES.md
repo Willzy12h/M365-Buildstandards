@@ -37,3 +37,7 @@ git check-ignore with case-insensitive matching confirms source .gitignore:25 (r
 ## Import boundaries
 
 Imported tracked application/tests/standard/configuration template/build/packaging and source docs. Preserved master instructions and PR template; source README and instructions are retained as docs/CLAUDE-BASELINE-README.md and docs/CLAUDE-SOURCE-INSTRUCTIONS.md. Excluded machine-specific Willz.lnk. No SDK, output, local configuration, token cache or tenant evidence was imported. Neither source repository nor another contributor's branch was changed.
+
+## Review-fix source register — 21 September 2026
+
+PR #9 (`astra/review-fixes`) starts from shared integration `d4e1e9a9bfed620c06103a54a28a0cf0a574a5fb`, reviewing Claude changes after `f5859da0a84cb28783702ff993af5ea5166dde5d`. Source repositories and `claude/*` branches are unchanged. Published standards remain byte-preserved; .11 is a new schema-4 release.

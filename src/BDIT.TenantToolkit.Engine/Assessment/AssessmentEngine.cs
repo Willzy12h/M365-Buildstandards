@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Planning;
 
 namespace BDIT.TenantToolkit.Engine.Assessment;
 
@@ -83,7 +84,7 @@ public sealed class AssessmentEngine
         foreach (var control in standard.Controls)
         {
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
-            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence);
+            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow);
             result.Findings.Add(finding);
         }
 
@@ -92,7 +93,7 @@ public sealed class AssessmentEngine
     }
 
     private static ControlFinding AssessControl(ControlDefinition control, StandardCatalogue standard, TenantSnapshot snapshot, ManagedObjectMappings mappings,
-        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence)
+        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now)
     {
         var finding = new ControlFinding
         {
@@ -147,6 +148,19 @@ public sealed class AssessmentEngine
 
         if (def is null || control.Assessment.Mode == AssessmentMode.Manual || control.Payload is null)
         {
+            // Evidence-backed manual controls still need a successful read. An approved departure from the standard
+            // cannot turn an unavailable collection into a verified observation.
+            if (control.Equivalence is { Signals.Count: > 0 } equivalence)
+            {
+                var collectionKey = equivalence.Collection ?? control.Collection;
+                if (!snapshot.Collections.TryGetValue(collectionKey ?? "", out var evidence) || !evidence.Usable)
+                {
+                    finding.Status = FindingStatus.UnableToAssess;
+                    finding.Reason = $"The {standard.FindCollection(collectionKey)?.Label ?? collectionKey ?? "required"} collection is unavailable or incomplete. Coverage cannot be inferred.";
+                    if (deviation is not null) finding.Notes.Add("An approved deviation is recorded, but it cannot be applied while the underlying data is unknown.");
+                    return finding;
+                }
+            }
             finding.Status = FindingStatus.RequiresManualReview;
             finding.Reason = "Manual assessment: automated comparison is unavailable for this control. This does not mean a policy or setting is missing. Inspect the stated requirement against the captured configuration.";
             if (def is not null)
@@ -178,9 +192,14 @@ public sealed class AssessmentEngine
         }
 
         JsonObject payload;
+        IReadOnlyList<string> defaultWarnings = Array.Empty<string>();
         try
         {
-            payload = (JsonObject)CanonicalJson.Resolve(control.Payload, parameters)!;
+            var defaults = PolicyInputDefaults.Apply(control.Payload, standard, parameters, now);
+            defaultWarnings = defaults.Warnings;
+            foreach (var warning in defaultWarnings) finding.Notes.Add("Review required — " + warning);
+            PolicyInputValidator.ValidateUsed(control.Payload, standard, defaults.Values);
+            payload = (JsonObject)PolicyInputDefaults.Resolve(control.Payload!, standard, defaults.Values)!;
         }
         catch (MissingParameterException ex)
         {
@@ -193,7 +212,7 @@ public sealed class AssessmentEngine
         if (ConditionalAccessSafety.IsConditionalAccess(def)) ConditionalAccessSafety.EnforceSafeState(payload);
         finding.Proposed = payload;
 
-        var candidates = FindCandidates(capture.Items, payload, control.Assessment, def, names, mappings);
+        var candidates = FindCandidates(capture.Items, payload, control.Assessment, def, names, mappings, mapping?.ObjectId);
         finding.Candidates = candidates.ToList();
 
         if (mapping is not null && !capture.Items.Any(i => string.Equals(i["id"]?.GetValue<string>(), mapping.ObjectId, StringComparison.OrdinalIgnoreCase)))
@@ -203,7 +222,12 @@ public sealed class AssessmentEngine
         if (exact is not null)
         {
             var enforced = ExpectedEnforcementMet(control, def, exact);
-            if (enforced == true)
+            if (DirectoryPrerequisiteSafety.IsGroup(def) && string.Equals(control.ExpectedProduction.State, "populated", StringComparison.OrdinalIgnoreCase))
+            {
+                finding.Status = FindingStatus.RequiresManualReview;
+                finding.Reason = $"Group settings match '{exact.Name}', but the creation recipe does not define its intended membership. Review the captured members against the agreed population before accepting this prerequisite; an empty group or an arbitrary member does not establish coverage.";
+            }
+            else if (enforced == true)
             {
                 finding.Status = FindingStatus.Compliant;
                 finding.Reason = $"Settings match '{exact.Name}' and it is {DescribeEnforcement(exact.Enforcement)}. Review overlapping policies and exclusions before accepting coverage.";
@@ -240,6 +264,12 @@ public sealed class AssessmentEngine
             // A client's own policy will not match the recipe property for property, so before reporting a gap, ask the
             // narrower question the equivalence signals encode: is this control covered by something already here?
             ApplyEquivalence(control, standard, snapshot, names, finding);
+        }
+
+        if (defaultWarnings.Count > 0 && finding.Status == FindingStatus.Compliant)
+        {
+            finding.Status = FindingStatus.RequiresManualReview;
+            finding.Reason = "Captured settings match the shipped defaults, but those inputs have not been confirmed for this client. Review the warnings and save the agreed client values before accepting compliance.";
         }
 
         if (deviation is not null && finding.Status != FindingStatus.Compliant)
@@ -329,7 +359,7 @@ public sealed class AssessmentEngine
         _ => "in an unknown state"
     };
 
-    public static IReadOnlyList<CandidateMatch> FindCandidates(IReadOnlyList<JsonObject> items, JsonObject payload, AssessmentRule rule, CollectionDefinition def, NameResolver names, ManagedObjectMappings mappings)
+    public static IReadOnlyList<CandidateMatch> FindCandidates(IReadOnlyList<JsonObject> items, JsonObject payload, AssessmentRule rule, CollectionDefinition def, NameResolver names, ManagedObjectMappings mappings, string? ownedObjectId = null)
     {
         var ignore = new HashSet<string>(IgnoredKeys, StringComparer.Ordinal);
         foreach (var extra in rule.IgnoreProperties) ignore.Add(extra);
@@ -347,6 +377,23 @@ public sealed class AssessmentEngine
             var id = item["id"]?.GetValue<string>() ?? "";
             var name = item[def.NameProperty]?.GetValue<string>() ?? item["displayName"]?.GetValue<string>() ?? item["name"]?.GetValue<string>() ?? id;
             var nameMatch = standardName.Length > 0 && string.Equals(name, standardName, StringComparison.OrdinalIgnoreCase);
+            var ownedMatch = !string.IsNullOrEmpty(ownedObjectId) && string.Equals(id, ownedObjectId, StringComparison.OrdinalIgnoreCase);
+            var directoryIdentityMatch = false;
+            // Empty security groups share almost every material property; that shape does not identify a population.
+            // Likewise, an untrusted named location is not an overlap merely because it shares the trust flag.
+            if (DirectoryPrerequisiteSafety.IsGroup(def))
+            {
+                var nickname = payload["mailNickname"]?.GetValue<string>();
+                var nicknameMatch = !string.IsNullOrEmpty(nickname) && string.Equals(item["mailNickname"]?.GetValue<string>(), nickname, StringComparison.OrdinalIgnoreCase);
+                if (!nameMatch && !nicknameMatch && !ownedMatch) continue;
+                directoryIdentityMatch = nicknameMatch;
+            }
+            if (DirectoryPrerequisiteSafety.IsNamedLocation(def))
+            {
+                var rangesMatch = payload["ipRanges"] is JsonArray { Count: > 0 } ranges && CanonicalJson.IsSubset(item["ipRanges"], ranges);
+                if (!nameMatch && !rangesMatch && !ownedMatch) continue;
+                directoryIdentityMatch = rangesMatch;
+            }
             var typeMatch = targetType is null || string.Equals(item["@odata.type"]?.GetValue<string>(), targetType, StringComparison.OrdinalIgnoreCase);
             var grantMatch = targetGrant is null || CanonicalJson.IsSubset(item["grantControls"], targetGrant);
 
@@ -368,7 +415,7 @@ public sealed class AssessmentEngine
             }
             var settingsMatch = typeMatch && grantMatch && wanted.Count > 0 && matched == wanted.Count;
             var partial = typeMatch && grantMatch && wanted.Count > 1 && (double)matched / wanted.Count >= rule.PartialMatchThreshold;
-            if (!settingsMatch && !partial && !nameMatch) continue;
+            if (!settingsMatch && !partial && !nameMatch && !ownedMatch && !directoryIdentityMatch) continue;
 
             var candidate = new CandidateMatch
             {

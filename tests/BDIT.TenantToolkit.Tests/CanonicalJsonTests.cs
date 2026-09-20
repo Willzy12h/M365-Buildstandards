@@ -64,6 +64,21 @@ public class CanonicalJsonTests
     }
 
     [Fact]
+    public void Explicit_empty_array_permission_does_not_allow_empty_identity_or_missing_values()
+    {
+        var allowed = new HashSet<string>(StringComparer.Ordinal) { "espBlockingAppIds" };
+        var optional = ToolkitJson.ParseNode("""{"nested":[{"selectedMobileAppIds":"{{espBlockingAppIds}}"}]}""");
+        var values = new Dictionary<string, JsonNode?> { ["espBlockingAppIds"] = new JsonArray(), ["emergencyAccountIds"] = new JsonArray() };
+        var resolved = CanonicalJson.Resolve(optional, values, allowed)!;
+        Assert.Empty(resolved["nested"]![0]!["selectedMobileAppIds"]!.AsArray());
+        Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(optional, values));
+        Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(JsonValue.Create("{{emergencyAccountIds}}"), values, allowed));
+        Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(optional, new Dictionary<string, JsonNode?>(), allowed));
+        values["espBlockingAppIds"] = null;
+        Assert.Throws<MissingParameterException>(() => CanonicalJson.Resolve(optional, values, allowed));
+    }
+
+    [Fact]
     public void TryAt_selects_array_elements_by_key_value_without_touching_dotted_paths()
     {
         var policy = ToolkitJson.ParseObject("""{"authenticationMethodConfigurations":[{"id":"Sms","state":"disabled"},{"id":"MicrosoftAuthenticator","state":"enabled","featureSettings":{"numberMatchingRequiredState":{"state":"enabled"}}}],"plain":{"state":"x"}}""");

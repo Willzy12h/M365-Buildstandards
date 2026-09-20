@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
@@ -77,7 +78,7 @@ public sealed partial class StandardsLoader
 
     public static void Validate(StandardCatalogue c)
     {
-        if (c.SchemaVersion != StandardCatalogue.SupportedSchemaVersion)
+        if (c.SchemaVersion is not (3 or StandardCatalogue.SupportedSchemaVersion))
             throw new ConfigurationException($"Standard schema version {c.SchemaVersion} is not supported; this build understands version {StandardCatalogue.SupportedSchemaVersion}.");
         if (string.IsNullOrWhiteSpace(c.Release) || c.Release.Length > 40 || !ReleasePattern().IsMatch(c.Release))
             throw new ConfigurationException("Standard release identifier is missing or invalid (letters, digits, dots and dashes only).");
@@ -97,6 +98,7 @@ public sealed partial class StandardsLoader
         }
         foreach (var p in c.Parameters)
         {
+            PolicyInputDefaults.AssertReviewable(p);
             if (!ParameterKeyPattern().IsMatch(p.Key)) throw new ConfigurationException($"Parameter key '{p.Key}' is invalid.");
             if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray"))
                 throw new ConfigurationException($"Parameter '{p.Key}' has an unsupported type.");

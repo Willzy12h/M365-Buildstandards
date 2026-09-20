@@ -31,9 +31,21 @@ public static class ReviewedChangeSafety
         _ => throw new SafetyViolationException("Assignment is not supported for this collection.")
     };
     public static string AssignmentKey(string root) => root == "/deviceAppManagement/mobileApps" ? "mobileAppAssignments" : "assignments";
-    public static JsonObject AssignmentPayload(string root, IEnumerable<string> included, IEnumerable<string> excluded)
+    public static JsonObject AssignmentPayload(string root, IEnumerable<string> included, IEnumerable<string> excluded, AssignmentPopulation population = AssignmentPopulation.Groups)
     {
         var assignments = new JsonArray();
+        if (!Enum.IsDefined(population)) throw new SafetyViolationException("Unknown assignment population.");
+        if (population != AssignmentPopulation.Groups)
+        {
+            if (included.Any()) throw new SafetyViolationException("Built-in populations cannot be combined with included groups.");
+            if (root is not ("/deviceManagement/deviceConfigurations" or "/deviceManagement/deviceCompliancePolicies"
+                or "/deviceManagement/configurationPolicies" or "/deviceAppManagement/mobileApps"))
+                throw new SafetyViolationException("Use explicitly reviewed groups for this resource; built-in population assignment is unsupported.");
+            var row = new JsonObject { ["@odata.type"] = "#microsoft.graph." + AssignmentType(root),
+                ["target"] = new JsonObject { ["@odata.type"] = "#microsoft.graph." + (population == AssignmentPopulation.AllUsers ? "allLicensedUsersAssignmentTarget" : "allDevicesAssignmentTarget") } };
+            if (root == "/deviceAppManagement/mobileApps") row["intent"] = "required";
+            assignments.Add(row);
+        }
         foreach (var (ids, exclusion) in new[] { (included, false), (excluded, true) })
             foreach (var id in ids)
             {
@@ -48,6 +60,8 @@ public static class ReviewedChangeSafety
 
     public static void Assert(ReviewedChangePlan p)
     {
+        if (p.Population is { } population && (!Enum.IsDefined(population) || p.Kind != ReviewedChangeKind.AssignGroups))
+            throw new SafetyViolationException("An assignment population applies only to a reviewed assignment.");
         if (!Enum.IsDefined(p.Kind)) throw new SafetyViolationException("Unknown reviewed change.");
         if (!IsAssignment(p.Kind) && (p.ExcludeGroups.Count > 0 || p.Kind != ReviewedChangeKind.ConfigureTap && p.IncludeGroups.Count > 0))
             throw new SafetyViolationException("This action does not accept group targeting. Existing targets are preserved unless the preview explicitly replaces them.");
@@ -113,10 +127,10 @@ public static class ReviewedChangeSafety
                     scope = root.StartsWith("/deviceAppManagement/", StringComparison.Ordinal) ? "DeviceManagementApps.ReadWrite.All"
                         : root is "/deviceManagement/deviceEnrollmentConfigurations" or "/deviceManagement/windowsAutopilotDeploymentProfiles"
                             ? "DeviceManagementServiceConfig.ReadWrite.All" : "DeviceManagementConfiguration.ReadWrite.All";
-                    if (p.Kind == ReviewedChangeKind.AssignGroups && p.IncludeGroups.Count == 0) throw new SafetyViolationException("Select at least one included group.");
+                    if (p.Kind == ReviewedChangeKind.AssignGroups && (p.Population ?? AssignmentPopulation.Groups) == AssignmentPopulation.Groups && p.IncludeGroups.Count == 0) throw new SafetyViolationException("Select at least one included group.");
                     if (p.Kind == ReviewedChangeKind.RemoveAssignments && p.IncludeGroups.Concat(p.ExcludeGroups).Any())
                         throw new SafetyViolationException("Containment removes all assignments; no replacement targets are allowed.");
-                    expected = AssignmentPayload(root, p.IncludeGroups, p.ExcludeGroups);
+                    expected = AssignmentPayload(root, p.IncludeGroups, p.ExcludeGroups, p.Population ?? AssignmentPopulation.Groups);
                 }
                 else
                 {
