@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
@@ -77,7 +78,7 @@ public sealed partial class StandardsLoader
 
     public static void Validate(StandardCatalogue c)
     {
-        if (c.SchemaVersion != StandardCatalogue.SupportedSchemaVersion)
+        if (c.SchemaVersion is not (3 or StandardCatalogue.SupportedSchemaVersion))
             throw new ConfigurationException($"Standard schema version {c.SchemaVersion} is not supported; this build understands version {StandardCatalogue.SupportedSchemaVersion}.");
         if (string.IsNullOrWhiteSpace(c.Release) || c.Release.Length > 40 || !ReleasePattern().IsMatch(c.Release))
             throw new ConfigurationException("Standard release identifier is missing or invalid (letters, digits, dots and dashes only).");
@@ -97,6 +98,7 @@ public sealed partial class StandardsLoader
         }
         foreach (var p in c.Parameters)
         {
+            PolicyInputDefaults.AssertReviewable(p);
             if (!ParameterKeyPattern().IsMatch(p.Key)) throw new ConfigurationException($"Parameter key '{p.Key}' is invalid.");
             if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray"))
                 throw new ConfigurationException($"Parameter '{p.Key}' has an unsupported type.");
@@ -113,6 +115,14 @@ public sealed partial class StandardsLoader
             CollectionDefinition? def = null;
             if (control.Collection is not null && !c.Collections.TryGetValue(control.Collection, out def))
                 throw new ConfigurationException($"Control {control.Id} references unknown collection '{control.Collection}'.");
+            if (control.ExpectedProduction.ApplicationDeployment is { } deployment)
+            {
+                if (def?.BasePath != "/deviceAppManagement/mobileApps" || !def.Assignments || deployment.Intent != "required"
+                    || deployment.Population is not (AssignmentPopulation.AllUsers or AssignmentPopulation.AllDevices)
+                    || deployment.ExclusionControlId is not null && !c.Controls.Any(x => x.Id == deployment.ExclusionControlId
+                        && x.Collection == "groups" && x.ExclusionRole == (deployment.Population == AssignmentPopulation.AllUsers ? "users" : "devices")))
+                    throw new ConfigurationException($"Control {control.Id} has an unsupported application deployment expectation or exclusion prerequisite.");
+            }
             if (control.Assessment.Mode == AssessmentMode.Settings)
             {
                 if (control.Payload is null) throw new ConfigurationException($"Control {control.Id} uses settings assessment but has no payload recipe.");

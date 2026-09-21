@@ -1,5 +1,6 @@
 <UserControl x:Class="BDIT.TenantToolkit.App.Views.AutomationView"
- xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:views="clr-namespace:BDIT.TenantToolkit.App.Views">
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28,24">
   <TextBlock Text="POLICY AUTOMATION" Style="{StaticResource Eyebrow}"/>
   <TextBlock Text="Prepare, create, then activate" Style="{StaticResource H1}"/>
@@ -7,6 +8,7 @@
   <TextBlock Text="Control" Style="{StaticResource FieldLabel}"/>
   <ComboBox ItemsSource="{Binding Controls}" SelectedItem="{Binding SelectedControl}" DisplayMemberPath="Name" AutomationProperties.Name="Automation control"/>
   <TextBlock Text="{Binding Requirements}" Margin="0,12" Style="{StaticResource Muted}"/>
+  <views:PrerequisitePanel Items="{Binding SelectedControl.Prerequisites}"/>
   <TabControl>
    <TabItem Header="Readiness checks"><StackPanel Margin="16">
     <TextBlock Text="Identity and service prerequisites" Style="{StaticResource H2}"/>
@@ -23,10 +25,10 @@
     <ItemsControl ItemsSource="{Binding InputFields}" AutomationProperties.Name="Client policy inputs">
      <ItemsControl.ItemTemplate><DataTemplate>
       <Border Style="{StaticResource Panel}" Margin="0,0,0,8"><StackPanel>
-       <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}"/>
+       <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}" ToolTip="{Binding Description}"/>
        <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MaxHeight="90"
-                VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label}"/>
+                VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label}" ToolTip="{Binding Hint}"/>
        <TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
        <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
        <TextBlock Text="{Binding Problem}" Foreground="{StaticResource Danger}" TextWrapping="Wrap"
@@ -65,6 +67,13 @@
     <Button Content="Capture fresh configuration" Command="{Binding CaptureCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <TextBlock Text="Reviewed action" Style="{StaticResource FieldLabel}"/>
     <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" AutomationProperties.Name="Reviewed policy action"/>
+    <TextBlock Text="Autopilot profiles: generic group assignment and removal are unsupported. Use a separately reviewed dedicated workflow; do not enter group IDs as device IDs. Other assignments require compatible user/device exclusions." Style="{StaticResource Muted}" Margin="0,6,0,0"/>
+    <StackPanel Visibility="{Binding IsAssignmentAction, Converter={StaticResource BoolToVis}}" Margin="0,8">
+     <TextBlock Text="Assignment population" Style="{StaticResource FieldLabel}"/>
+     <ComboBox ItemsSource="{Binding Populations}" SelectedItem="{Binding SelectedPopulation}"
+      AutomationProperties.Name="Assignment population" ToolTip="Groups uses the included security group IDs. AllUsers and AllDevices are tenant-wide populations; review exclusions and the exact preview before approving."/>
+     <TextBlock Text="Groups uses the included group IDs below. For AllUsers or AllDevices, leave included group IDs empty. Excluded groups remain explicit; a prerequisite exclusion group is not automatically assigned here." Style="{StaticResource Muted}" Margin="0,6,0,0"/>
+    </StackPanel>
     <TextBlock Text="MDM policy object ID (MDM action only; activation uses the selected control's recorded ID)" Style="{StaticResource FieldLabel}"/>
     <TextBox Text="{Binding ObjectId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="MDM policy object ID"/>
     <TextBlock Text="Included security group IDs (one group for TAP)" Style="{StaticResource FieldLabel}"/>
@@ -74,7 +83,8 @@
     <TextBlock Text="Entra device IDs for Autopatch actions (up to 50; captured Windows devices only)" Style="{StaticResource FieldLabel}"/>
     <TextBox Text="{Binding DeviceIds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Autopatch Entra device IDs"/>
     <WrapPanel><Button Content="Preview change" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}"/>
-     <Button Content="Preview Entra LAPS enablement" Command="{Binding PreviewLapsCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+     <Button Content="Preview Entra LAPS enablement" Command="{Binding PreviewLapsCommand}" Style="{StaticResource SecondaryButton}"
+      ToolTip="Reads the Entra LAPS tenant prerequisite and previews enabling it. Requires a fresh snapshot. Enablement needs separate deployment approval below."/></WrapPanel>
     <TextBox Text="{Binding PreviewText, Mode=OneWay}" IsReadOnly="True" Height="310" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Exact change preview"/>
     <Border Background="{StaticResource WarnBg}" Padding="12" Margin="0,12"><StackPanel>
      <CheckBox IsChecked="{Binding Approved}" Content="I reviewed settings, targeting, exclusions, dependencies and consequences."/>

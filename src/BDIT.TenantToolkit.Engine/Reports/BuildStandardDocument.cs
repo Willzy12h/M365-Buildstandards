@@ -1,17 +1,14 @@
 using System.Net;
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
 
 /// <summary>
-/// Writes the client-facing build standard: what this tenant will be configured to, why each control exists, and what
-/// the client has to supply or decide.
-///
-/// It is generated from the standard catalogue rather than written by hand, for one reason: a document maintained
-/// separately from the recipes drifts from them within a release or two, and then it describes a tenant nobody has.
-/// Every sentence here comes from the same file the deployment reads, so the document cannot promise a setting the
-/// tool does not write.
+/// Describes the proposed catalogue, intended rollout and client decisions. It does not report tenant state or prove
+/// successful deployment. Keep observed results in the separate assessment and execution reports.
 ///
 /// It is deliberately not a technical specification. Graph paths, payloads, API versions and object identifiers are
 /// left to the engineer reports; a client needs to know what is protected, what it costs them in inconvenience, and
@@ -19,11 +16,21 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 /// </summary>
 public static class BuildStandardDocument
 {
-    private static string H(string? s) => WebUtility.HtmlEncode(s ?? "");
+    private static readonly Regex TechnicalDetail = new(
+        @"[{}\[\]]|@odata|graph\.microsoft\.com|/(?:deviceManagement|deviceAppManagement|identity|policies|groups|users)(?:/|\?|\s|$)|\./(?:Device|User)/Vendor/MSFT|\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static string ClientText(string? text) => TechnicalDetail.IsMatch(text ?? "")
+        ? "Configuration details are available in the engineer report." : text ?? "";
+    private static string H(string? s) => WebUtility.HtmlEncode(ClientText(s));
+    private static string M(string? s) => ClientText(s).Replace("&", "&amp;", StringComparison.Ordinal)
+        .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
+        .Replace("|", "\\|", StringComparison.Ordinal);
 
     /// <summary>How a control reaches the tenant, in words a client can act on.</summary>
     public static string Delivery(ControlDefinition control) =>
-        control.HasRecipe ? "Created by the toolkit as an inactive candidate, reviewed, then activated deliberately."
+        control.HasRecipe && control.Collection == "groups" ? "Created by the toolkit as an empty security group. Membership and any later removal require a separate engineer review."
+        : control.HasRecipe && control.Collection == "namedLocations" ? "Created by the toolkit as an untrusted IP location. Referencing it in a sign-in policy and any later removal require a separate engineer review."
+        : control.HasRecipe ? "Created by the toolkit as an inactive candidate. Supported activation or assignment requires a separate reviewed action; other rollout steps are completed by an engineer."
         : control.Equivalence is not null ? "Read from the tenant and reported. Changed only through a separate reviewed action."
         : "Completed by an engineer, or in a vendor portal. Nothing is created automatically.";
 
@@ -39,7 +46,7 @@ public static class BuildStandardDocument
         {
             if (!json.Contains("{{" + parameter.Key + "}}", StringComparison.Ordinal)) continue;
             if (string.Equals(parameter.Key, "tenantId", StringComparison.Ordinal)) continue;
-            if (parameter.HasDefault) defaulted.Add(parameter.Label + " (default " + parameter.Default!.ToJsonString() + ")");
+            if (parameter.HasDefault) defaulted.Add(ClientText(parameter.Label) + " (default " + DefaultDescription(parameter.Default) + ")");
             else required.Add(parameter.Label);
         }
         return (required, defaulted);
@@ -52,7 +59,7 @@ public static class BuildStandardDocument
           .Append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>")
           .Append(H("Microsoft 365 Build Standard - " + clientName)).Append("</title>").Append(Css).Append("</head><body>");
 
-        sb.Append("<div class=\"brand\">Blue Diamond IT · Microsoft 365 Build Standard</div>");
+        sb.Append("<div class=\"brand\">Microsoft 365 Build Standard</div>");
         sb.Append("<h1>").Append(H(clientName)).Append("</h1>");
         sb.Append("<p class=\"lede\">").Append(H(standard.Description)).Append("</p>");
 
@@ -65,15 +72,15 @@ public static class BuildStandardDocument
         sb.Append("</dl>");
 
         sb.Append("<h2>What this document is</h2>");
-        sb.Append("<p>This is the configuration your Microsoft 365 tenant is being built to. Each control below says what it protects, ")
+        sb.Append("<p>This catalogue describes the proposed configuration for your Microsoft 365 tenant. Each control below says what it protects, ")
           .Append("what it means in practice for the people using it, and what happens without it. It is generated from the same file the ")
-          .Append("deployment tool reads, so it describes what is actually applied rather than an intention.</p>");
+          .Append("deployment tool reads. It is not evidence that any change has been deployed, verified or activated in your tenant.</p>");
 
         sb.Append("<h2>How changes are made</h2>");
         sb.Append("<p>Nothing is switched on without review. A policy is created inactive: Conditional Access policies are created disabled, ")
           .Append("and device policies are created with nothing assigned to them. An engineer then checks the settings against this document, ")
           .Append("tests where appropriate, and activates each one as a separate deliberate step. Every change is recorded with evidence of the ")
-          .Append("before and after state, and an emergency access account is excluded from every sign-in policy so that access can always be recovered.</p>");
+          .Append("before and after state where available; incomplete verification is reported separately. Toolkit-created sign-in candidates retain the reviewed emergency-account and operator exclusions. Recovery access must still be tested and maintained.</p>");
 
         Summary(sb, standard);
 
@@ -101,7 +108,7 @@ public static class BuildStandardDocument
 
         sb.Append("<h2>At a glance</h2><div class=\"tiles\">");
         Tile(sb, standard.Controls.Count, "controls in this standard");
-        Tile(sb, created, "created and activated by the toolkit");
+        Tile(sb, created, "candidate creation recipes");
         Tile(sb, reported, "read from your tenant and reported");
         Tile(sb, manual, "completed by an engineer or in a vendor portal");
         sb.Append("</div>");
@@ -119,7 +126,7 @@ public static class BuildStandardDocument
         Field(sb, "What good looks like", control.DesiredState);
         Field(sb, "Without it", control.BusinessImpact);
         Field(sb, "How it is applied", Delivery(control));
-        if (control.ExpectedProduction.Assignment.Length > 0) Field(sb, "Who it applies to", control.ExpectedProduction.Assignment);
+        if (control.ExpectedProduction.Assignment.Length > 0) Field(sb, "Intended scope after rollout", control.ExpectedProduction.Assignment);
 
         var (required, defaulted) = Inputs(control, standard);
         if (required.Count > 0) Field(sb, "We need from you", string.Join("; ", required));
@@ -147,31 +154,32 @@ public static class BuildStandardDocument
     public static string Markdown(StandardCatalogue standard, string clientName, string preparedBy, string preparedOn)
     {
         var sb = new StringBuilder();
-        sb.Append("# Microsoft 365 Build Standard — ").Append(clientName).Append("\n\n");
-        sb.Append(standard.Description).Append("\n\n");
+        sb.Append("# Microsoft 365 Build Standard — ").Append(M(clientName)).Append("\n\n");
+        sb.Append(M(standard.Description)).Append("\n\n");
+        sb.Append("This catalogue describes proposed configuration. It is not evidence that a change has been deployed, verified or activated in your tenant.\n\n");
         sb.Append("| | |\n|---|---|\n");
-        sb.Append("| Prepared for | ").Append(clientName).Append(" |\n");
-        sb.Append("| Prepared by | ").Append(preparedBy).Append(" |\n");
-        sb.Append("| Date | ").Append(preparedOn).Append(" |\n");
-        sb.Append("| Standard release | ").Append(standard.Release).Append(" |\n");
-        sb.Append("| Status | ").Append(standard.Status).Append(" |\n\n");
+        sb.Append("| Prepared for | ").Append(M(clientName)).Append(" |\n");
+        sb.Append("| Prepared by | ").Append(M(preparedBy)).Append(" |\n");
+        sb.Append("| Date | ").Append(M(preparedOn)).Append(" |\n");
+        sb.Append("| Standard release | ").Append(M(standard.Release)).Append(" |\n");
+        sb.Append("| Status | ").Append(M(standard.Status)).Append(" |\n\n");
 
         sb.Append("## How changes are made\n\nNothing is switched on without review. A policy is created inactive: Conditional Access ")
           .Append("policies are created disabled, and device policies are created with nothing assigned to them. An engineer then checks the ")
           .Append("settings, tests where appropriate, and activates each one as a separate deliberate step. Every change is recorded with ")
-          .Append("evidence of the before and after state, and an emergency access account is excluded from every sign-in policy.\n\n");
+          .Append("evidence of the before and after state where available; incomplete verification is reported separately. Toolkit-created sign-in candidates retain the reviewed emergency-account and operator exclusions. Recovery access must still be tested and maintained.\n\n");
 
         foreach (var category in standard.Controls.Select(c => c.Category).Distinct(StringComparer.Ordinal))
         {
-            sb.Append("## ").Append(category).Append("\n\n");
+            sb.Append("## ").Append(M(category)).Append("\n\n");
             foreach (var control in standard.Controls.Where(c => string.Equals(c.Category, category, StringComparison.Ordinal)))
             {
-                sb.Append("### ").Append(control.Name).Append(" (").Append(control.Id).Append(")\n\n");
+                sb.Append("### ").Append(M(control.Name)).Append(" (").Append(M(control.Id)).Append(")\n\n");
                 Line(sb, "Why it matters", control.Purpose);
                 Line(sb, "What good looks like", control.DesiredState);
                 Line(sb, "Without it", control.BusinessImpact);
                 Line(sb, "How it is applied", Delivery(control));
-                Line(sb, "Who it applies to", control.ExpectedProduction.Assignment);
+                Line(sb, "Intended scope after rollout", control.ExpectedProduction.Assignment);
                 var (required, defaulted) = Inputs(control, standard);
                 if (required.Count > 0) Line(sb, "We need from you", string.Join("; ", required));
                 if (defaulted.Count > 0) Line(sb, "Assumed unless you say otherwise", string.Join("; ", defaulted));
@@ -183,8 +191,16 @@ public static class BuildStandardDocument
 
     private static void Line(StringBuilder sb, string label, string value)
     {
-        if (!string.IsNullOrWhiteSpace(value)) sb.Append("**").Append(label).Append(".** ").Append(value).Append("\n\n");
+        if (!string.IsNullOrWhiteSpace(value)) sb.Append("**").Append(label).Append(".** ").Append(M(value)).Append("\n\n");
     }
+
+    private static string DefaultDescription(JsonNode? value) => value switch
+    {
+        JsonValue scalar when scalar.TryGetValue<string>(out var text) => ClientText(text),
+        JsonValue scalar when scalar.TryGetValue<bool>(out var flag) => flag ? "yes" : "no",
+        JsonValue scalar => ClientText(scalar.ToJsonString()),
+        _ => "reviewed configuration; confirm with your engineer"
+    };
 
     private static void Field(StringBuilder sb, string label, string value)
     {

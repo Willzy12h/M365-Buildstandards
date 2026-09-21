@@ -51,7 +51,12 @@ public sealed class PlanRow
     /// carried none. The candidate is still inert, and <see cref="Warnings"/> names each value, but it must not be
     /// assigned or enabled until an engineer confirms them.
     /// </summary>
-    public bool UsesDefaultInputs { get; set; }
+    [JsonIgnore]
+    public bool UsesDefaultInputs { get => RecordedUsesDefaultInputs ?? false; set => RecordedUsesDefaultInputs = value; }
+
+    // Preserve absence in plans written before preview.9; adding false during deserialisation changes their digest.
+    [JsonPropertyName("usesDefaultInputs")]
+    public bool? RecordedUsesDefaultInputs { get; set; }
     public List<string> Warnings { get; set; } = new();
 
     [JsonIgnore] public bool IsWrite => Action is PlanAction.Create or PlanAction.Update;

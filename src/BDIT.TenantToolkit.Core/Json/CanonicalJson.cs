@@ -150,8 +150,9 @@ public static class CanonicalJson
     /// Resolves <c>{{parameter}}</c> placeholders. A string consisting solely of a placeholder is replaced by the
     /// parameter node itself (so arrays can be injected); placeholders embedded in longer strings are replaced textually.
     /// Missing or empty parameters raise <see cref="MissingParameterException"/> so absence is never silently written.
+    /// A caller may explicitly allow a reviewed optional array parameter to be empty; the default permits none.
     /// </summary>
-    public static JsonNode? Resolve(JsonNode? template, IReadOnlyDictionary<string, JsonNode?> parameters)
+    public static JsonNode? Resolve(JsonNode? template, IReadOnlyDictionary<string, JsonNode?> parameters, IReadOnlySet<string>? allowedEmptyArrays = null)
     {
         switch (template)
         {
@@ -160,13 +161,13 @@ public static class CanonicalJson
             case JsonArray arr:
             {
                 var result = new JsonArray();
-                foreach (var item in arr) result.Add(Resolve(item, parameters));
+                foreach (var item in arr) result.Add(Resolve(item, parameters, allowedEmptyArrays));
                 return result;
             }
             case JsonObject obj:
             {
                 var result = new JsonObject();
-                foreach (var pair in obj) result[pair.Key] = Resolve(pair.Value, parameters);
+                foreach (var pair in obj) result[pair.Key] = Resolve(pair.Value, parameters, allowedEmptyArrays);
                 return result;
             }
             case JsonValue value when value.TryGetValue<string>(out var text):
@@ -175,7 +176,7 @@ public static class CanonicalJson
                     && !text[2..^2].Contains("{{", StringComparison.Ordinal) && IsIdentifier(text[2..^2]))
                 {
                     var key = text[2..^2];
-                    var node = Lookup(parameters, key);
+                    var node = Lookup(parameters, key, allowedEmptyArrays);
                     return node?.DeepClone();
                 }
                 if (!text.Contains("{{", StringComparison.Ordinal)) return JsonValue.Create(text);
@@ -190,7 +191,7 @@ public static class CanonicalJson
                     sb.Append(text, i, start - i);
                     var key = text[(start + 2)..end];
                     if (!IsIdentifier(key)) throw new ConfigurationException($"Invalid template placeholder '{{{{{key}}}}}'.");
-                    var node = Lookup(parameters, key);
+                    var node = Lookup(parameters, key, allowedEmptyArrays);
                     if (node is JsonValue scalar && scalar.TryGetValue<string>(out var s)) sb.Append(s);
                     else if (node is JsonValue other) sb.Append(ScalarText(other).Trim('"'));
                     else throw new ConfigurationException($"Parameter '{key}' cannot be embedded inside a string because it is not a scalar.");
@@ -205,11 +206,11 @@ public static class CanonicalJson
         }
     }
 
-    private static JsonNode? Lookup(IReadOnlyDictionary<string, JsonNode?> parameters, string key)
+    private static JsonNode? Lookup(IReadOnlyDictionary<string, JsonNode?> parameters, string key, IReadOnlySet<string>? allowedEmptyArrays)
     {
         if (!parameters.TryGetValue(key, out var node) || node is null) throw new MissingParameterException(key);
         if (node is JsonValue v && v.TryGetValue<string>(out var s) && string.IsNullOrWhiteSpace(s)) throw new MissingParameterException(key);
-        if (node is JsonArray a && a.Count == 0) throw new MissingParameterException(key);
+        if (node is JsonArray a && a.Count == 0 && allowedEmptyArrays?.Contains(key) != true) throw new MissingParameterException(key);
         return node;
     }
 

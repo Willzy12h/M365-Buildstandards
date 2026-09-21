@@ -24,6 +24,7 @@ public sealed class ControlSelection : ObservableObject
 public sealed class PlanViewModel : PageViewModel
 {
     private PlanRow? _selectedRow;
+    private ControlSelection? _selectedControl;
 
     public PlanViewModel(ShellViewModel shell) : base(shell, "Plan changes")
     {
@@ -39,6 +40,13 @@ public sealed class PlanViewModel : PageViewModel
 
     public ObservableCollection<ControlSelection> Controls { get; } = new();
     public ObservableCollection<PlanRow> Rows { get; } = new();
+    public ControlSelection? SelectedControl
+    {
+        get => _selectedControl;
+        set { SetProperty(ref _selectedControl, value); OnPropertyChanged(nameof(SelectionPrerequisites)); }
+    }
+    public IReadOnlyList<ControlPrerequisite>? SelectionPrerequisites => Workspace.Standard?.FindControl(SelectedControl?.ControlId ?? "")?.Prerequisites;
+    public IReadOnlyList<ControlPrerequisite>? RowPrerequisites => Workspace.Standard?.FindControl(SelectedRow?.ControlId ?? "")?.Prerequisites;
 
     public PlanRow? SelectedRow
     {
@@ -50,6 +58,7 @@ public sealed class PlanViewModel : PageViewModel
             OnPropertyChanged(nameof(PayloadJson));
             OnPropertyChanged(nameof(BeforeJson));
             OnPropertyChanged(nameof(ExclusionsText));
+            OnPropertyChanged(nameof(RowPrerequisites));
         }
     }
 
@@ -110,6 +119,7 @@ public sealed class PlanViewModel : PageViewModel
 
     public override void Refresh()
     {
+        var selectedControlId = SelectedControl?.ControlId;
         var selected = Controls.Where(c => c.IsSelected).Select(c => c.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         Controls.Clear();
         var standard = Workspace.Standard;
@@ -161,6 +171,7 @@ public sealed class PlanViewModel : PageViewModel
         Rows.Clear();
         if (Workspace.Plan is not null) foreach (var r in Workspace.Plan.Rows) Rows.Add(r);
         SelectedRow = null;
+        SelectedControl = Controls.FirstOrDefault(c => c.ControlId == selectedControlId);
         OnPropertyChanged(nameof(PlanText));
         OnPropertyChanged(nameof(ContextText));
     }

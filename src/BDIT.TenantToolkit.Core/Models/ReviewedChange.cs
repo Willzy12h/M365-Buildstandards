@@ -4,6 +4,8 @@ namespace BDIT.TenantToolkit.Core.Models;
 
 public enum ReviewedChangeKind { SecureCompliance, MdmAll, DisableSms, DisableVoice, ConfigureTap, EnableAuthenticator, EnableConditionalAccess, ReportOnlyConditionalAccess, DisableConditionalAccess, AssignGroups, RemoveAssignments, EnrolFeatureUpdates, UnenrolFeatureUpdates, EnrolQualityUpdates, UnenrolQualityUpdates }
 
+public enum AssignmentPopulation { Groups, AllUsers, AllDevices }
+
 public sealed class ReviewedChangePlan
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -26,6 +28,8 @@ public sealed class ReviewedChangePlan
     public string RequiredScope { get; set; } = "";
     public JsonObject Before { get; set; } = new();
     public JsonObject Payload { get; set; } = new();
+    /// <summary>Null preserves historical group-only plans and their integrity digests.</summary>
+    public AssignmentPopulation? Population { get; set; }
     public List<string> IncludeGroups { get; set; } = new();
     public List<string> ExcludeGroups { get; set; } = new();
     public List<string> DeviceIds { get; set; } = new();

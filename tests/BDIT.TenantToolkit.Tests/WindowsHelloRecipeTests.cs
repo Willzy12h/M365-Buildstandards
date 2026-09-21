@@ -32,7 +32,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void Hello_is_enabled_on_a_hardware_security_device()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.True(Setting("/Policies/UsePassportForWork")!.GetValue<bool>());
         Assert.True(Setting("/Policies/RequireSecurityDevice")!.GetValue<bool>());
@@ -43,7 +43,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void Provisioning_is_not_forced_and_a_forgotten_pin_can_be_recovered()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.True(Setting("/Policies/DisablePostLogonProvisioning")!.GetValue<bool>());
         Assert.True(Setting("/Policies/EnablePinRecovery")!.GetValue<bool>());
@@ -52,7 +52,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void Pin_composition_requires_a_digit_and_permits_letters_without_demanding_them()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.Equal(8, Setting("PINComplexity/MinimumPINLength")!.GetValue<int>());
         Assert.Equal(1, Setting("PINComplexity/Digits")!.GetValue<int>());
@@ -70,7 +70,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void The_pin_never_expires_and_history_is_not_kept()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.Equal(0, Setting("PINComplexity/Expiration")!.GetValue<int>());
         Assert.Null(Setting("PINComplexity/History"));
@@ -79,7 +79,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void Biometrics_and_security_keys_are_permitted_at_the_device_scope()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.True(Setting("Biometrics/UseBiometrics")!.GetValue<bool>());
         Assert.Equal(1, Setting("SecurityKey/UseSecurityKeyForSignin")!.GetValue<int>());
@@ -103,7 +103,7 @@ public class WindowsHelloRecipeTests
     [InlineData("UseCloudTrustForOnPremAuth")]
     public void Settings_that_would_harm_a_cloud_only_tenant_are_absent(string name)
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
 
         Assert.DoesNotContain(name, Hello().ToJsonString(), StringComparison.OrdinalIgnoreCase);
     }
@@ -111,7 +111,7 @@ public class WindowsHelloRecipeTests
     [Fact]
     public void Every_setting_is_a_device_scoped_passport_policy_with_a_unique_path()
     {
-        if (!Available) return;
+        Assert.True(Available, "The Windows Hello catalogue fixture must be available.");
         var settings = Hello()["omaSettings"]!.AsArray().OfType<JsonObject>().ToList();
 
         Assert.Equal(10, settings.Count);

@@ -56,7 +56,7 @@ public sealed class WriteVerificationService(EvidenceStore evidence, IClock cloc
         if (run.Status == RunStatus.Running || run.WriteAcceptance != WriteAcceptance.Accepted)
             throw new SafetyViolationException("Only accepted recovery writes can be re-verified. Unknown requests cannot be retried or resolved by a missing search result.");
         var plan = evidence.RequireRecoveryPlan(session.TenantId, run.Id);
-        if (CanonicalJson.Sha256Value(standard) != plan.StandardDigest)
+        if (!StandardDigestCompatibility.MatchesForReadOnlyVerification(standard, plan.StandardDigest))
             throw new SafetyViolationException("Load the original reviewed standard before re-verifying this recovery.");
         if (run.PlanDigest != plan.IntegrityDigest || run.ObjectId != plan.ObjectId || run.Action != plan.Action || run.ControlId != plan.ControlId)
             throw new IntegrityException("Recovery run and original preview do not agree.");
@@ -65,7 +65,7 @@ public sealed class WriteVerificationService(EvidenceStore evidence, IClock cloc
         var item = source.Results.Single(r => r.ControlId == plan.ControlId);
         if (item.ObjectId != run.ObjectId || !evidence.HasAcceptedWrite(source, item)) throw new IntegrityException("Recovery source ID or acceptance is not established.");
         var definition = Definition(standard, plan.Collection);
-        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload);
+        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload, definition.ApiVersion);
         var mappings = evidence.LoadMappings(session.TenantId);
         var mapping = mappings.Find(plan.ControlId);
         if (mapping is null && plan.Action != RecoveryAction.DeleteCreatedObject)

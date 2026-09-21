@@ -1,5 +1,9 @@
 # Behavioural comparison
 
+## Confirmed F1–F5 follow-up
+
+The integrated baseline now checks CA material additions against verified evidence, uses the documented enrolment envelope, blocks unsupported Autopilot group assignment/removal, preserves beta recovery validation, and separates observed app assignments from proven deployment scope. Only .11's two CA array caveats change operator. [Implementation and synthetic evidence](SAFETY-REVIEW-2026-09-21.md); neither source repository was changed and live acceptance remains unverified.
+
 ## Preview.6 extension
 
 The source comparisons below remain historical. The integrated code now provides 37 candidate recipes, explicit tenant-setting/activation/assignment actions, supplied-package publication and external-service readiness checks. See [coverage by control](../AUTOMATION-COVERAGE.md) for client inputs, recovery limits and the four remaining human workflows. Release compilation is confirmed; these added behaviours have not been tested against Graph or through the GUI.
@@ -58,3 +62,7 @@ Preview.5 adds four data-driven Windows candidates and a restricted Graph-export
 | Desktop identity | WAM pop-up, browser fallback, tenant/operator binding retained | Builds and offline guards; live WAM/GDAP required |
 | App setup | Exact consent callback, explicit-ID repair, reviewed engineer assignment, actual scope counts | Synthetic transport/evidence/repair tests; live consent/branding required |
 | Device automation | Supplied BitLocker and optional long paths; unassigned candidates and selective recovery | Shipped-payload deployment/recovery tests; portal defaults, escrow and device effects required |
+
+## Independent review corrections
+
+PR #9 retains Claude's WPF/Core/Graph/Engine structure and adds guards rather than importing a second runtime. See [review dispositions](REVIEW-FIXES.md) for behavioural comparisons and regression evidence covering directory prerequisites, older evidence, assessment, typed inputs, targets and reporting.

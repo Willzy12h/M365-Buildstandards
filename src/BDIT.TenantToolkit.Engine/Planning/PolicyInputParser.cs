@@ -37,7 +37,10 @@ public static class PolicyInputParser
 
             case "guidList":
             {
+                // An explicit empty list is different from leaving an optional input unspecified.
+                if (text == "[]") { node = new JsonArray(); return true; }
                 var ids = text.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+                if (ids.Length == 0) return Fail(out problem, "Enter object IDs, [] for an empty list, or leave the field blank.");
                 var bad = ids.FirstOrDefault(id => !ProfileValidator.IsGuid(id));
                 if (bad is not null) return Fail(out problem, $"'{bad}' is not an object ID. Separate identifiers with commas or new lines.");
                 var array = new JsonArray();
@@ -72,15 +75,28 @@ public static class PolicyInputParser
     }
 
     /// <summary>Renders a stored value the way it is typed, so a saved list comes back as a list and not as JSON.</summary>
-    public static string Render(JsonNode? node) => node switch
+    public static string Render(string type, JsonNode? node) => node switch
     {
         null => "",
-        JsonArray array when array.Count > 0 && array.All(i => i is JsonValue v && v.TryGetValue<string>(out _)) =>
+        JsonArray array when type == "guidList" && array.Count > 0 && array.All(i => i is JsonValue v && v.TryGetValue<string>(out _)) =>
             string.Join(", ", array.Select(i => i!.GetValue<string>())),
         JsonArray array => ToolkitJson.Serialize(array),
         JsonValue value when value.TryGetValue<string>(out var text) => text,
         _ => node.ToJsonString()
     };
+
+    /// <summary>Merge edits to displayed fields without removing inputs belonging to another catalogue release.</summary>
+    public static Dictionary<string, JsonNode?> MergeInputs(IReadOnlyDictionary<string, JsonNode?> stored,
+        IReadOnlyDictionary<string, JsonNode?> edits)
+    {
+        var result = stored.ToDictionary(p => p.Key, p => p.Value?.DeepClone(), StringComparer.Ordinal);
+        foreach (var (key, value) in edits)
+        {
+            if (value is null) result.Remove(key);
+            else result[key] = value.DeepClone();
+        }
+        return result;
+    }
 
     private static bool Fail(out string problem, string reason) { problem = reason; return false; }
 }

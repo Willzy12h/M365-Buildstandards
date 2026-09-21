@@ -166,7 +166,7 @@ public sealed class DeploymentPlanner
             foreach (var warning in defaults.Warnings) row.Warnings.Add(warning);
             row.UsesDefaultInputs = defaults.Warnings.Count > 0;
             PolicyInputValidator.ValidateUsed(control.Payload!, standard, defaults.Values);
-            payload = (JsonObject)CanonicalJson.Resolve(control.Payload, defaults.Values)!;
+            payload = (JsonObject)PolicyInputDefaults.Resolve(control.Payload!, standard, defaults.Values)!;
         }
         catch (MissingParameterException ex)
         {
@@ -192,7 +192,9 @@ public sealed class DeploymentPlanner
 
             // Once the standard's exclusion group exists, every candidate excludes it, so the exempt population is one
             // group an engineer can open rather than a list repeated in each policy.
-            var exclusions = ExclusionGroupCoverage.ForUsers(standard, snapshot, mappings, session, profile.Parameters.EmergencyAccountIds, names);
+            ExclusionGroupCoverage.Result exclusions;
+            try { exclusions = ExclusionGroupCoverage.ForUsers(standard, snapshot, mappings, session, profile.Parameters.EmergencyAccountIds, names); }
+            catch (SafetyViolationException ex) { row.Reason = ex.Message; return row; }
             if (exclusions.GroupId is not null) InjectGroupExclusion(payload, exclusions.GroupId);
             foreach (var warning in exclusions.Warnings) row.Warnings.Add(warning);
             if (mapping?.OperatorExclusion is not null && ProfileValidator.IsGuid(mapping.OperatorExclusion.ObjectId))
@@ -297,6 +299,12 @@ public sealed class DeploymentPlanner
             row.Action = PlanAction.NoChange;
             row.Reason = "The toolkit-created object already matches the recipe.";
             row.ObjectId = current["id"]?.GetValue<string>();
+            return row;
+        }
+        if (DirectoryPrerequisiteSafety.IsCreationOnlyPath(def.BasePath))
+        {
+            row.Action = PlanAction.Manual;
+            row.Reason = "Directory prerequisites are creation-only. Changing a group or named location can affect existing access; review dependencies and change it separately.";
             return row;
         }
         row.Action = PlanAction.Update;

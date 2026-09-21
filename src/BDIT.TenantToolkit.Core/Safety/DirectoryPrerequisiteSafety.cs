@@ -21,6 +21,10 @@ public static class DirectoryPrerequisiteSafety
     public const string GroupsPath = "/groups";
     public const string NamedLocationsPath = "/identity/conditionalAccess/namedLocations";
 
+    public static bool IsCreationOnlyPath(string path) =>
+        string.Equals(path.TrimEnd('/'), GroupsPath, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(path.TrimEnd('/'), NamedLocationsPath, StringComparison.OrdinalIgnoreCase);
+
     public static bool IsGroup(CollectionDefinition def) =>
         string.Equals(def.BasePath.TrimEnd('/'), GroupsPath, StringComparison.OrdinalIgnoreCase);
 

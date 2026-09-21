@@ -75,7 +75,7 @@ public sealed class GraphRouteAllowList
         foreach (var route in _routes.Where(r => r.Writable && r.Api == api))
         {
             if (string.Equals(basePath, route.BasePath, StringComparison.OrdinalIgnoreCase)) return route;
-            if (route.BasePath != "/deviceManagement" && basePath.StartsWith(route.BasePath + "/", StringComparison.OrdinalIgnoreCase))
+            if (!DirectoryPrerequisiteSafety.IsCreationOnlyPath(route.BasePath) && route.BasePath != "/deviceManagement" && basePath.StartsWith(route.BasePath + "/", StringComparison.OrdinalIgnoreCase))
             {
                 var remainder = basePath[(route.BasePath.Length + 1)..];
                 if (ProfileValidator.IsGuid(remainder))

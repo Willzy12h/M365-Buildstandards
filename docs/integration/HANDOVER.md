@@ -6,6 +6,14 @@ The plan for making this maintainable and extensible is [docs/integration/ARCHIT
 
 ## Current work
 
+The follow-up independent safety review F1–F5 is implemented on the existing PR #9 branch. Read [the bounded change/validation record](SAFETY-REVIEW-2026-09-21.md): strict CA material-baseline checks, corrected enrolment contracts, blocked generic Autopilot assignments, beta-aware recovery verification, conservative application deployment assessment and fixed array caveats. No live operation or merge was performed. Historical catalogue and evidence compatibility remain constrained; do not adopt drift or replay Unknown writes.
+
+Preview.13 / standard 2026.09.11 is proposed in [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9), based on integration `d4e1e9a`. It fixes the independent review findings and adds visible prerequisites. Read [REVIEW-FIXES](REVIEW-FIXES.md) before testing or upgrading existing evidence. Implementation is pending PR review; no live tenant acceptance or merge is implied. Exact validation is recorded in [TESTING-EVIDENCE](TESTING-EVIDENCE.md).
+
+Next: independent review of the safety changes, then human-authorised disposable-tenant acceptance. Do not start another automation batch first. Astra High is suitable for safety/architecture review; a separate Claude review offers independent scrutiny. Spark is suitable for bounded wording/layout work afterwards.
+
+## Historical handover (superseded where above differs)
+
 Preview.12 is the current state of `integration` (Claude, pull requests [#3](https://github.com/Willzy12h/M365-Buildstandards/pull/3) to [#7](https://github.com/Willzy12h/M365-Buildstandards/pull/7), all merged; branch `claude/github-repo-access-ygieh2` is level with `integration` and holds nothing unmerged). Standard 2026.09.10, 50 controls, 42 recipes, 46 reporting automatically.
 
 Since preview.8: client inputs are entered as a generated form rather than one hand-written JSON object, and a reviewable input the client has not supplied falls back to a dated default and warns instead of blocking the control, while identity inputs still block. Policies target the built-in All users and All devices populations, created groups are down to four (user and device exclusions, unenrolled mobile users, pilot devices), and every Conditional Access candidate also excludes the user exclusion group while keeping the verified operator's direct exclusion, which is what actually prevents a lockout. A client-facing build standard document is generated from the catalogue. Windows Hello is configured end to end rather than only enabled.

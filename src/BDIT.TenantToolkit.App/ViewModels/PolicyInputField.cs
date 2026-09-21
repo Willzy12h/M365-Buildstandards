@@ -26,11 +26,11 @@ public sealed class PolicyInputField : ObservableObject
         Description = parameter.Description;
         Type = parameter.Type;
         IsRequired = parameter.Required;
-        DefaultText = parameter.HasDefault ? Render(parameter.Default) : "";
+        DefaultText = parameter.HasDefault ? PolicyInputParser.Render(Type, parameter.Default) : "";
         HasDefault = parameter.HasDefault;
         IsStaleDefault = parameter.IsStale(now);
         ReviewedOn = parameter.ReviewedOn;
-        _value = Render(current);
+        _value = PolicyInputParser.Render(Type, current);
     }
 
     public string Key { get; }
@@ -60,7 +60,7 @@ public sealed class PolicyInputField : ObservableObject
     public string Hint => Type switch
     {
         "guid" => "One object ID.",
-        "guidList" => "Object IDs separated by commas or new lines.",
+        "guidList" => "Object IDs separated by commas or new lines; [] means an explicitly empty list.",
         "jsonArray" => "A JSON array.",
         "integer" => "A whole number.",
         "boolean" => "true or false.",
@@ -86,5 +86,4 @@ public sealed class PolicyInputField : ObservableObject
 
     public bool HasProblem => Problem.Length > 0;
 
-    private static string Render(JsonNode? node) => PolicyInputParser.Render(node);
 }

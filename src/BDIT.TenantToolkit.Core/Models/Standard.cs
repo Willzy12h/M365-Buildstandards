@@ -8,7 +8,7 @@ public enum GraphApi { V1, Beta }
 /// <summary>A versioned M365 Build Standard release loaded from standards/&lt;release&gt;.json.</summary>
 public sealed class StandardCatalogue
 {
-    public const int SupportedSchemaVersion = 3;
+    public const int SupportedSchemaVersion = 4;
 
     public int SchemaVersion { get; set; }
     public string Release { get; set; } = "";
@@ -95,7 +95,7 @@ public sealed class ParameterDefinition
 
     /// <summary>True when this default was reviewed long enough ago that it should be re-checked before use.</summary>
     public bool IsStale(DateTimeOffset now) =>
-        HasDefault && DateTimeOffset.TryParse(ReviewedOn, out var reviewed) && now - reviewed > StaleAfter;
+        HasDefault && (!DateTimeOffset.TryParse(ReviewedOn, out var reviewed) || reviewed > now || now - reviewed > StaleAfter);
 }
 
 public sealed class ControlDefinition
@@ -123,6 +123,8 @@ public sealed class ControlDefinition
     /// place instead of being spread across each policy's own exclusions.
     /// </summary>
     public string ExclusionRole { get; set; } = "";
+    /// <summary>Visible setup guidance; not evidence that a prerequisite has been satisfied.</summary>
+    public List<ControlPrerequisite>? Prerequisites { get; set; }
     /// <summary>Optional declared test for "is this control covered by whatever the tenant already has". See <see cref="EquivalenceRule"/>.</summary>
     public EquivalenceRule? Equivalence { get; set; }
     public List<string> Dependencies { get; set; } = new();
@@ -200,7 +202,9 @@ public enum SignalOperator
     /// <summary>Numeric value is less than or equal to the comparison value.</summary>
     AtMost,
     /// <summary>Numeric value is greater than or equal to the comparison value.</summary>
-    AtLeast
+    AtLeast,
+    CountAtLeast,
+    CountAtMost
 }
 
 public sealed class LicenceRequirement
@@ -229,6 +233,18 @@ public sealed class ExpectedProduction
     public string State { get; set; } = "";
     public string Assignment { get; set; } = "";
     public string Notes { get; set; } = "";
+    /// <summary>Optional machine-readable application scope. Absence never proves deployment from prose.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ApplicationDeploymentExpectation? ApplicationDeployment { get; set; }
+}
+
+public sealed class ApplicationDeploymentExpectation
+{
+    public string Intent { get; set; } = "required";
+    public AssignmentPopulation Population { get; set; } = AssignmentPopulation.Groups;
+    /// <summary>Named prerequisite whose membership and targeting compatibility still require human review.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ExclusionControlId { get; set; }
 }
 
 /// <summary>What the toolkit is permitted to create before engineering validation.</summary>
@@ -245,4 +261,12 @@ public sealed class ControlReferences
     public string Microsoft { get; set; } = "";
     public string Cis { get; set; } = "";
     public string CyberEssentials { get; set; } = "";
+}
+
+public sealed class ControlPrerequisite
+{
+    public string Title { get; set; } = "";
+    public string Details { get; set; } = "";
+    public string Automation { get; set; } = "Manual review";
+    public string DocumentationUrl { get; set; } = "";
 }
