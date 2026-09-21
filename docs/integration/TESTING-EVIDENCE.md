@@ -2,7 +2,11 @@
 
 ## Confirmed safety review F1–F5 — 21 September 2026
 
-See [exact commands, test failures and regression comparison](SAFETY-REVIEW-2026-09-21.md). Current local working-tree validation: 536 tests passed, none failed/skipped; Release build 0 warnings/errors; portable package built; offline WPF 44 renders / 28 combinations / 0 bindings / 0 tenant calls. Clean-head and new CI evidence are recorded separately after publication.
+See [exact commands, test failures and regression comparison](SAFETY-REVIEW-2026-09-21.md). Pure commit `fb48159e5748fb8321021fe671008d2559e131ef` passed a clean detached Windows checkout: 536 tests, none failed/skipped; Release build 0 warnings/errors; portable package built and 303 file checksums verified; offline WPF 44 renders / 28 combinations / 0 bindings / 0 tenant calls. All nine packaged catalogues matched Git blob identities after LF normalisation.
+
+Verified completed CI: direct-push [35571146129](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35571146129) checked out `fb48159...` and passed 536 tests; PR [35571149970](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35571149970) checked out synthetic merge `751cf982...` and passed 539. Both have all jobs green, Release 0 warnings/errors, portable packaging and UI 44/28/0. The extra three tests belong to integration's already-merged headless runner. PR metadata's reviewed base `d4e1e9a...` must not be confused with actual integration ref `3fd4167...`.
+
+A final follow-up adds explicit null optional-CA-control normalisation and extends its existing positive regression; the complete local suite remains 536/0/0. Final-head CI and clean-checkout evidence are recorded in [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9); results from the earlier commit above are not automatically attributed to that later head.
 
 The earlier 495-test local result below is historical. Reviewer-observed 498-test [CI run 35545344377](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35545344377) tested synthetic merge `ec3049b18bf23bcf1b13810e096234414fa58495`, not pure head `1d47c814...`; do not describe it as clean-head validation.
 

@@ -68,6 +68,9 @@ public sealed class SafetyReviewRegressionTests
         current["modifiedDateTime"] = "2026-09-21T00:00:00Z";
         current["@odata.etag"] = "synthetic-etag";
         current["conditions"]!["applications"]!["excludeApplications"] = new JsonArray();
+        current["grantControls"]!["authenticationStrength"] = null;
+        current["sessionControls"] = new JsonObject { ["applicationEnforcedRestrictions"] = null,
+            ["cloudAppSecurity"] = null, ["persistentBrowser"] = null, ["signInFrequency"] = null };
         Assert.Equal("enabled", (await Preview(h, run)).Payload["state"]!.ToString());
         Assert.Single(h.Graph.Writes);
     }

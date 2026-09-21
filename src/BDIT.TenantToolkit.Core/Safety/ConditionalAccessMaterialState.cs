@@ -10,7 +10,10 @@ public static class ConditionalAccessMaterialState
     { "id", "displayName", "description", "createdDateTime", "modifiedDateTime", "@odata.context", "@odata.etag", "state" };
     private static readonly HashSet<string> Nullable = new(StringComparer.Ordinal)
     {
-        "sessionControls", "grantControls", "conditions.devices", "conditions.locations", "conditions.platforms",
+        "sessionControls", "grantControls", "grantControls.authenticationStrength",
+        "sessionControls.applicationEnforcedRestrictions", "sessionControls.cloudAppSecurity",
+        "sessionControls.persistentBrowser", "sessionControls.signInFrequency",
+        "conditions.devices", "conditions.locations", "conditions.platforms",
         "conditions.clientApplications", "conditions.authenticationFlows", "conditions.applications.applicationFilter",
         "conditions.users.includeGuestsOrExternalUsers", "conditions.users.excludeGuestsOrExternalUsers"
     };
@@ -44,7 +47,9 @@ public static class ConditionalAccessMaterialState
                 if (path.Length == 0 && key == "@odata.type" && value?.ToString() == "#microsoft.graph.conditionalAccessPolicy") continue;
                 if (value is null && Nullable.Contains(child)) continue;
                 if (value is JsonArray { Count: 0 } && EmptyLists.Contains(child)) continue;
-                result[key] = Normalise(value, child);
+                var normalised = Normalise(value, child);
+                if (child == "sessionControls" && normalised is JsonObject { Count: 0 }) continue;
+                result[key] = normalised;
             }
             return result;
         }

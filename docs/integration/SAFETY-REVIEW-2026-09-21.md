@@ -1,6 +1,8 @@
 # PR #9 safety review implementation — 21 September 2026
 
-Reviewed production source: `1d47c81499988a7bc3b4c3e0eb324cfab4fcf216`; reviewed/current base: `d4e1e9a9bfed620c06103a54a28a0cf0a574a5fb`. Work remains on `astra/review-fixes`, PR #9, targeting integration. Main, integration, Claude branches and both source repositories are unchanged. No tenant operation is authorised or performed.
+Reviewed production source: `1d47c81499988a7bc3b4c3e0eb324cfab4fcf216`; reviewed base: `d4e1e9a9bfed620c06103a54a28a0cf0a574a5fb`. Work remains on `astra/review-fixes`, PR #9, targeting integration. Main, integration, Claude branches and both source repositories were not changed by this work. No tenant operation is authorised or performed.
+
+Base-ref distinction: PR metadata still reports `d4e1e9a...`, but the actual integration ref is `3fd4167fb9555e9173f9e19c376a66811c1788ab`. Both the reviewer's old synthetic merge and the new PR merge have that integration parent. Its already-merged roadmap/headless-runner work adds solution, CLI, three tests and handover guidance. Those changes were compared with the reviewed base and preserved: no base merge, overwrite or source-repository update was performed. The synthetic PR merge retains the roadmap handover addition.
 
 ## Finding dispositions
 
@@ -45,7 +47,22 @@ Mutation-detection comparison: detached worktree at reviewed commit `1d47c814...
 
 Intermediate failures are retained in local TRX files: initial test source had a raw-string delimiter compile error; fixtures then needed the bound tenant, service route, EDR licence and full before/after assignment reads. An old-preview fixture initially attempted to replace an immutable plan and was corrected to use a distinct ID. No production assertion was weakened. Earlier suite runs reported 525/526 and 529/530 before these fixture corrections. The initial sandboxed MSBuild attempt stalled without test output; only processes using this task's workspace SDK were stopped, and subsequent builds/tests ran successfully outside that restriction.
 
-Clean-head and new CI results will be recorded in TESTING-EVIDENCE and the PR after publication. Do not substitute this working-tree result for them.
+## Published-head validation
+
+Implementation commit `fb48159e5748fb8321021fe671008d2559e131ef` has exactly the locally staged tree `22a31841dc949ca1f1b362048bb49876d7cc92e2`; tree equality was verified before moving the remote branch. A transfer mismatch was corrected before any branch ref was moved.
+
+A separate detached checkout of that pure head was clean before and after validation. Commands: `dotnet restore BDIT.TenantToolkit.sln`; `dotnet build BDIT.TenantToolkit.sln -c Release --no-restore --disable-build-servers -m:1`; `dotnet test tests/BDIT.TenantToolkit.Tests -c Release --no-build --logger "trx;LogFileName=clean-head.trx"`; `./build/Build-Portable.ps1 -SkipTests -OutputDirectory <checkout>/dist/clean-head`; the offline UI command above.
+
+Actual clean-head results: **536 passed / 0 failed / 0 skipped**, **0 build warnings / 0 errors**, portable package produced, **44 renders / 28 combinations / 0 binding issues / 0 tenant calls**. All **303** staged file hashes matched; all nine packaged catalogues matched Git blob identities after LF normalisation. The extra packaged file versus the earlier 302-file working build is this safety handover document. Assignment, assessment and recovery-verification images were visually inspected at 1180×760; that is not human accessibility acceptance.
+
+Actual GitHub results, read from completed job logs:
+
+| Event | Checkout verified from log | Run / build job | Tests | Other results |
+|---|---|---|---|---|
+| Direct push | `fb48159e5748fb8321021fe671008d2559e131ef` | [35571146129](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35571146129) / 106242857507 | 536 passed, 0 failed/skipped | All three jobs successful; Release 0 warnings/errors; package uploaded; UI 44/28/0. |
+| PR synthetic merge | `751cf9823883aa760dfa9bc11c815f1e835c44c3` | [35571149970](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35571149970) / 106242869152 | 539 passed, 0 failed/skipped | All three jobs successful; Release 0 warnings/errors; package uploaded; UI 44/28/0. |
+
+The final small follow-up explicitly normalises absent versus null optional authentication-strength and session controls; non-null/unknown controls remain material. The existing positive service regression now exercises those defaults. Its full local suite also passed 536/0/0. Microsoft [grant controls](https://learn.microsoft.com/en-us/graph/api/resources/conditionalaccessgrantcontrols?view=graph-rest-1.0) and [session controls](https://learn.microsoft.com/en-us/graph/api/resources/conditionalaccesssessioncontrols?view=graph-rest-1.0) were checked. Final-head clean-checkout and CI results are recorded in the PR after this evidence commit; the completed runs above are explicitly for `fb48159...`, not assumed results for a later head.
 
 Historical evidence remains separate: the prior documented local result was 495 tests. [CI run 35545344377](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35545344377), build job 106170125759, reports success, but checked out synthetic merge `ec3049b18bf23bcf1b13810e096234414fa58495`, not the pure reviewed head. Its reviewer-observed 498 tests, 0-warning/0-error build and 44/28/0 UI results are not this increment's results.
 
