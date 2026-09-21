@@ -1,4 +1,4 @@
-# Automation coverage — 2026.09.9
+# Automation coverage — 2026.09.11
 
 Use **Policy automation** for inputs, imports, prerequisites, assignments, packages and readiness. Create policy/app candidates through the existing **Plan → Deploy** workflow. Candidates stay disabled/unassigned until a separate activation is explicitly approved.
 
@@ -15,13 +15,29 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 
 ## Coverage by control
 
+The control IDs below are those of **2026.09.11**, the shipped release. The prerequisites were renumbered between
+2026.09.10 and .11, and two of the old numbers now name a different control, so an older report cannot be read
+against this table by ID alone:
+
+| ID | Meant in 2026.09.9 and .10 | Means in 2026.09.11 |
+| --- | --- | --- |
+| PRE-001 | Policy Exclusions Users | *not present* — the control is now PRE-009 |
+| PRE-002 | Policy Exclusions Devices | *not present* — the control is now PRE-010 |
+| PRE-003 | MAM Only Users | *not present* — the control is now PRE-004 |
+| PRE-004 | Pilot Devices | **MAM Only Users** |
+| PRE-005 | LOC - M365 Office | **Pilot Devices** |
+
+PRE-004 and PRE-005 are the two that matter: they resolve, and they resolve to the wrong group. Read the control
+name, not only the ID, when reconciling a report written before 2026.09.11. Historical releases keep their own
+numbering and are not rewritten.
+
 | Control | Requirement | Implementation path | Inputs / remaining review |
 | --- | --- | --- | --- |
-| PRE-001 | GRP - Policy Exclusions Users | Candidate recipe | Emergency accounts and the deploying engineer are added by an engineer |
-| PRE-002 | GRP - Policy Exclusions Devices | Candidate recipe | Build and test machines only |
-| PRE-003 | GRP - MAM Only Users | Candidate recipe | No built-in equivalent; population named explicitly |
-| PRE-004 | GRP - Pilot Devices | Candidate recipe | Optional; the staged step before All devices |
-| PRE-005 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
+| PRE-009 | GRP - Policy Exclusions Users | Candidate recipe | Emergency accounts and the deploying engineer are added by an engineer |
+| PRE-010 | GRP - Policy Exclusions Devices | Candidate recipe | Build and test machines only |
+| PRE-004 | GRP - MAM Only Users | Candidate recipe | No built-in equivalent; population named explicitly |
+| PRE-005 | GRP - Pilot Devices | Candidate recipe | Optional; the staged step before All devices |
+| PRE-008 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
 | ID-001 | Emergency access accounts | Readiness check plus engineer/external step | Review scope and prerequisites |
 | ID-002 | Authentication methods and Temporary Access Pass | Assessed from the authentication methods policy (Authenticator and TAP enabled, SMS and voice disabled); changed through reviewed authentication-method actions | Number-matching enforcement, emergency-account sign-in and removal of existing SMS/voice registrations remain engineer checks |
 | ID-003 | Administrator access | Assessed from directory role membership (two to four permanent Global Administrators) | Eligible Privileged Identity Management assignments, dedicated-account and licence checks remain engineer checks |
