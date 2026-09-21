@@ -2,15 +2,22 @@
 
 Written to be executed by a language model, not read by a human sponsor. It states what to change, where, in what order, and how to know each step is finished. Prose is kept to what an executor needs to make correct decisions when the instruction does not cover the case in front of it.
 
-Baseline for every measurement here: `integration` at preview.12, standard 2026.09.10. Engine 6,029 lines, tests 5,418, app 4,861, core 2,786, graph 2,061. Standards 23,647 lines across eight release files.
+Baseline for every measurement here: `integration` at `e188d9e`, preview.13, standard 2026.09.11, 542 tests passing. Engine 6,353 lines, tests 6,916, app 4,976, core 2,908, graph 2,061, headless runner 257. Standards 27,747 lines across nine release files. Re-measure before quoting any of these; they moved once already between PR #9 and PR #12.
 
 ## Status
 
+Updated 21 September 2026. **No claim is open on any repository and nothing here is blocked.** Pull request #9
+(`astra/review-fixes`, safety findings F1–F5) and pull request #12 (Claude, post-merge review fixes) are both merged;
+the earlier block on W0, W2 and W9 is lifted. Before starting, re-run the pre-flight check in
+`AGENT-COORDINATION.md` rather than trusting this paragraph — a claim can open after it was written.
+
 | Workstream | State | Note |
 | --- | --- | --- |
-| W3 headless runner | **Done** | `src/BDIT.TenantToolkit.Cli`, offline. Conformance tests in `HeadlessRunnerTests`. |
-| W0, W2, W9 | **Blocked, do not start** | Astra holds an open claim (pull request #9, branch `astra/review-fixes`) over Core safety, Engine planning, assessment, evidence and reporting, tests, and a new standards release. Per the coordination protocol the draft pull request is the claim. Wait for it to merge, then re-read this document: its findings may already be fixed, and the line numbers here will have moved. |
-| W1, W4, W5, W6, W7, W8 | Not started | W1 also touches the standards release Astra has claimed. W4 now has its prerequisite. |
+| W3 headless runner | **Done** | `src/BDIT.TenantToolkit.Cli`, offline. Conformance tests in `HeadlessRunnerTests` and `TenantBindingTests`. Corrected in PR #12; read the W3 section before building on it. |
+| W0 embedded NUL | **Mostly done, small remainder** | The raw NUL is gone: `EquivalenceEvaluator.cs` is ASCII text, greppable and diffable. The key is now the escape `"\u0000" + s.Key` at line 57, not a named constant, and there is still no test that an ungrouped signal keyed `x` and a signal declaring group `x` stay separate. Finish those two, or close W0 explicitly. |
+| W2 parameter-usage helper | **Open, unblocked** | Still six substring scans across five call sites. Current line numbers are in the W2 section. |
+| W9 structure and optimisation | **Open, unblocked** | Continuous. 9b is partly done in Graph; 9a, 9c, 9d, 9e remain. See the W9 section for what moved. |
+| W1, W4, W5, W6, W7, W8 | Not started | W1 now targets 2026.09.11, not .10. W4's prerequisite (W3) is met. |
 
 ## How to use this document
 
@@ -49,13 +56,19 @@ W6, W7, W8 ─────┘   (independent, any order after W1)
 W9 runs continuously alongside
 ```
 
-W0 first. W2 before W1 because W1's compiler needs the helper. W3 before W4 because scheduled reporting needs a headless entry point. W5 can proceed in parallel once W1 has settled the data shape.
+W0's remainder is small and can be taken any time, or closed. W3 is done, so W4 is unblocked. W2 before W1 because W1's compiler needs the helper. W5 can proceed in parallel once W1 has settled the data shape. The diagram above still shows the original order; read it as dependencies, not as a queue with W0 at the front.
 
 ---
 
 ## W0. Remove the embedded NUL byte
 
-**Problem.** `src/BDIT.TenantToolkit.Engine/Assessment/EquivalenceEvaluator.cs` contains a raw NUL (0x00) inside a string literal, in the group key for ungrouped required signals. `file` reports the source as `data`; `grep` treats it as binary and suppresses matches; diffs are unreadable.
+**Status, 21 September 2026: mostly done.** The raw NUL was replaced with the escape sequence `"\u0000" + s.Key`
+(`EquivalenceEvaluator.cs:57`). `file` now reports the source as ASCII text, `grep` matches it and diffs are readable;
+no source file under `src/` contains a NUL byte. What the target below asked for and the fix did not deliver: the key
+is still an inline literal rather than a named constant explaining why collision matters, and no test pins the
+behaviour. Do those two, or close W0 with a note saying the escape is enough. Do not reintroduce a raw NUL.
+
+**Problem, as originally found.** `src/BDIT.TenantToolkit.Engine/Assessment/EquivalenceEvaluator.cs` contained a raw NUL (0x00) inside a string literal, in the group key for ungrouped required signals. `file` reported the source as `data`; `grep` treated it as binary and suppressed matches; diffs were unreadable.
 
 **Why it matters.** The behaviour is correct and probably intentional, namespacing an ungrouped signal so its key cannot collide with a real group name. But it is invisible in every editor, and an editor or tool that normalises the file changes behaviour silently. A tool that cannot grep the file also cannot review it.
 
@@ -78,7 +91,11 @@ private const string UngroupedKeyPrefix = "\u0001ungrouped:";
 
 ## W2. One parameter-usage helper
 
-**Problem.** The same scan appears in four places: `PolicyInputValidator`, `PolicyInputDefaults`, `BuildStandardDocument` twice, and `AutomationViewModel`. Each serialises a payload to a string and does `Contains("{{" + key + "}}")`, so the cost is one full serialisation plus one scan per parameter per control. For fifty controls and twenty-two parameters that is over a thousand substring scans per plan, each over a freshly allocated string.
+**Problem.** The same scan appears six times across five call sites, verified at `e188d9e`:
+`PolicyInputValidator.cs:13`, `PolicyInputDefaults.cs:34` and `:77`, `BuildStandardDocument.cs:47` and `:142`, and
+`AutomationViewModel.cs:98`. Each serialises a payload to a string and does `Contains("{{" + key + "}}")`, so the cost
+is one full serialisation plus one scan per parameter per control. For fifty controls and twenty-two parameters that is
+over a thousand substring scans per plan, each over a freshly allocated string. No `ParameterUsage` helper exists yet.
 
 **Target.** `BDIT.TenantToolkit.Core.Json.ParameterUsage`, with the serialisation done once per payload and the result reusable.
 
@@ -95,13 +112,13 @@ public static class ParameterUsage
 
 Prefer walking the node tree over substring matching on serialised JSON: a payload whose literal text happens to contain `{{x}}` inside an unrelated string is currently a false positive, and the tree walk removes that class of bug. `CanonicalJson.Resolve` already walks the tree and can share the traversal.
 
-**Acceptance.** All five call sites use the helper. A test proves a parameter referenced only inside a nested array is found, and that a literal `{{notAParameter}}` in a description field is not reported as a parameter. No behaviour change in existing tests.
+**Acceptance.** All six occurrences across the five call sites use the helper. A test proves a parameter referenced only inside a nested array is found, and that a literal `{{notAParameter}}` in a description field is not reported as a parameter. No behaviour change in existing tests.
 
 ---
 
 ## W1. Compile releases instead of copying them
 
-**Problem.** Eight release files, 23,647 lines, each a full copy of its predecessor. Release 2026.09.7 changed three controls of forty-five and cost a 3,317-line file. Release 2026.09.9 left only eight of fifty controls byte-identical to its predecessor because a targeting change rewrote one field on nearly every control. Consequences: nobody can see what changed between releases without diffing whole files; a payload correction must be hand-applied to every later release, so old releases rot; every publication adds roughly 3,600 lines.
+**Problem.** Nine release files, 27,747 lines, each a full copy of its predecessor. Release 2026.09.7 changed three controls of forty-five and cost a 3,317-line file. Release 2026.09.9 left only eight of fifty controls byte-identical to its predecessor because a targeting change rewrote one field on nearly every control. Consequences: nobody can see what changed between releases without diffing whole files; a payload correction must be hand-applied to every later release, so old releases rot; every publication adds roughly 3,600 lines.
 
 **Target.** One source of truth per control, plus a per-release manifest of inclusions and overrides. A build step compiles the published flat release file. Everything downstream, the loader, the integrity manifest, the digest, is unchanged, because the compiled artefact is byte-for-byte the format that ships today.
 
@@ -113,21 +130,27 @@ standards/
     collections.json              shared collection definitions
     parameters.json               shared parameter definitions
   releases/
-    2026.09.10.json               manifest: which controls, which overrides, release metadata
-  2026.09.10.json                 compiled output, shipped, unchanged in format
+    2026.09.11.json               manifest: which controls, which overrides, release metadata
+  2026.09.11.json                 compiled output, shipped, unchanged in format
 ```
 
 A release manifest names the controls it includes and any per-release override, so a release that differs from source in one field records one field, not a whole control.
 
 **Steps.**
 1. Write the compiler as a build task that emits a release file from source plus manifest.
-2. Decompose the current 2026.09.10 into `source/` and a manifest that compiles back to it byte-identically. This is the proof the compiler is correct.
+2. Decompose the current release — **2026.09.11**, not .10 — into `source/` and a manifest that compiles back to it byte-identically. This is the proof the compiler is correct.
 3. Add a CI check that recompiles every release and fails if the committed output differs.
-4. Leave 2026.09.3 to 2026.09.9 as frozen literal files. They are historical evidence, referenced by digest in stored plans. Do not decompose them, and do not regenerate them.
+4. Leave 2026.09.3 to 2026.09.10 as frozen literal files. They are historical evidence, referenced by digest in stored plans. Do not decompose them, and do not regenerate them.
 
-**Acceptance.** `standards/2026.09.10.json` regenerates byte-identically from source. CI fails on a hand-edit of a compiled file. Adding a setting to one control changes one source file and one manifest line. Historical releases still load and still match their recorded digests.
+**Acceptance.** `standards/2026.09.11.json` regenerates byte-identically from source. CI fails on a hand-edit of a compiled file. Adding a setting to one control changes one source file and one manifest line. Historical releases still load and still match their recorded digests.
 
 **Risk.** The integrity manifest covers compiled output, so a compiler bug becomes a digest mismatch rather than a silent wrong policy. Keep the byte-identical round trip as the gate and this workstream cannot ship a wrong payload.
+
+**One debt to clear when the next release is authored, not before.** 2026.09.11 mixes operator casing: ID-002
+`signals[4]` is `AtMost` while its `caveats[1]` is `atLeast`, and ID-003 uses `Equals`, `CountAtLeast`, `CountAtMost`
+and `CountAtLeast`. The enum converter matches case-insensitively and throws on an unknown name, so this is cosmetic
+and .11 must not be edited — its bytes are digested and referenced by stored plans. Author the source controls in
+camelCase so the first compiled release is consistent.
 
 ---
 
@@ -227,17 +250,17 @@ Borrow the useful distinction from the comparable tools: a control can be report
 
 Continuous, not a milestone. Each item is independently shippable.
 
-**9a. Split the two files that have become junction boxes.** `Workspace.cs` at 681 lines holds session state, profile persistence, standard selection, capture orchestration and export coordination. `AssessmentEngine.cs` at 506 lines holds candidate matching, scoring, enforcement interpretation and finding construction. Both are the files every change touches, which makes them the files every merge conflicts on. Split along the responsibilities already visible in their own method groups. Do not split for line count alone; split where a seam exists.
+**9a. Split the two files that have become junction boxes.** `Workspace.cs` at 681 lines holds session state, profile persistence, standard selection, capture orchestration and export coordination. `AssessmentEngine.cs`, now 560 lines, holds candidate matching, scoring, enforcement interpretation and finding construction. Both are the files every change touches, which makes them the files every merge conflicts on. Split along the responsibilities already visible in their own method groups. Do not split for line count alone; split where a seam exists.
 
-**9b. Decide the async convention and apply it.** The Engine has 84 `await` expressions and zero `ConfigureAwait`. That is correct for a WPF consumer and wrong for a library with a console consumer, where continuing on a captured context is needless overhead. Once W3 exists, apply `ConfigureAwait(false)` throughout the Engine and Graph projects and add an analyser rule so it stays applied. Do not do this before W3; without a second consumer it is churn.
+**9b. Decide the async convention and apply it. Partly done — finish it.** Graph now carries 54 `ConfigureAwait` across its 101 `await` expressions, so the convention has been started there and is incomplete. The Engine still has 84 `await` expressions and zero `ConfigureAwait`, which is where the console consumer actually pays. W3 exists, so the prerequisite is met: finish Graph, apply `ConfigureAwait(false)` throughout the Engine, and add an analyser rule so it stays applied. A half-applied convention is worse than none, because the next reader cannot tell which state is intended.
 
 **9c. Cache digests rather than recomputing them.** Roughly forty call sites compute a canonical serialisation or a SHA-256 over model objects, several inside loops over plan rows. Compute once per object and carry the result. Measure first: this is only worth doing where a profile shows it, and correctness matters more than the microseconds.
 
 **9d. Resolve the export format overlap.** `ExportBuildStandard` maps both `ClientHtml` and `Html` to the same output, which means the enumeration no longer says what it means. Either give the client document its own format or collapse the two.
 
-**9e. Keep the parser and the field in step.** `PolicyInputParser` in the Engine and `PolicyInputField` in the application must not drift; the field is a thin wrapper by design. A test in the Engine covers the parser; there is no test that the wrapper still delegates. Add one, or accept the risk explicitly.
+**9e. Keep the parser and the field in step.** `PolicyInputParser` in the Engine and `PolicyInputField` in the application must not drift; the field is a thin wrapper by design. A test in the Engine covers the parser; `PolicyInputField` is still named by no test at all, confirmed at `e188d9e`. Add one, or accept the risk explicitly. PR #12 shows why this matters: the headless runner drifted from the application in exactly this way, by reimplementing rather than delegating, and a source-scan conformance test is what now holds it.
 
-**9f. Tests are 5,418 lines against 15,737 of source.** That ratio is healthy. Protect it: every workstream above adds tests before it adds behaviour, and no workstream is done while a new public surface has none.
+**9f. Tests are 6,916 lines against 16,555 of source, and 542 of them pass.** That ratio is healthy and improved since the last measurement. Protect it: every workstream above adds tests before it adds behaviour, and no workstream is done while a new public surface has none.
 
 ## Non-goals
 
@@ -247,3 +270,13 @@ State these plainly so a future executor does not rediscover them as ideas.
 - **Do not add automatic remediation.** Reporting and alerting carry the commercial value; unattended writing carries the liability.
 - **Do not move the write surface into data.** Guards stay compiled.
 - **Do not decompose historical releases.** They are evidence.
+
+## What this plan does not cover, and does not outrank
+
+This is an architecture plan. Every workstream in it improves code that has **never run against a Microsoft 365
+tenant**. 542 synthetic tests prove the safety logic holds against a scripted Graph client; they cannot prove that
+Graph accepts these 42 creation payloads, that the permissions behave as documented, or that admin consent completes
+at the registered callback. `docs/LIVE-VALIDATION.md` is a complete staged checklist that has not been executed.
+
+If an executor has to choose between a workstream here and progressing live validation, live validation wins. Nothing
+in this document is worth more than the first read-only capture against a real tenant.
