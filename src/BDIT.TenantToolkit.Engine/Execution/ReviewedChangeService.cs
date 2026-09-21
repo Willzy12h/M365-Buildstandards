@@ -72,6 +72,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
         {
             var m = mappings.Find(controlId) ?? throw new SafetyViolationException("Select a toolkit-created control.");
             var def = standard.FindCollection(m.Collection) ?? throw new SafetyViolationException("Collection is unavailable.");
+            if (ReviewedChangeSafety.IsAssignment(kind)) _ = ReviewedChangeSafety.AssignmentType(def.BasePath);
             RequireOwned(session.TenantId, m);
             evidence.AssertNoUnknownPackageWrite(session.TenantId, m.ObjectId);
             p.ObjectId = m.ObjectId; p.Collection = m.Collection; p.Api = def.ApiVersion;
@@ -92,6 +93,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
                 if (m.LastApplied is null || !CanonicalJson.IsSubset(check, m.LastApplied)) throw new SafetyViolationException("Candidate drifted from recorded settings. Reconcile before activation.");
                 if (ConditionalAccessSafety.IsConditionalAccess(def))
                 {
+                    AssertVerifiedCaBaseline(session.TenantId, m, p.Before);
                     var required = profile.Parameters.EmergencyAccountIds.Concat(profile.Parameters.AdditionalExclusionAccountIds).Append(session.OperatorObjectId!);
                     if (profile.Parameters.EmergencyAccountIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() < 2 || required.Any(id => !ConditionalAccessSafety.ExcludedUsers(p.Before).Contains(id, StringComparer.OrdinalIgnoreCase)))
                         throw new SafetyViolationException("Activation requires two emergency accounts and the operator retained in user exclusions.");
@@ -173,6 +175,9 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             using var reads = CancellationTokenSource.CreateLinkedTokenSource(ct); reads.CancelAfter(TimeSpan.FromSeconds(60));
             var current = await ReadAsync(graph, standard, p, reads.Token);
             if (CanonicalJson.Sha256(current) != CanonicalJson.Sha256(p.Before)) throw new SafetyViolationException("Object changed since preview. No write was sent.");
+            if (p.Kind is ReviewedChangeKind.EnableConditionalAccess or ReviewedChangeKind.ReportOnlyConditionalAccess)
+                AssertVerifiedCaBaseline(session.TenantId, evidence.LoadMappings(session.TenantId).Find(p.ControlId)
+                    ?? throw new SafetyViolationException("CA ownership is missing."), current);
             ct.ThrowIfCancellationRequested();
             run.WriteAcceptance = WriteAcceptance.Unknown; run.Verification = ConfigurationVerification.Unknown;
             evidence.SaveReviewedChangeRun(run);
@@ -208,11 +213,11 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             || !StandardDigestCompatibility.MatchesForReadOnlyVerification(standard, p.StandardDigest))
             throw new SafetyViolationException("Re-verification needs an accepted write and the original standard.");
         var v = new ReviewedChangeVerification { TenantId = session.TenantId, RunId = runId, RunDigest = run.IntegrityDigest, OperatorId = session.OperatorObjectId!, CheckedAt = clock.UtcNow };
-        try { using var reads = CancellationTokenSource.CreateLinkedTokenSource(ct); reads.CancelAfter(TimeSpan.FromSeconds(60)); v.After = await ReadAsync(graph, standard, p, reads.Token); v.Verified = Matches(p, v.After); }
+        try { using var reads = CancellationTokenSource.CreateLinkedTokenSource(ct); reads.CancelAfter(TimeSpan.FromSeconds(60)); v.After = await ReadAsync(graph, standard, p, reads.Token); v.Verified = Matches(p, v.After, historicalReadOnly: true); }
         catch (Exception ex) { v.Error = SensitiveDataScrubber.Scrub(ex.Message); }
         evidence.SaveReviewedChangeVerification(v); return v;
     }
-    private static bool Matches(ReviewedChangePlan p, JsonObject after)
+    private static bool Matches(ReviewedChangePlan p, JsonObject after, bool historicalReadOnly = false)
     {
         if (ReviewedChangeSafety.IsUpdates(p.Kind))
         {
@@ -224,7 +229,13 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
         if (!ReviewedChangeSafety.IsAssignment(p.Kind)) return CanonicalJson.IsSubset(after, p.Payload);
         var actual = after[RecoveryObjectReader.AssignmentsKey] as JsonArray;
         if (actual is null) return false;
-        var expected = p.Payload.First().Value as JsonArray;
+        var suffix = "/" + p.ObjectId + "/assign";
+        if (!p.Path.EndsWith(suffix, StringComparison.Ordinal) || p.Payload.Count != 1) return false;
+        var root = p.Path[..^suffix.Length];
+        var expected = p.Payload[ReviewedChangeSafety.AssignmentKey(root)] as JsonArray;
+        // Old accepted enrolment evidence is interpreted only on GET-only re-verification; never rewritten or replayed.
+        if (expected is null && historicalReadOnly && root == "/deviceManagement/deviceEnrollmentConfigurations")
+            expected = p.Payload["assignments"] as JsonArray;
         if (expected is null || actual.Count != expected.Count) return false;
         return expected.All(e => actual.Any(a => a is JsonObject o && e is JsonObject x && CanonicalJson.IsSubset(o, x)));
     }
@@ -253,6 +264,25 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             throw new SafetyViolationException("A confirmed toolkit creation record is required; names do not establish ownership.");
         if (runs.Any(run => run.Results.Any(r => r.ControlId == mapping.ControlId && r.WriteAcceptance == WriteAcceptance.Unknown)))
             throw new SafetyViolationException("Resolve unknown deployment writes before activation.");
+    }
+    private void AssertVerifiedCaBaseline(string tenant, ManagedObjectMapping mapping, JsonObject current)
+    {
+        var run = evidence.RequireIntactRuns(tenant).SingleOrDefault(r => r.Id == mapping.RunId);
+        var item = run?.Results.SingleOrDefault(r => r.ControlId == mapping.ControlId && r.ObjectId == mapping.ObjectId && r.Collection == mapping.Collection);
+        if (run is null || item is null || run.Status == RunStatus.Running || item.WriteAcceptance != WriteAcceptance.Accepted
+            || item.WrittenPayload is not JsonObject payload || !ConditionalAccessMaterialState.HasPolicyDefinition(payload)
+            || mapping.LastApplied is null || CanonicalJson.Sha256(payload) != item.PayloadDigest
+            || CanonicalJson.Sha256(mapping.LastApplied) != item.PayloadDigest || mapping.LastAppliedDigest != item.PayloadDigest)
+            throw new SafetyViolationException("An intact accepted CA write with a complete material-policy baseline is required. Reconcile the evidence before activation; current state is not adopted.");
+
+        JsonObject? baseline = item.Configuration == ConfigurationVerification.Pass && item.AfterObject is not null
+            && item.ReadbackDigest == CanonicalJson.Sha256(item.AfterObject) ? item.AfterObject : null;
+        baseline ??= evidence.LoadVerifications(tenant).FirstOrDefault(v => v.Verified && v.SourceKind == "Deployment"
+            && v.SourceRunId == run.Id && v.SourceDigest == run.IntegrityDigest && v.ControlId == item.ControlId
+            && v.ObjectId == mapping.ObjectId)?.ObservedObject;
+        if (baseline is null || baseline["id"]?.ToString() != mapping.ObjectId
+            || !ConditionalAccessMaterialState.Same(baseline, payload) || !ConditionalAccessMaterialState.Same(current, baseline))
+            throw new SafetyViolationException("CA material settings drifted or verified baseline evidence is inadequate. Reconcile targeting, exclusions, filters and controls before activation. Emergency disablement remains available.");
     }
     private bool EnrolledBy(ReviewedChangeRun run, string id, ReviewedChangeKind kind)
     {

@@ -1012,10 +1012,10 @@
             "operator": "nonEmpty"
           },
           {
-            "key": "partialClients",
+          "key": "partialClients",
             "label": "Covers only one of the two legacy client app types",
             "path": "conditions.clientAppTypes",
-            "operator": "atMost",
+          "operator": "countAtMost",
             "value": 1
           },
           {
@@ -1144,10 +1144,10 @@
             "operator": "nonEmpty"
           },
           {
-            "key": "exemptsMany",
+          "key": "exemptsMany",
             "label": "Exempts more platforms than the standard allows for",
             "path": "conditions.platforms.excludePlatforms",
-            "operator": "atLeast",
+          "operator": "countAtLeast",
             "value": 6
           }
         ]
@@ -3575,7 +3575,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All users (built-in), less GRP - Policy Exclusions Users",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allUsers",
+          "exclusionControlId": "PRE-009"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3635,7 +3640,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3686,7 +3696,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3737,7 +3752,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3788,7 +3808,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3839,7 +3864,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3890,7 +3920,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",
@@ -3967,7 +4002,12 @@
       "expectedProduction": {
         "state": "assigned",
         "assignment": "All devices (built-in), less GRP - Policy Exclusions Devices",
-        "notes": "Targeting uses the built-in population; only the exclusion group is named."
+        "notes": "Targeting uses the built-in population; only the exclusion group is named.",
+        "applicationDeployment": {
+          "intent": "required",
+          "population": "allDevices",
+          "exclusionControlId": "PRE-010"
+        }
       },
       "safeDeployment": {
         "state": "unassigned",

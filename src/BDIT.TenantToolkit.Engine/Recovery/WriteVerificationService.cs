@@ -65,7 +65,7 @@ public sealed class WriteVerificationService(EvidenceStore evidence, IClock cloc
         var item = source.Results.Single(r => r.ControlId == plan.ControlId);
         if (item.ObjectId != run.ObjectId || !evidence.HasAcceptedWrite(source, item)) throw new IntegrityException("Recovery source ID or acceptance is not established.");
         var definition = Definition(standard, plan.Collection);
-        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload);
+        RecoverySafety.AssertPayload(definition.BasePath, plan.Action, plan.Payload, definition.ApiVersion);
         var mappings = evidence.LoadMappings(session.TenantId);
         var mapping = mappings.Find(plan.ControlId);
         if (mapping is null && plan.Action != RecoveryAction.DeleteCreatedObject)

@@ -266,6 +266,8 @@ internal sealed class FakeGraphClient : IGraphClient
     public SessionMode Mode { get; set; } = SessionMode.Deployment;
     public List<(GraphWriteMethod Method, string Path, JsonObject Payload)> Writes { get; } = new();
     public List<string> Reads { get; } = new();
+    public List<(GraphApi Api, string Path)> VersionedReads { get; } = new();
+    public List<ReviewedChangePlan> ReviewedWrites { get; } = new();
     public List<(RecoveryAction Action, string Path, JsonObject? Payload)> RecoveryWrites { get; } = new();
     public Func<Task>? BeforeRecovery { get; set; }
     public Exception? RecoveryError { get; set; }
@@ -306,6 +308,7 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
+        VersionedReads.Add((api, path));
         ct.ThrowIfCancellationRequested();
         Reads.Add(path);
         var (basePath, id, sub) = Resolve(path);
@@ -329,6 +332,7 @@ internal sealed class FakeGraphClient : IGraphClient
 
     public async Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct)
     {
+        VersionedReads.Add((api, path));
         ct.ThrowIfCancellationRequested();
         if (BeforeRead is not null) await BeforeRead(path, ct);
         Reads.Add(path);
@@ -367,6 +371,23 @@ internal sealed class FakeGraphClient : IGraphClient
         var existing = list.First(i => string.Equals(i["id"]?.GetValue<string>(), id, StringComparison.OrdinalIgnoreCase));
         foreach (var pair in payload) existing[pair.Key] = pair.Value?.DeepClone();
         return new JsonObject();
+    }
+
+    public Task ApplyReviewedChangeAsync(ReviewedChangePlan plan, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (Mode != SessionMode.Deployment || plan.TenantId != TenantId) throw new WriteDeniedException("Synthetic session mismatch");
+        ReviewedWrites.Add(ToolkitJson.Deserialize<ReviewedChangePlan>(ToolkitJson.Serialize(plan)));
+        var (root, id, _) = Resolve(plan.Path);
+        var obj = _collections[root].Single(x => x["id"]?.ToString() == id);
+        if (plan.Kind is ReviewedChangeKind.AssignGroups or ReviewedChangeKind.RemoveAssignments)
+        {
+            var key = root == "/deviceManagement/deviceEnrollmentConfigurations" ? "enrollmentConfigurationAssignments"
+                : root == "/deviceAppManagement/mobileApps" ? "mobileAppAssignments" : "assignments";
+            obj["_assignments"] = plan.Payload[key]?.DeepClone() ?? throw new InvalidOperationException("Wrong synthetic service envelope");
+        }
+        else foreach (var pair in plan.Payload) obj[pair.Key] = pair.Value?.DeepClone();
+        return Task.CompletedTask;
     }
 
     public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)

@@ -1,5 +1,7 @@
 # Undo and recovery
 
+Safety follow-up: generic Autopilot assignment removal is **not supported** and must not be treated as containment. Enrolment removal uses the resource-specific reviewed envelope. Accepted beta EDR restoration can be re-verified using the collection's beta API and reads only; v1.0 EDR remains rejected. These are synthetic-tested code contracts, not live recovery acceptance. See [F1–F5 limits](integration/SAFETY-REVIEW-2026-09-21.md).
+
 1. Connect to the correct tenant with deployment access. Open **Undo and recovery** and load the durable change register.
 2. Select the original creation to remove its object, or the latest supported update to restore its before-values. For an unexpectedly enabled toolkit-created Conditional Access policy, preview **Disable Conditional Access**.
 3. Let the tool capture a complete fresh snapshot and read the current object, settings and assignments. Inspect the object ID, current settings and consequences. A preview expires after five minutes.

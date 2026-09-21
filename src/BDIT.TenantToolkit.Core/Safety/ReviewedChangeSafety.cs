@@ -25,14 +25,20 @@ public static class ReviewedChangeSafety
         "/deviceManagement/deviceCompliancePolicies" => "deviceCompliancePolicyAssignment",
         "/deviceManagement/configurationPolicies" => "deviceManagementConfigurationPolicyAssignment",
         "/deviceManagement/deviceEnrollmentConfigurations" => "enrollmentConfigurationAssignment",
-        "/deviceManagement/windowsAutopilotDeploymentProfiles" => "windowsAutopilotDeploymentProfileAssignment",
+        "/deviceManagement/windowsAutopilotDeploymentProfiles" => throw new SafetyViolationException("Autopilot group assignment and removal are unsupported. Its /assign action accepts device IDs, not group assignments. Use a separately reviewed dedicated workflow."),
         "/deviceAppManagement/mobileApps" => "mobileAppAssignment",
         "/deviceAppManagement/iosManagedAppProtections" or "/deviceAppManagement/androidManagedAppProtections" => "targetedManagedAppPolicyAssignment",
         _ => throw new SafetyViolationException("Assignment is not supported for this collection.")
     };
-    public static string AssignmentKey(string root) => root == "/deviceAppManagement/mobileApps" ? "mobileAppAssignments" : "assignments";
+    public static string AssignmentKey(string root) => root switch
+    {
+        "/deviceAppManagement/mobileApps" => "mobileAppAssignments",
+        "/deviceManagement/deviceEnrollmentConfigurations" => "enrollmentConfigurationAssignments",
+        _ => "assignments"
+    };
     public static JsonObject AssignmentPayload(string root, IEnumerable<string> included, IEnumerable<string> excluded, AssignmentPopulation population = AssignmentPopulation.Groups)
     {
+        _ = AssignmentType(root); // Also reject unsupported empty removal payloads.
         var assignments = new JsonArray();
         if (!Enum.IsDefined(population)) throw new SafetyViolationException("Unknown assignment population.");
         if (population != AssignmentPopulation.Groups)

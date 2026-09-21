@@ -222,7 +222,14 @@ public sealed class AssessmentEngine
         if (exact is not null)
         {
             var enforced = ExpectedEnforcementMet(control, def, exact);
-            if (DirectoryPrerequisiteSafety.IsGroup(def) && string.Equals(control.ExpectedProduction.State, "populated", StringComparison.OrdinalIgnoreCase))
+            if (def.BasePath == "/deviceAppManagement/mobileApps")
+            {
+                var application = capture.Items.Single(i => i["id"]?.ToString() == exact.ObjectId);
+                var deployment = ApplicationDeploymentAssessment.Evaluate(application, control.ExpectedProduction.ApplicationDeployment);
+                finding.Status = deployment.Established switch { true => FindingStatus.Compliant, false => FindingStatus.SettingsMatchNotEnforced, null => FindingStatus.RequiresManualReview };
+                finding.Reason = $"Settings match '{exact.Name}'. {deployment.Reason}";
+            }
+            else if (DirectoryPrerequisiteSafety.IsGroup(def) && string.Equals(control.ExpectedProduction.State, "populated", StringComparison.OrdinalIgnoreCase))
             {
                 finding.Status = FindingStatus.RequiresManualReview;
                 finding.Reason = $"Group settings match '{exact.Name}', but the creation recipe does not define its intended membership. Review the captured members against the agreed population before accepting this prerequisite; an empty group or an arbitrary member does not establish coverage.";

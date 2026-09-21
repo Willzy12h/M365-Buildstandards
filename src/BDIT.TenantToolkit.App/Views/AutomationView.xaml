@@ -67,6 +67,7 @@
     <Button Content="Capture fresh configuration" Command="{Binding CaptureCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <TextBlock Text="Reviewed action" Style="{StaticResource FieldLabel}"/>
     <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" AutomationProperties.Name="Reviewed policy action"/>
+    <TextBlock Text="Autopilot profiles: generic group assignment and removal are unsupported. Use a separately reviewed dedicated workflow; do not enter group IDs as device IDs. Other assignments require compatible user/device exclusions." Style="{StaticResource Muted}" Margin="0,6,0,0"/>
     <StackPanel Visibility="{Binding IsAssignmentAction, Converter={StaticResource BoolToVis}}" Margin="0,8">
      <TextBlock Text="Assignment population" Style="{StaticResource FieldLabel}"/>
      <ComboBox ItemsSource="{Binding Populations}" SelectedItem="{Binding SelectedPopulation}"

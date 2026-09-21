@@ -1,5 +1,15 @@
 # Integration decisions
 
+## Confirmed safety review F1–F5 — 21 September 2026
+
+- **INT-025:** CA enable/report-only uses bounded material equality against intact verified, exact-ID write evidence, not the outgoing payload's subset alone. Inadequate baseline or material additions block preview/execution. No global subset rewrite or historical state adoption. Emergency disablement is preserved.
+- **INT-026:** enrolment uses its documented request envelope. Autopilot generic group assignment/removal is blocked pending a separately reviewed workflow; this narrows INT-019's generic assignment/containment description. Historical accepted envelopes are interpreted read-only, never replayed.
+- **INT-027:** retain the collection API version during recovery re-verification; beta-only EDR guards remain unchanged.
+- **INT-028:** application compliance needs required intent and established scope. Optional, null-omitted assessment metadata in .11 declares expected population/exclusion prerequisite; unresolved group/exclusion/filter scope remains manual-review. No membership inference or historical catalogue rewrite.
+- **INT-029:** correct only .11's two CA array-count caveats. Keep numeric operators numeric. Exclusion compatibility and Windows Hello defaults remain acceptance questions, not newly proven bypasses or device behaviour.
+
+Authority: the human approved implementation of the proposed F1–F5 plan on existing PR #9, without tenant operations, consent, application changes or merging. [Detailed evidence and acceptance proposal](SAFETY-REVIEW-2026-09-21.md).
+
 ## Preview.6 automation and follow-up review (14 September 2026)
 
 - Complete implementation paths across the 45 existing controls: 37 candidate recipes, four reviewed tenant-action workflows and four readiness/engineer workflows. Preserve historical standard releases; ship the new catalogue as 2026.09.6.

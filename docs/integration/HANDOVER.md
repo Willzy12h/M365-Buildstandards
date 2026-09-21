@@ -2,6 +2,8 @@
 
 ## Current work
 
+The follow-up independent safety review F1–F5 is implemented on the existing PR #9 branch. Read [the bounded change/validation record](SAFETY-REVIEW-2026-09-21.md): strict CA material-baseline checks, corrected enrolment contracts, blocked generic Autopilot assignments, beta-aware recovery verification, conservative application deployment assessment and fixed array caveats. No live operation or merge was performed. Historical catalogue and evidence compatibility remain constrained; do not adopt drift or replay Unknown writes.
+
 Preview.13 / standard 2026.09.11 is proposed in [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9), based on integration `d4e1e9a`. It fixes the independent review findings and adds visible prerequisites. Read [REVIEW-FIXES](REVIEW-FIXES.md) before testing or upgrading existing evidence. Implementation is pending PR review; no live tenant acceptance or merge is implied. Exact validation is recorded in [TESTING-EVIDENCE](TESTING-EVIDENCE.md).
 
 Next: independent review of the safety changes, then human-authorised disposable-tenant acceptance. Do not start another automation batch first. Astra High is suitable for safety/architecture review; a separate Claude review offers independent scrutiny. Spark is suitable for bounded wording/layout work afterwards.

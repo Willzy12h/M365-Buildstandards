@@ -115,6 +115,14 @@ public sealed partial class StandardsLoader
             CollectionDefinition? def = null;
             if (control.Collection is not null && !c.Collections.TryGetValue(control.Collection, out def))
                 throw new ConfigurationException($"Control {control.Id} references unknown collection '{control.Collection}'.");
+            if (control.ExpectedProduction.ApplicationDeployment is { } deployment)
+            {
+                if (def?.BasePath != "/deviceAppManagement/mobileApps" || !def.Assignments || deployment.Intent != "required"
+                    || deployment.Population is not (AssignmentPopulation.AllUsers or AssignmentPopulation.AllDevices)
+                    || deployment.ExclusionControlId is not null && !c.Controls.Any(x => x.Id == deployment.ExclusionControlId
+                        && x.Collection == "groups" && x.ExclusionRole == (deployment.Population == AssignmentPopulation.AllUsers ? "users" : "devices")))
+                    throw new ConfigurationException($"Control {control.Id} has an unsupported application deployment expectation or exclusion prerequisite.");
+            }
             if (control.Assessment.Mode == AssessmentMode.Settings)
             {
                 if (control.Payload is null) throw new ConfigurationException($"Control {control.Id} uses settings assessment but has no payload recipe.");

@@ -1,5 +1,11 @@
 # Testing evidence — 17 September 2026
 
+## Confirmed safety review F1–F5 — 21 September 2026
+
+See [exact commands, test failures and regression comparison](SAFETY-REVIEW-2026-09-21.md). Current local working-tree validation: 536 tests passed, none failed/skipped; Release build 0 warnings/errors; portable package built; offline WPF 44 renders / 28 combinations / 0 bindings / 0 tenant calls. Clean-head and new CI evidence are recorded separately after publication.
+
+The earlier 495-test local result below is historical. Reviewer-observed 498-test [CI run 35545344377](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35545344377) tested synthetic merge `ec3049b18bf23bcf1b13810e096234414fa58495`, not pure head `1d47c814...`; do not describe it as clean-head validation.
+
 ## Preview.13 independent review fixes — 21 September 2026
 
 Branch `astra/review-fixes`, [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9), base integration `d4e1e9a`.

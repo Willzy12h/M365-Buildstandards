@@ -233,6 +233,18 @@ public sealed class ExpectedProduction
     public string State { get; set; } = "";
     public string Assignment { get; set; } = "";
     public string Notes { get; set; } = "";
+    /// <summary>Optional machine-readable application scope. Absence never proves deployment from prose.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ApplicationDeploymentExpectation? ApplicationDeployment { get; set; }
+}
+
+public sealed class ApplicationDeploymentExpectation
+{
+    public string Intent { get; set; } = "required";
+    public AssignmentPopulation Population { get; set; } = AssignmentPopulation.Groups;
+    /// <summary>Named prerequisite whose membership and targeting compatibility still require human review.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ExclusionControlId { get; set; }
 }
 
 /// <summary>What the toolkit is permitted to create before engineering validation.</summary>

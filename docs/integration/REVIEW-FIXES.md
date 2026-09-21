@@ -1,5 +1,9 @@
 # Independent review fixes — preview.13
 
+## Follow-up F1–F5 safety review
+
+The confirmed findings against `1d47c814...` are addressed by this PR's follow-up. See [finding-by-finding dispositions, validation and acceptance proposal](SAFETY-REVIEW-2026-09-21.md). This supersedes the earlier generic Autopilot/group-assignment guidance below: **Autopilot group assignment and removal are unsupported**, not a supported containment path. CA activation requires a verified material-policy baseline; assignment presence alone is not application compliance.
+
 Review base: integration `d4e1e9a9bfed620c06103a54a28a0cf0a574a5fb`. Implementation: `astra/review-fixes`, [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9). No tenant operations are authorised by this work.
 
 ## Engineer guidance
@@ -9,7 +13,7 @@ Load standard **2026.09.11** with preview.13 or later. Open **Prerequisites and 
 - **LAPS:** use the existing reviewed Entra enablement action, then re-verify. Confirm supported joined devices, local administrator account choice, password backup and retrieval permissions before assigning the device policy.
 - **Autopilot:** the toolkit creates an unassigned deployment profile; it does not register devices or prove licensing, network access or OEM/hardware-hash registration. Review automatic MDM enrolment separately using its existing workflow.
 - **Windows Hello:** PIN-reset service/client consent remains a manual administrator step. Check device/TPM readiness and pilot provisioning; the policy alone does not complete rollout.
-- **Activation and assignment:** confirm client-specific values and update any candidate whose stored settings differ. For resources whose related settings cannot be updated safely, use supported reviewed recovery to remove the unassigned candidate and create a fresh one; otherwise complete a separately reviewed manual change. Then create a fresh preview with exact targets/exclusions and approve it. Built-in All users/All devices are available only for supported Intune policy/application resources. Autopilot, enrolment and app-protection policies still require explicit groups.
+- **Activation and assignment:** confirm client-specific values and update any candidate whose stored settings differ. For resources whose related settings cannot be updated safely, use supported reviewed recovery to remove the unassigned candidate and create a fresh one; otherwise complete a separately reviewed manual change. Then create a fresh preview with exact targets/exclusions and approve it. Built-in All users/All devices are available only for supported Intune policy/application resources. Enrolment and app-protection policies require explicit groups. Autopilot generic group assignment and removal are blocked pending a dedicated reviewed workflow.
 - **Directory prerequisites:** group and named-location creation is supported; updates, membership management and deletion remain manual. A named-location change can affect an already enabled CA policy, so the generic inactive-candidate update path must never change it.
 
 Microsoft sources checked during implementation: [Autopilot requirements](https://learn.microsoft.com/en-us/autopilot/requirements), [Entra LAPS](https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-scenarios-azure-active-directory), [PIN reset](https://learn.microsoft.com/en-us/windows/security/identity-protection/hello-for-business/pin-reset), [All users target](https://learn.microsoft.com/en-us/graph/api/resources/intune-shared-alllicensedusersassignmenttarget?view=graph-rest-1.0), [All devices target](https://learn.microsoft.com/en-us/graph/api/resources/intune-shared-alldevicesassignmenttarget?view=graph-rest-1.0). Live Graph/device acceptance remains open.
@@ -42,4 +46,4 @@ The legacy digest projection accepts only the original recorded digest for uncha
 
 See [testing evidence](TESTING-EVIDENCE.md) and the PR checks for exact results. Local build/tests, offline WPF rendering, packaging and live tenant acceptance are separate evidence. Independent review should concentrate on ownership-purpose checks, creation-only routes, legacy digest compatibility, default confirmation and built-in assignment scope.
 
-Next product work is authorised disposable-tenant acceptance of setup, capture, one disabled CA and unassigned Intune candidate, reviewed assignment and recovery. Confirm Autopilot/LAPS/Hello prerequisites with representative devices before expanding automation.
+Next product work requires separately authorised disposable-tenant acceptance of setup, capture, one disabled CA and unassigned Intune candidate, reviewed assignment and recovery. Source approval does not authorise it. Confirm Autopilot/LAPS/Hello prerequisites with representative devices before expanding automation.
