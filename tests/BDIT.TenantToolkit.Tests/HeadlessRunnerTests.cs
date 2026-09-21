@@ -75,5 +75,56 @@ public class HeadlessRunnerTests
         Assert.Contains("does not name a tenant", program, StringComparison.Ordinal);
         Assert.Contains("was not found. Available:", program, StringComparison.Ordinal);
         Assert.Contains("No Build Standard releases were found", program, StringComparison.Ordinal);
+        Assert.Contains("No client record for tenant", program, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The runner reads stored records through the application's own evidence store rather than its own copy of the
+    /// loading rules. A second implementation drifts silently: the copy this replaced returned empty ownership
+    /// records where the store refuses a tenant mismatch, and invented a client profile where the store has none,
+    /// so the same snapshot could be reported compliant here and non-compliant in the application.
+    /// </summary>
+    [Fact]
+    public void The_runner_reads_stored_records_through_the_shared_store()
+    {
+        if (!Available) return;
+        var program = File.ReadAllText(Path.Combine(Directory_, "Program.cs"));
+
+        Assert.Contains("new EvidenceStore(", program, StringComparison.Ordinal);
+        Assert.Contains("Evidence.LoadProfiles()", program, StringComparison.Ordinal);
+        Assert.Contains("Evidence.LoadMappings(", program, StringComparison.Ordinal);
+        Assert.Contains("Evidence.LoadDeviations(", program, StringComparison.Ordinal);
+
+        // The loading rules belong to the store. Reading an evidence file straight off disk here would be the copy
+        // coming back; the snapshot named on the command line is the one file the runner is given rather than finds.
+        foreach (var line in program.Split('\n'))
+        {
+            if (!line.Contains("File.ReadAllText", StringComparison.Ordinal)) continue;
+            Assert.True(line.Contains("(file)", StringComparison.Ordinal),
+                "Only the snapshot named on the command line is read directly: " + line.Trim());
+        }
+    }
+
+    /// <summary>
+    /// Reading evidence through the store puts its writers within reach of this assembly for the first time. They are
+    /// out of scope for a reporting tool: evidence is written by the run that produced it, and a headless process
+    /// rewriting a client's records would break the trail the application depends on.
+    /// </summary>
+    [Fact]
+    public void The_runner_never_writes_evidence()
+    {
+        if (!Available) return;
+
+        // Every evidence writer on the store is named Save*, Append* or WriteJsonAtomic. Report export is the
+        // runner's own output and is named Export*, so it is not caught here.
+        var mutators = new[] { ".Save", ".Append", ".Delete", "WriteJsonAtomic" };
+        foreach (var file in Sources)
+        {
+            var uses = File.ReadAllText(file).Split('\n')
+                .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+                .Where(line => mutators.Any(m => line.Contains(m, StringComparison.Ordinal)))
+                .ToList();
+            Assert.True(uses.Count == 0, $"{Path.GetFileName(file)} writes evidence: {string.Join(" | ", uses)}");
+        }
     }
 }

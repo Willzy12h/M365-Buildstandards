@@ -68,6 +68,17 @@ Use **Policy automation** for inputs, imports, prerequisites, assignments, packa
 | APP-WIN-008 | Endpoint protection agent | Candidate recipe | endpointAgentFileName, endpointAgentInstallCommand, endpointAgentUninstallCommand, endpointAgentDetectionRules |
 | UPD-001 | Windows Autopatch | Reviewed Autopatch category enrolment/removal | Review scope and prerequisites |
 
+### Why the application controls always ask for review
+
+APP-WIN-001 to APP-WIN-008 report **review exclusion prerequisite**, never compliant, and that is the intended
+outcome for the shipped 2026.09.11 catalogue rather than a gap. Each of the eight declares an exclusion prerequisite
+(PRE-009 for the user-targeted control, PRE-010 for the seven device-targeted ones), and a group's name or object ID
+does not establish which users or devices it actually removes from scope. Assessment stops on that ground before it
+inspects the assignment's targets, so the positive result — a required, unfiltered assignment to a built-in
+population — is unreachable for every application control the catalogue currently contains. The branch is kept for a
+future application control that targets a built-in population with no exclusion prerequisite; until one ships, confirm
+application deployment in Intune rather than expecting the report to establish it.
+
 ## Consequences and recovery
 
 - Targeting uses the built-in All users and All devices populations, so a policy reaches everyone it should without a membership list to maintain. Each assignment names one exclusion group, which is the only membership an engineer has to keep current.

@@ -137,6 +137,10 @@ Delivered as `src/BDIT.TenantToolkit.Cli`, assembly name `bdit`. Commands: `rele
 
 It required no engine change, which is the result that matters: the seam is real, not asserted.
 
+**Corrected after review (21 September 2026).** The first version met the acceptance criterion below only by accident: it loaded the profile and ownership records with its own copy of the rules, passed no deviations at all, and filled in a minimal profile and an empty mapping set when the installation held neither. That is precisely the failure the criterion was written to prevent, because all three inputs change the result — the profile carries the client inputs that resolve a standard's parameters, the mappings decide whether a candidate is toolkit-owned or assessed by equivalence, and a recorded deviation changes a finding's status. It also silently accepted a tenant mismatch in `managed-objects.json` where `EvidenceStore` refuses one. The runner now reads all three through `EvidenceStore` and refuses when this installation holds no client record for the snapshot's tenant. Two conformance tests hold the line: one that the shared loaders are used and no evidence file is read directly, one that no evidence mutator is reachable, since reading through the store put its writers in scope for the first time.
+
+**The lesson for W4.** A second consumer is only proof of a seam if it consumes the same way. When W4 adds scheduled reporting, load stored records through `EvidenceStore` and refuse what is absent; do not reimplement a loader to keep a batch running.
+
 What is deliberately not there: live capture. That needs interactive authentication, which needs either a window handle or the system-browser path, and adding it would give this assembly a token. If a future runner needs to capture, put the capture in a second executable and keep this one incapable of writing.
 
 **Original problem statement, kept for context.** The Engine is a clean library but has exactly one consumer, so the seam is asserted rather than proven. There is also no way to assess a tenant without a person at a desktop.
