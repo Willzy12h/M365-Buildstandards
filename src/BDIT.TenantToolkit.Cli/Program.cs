@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
+using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Standards;
 
@@ -19,8 +20,10 @@ namespace BDIT.TenantToolkit.Cli;
 /// in the engine rather than working around here.
 ///
 /// It is read-only by construction rather than by policy. It never authenticates, so there is no token, no Graph
-/// client and no write path reachable from this assembly. It reads evidence the application already captured. A
-/// conformance test asserts the absence of every write-capable type, so the guarantee cannot be lost by accident.
+/// client and no write path reachable from this assembly. It reads evidence the application already captured, through
+/// the same <see cref="EvidenceStore"/> the application reads it with, so a headless report cannot disagree with the
+/// application's for the same snapshot. Conformance tests assert the absence of every write-capable type and of every
+/// evidence mutator, so neither guarantee can be lost by accident.
 /// </summary>
 public static class Program
 {
@@ -83,6 +86,8 @@ public static class Program
 
               bdit report --snapshot <file> [--release <r>] [--format <f>] [--root <dir>]
                   Assess a captured snapshot against a standard and write the engineer report.
+                  Requires this installation's client record for the snapshot's tenant, because the
+                  client inputs, ownership records and accepted deviations change the result.
                   Formats: html, markdown, json, csv, xlsx. Default html.
 
               bdit document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
@@ -121,19 +126,22 @@ public static class Program
         if (!ProfileValidator.IsGuid(snapshot.TenantId))
             throw new ConfigurationException("The snapshot does not name a tenant, so it cannot be assessed.");
 
-        // Assessment binds snapshot, profile and mappings to one tenant. A stored profile is used when the
-        // installation has one; otherwise a minimal profile carries the tenant identity and nothing else. Client
-        // inputs are irrelevant here because nothing is planned or written.
-        var profile = context.Profile(snapshot.TenantId) ?? new TenantProfile
-        {
-            Id = snapshot.TenantId, TenantId = snapshot.TenantId,
-            Company = snapshot.TenantName.Length > 0 ? snapshot.TenantName : snapshot.TenantId,
-            Domain = snapshot.PrimaryDomain
-        };
-        var mappings = context.Mappings(snapshot.TenantId);
+        // Assessment reads three stored records for the snapshot's tenant, and each one changes its result: the
+        // profile carries the client inputs that resolve a standard's parameters, the mappings say which objects this
+        // toolkit created, and the deviations say what an engineer has already accepted. Substituting a default for
+        // any of them produces a report that disagrees with the application's for the same snapshot, which is worse
+        // than no report at all, so a missing client record is refused rather than filled in.
+        var profile = context.Profile(snapshot.TenantId)
+            ?? throw new ConfigurationException(
+                $"No client record for tenant {snapshot.TenantId} was found under {context.Paths.DataDirectory}. "
+                + "Assessment reads that client's inputs, ownership records and accepted deviations, so a report "
+                + "written without them would not match the application's. Run this on the installation that captured "
+                + "the snapshot, or add the client in the application first.");
+        var mappings = context.Evidence.LoadMappings(profile.TenantId);
+        var deviations = context.Evidence.LoadDeviations(profile.TenantId);
 
         var result = new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current)
-            .Assess(snapshot, standard, profile, mappings, Array.Empty<Deviation>(), "bdit (headless)");
+            .Assess(snapshot, standard, profile, mappings, deviations, "bdit (headless)");
 
         var format = Format(options, ExportFormat.Html);
         var written = context.Exporter.ExportAssessment(result, format);
@@ -171,12 +179,20 @@ public static class Program
             _options = options;
             Loader = new StandardsLoader(paths, NullLog.Instance);
             Exporter = new ReportExporter(paths, settings.CompanyName);
+            Evidence = new EvidenceStore(paths, NullLog.Instance);
         }
 
         public ToolkitPaths Paths { get; }
         public ToolkitSettings Settings { get; }
         public StandardsLoader Loader { get; }
         public ReportExporter Exporter { get; }
+
+        /// <summary>
+        /// The application's own evidence reader. Only its read methods are called from here, and a conformance test
+        /// holds that line. Using it rather than a local copy is the point: its tenant checks, its handling of a
+        /// missing or unreadable file and its error messages are then the same ones the application applies.
+        /// </summary>
+        public EvidenceStore Evidence { get; }
 
         public static Context Open(IReadOnlyDictionary<string, string> options)
         {
@@ -199,24 +215,9 @@ public static class Program
             return Loader.Load((match ?? releases[0]).FileName);
         }
 
-        public TenantProfile? Profile(string tenantId)
-        {
-            if (!File.Exists(Paths.ProfilesFile)) return null;
-            var profiles = ToolkitJson.Deserialize<List<TenantProfile>>(File.ReadAllText(Paths.ProfilesFile)) ?? new();
-            return profiles.FirstOrDefault(p => string.Equals(p.TenantId, tenantId, StringComparison.OrdinalIgnoreCase));
-        }
-
-        /// <summary>Ownership records if this installation holds them; an empty set otherwise, never a guess.</summary>
-        public ManagedObjectMappings Mappings(string tenantId)
-        {
-            var file = Path.Combine(Paths.TenantDirectory(tenantId), "managed-objects.json");
-            if (File.Exists(file))
-            {
-                var stored = ToolkitJson.Deserialize<ManagedObjectMappings>(File.ReadAllText(file));
-                if (stored is not null && string.Equals(stored.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)) return stored;
-            }
-            return new ManagedObjectMappings { TenantId = tenantId };
-        }
+        /// <summary>The stored client record for this tenant, or null. Never a record invented to keep going.</summary>
+        public TenantProfile? Profile(string tenantId) =>
+            Evidence.LoadProfiles().FirstOrDefault(p => string.Equals(p.TenantId, tenantId, StringComparison.OrdinalIgnoreCase));
     }
 
     // ---- argument handling ----------------------------------------------------------------------------------------

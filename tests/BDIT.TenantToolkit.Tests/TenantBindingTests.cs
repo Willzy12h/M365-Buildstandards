@@ -82,4 +82,21 @@ public class TenantBindingTests
         var foreign = new Deviation { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantB, ControlId = "CA-001", Reason = "x" };
         Assert.Throws<TenantMismatchException>(() => store.SaveDeviations(TestData.TenantA, new[] { foreign }));
     }
+
+    /// <summary>
+    /// Ownership records decide whether a candidate is assessed as toolkit-owned or by equivalence, so a reader that
+    /// answered "this installation holds none" for a file belonging to another tenant would not merely lose a label:
+    /// it would report a different status from the one the application reports for the same snapshot. The store
+    /// refuses, and every consumer reads through the store for this reason.
+    /// </summary>
+    [Fact]
+    public void Ownership_records_from_another_tenant_are_rejected_on_load()
+    {
+        using var root = new TempRoot();
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var file = Path.Combine(store.TenantDirectory(TestData.TenantA), "managed-objects.json");
+        store.WriteJsonAtomic(file, new ManagedObjectMappings { TenantId = TestData.TenantB });
+
+        Assert.Throws<TenantMismatchException>(() => store.LoadMappings(TestData.TenantA));
+    }
 }

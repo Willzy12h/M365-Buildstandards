@@ -5,7 +5,9 @@
 .DESCRIPTION
   Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> regenerate standards manifest ->
   dotnet publish (self-contained win-x64, framework-dependent runtime NOT required on the engineer's PC) ->
-  stage standards/config/docs/launchers -> write VERSION.json and SHA256SUMS.txt -> zip.
+  stage standards, config, the operator documents and launchers -> write VERSION.json and SHA256SUMS.txt -> zip.
+  The package carries one executable on purpose: the headless runner (bdit) is a build and CI tool, and a second
+  executable would widen the application-control exception a client has to allow for no field benefit.
   Requires the .NET 8 SDK on the build machine only. Engineers never need the SDK.
 .PARAMETER SkipTests
   Skip the test step (not recommended for a release).
@@ -59,9 +61,26 @@ Invoke-Step 'Publish application (self-contained)' {
 }
 
 Invoke-Step 'Stage package contents' {
-    foreach ($dir in 'standards', 'config', 'docs') {
+    foreach ($dir in 'standards', 'config') {
         Copy-Item -LiteralPath (Join-Path $root $dir) -Destination (Join-Path $stage $dir) -Recurse -Force
     }
+
+    # The documents an engineer needs to run the tool, named one by one. The rest of docs/ is internal: preserved
+    # source history, agent coordination, review briefs and decision logs. Copying the folder shipped all of it to
+    # clients, and would ship every internal document written afterwards too, so this is an allow-list.
+    $documents = @(
+        'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
+        'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
+        'RECOVERY.md', 'TESTING-THIS-BUILD.md'
+    )
+    New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
+    foreach ($document in $documents) {
+        $source = Join-Path $root (Join-Path 'docs' $document)
+        # A renamed or deleted document fails the build rather than disappearing from the package unnoticed.
+        if (-not (Test-Path -LiteralPath $source)) { throw "Packaged document not found: docs\$document. Update the list in build\Build-Portable.ps1." }
+        Copy-Item -LiteralPath $source -Destination (Join-Path $stage 'docs') -Force
+    }
+
     foreach ($dir in 'data', 'logs', 'reports') { New-Item -ItemType Directory -Force -Path (Join-Path $stage $dir) | Out-Null }
     Get-ChildItem -LiteralPath (Join-Path $root 'packaging') -File | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $stage -Force }
     Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $stage -Force
@@ -78,6 +97,7 @@ Invoke-Step 'Stage package contents' {
         builtAt        = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
         builtOn        = $env:COMPUTERNAME
         standards      = (Get-ChildItem -LiteralPath (Join-Path $stage 'standards') -Filter '*.json' | Where-Object { $_.Name -ne 'manifest.json' } | ForEach-Object { $_.Name })
+        documents      = $documents
         nugetPackages  = @(
             @{ name = 'Microsoft.Identity.Client'; version = '4.89.0' },
             @{ name = 'Microsoft.Identity.Client.Broker'; version = '4.89.0' },
