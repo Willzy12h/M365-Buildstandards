@@ -71,7 +71,7 @@ Invoke-Step 'Stage package contents' {
     $documents = @(
         'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
-        'RECOVERY.md', 'TESTING-THIS-BUILD.md'
+        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md'
     )
     New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
     foreach ($document in $documents) {
@@ -83,7 +83,8 @@ Invoke-Step 'Stage package contents' {
 
     foreach ($dir in 'data', 'logs', 'reports') { New-Item -ItemType Directory -Force -Path (Join-Path $stage $dir) | Out-Null }
     Get-ChildItem -LiteralPath (Join-Path $root 'packaging') -File | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $stage -Force }
-    Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $stage -Force
+    # packaging/README.md is the engineer's README and is copied by the loop above. The repository README is for
+    # contributors — it describes branches, agents and source repositories — so it is deliberately not shipped.
     Copy-Item -LiteralPath (Join-Path $root 'CHANGELOG.md') -Destination $stage -Force
 
     $runtimeVersion = (Get-ChildItem -LiteralPath (Join-Path $stage 'app') -Filter 'System.Private.CoreLib.dll' -Recurse | Select-Object -First 1).VersionInfo.ProductVersion
@@ -107,6 +108,29 @@ Invoke-Step 'Stage package contents' {
         note           = 'Preview tool, unsigned. SHA256SUMS.txt and the ZIP .sha256 file detect modification in transit; verify them before first use. Allow app\BDIT.TenantToolkit.App.exe in any application-control policy by path or hash.'
     }
     [IO.File]::WriteAllText((Join-Path $stage 'VERSION.json'), (($manifest | ConvertTo-Json -Depth 5) + "`n"), [Text.UTF8Encoding]::new($false))
+}
+
+Invoke-Step 'Documentation links resolve inside the package' {
+    # The package ships a subset of docs/, so a link that resolves in the repository can still be dead in the
+    # engineer's copy. That is how RECOVERY.md came to point at an unresolved-write procedure the package did not
+    # contain. Check every local Markdown link against the staged tree and fail the build rather than ship it.
+    $broken = @()
+    Get-ChildItem -LiteralPath $stage -Recurse -File -Filter '*.md' | ForEach-Object {
+        $document = $_
+        foreach ($match in [regex]::Matches((Get-Content -LiteralPath $document.FullName -Raw), '\[[^\]]*\]\(([^)]+)\)')) {
+            $target = $match.Groups[1].Value.Split('#')[0].Trim()
+            if (-not $target -or $target -match '^(https?:|mailto:)') { continue }
+            $resolved = Join-Path $document.DirectoryName $target
+            if (-not (Test-Path -LiteralPath $resolved)) {
+                $broken += '{0} -> {1}' -f $document.FullName.Substring($stage.Length + 1).Replace('\', '/'), $target
+            }
+        }
+    }
+    if ($broken) {
+        $broken | ForEach-Object { Write-Host "  broken: $_" -ForegroundColor Red }
+        throw "$($broken.Count) documentation link(s) do not resolve inside the package. Ship the target, make the guidance self-contained, or use an absolute repository URL."
+    }
+    Write-Host 'All packaged documentation links resolve.'
 }
 
 Invoke-Step 'Checksums' {

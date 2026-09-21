@@ -64,7 +64,7 @@ W0's remainder is small and can be taken any time, or closed. W3 is done, so W4 
 
 **Status, 21 September 2026: mostly done.** The raw NUL was replaced with the escape sequence `"\u0000" + s.Key`
 (`EquivalenceEvaluator.cs:57`). `file` now reports the source as ASCII text, `grep` matches it and diffs are readable;
-no source file under `src/` contains a NUL byte. What the target below asked for and the fix did not deliver: the key
+no tracked C# or XAML file under `src/` contains a NUL byte. (Binary assets such as PNG and ICO contain them normally; the claim is about source text.) What the target below asked for and the fix did not deliver: the key
 is still an inline literal rather than a named constant explaining why collision matters, and no test pins the
 behaviour. Do those two, or close W0 with a note saying the escape is enough. Do not reintroduce a raw NUL.
 
@@ -91,11 +91,24 @@ private const string UngroupedKeyPrefix = "\u0001ungrouped:";
 
 ## W2. One parameter-usage helper
 
-**Problem.** The same scan appears six times across five call sites, verified at `e188d9e`:
-`PolicyInputValidator.cs:13`, `PolicyInputDefaults.cs:34` and `:77`, `BuildStandardDocument.cs:47` and `:142`, and
-`AutomationViewModel.cs:98`. Each serialises a payload to a string and does `Contains("{{" + key + "}}")`, so the cost
-is one full serialisation plus one scan per parameter per control. For fifty controls and twenty-two parameters that is
-over a thousand substring scans per plan, each over a freshly allocated string. No `ParameterUsage` helper exists yet.
+**Problem.** The same `Contains("{{" + key + "}}")` scan appears as **six expressions in four files, in six distinct
+members**, verified at `55cb822`. They do not all cost the same thing, and an earlier version of this section was wrong
+to say they did:
+
+| Location | Member | Serialisation |
+| --- | --- | --- |
+| `Engine/Planning/PolicyInputValidator.cs:13` | `ValidateUsed` | Once per payload, before the loop |
+| `Engine/Planning/PolicyInputDefaults.cs:34` | `Apply` | Once per payload, before the loop |
+| `Engine/Reports/BuildStandardDocument.cs:47` | `Inputs` | Once per payload, before the loop |
+| `Engine/Planning/PolicyInputDefaults.cs:77` | local `Check` in `AssertCandidateUsesConfirmedInputs` | **None** — scans an existing scalar string during a tree walk |
+| `Engine/Reports/BuildStandardDocument.cs:142` | `Outstanding` | **Inside both lambdas** — one full `ToJsonString()` per parameter *per control* |
+| `App/ViewModels/AutomationViewModel.cs:98` | `Requirements` property | **Inside the lambda** — one full `ToJsonString()` per parameter, on every property read |
+
+The last two are where the cost actually is. `Outstanding` is the only place the fifty-controls-by-twenty-two-parameters
+arithmetic bites: up to 1,100 whole-payload serialisations in one call, on the client-document path. `Requirements` is a
+WPF property, so it re-serialises the selected control's payload twenty-two times on every change notification. The
+first three are already efficient and need the helper for consistency, not speed. None of this is profiled — it is read
+from the source — so treat it as where to look, not as a measured saving. No `ParameterUsage` helper exists yet.
 
 **Target.** `BDIT.TenantToolkit.Core.Json.ParameterUsage`, with the serialisation done once per payload and the result reusable.
 
@@ -112,13 +125,13 @@ public static class ParameterUsage
 
 Prefer walking the node tree over substring matching on serialised JSON: a payload whose literal text happens to contain `{{x}}` inside an unrelated string is currently a false positive, and the tree walk removes that class of bug. `CanonicalJson.Resolve` already walks the tree and can share the traversal.
 
-**Acceptance.** All six occurrences across the five call sites use the helper. A test proves a parameter referenced only inside a nested array is found, and that a literal `{{notAParameter}}` in a description field is not reported as a parameter. No behaviour change in existing tests.
+**Acceptance.** All six expressions use the helper, and the two lambda-resident ones no longer serialise per parameter. A test proves a parameter referenced only inside a nested array is found, and that a literal `{{notAParameter}}` in a description field is not reported as a parameter. No behaviour change in existing tests.
 
 ---
 
 ## W1. Compile releases instead of copying them
 
-**Problem.** Nine release files, 27,747 lines, each a full copy of its predecessor. Release 2026.09.7 changed three controls of forty-five and cost a 3,317-line file. Release 2026.09.9 left only eight of fifty controls byte-identical to its predecessor because a targeting change rewrote one field on nearly every control. Consequences: nobody can see what changed between releases without diffing whole files; a payload correction must be hand-applied to every later release, so old releases rot; every publication adds roughly 3,600 lines.
+**Problem.** Nine release files, 27,747 lines, each a full copy of its predecessor. Release 2026.09.7 changed three controls of forty-five and cost a 3,317-line file. Release 2026.09.9 left only eight of fifty controls byte-identical to its predecessor because a targeting change rewrote one field on nearly every control. Consequences: nobody can see what changed between releases without diffing whole files; a payload correction must be hand-applied to every later release, so old releases rot; every publication adds roughly 3,600 lines, and rising — .9 was 3,620, .10 3,663 and .11 4,100.
 
 **Target.** One source of truth per control, plus a per-release manifest of inclusions and overrides. A build step compiles the published flat release file. Everything downstream, the loader, the integrity manifest, the digest, is unchanged, because the compiled artefact is byte-for-byte the format that ships today.
 
@@ -254,7 +267,13 @@ Continuous, not a milestone. Each item is independently shippable.
 
 **9b. Decide the async convention and apply it. Partly done — finish it.** Graph now carries 54 `ConfigureAwait` across its 101 `await` expressions, so the convention has been started there and is incomplete. The Engine still has 84 `await` expressions and zero `ConfigureAwait`, which is where the console consumer actually pays. W3 exists, so the prerequisite is met: finish Graph, apply `ConfigureAwait(false)` throughout the Engine, and add an analyser rule so it stays applied. A half-applied convention is worse than none, because the next reader cannot tell which state is intended.
 
-**9c. Cache digests rather than recomputing them.** Roughly forty call sites compute a canonical serialisation or a SHA-256 over model objects, several inside loops over plan rows. Compute once per object and carry the result. Measure first: this is only worth doing where a profile shows it, and correctness matters more than the microseconds.
+**9c. Cache digests rather than recomputing them.** Counted at `55cb822` over tracked `src/**/*.cs`, by literal
+invocation: `CanonicalJson.Sha256Value(` 43, `CanonicalJson.Sha256(` 35, `CanonicalJson.Sha256Hex(` 11,
+`CanonicalJson.Serialize(` 9 — **98 in total**, of which the 43 model-value hashes are the ones this item is about.
+An earlier version said "roughly forty" without saying forty of what; if you are estimating the work, use 43, and if
+you are estimating the blast radius, use 98. Several sit inside loops over plan rows. Compute once per object and carry
+the result. Measure first: this is only worth doing where a profile shows it, and correctness matters more than the
+microseconds.
 
 **9d. Resolve the export format overlap.** `ExportBuildStandard` maps both `ClientHtml` and `Html` to the same output, which means the enumeration no longer says what it means. Either give the client document its own format or collapse the two.
 

@@ -6,11 +6,15 @@ The plan for making this maintainable and extensible is [docs/integration/ARCHIT
 
 ## Current work
 
-The follow-up independent safety review F1–F5 is implemented on the existing PR #9 branch. Read [the bounded change/validation record](SAFETY-REVIEW-2026-09-21.md): strict CA material-baseline checks, corrected enrolment contracts, blocked generic Autopilot assignments, beta-aware recovery verification, conservative application deployment assessment and fixed array caveats. No live operation or merge was performed. Historical catalogue and evidence compatibility remain constrained; do not adopt drift or replay Unknown writes.
+**Preview.13 / standard 2026.09.11 is merged and on integration.** Nothing is open and nothing is claimed.
 
-Preview.13 / standard 2026.09.11 is proposed in [PR #9](https://github.com/Willzy12h/M365-Buildstandards/pull/9), based on integration `d4e1e9a`. It fixes the independent review findings and adds visible prerequisites. Read [REVIEW-FIXES](REVIEW-FIXES.md) before testing or upgrading existing evidence. Implementation is pending PR review; no live tenant acceptance or merge is implied. Exact validation is recorded in [TESTING-EVIDENCE](TESTING-EVIDENCE.md).
+The independent safety review F1–F5 merged as PR #9 (`1021a23`). Read [the bounded change/validation record](SAFETY-REVIEW-2026-09-21.md): strict CA material-baseline checks, corrected enrolment contracts, blocked generic Autopilot assignments, beta-aware recovery verification, conservative application deployment assessment and fixed array caveats. Read [REVIEW-FIXES](REVIEW-FIXES.md) before testing or upgrading existing evidence. Historical catalogue and evidence compatibility remain constrained; do not adopt drift or replay Unknown writes.
 
-Next: independent review of the safety changes, then human-authorised disposable-tenant acceptance. Do not start another automation batch first. Astra High is suitable for safety/architecture review; a separate Claude review offers independent scrutiny. Spark is suitable for bounded wording/layout work afterwards.
+Claude's review of that merge, and the fixes it produced, are in [POST-MERGE-REVIEW-2026-09-21.md](POST-MERGE-REVIEW-2026-09-21.md), merged as PR #12 (`e188d9e`): the headless runner now reads stored records through `EvidenceStore`, and the portable package ships a named operator document set rather than all of `docs/`. PR #13 (`55cb822`) brought the architecture roadmap back in step with the code.
+
+Astra then reviewed `55cb822` end to end and confirmed the build, the 542 synthetic tests, the package and the offline renders, with four documentation findings and no reproduced safety bypass. Its most useful result is one the source-scan conformance tests could not give: an executed parity check of the real `Workspace` assessment against the real CLI report, identical but for `id`, `assessedAt` and `assessedBy`. Those four findings are fixed in PR #14.
+
+**Next: human-authorised disposable-tenant acceptance.** No live validation has been performed — no tenant authentication, no Graph call, no device. The 542 synthetic tests prove safety logic against a scripted client, not that Microsoft accepts these payloads. `docs/LIVE-VALIDATION.md` is the staged checklist and is unexecuted. Do not start another automation batch before it. Two open questions need a person, not a model: whether the Plan table is usable by keyboard at 1180x760 and high DPI, and whether the narrow-render column clipping matters.
 
 ## Historical handover (superseded where above differs)
 

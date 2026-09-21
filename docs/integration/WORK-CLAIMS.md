@@ -16,7 +16,10 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-15 | Claude | M365-Buildstandards | interface review harness, documentation | `claude/github-repo-access-ygieh2` | #6 | Merged |
 | 2026-09-17 | Claude | M365-Buildstandards | build standard data (Windows Hello, standard 2026.09.10) | `claude/github-repo-access-ygieh2` | #7 | Merged |
 
-| 2026-09-18 | Astra/Codex | M365-Buildstandards | independent review corrections including confirmed F1–F5, safety, assessment, inputs, prerequisites | `astra/review-fixes` | #9 | Open |
+| 2026-09-18 | Astra/Codex | M365-Buildstandards | independent review corrections including confirmed F1–F5, safety, assessment, inputs, prerequisites | `astra/review-fixes` | #9 | Merged |
+| 2026-09-21 | Claude | M365-Buildstandards | headless runner record loading, packaging document set, review documentation | `claude/github-repo-access-ygieh2` | #12 | Merged |
+| 2026-09-21 | Claude | M365-Buildstandards | architecture roadmap accuracy | `claude/github-repo-access-ygieh2` | #13 | Merged |
+| 2026-09-21 | Claude | M365-Buildstandards | Astra review findings F1–F4: coverage IDs, packaged documentation links, roadmap corrections, claim records | `claude/github-repo-access-ygieh2` | #14 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
