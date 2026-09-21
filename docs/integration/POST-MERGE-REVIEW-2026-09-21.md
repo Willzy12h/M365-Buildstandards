@@ -48,6 +48,23 @@ asks the client to allow that one path or hash in application control. A second 
 everything `bdit` does — assess a stored snapshot, write the client document — the application already does with a
 window. Revisit this only when W4 gives it a job an engineer cannot do from the desktop.
 
+## Validation of the fixes
+
+CI run 79 on `a3256c3d7b8c09871856bacfcb95efb9ab225c0b`, all three jobs green
+([run](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/35576175946)).
+
+| Check | Result |
+| --- | --- |
+| `dotnet build BDIT.TenantToolkit.sln -c Release` | Succeeded, 0 warnings, 0 errors |
+| `dotnet test tests/BDIT.TenantToolkit.Tests -c Release` | 542 passed, 0 failed, 0 skipped (539 before; the three added here) |
+| `./build/Build-Portable.ps1 -SkipTests` | 278 files listed, SHA-256 `7f8a409c5cb4ecb2b57017ae4e1e33a02fb565220461e0a71fff814695cd56ef` |
+| Offline WPF harness | 44 renders across 28 page/size combinations, 0 binding issues |
+| `standard` job — catalogue JSON and no enforcing CA recipe | Passed |
+| `secrets` job — no tenant evidence or client IDs | Passed |
+
+The package fell from 304 files to 278. Those 26 are the internal documents that are no longer shipped: `docs/` holds
+36 files and the package now stages 10 of them.
+
 ## Limits of this pass
 
 - The authoring sandbox cannot run .NET; every executed-test result cited here comes from CI on Windows, not from a
