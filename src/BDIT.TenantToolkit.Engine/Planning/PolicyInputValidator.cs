@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.Engine.Planning;
@@ -9,8 +10,8 @@ public static class PolicyInputValidator
 {
     public static void ValidateUsed(JsonObject template, StandardCatalogue standard, IReadOnlyDictionary<string, JsonNode?> values)
     {
-        var json = template.ToJsonString();
-        foreach (var p in standard.Parameters.Where(p => json.Contains("{{" + p.Key + "}}", StringComparison.Ordinal)))
+        var used = ParameterUsage.Keys(template);
+        foreach (var p in standard.Parameters.Where(p => used.Contains(p.Key)))
         {
             if (!values.TryGetValue(p.Key, out var value) || value is null) continue; // Resolver reports missing inputs.
             var valid = p.Type switch

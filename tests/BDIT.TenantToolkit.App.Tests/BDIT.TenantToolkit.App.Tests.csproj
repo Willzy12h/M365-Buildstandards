@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The application project holds real orchestration logic - which client is selected, whether a snapshot may be
+    deployed from, when a plan is invalidated - and none of it could be tested from BDIT.TenantToolkit.Tests, which
+    targets net8.0 and cannot reference a WPF assembly. This project exists to close that gap. It tests services and
+    view models, never windows: nothing here requires a UI thread or a running Application.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>BDIT.TenantToolkit.App.Tests</AssemblyName>
+    <RootNamespace>BDIT.TenantToolkit.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1861;CA1305</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      WPF's implicit usings include System.Windows.Shapes, whose Path collides with System.IO.Path and makes every
+      Path.Combine in the shared test support ambiguous. The alias settles it; the Remove keeps the namespace out.
+    -->
+    <Using Remove="System.Windows.Shapes" />
+    <Using Include="System.IO.Path" Alias="Path" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One definition of the synthetic tenant, shared rather than duplicated. -->
+    <Compile Include="..\BDIT.TenantToolkit.Tests\TestSupport.cs" Link="TestSupport.cs" />
+  </ItemGroup>
+</Project>

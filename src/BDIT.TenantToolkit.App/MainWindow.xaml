@@ -49,7 +49,7 @@
                     <Style.Triggers><DataTrigger Binding="{Binding Key}" Value="history"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
                   </Style></TextBlock.Style>
                 </TextBlock>
-                <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="12,11" Margin="0,0,0,4" BorderThickness="1">
+                <Button AutomationProperties.Name="{Binding Title}" Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="12,11" Margin="0,0,0,4" BorderThickness="1">
                   <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                     <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/>
                     <Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True">
@@ -107,7 +107,7 @@
       <Expander DockPanel.Dock="Top" Header="Connection details" Background="White" Padding="28,3" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}">
         <DockPanel Margin="0,8,0,6">
           <Button DockPanel.Dock="Right" Content="Copy details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top"/>
-          <TextBox Text="{Binding DetailsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" MaxHeight="180" Margin="0,0,12,0"/>
+          <TextBox AutomationProperties.Name="Connection details" Text="{Binding DetailsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" MaxHeight="180" Margin="0,0,12,0"/>
         </DockPanel>
       </Expander>
       <Border DockPanel.Dock="Top" Background="{StaticResource DangerBg}" BorderBrush="#EDBEC1" BorderThickness="0,0,0,1" Padding="28,12" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
@@ -119,12 +119,12 @@
       <Border DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="28,12" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Cancel operation" Command="{Binding CancelOperationCommand}" Style="{StaticResource SecondaryButton}" Margin="16,0,0,0"/>
-          <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="88" Height="5" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,18,0"/>
+          <ProgressBar AutomationProperties.Name="Operation in progress" DockPanel.Dock="Left" IsIndeterminate="True" Width="88" Height="5" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,18,0"/>
           <StackPanel><TextBlock Text="{Binding BusyMessage}" FontWeight="SemiBold"/><TextBlock Text="{Binding ProgressDetail}" Style="{StaticResource Muted}" Margin="0,3,0,0"/></StackPanel>
         </DockPanel>
       </Border>
       <Expander DockPanel.Dock="Bottom" Header="Activity log" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,8" IsExpanded="False">
-        <ListBox ItemsSource="{Binding Activity}" Height="160" FontFamily="Consolas" FontSize="11" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+        <ListBox AutomationProperties.Name="Activity log" ItemsSource="{Binding Activity}" Height="160" FontFamily="Consolas" FontSize="11" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto">
           <ListBox.ItemTemplate><DataTemplate><TextBlock TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"><Run Text="{Binding At, Mode=OneWay}"/>  <Run Text="{Binding Level, Mode=OneWay}"/>  <Run Text="{Binding Category, Mode=OneWay}"/>: <Run Text="{Binding Message, Mode=OneWay}"/></TextBlock></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
       </Expander>

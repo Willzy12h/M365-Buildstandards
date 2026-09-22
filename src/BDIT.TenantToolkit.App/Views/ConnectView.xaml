@@ -27,18 +27,18 @@
                 <StackPanel Grid.Column="2"><TextBlock Text="Deployment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditDeploymentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Deployment client ID"/></StackPanel>
               </Grid>
               <WrapPanel><Button Content="Set up or validate applications" Command="{Binding OpenSetupCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy configured application details" Command="{Binding CopyApplicationCommand}" Style="{StaticResource QuietButton}"/></WrapPanel>
-              <TextBox Text="{Binding ApplicationText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/>
+              <TextBox AutomationProperties.Name="Deployment application (client) ID" Text="{Binding ApplicationText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/>
             </StackPanel>
           </Expander>
           <Expander Header="Notes and policy parameters" Margin="0,0,0,12">
             <StackPanel Margin="0,12,0,0">
               <TextBlock Text="Resolve named accounts in the exclusions section below. Existing account IDs can also be retained here." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
-              <TextBlock Text="Emergency-access account IDs (comma separated)" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditEmergencyIds, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-              <TextBlock Text="Office named location ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditOfficeLocationId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-              <TextBlock Text="Approved MAM-only group ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditMamGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-              <TextBlock Text="Pilot group ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditPilotGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-              <TextBlock Text="Conditional Access exclusion group ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditCaExclusionGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-              <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="75" TextWrapping="Wrap"/>
+              <TextBlock Text="Emergency-access account IDs (comma separated)" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Emergency-access account IDs" Text="{Binding EditEmergencyIds, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+              <TextBlock Text="Office named location ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Office named location ID" Text="{Binding EditOfficeLocationId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+              <TextBlock Text="Approved MAM-only group ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Approved MAM-only group ID" Text="{Binding EditMamGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+              <TextBlock Text="Pilot group ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Pilot group ID" Text="{Binding EditPilotGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+              <TextBlock Text="Conditional Access exclusion group ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Conditional Access exclusion group ID" Text="{Binding EditCaExclusionGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+              <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Client notes" Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="75" TextWrapping="Wrap"/>
             </StackPanel>
           </Expander>
           <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
@@ -54,10 +54,10 @@
           <TextBlock Text="Deployment uses a separate write-capable sign-in. Tenant changes still require a reviewed plan, complete before-change evidence and tenant confirmation." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
           <Expander Header="Access check results">
             <StackPanel Margin="0,10,0,0">
-              <TextBox Text="{Binding AccessSummary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}"/><Button Content="Copy access check" Command="{Binding CopyAccessCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
+              <TextBox AutomationProperties.Name="Access check summary" Text="{Binding AccessSummary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}"/><Button Content="Copy access check" Command="{Binding CopyAccessCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
               <TextBlock Text="Observed directory roles" Style="{StaticResource FieldLabel}"/><ItemsControl ItemsSource="{Binding AccessRoles}" Margin="0,0,0,12"/>
-              <DataGrid ItemsSource="{Binding AccessReads}" MaxHeight="300" Margin="0,0,0,12"><DataGrid.Columns><DataGridTextColumn Header="Read collection" Binding="{Binding Label}" Width="220"/><DataGridTextColumn Header="Scope" Binding="{Binding Scope}" Width="260"/><DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="110"/><DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/></DataGrid.Columns></DataGrid>
-              <DataGrid ItemsSource="{Binding AccessWrites}" MaxHeight="250" Margin="0,0,0,12"><DataGrid.Columns><DataGridTextColumn Header="Write capability" Binding="{Binding Label}" Width="220"/><DataGridTextColumn Header="Scope" Binding="{Binding Scope}" Width="260"/><DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="110"/><DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/></DataGrid.Columns></DataGrid>
+              <DataGrid AutomationProperties.Name="Read access check results" ItemsSource="{Binding AccessReads}" MaxHeight="300" Margin="0,0,0,12"><DataGrid.Columns><DataGridTextColumn Header="Read collection" Binding="{Binding Label}" Width="220"/><DataGridTextColumn Header="Scope" Binding="{Binding Scope}" Width="260"/><DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="110"/><DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/></DataGrid.Columns></DataGrid>
+              <DataGrid AutomationProperties.Name="Write capability check results" ItemsSource="{Binding AccessWrites}" MaxHeight="250" Margin="0,0,0,12"><DataGrid.Columns><DataGridTextColumn Header="Write capability" Binding="{Binding Label}" Width="220"/><DataGridTextColumn Header="Scope" Binding="{Binding Scope}" Width="260"/><DataGridTextColumn Header="Result" Binding="{Binding Status}" Width="110"/><DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/></DataGrid.Columns></DataGrid>
               <ItemsControl ItemsSource="{Binding AccessNotes}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Style="{StaticResource Muted}" Margin="0,3,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
             </StackPanel>
           </Expander>

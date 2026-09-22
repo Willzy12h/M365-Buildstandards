@@ -5,6 +5,13 @@ using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
 
+/// <summary>
+/// How a report is written. <see cref="ClientHtml"/> is the odd one out: it names an audience rather than a file
+/// format, and it applies only to an assessment, which can be written for the engineer or summarised for the client.
+/// The build standard document has one audience by definition, so it takes <see cref="Html"/> or
+/// <see cref="Markdown"/> and nothing else; letting it also accept ClientHtml made the two mean the same thing there
+/// and the enum stopped saying what it meant.
+/// </summary>
 public enum ExportFormat { Html, Markdown, Json, Csv, Xlsx, ClientHtml }
 
 /// <summary>Writes reports to the reports folder with deterministic, filesystem-safe names.</summary>
@@ -100,7 +107,7 @@ public sealed class ReportExporter
         var iso = Timestamps.Format(now);
         return format switch
         {
-            ExportFormat.ClientHtml or ExportFormat.Html =>
+            ExportFormat.Html =>
                 WriteText(Target("build-standard", client + "-" + standard.Release, iso, "html"),
                     BuildStandardDocument.Html(standard, client, _companyName, date)),
             ExportFormat.Markdown =>

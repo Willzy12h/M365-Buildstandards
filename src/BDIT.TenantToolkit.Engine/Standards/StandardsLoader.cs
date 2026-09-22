@@ -165,6 +165,11 @@ public sealed partial class StandardsLoader
                     if (string.IsNullOrWhiteSpace(signal.Label)) throw new ConfigurationException($"Control {control.Id} signal '{signal.Key}' has no label; the label is quoted verbatim in reports.");
                     if (string.IsNullOrWhiteSpace(signal.Path)) throw new ConfigurationException($"Control {control.Id} signal '{signal.Key}' has no path.");
                     if (!signalKeys.Add(signal.Key)) throw new ConfigurationException($"Control {control.Id} has a duplicate equivalence signal key '{signal.Key}'.");
+                    // An ungrouped required signal is given a synthetic group key prefixed with a control character.
+                    // A declared group containing one could collide with it and merge two independent requirements
+                    // into a single alternative, which reports coverage the tenant does not have.
+                    if (signal.Group is not null && signal.Group.Any(char.IsControl))
+                        throw new ConfigurationException($"Control {control.Id} signal '{signal.Key}' declares a group containing a control character. Group names must be printable.");
                     var needsValue = signal.Operator is not (SignalOperator.Present or SignalOperator.Absent or SignalOperator.NonEmpty or SignalOperator.Empty);
                     if (needsValue && signal.Value is null)
                         throw new ConfigurationException($"Control {control.Id} signal '{signal.Key}' uses {signal.Operator} but declares no value.");

@@ -158,8 +158,8 @@ public static class Program
         var context = Context.Open(options);
         var standard = context.Standard();
         var client = Require(options, "client");
-        var format = Format(options, ExportFormat.ClientHtml);
-        if (format is not (ExportFormat.ClientHtml or ExportFormat.Html or ExportFormat.Markdown))
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Markdown))
             throw new ConfigurationException("The build standard document is written as html or markdown.");
 
         Console.WriteLine("Document: " + context.Exporter.ExportBuildStandard(standard, client, DateTimeOffset.UtcNow, format));

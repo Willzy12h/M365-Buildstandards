@@ -93,10 +93,20 @@ public sealed class AutomationViewModel : PageViewModel
     public string TypedTenant { get => _typedTenant; set => SetProperty(ref _typedTenant, value); }
     public bool Approved { get => _approved; set => SetProperty(ref _approved, value); }
     public string Result { get => _result; private set => SetProperty(ref _result, value); }
-    public string Requirements => SelectedControl is null ? "Select a control to see its required inputs." :
-        SelectedControl.Id + " · " + SelectedControl.DesiredState + "\n" + SelectedControl.DocumentationNotes + "\n" +
-        string.Join("\n", Workspace.RequireStandard().Parameters.Where(p => SelectedControl.Payload?.ToJsonString().Contains("{{" + p.Key + "}}", StringComparison.Ordinal) == true)
-            .Select(p => p.Key + " (" + p.Type + "): " + p.Description));
+    public string Requirements
+    {
+        get
+        {
+            if (SelectedControl is null) return "Select a control to see its required inputs.";
+            // A property read re-serialised the payload once per parameter on every change notification.
+            var used = ParameterUsage.Keys(SelectedControl.Payload);
+            var inputs = Workspace.RequireStandard().Parameters
+                .Where(p => used.Contains(p.Key))
+                .Select(p => p.Key + " (" + p.Type + "): " + p.Description);
+            return SelectedControl.Id + " · " + SelectedControl.DesiredState + "\n" + SelectedControl.DocumentationNotes + "\n"
+                + string.Join("\n", inputs);
+        }
+    }
     public string PreviewText => _plan is not null ? ToolkitJson.Serialize(_plan) : _lapsPlan is not null ? ToolkitJson.Serialize(_lapsPlan) : _packagePlan is not null ? ToolkitJson.Serialize(_packagePlan) : "Preview a change to inspect exact before/after settings, targets, tenant and consequences.";
     private void ClearApproval() { _plan = null; _lapsPlan = null; _packagePlan = null; Approved = false; TypedTenant = ""; OnPropertyChanged(nameof(PreviewText)); }
     private static IEnumerable<string> Ids(string text) => text.Split(new[] { ',', ';', '\r', '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries);

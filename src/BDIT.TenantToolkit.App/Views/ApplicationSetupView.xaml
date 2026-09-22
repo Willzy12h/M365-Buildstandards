@@ -37,7 +37,7 @@
           <DataGrid ItemsSource="{Binding PlanRows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" MaxHeight="230" Margin="0,0,0,16" AutomationProperties.Name="Proposed applications"><DataGrid.Columns><DataGridTextColumn Header="Application" Binding="{Binding DisplayName}" Width="250"/><DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="120"/><DataGridTextColumn Header="Action" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
           <TextBlock Text="Permissions for the selected application" Style="{StaticResource FieldLabel}"/>
           <DataGrid ItemsSource="{Binding Permissions}" MaxHeight="360" Margin="0,0,0,12" AutomationProperties.Name="Requested delegated permissions"><DataGrid.Columns><DataGridTextColumn Header="Permission" Binding="{Binding Name}" Width="300"/><DataGridTextColumn Header="What it permits" Binding="{Binding Description}" Width="*"/><DataGridCheckBoxColumn Header="Admin consent" Binding="{Binding AdminConsentRequired}" Width="115"/></DataGrid.Columns></DataGrid>
-          <Expander Header="Exact application registration payload"><TextBox Text="{Binding SelectedPayload, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" Height="260" Margin="0,10,0,0"/></Expander>
+          <Expander Header="Exact application registration payload"><TextBox AutomationProperties.Name="Permissions for the selected application" Text="{Binding SelectedPayload, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" Height="260" Margin="0,10,0,0"/></Expander>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">
@@ -96,7 +96,7 @@
           <WrapPanel><Button Content="Continue read-only" Command="{Binding ContinueAssessmentCommand}"/><Button Content="Continue to deployment" Command="{Binding ContinueDeploymentCommand}" Style="{StaticResource WarningButton}"/><Button Content="Check delegated-admin deployment access" Command="{Binding CheckDelegatedAdminCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Return to connection details" Command="{Binding ApplyIdsCommand}" Style="{StaticResource QuietButton}"/></WrapPanel>
         </StackPanel>
       </Border>
-      <Border Style="{StaticResource Card}" Background="{StaticResource AccentSoft}"><StackPanel><TextBlock Text="SETUP OUTCOME &amp; NEXT STEPS" Style="{StaticResource Eyebrow}"/><TextBox Text="{Binding Outcome, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Background="Transparent" Padding="0" Margin="0"/></StackPanel></Border>
+      <Border Style="{StaticResource Card}" Background="{StaticResource AccentSoft}"><StackPanel><TextBlock Text="SETUP OUTCOME &amp; NEXT STEPS" Style="{StaticResource Eyebrow}"/><TextBox AutomationProperties.Name="Setup outcome and next steps" Text="{Binding Outcome, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Background="Transparent" Padding="0" Margin="0"/></StackPanel></Border>
     </StackPanel>
   </ScrollViewer>
 </UserControl>
