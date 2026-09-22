@@ -26,10 +26,18 @@ public class WorkspaceTests : IDisposable
     public WorkspaceTests()
     {
         _root.WriteStandard("test.json", TestData.StandardJson);
+        // The loader verifies each release against the standards manifest, so a catalogue without one is refused.
+        // That is the point of the manifest, and it means the fixture has to generate one like a real installation.
+        _root.WriteManifest();
         _logger = new ToolkitLogger(_root.Paths.LogsDirectory, LogLevel.Debug);
         _workspace = new Workspace(_root.Paths, new ToolkitSettings(), _logger, diagnostics: true);
         _workspace.Initialise();
+        // Fail here with the reason rather than leaving every test to trip over a null standard.
+        if (_workspace.Standard is null)
+            throw new InvalidOperationException("The synthetic standard did not load: " + _workspace.StandardError);
     }
+
+    private StandardCatalogue Standard => _workspace.Standard!;
 
     public void Dispose()
     {
@@ -78,8 +86,7 @@ public class WorkspaceTests : IDisposable
     {
         var profile = TestData.Profile();
         _workspace.ApplyProfileToSession(profile, save: false);
-        var standard = _workspace.Standard ?? throw new InvalidOperationException("The synthetic standard did not load.");
-        var stored = TestData.Snapshot(standard);
+        var stored = TestData.Snapshot(Standard);
         _workspace.Evidence.SaveSnapshot(stored);
 
         _workspace.LoadStoredSnapshot(stored.Id);
@@ -100,8 +107,7 @@ public class WorkspaceTests : IDisposable
     {
         var profile = TestData.Profile();
         _workspace.ApplyProfileToSession(profile, save: false);
-        var standard = _workspace.Standard!;
-        var stored = TestData.Snapshot(standard);
+        var stored = TestData.Snapshot(Standard);
         _workspace.Evidence.SaveSnapshot(stored);
 
         _workspace.LoadStoredSnapshot(stored.Id);
