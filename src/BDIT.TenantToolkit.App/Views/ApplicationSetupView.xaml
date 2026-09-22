@@ -21,7 +21,7 @@
           </StackPanel></Border>
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Target tenant ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TenantId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Application setup tenant ID"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Application name prefix" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding NamePrefix, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Application name prefix"/></StackPanel></Grid>
           <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
-          <CheckBox IsChecked="{Binding SetupApproved, Mode=TwoWay}"><TextBlock Text="I authorise a privileged setup sign-in for this tenant to inspect and prepare application registrations."/></CheckBox>
+          <CheckBox AutomationProperties.Name="I authorise a privileged setup sign-in for this tenant" IsChecked="{Binding SetupApproved, Mode=TwoWay}"><TextBlock Text="I authorise a privileged setup sign-in for this tenant to inspect and prepare application registrations."/></CheckBox>
           <WrapPanel><Button Content="Sign in for application setup" Command="{Binding ConnectCommand}" Style="{StaticResource WarningButton}"/><Button Content="Disconnect setup session" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
         </StackPanel>
       </Border>
@@ -32,7 +32,7 @@
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
             <StackPanel><TextBlock Text="Assessment Tool — existing client ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding AssessmentClientId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Existing assessment tool ID"/></StackPanel>
             <StackPanel Grid.Column="2"><TextBlock Text="Deployment Tool — existing client ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding DeploymentClientId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Existing deployment tool ID"/></StackPanel></Grid>
-          <CheckBox IsChecked="{Binding AssignOperator, Mode=TwoWay}"><TextBlock Text="Include assigning the signed-in setup engineer to both enterprise apps (does not grant administrator roles)."/></CheckBox>
+          <CheckBox AutomationProperties.Name="Include assigning the signed-in setup engineer to both enterprise apps" IsChecked="{Binding AssignOperator, Mode=TwoWay}"><TextBlock Text="Include assigning the signed-in setup engineer to both enterprise apps (does not grant administrator roles)."/></CheckBox>
           <TextBlock Text="{Binding PlanSummary}" Style="{StaticResource Muted}" Margin="0,10,0,16"/>
           <DataGrid ItemsSource="{Binding PlanRows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" MaxHeight="230" Margin="0,0,0,16" AutomationProperties.Name="Proposed applications"><DataGrid.Columns><DataGridTextColumn Header="Application" Binding="{Binding DisplayName}" Width="250"/><DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="120"/><DataGridTextColumn Header="Action" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
           <TextBlock Text="Permissions for the selected application" Style="{StaticResource FieldLabel}"/>
@@ -44,7 +44,7 @@
         <StackPanel>
           <TextBlock Text="3  Approve setup changes" Style="{StaticResource H2}"/>
           <TextBlock Text="Review both applications and their permissions above. Existing IDs permit only the displayed dedicated-tool repairs. Each write has before-change evidence and a recorded outcome; name matches alone never establish ownership." Style="{StaticResource Muted}" Margin="0,0,0,16"/>
-          <CheckBox IsChecked="{Binding PermissionsApproved, Mode=TwoWay}"><TextBlock Text="I approve the previewed registration changes, delegated permission configuration, branding and selected engineer assignment."/></CheckBox>
+          <CheckBox AutomationProperties.Name="I approve the previewed registration changes" IsChecked="{Binding PermissionsApproved, Mode=TwoWay}"><TextBlock Text="I approve the previewed registration changes, delegated permission configuration, branding and selected engineer assignment."/></CheckBox>
           <TextBlock Text="Type the target tenant ID in full" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Confirmation, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Confirm application setup tenant ID"/>
           <Button Content="Apply approved setup" Command="{Binding CreateCommand}" HorizontalAlignment="Left"/><TextBlock Text="Each application shows its full outcome and every configuration, icon and engineer-assignment write. Creation results apply only to new apps." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
           <ItemsControl ItemsSource="{Binding Results}" Margin="0,10,0,0" AutomationProperties.Name="Application setup results"><ItemsControl.ItemTemplate><DataTemplate>
