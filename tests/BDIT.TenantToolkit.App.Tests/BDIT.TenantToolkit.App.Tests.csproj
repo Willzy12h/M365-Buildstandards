@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The application project holds real orchestration logic - which client is selected, whether a snapshot may be
+    deployed from, when a plan is invalidated - and none of it could be tested from BDIT.TenantToolkit.Tests, which
+    targets net8.0 and cannot reference a WPF assembly. This project exists to close that gap. It tests services and
+    view models, never windows: nothing here requires a UI thread or a running Application.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>BDIT.TenantToolkit.App.Tests</AssemblyName>
+    <RootNamespace>BDIT.TenantToolkit.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1861;CA1305</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      The WPF SDK drops System.IO from the implicit usings precisely because System.Windows.Shapes.Path collides with
+      System.IO.Path - which is why Workspace.cs and the interface harness both import System.IO by hand. The shared
+      test support is compiled here as a link and cannot carry a per-project using, so the namespace is restored here
+      and the collision settled with an alias rather than by asking every linked file to disambiguate.
+    -->
+    <Using Remove="System.Windows.Shapes" />
+    <Using Include="System.IO" />
+    <Using Include="System.IO.Path" Alias="Path" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One definition of the synthetic tenant, shared rather than duplicated. -->
+    <Compile Include="..\BDIT.TenantToolkit.Tests\TestSupport.cs" Link="TestSupport.cs" />
+  </ItemGroup>
+</Project>

@@ -3,6 +3,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Assessment;
+using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -216,6 +217,55 @@ public class EquivalenceTests
 
         Assert.Equal(FindingStatus.PartialMatch, finding.Status);
         Assert.Contains(finding.Equivalence, e => e.Covered);
+    }
+
+    /// <summary>
+    /// A required signal that declares no group is its own group, so that the default stays "every required signal
+    /// must match". That is implemented by prefixing the signal's key with a control character to make a synthetic
+    /// group name. If the prefix were dropped, an ungrouped signal keyed "mfa" and a signal declaring group "mfa"
+    /// would land in the same group and become alternatives, so satisfying either one alone would report coverage
+    /// the tenant does not have. This pins the separation rather than the prefix, because the prefix is an
+    /// implementation detail and the separation is the promise.
+    /// </summary>
+    [Fact]
+    public void An_ungrouped_signal_never_merges_with_a_group_that_shares_its_key()
+    {
+        var standard = TestData.Standard();
+        var control = standard.Controls.First(c => c.Id == "CA-001");
+        // "mfa" is an existing ungrouped required signal. This one declares "mfa" as its group and cannot match, so
+        // coverage is only reported if the two were wrongly treated as alternatives.
+        control.Equivalence!.Signals.Add(new EquivalenceSignal
+        {
+            Key = "mfaByStrength",
+            Label = "Requires an authentication strength",
+            Path = "grantControls.authenticationStrength",
+            Operator = SignalOperator.Present,
+            Group = "mfa"
+        });
+
+        var snapshot = TestData.Snapshot(standard);
+        snapshot.Collections["conditionalAccess"].Items.Add(ClientMfaPolicy());
+        var finding = Engine.Assess(snapshot, standard, TestData.Profile(), TestData.Mappings(), Array.Empty<Deviation>(), "t")
+            .Findings.First(f => f.ControlId == "CA-001");
+
+        Assert.DoesNotContain(finding.Equivalence, e => e.Covered);
+    }
+
+    /// <summary>
+    /// The separation above holds only while a catalogue cannot declare a group that collides with the synthetic
+    /// prefix, so the loader refuses one. A control character in a group name has no legitimate use.
+    /// </summary>
+    [Fact]
+    public void A_group_name_containing_a_control_character_is_refused()
+    {
+        var json = TestData.StandardJson.Replace(
+            "{ \"key\": \"mfa\", \"label\": \"Requires multi-factor authentication\", \"path\": \"grantControls.builtInControls\", \"operator\": \"containsAny\", \"value\": [ \"mfa\" ] }",
+            "{ \"key\": \"mfa\", \"label\": \"Requires multi-factor authentication\", \"path\": \"grantControls.builtInControls\", \"operator\": \"containsAny\", \"value\": [ \"mfa\" ], \"group\": \"\\u0000ungrouped:allUsers\" }",
+            StringComparison.Ordinal);
+        Assert.Contains("ungrouped", json, StringComparison.Ordinal);
+
+        var error = Assert.Throws<ConfigurationException>(() => StandardsLoader.Parse(json, "test.json"));
+        Assert.Contains("must be printable", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

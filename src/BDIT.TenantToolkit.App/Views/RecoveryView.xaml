@@ -5,7 +5,7 @@
     <TextBlock Text="Inspect every recorded policy write. Preview the exact object and consequences before removing a toolkit-created policy, restoring its latest supported update or disabling an unexpectedly active Conditional Access candidate." Style="{StaticResource Lead}"/>
     <Border Style="{StaticResource Card}"><StackPanel>
       <DockPanel><Button DockPanel.Dock="Right" Content="Load change register" Command="{Binding LoadRegisterCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="Durable change register" Style="{StaticResource H2}"/></DockPanel>
-      <DataGrid ItemsSource="{Binding Changes}" SelectedItem="{Binding Selected}" Height="230" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+      <DataGrid AutomationProperties.Name="Durable change register" ItemsSource="{Binding Changes}" SelectedItem="{Binding Selected}" Height="230" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
           <DataGridTextColumn Header="Policy" Binding="{Binding Name}" Width="*"/>
@@ -35,8 +35,8 @@
       <TextBlock Text="Review the recovery action" Style="{StaticResource H2}"/>
       <TextBlock Text="{Binding PreviewText}"/>
       <TabControl Margin="0,14,0,12" Height="260">
-        <TabItem Header="Current object"><TextBox Text="{Binding CurrentSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
-        <TabItem Header="Restoration / containment settings"><TextBox Text="{Binding RestorationSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
+        <TabItem Header="Current object"><TextBox AutomationProperties.Name="Current settings" Text="{Binding CurrentSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
+        <TabItem Header="Restoration / containment settings"><TextBox AutomationProperties.Name="Settings to restore" Text="{Binding RestorationSettings, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"/></TabItem>
       </TabControl>
       <StackPanel IsEnabled="{Binding Workspace.Idle}">
         <CheckBox Content="I have reviewed the exact object, targeting, exclusions and recovery consequences." IsChecked="{Binding Approved}"/>

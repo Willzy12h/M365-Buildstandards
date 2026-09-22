@@ -214,7 +214,8 @@ public static class CanonicalJson
         return node;
     }
 
-    private static bool IsIdentifier(string key) => key.Length > 0 && key.All(c => char.IsLetterOrDigit(c) || c == '_');
+    /// <summary>Shared with <see cref="ParameterUsage"/> so detection and resolution agree on what a placeholder is.</summary>
+    internal static bool IsIdentifier(string key) => key.Length > 0 && key.All(c => char.IsLetterOrDigit(c) || c == '_');
 
     /// <summary>Flattens an object into dotted leaf paths, which is how property-level differences are reported.</summary>
     public static IReadOnlyList<(string Path, JsonNode? Value)> Leaves(JsonNode? node, string prefix = "")

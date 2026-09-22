@@ -23,7 +23,7 @@ public static class PolicyInputDefaults
 
     public static Applied Apply(JsonObject payload, StandardCatalogue standard, IReadOnlyDictionary<string, JsonNode?> values, DateTimeOffset now)
     {
-        var json = payload.ToJsonString();
+        var used = ParameterUsage.Keys(payload);
         Dictionary<string, JsonNode?>? merged = null;
         var warnings = new List<string>();
 
@@ -31,7 +31,7 @@ public static class PolicyInputDefaults
         {
             if (!parameter.HasDefault) continue;
             AssertReviewable(parameter);
-            if (!json.Contains("{{" + parameter.Key + "}}", StringComparison.Ordinal)) continue;
+            if (!used.Contains(parameter.Key)) continue;
             if (values.TryGetValue(parameter.Key, out var supplied) && supplied is not null) continue;
 
             merged ??= new Dictionary<string, JsonNode?>(values, StringComparer.Ordinal);
@@ -74,7 +74,8 @@ public static class PolicyInputDefaults
         {
             if (template is JsonValue value && value.TryGetValue<string>(out var text))
             {
-                var used = parameters.Where(p => text.Contains("{{" + p.Key + "}}", StringComparison.Ordinal)).ToArray();
+                var referenced = ParameterUsage.Keys(value);
+                var used = parameters.Where(p => referenced.Contains(p.Key)).ToArray();
                 if (used.Length == 0) return;
                 var confirmed = CanonicalJson.Resolve(template, values, allowedEmptyArrays);
                 if (!CanonicalJson.IsSubset(recorded, confirmed) || !CanonicalJson.IsSubset(confirmed, recorded))

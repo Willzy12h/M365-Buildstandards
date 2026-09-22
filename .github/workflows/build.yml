@@ -40,6 +40,11 @@ jobs:
       - name: Test
         run: dotnet test tests/BDIT.TenantToolkit.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
 
+      # The application's own logic - which client is selected, whether a capture may be deployed from - lives in a
+      # WPF assembly the engine test project cannot reference, so it has its own project on the Windows runner.
+      - name: Test the application
+        run: dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release --no-build --logger "trx;LogFileName=app-tests.trx" --results-directory TestResults
+
       - name: Build portable Windows package
         shell: pwsh
         run: ./build/Build-Portable.ps1 -SkipTests

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -90,6 +91,7 @@ internal static class Program
                     var visualCount = Descendants(content).Count();
                     var controls = Descendants(content).OfType<UserControl>().ToList();
                     if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
+                    AssertAccessibleNames(content, nav.Key);
                     if (focus.Contains(nav.Key))
                     {
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
@@ -150,7 +152,7 @@ internal static class Program
             if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
                 throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
-            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
             Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
@@ -371,6 +373,32 @@ internal static class Program
                 bounds.Intersect(frame.TransformToAncestor(root).TransformBounds(new Rect(frame.RenderSize)));
         }
         return bounds;
+    }
+
+    /// <summary>
+    /// Every control an engineer can operate must announce what it is. A screen reader reads the accessible name; with
+    /// none, a grid of deployment runs and a grid of licence assignments are both announced as "data grid", and the
+    /// engineer cannot tell which one they are in.
+    ///
+    /// This asks the automation peer rather than reading the XAML attribute, because that is what the screen reader
+    /// asks. A button whose content is text already answers from its content and needs nothing; a button whose content
+    /// is a panel, like the navigation items, does not.
+    /// </summary>
+    private static void AssertAccessibleNames(FrameworkElement content, string page)
+    {
+        var unnamed = new List<string>();
+        foreach (var element in Descendants(content).OfType<FrameworkElement>())
+        {
+            if (element is not (TextBox or PasswordBox or ComboBox or ListBox or DataGrid or CheckBox or RadioButton)) continue;
+            if (!element.IsVisible) continue;
+            var peer = UIElementAutomationPeer.CreatePeerForElement(element);
+            if (!string.IsNullOrWhiteSpace(peer?.GetName())) continue;
+            unnamed.Add(element.GetType().Name + (string.IsNullOrEmpty(element.Name) ? "" : " '" + element.Name + "'"));
+        }
+        if (unnamed.Count > 0)
+            throw new InvalidOperationException(
+                $"{page}: {unnamed.Count} control(s) announce only their type to a screen reader. Give each an "
+                + $"AutomationProperties.Name, or text content: {string.Join(", ", unnamed)}");
     }
 
     private static void AssertUsableControlList(FrameworkElement content, string page)

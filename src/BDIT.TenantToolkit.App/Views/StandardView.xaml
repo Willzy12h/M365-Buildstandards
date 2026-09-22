@@ -16,10 +16,10 @@
           <TextBlock Text="{Binding HeaderText}"/>
           <WrapPanel Margin="0,10,0,0">
             <TextBlock Text="Release" VerticalAlignment="Center" Margin="0,0,6,10"/>
-            <ComboBox ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease, Mode=TwoWay}" DisplayMemberPath="Release" Width="180" Margin="0,0,12,10"/>
+            <ComboBox AutomationProperties.Name="Build Standard release" ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease, Mode=TwoWay}" DisplayMemberPath="Release" Width="180" Margin="0,0,12,10"/>
             <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" Style="{StaticResource SecondaryButton}"/>
             <TextBlock Text="Category" VerticalAlignment="Center" Margin="12,0,6,10"/>
-            <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
+            <ComboBox AutomationProperties.Name="Control category" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
             <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
           </WrapPanel>
           <Expander Header="Export a client build standard document" IsExpanded="False" Margin="0,8,0,0">
@@ -58,9 +58,9 @@
       </ListBox>
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Selected standard detail"><StackPanel>
         <views:PrerequisitePanel Items="{Binding Selected.Prerequisites}"/>
-        <TextBox Text="{Binding Detail, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="{StaticResource BgPanel}" Padding="12"/>
+        <TextBox AutomationProperties.Name="Selected control detail" Text="{Binding Detail, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="{StaticResource BgPanel}" Padding="12"/>
         <TextBlock Text="Recipe template" Style="{StaticResource Muted}" Margin="0,8,0,4"/>
-        <TextBox Text="{Binding PayloadJson, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11" MinHeight="100" MaxHeight="360" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+        <TextBox AutomationProperties.Name="Control payload" Text="{Binding PayloadJson, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11" MinHeight="100" MaxHeight="360" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
       </StackPanel></ScrollViewer>
     </Grid>
   </Grid>

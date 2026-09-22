@@ -64,10 +64,10 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,14,0,0">
                   <StackPanel>
                     <TextBlock Text="EXACT CHANGE PREVIEW" Style="{StaticResource Eyebrow}"/>
-                    <TextBox Text="{Binding RowDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}"/>
+                    <TextBox AutomationProperties.Name="Exact change preview" Text="{Binding RowDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}"/>
                     <views:PrerequisitePanel Items="{Binding RowPrerequisites}"/>
                     <Border Background="{StaticResource WarnBg}" CornerRadius="5" Padding="12" Margin="0,0,0,12">
-                      <StackPanel><TextBlock Text="TARGETING &amp; PERSISTENT EXCLUSIONS" Style="{StaticResource Eyebrow}" Foreground="{StaticResource Warn}"/><TextBox Text="{Binding ExclusionsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Background="Transparent" Padding="0" Margin="0"/></StackPanel>
+                      <StackPanel><TextBlock Text="TARGETING &amp; PERSISTENT EXCLUSIONS" Style="{StaticResource Eyebrow}" Foreground="{StaticResource Warn}"/><TextBox AutomationProperties.Name="Targeting and persistent exclusions" Text="{Binding ExclusionsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Background="Transparent" Padding="0" Margin="0"/></StackPanel>
                     </Border>
                   </StackPanel>
                 </ScrollViewer>
@@ -75,8 +75,8 @@
               <TabItem Header="Exact payload">
               <Grid Margin="0,14,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <DockPanel><TextBlock DockPanel.Dock="Top" Text="Current object" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding BeforeJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>
-                <DockPanel Grid.Column="2"><TextBlock DockPanel.Dock="Top" Text="Payload to be written" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding PayloadJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>
+                <DockPanel><TextBlock DockPanel.Dock="Top" Text="Current object" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Current object" Text="{Binding BeforeJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>
+                <DockPanel Grid.Column="2"><TextBlock DockPanel.Dock="Top" Text="Payload to be written" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Payload to be written" Text="{Binding PayloadJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>
               </Grid>
               </TabItem>
             </TabControl>

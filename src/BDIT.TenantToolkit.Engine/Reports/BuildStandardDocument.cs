@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Json;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
 
@@ -41,10 +42,10 @@ public static class BuildStandardDocument
         var defaulted = new List<string>();
         if (control.Payload is null) return (required, defaulted);
 
-        var json = control.Payload.ToJsonString();
+        var used = ParameterUsage.Keys(control.Payload);
         foreach (var parameter in standard.Parameters)
         {
-            if (!json.Contains("{{" + parameter.Key + "}}", StringComparison.Ordinal)) continue;
+            if (!used.Contains(parameter.Key)) continue;
             if (string.Equals(parameter.Key, "tenantId", StringComparison.Ordinal)) continue;
             if (parameter.HasDefault) defaulted.Add(ClientText(parameter.Label) + " (default " + DefaultDescription(parameter.Default) + ")");
             else required.Add(parameter.Label);
@@ -137,9 +138,11 @@ public static class BuildStandardDocument
 
     private static void Outstanding(StringBuilder sb, StandardCatalogue standard)
     {
+        // Walk each control's payload once rather than re-serialising every payload for every parameter.
+        var referenced = ParameterUsage.KeysAcross(standard.Controls.Select(c => (JsonNode?)c.Payload));
         var inputs = standard.Parameters
             .Where(p => !p.HasDefault && !string.Equals(p.Key, "tenantId", StringComparison.Ordinal))
-            .Where(p => standard.Controls.Any(c => c.Payload is not null && c.Payload.ToJsonString().Contains("{{" + p.Key + "}}", StringComparison.Ordinal)))
+            .Where(p => referenced.Contains(p.Key))
             .ToList();
         if (inputs.Count == 0) return;
 

@@ -236,4 +236,24 @@ public class EvidenceAndReportTests
         Assert.Equal("test.example", ReportExporter.SafeName("test.example"));
         Assert.Equal("a_b", ReportExporter.SafeName("a/b"));
     }
+
+    /// <summary>
+    /// ClientHtml names an audience, not a file format, and only an assessment has two audiences. The build standard
+    /// document is a client document by definition, so it used to map ClientHtml and Html to the same output, which
+    /// left the enum saying nothing at that call. It now takes the formats it actually writes and refuses the rest.
+    /// </summary>
+    [Fact]
+    public void The_build_standard_document_takes_a_format_not_an_audience()
+    {
+        using var root = new TempRoot();
+        var exporter = new ReportExporter(root.Paths, "Blue Diamond IT");
+        var standard = TestData.Standard();
+        var now = new DateTimeOffset(2026, 9, 22, 9, 0, 0, TimeSpan.Zero);
+
+        Assert.True(File.Exists(exporter.ExportBuildStandard(standard, "Client", now, ExportFormat.Html)));
+        Assert.True(File.Exists(exporter.ExportBuildStandard(standard, "Client", now, ExportFormat.Markdown)));
+
+        foreach (var refused in new[] { ExportFormat.ClientHtml, ExportFormat.Json, ExportFormat.Csv, ExportFormat.Xlsx })
+            Assert.Throws<ArgumentOutOfRangeException>(() => exporter.ExportBuildStandard(standard, "Client", now, refused));
+    }
 }

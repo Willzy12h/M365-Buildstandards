@@ -19,7 +19,7 @@ public sealed class StandardViewModel : PageViewModel
     public StandardViewModel(ShellViewModel shell) : base(shell, "Build Standard")
     {
         SelectReleaseCommand = Sync(() => { if (SelectedRelease is not null && !Workspace.TrySelectStandard(SelectedRelease.FileName)) throw new Core.ConfigurationException(Workspace.StandardError ?? "Standard could not be loaded."); }, () => SelectedRelease is not null && Workspace.Idle);
-        ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.ClientHtml), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDocumentMarkdownCommand = Command(() => ExportDocument(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
         Refresh();
     }

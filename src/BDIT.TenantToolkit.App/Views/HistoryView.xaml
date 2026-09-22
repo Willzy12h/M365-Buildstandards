@@ -12,9 +12,9 @@
         <StackPanel>
           <WrapPanel>
             <TextBlock Text="Earlier capture" VerticalAlignment="Center" Margin="0,0,6,10"/>
-            <ComboBox ItemsSource="{Binding Snapshots}" SelectedItem="{Binding Before, Mode=TwoWay}" DisplayMemberPath="CapturedAt" Width="230" Margin="0,0,12,10"/>
+            <ComboBox AutomationProperties.Name="Earlier capture" ItemsSource="{Binding Snapshots}" SelectedItem="{Binding Before, Mode=TwoWay}" DisplayMemberPath="CapturedAt" Width="230" Margin="0,0,12,10"/>
             <TextBlock Text="Later capture" VerticalAlignment="Center" Margin="0,0,6,10"/>
-            <ComboBox ItemsSource="{Binding Snapshots}" SelectedItem="{Binding After, Mode=TwoWay}" DisplayMemberPath="CapturedAt" Width="230" Margin="0,0,12,10"/>
+            <ComboBox AutomationProperties.Name="Later capture" ItemsSource="{Binding Snapshots}" SelectedItem="{Binding After, Mode=TwoWay}" DisplayMemberPath="CapturedAt" Width="230" Margin="0,0,12,10"/>
             <Button Content="Compare" Command="{Binding CompareCommand}"/>
             <Button Content="Open earlier capture (offline)" Command="{Binding OpenSnapshotCommand}" Style="{StaticResource SecondaryButton}"/>
             <Button Content="Refresh lists" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}"/>
@@ -29,7 +29,7 @@
         </StackPanel>
       </Border>
       <TextBlock Text="Control status changes" Style="{StaticResource H2}"/>
-      <DataGrid ItemsSource="{Binding ControlChanges}" MaxHeight="220" Margin="0,4,0,10">
+      <DataGrid AutomationProperties.Name="Control status changes" ItemsSource="{Binding ControlChanges}" MaxHeight="220" Margin="0,4,0,10">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
           <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200"/>
@@ -45,7 +45,7 @@
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <DataGrid Grid.Column="0" ItemsSource="{Binding DriftItems}" SelectedItem="{Binding SelectedDriftItem, Mode=TwoWay}" MaxHeight="260" Margin="0,0,8,0">
+        <DataGrid AutomationProperties.Name="Object changes" Grid.Column="0" ItemsSource="{Binding DriftItems}" SelectedItem="{Binding SelectedDriftItem, Mode=TwoWay}" MaxHeight="260" Margin="0,0,8,0">
           <DataGrid.Columns>
             <DataGridTextColumn Header="Collection" Binding="{Binding CollectionLabel}" Width="150"/>
             <DataGridTextColumn Header="Object" Binding="{Binding Name}" Width="180"/>
@@ -54,7 +54,7 @@
             <DataGridCheckBoxColumn Header="Toolkit" Binding="{Binding ToolkitManaged}" Width="60"/>
           </DataGrid.Columns>
         </DataGrid>
-        <DataGrid Grid.Column="1" ItemsSource="{Binding DriftDifferences}" MaxHeight="260">
+        <DataGrid AutomationProperties.Name="Property differences for the selected object" Grid.Column="1" ItemsSource="{Binding DriftDifferences}" MaxHeight="260">
           <DataGrid.Columns>
             <DataGridTextColumn Header="Setting" Binding="{Binding Setting}" Width="180"/>
             <DataGridTextColumn Header="Before" Binding="{Binding Standard}" Width="*"/>
@@ -64,7 +64,7 @@
       </Grid>
 
       <TextBlock Text="Deployment runs" Style="{StaticResource H2}" Margin="0,24,0,10"/>
-      <DataGrid ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" MaxHeight="200" Margin="0,0,0,8">
+      <DataGrid AutomationProperties.Name="Deployment runs" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" MaxHeight="200" Margin="0,0,0,8">
         <DataGrid.RowStyle>
           <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
@@ -84,7 +84,7 @@
         <Button Content="JSON" Command="{Binding ExportRunJsonCommand}" Style="{StaticResource SecondaryButton}"/>
         <Button Content="Excel" Command="{Binding ExportRunXlsxCommand}" Style="{StaticResource SecondaryButton}"/>
       </WrapPanel>
-      <DataGrid ItemsSource="{Binding RunResults}" MaxHeight="220" Margin="0,0,0,8">
+      <DataGrid AutomationProperties.Name="Results for the selected run" ItemsSource="{Binding RunResults}" MaxHeight="220" Margin="0,0,0,8">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
           <DataGridTextColumn Header="Planned" Binding="{Binding PlannedAction}" Width="90"/>
@@ -96,7 +96,7 @@
         </DataGrid.Columns>
       </DataGrid>
       <TextBlock Text="Activity journal" Style="{StaticResource H2}" Margin="0,16,0,10"/>
-      <ListBox ItemsSource="{Binding Journal}" MaxHeight="220" FontFamily="Consolas" FontSize="11">
+      <ListBox AutomationProperties.Name="Activity journal" ItemsSource="{Binding Journal}" MaxHeight="220" FontFamily="Consolas" FontSize="11">
         <ListBox.ItemTemplate>
           <DataTemplate>
             <TextBlock TextWrapping="Wrap">

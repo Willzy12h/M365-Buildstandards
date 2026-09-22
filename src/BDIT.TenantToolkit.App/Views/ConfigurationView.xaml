@@ -27,7 +27,7 @@
               <ComboBox ItemsSource="{Binding StoredSnapshots}" SelectedItem="{Binding SelectedStored, Mode=TwoWay}" DisplayMemberPath="CapturedAt" Width="240" Margin="0,0,8,0" AutomationProperties.Name="Saved capture"/>
               <Button Content="Open saved capture offline" Command="{Binding LoadStoredCommand}" Style="{StaticResource SecondaryButton}" Margin="0"/>
             </WrapPanel>
-            <TextBox Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" FontSize="12" MinHeight="0" Padding="0" Margin="0,8,0,0"/>
+            <TextBox AutomationProperties.Name="Last exported capture" Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" FontSize="12" MinHeight="0" Padding="0" Margin="0,8,0,0"/>
           </StackPanel>
         </Expander>
       </StackPanel>
@@ -55,7 +55,7 @@
             <DockPanel>
               <StackPanel DockPanel.Dock="Top"><TextBlock Text="OBJECT DETAIL" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding SelectedObject.Name, TargetNullValue=Select an object, FallbackValue=Select an object}" Style="{StaticResource H2}"/><TextBlock Text="Names are resolved where the capture contains the required information." Style="{StaticResource Muted}" Margin="0,0,0,12"/></StackPanel>
               <Expander DockPanel.Dock="Bottom" Header="Raw JSON" Margin="0,10,0,0">
-                <TextBox Text="{Binding SelectedObjectJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Height="190" Margin="0,8,0,0"/>
+                <TextBox AutomationProperties.Name="Selected object detail" Text="{Binding SelectedObjectJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Height="190" Margin="0,8,0,0"/>
               </Expander>
               <DataGrid ItemsSource="{Binding SelectedSettings}" AutomationProperties.Name="Selected object settings">
                 <DataGrid.Columns><DataGridTextColumn Header="Setting" Binding="{Binding Setting}" Width="*"/><DataGridTextColumn Header="Current value" Binding="{Binding Current}" Width="*"/></DataGrid.Columns>

@@ -21,6 +21,18 @@ namespace BDIT.TenantToolkit.Engine.Assessment;
 /// </summary>
 public static class EquivalenceEvaluator
 {
+    /// <summary>
+    /// Prefix for the synthetic group given to a required signal that declares none, so that an ungrouped signal is
+    /// its own group and the default stays "every required signal must match".
+    ///
+    /// It begins with a control character deliberately. A collision between this synthetic key and a group a
+    /// catalogue actually declares would silently merge two independent requirements into one alternative, so only
+    /// one of them would have to match and a tenant missing the other would still be reported as covered. That is a
+    /// wrong answer rather than an error, which is the worst kind. <see cref="Standards.StandardsLoader"/> rejects a
+    /// declared group containing a control character, so a catalogue cannot reach this prefix.
+    /// </summary>
+    private const string UngroupedGroupPrefix = "\u0000ungrouped:";
+
     public static IReadOnlyList<EquivalenceObservation> Evaluate(EquivalenceRule rule, CollectionCapture capture, CollectionDefinition def, NameResolver names)
     {
         var observations = new List<EquivalenceObservation>();
@@ -54,7 +66,7 @@ public static class EquivalenceEvaluator
             // and an ungrouped signal is its own group, so the default remains "every required signal must match".
             var groups = rule.Signals
                 .Where(s => s.Required)
-                .GroupBy(s => string.IsNullOrEmpty(s.Group) ? "\u0000" + s.Key : s.Group, StringComparer.OrdinalIgnoreCase)
+                .GroupBy(s => string.IsNullOrEmpty(s.Group) ? UngroupedGroupPrefix + s.Key : s.Group, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var results = observation.Signals.ToDictionary(s => s.Key, StringComparer.OrdinalIgnoreCase);
             observation.Covered = groups.Count > 0

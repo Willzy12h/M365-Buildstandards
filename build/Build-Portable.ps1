@@ -53,6 +53,7 @@ Invoke-Step 'Restore' { & dotnet restore BDIT.TenantToolkit.sln }
 Invoke-Step 'Build' { & dotnet build BDIT.TenantToolkit.sln -c $Configuration --no-restore }
 if (-not $SkipTests) {
     Invoke-Step 'Test' { & dotnet test tests\BDIT.TenantToolkit.Tests\BDIT.TenantToolkit.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=test-results.trx' --results-directory (Join-Path $dist 'test-results') }
+    Invoke-Step 'Test the application' { & dotnet test tests\BDIT.TenantToolkit.App.Tests\BDIT.TenantToolkit.App.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=app-test-results.trx' --results-directory (Join-Path $dist 'test-results') }
 }
 Invoke-Step 'Standards manifest' { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Update-StandardsManifest.ps1') -GeneratedBy "Build-Portable $version" }
 Invoke-Step 'Publish application (self-contained)' {
