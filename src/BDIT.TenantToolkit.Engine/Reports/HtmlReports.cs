@@ -18,7 +18,72 @@ public static class HtmlReports
         dl.meta{display:grid;grid-template-columns:200px 1fr;gap:4px 16px;background:var(--bg);padding:14px;border-radius:6px;font-size:13px}dl.meta dt{color:var(--muted)}dl.meta dd{margin:0;overflow-wrap:anywhere}
         table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0 16px}th{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
         .tiles{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}.tile{background:var(--bg);border-radius:6px;padding:12px 16px;min-width:150px}.tile b{display:block;font-size:26px;line-height:1.1}.tile span{font-size:12px;color:var(--muted)}
-        .finding{border:1px solid var(--line);border-left-width:6px;border-radius:6px;padding:14px 16px;margin-…1172 tokens truncated…   if (actionable.Count == 0) sb.Append("<p>No actionable findings.</p>");
+        .finding{border:1px solid var(--line);border-left-width:6px;border-radius:6px;padding:14px 16px;margin-bottom:14px}.sev-critical{border-left-color:var(--critical)}.sev-high{border-left-color:var(--high)}.sev-medium{border-left-color:var(--medium)}.sev-low,.sev-informational{border-left-color:var(--low)}
+        .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#eef1f5;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+        .match{color:var(--good)}.diff{color:var(--critical)}.note{background:#f3f8fd;border-left:3px solid var(--accent);padding:10px 12px;border-radius:4px;margin:10px 0;font-size:13px}.warn{background:#fff5de;border-left:3px solid #946100}
+        code{font-family:Consolas,monospace;font-size:12px;background:var(--bg);padding:1px 4px;border-radius:3px}footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+        @media print{body{max-width:none;padding:0}.finding,table{break-inside:avoid}}
+        </style>
+        """;
+
+    private static void Head(StringBuilder sb, string title)
+    {
+        sb.Append("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>")
+          .Append(H(title)).Append("</title>").Append(Css).Append("</head><body>");
+    }
+
+    private static void Table(StringBuilder sb, Sheet sheet, int skipHeaderRows = 0)
+    {
+        sb.Append("<table><thead><tr>");
+        foreach (var h in sheet.Rows[0]) sb.Append("<th>").Append(H(h)).Append("</th>");
+        sb.Append("</tr></thead><tbody>");
+        foreach (var row in sheet.Rows.Skip(1 + skipHeaderRows))
+        {
+            sb.Append("<tr>");
+            foreach (var cell in row) sb.Append("<td>").Append(H(cell)).Append("</td>");
+            sb.Append("</tr>");
+        }
+        if (sheet.Rows.Count <= 1) sb.Append("<tr><td colspan=\"").Append(sheet.Rows[0].Length).Append("\">None</td></tr>");
+        sb.Append("</tbody></table>");
+    }
+
+    // ---- engineer assessment report ------------------------------------------------------------------------------
+
+    public static string Engineer(AssessmentResult r)
+    {
+        var sb = new StringBuilder();
+        Head(sb, $"M365 BuildStandard Assessment Tool - {r.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Engineer report</div>");
+        sb.Append("<h1>Tenant assessment: ").Append(H(r.TenantName)).Append("</h1>");
+        sb.Append("<dl class=\"meta\">");
+        Meta(sb, "Primary domain", r.PrimaryDomain); Meta(sb, "Tenant ID", r.TenantId); Meta(sb, "Client label", r.ClientLabel);
+        Meta(sb, "Standard release", r.Release); Meta(sb, "Standard digest", r.StandardDigest); Meta(sb, "Snapshot", r.SnapshotId);
+        Meta(sb, "Captured", r.CapturedAt); Meta(sb, "Assessed", r.AssessedAt); Meta(sb, "Assessed by", r.AssessedBy); Meta(sb, "Toolkit version", r.ToolkitVersion);
+        sb.Append("</dl>");
+
+        var s = r.Summary;
+        sb.Append("<h2>Summary</h2><div class=\"tiles\">");
+        Tile(sb, s.Compliant + s.CompliantWithDeviation, "Compliant");
+        Tile(sb, s.SettingsMatchNotEnforced, "Match, not enforced");
+        Tile(sb, s.PartialMatch, "Partial / overlap");
+        Tile(sb, s.Missing, "Missing");
+        Tile(sb, s.RequiresManualReview, "Manual review");
+        Tile(sb, s.UnableToAssess, "Unable to assess");
+        Tile(sb, s.LicenceUnavailable + s.NotApplicable, "Licence / N/A");
+        sb.Append("</div>");
+        sb.Append("<p>Actionable by severity: <b>").Append(s.CriticalActionable).Append(" critical</b>, <b>").Append(s.HighActionable).Append(" high</b>, ")
+          .Append(s.MediumActionable).Append(" medium, ").Append(s.LowActionable).Append(" low.</p>");
+        if (!r.SnapshotComplete) sb.Append("<div class=\"note warn\"><b>The capture is incomplete.</b> Controls that depend on missing data are reported as unable to assess; they are not counted as missing.</div>");
+        if (r.Limitations.Count > 0)
+        {
+            sb.Append("<h3>Limitations</h3><ul>");
+            foreach (var l in r.Limitations) sb.Append("<li>").Append(H(l)).Append("</li>");
+            sb.Append("</ul>");
+        }
+
+        var actionable = r.Findings.Where(f => f.IsActionable).OrderBy(f => SeverityRank(f.Severity)).ThenBy(f => f.ControlId, StringComparer.OrdinalIgnoreCase).ToList();
+        sb.Append("<h2>Findings requiring action (").Append(actionable.Count).Append(")</h2>");
+        if (actionable.Count == 0) sb.Append("<p>No actionable findings.</p>");
         foreach (var f in actionable) Finding(sb, f, true);
 
         var review = r.Findings.Where(f => f.Status is FindingStatus.RequiresManualReview or FindingStatus.UnableToAssess or FindingStatus.LicenceUnavailable).OrderBy(f => f.ControlId, StringComparer.OrdinalIgnoreCase).ToList();
