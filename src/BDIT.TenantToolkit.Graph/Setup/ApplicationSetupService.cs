@@ -17,6 +17,8 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
 {
     public const string BootstrapClientId = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
     public const string GraphApplicationId = "00000003-0000-0000-c000-000000000000";
+    /// <summary>The result status when every selected write and its readback passed and after-change evidence was captured.</summary>
+    public const string CompletedStatus = "Setup complete — consent and access checks pending";
     public static IReadOnlyList<string> SetupScopes { get; } = Array.AsReadOnly(new[] { "User.Read", "Application.ReadWrite.All", "Directory.Read.All", "AppRoleAssignment.ReadWrite.All" });
     private readonly ApplicationSetupGraphClient _graph;
     private readonly MsalAuthenticator? _authenticator;
@@ -268,7 +270,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                     result.AfterComplete = true;
                 }
                 catch (Exception ex) { result.AfterError = SafeError(ex); result.Status = "Review required"; }
-                if (result.Status == "Running") result.Status = "Setup complete — consent and access checks pending";
+                if (result.Status == "Running") result.Status = CompletedStatus;
                 result.EndedAt = DateTimeOffset.UtcNow;
                 SaveResult(result);
             }

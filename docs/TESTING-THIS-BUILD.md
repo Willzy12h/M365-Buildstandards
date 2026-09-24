@@ -61,8 +61,8 @@ Note anything that does not behave as described, with the page and window size, 
 
 ## 4. Connect a tenant read-only
 
-1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Follow [application setup](APPLICATION-SETUP.md); it creates two dedicated registrations and walks you through consent.
-2. Choose **Continue read-only**.
+1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Select **Sign in as administrator**, review the two applications and their permissions, tick the approval, type the tenant ID and select **Create apps and grant permissions**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
+2. Choose **Connect read-only now**.
 3. **Overview and licences** loads subscription counts. **Capture** reads the tenant configuration.
 4. **Assessment** compares the capture with the standard. Export the engineer report in any format.
 
