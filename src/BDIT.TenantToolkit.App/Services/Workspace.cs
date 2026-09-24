@@ -632,7 +632,8 @@ public sealed class Workspace : ObservableObject
         Evidence.WriteJsonAtomic(file, Licences);
     }
 
-    public async Task<RecoveryPlan> PreviewRecoveryAsync(string runId, string controlId, RecoveryAction action)
+    /// <summary>The previewed recovery, or null when the engineer stopped the operation before the preview was produced.</summary>
+    public async Task<RecoveryPlan?> PreviewRecoveryAsync(string runId, string controlId, RecoveryAction action)
     {
         RecoveryPlan? result = null;
         await RunExclusiveAsync("Capturing evidence and previewing recovery", async progress =>
@@ -644,10 +645,14 @@ public sealed class Workspace : ObservableObject
             Snapshot = snapshot; SnapshotIsLive = true;
             result = await Recovery.PreviewAsync(connection.Graph, connection.Session, RequireStandard(), snapshot, runId, controlId, action, OperationToken);
         });
-        return result!;
+        return result;
     }
 
-    public async Task<RecoveryRun> ExecuteRecoveryAsync(RecoveryPlan plan, string tenantConfirmation, bool approved, bool reviewedDrift)
+    /// <summary>
+    /// The recorded recovery run, or null when the engineer stopped the operation before the service returned one. A
+    /// null result says nothing about whether a write was sent; the change register is the record of that.
+    /// </summary>
+    public async Task<RecoveryRun?> ExecuteRecoveryAsync(RecoveryPlan plan, string tenantConfirmation, bool approved, bool reviewedDrift)
     {
         RecoveryRun? result = null;
         await RunExclusiveAsync("Applying reviewed recovery", async _ =>
@@ -656,7 +661,7 @@ public sealed class Workspace : ObservableObject
             Plan = null; AcknowledgedSnapshotId = null; SnapshotIsLive = false;
             result = await Recovery.ExecuteAsync(connection.Graph, connection.Session, RequireStandard(), plan, tenantConfirmation, approved, reviewedDrift, OperationToken);
         });
-        return result!;
+        return result;
     }
 
     // ---- shutdown ------------------------------------------------------------------------------------------------------

@@ -96,7 +96,11 @@ public sealed class RecoveryViewModel : PageViewModel
         var tenant = TypedTenant; var approved = Approved; var drift = ReviewedDrift;
         ClearApproval();
         var run = await Workspace.ExecuteRecoveryAsync(plan, tenant, approved, drift);
-        Result = $"{run.Status} · write {run.WriteAcceptance} · verification {run.Verification}\n{run.Reason}\nRecovery record: {run.Id}";
+        // Stopping cancels the operation, so the service may return nothing. Whether a write reached the tenant is then
+        // unknown here; the register reloaded below is the record, and the recovery must not be repeated until it is read.
+        Result = run is null
+            ? "Recovery was stopped before it returned a result. Review this change in the register below before doing anything else; do not repeat the recovery until you have."
+            : $"{run.Status} · write {run.WriteAcceptance} · verification {run.Verification}\n{run.Reason}\nRecovery record: {run.Id}";
         await LoadRegisterAsync();
     }
     public override void Refresh()

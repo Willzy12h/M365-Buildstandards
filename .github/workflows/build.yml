@@ -34,8 +34,14 @@ jobs:
       - name: Restore
         run: dotnet restore BDIT.TenantToolkit.sln
 
+      # Warnings are fatal here and nowhere else: a developer can still build with a warning while working, but
+      # nothing reaches integration carrying one. Nullability warnings are fixed, never suppressed.
       - name: Build
-        run: dotnet build BDIT.TenantToolkit.sln -c Release --no-restore
+        run: dotnet build BDIT.TenantToolkit.sln -c Release --no-restore -warnaserror
+
+      # The review harness is not in the solution, so it would otherwise gain warnings unseen.
+      - name: Build the interface review harness
+        run: dotnet build tests/BDIT.TenantToolkit.UiReview -c Release -warnaserror
 
       - name: Test
         run: dotnet test tests/BDIT.TenantToolkit.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
@@ -51,7 +57,7 @@ jobs:
 
       - name: Render offline WPF workflows and check bindings
         shell: pwsh
-        run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release -- "$pwd" "$pwd/dist/ui-review"
+        run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
 
       - name: Upload synthetic UI review
         if: always()
@@ -63,6 +69,8 @@ jobs:
             dist/ui-review/verification.json
             dist/ui-review/binding-errors.txt
             dist/ui-review/harness-error.txt
+            dist/ui-review/commands.txt
+            dist/ui-review/tab-order.txt
 
       - name: Upload portable review package
         uses: actions/upload-artifact@v4

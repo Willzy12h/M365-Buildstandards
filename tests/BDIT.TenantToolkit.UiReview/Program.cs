@@ -25,7 +25,7 @@ using BDIT.TenantToolkit.Graph.Auth;
 using BDIT.TenantToolkit.Graph.Setup;
 using BDIT.TenantToolkit.Engine.Standards;
 
-internal static class Program
+internal static partial class Program
 {
     private const string Tenant = "11111111-1111-1111-1111-111111111111";
     private const string Operator = "22222222-2222-2222-2222-222222222222";
@@ -52,6 +52,11 @@ internal static class Program
         {
             // Use a base Application and load the product resource dictionary; never invoke production startup or authentication.
             var app = new Application();
+            // The application runs its commands on the UI dispatcher, so an awaited operation resumes there and may update
+            // bound collections. Without this the harness pressed commands with no synchronisation context, continuations
+            // resumed on the thread pool, and every export failed with a cross-thread collection error that the real
+            // application cannot produce - reported, until the refusal rule below existed, as sixteen "refusals".
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var document = System.Xml.Linq.XDocument.Load(Path.Combine(source, "src", "BDIT.TenantToolkit.App", "App.xaml"));
             var resource = new System.Xml.Linq.XElement(document.Descendants(System.Xml.Linq.XName.Get("ResourceDictionary", "http://schemas.microsoft.com/winfx/2006/xaml/presentation")).First());
             resource.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml");
@@ -70,16 +75,20 @@ internal static class Program
             if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
             content.DataContext = shell;
             SeedWorkspace(workspace);
+            SeedStoredEvidence(workspace, fixtureRoot);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
             var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "automation", "standard" }, StringComparer.Ordinal);
-            foreach (var size in new[] { new Size(1480, 940), new Size(1180, 760) })
+            foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
                 {
+                  // One page's failure is recorded and the run continues, so a single run reports every page that fails.
+                  try
+                  {
                     traces.Context = nav.Key + " " + size.Width + "x" + size.Height;
                     Set(workspace, nameof(Workspace.ApplicationSetup), nav.Key == "setup" ? SyntheticSetup() : null);
                     typeof(Workspace).GetMethod("Notify", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(workspace, null);
@@ -94,6 +103,9 @@ internal static class Program
                     var pageAtSize = nav.Key + " " + (int)size.Width + "x" + (int)size.Height;
                     RecordUnnamedControls(content, pageAtSize);
                     RecordCollapsedColumns(content, pageAtSize);
+                    RecordLowContrast(content, pageAtSize);
+                    RecordClipping(content, pageAtSize);
+                    if (size.Height >= 760) RecordUnneededScrolling(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
@@ -136,9 +148,16 @@ internal static class Program
                         tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
                         RecordUnnamedControls(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
                         RecordCollapsedColumns(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
+                        RecordLowContrast(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
+                        RecordClipping(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
+                  }
+                  catch (InvalidOperationException ex)
+                  {
+                    PageFailures.Add($"  {nav.Key} {(int)size.Width}x{(int)size.Height} · {ex.Message}");
+                  }
                 }
             }
             // A check that inspects nothing passes, and these two did exactly that before IsShown replaced IsVisible.
@@ -147,7 +166,43 @@ internal static class Program
                 throw new InvalidOperationException($"The interface checks inspected {NamedControlsInspected} controls and {GridsInspected.Count} tables; a check that looks at nothing cannot pass.");
             if (!GridsInspected.Contains("Controls to include in the plan") || !GridsInspected.Contains("Planned actions"))
                 throw new InvalidOperationException("The Plan page tables were not measured: " + string.Join(", ", GridsInspected));
+            CheckConfirmationDialog(workspace, output);
+
+            // Keyboard and command checks need a real window: focus only moves inside one that has been shown.
+            window.ShowInTaskbar = false; window.ShowActivated = true;
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = -10000; window.Top = -10000; window.Width = 1480; window.Height = 940;
+            content.Width = double.NaN; content.Height = double.NaN;
+            window.Show(); Pump();
+            foreach (var nav in shell.NavItems)
+            {
+                traces.Context = "keyboard " + nav.Key;
+                shell.Navigate(nav.Key);
+                SeedPage(shell, nav.Key);
+                CheckKeyboardReach(window, content, nav.Key);
+            }
+            PressCommands(shell, content, traces);
+            WriteReviewNotes(output);
+
+            // Each check must have looked at something, or its silence means nothing.
+            var inspected = new (string Check, bool Ran)[]
+            {
+                ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
+                ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
+                ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
+                ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
+            };
+            foreach (var (check, ran) in inspected.Where(c => !c.Ran))
+                throw new InvalidOperationException($"The {check} check inspected nothing; a check that looks at nothing cannot pass.");
+
             var problems = new List<string>();
+            if (PageFailures.Count > 0)
+                problems.Add($"{PageFailures.Count} page check(s) failed:" + Environment.NewLine + string.Join(Environment.NewLine, PageFailures));
+            var minimum = new Size(window.MinWidth, window.MinHeight);
+            if (minimum.Width > SmallestWorkArea.Width || minimum.Height > SmallestWorkArea.Height)
+                problems.Add($"The main window cannot be made smaller than {minimum.Width}x{minimum.Height}, but a 1920x1080 laptop "
+                    + $"screen at the 150% scaling Windows recommends for it leaves {SmallestWorkArea.Width}x{SmallestWorkArea.Height} "
+                    + "above the taskbar, so the bottom of every page is off-screen.");
             if (UnnamedControls.Count > 0)
                 problems.Add($"{UnnamedControls.Count} control(s) announce only their type to a screen reader. Give each an "
                     + "AutomationProperties.Name, or text content:" + Environment.NewLine + string.Join(Environment.NewLine, UnnamedControls));
@@ -155,9 +210,28 @@ internal static class Program
                 problems.Add($"{CollapsedColumns.Count} table column(s) are drawn narrower than designed, so their content is hidden "
                     + "even when scrolled to. A DataGrid with a star column squeezes every column to fit before it scrolls; "
                     + "ColumnSizing.KeepDesignedWidths prevents it:" + Environment.NewLine + string.Join(Environment.NewLine, CollapsedColumns));
+            if (LowContrast.Count > 0)
+                problems.Add($"{LowContrast.Count} piece(s) of text or input edge are below the WCAG AA contrast minimum:"
+                    + Environment.NewLine + string.Join(Environment.NewLine, LowContrast.Distinct()));
+            if (ClippedElements.Count > 0)
+                problems.Add($"{ClippedElements.Count} element(s) are cut off by layout, so part of them cannot be seen or scrolled to:"
+                    + Environment.NewLine + string.Join(Environment.NewLine, ClippedElements.Distinct()));
+            if (UnneededScrolling.Count > 0)
+                problems.Add($"{UnneededScrolling.Count} page(s) scroll at a size where they have room not to:" + Environment.NewLine + string.Join(Environment.NewLine, UnneededScrolling.Distinct()));
+            if (KeyboardProblems.Count > 0)
+                problems.Add($"{KeyboardProblems.Count} keyboard problem(s):" + Environment.NewLine + string.Join(Environment.NewLine, KeyboardProblems.Distinct()));
+            if (CommandProblems.Count > 0)
+                problems.Add($"{CommandProblems.Count} command problem(s):" + Environment.NewLine + string.Join(Environment.NewLine, CommandProblems.Distinct()));
             if (problems.Count > 0)
                 throw new InvalidOperationException(string.Join(Environment.NewLine + Environment.NewLine, problems));
             Console.WriteLine($"Interface checks: {NamedControlsInspected} operable controls named; {GridsInspected.Count} tables measured, every column readable.");
+            Console.WriteLine($"Contrast: {TextContrastInspected} text elements and {BoundariesInspected} input edges meet WCAG AA. Clipping: {ClippingInspected} elements, none cut off.");
+            Console.WriteLine($"Keyboard: {shell.NavItems.Count} pages and every tab on them ({KeyboardPagesWalked} views) walked with Tab, {KeyboardStopsReached} stops, every operable control reached. Final confirmation dialog: {DialogChecks} checks passed.");
+            Console.WriteLine($"Commands: every one of the {ExercisedCommands.Count} registered to be pressed was exercised ({CommandsCompleted} presses completed, {CommandsRefused} refused with a message), no defect raised; {CommandRegister.Count(c => c.Handling != Press)} not pressed by design.");
+            // A refusal is the command explaining what must happen first. Each is printed so a reviewer can confirm it is
+            // one of those, and not a defect that happened to surface as a message.
+            foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
+                Console.WriteLine("  " + line.Replace(Environment.NewLine, " / ", StringComparison.Ordinal));
             Pump();
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
@@ -173,7 +247,7 @@ internal static class Program
             if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
                 throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
-            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, readableColumnsChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, readableColumnsChecked = true, contrastChecked = true, clippingChecked = true, keyboardReachChecked = true, confirmationDialogChecked = true, commandsPressed = CommandsCompleted + CommandsRefused, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
             Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
@@ -186,6 +260,16 @@ internal static class Program
             return 1;
         }
     }
+
+    /// <summary>
+    /// The default window, the size S1 was measured at, and the smallest the window may be made. The last is what a
+    /// 1920x1080 laptop at 150% scaling offers - WPF lays out in device-independent units, so rendering at these logical
+    /// sizes is what an engineer at that scaling sees, without needing a high-DPI display on the build machine.
+    /// </summary>
+    private static readonly Size[] PageSizes = { new(1480, 940), new(1180, 760), new(1180, 640) };
+
+    /// <summary>1920x1080 at 150% is 1280x720 device-independent units; the taskbar takes 48 of them.</summary>
+    private static readonly Size SmallestWorkArea = new(1280, 672);
 
     private static void SeedWorkspace(Workspace workspace)
     {
@@ -418,6 +502,7 @@ internal static class Program
         return false;
     }
 
+    private static readonly List<string> PageFailures = new();
     private static readonly List<string> UnnamedControls = new();
     private static int NamedControlsInspected;
 

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Models;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -61,7 +62,11 @@ public sealed class ManualChecksViewModel : PageViewModel
         var selectedId = Selected?.ControlId;
         Rows.Clear();
         if (Workspace.Standard is null) return;
-        var register = Workspace.LoadManualChecks();
+        // A register that cannot be read - damaged, or recorded for another tenant - is reported, not thrown: this runs
+        // on every workspace change, so throwing would surface as a failure of whatever the engineer just did.
+        ManualCheckRegister register;
+        try { register = Workspace.LoadManualChecks(); }
+        catch (ToolkitException ex) { Shell.ShowError(ex); register = new ManualCheckRegister(); }
         foreach (var c in Workspace.Standard.Controls)
         {
             register.Checks.TryGetValue(c.Id, out var check);

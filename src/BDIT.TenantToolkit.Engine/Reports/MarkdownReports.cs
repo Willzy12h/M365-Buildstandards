@@ -6,7 +6,22 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 /// <summary>Markdown equivalents of the engineer, run and drift reports for ticketing systems and wikis.</summary>
 public static class MarkdownReports
 {
-    private static string E(string? s) => (s ?? "").Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
+    /// <summary>
+    /// Tenant-supplied text in a Markdown table cell. Pipes would split the cell and line breaks end the row; angle
+    /// brackets and ampersands are escaped too, because most wikis and ticketing systems render inline HTML, and an
+    /// object named like a tag would otherwise be rendered rather than shown.
+    /// </summary>
+    private static string E(string? s) => (s ?? "").Replace("&", "&amp;", StringComparison.Ordinal)
+        .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
+        .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Tenant-supplied text inside a code span. Markdown shows code spans literally, so escaped characters would appear
+    /// as entity codes on screen; only what can break out of the span or the table cell is changed: a backtick would end
+    /// the span, a pipe would split the cell, and a line break would end the row.
+    /// </summary>
+    private static string C(string? s) => (s ?? "").Replace("`", "'", StringComparison.Ordinal)
+        .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
     public static string Engineer(AssessmentResult r)
     {
@@ -14,9 +29,9 @@ public static class MarkdownReports
         sb.AppendLine($"# Tenant assessment: {E(r.TenantName)}");
         sb.AppendLine();
         sb.AppendLine($"- Primary domain: {E(r.PrimaryDomain)}");
-        sb.AppendLine($"- Tenant ID: `{E(r.TenantId)}`");
-        sb.AppendLine($"- Standard release: {E(r.Release)} (digest `{E(r.StandardDigest)}`)");
-        sb.AppendLine($"- Snapshot: `{E(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")})");
+        sb.AppendLine($"- Tenant ID: `{C(r.TenantId)}`");
+        sb.AppendLine($"- Standard release: {E(r.Release)} (digest `{C(r.StandardDigest)}`)");
+        sb.AppendLine($"- Snapshot: `{C(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")})");
         sb.AppendLine($"- Assessed: {E(r.AssessedAt)} by {E(r.AssessedBy)} with toolkit {E(r.ToolkitVersion)}");
         sb.AppendLine();
         var s = r.Summary;
@@ -59,13 +74,13 @@ public static class MarkdownReports
             foreach (var c in f.Candidates)
             {
                 sb.AppendLine();
-                sb.AppendLine($"**{(c.SettingsMatch ? "Matching" : c.NameMatch ? "Same-named" : "Overlapping")} object:** {E(c.Name)} `{E(c.ObjectId)}` · {E(StatusLabels.For(c.Enforcement))} · {E(c.AssignmentSummary)} · {c.Matched}/{c.Total} settings match");
+                sb.AppendLine($"**{(c.SettingsMatch ? "Matching" : c.NameMatch ? "Same-named" : "Overlapping")} object:** {E(c.Name)} `{C(c.ObjectId)}` · {E(StatusLabels.For(c.Enforcement))} · {E(c.AssignmentSummary)} · {c.Matched}/{c.Total} settings match");
                 if (c.Differences.Count > 0)
                 {
                     sb.AppendLine();
                     sb.AppendLine("| Setting | Current | build standard | Result |");
                     sb.AppendLine("|---|---|---|---|");
-                    foreach (var d in c.Differences) sb.AppendLine($"| `{E(d.Setting)}` | {E(d.Current)} | {E(d.Standard)} | {(d.Match ? "Match" : "Different")} |");
+                    foreach (var d in c.Differences) sb.AppendLine($"| `{C(d.Setting)}` | {E(d.Current)} | {E(d.Standard)} | {(d.Match ? "Match" : "Different")} |");
                 }
             }
             sb.AppendLine();
@@ -81,8 +96,8 @@ public static class MarkdownReports
         var sb = new StringBuilder();
         sb.AppendLine($"# Configuration drift: {E(d.TenantName)}");
         sb.AppendLine();
-        sb.AppendLine($"- Before: `{E(d.BeforeSnapshotId)}` ({E(d.BeforeCapturedAt)}, standard {E(d.BeforeStandardRelease)})");
-        sb.AppendLine($"- After: `{E(d.AfterSnapshotId)}` ({E(d.AfterCapturedAt)}, standard {E(d.AfterStandardRelease)})");
+        sb.AppendLine($"- Before: `{C(d.BeforeSnapshotId)}` ({E(d.BeforeCapturedAt)}, standard {E(d.BeforeStandardRelease)})");
+        sb.AppendLine($"- After: `{C(d.AfterSnapshotId)}` ({E(d.AfterCapturedAt)}, standard {E(d.AfterStandardRelease)})");
         sb.AppendLine($"- Assessed against: {E(d.AssessedRelease)} · Generated {E(d.GeneratedAt)}");
         sb.AppendLine($"- Regressions: {d.Regressions} · Objects added {d.Added}, removed {d.Removed}, changed {d.Changed} · Toolkit-managed objects affected: {d.ManagedAffected}");
         foreach (var n in d.Notes) sb.AppendLine($"- {E(n)}");
@@ -97,7 +112,7 @@ public static class MarkdownReports
         sb.AppendLine();
         foreach (var i in d.Items.Where(i => i.Change != DriftChange.Unchanged))
         {
-            sb.AppendLine($"### {E(i.CollectionLabel)}: {E(i.Name)} `{E(i.ObjectId)}`");
+            sb.AppendLine($"### {E(i.CollectionLabel)}: {E(i.Name)} `{C(i.ObjectId)}`");
             sb.AppendLine();
             sb.AppendLine($"- {i.Change} · {i.Classification}{(i.ToolkitManaged ? " · toolkit-managed" : "")}{(i.ControlId is null ? "" : " · " + E(i.ControlId))}");
             sb.AppendLine($"- {E(i.Reason)}");
@@ -106,7 +121,7 @@ public static class MarkdownReports
                 sb.AppendLine();
                 sb.AppendLine("| Setting | Before | After |");
                 sb.AppendLine("|---|---|---|");
-                foreach (var x in i.Differences) sb.AppendLine($"| `{E(x.Setting)}` | {E(x.Standard)} | {E(x.Current)} |");
+                foreach (var x in i.Differences) sb.AppendLine($"| `{C(x.Setting)}` | {E(x.Standard)} | {E(x.Current)} |");
             }
             sb.AppendLine();
         }
@@ -122,7 +137,7 @@ public static class MarkdownReports
         sb.AppendLine();
         sb.AppendLine("| Control | Planned | Outcome | Write acceptance | Object | Readback | Reason |");
         sb.AppendLine("|---|---|---|---|---|---|---|");
-        foreach (var x in run.Results) sb.AppendLine($"| {E(x.ControlId)} | {E(x.PlannedAction)} | {E(x.Status)} | {E(x.WriteAcceptance)} | `{E(x.ObjectId)}` | {E(x.Configuration)} | {E(x.Reason)} |");
+        foreach (var x in run.Results) sb.AppendLine($"| {E(x.ControlId)} | {E(x.PlannedAction)} | {E(x.Status)} | {E(x.WriteAcceptance)} | `{C(x.ObjectId)}` | {E(x.Configuration)} | {E(x.Reason)} |");
         sb.AppendLine();
         sb.AppendLine("## Journal");
         sb.AppendLine();

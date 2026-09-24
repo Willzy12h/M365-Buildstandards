@@ -25,7 +25,11 @@ public sealed class DeviationsViewModel : PageViewModel
 
     public ObservableCollection<Deviation> Items { get; } = new();
     public ObservableCollection<string> ControlIds { get; } = new();
-    public ObservableCollection<string> Kinds { get; } = new() { "ApprovedDeviation", "NotApplicable" };
+    public IReadOnlyList<FilterOption> Kinds { get; } = new[]
+    {
+        new FilterOption(nameof(DeviationKind.ApprovedDeviation), "Approved deviation"),
+        new FilterOption(nameof(DeviationKind.NotApplicable), "Not applicable")
+    };
 
     public Deviation? Selected
     {

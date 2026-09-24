@@ -172,6 +172,7 @@ public sealed class AutomationViewModel : PageViewModel
     }
     private void Import()
     {
+        if (string.IsNullOrWhiteSpace(ImportFile)) throw new ConfigurationException("Choose a policy export file first.");
         var file = new FileInfo(ImportFile);
         if (!file.Exists || file.Length > 1024 * 1024) throw new ConfigurationException("Select a policy JSON file up to 1 MiB.");
         var map = ToolkitJson.Deserialize<Dictionary<string, string>>(Replacements);

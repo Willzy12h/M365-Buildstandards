@@ -145,15 +145,15 @@ public sealed class ConfigurationViewModel : PageViewModel
                 CollectionFilters.Add(label);
                 foreach (var item in c.Items)
                 {
-                    var id = item["id"]?.GetValue<string>() ?? "";
+                    var id = Text(item["id"]) ?? "";
                     _allObjects.Add(new ObjectRow
                     {
                         Collection = label,
                         CollectionKey = key,
-                        Name = item[def?.NameProperty ?? "displayName"]?.GetValue<string>() ?? item["displayName"]?.GetValue<string>() ?? item["name"]?.GetValue<string>() ?? item["userPrincipalName"]?.GetValue<string>() ?? id,
+                        Name = Text(item[def?.NameProperty ?? "displayName"]) ?? Text(item["displayName"]) ?? Text(item["name"]) ?? Text(item["userPrincipalName"]) ?? id,
                         ObjectId = id,
-                        Type = (item["@odata.type"]?.GetValue<string>() ?? label).Replace("#microsoft.graph.", "", StringComparison.Ordinal),
-                        State = item["state"]?.GetValue<string>() ?? "",
+                        Type = (Text(item["@odata.type"]) ?? label).Replace("#microsoft.graph.", "", StringComparison.Ordinal),
+                        State = Text(item["state"]) ?? "",
                         Targeting = _names.AssignmentSummary(item),
                         Item = item
                     });
@@ -165,6 +165,13 @@ public sealed class ConfigurationViewModel : PageViewModel
         OnPropertyChanged(nameof(SnapshotText));
         OnPropertyChanged(nameof(FilterCollection));
     }
+
+    /// <summary>
+    /// A captured property as text, or null when it is absent or not a string. This page lists every object from every
+    /// collection, and it refreshes on every workspace change; one object with an unexpected value must not stop it.
+    /// </summary>
+    private static string? Text(System.Text.Json.Nodes.JsonNode? node) =>
+        node is System.Text.Json.Nodes.JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
     private void ApplyFilter()
     {

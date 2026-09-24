@@ -21,7 +21,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-21 | Claude | M365-Buildstandards | architecture roadmap accuracy | `claude/github-repo-access-ygieh2` | #13 | Merged |
 | 2026-09-21 | Claude | M365-Buildstandards | Astra review findings F1–F4: coverage IDs, packaged documentation links, roadmap corrections, claim records | `claude/github-repo-access-ygieh2` | #14 | Merged |
 | 2026-09-22 | Claude | M365-Buildstandards | application test project, accessible names, W0, W2, 9d, changelog | `claude/github-repo-access-ygieh2` | #15 | Merged |
-| 2026-09-24 | Claude | M365-Buildstandards | interface (readable table columns, S1), application tests (9e), documentation | `claude/github-repo-access-ygieh2` | #16 | Open |
+| 2026-09-24 | Claude | M365-Buildstandards | interface (readable table columns, S1), application tests (9e), documentation | `claude/github-repo-access-ygieh2` | #16 | Merged |
+| 2026-09-24 | Claude | M365-Buildstandards | full review: build strictness, interface checks (dialogs, commands, keyboard, scaling, contrast), code review fixes, documentation | `claude/github-repo-access-ygieh2` | #17 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
