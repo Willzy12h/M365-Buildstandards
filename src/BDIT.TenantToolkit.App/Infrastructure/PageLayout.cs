@@ -11,5 +11,5 @@ public static class PageLayout
     /// changes; on a 1920x1080 laptop at 150% scaling (1180x640 in the harness) they scroll. The harness fails if a
     /// page scrolls at 1180x760 or larger.
     /// </summary>
-    public const double MinimumHeight = 560;
+    public const double MinimumHeight = 590;
 }
