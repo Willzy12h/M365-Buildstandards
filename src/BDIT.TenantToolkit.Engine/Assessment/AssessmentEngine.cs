@@ -43,7 +43,7 @@ public sealed class AssessmentEngine
             if (!string.Equals(d.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
                 throw new TenantMismatchException($"Deviation {d.Id} belongs to a different tenant.");
 
-        var names = NameResolver.FromSnapshot(snapshot);
+        var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
         var result = new AssessmentResult
         {

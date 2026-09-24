@@ -127,7 +127,7 @@ public sealed class ConfigurationViewModel : PageViewModel
             catch (ToolkitException ex) { Shell.ShowError(ex); }
         }
         var snapshot = Workspace.Snapshot;
-        _names = NameResolver.FromSnapshot(snapshot);
+        _names = NameResolver.FromSnapshot(snapshot, Workspace.Profile);
         if (snapshot is not null)
         {
             foreach (var (key, c) in snapshot.Collections)

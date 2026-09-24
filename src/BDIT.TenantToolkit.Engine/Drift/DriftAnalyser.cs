@@ -34,7 +34,7 @@ public sealed class DriftAnalyser
         if (!string.Equals(before.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The snapshots belong to a different tenant than the selected client.");
 
-        var names = NameResolver.FromSnapshot(after);
+        var names = NameResolver.FromSnapshot(after, profile);
         var report = new DriftReport
         {
             TenantId = after.TenantId,
