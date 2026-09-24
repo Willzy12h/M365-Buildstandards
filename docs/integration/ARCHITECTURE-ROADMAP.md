@@ -6,17 +6,18 @@ Baseline for every measurement here: `integration` at `e188d9e`, preview.13, sta
 
 ## Status
 
-Updated 21 September 2026. **No claim is open on any repository and nothing here is blocked.** Pull request #9
-(`astra/review-fixes`, safety findings F1–F5) and pull request #12 (Claude, post-merge review fixes) are both merged;
-the earlier block on W0, W2 and W9 is lifted. Before starting, re-run the pre-flight check in
-`AGENT-COORDINATION.md` rather than trusting this paragraph — a claim can open after it was written.
+Updated 24 September 2026. W0, W2, W3, 9d and 9e are done; nothing else here is claimed or blocked. The merges
+behind that are PR #9 (Astra, safety findings F1–F5), #12 (headless runner loads records through `EvidenceStore`),
+#15 (W0, W2, 9d, the application's first test project, accessible names) and #16 (9e, readable table columns).
+Before starting, re-run the pre-flight check in `AGENT-COORDINATION.md` rather than trusting this paragraph — a
+claim can open after it was written.
 
 | Workstream | State | Note |
 | --- | --- | --- |
 | W3 headless runner | **Done** | `src/BDIT.TenantToolkit.Cli`, offline. Conformance tests in `HeadlessRunnerTests` and `TenantBindingTests`. Corrected in PR #12; read the W3 section before building on it. |
-| W0 embedded NUL | **Mostly done, small remainder** | The raw NUL is gone: `EquivalenceEvaluator.cs` is ASCII text, greppable and diffable. The key is now the escape `"\u0000" + s.Key` at line 57, not a named constant, and there is still no test that an ungrouped signal keyed `x` and a signal declaring group `x` stay separate. Finish those two, or close W0 explicitly. |
-| W2 parameter-usage helper | **Open, unblocked** | Still six substring scans across five call sites. Current line numbers are in the W2 section. |
-| W9 structure and optimisation | **Open, unblocked** | Continuous. 9b is partly done in Graph; 9a, 9c, 9d, 9e remain. See the W9 section for what moved. |
+| W0 embedded NUL | **Done** | Named constant `UngroupedGroupPrefix`; the loader refuses a declared group containing a control character, which closed a collision that was reachable from a catalogue; `EquivalenceTests` pins the separation. PR #15. |
+| W2 parameter-usage helper | **Done** | `Core.Json.ParameterUsage` walks the node tree the way the resolver does; all six expressions use it. `ParameterUsageTests` pins it against `CanonicalJson.Resolve`. PR #15. |
+| W9 structure and optimisation | **Partly done** | 9d and 9e done. 9b is half-applied — Graph has it, the Engine does not — and 9a and 9c remain. |
 | W1, W4, W5, W6, W7, W8 | Not started | W1 now targets 2026.09.11, not .10. W4's prerequisite (W3) is met. |
 
 ## How to use this document
@@ -62,7 +63,12 @@ W0's remainder is small and can be taken any time, or closed. W3 is done, so W4 
 
 ## W0. Remove the embedded NUL byte
 
-**Status, 21 September 2026: mostly done.** The raw NUL was replaced with the escape sequence `"\u0000" + s.Key`
+**Done, 22 September 2026 (PR #15).** The named constant and the test below were added, and the loader now refuses a
+declared group containing a control character: group names had not been validated at all, so the collision this
+workstream feared was reachable from a catalogue, not merely theoretical. The rest of this section is kept as the
+record of how it was found.
+
+**Status before that, 21 September 2026: mostly done.** The raw NUL was replaced with the escape sequence `"\u0000" + s.Key`
 (`EquivalenceEvaluator.cs:57`). `file` now reports the source as ASCII text, `grep` matches it and diffs are readable;
 no tracked C# or XAML file under `src/` contains a NUL byte. (Binary assets such as PNG and ICO contain them normally; the claim is about source text.) What the target below asked for and the fix did not deliver: the key
 is still an inline literal rather than a named constant explaining why collision matters, and no test pins the
@@ -89,7 +95,13 @@ private const string UngroupedKeyPrefix = "\u0001ungrouped:";
 
 ---
 
-## W2. One parameter-usage helper
+## W2. One parameter-usage helper — DONE
+
+**Done, 22 September 2026 (PR #15).** `Core.Json.ParameterUsage` walks the node tree the way `CanonicalJson.Resolve`
+does, so what is reported as used is exactly what would be substituted. That also fixed a defect: searching serialised
+text matched a property *name* that looked like a placeholder, so a parameter nothing would resolve could be demanded
+from the client. The two lambda-resident serialisations are gone. The section below is the specification it was built
+against.
 
 **Problem.** The same `Contains("{{" + key + "}}")` scan appears as **six expressions in four files, in six distinct
 members**, verified at `55cb822`. They do not all cost the same thing, and an earlier version of this section was wrong
@@ -275,9 +287,9 @@ you are estimating the blast radius, use 98. Several sit inside loops over plan 
 the result. Measure first: this is only worth doing where a profile shows it, and correctness matters more than the
 microseconds.
 
-**9d. Resolve the export format overlap.** `ExportBuildStandard` maps both `ClientHtml` and `Html` to the same output, which means the enumeration no longer says what it means. Either give the client document its own format or collapse the two.
+**9d. Resolve the export format overlap. Done (PR #15):** `ClientHtml` names an audience, not a format, so the build standard document now takes `Html` or `Markdown` and refuses the rest. As originally written: `ExportBuildStandard` maps both `ClientHtml` and `Html` to the same output, which means the enumeration no longer says what it means. Either give the client document its own format or collapse the two.
 
-**9e. Keep the parser and the field in step.** `PolicyInputParser` in the Engine and `PolicyInputField` in the application must not drift; the field is a thin wrapper by design. A test in the Engine covers the parser; `PolicyInputField` is still named by no test at all, confirmed at `e188d9e`. Add one, or accept the risk explicitly. PR #12 shows why this matters: the headless runner drifted from the application in exactly this way, by reimplementing rather than delegating, and a source-scan conformance test is what now holds it.
+**9e. Keep the parser and the field in step. Done (PR #16):** the application test project made the field testable, and `PolicyInputFieldTests` compares it against the parser for every type and shape of input rather than restating the parser's rules, so it fails on drift and not on a legitimate change. As originally written: `PolicyInputParser` in the Engine and `PolicyInputField` in the application must not drift; the field is a thin wrapper by design. A test in the Engine covers the parser; `PolicyInputField` is still named by no test at all, confirmed at `e188d9e`. Add one, or accept the risk explicitly. PR #12 shows why this matters: the headless runner drifted from the application in exactly this way, by reimplementing rather than delegating, and a source-scan conformance test is what now holds it.
 
 **9f. Tests are 6,916 lines against 16,555 of source, and 542 of them pass.** That ratio is healthy and improved since the last measurement. Protect it: every workstream above adds tests before it adds behaviour, and no workstream is done while a new public surface has none.
 
