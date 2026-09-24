@@ -80,6 +80,9 @@ internal static partial class Program
             {
                 foreach (var nav in shell.NavItems)
                 {
+                  // One page's failure is recorded and the run continues, so a single run reports every page that fails.
+                  try
+                  {
                     traces.Context = nav.Key + " " + size.Width + "x" + size.Height;
                     Set(workspace, nameof(Workspace.ApplicationSetup), nav.Key == "setup" ? SyntheticSetup() : null);
                     typeof(Workspace).GetMethod("Notify", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(workspace, null);
@@ -143,6 +146,11 @@ internal static partial class Program
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
+                  }
+                  catch (InvalidOperationException ex)
+                  {
+                    PageFailures.Add($"  {nav.Key} {(int)size.Width}x{(int)size.Height} · {ex.Message}");
+                  }
                 }
             }
             // A check that inspects nothing passes, and these two did exactly that before IsShown replaced IsVisible.
@@ -181,6 +189,8 @@ internal static partial class Program
                 throw new InvalidOperationException($"The {check} check inspected nothing; a check that looks at nothing cannot pass.");
 
             var problems = new List<string>();
+            if (PageFailures.Count > 0)
+                problems.Add($"{PageFailures.Count} page check(s) failed:" + Environment.NewLine + string.Join(Environment.NewLine, PageFailures));
             var minimum = new Size(window.MinWidth, window.MinHeight);
             if (minimum.Width > SmallestWorkArea.Width || minimum.Height > SmallestWorkArea.Height)
                 problems.Add($"The main window cannot be made smaller than {minimum.Width}x{minimum.Height}, but a 1920x1080 laptop "
@@ -479,6 +489,7 @@ internal static partial class Program
         return false;
     }
 
+    private static readonly List<string> PageFailures = new();
     private static readonly List<string> UnnamedControls = new();
     private static int NamedControlsInspected;
 
