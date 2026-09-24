@@ -32,7 +32,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="4*"/></Grid.ColumnDefinitions>
       <DockPanel>
         <Grid DockPanel.Dock="Top"><Grid.ColumnDefinitions><ColumnDefinition Width="6*"/><ColumnDefinition Width="5*"/><ColumnDefinition Width="5*"/></Grid.ColumnDefinitions>
-          <StackPanel Margin="0,0,10,0"><TextBlock Text="Result" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding FilterStatus, Mode=TwoWay}" AutomationProperties.Name="Filter results"/></StackPanel>
+          <StackPanel Margin="0,0,10,0"><TextBlock Text="Result" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding StatusFilters}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding FilterStatus, Mode=TwoWay}" AutomationProperties.Name="Filter results"/></StackPanel>
           <StackPanel Grid.Column="1" Margin="0,0,10,0"><TextBlock Text="Category" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding CategoryFilters}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}" AutomationProperties.Name="Filter category"/></StackPanel>
           <StackPanel Grid.Column="2"><TextBlock Text="Search" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search findings"/></StackPanel>
         </Grid>

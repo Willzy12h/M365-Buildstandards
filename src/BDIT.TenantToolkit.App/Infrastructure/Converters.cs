@@ -27,26 +27,38 @@ public sealed class NullToVisibilityConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
-/// <summary>Maps status words to a background brush so pass/fail/pending states are visually distinct in grids.</summary>
+/// <summary>
+/// Maps status words to a background brush so pass/fail/pending states are visually distinct in grids. The word is
+/// always shown as well, so colour is never the only signal. Bound to finding statuses, plan actions, run and result
+/// statuses, manual-check outcomes and the Deploy page's prerequisite steps.
+/// </summary>
 public sealed class StatusToBrushConverter : IValueConverter
 {
-    private static readonly Brush Good = new SolidColorBrush(Color.FromRgb(0xE8, 0xF5, 0xED));
-    private static readonly Brush Bad = new SolidColorBrush(Color.FromRgb(0xFD, 0xE7, 0xE5));
-    private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xF5, 0xDE));
-    private static readonly Brush Info = new SolidColorBrush(Color.FromRgb(0xE7, 0xF4, 0xFB));
+    // Shared by every row of every grid, so frozen: a frozen brush is immutable, cheaper to render and safe to share.
+    private static readonly Brush Good = Frozen(Color.FromRgb(0xE8, 0xF5, 0xED));
+    private static readonly Brush Bad = Frozen(Color.FromRgb(0xFD, 0xE7, 0xE5));
+    private static readonly Brush Warn = Frozen(Color.FromRgb(0xFF, 0xF5, 0xDE));
+    private static readonly Brush Info = Frozen(Color.FromRgb(0xE7, 0xF4, 0xFB));
     private static readonly Brush Neutral = Brushes.Transparent;
+
+    private static Brush Frozen(Color colour)
+    {
+        var brush = new SolidColorBrush(colour);
+        brush.Freeze();
+        return brush;
+    }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var text = value?.ToString() ?? "";
-        if (text is "Compliant" or "Pass" or "Verified")
+        if (text is "Compliant" or "Pass" or "Verified" or "Ready" or "Observed")
             return Good;
-        if (text.Contains("Missing", StringComparison.OrdinalIgnoreCase) || text is "Error" or "Fail" or "Conflict" or "Blocked" or "Drift" or "Review required" or "Interrupted" || text.Contains("Removed", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains("Missing", StringComparison.OrdinalIgnoreCase) || text is "Error" or "Fail" or "Conflict" or "Blocked" or "Drift" or "Review required" or "Interrupted" or "Rejected" || text.Contains("Removed", StringComparison.OrdinalIgnoreCase))
             return Bad;
         if (text.Contains("Partial", StringComparison.OrdinalIgnoreCase) || text.Contains("Manual", StringComparison.OrdinalIgnoreCase) || text.Contains("Unable", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Stopped" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
+            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Stopped" or "Incomplete" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
             return Warn;
-        if (text is "Create" or "Update" or "Collected" or "Completed" or "Accepted" or "NoChange" or "NotApplicable" or "Deviation" or "In progress" or "InProgress" or "Running") return Info;
+        if (text is "Create" or "Update" or "Collected" or "Completed" or "Accepted" or "NoChange" or "NotApplicable" or "Deviation" or "CompliantWithDeviation" or "In progress" or "InProgress" or "Running") return Info;
         return Neutral;
     }
 

@@ -20,6 +20,12 @@ public sealed class FindingRow
     public string BestMatch => Finding.BestCandidate is { } c ? $"{c.Name} ({StatusLabels.For(c.Enforcement)})" : "";
 }
 
+/// <summary>A choice in a filter list: <see cref="Key"/> is compared, <see cref="Label"/> is shown and announced.</summary>
+public sealed record FilterOption(string Key, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public sealed class AssessmentViewModel : PageViewModel
 {
     private string _filterStatus = "Actionable";
@@ -55,7 +61,12 @@ public sealed class AssessmentViewModel : PageViewModel
     public ICommand OpenExportCommand { get; }
 
     public ObservableCollection<FindingRow> Findings { get; } = new();
-    public ObservableCollection<string> StatusFilters { get; } = new() { "Actionable", "All", "Compliant", "CompliantWithDeviation", "SettingsMatchNotEnforced", "PartialMatch", "Missing", "UnableToAssess", "RequiresManualReview", "LicenceUnavailable", "NotApplicable" };
+    /// <summary>
+    /// The result filter, worded as the findings table words each status. The key is what the filter compares; the
+    /// label is what the engineer reads and what a screen reader announces, so neither sees an internal enum name.
+    /// </summary>
+    public IReadOnlyList<FilterOption> StatusFilters { get; } = new[] { new FilterOption("Actionable", "Actionable"), new FilterOption("All", "All results") }
+        .Concat(Enum.GetValues<FindingStatus>().Select(s => new FilterOption(s.ToString(), StatusLabels.For(s)))).ToList();
     public ObservableCollection<string> CategoryFilters { get; } = new();
     public ObservableCollection<CandidateMatch> Candidates { get; } = new();
     public ObservableCollection<PropertyDifference> Differences { get; } = new();
