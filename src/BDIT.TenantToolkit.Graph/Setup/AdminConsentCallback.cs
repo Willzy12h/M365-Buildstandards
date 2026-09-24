@@ -45,7 +45,7 @@ public sealed class AdminConsentCallback : IDisposable
         catch (SocketException ex)
         {
             _listener.Stop(); _lifetime.Dispose();
-            throw new BDIT.TenantToolkit.Core.ConfigurationException("The registered consent callback port 8400 is unavailable. Close another tool consent window, then retry. Validate setup can still check existing grants.", ex);
+            throw new BDIT.TenantToolkit.Core.ConfigurationException("The registered consent callback port 8400 is unavailable. Close another tool consent window, then retry. Check again can still read the existing grants.", ex);
         }
         catch { _listener.Stop(); _lifetime.Dispose(); throw; }
     }

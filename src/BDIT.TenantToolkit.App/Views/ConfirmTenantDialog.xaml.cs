@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.App.Views;
 
@@ -24,11 +25,11 @@ public partial class ConfirmTenantDialog : Window
     }
 
     private void OnTypedChanged(object sender, TextChangedEventArgs e) =>
-        DeployButton.IsEnabled = string.Equals(TypedTenantId, _expectedTenantId, StringComparison.OrdinalIgnoreCase);
+        DeployButton.IsEnabled = TenantConfirmation.Matches(TypedTenantId, _expectedTenantId);
 
     private void OnConfirm(object sender, RoutedEventArgs e)
     {
-        if (!string.Equals(TypedTenantId, _expectedTenantId, StringComparison.OrdinalIgnoreCase)) return;
+        if (!TenantConfirmation.Matches(TypedTenantId, _expectedTenantId)) return;
         DialogResult = true;
     }
 

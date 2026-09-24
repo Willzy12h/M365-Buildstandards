@@ -132,7 +132,11 @@ public sealed class AssessmentViewModel : PageViewModel
             if (f.BusinessImpact.Length > 0) lines.Add("Business impact: " + f.BusinessImpact);
             if (f.EngineerAction.Length > 0) lines.Add("Engineer action: " + f.EngineerAction);
             if (f.ManualInstructions.Length > 0) lines.Add("How to review: " + f.ManualInstructions);
-            if (f.Owned) lines.Add("Toolkit-managed object: " + f.OwnedObjectId);
+            if (f.Owned)
+            {
+                var owned = f.Candidates.FirstOrDefault(c => string.Equals(c.ObjectId, f.OwnedObjectId, StringComparison.OrdinalIgnoreCase))?.Name;
+                lines.Add("Toolkit-managed object: " + (string.IsNullOrWhiteSpace(owned) ? f.OwnedObjectId : $"{owned} [{f.OwnedObjectId}]"));
+            }
             foreach (var e in f.Equivalence)
             {
                 lines.Add("");

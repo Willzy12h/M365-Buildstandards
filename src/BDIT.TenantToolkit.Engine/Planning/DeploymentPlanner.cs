@@ -75,7 +75,7 @@ public sealed class DeploymentPlanner
         if (!string.Equals(request.Mappings.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("Managed-object mapping belongs to a different tenant.");
 
-        var names = NameResolver.FromSnapshot(snapshot);
+        var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
         var rows = new List<PlanRow>();
         foreach (var id in request.SelectedControlIds.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -374,7 +374,7 @@ public sealed class DeploymentPlanner
             var def = ctx.Standard.FindCollection(row.Collection) ?? throw new PlanValidationException($"{row.ControlId}: unknown collection '{row.Collection}'.");
             var control = ctx.Standard.FindControl(row.ControlId) ?? throw new PlanValidationException($"Unknown control {row.ControlId}.");
             var expected = BuildRow(control, ctx.Standard, ctx.Snapshot, ctx.Profile, ctx.Mappings, ctx.Deviations, ctx.Session,
-                NameResolver.FromSnapshot(ctx.Snapshot), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId), ctx.Now);
+                NameResolver.FromSnapshot(ctx.Snapshot, ctx.Profile), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId), ctx.Now);
             if (!expected.IsWrite || expected.Action != row.Action || expected.Collection != row.Collection || expected.ObjectId != row.ObjectId
                 || CanonicalJson.Serialize(expected.Payload) != CanonicalJson.Serialize(row.Payload))
                 throw new PlanValidationException($"{row.ControlId}: the write is not ready or differs from the current reviewed recipe. {expected.Reason}");

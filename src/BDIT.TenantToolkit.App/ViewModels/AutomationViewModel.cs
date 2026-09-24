@@ -218,7 +218,7 @@ public sealed class AutomationViewModel : PageViewModel
     private async Task ExecuteLaps()
     {
         var p = _lapsPlan ?? throw new ToolkitException("Preview LAPS first.");
-        if (TypedTenant.Trim() != p.TenantId) throw new SafetyViolationException("Type the exact tenant ID from the preview.");
+        if (!BDIT.TenantToolkit.Core.Safety.TenantConfirmation.Matches(TypedTenant, p.TenantId)) throw new SafetyViolationException("Type the exact tenant ID from the preview.");
         ClearApproval();
         await Workspace.RunExclusiveAsync("Enabling reviewed Entra LAPS prerequisite", async _ =>
         {

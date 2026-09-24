@@ -593,6 +593,8 @@ internal static partial class Program
             vm.SelectedControl ??= vm.Controls.FirstOrDefault();
             vm.ImportFile = SyntheticImportPath();
         },
+        // Choosing a release is refused while connected, so the success path needs the session set aside too.
+        ["StandardViewModel.SelectReleaseCommand"] = Disconnect,
         ["AutomationViewModel.LoadCandidateCommand"] = shell =>
         {
             Disconnect(shell);
@@ -630,7 +632,7 @@ internal static partial class Program
         vm.SelectedRun = vm.Runs.FirstOrDefault();
     }
 
-    /// <summary>Import and loading a candidate are refused while connected; the connection is restored after the press.</summary>
+    /// <summary>Import, loading a candidate and choosing a release are refused while connected; the connection is restored after the press.</summary>
     private static void Disconnect(ShellViewModel shell)
     {
         typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(shell.Workspace, null);

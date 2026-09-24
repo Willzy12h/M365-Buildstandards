@@ -224,6 +224,26 @@ public sealed class SafetyReviewRegressionTests
         Assert.Equal("disabled", Assert.Single(h.Graph.ReviewedWrites).Payload["state"]!.ToString());
     }
 
+    /// <summary>
+    /// Every tenant confirmation follows one rule: the ID in full, ignoring surrounding spaces and letter case. Reviewed
+    /// changes compared it case-sensitively, so an engineer who pasted the ID in capitals was refused here only.
+    /// </summary>
+    [Fact]
+    public async Task Reviewed_change_accepts_the_tenant_ID_in_capitals_and_refuses_a_shortened_one()
+    {
+        using var h = CaHarness(); var source = await h.Deploy();
+        var containment = await Preview(h, source, ReviewedChangeKind.DisableConditionalAccess);
+        var service = new ReviewedChangeService(h.Evidence, h.Clock);
+
+        await Assert.ThrowsAsync<SafetyViolationException>(() => service.ExecuteAsync(h.Graph, h.Session, h.Profile, h.Standard,
+            containment.Id, containment.IntegrityDigest, h.Session.TenantId[..^1], default));
+        Assert.Empty(h.Graph.ReviewedWrites);
+
+        var disabled = await service.ExecuteAsync(h.Graph, h.Session, h.Profile, h.Standard,
+            containment.Id, containment.IntegrityDigest, "  " + h.Session.TenantId.ToUpperInvariant() + "  ", default);
+        Assert.Equal(ConfigurationVerification.Pass, disabled.Verification);
+    }
+
     [Fact]
     public async Task Ca_verified_readback_cannot_adopt_an_extra_material_property_already_in_the_baseline()
     {

@@ -50,8 +50,12 @@ public sealed class ApplicationPackageService(EvidenceStore evidence, IClock clo
         if (session.Mode != SessionMode.Deployment || graph.Mode != SessionMode.Deployment) throw new WriteDeniedException("Package upload needs deployment access.");
         using var lease = evidence.AcquireTenantWriteLease(session.TenantId);
         var p = evidence.RequirePackagePlan(session.TenantId, planId);
-        if (p.IntegrityDigest != approvedDigest || p.OperatorId != session.OperatorObjectId || p.ClientId != session.ClientId || typedTenant.Trim() != p.TenantId
-            || p.StandardDigest != CanonicalJson.Sha256Value(standard) || p.MappingsDigest != CanonicalJson.Sha256Value(evidence.LoadMappings(p.TenantId))
+        // The mappings are read once: the copy whose digest is checked here is the copy used below, so a change between
+        // the check and the lookup cannot slip past either.
+        var mappings = evidence.LoadMappings(p.TenantId);
+        if (p.IntegrityDigest != approvedDigest || p.OperatorId != session.OperatorObjectId || p.ClientId != session.ClientId
+            || !TenantConfirmation.Matches(typedTenant, p.TenantId)
+            || p.StandardDigest != CanonicalJson.Sha256Value(standard) || p.MappingsDigest != CanonicalJson.Sha256Value(mappings)
             || p.CreatedAt > clock.UtcNow || clock.UtcNow - p.CreatedAt > TimeSpan.FromMinutes(10)) throw new SafetyViolationException("Package preview, approval or relevant inputs changed.");
         var snapshot = evidence.LoadSnapshot(p.TenantId, p.SnapshotId) ?? throw new SafetyViolationException("Package before-evidence is missing.");
         evidence.RequireDeploymentSnapshot(snapshot, standard); Fresh(snapshot.CapturedAt);
@@ -63,8 +67,9 @@ public sealed class ApplicationPackageService(EvidenceStore evidence, IClock clo
         evidence.AssertNoUnresolvedRecovery(p.TenantId, new[] { p.ControlId });
         using var package = await Task.Run(() => new IntuneWinPackage(packagePath), ct);
         if (package.Sha256 != p.PackageSha256) throw new SafetyViolationException("Package file changed after preview.");
-        var mapping = evidence.LoadMappings(p.TenantId).Find(p.ControlId)!;
-        var def = standard.FindCollection(mapping.Collection)!;
+        var mapping = mappings.Find(p.ControlId) ?? throw new SafetyViolationException("The app mapping is missing.");
+        if (!string.Equals(mapping.ObjectId, p.ObjectId, StringComparison.OrdinalIgnoreCase)) throw new SafetyViolationException("Ownership changed after preview.");
+        var def = standard.FindCollection(mapping.Collection) ?? throw new SafetyViolationException("App collection is missing.");
         using var preflight = CancellationTokenSource.CreateLinkedTokenSource(ct); preflight.CancelAfter(TimeSpan.FromSeconds(60));
         var current = await RecoveryObjectReader.ReadAsync(graph, def, p.ObjectId, preflight.Token);
         if (CanonicalJson.Sha256(current) != CanonicalJson.Sha256(p.Before)) throw new SafetyViolationException("App changed after preview.");

@@ -22,23 +22,61 @@ public sealed class NameResolver
 
     private readonly Dictionary<string, string> _names = new(StringComparer.OrdinalIgnoreCase);
 
-    public static NameResolver FromSnapshot(TenantSnapshot? snapshot)
+    /// <summary>The directory collections whose names win if an ID appears in more than one collection.</summary>
+    private static readonly string[] DirectoryCollections = { "users", "groups", "directoryRoles", "namedLocations", "apps", "licences" };
+
+    public static NameResolver FromSnapshot(TenantSnapshot? snapshot) => FromSnapshot(snapshot, null);
+
+    /// <summary>
+    /// Names for every object the capture holds, plus the client's recorded exclusion accounts. Every collection is
+    /// indexed, not only the directory ones, so a policy, app or location referenced by ID elsewhere reads by name too.
+    /// Users read as "Display name (sign-in name)", and directory roles are also indexed by their role template ID,
+    /// which is how Conditional Access refers to them. Display only: nothing decides anything from a name.
+    /// </summary>
+    public static NameResolver FromSnapshot(TenantSnapshot? snapshot, TenantProfile? profile)
     {
         var resolver = new NameResolver();
-        if (snapshot is null) return resolver;
-        foreach (var key in new[] { "groups", "users", "namedLocations", "apps", "licences" })
+        if (snapshot is not null)
         {
-            if (!snapshot.Collections.TryGetValue(key, out var capture)) continue;
-            foreach (var item in capture.Items)
-            {
-                var id = Text(item["id"]);
-                if (string.IsNullOrEmpty(id)) continue;
-                var name = Text(item["displayName"]) ?? Text(item["userPrincipalName"]) ?? Text(item["skuPartNumber"]);
-                if (!string.IsNullOrEmpty(name)) resolver._names[id] = name;
-            }
+            foreach (var key in DirectoryCollections)
+                if (snapshot.Collections.TryGetValue(key, out var capture))
+                    foreach (var item in capture.Items) resolver.Index(key, item, overwrite: true);
+            foreach (var (key, capture) in snapshot.Collections)
+                if (!DirectoryCollections.Contains(key, StringComparer.Ordinal))
+                    foreach (var item in capture.Items) resolver.Index(key, item, overwrite: false);
+        }
+        // Emergency and exclusion accounts are resolved by the engineer when they are chosen, so they have names even
+        // when the capture holds no users collection.
+        foreach (var account in profile?.ExclusionAccounts ?? new())
+        {
+            var name = UserName(account.DisplayName, account.UserPrincipalName);
+            if (name.Length > 0 && !string.IsNullOrWhiteSpace(account.ObjectId)) resolver._names.TryAdd(account.ObjectId, name);
         }
         return resolver;
     }
+
+    private void Index(string collection, JsonObject item, bool overwrite)
+    {
+        var id = Text(item["id"]);
+        var name = collection == "users"
+            ? UserName(Text(item["displayName"]), Text(item["userPrincipalName"]))
+            : Text(item["displayName"]) ?? Text(item["name"]) ?? Text(item["userPrincipalName"]) ?? Text(item["skuPartNumber"]) ?? "";
+        if (name.Length == 0) return;
+        if (!string.IsNullOrEmpty(id))
+        {
+            if (overwrite) _names[id] = name; else _names.TryAdd(id, name);
+        }
+        if (collection == "directoryRoles" && Text(item["roleTemplateId"]) is { Length: > 0 } template) _names.TryAdd(template, name);
+    }
+
+    private static string UserName(string? displayName, string? userPrincipalName) =>
+        (displayName, userPrincipalName) switch
+        {
+            ({ Length: > 0 } d, { Length: > 0 } u) when !string.Equals(d, u, StringComparison.OrdinalIgnoreCase) => $"{d} ({u})",
+            ({ Length: > 0 } d, _) => d,
+            (_, { Length: > 0 } u) => u,
+            _ => ""
+        };
 
     /// <summary>
     /// A captured property as text, or null when absent or not a string. Names are display only, and every page that

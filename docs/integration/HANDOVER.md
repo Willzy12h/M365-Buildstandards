@@ -6,7 +6,7 @@ The plan for making this maintainable and extensible is [docs/integration/ARCHIT
 
 ## Current work
 
-**Preview.13 / standard 2026.09.11 is on integration.** PR #17 (Claude) is the full code and interface review; its record is [FULL-REVIEW-2026-09-24.md](FULL-REVIEW-2026-09-24.md). Read that first: it lists what was fixed, and seven findings in protected areas reported for a decision rather than changed.
+**Preview.13 / standard 2026.09.11 is on integration.** PR #17 (Claude) is the full code and interface review; its record is [FULL-REVIEW-2026-09-24.md](FULL-REVIEW-2026-09-24.md). Read that first: it lists what was fixed, and seven findings in protected areas that were reported for a decision. PR #18 settled them — five fixed, one (finding 4) kept as a hardening inventory — and made application setup one guided sequence (see [application setup](../APPLICATION-SETUP.md)) and object IDs read as friendly names.
 
 The independent safety review F1–F5 merged as PR #9 (`1021a23`). Read [the bounded change/validation record](SAFETY-REVIEW-2026-09-21.md): strict CA material-baseline checks, corrected enrolment contracts, blocked generic Autopilot assignments, beta-aware recovery verification, conservative application deployment assessment and fixed array caveats. Read [REVIEW-FIXES](REVIEW-FIXES.md) before testing or upgrading existing evidence. Historical catalogue and evidence compatibility remain constrained; do not adopt drift or replay Unknown writes.
 
@@ -22,7 +22,9 @@ PR #15 finished the application: its first test project (`BDIT.TenantToolkit.App
 
 **PR #17 made the interface checks answer "does it work", not only "does it draw".** CI fails on any compiler warning. The harness now also measures text and input contrast, clipping, keyboard reach on a shown window, every local command (from a register that fails the build when a command is added without being classified), the final tenant confirmation, and a third window size — 1180x640, which is what a 1080p laptop at 150% scaling offers. Every check was pushed before its fix and observed failing. The largest findings were near-invisible input edges on every page, a window that did not fit that laptop, and six pages that hid content when short.
 
-**Next: human-authorised disposable-tenant acceptance.** No live validation has been performed — no tenant authentication, no Graph call, no device. The synthetic tests prove safety logic against a scripted client, not that Microsoft accepts these payloads. `docs/LIVE-VALIDATION.md` is the staged checklist and is unexecuted. Do not start another automation batch before it. What remains needs a person rather than a model: [the fifteen-minute checklist](../TESTING-THIS-BUILD.md) covers 150% scaling, keyboard only, Narrator and readability. Contrast, keyboard reach, clipping and accessible names are now machine-checked; how they feel in use is not.
+**Next build work: [NEXT-RELEASE-PLAN.md](NEXT-RELEASE-PLAN.md)** — standard 2026.09.12, the Exchange and Purview sections and the two generated build standard documents, with the maintainer's decisions recorded so they are not reopened.
+
+**Next validation: human-authorised disposable-tenant acceptance.** No live validation has been performed — no tenant authentication, no Graph call, no device. The synthetic tests prove safety logic against a scripted client, not that Microsoft accepts these payloads. `docs/LIVE-VALIDATION.md` is the staged checklist and is unexecuted. Do not start another automation batch before it. What remains needs a person rather than a model: [the fifteen-minute checklist](../TESTING-THIS-BUILD.md) covers 150% scaling, keyboard only, Narrator and readability. Contrast, keyboard reach, clipping and accessible names are now machine-checked; how they feel in use is not.
 
 ## Historical handover (superseded where above differs)
 

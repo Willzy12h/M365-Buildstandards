@@ -155,7 +155,7 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
         AssertSession(graph, session, true);
         using var lease = evidence.AcquireTenantWriteLease(session.TenantId);
         var p = evidence.RequireReviewedChangePlan(session.TenantId, planId);
-        if (typedTenant.Trim() != session.TenantId || approvedDigest != p.IntegrityDigest || p.OperatorId != session.OperatorObjectId || p.ClientId != session.ClientId
+        if (!TenantConfirmation.Matches(typedTenant, session.TenantId) || approvedDigest != p.IntegrityDigest || p.OperatorId != session.OperatorObjectId || p.ClientId != session.ClientId
             || p.ProfileDigest != CanonicalJson.Sha256Value(profile) || p.StandardDigest != CanonicalJson.Sha256Value(standard)
             || p.MappingsDigest != CanonicalJson.Sha256Value(evidence.LoadMappings(session.TenantId)))
             throw new SafetyViolationException("Approval, tenant, operator or relevant inputs changed. Review again.");

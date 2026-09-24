@@ -310,7 +310,7 @@ public sealed class ConnectViewModel : PageViewModel
         if (!string.Equals(EditTenantId, account.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(session.TenantId, account.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("Resolve this account again in the selected tenant.");
         if (ExclusionReason.Trim().Length < 8) throw new ConfigurationException("Record why this account should be excluded (at least 8 characters).");
-        if (ExclusionAccounts.Any(a => a.ObjectId == account.ObjectId)) throw new ConfigurationException("This account is already in the exclusion list.");
+        if (ExclusionAccounts.Any(a => string.Equals(a.ObjectId, account.ObjectId, StringComparison.OrdinalIgnoreCase))) throw new ConfigurationException("This account is already in the exclusion list.");
         var selected = new ExclusionAccount { TenantId = account.TenantId, ObjectId = account.ObjectId, DisplayName = account.DisplayName,
             UserPrincipalName = account.UserPrincipalName, Purpose = ExclusionPurpose, Reason = ExclusionReason.Trim(), ResolvedAt = account.ResolvedAt, SelectedBy = session.Account };
         ExclusionAccounts.Add(selected);
