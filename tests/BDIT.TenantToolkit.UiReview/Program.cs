@@ -91,7 +91,9 @@ internal static class Program
                     var visualCount = Descendants(content).Count();
                     var controls = Descendants(content).OfType<UserControl>().ToList();
                     if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
-                    AssertAccessibleNames(content, nav.Key);
+                    var pageAtSize = nav.Key + " " + (int)size.Width + "x" + (int)size.Height;
+                    RecordUnnamedControls(content, pageAtSize);
+                    RecordCollapsedColumns(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
@@ -132,11 +134,30 @@ internal static class Program
                     {
                         var tabs = Descendants(controls[0]).OfType<TabControl>().First();
                         tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
+                        RecordUnnamedControls(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
+                        RecordCollapsedColumns(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
                 }
             }
+            // A check that inspects nothing passes, and these two did exactly that before IsShown replaced IsVisible.
+            // The Plan table is the one S1 was raised against, so it must be among the grids actually measured.
+            if (NamedControlsInspected == 0 || GridsInspected.Count == 0)
+                throw new InvalidOperationException($"The interface checks inspected {NamedControlsInspected} controls and {GridsInspected.Count} tables; a check that looks at nothing cannot pass.");
+            if (!GridsInspected.Contains("Controls to include in the plan") || !GridsInspected.Contains("Planned actions"))
+                throw new InvalidOperationException("The Plan page tables were not measured: " + string.Join(", ", GridsInspected));
+            var problems = new List<string>();
+            if (UnnamedControls.Count > 0)
+                problems.Add($"{UnnamedControls.Count} control(s) announce only their type to a screen reader. Give each an "
+                    + "AutomationProperties.Name, or text content:" + Environment.NewLine + string.Join(Environment.NewLine, UnnamedControls));
+            if (CollapsedColumns.Count > 0)
+                problems.Add($"{CollapsedColumns.Count} table column(s) are drawn narrower than designed, so their content is hidden "
+                    + "even when scrolled to. A DataGrid with a star column squeezes every column to fit before it scrolls; "
+                    + "ColumnSizing.KeepDesignedWidths prevents it:" + Environment.NewLine + string.Join(Environment.NewLine, CollapsedColumns));
+            if (problems.Count > 0)
+                throw new InvalidOperationException(string.Join(Environment.NewLine + Environment.NewLine, problems));
+            Console.WriteLine($"Interface checks: {NamedControlsInspected} operable controls named; {GridsInspected.Count} tables measured, every column readable.");
             Pump();
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
@@ -152,7 +173,7 @@ internal static class Program
             if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
                 throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
-            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, readableColumnsChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
             Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
@@ -376,29 +397,85 @@ internal static class Program
     }
 
     /// <summary>
+    /// True when an element is actually drawn on the page being checked. <see cref="UIElement.IsVisible"/> cannot answer
+    /// that here: WPF reports it only for elements inside a window that has been shown, and the harness lays pages out
+    /// off-screen without showing one, so IsVisible is false for everything. Both checks below used it at first and so
+    /// inspected nothing and passed. This walks the visual ancestry for a collapsed or hidden element instead, and
+    /// requires the element to have been given a size by layout.
+    /// </summary>
+    private static bool IsShown(FrameworkElement element, FrameworkElement root)
+    {
+        if (element.ActualWidth <= 0 || element.ActualHeight <= 0) return false;
+        for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, root); node = VisualTreeHelper.GetParent(node))
+            if (node is UIElement ui && ui.Visibility != Visibility.Visible) return false;
+        return true;
+    }
+
+    private static bool InsideDataGridCell(DependencyObject element)
+    {
+        for (var node = VisualTreeHelper.GetParent(element); node is not null; node = VisualTreeHelper.GetParent(node))
+            if (node is DataGridCell) return true;
+        return false;
+    }
+
+    private static readonly List<string> UnnamedControls = new();
+    private static int NamedControlsInspected;
+
+    /// <summary>
     /// Every control an engineer can operate must announce what it is. A screen reader reads the accessible name; with
     /// none, a grid of deployment runs and a grid of licence assignments are both announced as "data grid", and the
     /// engineer cannot tell which one they are in.
     ///
     /// This asks the automation peer rather than reading the XAML attribute, because that is what the screen reader
-    /// asks. A button whose content is text already answers from its content and needs nothing; a button whose content
-    /// is a panel, like the navigation items, does not.
+    /// asks. A checkbox whose content is text already answers from its content; a button whose content is a panel does
+    /// not. Two kinds of control are left out, deliberately: those inside a table cell, which a screen reader reaches
+    /// through the table and announces by column header, and the parts of a control's own template, which its owner
+    /// names. Controls produced by a data template - the generated input form, for example - are still checked.
     /// </summary>
-    private static void AssertAccessibleNames(FrameworkElement content, string page)
+    private static void RecordUnnamedControls(FrameworkElement content, string where)
     {
-        var unnamed = new List<string>();
         foreach (var element in Descendants(content).OfType<FrameworkElement>())
         {
             if (element is not (TextBox or PasswordBox or ComboBox or ListBox or DataGrid or CheckBox or RadioButton)) continue;
-            if (!element.IsVisible) continue;
+            if (element.TemplatedParent is Control) continue;
+            if (!IsShown(element, content) || InsideDataGridCell(element)) continue;
+            NamedControlsInspected++;
             var peer = UIElementAutomationPeer.CreatePeerForElement(element);
             if (!string.IsNullOrWhiteSpace(peer?.GetName())) continue;
-            unnamed.Add(element.GetType().Name + (string.IsNullOrEmpty(element.Name) ? "" : " '" + element.Name + "'"));
+            UnnamedControls.Add($"  {where} · {element.GetType().Name}" + (string.IsNullOrEmpty(element.Name) ? "" : " '" + element.Name + "'"));
         }
-        if (unnamed.Count > 0)
-            throw new InvalidOperationException(
-                $"{page}: {unnamed.Count} control(s) announce only their type to a screen reader. Give each an "
-                + $"AutomationProperties.Name, or text content: {string.Join(", ", unnamed)}");
+    }
+
+    /// <summary>The DataGridColumnHeader style's MinWidth. A narrower column clips its own header.</summary>
+    private const double ReadableColumnWidth = 70;
+    private static readonly List<string> CollapsedColumns = new();
+    private static readonly HashSet<string> GridsInspected = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Records every shown table column drawn narrower than it was designed. A DataGrid with a star-sized column tries
+    /// to fit the viewport before it scrolls, and does it by squeezing every column towards the 20px default - fixed
+    /// ones included. Measured at the minimum window size before ColumnSizing existed, a column declared 100px wide was
+    /// drawn at 20 and the Plan page's Explanation column at 20. The table still scrolls, so a render can look complete;
+    /// the column simply cannot be read.
+    ///
+    /// Two tests, both independent of ColumnSizing so that removing it is caught: a column with a declared pixel width is
+    /// never drawn narrower than that width, and no column is narrower than its header.
+    /// </summary>
+    private static void RecordCollapsedColumns(FrameworkElement content, string where)
+    {
+        foreach (var grid in Descendants(content).OfType<DataGrid>())
+        {
+            if (!IsShown(grid, content)) continue;
+            var name = System.Windows.Automation.AutomationProperties.GetName(grid);
+            GridsInspected.Add(name);
+            foreach (var column in grid.Columns)
+            {
+                if (column.Visibility != Visibility.Visible) continue;
+                var designed = column.Width.IsAbsolute ? Math.Max(column.Width.Value, ReadableColumnWidth) : ReadableColumnWidth;
+                if (column.ActualWidth >= designed - 0.5) continue;
+                CollapsedColumns.Add($"  {where} · {name} · '{column.Header}' is {column.ActualWidth:0}px, designed {designed:0}px");
+            }
+        }
     }
 
     private static void AssertUsableControlList(FrameworkElement content, string page)

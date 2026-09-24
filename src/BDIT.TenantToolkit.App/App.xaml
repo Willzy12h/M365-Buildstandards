@@ -163,6 +163,8 @@
         <Setter Property="MinRowHeight" Value="38"/><Setter Property="ColumnHeaderHeight" Value="40"/><Setter Property="FontSize" Value="12"/>
         <Setter Property="RowBackground" Value="White"/><Setter Property="AlternatingRowBackground" Value="#FAFCFE"/>
         <Setter Property="ScrollViewer.CanContentScroll" Value="True"/><Setter Property="EnableRowVirtualization" Value="True"/><Setter Property="EnableColumnVirtualization" Value="True"/>
+        <!-- A table that does not fit scrolls rather than squeezing columns below their designed width; see ColumnSizing. -->
+        <Setter Property="infra:ColumnSizing.KeepDesignedWidths" Value="True"/>
       </Style>
       <Style TargetType="DataGridColumnHeader">
         <Setter Property="Background" Value="{StaticResource BgPanel}"/><Setter Property="Foreground" Value="{StaticResource TextMuted}"/>

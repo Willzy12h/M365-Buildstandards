@@ -10,6 +10,7 @@
 - Reviewable client inputs fall back to a dated default with a warning on the plan row instead of blocking the control. Identity inputs — account, group and location IDs — carry no default and still block, because a wrong identity is worse than a missing one.
 - The package now ships eleven operator documents rather than the whole documentation folder, and carries its own README written for the engineer running it rather than for a contributor. The build fails if a packaged document is missing or if any link in one does not resolve inside the package.
 - Every control an engineer can operate announces itself to a screen reader, and the offline interface harness fails the build if one does not.
+- Tables no longer squeeze columns out of sight. At the minimum window size a table used to shrink every column towards 20px rather than scroll, so the Plan page's Select and Explanation columns - among others - were drawn too narrow to read while looking complete. A table that does not fit now scrolls, and each column keeps the width it was designed for.
 
 # 1.1.0-preview.12
 
