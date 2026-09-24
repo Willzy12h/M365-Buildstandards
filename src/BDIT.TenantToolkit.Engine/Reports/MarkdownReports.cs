@@ -6,7 +6,14 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 /// <summary>Markdown equivalents of the engineer, run and drift reports for ticketing systems and wikis.</summary>
 public static class MarkdownReports
 {
-    private static string E(string? s) => (s ?? "").Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
+    /// <summary>
+    /// Tenant-supplied text in a Markdown table cell. Pipes would split the cell and line breaks end the row; angle
+    /// brackets and ampersands are escaped too, because most wikis and ticketing systems render inline HTML, and an
+    /// object named like a tag would otherwise be rendered rather than shown.
+    /// </summary>
+    private static string E(string? s) => (s ?? "").Replace("&", "&amp;", StringComparison.Ordinal)
+        .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
+        .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
     public static string Engineer(AssessmentResult r)
     {

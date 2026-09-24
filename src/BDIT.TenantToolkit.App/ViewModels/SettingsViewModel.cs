@@ -49,7 +49,7 @@ public sealed class SettingsViewModel : PageViewModel
                 $"Max Retry-After honoured:   {s.MaxRetryAfterSeconds} s",
                 $"Log level:                  {s.LogLevel}",
                 "",
-                "Settings are edited in config/toolkit.settings.json and applied at the next start. No secrets are stored; authentication always happens in your browser with Microsoft.",
+                "Settings are edited in config/toolkit.settings.json and applied at the next start. No secrets are stored; you always sign in to Microsoft directly, in the Windows sign-in window or, if selected on the Connect page, your browser.",
                 "Token caches are DPAPI-protected per tenant and removed on disconnect and on exit.",
                 "Run Start-Diagnostics.cmd to launch with verbose logging and a visible start-up log."
             };

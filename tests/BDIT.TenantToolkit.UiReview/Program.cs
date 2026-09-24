@@ -219,6 +219,10 @@ internal static partial class Program
             Console.WriteLine($"Contrast: {TextContrastInspected} text elements and {BoundariesInspected} input edges meet WCAG AA. Clipping: {ClippingInspected} elements, none cut off.");
             Console.WriteLine($"Keyboard: {KeyboardPagesWalked} pages walked with Tab, {KeyboardStopsReached} stops, every operable control reached. Final confirmation dialog: {DialogChecks} checks passed.");
             Console.WriteLine($"Commands: {CommandsCompleted} completed and {CommandsRefused} refused with a message, no defect raised; {CommandRegister.Count(c => c.Handling != Press)} not pressed by design.");
+            // A refusal is the command explaining what must happen first. Each is printed so a reviewer can confirm it is
+            // one of those, and not a defect that happened to surface as a message.
+            foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
+                Console.WriteLine("  " + line.Replace(Environment.NewLine, " / ", StringComparison.Ordinal));
             Pump();
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);

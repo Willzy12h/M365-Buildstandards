@@ -33,6 +33,32 @@ Launch the application and go straight to these two pages.
 
 **Policy automation → Policy inputs and imports.** This is the generated input form. Each field shows what it accepts and its current status: supplied, needed, or which default applies. Type a deliberately wrong value, for example `abc` in a field asking for object identifiers, and confirm the problem appears beside that field rather than as a dialogue.
 
+### Checks only a person can make (about 15 minutes)
+
+The build is checked automatically on every change: every page is drawn at three window sizes, every button and
+field is checked for a name a screen reader can announce, every table column for readable width, all text for
+contrast, every page is walked with the Tab key, every local command is pressed, and the final tenant confirmation
+is exercised. What that cannot tell you is how it feels on a real screen, with a real keyboard and a real screen
+reader. No tenant is needed for any of this.
+
+1. **Window and scaling.** In *Settings → Display*, set scaling to 150%. Start the application. It should open within
+   the screen, with the bottom of the page visible. Make the window as small as it will go: every page should scroll
+   to its content rather than hide it. Return scaling to your usual value and look again.
+2. **Keyboard only.** Put the mouse aside. From the navigation, press Tab and Shift+Tab through *Connect*,
+   *Plan changes* and *Build Standard*. You should always be able to see where focus is (a dashed blue outline), reach
+   every button and field, and move within a table with the arrow keys. Press Enter or Space on a navigation item to
+   open that page.
+3. **Screen reader.** Start Narrator (Windows+Ctrl+Enter). Tab through *Connect* and *Plan changes*. Each field should
+   be announced by what it is for - "Tenant ID", "Controls to include in the plan" - never just "edit" or "data grid".
+   Stop Narrator with Windows+Ctrl+Enter.
+4. **Readability.** On a laptop screen in daylight, check that the edges of input fields are easy to see and that
+   status colours in the tables (green, amber, red, blue) are distinguishable. The status is always written as well,
+   so colour is never the only signal.
+5. **Final confirmation.** This needs a connected deployment session, so leave it for section 5: the *Deploy* button
+   must stay disabled until the tenant ID is typed in full, and pressing Enter must never deploy.
+
+Note anything that does not behave as described, with the page and window size, under *What is worth your feedback*.
+
 ## 4. Connect a tenant read-only
 
 1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Follow [application setup](APPLICATION-SETUP.md); it creates two dedicated registrations and walks you through consent.

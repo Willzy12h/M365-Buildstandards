@@ -97,7 +97,7 @@ public static class Program
             Common options:
               --root <dir>     Toolkit root holding standards/, config/ and reports/.
                                Defaults to BDIT_TOOLKIT_ROOT or the installation directory.
-              --release <r>    Standard release, for example 2026.09.10. Defaults to the configured release.
+              --release <r>    Standard release, for example 2026.09.11. Defaults to the configured release.
 
             Exit codes: 0 success, 2 refused, 3 failed, 64 usage.
             """);

@@ -138,6 +138,8 @@ public class EvidenceAndReportTests
         var md = MarkdownReports.Engineer(result);
         Assert.Contains("# Tenant assessment", md, StringComparison.Ordinal);
         Assert.Contains("| `conditions.users.excludeUsers`", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script>", md, StringComparison.Ordinal);
+        Assert.Contains("&lt;script&gt;", md, StringComparison.Ordinal);
 
         var sheets = TabularReports.AssessmentSheets(result);
         // The recovered exporter includes equivalence evidence and caveats; retain both alongside the original tables.

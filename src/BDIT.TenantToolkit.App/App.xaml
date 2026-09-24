@@ -18,7 +18,6 @@
       <SolidColorBrush x:Key="DangerBg" Color="#FFF0F0"/>
       <SolidColorBrush x:Key="WarnBg" Color="#FFF5E1"/>
       <SolidColorBrush x:Key="Warn" Color="#865A00"/>
-      <SolidColorBrush x:Key="WarningBrush" Color="#865A00"/>
       <SolidColorBrush x:Key="GoodBg" Color="#EAF5EF"/>
       <SolidColorBrush x:Key="Good" Color="#176B49"/>
       <SolidColorBrush x:Key="TextPrimary" Color="#193247"/>
@@ -29,9 +28,6 @@
            white, so fields were barely visible. This is at least 3.2:1 on every background a field sits on. -->
       <SolidColorBrush x:Key="InputLine" Color="#76889C"/>
       <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-      <infra:InverseBoolConverter x:Key="InverseBool"/>
-      <infra:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
-      <infra:NullToVisibilityConverter x:Key="NullToVis"/>
       <infra:StatusToBrushConverter x:Key="StatusToBrush"/>
       <infra:WordsConverter x:Key="Words"/>
       <Style x:Key="KeyboardFocus" TargetType="Control">

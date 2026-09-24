@@ -69,6 +69,8 @@ jobs:
             dist/ui-review/verification.json
             dist/ui-review/binding-errors.txt
             dist/ui-review/harness-error.txt
+            dist/ui-review/commands.txt
+            dist/ui-review/tab-order.txt
 
       - name: Upload portable review package
         uses: actions/upload-artifact@v4
