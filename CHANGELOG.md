@@ -11,6 +11,16 @@
 - The package now ships eleven operator documents rather than the whole documentation folder, and carries its own README written for the engineer running it rather than for a contributor. The build fails if a packaged document is missing or if any link in one does not resolve inside the package.
 - Every control an engineer can operate announces itself to a screen reader, and the offline interface harness fails the build if one does not.
 - Tables no longer squeeze columns out of sight. At the minimum window size a table used to shrink every column towards 20px rather than scroll, so the Plan page's Select and Explanation columns - among others - were drawn too narrow to read while looking complete. A table that does not fit now scrolls, and each column keeps the width it was designed for.
+- Input fields are visible. Every text box and drop-down was edged in the pale divider colour, about 1.3:1 against its background, well below the 3:1 accessibility minimum for a control's edge; they now use a darker edge.
+- The window fits a laptop at 150% scaling. It could not be made shorter than 760 and opened at 940, on a 1080p screen that at 150% offers about 670 above the taskbar. It now opens within the screen and can be made as short as 600, and the six pages whose tables fill the window scroll instead of hiding their guidance when it is short.
+- Table headers that wrap in a narrow column grow instead of losing their second line.
+- Stopping a recovery no longer shows "Object reference not set to an instance of an object". The page says the recovery stopped before it returned a result and points to the change register, which is the record of whether anything was sent.
+- The Plan page's selected-control count follows each tick, Select eligible and Clear selection.
+- One captured object with an unexpected value can no longer stop the Configuration page, or appear to make a capture fail.
+- Markdown reports escape HTML in tenant-supplied names, so a wiki or ticketing system shows an object named like a tag rather than rendering it.
+- The Assessment result filter and the deviation kind use the same wording as the tables rather than internal names, for readers and screen readers alike. Compliant-with-deviation findings, rejected writes and the Deploy page's prerequisite steps are now coloured like the rest.
+- The first-build script now points at the package folder it actually creates.
+- The build fails on any compiler warning. The offline interface checks now also cover text and input contrast, clipping, keyboard reach on every page, every local command, the final tenant confirmation and a third window size; [the review record](docs/integration/FULL-REVIEW-2026-09-24.md) has the detail and seven findings reported for decision rather than changed.
 
 # 1.1.0-preview.12
 

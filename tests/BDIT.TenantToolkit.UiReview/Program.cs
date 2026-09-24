@@ -52,6 +52,11 @@ internal static partial class Program
         {
             // Use a base Application and load the product resource dictionary; never invoke production startup or authentication.
             var app = new Application();
+            // The application runs its commands on the UI dispatcher, so an awaited operation resumes there and may update
+            // bound collections. Without this the harness pressed commands with no synchronisation context, continuations
+            // resumed on the thread pool, and every export failed with a cross-thread collection error that the real
+            // application cannot produce - reported, until the refusal rule below existed, as sixteen "refusals".
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var document = System.Xml.Linq.XDocument.Load(Path.Combine(source, "src", "BDIT.TenantToolkit.App", "App.xaml"));
             var resource = new System.Xml.Linq.XElement(document.Descendants(System.Xml.Linq.XName.Get("ResourceDictionary", "http://schemas.microsoft.com/winfx/2006/xaml/presentation")).First());
             resource.SetAttributeValue(System.Xml.Linq.XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml");

@@ -12,6 +12,7 @@ using BDIT.TenantToolkit.App.Infrastructure;
 using BDIT.TenantToolkit.App.Services;
 using BDIT.TenantToolkit.App.ViewModels;
 using BDIT.TenantToolkit.App.Views;
+using BDIT.TenantToolkit.Core;
 
 /// <summary>
 /// Checks that go beyond "the page draws": what an engineer can read, reach with the keyboard, and press.
@@ -494,7 +495,10 @@ internal static partial class Program
     {
         typeof(NullReferenceException), typeof(ArgumentNullException), typeof(ArgumentOutOfRangeException),
         typeof(IndexOutOfRangeException), typeof(InvalidCastException), typeof(KeyNotFoundException),
-        typeof(NotImplementedException), typeof(FormatException), typeof(DivideByZeroException), typeof(OverflowException)
+        typeof(NotImplementedException), typeof(FormatException), typeof(DivideByZeroException), typeof(OverflowException),
+        // The product never catches these deliberately, so one raised from its code is a defect: a cross-thread
+        // collection change, for example, is a NotSupportedException.
+        typeof(NotSupportedException), typeof(InvalidOperationException)
     };
 
     private static readonly List<string> CommandProblems = new();
@@ -575,6 +579,10 @@ internal static partial class Program
                         else if (DefectExceptions.Any(t => t.IsInstanceOfType(ex)) && IsOurs(ex))
                             CommandProblems.Add($"  {label} raised {ex.GetType().Name}: {ex.Message} (at {ex.TargetSite?.DeclaringType?.Name}.{ex.TargetSite?.Name})");
                     }
+                    // A refusal is the product explaining what must happen first, and it always does that with a
+                    // ToolkitException. A message that came from anything else is a failure shown as a refusal.
+                    if (shell.ErrorMessage.Length > 0 && !raised.Any(ex => ex is ToolkitException))
+                        CommandProblems.Add($"  {label} showed an error that is not a refusal: {shell.ErrorMessage}");
                     if (shell.ErrorMessage.Length > 0) { CommandsRefused++; CommandLog.Add($"{label}: refused - {shell.ErrorMessage}"); }
                     else { CommandsCompleted++; CommandLog.Add($"{label}: completed"); }
 
