@@ -15,6 +15,7 @@ public sealed class HistoryViewModel : PageViewModel
     private DriftReport? _drift;
     private DriftItem? _selectedDriftItem;
     private string _lastExport = "";
+    private string _tenant = "";
 
     public HistoryViewModel(ShellViewModel shell) : base(shell, "Evidence and drift")
     {
@@ -115,6 +116,19 @@ public sealed class HistoryViewModel : PageViewModel
 
     public override void Refresh()
     {
+        // A comparison and a selected run belong to the client they were made for. Switching client must not leave
+        // client A's drift on screen - or exportable - under client B.
+        var tenant = Workspace.Profile?.TenantId ?? "";
+        if (!string.Equals(tenant, _tenant, StringComparison.OrdinalIgnoreCase))
+        {
+            _tenant = tenant;
+            Drift = null;
+            ControlChanges.Clear();
+            DriftItems.Clear();
+            SelectedDriftItem = null;
+            SelectedRun = null;
+            LastExport = "";
+        }
         Snapshots.Clear();
         Runs.Clear();
         if (Workspace.Profile is not null)

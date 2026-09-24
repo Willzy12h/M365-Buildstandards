@@ -170,6 +170,27 @@ internal static partial class Program
         }
     }
 
+    // ---- page scrolling ------------------------------------------------------------------------------------------
+
+    private static readonly List<string> UnneededScrolling = new();
+    private static int FillingPagesMeasured;
+
+    /// <summary>
+    /// The filling pages scroll below PageLayout.MinimumHeight so a short window can still reach everything. Above it
+    /// they must not scroll at all: the minimum was first set above the space these pages get at 1180x760, which added
+    /// a scroll bar and reflowed every one of them at a size that had worked.
+    /// </summary>
+    private static void RecordUnneededScrolling(FrameworkElement content, string where)
+    {
+        foreach (var scroller in Descendants(content).OfType<ScrollViewer>())
+        {
+            if (scroller.Content is not Grid { MinHeight: PageLayout.MinimumHeight } || !IsShown(scroller, content)) continue;
+            FillingPagesMeasured++;
+            if (scroller.ScrollableHeight > 0.5)
+                UnneededScrolling.Add($"  {where} · the page scrolls by {scroller.ScrollableHeight:0}px with {scroller.ViewportHeight:0}px available");
+        }
+    }
+
     // ---- keyboard ------------------------------------------------------------------------------------------------
 
     private static readonly List<string> KeyboardProblems = new();
@@ -185,7 +206,36 @@ internal static partial class Program
     /// Also records focusable buttons and choices that would show no focus indicator, because a control the keyboard
     /// reaches invisibly is nearly as unusable as one it never reaches.
     /// </summary>
-    private static void CheckKeyboardReach(Window window, FrameworkElement content, string page)
+    private static void CheckKeyboardReach(Window window, FrameworkElement content, string page) =>
+        WalkEveryTab(window, content, page, new HashSet<TabControl>(), 0);
+
+    /// <summary>
+    /// Walks the page as shown, then selects each other tab of every tab control on it - including tabs inside tabs -
+    /// and walks again. Tab never moves into an unselected tab's content, so a button on a second tab is only checked if
+    /// that tab is selected; the first version of this check walked only the tabs a page opened on.
+    /// </summary>
+    private static void WalkEveryTab(Window window, FrameworkElement content, string view, HashSet<TabControl> visited, int depth)
+    {
+        WalkTabOrder(window, content, view);
+        if (depth > 3) return;
+        foreach (var tabs in Descendants(content).OfType<TabControl>().Where(t => IsShown(t, content) && !visited.Contains(t)).ToList())
+        {
+            visited.Add(tabs);
+            var original = tabs.SelectedIndex;
+            for (var i = 0; i < tabs.Items.Count; i++)
+            {
+                if (i == original || tabs.Items[i] is TabItem { IsEnabled: false }) continue;
+                tabs.SelectedIndex = i;
+                content.UpdateLayout(); Pump();
+                var header = (tabs.Items[i] as TabItem)?.Header?.ToString() ?? i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                WalkEveryTab(window, content, view + " › " + header.Trim(), visited, depth + 1);
+            }
+            tabs.SelectedIndex = original;
+            content.UpdateLayout(); Pump();
+        }
+    }
+
+    private static void WalkTabOrder(Window window, FrameworkElement content, string page)
     {
         content.UpdateLayout(); Pump();
         var expected = Descendants(content).OfType<Control>().Where(c => IsOperable(c, content)).ToList();
@@ -358,7 +408,7 @@ internal static partial class Program
         ("ShellViewModel.ClearErrorCommand", Press),
         ("ShellViewModel.CopyCommand", Clipboard),
         ("ShellViewModel.CopyDetailsCommand", Clipboard),
-        ("ShellViewModel.DisconnectCommand", "ends the session; covered by the idle-close check"),
+        ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
         ("ShellViewModel.CancelOperationCommand", Disabled),
 
         ("OverviewViewModel.ConnectCommand", Press),
@@ -502,6 +552,113 @@ internal static partial class Program
     };
 
     private static readonly List<string> CommandProblems = new();
+    private static readonly HashSet<string> ExercisedCommands = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The state each Press command needs before it is enabled. Everything here is synthetic and local: a selection, a
+    /// stored capture or run written to the harness's own fixture folder, or the connection set aside for the two
+    /// commands that are only allowed while disconnected. The workspace is restored after every press.
+    /// </summary>
+    private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
+    {
+        ["ConnectViewModel.RemoveExclusionCommand"] = shell =>
+        {
+            var vm = shell.Page<ConnectViewModel>();
+            vm.SelectedExclusion = vm.ExclusionAccounts.FirstOrDefault();
+        },
+        ["ConfigurationViewModel.LoadStoredCommand"] = shell =>
+        {
+            var vm = shell.Page<ConfigurationViewModel>();
+            vm.SelectedStored = vm.StoredSnapshots.FirstOrDefault();
+        },
+        ["HistoryViewModel.CompareCommand"] = SelectCaptures,
+        ["HistoryViewModel.OpenSnapshotCommand"] = SelectCaptures,
+        ["HistoryViewModel.ExportRunHtmlCommand"] = SelectRun,
+        ["HistoryViewModel.ExportRunJsonCommand"] = SelectRun,
+        ["HistoryViewModel.ExportRunXlsxCommand"] = SelectRun,
+        ["HistoryViewModel.ExportDriftHtmlCommand"] = CompareCaptures,
+        ["HistoryViewModel.ExportDriftMarkdownCommand"] = CompareCaptures,
+        ["HistoryViewModel.ExportDriftXlsxCommand"] = CompareCaptures,
+        ["ManualChecksViewModel.SaveCommand"] = shell =>
+        {
+            var vm = shell.Page<ManualChecksViewModel>();
+            vm.Selected = vm.Rows.FirstOrDefault();
+            vm.EditStatus = "Pass";
+            vm.EditNote = "Synthetic evidence note for the offline harness.";
+        },
+        ["AutomationViewModel.ImportCommand"] = shell =>
+        {
+            Disconnect(shell);
+            var vm = shell.Page<AutomationViewModel>();
+            vm.SelectedControl ??= vm.Controls.FirstOrDefault();
+            vm.ImportFile = SyntheticImportFile;
+        },
+        ["AutomationViewModel.LoadCandidateCommand"] = shell =>
+        {
+            Disconnect(shell);
+            var vm = shell.Page<AutomationViewModel>();
+            vm.Refresh();
+            vm.SavedCandidate = vm.SavedCandidates.FirstOrDefault();
+        },
+    };
+
+    private static string SyntheticImportFile = "";
+
+    private static void SelectCaptures(ShellViewModel shell)
+    {
+        var vm = shell.Page<HistoryViewModel>();
+        vm.Refresh();
+        vm.Before = vm.Snapshots.LastOrDefault();
+        vm.After = vm.Snapshots.FirstOrDefault(s => s.Id != vm.Before?.Id);
+    }
+
+    private static void CompareCaptures(ShellViewModel shell)
+    {
+        SelectCaptures(shell);
+        var vm = shell.Page<HistoryViewModel>();
+        if (vm.Drift is null) vm.CompareCommand.Execute(null);
+    }
+
+    private static void SelectRun(ShellViewModel shell)
+    {
+        var vm = shell.Page<HistoryViewModel>();
+        vm.Refresh();
+        vm.SelectedRun = vm.Runs.FirstOrDefault();
+    }
+
+    /// <summary>Import and loading a candidate are refused while connected; the connection is restored after the press.</summary>
+    private static void Disconnect(ShellViewModel shell)
+    {
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(shell.Workspace, null);
+        typeof(Workspace).GetMethod("Notify", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(shell.Workspace, null);
+    }
+
+    /// <summary>
+    /// Stored evidence for the commands that read it: two captures and a run, written to the harness's own synthetic
+    /// fixture folder, plus a saved local candidate standard and a policy file to import. None of it is tenant data.
+    /// </summary>
+    private static void SeedStoredEvidence(Workspace workspace, string fixtureRoot)
+    {
+        var snapshot = workspace.Snapshot ?? throw new InvalidOperationException("The synthetic capture is not loaded.");
+        workspace.Evidence.SaveSnapshot(snapshot);
+        var later = BDIT.TenantToolkit.Core.Json.ToolkitJson.Deserialize<BDIT.TenantToolkit.Core.Models.TenantSnapshot>(BDIT.TenantToolkit.Core.Json.ToolkitJson.Serialize(snapshot));
+        later.Id = Guid.NewGuid().ToString();
+        later.CapturedAt = DateTimeOffset.UtcNow.AddMinutes(5).ToString("O");
+        workspace.Evidence.SaveSnapshot(later);
+        if (workspace.LastRun is { } run) workspace.Evidence.SaveRun(run);
+
+        var standard = workspace.RequireStandard();
+        var tenant = workspace.Profile?.TenantId ?? throw new InvalidOperationException("The synthetic client is not loaded.");
+        var catalogues = Path.Combine(workspace.Paths.TenantDirectory(tenant), "catalogues");
+        Directory.CreateDirectory(catalogues);
+        var text = BDIT.TenantToolkit.Core.Json.ToolkitJson.Serialize(standard);
+        File.WriteAllText(Path.Combine(catalogues, "import-synthetic.json"), text);
+        File.WriteAllText(Path.Combine(catalogues, "import-synthetic.json.integrity.json"),
+            "{\"sha256\":\"" + BDIT.TenantToolkit.Core.Json.CanonicalJson.Sha256Hex(text) + "\"}");
+
+        SyntheticImportFile = Path.Combine(fixtureRoot, "synthetic-policy-export.json");
+        File.WriteAllText(SyntheticImportFile, "{\"displayName\":\"Synthetic policy export\"}");
+    }
     private static readonly List<string> CommandLog = new();
     private static int CommandsCompleted;
     private static int CommandsRefused;
@@ -549,10 +706,19 @@ internal static partial class Program
                     var label = parameter is NavItem item ? $"{name}({item.Key})" : name;
                     shell.Navigate(entry.Page);
                     SeedPage(shell, entry.Page);
-                    content.UpdateLayout(); Pump();
-                    if (!entry.Command.CanExecute(parameter)) { CommandLog.Add($"{label}: not enabled with the synthetic data"); continue; }
-
                     var saved = SaveState(workspace);
+                    // Some commands need a selection or saved evidence before they are enabled; each gets exactly that.
+                    if (PressSetup.TryGetValue(name, out var setup)) setup(shell);
+                    content.UpdateLayout(); Pump();
+                    if (!entry.Command.CanExecute(parameter))
+                    {
+                        // A command in the register as Press is a promise that its path is exercised. One that cannot be
+                        // enabled is a gap in the harness, not a pass.
+                        CommandProblems.Add($"  {label} is registered to be pressed but was not enabled; give it a setup in PressSetup");
+                        RestoreState(workspace, saved);
+                        continue;
+                    }
+                    ExercisedCommands.Add(name);
                     traces.Context = "command " + label;
                     ClearError(shell);
                     lock (exceptions) exceptions.Clear();

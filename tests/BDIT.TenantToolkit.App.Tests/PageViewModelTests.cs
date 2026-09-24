@@ -87,4 +87,25 @@ public sealed class PageViewModelTests : IDisposable
         Assert.Equal(new[] { "Approved deviation", "Not applicable" }, deviations.Kinds.Select(k => k.Label));
         Assert.Contains(deviations.Kinds, k => k.Key == deviations.Kind);
     }
+
+    /// <summary>
+    /// A comparison belongs to the client it was made for. Switching client used to leave client A's drift on screen,
+    /// with its exports enabled, under client B.
+    /// </summary>
+    [Fact]
+    public void Switching_client_clears_the_previous_clients_comparison()
+    {
+        var workspace = _shell.Workspace;
+        var history = _shell.Page<HistoryViewModel>();
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantA), save: false);
+        typeof(HistoryViewModel).GetProperty(nameof(HistoryViewModel.Drift))!.SetValue(history, new BDIT.TenantToolkit.Core.Models.DriftReport());
+
+        history.Refresh();
+        Assert.NotNull(history.Drift);
+
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
+
+        Assert.Null(history.Drift);
+        Assert.False(history.ExportDriftHtmlCommand.CanExecute(null));
+    }
 }

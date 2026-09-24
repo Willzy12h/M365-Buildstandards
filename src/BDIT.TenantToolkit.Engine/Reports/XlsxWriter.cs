@@ -81,13 +81,24 @@ public static class XlsxWriter
         return value;
     }
 
+    /// <summary>
+    /// A cell value as worksheet XML. Characters XML cannot hold are dropped rather than written, because one of them
+    /// makes Excel refuse the whole workbook: control characters other than tab and line breaks, U+FFFE and U+FFFF,
+    /// and a surrogate without its partner. A valid surrogate pair is kept, and truncation never splits one.
+    /// </summary>
     public static string Xml(string? value)
     {
         var text = value ?? "";
-        if (text.Length > MaxCellLength) text = text[..(MaxCellLength - 60)] + " [TRUNCATED FOR EXCEL - use JSON or HTML for the full value]";
-        var sb = new StringBuilder(text.Length);
-        foreach (var ch in text)
+        if (text.Length > MaxCellLength)
         {
+            var cut = MaxCellLength - 60;
+            if (char.IsHighSurrogate(text[cut - 1])) cut--;
+            text = text[..cut] + " [TRUNCATED FOR EXCEL - use JSON or HTML for the full value]";
+        }
+        var sb = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
             switch (ch)
             {
                 case '&': sb.Append("&amp;"); break;
@@ -96,7 +107,14 @@ public static class XlsxWriter
                 case '"': sb.Append("&quot;"); break;
                 case '\'': sb.Append("&apos;"); break;
                 default:
+                    if (char.IsHighSurrogate(ch))
+                    {
+                        if (i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { sb.Append(ch).Append(text[i + 1]); i++; }
+                        break;
+                    }
+                    if (char.IsLowSurrogate(ch)) break;
                     if (ch < 0x20 && ch != '\t' && ch != '\n' && ch != '\r') break;
+                    if (ch is '\uFFFE' or '\uFFFF') break;
                     sb.Append(ch);
                     break;
             }

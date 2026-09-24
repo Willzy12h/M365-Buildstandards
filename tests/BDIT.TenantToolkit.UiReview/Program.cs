@@ -75,6 +75,7 @@ internal static partial class Program
             if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
             content.DataContext = shell;
             SeedWorkspace(workspace);
+            SeedStoredEvidence(workspace, fixtureRoot);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
@@ -104,6 +105,7 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (size.Height >= 760) RecordUnneededScrolling(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
@@ -186,9 +188,9 @@ internal static partial class Program
             var inspected = new (string Check, bool Ran)[]
             {
                 ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
-                ("clipping", ClippingInspected > 0), ("final confirmation dialog", DialogChecks > 0),
-                ("keyboard", KeyboardPagesWalked == shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
-                ("commands", CommandsCompleted >= 10)
+                ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
+                ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
+                ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
             foreach (var (check, ran) in inspected.Where(c => !c.Ran))
                 throw new InvalidOperationException($"The {check} check inspected nothing; a check that looks at nothing cannot pass.");
@@ -214,6 +216,8 @@ internal static partial class Program
             if (ClippedElements.Count > 0)
                 problems.Add($"{ClippedElements.Count} element(s) are cut off by layout, so part of them cannot be seen or scrolled to:"
                     + Environment.NewLine + string.Join(Environment.NewLine, ClippedElements.Distinct()));
+            if (UnneededScrolling.Count > 0)
+                problems.Add($"{UnneededScrolling.Count} page(s) scroll at a size where they have room not to:" + Environment.NewLine + string.Join(Environment.NewLine, UnneededScrolling.Distinct()));
             if (KeyboardProblems.Count > 0)
                 problems.Add($"{KeyboardProblems.Count} keyboard problem(s):" + Environment.NewLine + string.Join(Environment.NewLine, KeyboardProblems.Distinct()));
             if (CommandProblems.Count > 0)
@@ -222,8 +226,8 @@ internal static partial class Program
                 throw new InvalidOperationException(string.Join(Environment.NewLine + Environment.NewLine, problems));
             Console.WriteLine($"Interface checks: {NamedControlsInspected} operable controls named; {GridsInspected.Count} tables measured, every column readable.");
             Console.WriteLine($"Contrast: {TextContrastInspected} text elements and {BoundariesInspected} input edges meet WCAG AA. Clipping: {ClippingInspected} elements, none cut off.");
-            Console.WriteLine($"Keyboard: {KeyboardPagesWalked} pages walked with Tab, {KeyboardStopsReached} stops, every operable control reached. Final confirmation dialog: {DialogChecks} checks passed.");
-            Console.WriteLine($"Commands: {CommandsCompleted} completed and {CommandsRefused} refused with a message, no defect raised; {CommandRegister.Count(c => c.Handling != Press)} not pressed by design.");
+            Console.WriteLine($"Keyboard: {shell.NavItems.Count} pages and every tab on them ({KeyboardPagesWalked} views) walked with Tab, {KeyboardStopsReached} stops, every operable control reached. Final confirmation dialog: {DialogChecks} checks passed.");
+            Console.WriteLine($"Commands: every one of the {ExercisedCommands.Count} registered to be pressed was exercised ({CommandsCompleted} presses completed, {CommandsRefused} refused with a message), no defect raised; {CommandRegister.Count(c => c.Handling != Press)} not pressed by design.");
             // A refusal is the command explaining what must happen first. Each is printed so a reviewer can confirm it is
             // one of those, and not a defect that happened to surface as a message.
             foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
