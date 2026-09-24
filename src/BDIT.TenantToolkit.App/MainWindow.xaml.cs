@@ -9,7 +9,23 @@ public partial class MainWindow : Window
     private bool _closeApproved;
     private bool _closing;
 
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        FitToWorkArea(SystemParameters.WorkArea);
+    }
+
+    /// <summary>
+    /// Opens no larger than the screen. The designed size is 1480x940, but a 1920x1080 laptop at the 150% scaling Windows
+    /// recommends for it offers about 1280x672 above the taskbar; opened at the designed size, the bottom of every page
+    /// and its buttons would start off-screen.
+    /// </summary>
+    private void FitToWorkArea(Rect workArea)
+    {
+        if (workArea.Width <= 0 || workArea.Height <= 0) return;
+        Width = Math.Max(MinWidth, Math.Min(Width, workArea.Width));
+        Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
+    }
 
     /// <summary>Never abandons an in-flight tenant write: closing waits for the executor to reach a safe boundary and finish evidence.</summary>
     private async void OnClosing(object? sender, CancelEventArgs e)

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:BDIT.TenantToolkit.App.ViewModels"
         xmlns:views="clr-namespace:BDIT.TenantToolkit.App.Views"
-        Title="{Binding WindowTitle}" Height="940" Width="1480" MinHeight="760" MinWidth="1180"
+        Title="{Binding WindowTitle}" Height="940" Width="1480" MinHeight="600" MinWidth="1180"
         Background="{StaticResource BgWindow}" WindowStartupLocation="CenterScreen" Icon="Assets/buildstandard.png"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" Closing="OnClosing">
   <Window.Resources>

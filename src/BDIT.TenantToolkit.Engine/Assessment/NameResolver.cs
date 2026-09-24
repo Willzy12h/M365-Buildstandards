@@ -31,14 +31,20 @@ public sealed class NameResolver
             if (!snapshot.Collections.TryGetValue(key, out var capture)) continue;
             foreach (var item in capture.Items)
             {
-                var id = item["id"]?.GetValue<string>();
+                var id = Text(item["id"]);
                 if (string.IsNullOrEmpty(id)) continue;
-                var name = item["displayName"]?.GetValue<string>() ?? item["userPrincipalName"]?.GetValue<string>() ?? item["skuPartNumber"]?.GetValue<string>();
+                var name = Text(item["displayName"]) ?? Text(item["userPrincipalName"]) ?? Text(item["skuPartNumber"]);
                 if (!string.IsNullOrEmpty(name)) resolver._names[id] = name;
             }
         }
         return resolver;
     }
+
+    /// <summary>
+    /// A captured property as text, or null when absent or not a string. Names are display only, and every page that
+    /// shows tenant objects builds a resolver from the whole capture, so one unexpected value must not stop it.
+    /// </summary>
+    private static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
     public void Add(string id, string name)
     {
@@ -90,13 +96,13 @@ public sealed class NameResolver
             foreach (var a in assignments)
             {
                 if (a is not JsonObject ao || ao["target"] is not JsonObject target) continue;
-                var type = target["@odata.type"]?.GetValue<string>() ?? "";
-                var groupId = target["groupId"]?.GetValue<string>();
+                var type = Text(target["@odata.type"]) ?? "";
+                var groupId = Text(target["groupId"]);
                 var label = type.Contains("allLicensedUsers", StringComparison.OrdinalIgnoreCase) ? "All users"
                     : type.Contains("allDevices", StringComparison.OrdinalIgnoreCase) ? "All devices"
                     : type.Contains("exclusion", StringComparison.OrdinalIgnoreCase) ? "Exclude " + Display(groupId)
                     : groupId is not null ? Display(groupId) : type;
-                targets.Add(label);
+                if (label.Length > 0) targets.Add(label);
             }
             return targets.Count == 0 ? "Assigned (targets unreadable)" : string.Join(", ", targets);
         }

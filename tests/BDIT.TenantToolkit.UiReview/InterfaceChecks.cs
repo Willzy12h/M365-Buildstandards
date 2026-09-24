@@ -220,6 +220,8 @@ internal static partial class Program
     private static bool IsOperable(Control control, FrameworkElement content)
     {
         if (!control.IsEnabled || !IsShown(control, content)) return false;
+        // An empty table or list has nothing to operate; WPF gives it no tab stop until it has a row to focus.
+        if (control is ItemsControl { HasItems: false } and (DataGrid or ListBox)) return false;
         // Parts of a control's own template are reached through that control; an Expander is operated by its header toggle.
         if (control.TemplatedParent is Control owner && !(owner is Expander && control is ToggleButton)) return false;
         for (var node = VisualTreeHelper.GetParent(control); node is not null && !ReferenceEquals(node, content); node = VisualTreeHelper.GetParent(node))

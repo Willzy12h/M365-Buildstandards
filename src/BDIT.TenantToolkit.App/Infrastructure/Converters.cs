@@ -64,3 +64,28 @@ public sealed class StatusToBrushConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
+
+/// <summary>
+/// Shows an enum value as words - ApprovedDeviation as "Approved deviation" - where a grid binds a model enum directly
+/// and there is no domain-specific label for it.
+/// </summary>
+public sealed class WordsConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => Words(value?.ToString() ?? "");
+
+    public static string Words(string text)
+    {
+        if (text.Length == 0) return text;
+        var builder = new System.Text.StringBuilder(text.Length + 8);
+        builder.Append(text[0]);
+        for (var i = 1; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (char.IsUpper(c) && char.IsLower(text[i - 1])) builder.Append(' ').Append(char.ToLowerInvariant(c));
+            else builder.Append(c);
+        }
+        return builder.ToString();
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}

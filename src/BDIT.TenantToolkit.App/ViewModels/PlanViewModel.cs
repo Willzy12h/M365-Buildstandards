@@ -117,6 +117,11 @@ public sealed class PlanViewModel : PageViewModel
         Workspace.BuildPlan(ids);
     }
 
+    private void OnSelectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ControlSelection.IsSelected)) OnPropertyChanged(nameof(ContextText));
+    }
+
     public override void Refresh()
     {
         var selectedControlId = SelectedControl?.ControlId;
@@ -155,7 +160,7 @@ public sealed class PlanViewModel : PageViewModel
                     status = StatusLabels.For(finding.Status);
                     explanation = finding.Reason;
                 }
-                Controls.Add(new ControlSelection
+                var selection = new ControlSelection
                 {
                     ControlId = control.Id,
                     Name = control.Name,
@@ -165,7 +170,10 @@ public sealed class PlanViewModel : PageViewModel
                     Explanation = explanation,
                     SafeState = control.SafeDeployment.State,
                     IsSelected = eligible && selected.Contains(control.Id)
-                });
+                };
+                // The selected count in ContextText is derived from these rows, so it must follow every tick and untick.
+                selection.PropertyChanged += OnSelectionChanged;
+                Controls.Add(selection);
             }
         }
         Rows.Clear();
