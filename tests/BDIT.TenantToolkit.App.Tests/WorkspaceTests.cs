@@ -146,7 +146,7 @@ public class WorkspaceTests : IDisposable
     {
         var session = new TenantSession { TenantId = TestData.TenantA, Mode = SessionMode.Assessment };
         typeof(Workspace).GetProperty(nameof(Workspace.Connection))!
-            .SetValue(_workspace, new BDIT.TenantToolkit.Graph.ConnectedTenant(session, new FakeGraphClient(), authenticator: null));
+            .SetValue(_workspace, new BDIT.TenantToolkit.Graph.ConnectedTenant(session, new FakeGraphClient(Standard), authenticator: null));
 
         var error = Assert.Throws<ToolkitException>(() => _workspace.SelectRelease("test.json"));
 
@@ -156,6 +156,12 @@ public class WorkspaceTests : IDisposable
     [Fact]
     public void Choosing_a_release_while_disconnected_sets_aside_the_previous_assessment()
     {
+        _workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        var stored = TestData.Snapshot(Standard);
+        _workspace.Evidence.SaveSnapshot(stored);
+        _workspace.LoadStoredSnapshot(stored.Id);
+        Assert.NotNull(_workspace.Assessment);
+
         _workspace.SelectRelease("test.json");
 
         Assert.NotNull(_workspace.Standard);
