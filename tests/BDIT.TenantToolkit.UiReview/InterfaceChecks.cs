@@ -591,7 +591,7 @@ internal static partial class Program
             Disconnect(shell);
             var vm = shell.Page<AutomationViewModel>();
             vm.SelectedControl ??= vm.Controls.FirstOrDefault();
-            vm.ImportFile = SyntheticImportFile;
+            vm.ImportFile = SyntheticImportPath();
         },
         ["AutomationViewModel.LoadCandidateCommand"] = shell =>
         {
@@ -603,6 +603,10 @@ internal static partial class Program
     };
 
     private static string SyntheticImportFile { get; set; } = "";
+
+    // Read through a method: inside the static initialiser above, the compiler treats any static member as possibly
+    // unassigned, field or property alike.
+    private static string SyntheticImportPath() => SyntheticImportFile;
 
     private static void SelectCaptures(ShellViewModel shell)
     {
