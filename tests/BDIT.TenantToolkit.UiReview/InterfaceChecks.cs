@@ -602,7 +602,7 @@ internal static partial class Program
         },
     };
 
-    private static string SyntheticImportFile = "";
+    private static string SyntheticImportFile { get; set; } = "";
 
     private static void SelectCaptures(ShellViewModel shell)
     {
