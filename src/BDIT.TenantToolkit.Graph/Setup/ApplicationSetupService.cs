@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Graph.Auth;
 
 namespace BDIT.TenantToolkit.Graph.Setup;
@@ -133,7 +134,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         {
             AssertConnected();
             plan = ToolkitJson.Deserialize<ApplicationSetupPlan>(ToolkitJson.Serialize(plan));
-            if (!permissionsApproved || !string.Equals(exactTenantConfirmation.Trim(), Identity.TenantId, StringComparison.OrdinalIgnoreCase))
+            if (!permissionsApproved || !TenantConfirmation.Matches(exactTenantConfirmation, Identity.TenantId))
                 throw new PlanValidationException("Approve the displayed permissions and type the exact tenant ID before application creation.");
             if (!_issuedPlans.TryGetValue(plan.Id, out var issued) || issued != plan.PlanHash || PlanHash(plan) != issued)
                 throw new PlanValidationException("The setup plan changed, was already used, or belongs to another session. Preview again.");

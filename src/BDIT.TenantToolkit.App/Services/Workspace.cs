@@ -8,6 +8,7 @@ using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
@@ -152,6 +153,18 @@ public sealed class Workspace : ObservableObject
             Notify();
             return false;
         }
+    }
+
+    /// <summary>
+    /// The engineer choosing another release. Like loading an imported or local candidate, this is refused while
+    /// connected: the connection requested routes and permissions for the release it was made with, and a capture
+    /// taken for one release is not evidence for another. Whatever was captured or assessed is set aside.
+    /// </summary>
+    public void SelectRelease(string fileName)
+    {
+        if (Busy || IsConnected) throw new ToolkitException("Disconnect before changing the Build Standard release, so the next connection requests the routes and permissions that release needs.");
+        if (!TrySelectStandard(fileName)) throw new ConfigurationException(StandardError ?? "The Build Standard release could not be loaded.");
+        InvalidatePolicyState();
     }
 
     public StandardCatalogue RequireStandard() =>
@@ -507,7 +520,7 @@ public sealed class Workspace : ObservableObject
     {
         var connection = RequireConnection();
         var profile = Profile!;
-        if (!string.Equals(typedTenantId?.Trim(), profile.TenantId, StringComparison.OrdinalIgnoreCase))
+        if (!TenantConfirmation.Matches(typedTenantId, profile.TenantId))
             throw new TenantMismatchException("The typed tenant ID does not match the connected tenant. Deployment refused.");
         ValidatePlanForExecution();
         var plan = Plan!;

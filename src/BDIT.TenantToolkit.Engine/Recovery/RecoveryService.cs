@@ -90,7 +90,7 @@ public sealed class RecoveryService(EvidenceStore evidence, IClock clock)
         RecoveryPlan reviewed, string typedTenantId, bool approved, bool reviewedDrift, CancellationToken ct)
     {
         AssertSession(graph, session);
-        if (!approved || !string.Equals(typedTenantId.Trim(), session.TenantId, StringComparison.OrdinalIgnoreCase))
+        if (!approved || !TenantConfirmation.Matches(typedTenantId, session.TenantId))
             throw new SafetyViolationException("Approve the displayed recovery consequence and type the exact tenant ID.");
         using var lease = evidence.AcquireTenantWriteLease(session.TenantId);
         var plan = evidence.RequireRecoveryPlan(session.TenantId, reviewed.Id);

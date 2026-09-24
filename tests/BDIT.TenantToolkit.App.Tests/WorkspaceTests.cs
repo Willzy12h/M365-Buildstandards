@@ -136,4 +136,30 @@ public class WorkspaceTests : IDisposable
 
         Assert.Contains("Snapshot not found", error.Message, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Choosing another release while connected is refused, as loading an imported or local candidate already was:
+    /// the connection asked for the routes and permissions of the release it was made with.
+    /// </summary>
+    [Fact]
+    public void Another_release_cannot_be_chosen_while_connected()
+    {
+        var session = new TenantSession { TenantId = TestData.TenantA, Mode = SessionMode.Assessment };
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!
+            .SetValue(_workspace, new BDIT.TenantToolkit.Graph.ConnectedTenant(session, new FakeGraphClient(), authenticator: null));
+
+        var error = Assert.Throws<ToolkitException>(() => _workspace.SelectRelease("test.json"));
+
+        Assert.Contains("Disconnect before changing", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Choosing_a_release_while_disconnected_sets_aside_the_previous_assessment()
+    {
+        _workspace.SelectRelease("test.json");
+
+        Assert.NotNull(_workspace.Standard);
+        Assert.Null(_workspace.Assessment);
+        Assert.False(_workspace.SnapshotIsLive);
+    }
 }
