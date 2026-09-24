@@ -41,7 +41,7 @@
               <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="150" IsReadOnly="True"/>
               <DataGridTextColumn Header="Automation" Binding="{Binding Status}" Width="130" IsReadOnly="True"/>
               <DataGridTextColumn Header="Candidate state" Binding="{Binding SafeState}" Width="125" IsReadOnly="True"/>
-              <DataGridTextColumn Header="Explanation" Binding="{Binding Explanation}" Width="*" IsReadOnly="True"/>
+              <DataGridTextColumn Header="Explanation" Binding="{Binding Explanation}" Width="*" MinWidth="260" IsReadOnly="True"/>
             </DataGrid.Columns>
           </DataGrid>
           </Grid>

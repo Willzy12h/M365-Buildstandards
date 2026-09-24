@@ -152,9 +152,9 @@ internal static class Program
                 problems.Add($"{UnnamedControls.Count} control(s) announce only their type to a screen reader. Give each an "
                     + "AutomationProperties.Name, or text content:" + Environment.NewLine + string.Join(Environment.NewLine, UnnamedControls));
             if (CollapsedColumns.Count > 0)
-                problems.Add($"{CollapsedColumns.Count} table column(s) are narrower than {ReadableColumnWidth}px and cannot show their "
-                    + "content, even when scrolled to. A star-sized column with no MinWidth collapses to 20px once the fixed "
-                    + "columns beside it fill the table:" + Environment.NewLine + string.Join(Environment.NewLine, CollapsedColumns));
+                problems.Add($"{CollapsedColumns.Count} table column(s) are drawn narrower than designed, so their content is hidden "
+                    + "even when scrolled to. A DataGrid with a star column squeezes every column to fit before it scrolls; "
+                    + "ColumnSizing.KeepDesignedWidths prevents it:" + Environment.NewLine + string.Join(Environment.NewLine, CollapsedColumns));
             if (problems.Count > 0)
                 throw new InvalidOperationException(string.Join(Environment.NewLine + Environment.NewLine, problems));
             Console.WriteLine($"Interface checks: {NamedControlsInspected} operable controls named; {GridsInspected.Count} tables measured, every column readable.");
@@ -446,15 +446,20 @@ internal static class Program
         }
     }
 
-    private const double ReadableColumnWidth = 48;
+    /// <summary>The DataGridColumnHeader style's MinWidth. A narrower column clips its own header.</summary>
+    private const double ReadableColumnWidth = 70;
     private static readonly List<string> CollapsedColumns = new();
     private static readonly HashSet<string> GridsInspected = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Records every shown table column too narrow to show its content. A DataGrid column sized with a star and no
-    /// MinWidth shares only the space the fixed columns leave; once they fill the table it falls to the 20px default and
-    /// its header is clipped. The table still scrolls, so a rendered image can look fine and a scroll still reaches the
-    /// column - it simply cannot be read when it gets there.
+    /// Records every shown table column drawn narrower than it was designed. A DataGrid with a star-sized column tries
+    /// to fit the viewport before it scrolls, and does it by squeezing every column towards the 20px default - fixed
+    /// ones included. Measured at the minimum window size before ColumnSizing existed, a column declared 100px wide was
+    /// drawn at 20 and the Plan page's Explanation column at 20. The table still scrolls, so a render can look complete;
+    /// the column simply cannot be read.
+    ///
+    /// Two tests, both independent of ColumnSizing so that removing it is caught: a column with a declared pixel width is
+    /// never drawn narrower than that width, and no column is narrower than its header.
     /// </summary>
     private static void RecordCollapsedColumns(FrameworkElement content, string where)
     {
@@ -465,8 +470,10 @@ internal static class Program
             GridsInspected.Add(name);
             foreach (var column in grid.Columns)
             {
-                if (column.Visibility != Visibility.Visible || column.ActualWidth >= ReadableColumnWidth) continue;
-                CollapsedColumns.Add($"  {where} · {name} · '{column.Header}' is {column.ActualWidth:0}px");
+                if (column.Visibility != Visibility.Visible) continue;
+                var designed = column.Width.IsAbsolute ? Math.Max(column.Width.Value, ReadableColumnWidth) : ReadableColumnWidth;
+                if (column.ActualWidth >= designed - 0.5) continue;
+                CollapsedColumns.Add($"  {where} · {name} · '{column.Header}' is {column.ActualWidth:0}px, designed {designed:0}px");
             }
         }
     }
