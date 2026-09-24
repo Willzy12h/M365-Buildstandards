@@ -20,7 +20,7 @@
 - Markdown reports escape HTML in tenant-supplied names, so a wiki or ticketing system shows an object named like a tag rather than rendering it.
 - The Assessment result filter and the deviation kind use the same wording as the tables rather than internal names, for readers and screen readers alike. Compliant-with-deviation findings, rejected writes and the Deploy page's prerequisite steps are now coloured like the rest.
 - The first-build script now points at the package folder it actually creates.
-- The build fails on any compiler warning. The offline interface checks now also cover text and input contrast, clipping, keyboard reach on every page, every local command, the final tenant confirmation and a third window size; [the review record](docs/integration/FULL-REVIEW-2026-09-24.md) has the detail and seven findings reported for decision rather than changed.
+- The build fails on any compiler warning. The offline interface checks now also cover text and input contrast, clipping, keyboard reach on every page, every local command, the final tenant confirmation and a third window size; [the review record](https://github.com/Willzy12h/M365-Buildstandards/blob/integration/docs/integration/FULL-REVIEW-2026-09-24.md) has the detail and seven findings reported for decision rather than changed.
 
 # 1.1.0-preview.12
 
