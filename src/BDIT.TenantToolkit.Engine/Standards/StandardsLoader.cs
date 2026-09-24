@@ -42,7 +42,9 @@ public sealed partial class StandardsLoader
                 _log.Warn("Standards", $"Release file '{name}' could not be read: {ex.Message}");
             }
         }
-        return list.OrderByDescending(r => r.Release, StringComparer.OrdinalIgnoreCase).ToList();
+        // Point releases are numbers: lexical ordering places .9 ahead of .12 and selects an older fallback.
+        return list.OrderByDescending(r => Version.TryParse(r.Release, out var version) ? version : null)
+            .ThenByDescending(r => r.Release, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     /// <summary>Loads a release after verifying its digest against standards/manifest.json.</summary>
