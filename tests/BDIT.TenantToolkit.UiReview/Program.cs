@@ -92,6 +92,7 @@ internal static class Program
                     var controls = Descendants(content).OfType<UserControl>().ToList();
                     if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
                     AssertAccessibleNames(content, nav.Key);
+                    RecordCollapsedColumns(content, nav.Key + " " + (int)size.Width + "x" + (int)size.Height);
                     if (focus.Contains(nav.Key))
                     {
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
@@ -132,11 +133,17 @@ internal static class Program
                     {
                         var tabs = Descendants(controls[0]).OfType<TabControl>().First();
                         tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
+                        RecordCollapsedColumns(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
                 }
             }
+            if (CollapsedColumns.Count > 0)
+                throw new InvalidOperationException(
+                    $"{CollapsedColumns.Count} table column(s) are narrower than {ReadableColumnWidth}px and cannot show their "
+                    + "content, even when scrolled to. A star-sized column with no MinWidth collapses to 20px once the fixed "
+                    + "columns beside it fill the table:" + Environment.NewLine + string.Join(Environment.NewLine, CollapsedColumns));
             Pump();
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
@@ -152,7 +159,7 @@ internal static class Program
             if (!closed || !workspace.ShutdownComplete || !string.IsNullOrEmpty(shell.ErrorMessage))
                 throw new InvalidOperationException("Idle window did not close cleanly: " + shell.ErrorMessage);
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
-            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { status = traces.Messages.Count == 0 ? "Passed" : "Binding issues", offline = true, tenantCalls = 0, inputFormRefreshChecked = true, prerequisiteBindingsChecked = true, accessibleNamesChecked = true, readableColumnsChecked = true, assignmentPopulationSelectionChecked = true, idleWindowClosed = closed, records, bindingIssues = traces.Messages }, new JsonSerializerOptions { WriteIndented = true }));
             logger.Flush();
             Console.WriteLine($"Rendered {Directory.GetFiles(output, "*.png").Length} synthetic page images; constructed {records.Count} page/size combinations. Binding issues: {traces.Messages.Count}. Output: {output}");
             return traces.Messages.Count == 0 ? 0 : 2;
@@ -399,6 +406,30 @@ internal static class Program
             throw new InvalidOperationException(
                 $"{page}: {unnamed.Count} control(s) announce only their type to a screen reader. Give each an "
                 + $"AutomationProperties.Name, or text content: {string.Join(", ", unnamed)}");
+    }
+
+    private const double ReadableColumnWidth = 48;
+    private static readonly List<string> CollapsedColumns = new();
+
+    /// <summary>
+    /// Records every visible table column too narrow to show its content. A DataGrid column sized with a star and no
+    /// MinWidth shares only the space the fixed columns leave; once they fill the table it falls to the 20px default and
+    /// its header is clipped. The table still scrolls, so a rendered image can look fine and a scroll still reaches the
+    /// column - it simply cannot be read when it gets there. On the Plan page that column was Explanation, the reason a
+    /// control can or cannot be automated.
+    /// </summary>
+    private static void RecordCollapsedColumns(FrameworkElement content, string where)
+    {
+        foreach (var grid in Descendants(content).OfType<DataGrid>())
+        {
+            if (!grid.IsVisible || grid.ActualWidth <= 0) continue;
+            var name = System.Windows.Automation.AutomationProperties.GetName(grid);
+            foreach (var column in grid.Columns)
+            {
+                if (column.Visibility != Visibility.Visible || column.ActualWidth >= ReadableColumnWidth) continue;
+                CollapsedColumns.Add($"  {where} · {name} · '{column.Header}' is {column.ActualWidth:0}px");
+            }
+        }
     }
 
     private static void AssertUsableControlList(FrameworkElement content, string page)
