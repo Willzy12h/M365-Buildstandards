@@ -8,6 +8,16 @@ public static class PolicyCandidateSafety
 {
     public static void Assert(CollectionDefinition def, JsonObject payload)
     {
+        if (payload["@odata.type"]?.ToString() is "#microsoft.graph.iosStoreApp" or "#microsoft.graph.androidManagedStoreApp")
+        {
+            var android = payload["@odata.type"]!.ToString() == "#microsoft.graph.androidManagedStoreApp";
+            if (!Uri.TryCreate(payload["appStoreUrl"]?.ToString(), UriKind.Absolute, out var uri) || uri.Scheme != "https"
+                || uri.UserInfo.Length > 0 || uri.Port != 443 || (android ? uri.Host != "play.google.com" : uri.Host is not ("apps.apple.com" or "itunes.apple.com")))
+                throw new SafetyViolationException("Supply the reviewed HTTPS Apple App Store or Google Play listing URL for this application.");
+            if (android && (def.ApiVersion != GraphApi.Beta || string.IsNullOrWhiteSpace(payload["packageId"]?.ToString())
+                || !payload["packageId"]!.ToString().All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_')))
+                throw new SafetyViolationException("Android store candidates need the documented beta route and a reviewed package ID.");
+        }
         if (payload.ContainsKey("groupAssignments") || payload.ContainsKey("targetAssignments") || payload.ContainsKey("isAssigned"))
             throw new SafetyViolationException("Candidate payload cannot carry assignment state.");
         if (payload["@odata.type"]?.ToString() == "#microsoft.graph.winGetApp")

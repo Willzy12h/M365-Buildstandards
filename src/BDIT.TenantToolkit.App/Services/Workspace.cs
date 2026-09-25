@@ -529,6 +529,7 @@ public sealed class Workspace : ObservableObject
         Control = new DeploymentControl();
         LastRun = await Executor.StartAsync(new ExecutionRequest
         {
+            TypedTenant = typedTenantId,
             Plan = plan,
             Profile = profile,
             Standard = RequireStandard(),
@@ -560,7 +561,7 @@ public sealed class Workspace : ObservableObject
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var standard = RequireStandard();
-        if (standard.FindControl(deviation.ControlId) is null) throw new ConfigurationException($"'{deviation.ControlId}' is not a control in the loaded standard.");
+        if (ControlInstances.Find(standard, profile, deviation.ControlId) is null) throw new ConfigurationException($"'{deviation.ControlId}' is not a control in the loaded standard.");
         if (string.IsNullOrWhiteSpace(deviation.Reason) || deviation.Reason.Trim().Length < 8) throw new ConfigurationException("Record a meaningful reason for the deviation (at least 8 characters).");
         if (string.IsNullOrWhiteSpace(deviation.ApprovedBy)) throw new ConfigurationException("Record who approved the deviation.");
         if (deviation.ReviewBy.Length > 0 && !DateOnly.TryParse(deviation.ReviewBy, System.Globalization.CultureInfo.InvariantCulture, out _))

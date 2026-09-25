@@ -131,7 +131,7 @@ public sealed class PlanViewModel : PageViewModel
         var assessment = Workspace.Assessment;
         if (standard is not null)
         {
-            foreach (var control in standard.Controls)
+            foreach (var control in ControlInstances.All(standard, Workspace.Profile))
             {
                 var def = standard.FindCollection(control.Collection);
                 var finding = assessment?.Findings.FirstOrDefault(f => string.Equals(f.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));

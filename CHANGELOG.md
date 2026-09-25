@@ -1,3 +1,12 @@
+# 1.1.0-preview.14 (in progress)
+
+- New standard 2026.09.12; published releases are unchanged. PRE-008 expands to individually selected office locations using stable client keys, with public-only CIDR validation at profile, planner and transport boundaries. The old single PRE-008 ownership record is never adopted for a new instance.
+- Adds administrator phishing-resistant MFA, reviewed identity settings, empty Autopilot device-preparation group and separate owner approval. Modern passkey profiles require manual configuration; the legacy reviewed method action refuses to overwrite them.
+- Windows Hello explicitly requires a lowercase letter and allows digits, minimum eight characters; BitLocker rotates recovery passwords; compliance grace is 120 hours with no notification actions. ESET replaces the removed antivirus/compliance controls; firewall management is removed. Legacy Autopilot/ESP and Defender EDR remain visible manual references pending retirement decisions.
+- Adds seven native Windows CSP candidates and sixteen unassigned mobile store-app candidates. Native settings without confirmed definition IDs or complete supported mechanisms have explicit manual guidance. Windows settings backup is the documented July 2026 successor to Entra-managed ESR.
+- **Both applications need administrator consent again** after their configured permissions are updated. New delegated scopes: `Application.Read.All` to resolve the Microsoft provisioning service principal; deployment-only `Policy.ReadWrite.Authorization` for user consent and `Policy.ReadWrite.ConsentRequest` for the reviewer-bound workflow. See [application setup and permissions](docs/APPLICATION-SETUP.md).
+- Fixes HTML collection-status reporting, numeric release ordering and keyboard access to nested automation tabs found in the fresh phase 0 review. All validation uses synthetic fixtures; no tenant or device behaviour is claimed as tested.
+
 # 1.1.0-preview.13
 
 - Standard 2026.09.11 brings the toolkit to 50 controls and 42 creation recipes. The directory prerequisites are created through the normal Plan and Deploy path, so the exclusion groups and the office named location are no longer a manual step before everything else. Groups are created empty and the named location untrusted; populating and trusting them remain separate decisions.

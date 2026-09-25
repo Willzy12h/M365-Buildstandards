@@ -1,5 +1,19 @@
 # Application setup
 
+## Standard 2026.09.12 permission changes
+
+Update the configured permission lists and grant administrator consent again to **both applications** before using .12. No consent or tenant check was performed during development. Assessment remains delegated and read-only.
+
+| New delegated scope | Application | Purpose and Microsoft reference |
+|---|---|---|
+| `Application.Read.All` | Assessment and deployment | Resolve the Intune Provisioning Client by its documented Microsoft application ID, never by name. [Service-principal read](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list?view=graph-rest-1.0). |
+| `Policy.ReadWrite.Authorization` | Deployment only | Remove default-user self-consent grants while preserving other authorisation settings. [Authorisation policy update](https://learn.microsoft.com/en-us/graph/api/authorizationpolicy-update?view=graph-rest-1.0). |
+| `Policy.ReadWrite.ConsentRequest` | Deployment only | Enable the admin consent workflow with mandatory client-selected reviewers. [Workflow update](https://learn.microsoft.com/en-us/graph/api/adminconsentrequestpolicy-update?view=graph-rest-1.0). |
+
+Existing `Policy.Read.All` covers the consent-policy reads; no invented consent read scope is requested. The provisioning-group owner action uses existing `Group.ReadWrite.All`. Passkey profiles and system-preferred MFA use the declared authentication policy scopes. Exchange/Purview use a separate engineer-run delegated PowerShell capture with read-only Exchange RBAC; they add no Exchange credentials or write scopes to these Graph applications.
+
+## Guided setup
+
 The **Application setup** page is one guided sequence: sign in, approve once, connect. Everything below it on the page is for existing applications and manual repair.
 
 1. Enter the client label and tenant ID on Connect and select **Set up or validate applications**, or open the page and enter the tenant ID. If deployment has no configured app, **Connect for deployment** opens the same page.

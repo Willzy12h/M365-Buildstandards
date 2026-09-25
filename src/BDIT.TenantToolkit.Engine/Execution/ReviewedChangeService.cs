@@ -48,7 +48,32 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
             p.ResolvedTargets.Add((p.ExcludeGroups.Contains(id) ? "EXCLUDE " : "INCLUDE ") + group["displayName"] + " [" + id + "]");
         }
         if (population != AssignmentPopulation.Groups) p.ResolvedTargets.Add("INCLUDE " + (population == AssignmentPopulation.AllUsers ? "All users (Intune built-in)" : "All devices (Intune built-in)"));
-        if (ReviewedChangeSafety.IsUpdates(kind))
+        if (ReleaseIdentityChanges.Supports(kind))
+        {
+            if (kind == ReviewedChangeKind.SetProvisioningOwner)
+            {
+                var mapping = mappings.Find("PRE-011") ?? throw new SafetyViolationException("Create and record the empty PRE-011 group first. Names cannot establish ownership.");
+                if (mapping.Collection != "groups") throw new SafetyViolationException("Device preparation ownership is not a recorded group.");
+                RequireOwned(session.TenantId, mapping); p.ObjectId = mapping.ObjectId;
+            }
+            var route = ReleaseIdentityChanges.Route(kind, p.ObjectId);
+            if (standard.SchemaVersion < 5 || standard.FindControl(route.Control) is null)
+                throw new SafetyViolationException("Select a standard that declares this identity control.");
+            p.ControlId = route.Control; p.Api = route.Api; p.Path = route.Path; p.Method = route.Method; p.RequiredScope = route.Scope;
+            if (kind == ReviewedChangeKind.EnableAdminConsent)
+            {
+                var ids = profile.Parameters.PolicyInputs?.GetValueOrDefault("adminConsentReviewerIds") as JsonArray;
+                if (ids is not { Count: > 0 } || ids.Any(i => !ProfileValidator.IsGuid(i?.ToString())))
+                    throw new ConfigurationException("Supply the mandatory admin consent reviewer user IDs in client policy inputs.");
+                p.Before["_reviewerIds"] = ids.DeepClone();
+            }
+            p.Before = await ReadAsync(graph, standard, p, reads.Token);
+            p.Payload = ReleaseIdentityChanges.Payload(p);
+            if (kind == ReviewedChangeKind.SetProvisioningOwner && p.Before["_owners"]!.AsArray().Any(o => o?["id"]?.ToString() == p.Before["_provisioningClient"]?["id"]?.ToString()))
+                throw new SafetyViolationException("The recorded provisioning client already owns the group; no write is needed.");
+            p.Consequence = standard.FindControl(route.Control)!.DesiredState + " This changes effective tenant settings immediately. Review exclusions, affected users and recovery access. Untouched settings are preserved; service behaviour requires manual verification.";
+        }
+        else if (ReviewedChangeSafety.IsUpdates(kind))
         {
             if (session.Mode != SessionMode.Deployment) throw new WriteDeniedException("Autopatch API reads also require WindowsUpdates.ReadWrite.All. Use deployment access for this preview.");
             if (!snapshot.Collections.TryGetValue("managedDevices", out var devices) || !devices.Usable) throw new SafetyViolationException("Capture Intune managed devices first.");
@@ -219,6 +244,9 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
     }
     private static bool Matches(ReviewedChangePlan p, JsonObject after, bool historicalReadOnly = false)
     {
+        if (p.Kind == ReviewedChangeKind.SetProvisioningOwner)
+            return after["id"]?.ToString() == p.ObjectId && after["_owners"] is JsonArray owners
+                && owners.Any(o => o?["id"]?.ToString() == p.Before["_provisioningClient"]?["id"]?.ToString());
         if (ReviewedChangeSafety.IsUpdates(p.Kind))
         {
             if (after["assets"] is not JsonArray assets || assets.Count != p.DeviceIds.Count) return false;
@@ -241,6 +269,18 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
     }
     private static async Task<JsonObject> ReadAsync(IGraphClient graph, StandardCatalogue standard, ReviewedChangePlan p, CancellationToken ct)
     {
+        if (p.Kind == ReviewedChangeKind.SetProvisioningOwner)
+        {
+            var clients = await graph.GetAllAsync(GraphApi.V1, ReleaseIdentityChanges.ProvisioningQuery, ct);
+            if (clients.Count != 1 || clients[0]["appId"]?.ToString() != ReleaseIdentityChanges.ProvisioningAppId)
+                throw new SafetyViolationException("Exactly one Intune Provisioning Client service principal must already exist; the toolkit never creates it.");
+            var group = await graph.GetAsync(GraphApi.V1, "/groups/" + p.ObjectId + "?$select=id,displayName,securityEnabled,mailEnabled,groupTypes", ct);
+            group.Remove("@odata.context"); group.Remove("@odata.etag");
+            group["_provisioningClient"] = clients[0].DeepClone();
+            group["_owners"] = new JsonArray((await graph.GetAllAsync(GraphApi.V1, "/groups/" + p.ObjectId + "/owners?$select=id", ct)).Select(o => (JsonNode)o.DeepClone()).ToArray());
+            group["_members"] = new JsonArray((await graph.GetAllAsync(GraphApi.V1, "/groups/" + p.ObjectId + "/members?$select=id", ct)).Select(o => (JsonNode)o.DeepClone()).ToArray());
+            return group;
+        }
         if (ReviewedChangeSafety.IsUpdates(p.Kind))
         {
             var assets = new JsonArray();
@@ -253,6 +293,21 @@ public sealed class ReviewedChangeService(EvidenceStore evidence, IClock clock)
         }
         if (ReviewedChangeSafety.IsObjectAction(p.Kind)) return await RecoveryObjectReader.ReadAsync(graph, standard.FindCollection(p.Collection)!, p.ObjectId, ct);
         var obj = await graph.GetAsync(p.Api, p.Path, ct); obj.Remove("@odata.context"); obj.Remove("@odata.etag");
+        if (p.Kind == ReviewedChangeKind.EnablePasskeys)
+            obj["passkeyProfiles"] = new JsonArray((await graph.GetAllAsync(GraphApi.V1, ReviewedChangeSafety.AuthenticationPath + "FIDO2/passkeyProfiles", ct)).Select(o => (JsonNode)o.DeepClone()).ToArray());
+        if (p.Kind == ReviewedChangeKind.EnableAdminConsent)
+        {
+            var ids = p.Before["_reviewerIds"] as JsonArray ?? throw new SafetyViolationException("Reviewer input is missing.");
+            var reviewers = new JsonArray();
+            foreach (var id in ids)
+            {
+                if (!ProfileValidator.IsGuid(id?.ToString())) throw new SafetyViolationException("Reviewer ID is invalid.");
+                var user = await graph.GetAsync(GraphApi.V1, "/users/" + id + "?$select=id,displayName,accountEnabled", ct);
+                if (user["id"]?.ToString() != id!.ToString()) throw new SafetyViolationException("Reviewer read returned another identity.");
+                user.Remove("@odata.context"); user.Remove("@odata.etag"); reviewers.Add(user);
+            }
+            obj["_reviewerIds"] = ids.DeepClone(); obj["_reviewers"] = reviewers;
+        }
         if (p.Kind == ReviewedChangeKind.MdmAll)
             obj["_includedGroups"] = new JsonArray((await graph.GetAllAsync(p.Api, p.Path + "/includedGroups", ct)).Select(g => (JsonNode?)g.DeepClone()).ToArray());
         return obj;

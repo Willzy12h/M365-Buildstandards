@@ -124,7 +124,7 @@ public sealed class GraphClient : IGraphClient
         if (method == GraphWriteMethod.Post && existing)
             throw new WriteDeniedException("POST must target the collection root, not an existing object.");
 
-        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope };
+        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope, PublicIpRangesOnly = route.PublicIpRangesOnly };
         try { WritePayloadGuard.Assert(definition, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
 
@@ -237,7 +237,7 @@ public sealed class GraphClient : IGraphClient
             ct.ThrowIfCancellationRequested();
         }
         catch (Exception ex) { throw new WriteNotSentException(SensitiveDataScrubber.Scrub(ex.Message), ex); }
-        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
+        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
     private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)

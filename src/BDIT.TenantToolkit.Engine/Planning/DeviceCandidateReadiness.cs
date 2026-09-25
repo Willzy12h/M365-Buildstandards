@@ -10,6 +10,10 @@ public static class DeviceCandidateReadiness
 {
     public static string? Problem(JsonObject payload, StandardCatalogue standard, TenantSnapshot snapshot)
     {
+        if (payload["@odata.type"]?.ToString() == "#microsoft.graph.androidManagedStoreApp"
+            && (!snapshot.Collections.TryGetValue("googlePlay", out var play) || !play.Usable || play.Items.Count != 1
+                || play.Items[0]["bindStatus"]?.ToString() != "boundAndValidated"))
+            return "Managed Google Play must be bound and validated (ENR-006), with complete captured evidence, before creating Android store candidates.";
         if (payload["omaSettings"] is JsonArray settings && settings.OfType<JsonObject>().Any(s =>
             s["omaUri"]?.ToString() == "./Device/Vendor/MSFT/LAPS/Policies/BackupDirectory" && s["value"]?.ToString() == "1"))
         {

@@ -81,7 +81,7 @@ public sealed class AssessmentEngine
         var licence = LicenceEvaluator.FromSnapshot(snapshot);
         if (!licence.Available) result.Limitations.Add("Subscribed licences could not be read; licence requirements are not verified.");
 
-        foreach (var control in standard.Controls)
+        foreach (var control in ControlInstances.All(standard, profile))
         {
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
             var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow);
@@ -145,6 +145,14 @@ public sealed class AssessmentEngine
 
         var def = standard.FindCollection(control.Collection);
         snapshot.Collections.TryGetValue(control.Collection ?? "", out var capture);
+
+        if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.Apply(control, snapshot, finding)) return finding;
+        if (standard.SchemaVersion >= 5 && def is not null && (capture is null || !capture.Usable))
+        {
+            finding.Status = FindingStatus.UnableToAssess;
+            finding.Reason = "Required configuration evidence is unavailable or incomplete. Absence cannot be inferred.";
+            return finding;
+        }
 
         if (def is null || control.Assessment.Mode == AssessmentMode.Manual || control.Payload is null)
         {

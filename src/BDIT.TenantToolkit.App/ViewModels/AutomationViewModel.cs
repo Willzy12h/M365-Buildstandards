@@ -11,6 +11,7 @@ using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Prerequisites;
 using BDIT.TenantToolkit.Engine.Standards;
 using Microsoft.Win32;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -26,6 +27,8 @@ public sealed class AutomationViewModel : PageViewModel
     private bool _approved;
     private string _lastRunId = "", _lastLapsRunId = "";
     private string _devices = "";
+    private string _officeLocations = "";
+    public string OfficeLocations { get => _officeLocations; set => SetProperty(ref _officeLocations, value); }
     private string _packageFile = "", _lastPackageRunId = "";
     private string? _savedCandidate;
     public string? SavedCandidate { get => _savedCandidate; set => SetProperty(ref _savedCandidate, value); }
@@ -101,7 +104,7 @@ public sealed class AutomationViewModel : PageViewModel
             // A property read re-serialised the payload once per parameter on every change notification.
             var used = ParameterUsage.Keys(SelectedControl.Payload);
             var inputs = Workspace.RequireStandard().Parameters
-                .Where(p => used.Contains(p.Key))
+                .Where(p => used.Contains(p.Key) || p.RequiredForControls?.Contains(SelectedControl.Id) == true)
                 .Select(p => p.Key + " (" + p.Type + "): " + p.Description);
             return SelectedControl.Id + " · " + SelectedControl.DesiredState + "\n" + SelectedControl.DocumentationNotes + "\n"
                 + string.Join("\n", inputs);
@@ -118,7 +121,10 @@ public sealed class AutomationViewModel : PageViewModel
         foreach (var field in InputFields)
         {
             if (Reserved(field.Key)) continue;
-            edits[field.Key] = field.TryRead(out var node) ? node : null;
+            var parameter = Workspace.RequireStandard().Parameters.Single(p => p.Key == field.Key);
+            var required = parameter.RequiredForControls?.Contains(SelectedControl?.Id ?? "") == true
+                || parameter.Required && !parameter.HasDefault && ParameterUsage.Keys(SelectedControl?.Payload).Contains(field.Key);
+            edits[field.Key] = field.TryRead(out var node, required) ? node : null;
         }
 
         var problems = InputFields.Where(f => f.HasProblem).Select(f => f.Label + ": " + f.Problem).ToList();
@@ -127,6 +133,12 @@ public sealed class AutomationViewModel : PageViewModel
 
         var values = PolicyInputParser.MergeInputs(profile.Parameters.PolicyInputs ?? new Dictionary<string, JsonNode?>(), edits);
         profile.Parameters.PolicyInputs = values;
+        if (Workspace.RequireStandard().SchemaVersion >= 5)
+        {
+            profile.Parameters.OfficeLocations = OfficeLocationValidator.ParseLines(OfficeLocations);
+            if (SelectedControl?.RepeatFor == "officeLocations" && profile.Parameters.OfficeLocations.Count == 0)
+                throw new ConfigurationException("Add a named office with at least one public CIDR range before saving this control.");
+        }
         Workspace.SaveProfile(profile); Workspace.InvalidatePolicyState(); ClearApproval();
         PolicyInputs = ToolkitJson.Serialize(values);
         BuildInputFields();
@@ -300,6 +312,7 @@ public sealed class AutomationViewModel : PageViewModel
         {
             _inputContext = inputContext;
             PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
+            OfficeLocations = OfficeLocationValidator.Render(Workspace.Profile?.Parameters.OfficeLocations);
             BuildInputFields();
             ClearApproval();
         }
