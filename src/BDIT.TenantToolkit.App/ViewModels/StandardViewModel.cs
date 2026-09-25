@@ -21,12 +21,24 @@ public sealed class StandardViewModel : PageViewModel
         SelectReleaseCommand = Sync(() => { if (SelectedRelease is not null) Workspace.SelectRelease(SelectedRelease.FileName); }, () => SelectedRelease is not null && Workspace.Idle);
         ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDocumentMarkdownCommand = Command(() => ExportDocument(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportEngineerHtmlCommand = Command(() => ExportEngineer(EngineerDocumentKind.BuildStandard, ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportEngineerMarkdownCommand = Command(() => ExportEngineer(EngineerDocumentKind.BuildStandard, ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportManualHtmlCommand = Command(() => ExportEngineer(EngineerDocumentKind.ManualGuide, ExportFormat.Html), () => ManualGuideAvailable && Workspace.Idle);
+        ExportManualMarkdownCommand = Command(() => ExportEngineer(EngineerDocumentKind.ManualGuide, ExportFormat.Markdown), () => ManualGuideAvailable && Workspace.Idle);
         Refresh();
     }
 
     public ICommand SelectReleaseCommand { get; }
     public ICommand ExportDocumentCommand { get; }
     public ICommand ExportDocumentMarkdownCommand { get; }
+    public ICommand ExportEngineerHtmlCommand { get; }
+    public ICommand ExportEngineerMarkdownCommand { get; }
+    public ICommand ExportManualHtmlCommand { get; }
+    public ICommand ExportManualMarkdownCommand { get; }
+    public bool ManualGuideAvailable => Workspace.Standard is { Controls.Count: > 0 } standard && standard.Controls.All(EngineerStandardDocuments.HasCompleteManual);
+    public string EngineerDocumentHint => ManualGuideAvailable
+        ? "Both engineer documents include every control in the loaded catalogue. They contain settings and named inputs, with no client profile or tenant evidence."
+        : "The Build Standard exports for this release. Select 2026.09.12 for the full manual guide; older catalogues do not contain complete manual sections.";
     public ObservableCollection<StandardRelease> Releases => Workspace.Releases;
     public ObservableCollection<ControlDefinition> Controls { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
@@ -50,6 +62,12 @@ public sealed class StandardViewModel : PageViewModel
         var standard = Workspace.RequireStandard();
         var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportBuildStandard(standard, ClientName, DateTimeOffset.UtcNow, format));
         LastExport = "Build standard document written: " + file;
+    }
+    private async Task ExportEngineer(EngineerDocumentKind kind, ExportFormat format)
+    {
+        var standard = Workspace.RequireStandard();
+        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportEngineerStandard(standard, kind, format));
+        LastExport = EngineerStandardDocuments.Title(kind) + " written: " + file;
     }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
     public string Category { get => _category; set { if (SetProperty(ref _category, value)) ApplyFilter(); } }
@@ -107,6 +125,8 @@ public sealed class StandardViewModel : PageViewModel
         OnPropertyChanged(nameof(HeaderText));
         OnPropertyChanged(nameof(SelectedRelease));
         OnPropertyChanged(nameof(Category));
+        OnPropertyChanged(nameof(ManualGuideAvailable));
+        OnPropertyChanged(nameof(EngineerDocumentHint));
     }
 
     private void ApplyFilter()

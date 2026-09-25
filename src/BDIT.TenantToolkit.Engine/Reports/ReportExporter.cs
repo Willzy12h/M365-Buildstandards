@@ -130,6 +130,18 @@ public sealed class ReportExporter
         return file;
     }
 
+    public string ExportEngineerStandard(StandardCatalogue standard, EngineerDocumentKind kind, ExportFormat format)
+    {
+        var name = kind == EngineerDocumentKind.BuildStandard ? "engineer-build-standard" : "manual-implementation-guide";
+        var content = format switch
+        {
+            ExportFormat.Html => EngineerStandardDocuments.Html(standard, kind),
+            ExportFormat.Markdown => EngineerStandardDocuments.Markdown(standard, kind),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Engineer documents export as HTML or Markdown.")
+        };
+        return WriteText(Target(name, standard.Release, standard.PublishedOn, format == ExportFormat.Html ? "html" : "md"), content);
+    }
+
     private static string WriteBytes(string file, byte[] content)
     {
         File.WriteAllBytes(file, content);

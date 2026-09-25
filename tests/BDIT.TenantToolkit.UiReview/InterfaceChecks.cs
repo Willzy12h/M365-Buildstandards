@@ -513,6 +513,10 @@ internal static partial class Program
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
         ("StandardViewModel.ExportDocumentMarkdownCommand", Press),
+        ("StandardViewModel.ExportEngineerHtmlCommand", Press),
+        ("StandardViewModel.ExportEngineerMarkdownCommand", Press),
+        ("StandardViewModel.ExportManualHtmlCommand", Press),
+        ("StandardViewModel.ExportManualMarkdownCommand", Press),
 
         ("AutomationViewModel.SaveInputsCommand", Press),
         ("AutomationViewModel.ImportCommand", Press),
