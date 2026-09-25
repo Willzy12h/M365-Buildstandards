@@ -6,6 +6,7 @@ namespace BDIT.TenantToolkit.Graph;
 
 public sealed record GraphRoute(GraphApi Api, string BasePath, string Scope, string? WriteScope, string CollectionKey)
 {
+    public bool PublicIpRangesOnly { get; init; }
     public bool Writable => !string.IsNullOrWhiteSpace(WriteScope);
 }
 
@@ -38,7 +39,7 @@ public sealed class GraphRouteAllowList
         {
             if (!def.BasePath.StartsWith("/", StringComparison.Ordinal))
                 throw new ConfigurationException($"Collection '{key}' path must start with '/'.");
-            list._routes.Add(new GraphRoute(def.ApiVersion, def.BasePath.TrimEnd('/'), def.Scope, def.Write, key));
+            list._routes.Add(new GraphRoute(def.ApiVersion, def.BasePath.TrimEnd('/'), def.Scope, def.Write, key) { PublicIpRangesOnly = def.PublicIpRangesOnly == true });
         }
         if (standard.AdditionalWriteScopes?.Contains("WindowsUpdates.ReadWrite.All", StringComparer.Ordinal) == true)
             list._routes.Add(new GraphRoute(GraphApi.Beta, ReviewedChangeSafety.UpdatesPath, "WindowsUpdates.ReadWrite.All", "WindowsUpdates.ReadWrite.All", "windowsUpdates"));
@@ -63,6 +64,7 @@ public sealed class GraphRouteAllowList
             .Where(r => r.Api == api && (string.Equals(basePath, r.BasePath, StringComparison.OrdinalIgnoreCase)
                                           || r.BasePath != "/deviceManagement" && basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(r => r.BasePath.Length)
+            .ThenByDescending(r => r.Writable)
             .FirstOrDefault();
     }
 

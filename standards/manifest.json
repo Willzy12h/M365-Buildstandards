@@ -1,0 +1,18 @@
+{
+  "algorithm": "SHA-256",
+  "generatedAt": "2026-09-25T12:37:14.800Z",
+  "generatedBy": "Build-Portable 1.1.0-preview.14",
+  "noteText": "SHA-256 integrity digests of the M365 Build Standard release files. Detects modification after release; this is not a cryptographic signature.",
+  "files": {
+    "2026.09.10.json": "fc22f752390661db71bc5bd11ec895e2e934a6be16d5464e0c9790d60231d48d",
+    "2026.09.11.json": "f30b2e162901df80a21bf2b024f85d6bca83f45696125137f3b2fd0e1625973a",
+    "2026.09.12.json": "9553ecbcae476f45742042f7503095bb811019dec48527156c3791b05efa6a70",
+    "2026.09.3.json": "0f8f0fb9e974294b8c264f891045cbfe27ab4b0abddfe146c7e6f6a4c8f618cc",
+    "2026.09.4.json": "143de8f0e7cc0458da1d58284adec427ed56b758912f513facce11c609c28112",
+    "2026.09.5.json": "4f393b147d5feecbe7750cd38056085deea8c5258762825c210ca35f87f3bf23",
+    "2026.09.6.json": "267a0a2601c87a5c23f0f69027dee7b8bbda8c3b965e635c75b91550225373b9",
+    "2026.09.7.json": "0db379d6325d49d89a3e6f85f7765ba03fbe05760823a65ba2c1809d4e509163",
+    "2026.09.8.json": "316dfb6984e341f32e1859d0b36cdf8f30a7ec542f13af35027eea8cba6f423c",
+    "2026.09.9.json": "4cbb5ecc017633e44142e00b99402e769817fe07960644964842be0170a792b9"
+  }
+}

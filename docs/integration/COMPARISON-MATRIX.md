@@ -1,5 +1,22 @@
 # Behavioural comparison
 
+## Preview.14 / standard 2026.09.12 - PR #19
+
+The C#/.NET 8 baseline remains authoritative. Neither preserved source repository was changed. This increment implements the maintainer's NEXT-RELEASE-PLAN; it does not reopen the completed PR #17/#18 review.
+
+| Area | Result | Evidence / remaining checks |
+| --- | --- | --- |
+| Standard and schema | Add .12 only, schema 5 optional null-omitted metadata, 96 controls / 61 recipes; older bytes preserved | Release20260912Tests; complete manual metadata and historical export tests |
+| Offices and candidates | Stable per-office identity; all reserved/non-public CIDR classes refused; empty groups/untrusted locations; new CA disabled and Intune objects unassigned | Release20260912Tests, creation guards, planner and executor regressions; AndroidStoreReadinessTests detects removal of either Play prerequisite guard |
+| Reviewed identity changes | Six constrained new actions, typed confirmation, complete durable before evidence, preserved unrelated settings, exact ownership, intent-before-request and no retry | ReleaseIdentitySafetyTests runs each new kind through refusal, persistence failure, drift and uncertain transport cases |
+| Assessment | New identity and Exchange/Purview observations; malformed/incomplete evidence remains unknown | ReleaseIdentityAssessmentTests (red/green malformed cases); ExchangeEvidenceTests, fake DNS only |
+| Exchange architecture | Supported delegated engineer capture, strict inert import, no app-only credentials; selected commented proposals instead of automatic writes | INT-030/035/036, ExchangeEvidenceTests and ExchangeProposalTests; module/SPF trust and all service effects unverified |
+| Engineer documents | All 96 controls in both HTML/Markdown exports, generated from catalogue only | EngineerStandardDocumentsTests, four local harness commands and CI download; browser appearance unverified |
+| Interface | Area filters with isolated selection, three Configuration tabs, expanded document exports | App tests; full keyboard, names, contrast, clipping and command harness at three sizes |
+| Packaging | Preview.14, two extra operator guides, four generated document downloads | Strict build, both suites, portable package/link checks and exact-head CI recorded in release ledger |
+
+See [release validation](RELEASE-2026.09.12-VALIDATION.md) for counts and failures corrected, [coverage](../AUTOMATION-COVERAGE.md) for every control and [handover](HANDOVER.md) for manual items/decisions. All evidence is synthetic/local or CI; none is live Microsoft acceptance.
+
 ## Confirmed F1–F5 follow-up
 
 The integrated baseline now checks CA material additions against verified evidence, uses the documented enrolment envelope, blocks unsupported Autopilot group assignment/removal, preserves beta recovery validation, and separates observed app assignments from proven deployment scope. Only .11's two CA array caveats change operator. [Implementation and synthetic evidence](SAFETY-REVIEW-2026-09-21.md); neither source repository was changed and live acceptance remains unverified.

@@ -15,6 +15,7 @@ namespace BDIT.TenantToolkit.Engine.Execution;
 
 public sealed class ExecutionRequest
 {
+    public string TypedTenant { get; init; } = "";
     public required DeploymentPlan Plan { get; init; }
     public required TenantProfile Profile { get; init; }
     public required StandardCatalogue Standard { get; init; }
@@ -89,6 +90,7 @@ public sealed class DeploymentExecutor
     private async Task<DeploymentRun> ExecuteAsync(ExecutionRequest request, DeploymentControl control, IProgress<string>? progress)
     {
         using var lease = _evidence.AcquireTenantWriteLease(request.Session.TenantId);
+        AssertTenantConfirmation(request);
         request = ValidateAndFreeze(request);
         var plan = request.Plan;
         var profile = request.Profile;
@@ -151,6 +153,7 @@ public sealed class DeploymentExecutor
                     result.WrittenPayload = (JsonObject)payload.DeepClone();
 
                     WritePayloadGuard.Assert(def, payload);
+                    AssertTenantConfirmation(request);
                     if (control.StopRequested) { stopped = true; break; }
 
                     result.Status = ResultStatus.InProgress;
@@ -338,11 +341,18 @@ public sealed class DeploymentExecutor
             Plan = Copy(request.Plan), Profile = Copy(request.Profile), Standard = standard, Snapshot = snapshot,
             Mappings = mappings, Session = Copy(request.Session), Graph = request.Graph,
             AcknowledgedSnapshotId = request.AcknowledgedSnapshotId, MaxSnapshotAge = request.MaxSnapshotAge, MaxPlanAge = request.MaxPlanAge,
-            VerificationTimeout = request.VerificationTimeout
+            VerificationTimeout = request.VerificationTimeout, TypedTenant = request.TypedTenant
         };
     }
 
     private static T Copy<T>(T value) => ToolkitJson.Deserialize<T>(ToolkitJson.Serialize(value));
+
+    private static void AssertTenantConfirmation(ExecutionRequest request)
+    {
+        // Older published integrations confirmed at their host boundary; schema 5 binds the confirmation into execution too.
+        if (request.Standard.SchemaVersion >= 5 && !TenantConfirmation.Matches(request.TypedTenant, request.Session.TenantId))
+            throw new SafetyViolationException("Type the target tenant ID before executing this release's writes.");
+    }
 
     private void AssertInputsStillCurrent(ExecutionRequest request)
     {

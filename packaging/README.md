@@ -57,12 +57,18 @@ Then, as you need them: `BUILD-STANDARD-SUMMARY.md` for what the standard requir
 existing policy is equivalent, `LICENSING.md` for the licence counts, `RECOVERY.md` for undoing a recorded change,
 and `UNRESOLVED-WRITES.md` when a write's outcome is uncertain.
 
+For 2026.09.12, `ENGINEER-DOCUMENTS.md` explains the two complete catalogue exports (HTML/Markdown), and
+`EXCHANGE-PURVIEW.md` explains read-only capture import, explicit DNS checks and inert manual proposals.
+The standard has 96 controls and 61 candidate recipes. Export the engineer documents from Build Standard
+without selecting or connecting a client.
+
 ## What it will not do
 
 Assessment holds no write permission at the token level. Conditional Access policies are created disabled, Intune
 policies unassigned, groups empty and named locations untrusted — activating or assigning any of them is a separate
 decision you make explicitly. The toolkit never adopts an existing object because its name matches, never modifies
-an object it did not create and record, and never retries a write whose outcome it could not confirm. A read that
+an unowned policy object, and never retries a write whose outcome it could not confirm. Separately reviewed tenant-wide
+configuration actions have their own explicit before/after and confirmation checks. A read that
 failed is reported as unknown, never as absent.
 
 ## Development record

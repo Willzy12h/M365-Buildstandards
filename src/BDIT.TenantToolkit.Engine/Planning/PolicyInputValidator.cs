@@ -21,6 +21,7 @@ public static class PolicyInputValidator
                 // for example - but a required one carries the identities a policy depends on and must not be.
                 "guidList" => value is JsonArray a && (a.Count > 0 || !p.Required) && a.All(n => n is JsonValue v && v.TryGetValue<string>(out var id) && ProfileValidator.IsGuid(id)),
                 "string" => value is JsonValue s && s.TryGetValue<string>(out var text) && !string.IsNullOrWhiteSpace(text) && text.Length <= 4000,
+                "mailDomain" => value is JsonValue d && d.TryGetValue<string>(out var domain) && PolicyInputParser.TryRead("mailDomain", domain, out _, out _),
                 "integer" => value is JsonValue i && i.TryGetValue<int>(out _),
                 "boolean" => value?.GetValueKind() is JsonValueKind.True or JsonValueKind.False,
                 "jsonArray" => value is JsonArray { Count: > 0 },

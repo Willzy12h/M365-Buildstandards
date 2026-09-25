@@ -13,6 +13,9 @@ using BDIT.TenantToolkit.App.Services;
 using BDIT.TenantToolkit.App.ViewModels;
 using BDIT.TenantToolkit.App.Views;
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Engine.Exchange;
 
 /// <summary>
 /// Checks that go beyond "the page draws": what an engineer can read, reach with the keyboard, and press.
@@ -450,6 +453,12 @@ internal static partial class Program
         ("ConfigurationViewModel.CaptureCommand", TenantRead),
         ("ConfigurationViewModel.OpenExportCommand", Explorer),
         ("ConfigurationViewModel.CopySummaryCommand", Clipboard),
+        ("ConfigurationViewModel.SaveMailDomainCommand", Press),
+        ("ConfigurationViewModel.ExportExchangeCaptureCommand", Press),
+        ("ConfigurationViewModel.ExportExchangeProposalCommand", Press),
+        ("ConfigurationViewModel.ImportExchangeCaptureCommand", Press),
+        ("ConfigurationViewModel.ChooseExchangeCaptureCommand", Prompt),
+        ("ConfigurationViewModel.CheckExchangeDnsCommand", "performs real DNS queries; replaced with fake answers in automated tests"),
 
         ("AssessmentViewModel.ReassessCommand", Press),
         ("AssessmentViewModel.ExportHtmlCommand", Press),
@@ -504,6 +513,10 @@ internal static partial class Program
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
         ("StandardViewModel.ExportDocumentMarkdownCommand", Press),
+        ("StandardViewModel.ExportEngineerHtmlCommand", Press),
+        ("StandardViewModel.ExportEngineerMarkdownCommand", Press),
+        ("StandardViewModel.ExportManualHtmlCommand", Press),
+        ("StandardViewModel.ExportManualMarkdownCommand", Press),
 
         ("AutomationViewModel.SaveInputsCommand", Press),
         ("AutomationViewModel.ImportCommand", Press),
@@ -571,6 +584,17 @@ internal static partial class Program
             var vm = shell.Page<ConfigurationViewModel>();
             vm.SelectedStored = vm.StoredSnapshots.FirstOrDefault();
         },
+        ["ConfigurationViewModel.SaveMailDomainCommand"] = PrepareExchangeCommands,
+        ["ConfigurationViewModel.ExportExchangeCaptureCommand"] = PrepareExchangeCommands,
+        ["ConfigurationViewModel.ImportExchangeCaptureCommand"] = PrepareExchangeCommands,
+        ["ConfigurationViewModel.ExportExchangeProposalCommand"] = shell =>
+        {
+            PrepareExchangeCommands(shell);
+            shell.Workspace.ImportExchangeCapture(SyntheticExchangePath(), "example.invalid");
+            var vm = shell.Page<ConfigurationViewModel>();
+            vm.SelectedProposalControl = vm.ProposalControls.Single(c => c.Id == "PUR-001");
+            vm.ProposalTenantConfirmation = Tenant;
+        },
         ["HistoryViewModel.CompareCommand"] = SelectCaptures,
         ["HistoryViewModel.OpenSnapshotCommand"] = SelectCaptures,
         ["HistoryViewModel.ExportRunHtmlCommand"] = SelectRun,
@@ -605,10 +629,21 @@ internal static partial class Program
     };
 
     private static string SyntheticImportFile { get; set; } = "";
+    private static string SyntheticExchangeFile { get; set; } = "";
+
+    private static void PrepareExchangeCommands(ShellViewModel shell)
+    {
+        var existing = shell.Workspace.Profiles.FirstOrDefault(p => p.TenantId == Tenant);
+        if (existing is not null) shell.Workspace.ApplyProfileToSession(existing, save: false);
+        var vm = shell.Page<ConfigurationViewModel>();
+        vm.MailDomainInput = "example.invalid";
+        vm.ExchangeImportFile = SyntheticExchangeFile;
+    }
 
     // Read through a method: inside the static initialiser above, the compiler treats any static member as possibly
     // unassigned, field or property alike.
     private static string SyntheticImportPath() => SyntheticImportFile;
+    private static string SyntheticExchangePath() => SyntheticExchangeFile;
 
     private static void SelectCaptures(ShellViewModel shell)
     {
@@ -664,6 +699,14 @@ internal static partial class Program
 
         SyntheticImportFile = Path.Combine(fixtureRoot, "synthetic-policy-export.json");
         File.WriteAllText(SyntheticImportFile, "{\"displayName\":\"Synthetic policy export\"}");
+        SyntheticExchangeFile = Path.Combine(fixtureRoot, "synthetic-exchange-capture.json");
+        var external = new ExchangeCapture { SchemaVersion = 1, Id = Id(410), TenantId = tenant, ExchangeTenantId = tenant,
+            Delegated = true, Domain = "example.invalid", CapturedAt = Stamp, ModuleVersion = "3.9.2", Source = ExchangeCaptureSchema.Source };
+        foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
+            external.Collections[key] = new ExchangeCollectionCapture { Command = definition.Command };
+        external.Collections["auditConfig"].Status = CaptureStatus.Collected;
+        external.Collections["auditConfig"].Items.Add(new System.Text.Json.Nodes.JsonObject { ["UnifiedAuditLogIngestionEnabled"] = false });
+        File.WriteAllText(SyntheticExchangeFile, ToolkitJson.Serialize(external));
     }
     private static readonly List<string> CommandLog = new();
     private static int CommandsCompleted;

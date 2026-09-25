@@ -37,5 +37,6 @@
   <ItemGroup>
     <!-- One definition of the synthetic tenant, shared rather than duplicated. -->
     <Compile Include="..\BDIT.TenantToolkit.Tests\TestSupport.cs" Link="TestSupport.cs" />
+    <Compile Include="..\BDIT.TenantToolkit.Tests\ExchangeTestData.cs" Link="ExchangeTestData.cs" />
   </ItemGroup>
 </Project>

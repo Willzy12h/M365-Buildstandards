@@ -14,6 +14,7 @@ public sealed class ControlSelection : ObservableObject
     public string ControlId { get; init; } = "";
     public string Name { get; init; } = "";
     public string Category { get; init; } = "";
+    public string Area { get; init; } = "";
     public bool Eligible { get; init; }
     public string Status { get; init; } = "";
     public string Explanation { get; init; } = "";
@@ -25,10 +26,11 @@ public sealed class PlanViewModel : PageViewModel
 {
     private PlanRow? _selectedRow;
     private ControlSelection? _selectedControl;
+    private string _filterArea = "All areas";
 
     public PlanViewModel(ShellViewModel shell) : base(shell, "Plan changes")
     {
-        SelectEligibleCommand = Sync(() => { foreach (var c in Controls) c.IsSelected = c.Eligible; });
+        SelectEligibleCommand = Sync(() => { foreach (var c in VisibleControls) c.IsSelected = c.Eligible; });
         ClearSelectionCommand = Sync(() => { foreach (var c in Controls) c.IsSelected = false; });
         BuildPlanCommand = Sync(BuildPlan, () => Workspace.IsConnected && Workspace.SnapshotIsLive && Workspace.Idle);
         Refresh();
@@ -39,14 +41,18 @@ public sealed class PlanViewModel : PageViewModel
     public ICommand BuildPlanCommand { get; }
 
     public ObservableCollection<ControlSelection> Controls { get; } = new();
+    public ObservableCollection<ControlSelection> VisibleControls { get; } = new();
+    public IReadOnlyList<string> AreaFilters => ControlAreas.Filters;
+    public string FilterArea { get => _filterArea; set { if (SetProperty(ref _filterArea, value)) ApplyAreaFilter(clearSelection: true); } }
     public ObservableCollection<PlanRow> Rows { get; } = new();
     public ControlSelection? SelectedControl
     {
         get => _selectedControl;
         set { SetProperty(ref _selectedControl, value); OnPropertyChanged(nameof(SelectionPrerequisites)); }
     }
-    public IReadOnlyList<ControlPrerequisite>? SelectionPrerequisites => Workspace.Standard?.FindControl(SelectedControl?.ControlId ?? "")?.Prerequisites;
-    public IReadOnlyList<ControlPrerequisite>? RowPrerequisites => Workspace.Standard?.FindControl(SelectedRow?.ControlId ?? "")?.Prerequisites;
+    private ControlDefinition? FindControl(string? id) => Workspace.Standard is { } standard ? ControlInstances.Find(standard, Workspace.Profile, id ?? "") : null;
+    public IReadOnlyList<ControlPrerequisite>? SelectionPrerequisites => FindControl(SelectedControl?.ControlId)?.Prerequisites;
+    public IReadOnlyList<ControlPrerequisite>? RowPrerequisites => FindControl(SelectedRow?.ControlId)?.Prerequisites;
 
     public PlanRow? SelectedRow
     {
@@ -112,7 +118,7 @@ public sealed class PlanViewModel : PageViewModel
 
     private void BuildPlan()
     {
-        var ids = Controls.Where(c => c.IsSelected).Select(c => c.ControlId).ToList();
+        var ids = VisibleControls.Where(c => c.IsSelected).Select(c => c.ControlId).ToList();
         if (ids.Count == 0) throw new ToolkitException("Select at least one control.");
         Workspace.BuildPlan(ids);
     }
@@ -120,6 +126,19 @@ public sealed class PlanViewModel : PageViewModel
     private void OnSelectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ControlSelection.IsSelected)) OnPropertyChanged(nameof(ContextText));
+    }
+
+    private void ApplyAreaFilter(bool clearSelection)
+    {
+        VisibleControls.Clear();
+        foreach (var control in Controls)
+        {
+            var visible = FilterArea == "All areas" || control.Area == FilterArea;
+            if (clearSelection || !visible) control.IsSelected = false;
+            if (visible) VisibleControls.Add(control);
+        }
+        if (SelectedControl is not null && !VisibleControls.Contains(SelectedControl)) SelectedControl = null;
+        OnPropertyChanged(nameof(ContextText));
     }
 
     public override void Refresh()
@@ -131,7 +150,7 @@ public sealed class PlanViewModel : PageViewModel
         var assessment = Workspace.Assessment;
         if (standard is not null)
         {
-            foreach (var control in standard.Controls)
+            foreach (var control in ControlInstances.All(standard, Workspace.Profile))
             {
                 var def = standard.FindCollection(control.Collection);
                 var finding = assessment?.Findings.FirstOrDefault(f => string.Equals(f.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
@@ -165,6 +184,7 @@ public sealed class PlanViewModel : PageViewModel
                     ControlId = control.Id,
                     Name = control.Name,
                     Category = control.Category,
+                    Area = ControlAreas.For(control),
                     Eligible = eligible,
                     Status = status,
                     Explanation = explanation,
@@ -180,6 +200,7 @@ public sealed class PlanViewModel : PageViewModel
         if (Workspace.Plan is not null) foreach (var r in Workspace.Plan.Rows) Rows.Add(r);
         SelectedRow = null;
         SelectedControl = Controls.FirstOrDefault(c => c.ControlId == selectedControlId);
+        ApplyAreaFilter(clearSelection: false);
         OnPropertyChanged(nameof(PlanText));
         OnPropertyChanged(nameof(ContextText));
     }

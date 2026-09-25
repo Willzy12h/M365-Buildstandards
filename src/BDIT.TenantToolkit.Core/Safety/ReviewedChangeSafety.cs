@@ -72,6 +72,14 @@ public static class ReviewedChangeSafety
         if (!IsAssignment(p.Kind) && (p.ExcludeGroups.Count > 0 || p.Kind != ReviewedChangeKind.ConfigureTap && p.IncludeGroups.Count > 0))
             throw new SafetyViolationException("This action does not accept group targeting. Existing targets are preserved unless the preview explicitly replaces them.");
         if (!IsUpdates(p.Kind) && p.DeviceIds.Count > 0) throw new SafetyViolationException("Device IDs apply only to Autopatch actions.");
+        if (ReleaseIdentityChanges.Supports(p.Kind))
+        {
+            var route = ReleaseIdentityChanges.Route(p.Kind, p.ObjectId);
+            if (p.ControlId != route.Control || p.Api != route.Api || p.Path != route.Path || p.Method != route.Method || p.RequiredScope != route.Scope
+                || CanonicalJson.Sha256(p.Payload) != CanonicalJson.Sha256(ReleaseIdentityChanges.Payload(p)))
+                throw new SafetyViolationException("Identity change differs from its closed reviewed route or exact before-state transformation.");
+            return;
+        }
         if (p.IncludeGroups.Concat(p.ExcludeGroups).Any(g => !ProfileValidator.IsGuid(g))
             || p.IncludeGroups.Intersect(p.ExcludeGroups, StringComparer.OrdinalIgnoreCase).Any()
             || p.IncludeGroups.Distinct(StringComparer.OrdinalIgnoreCase).Count() != p.IncludeGroups.Count

@@ -72,7 +72,7 @@ Invoke-Step 'Stage package contents' {
     $documents = @(
         'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
-        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md'
+        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md'
     )
     New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
     foreach ($document in $documents) {

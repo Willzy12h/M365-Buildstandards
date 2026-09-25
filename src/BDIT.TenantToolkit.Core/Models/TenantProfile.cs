@@ -1,5 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.Core.Models;
 
@@ -38,6 +40,8 @@ public sealed class ExclusionAccount
 /// <summary>Client-specific values substituted into catalogue templates. All identifiers are Entra object IDs.</summary>
 public sealed class TenantParameters
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<OfficeLocation>? OfficeLocations { get; set; }
     /// <summary>Optional, non-secret per-control inputs. Null preserves historical evidence serialisation.</summary>
     public Dictionary<string, JsonNode?>? PolicyInputs { get; set; }
     public List<string> EmergencyAccountIds { get; set; } = new();
@@ -107,6 +111,7 @@ public static partial class ProfileValidator
             UpdatedAt = Timestamps.Format(now),
             Parameters = new TenantParameters
             {
+                OfficeLocations = OfficeLocationValidator.Validate(input.Parameters?.OfficeLocations),
                 PolicyInputs = input.Parameters?.PolicyInputs?.ToDictionary(p => p.Key, p => p.Value?.DeepClone(), StringComparer.Ordinal),
                 AdditionalExclusionAccountIds = (input.Parameters?.AdditionalExclusionAccountIds ?? new List<string>())
                     .Select(v => (v ?? "").Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList(),
@@ -149,4 +154,11 @@ public static partial class ProfileValidator
 
     [GeneratedRegex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")]
     private static partial Regex MyGuidRegex();
+}
+
+public sealed class OfficeLocation
+{
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public List<string> IpRanges { get; set; } = new();
 }

@@ -97,7 +97,7 @@ public static class HtmlReports
         sb.Append("</tbody></table>");
 
         sb.Append("<h2>Collection status</h2>");
-        Table(sb, TabularReports.AssessmentSheets(r)[3]);
+        Table(sb, TabularReports.AssessmentSheets(r).Single(sheet => sheet.Name == "Collection status"));
 
         sb.Append("<footer><p><b>This assessment compares a saved capture.</b> Generating the assessment does not modify tenant configuration. Changes from separate deployment runs are recorded in their own evidence. Matches are not a security certification and do not prove effective user or device behaviour.</p>")
           .Append("<p>M365 Build Standard ").Append(H(r.Release)).Append(" · Toolkit ").Append(H(r.ToolkitVersion)).Append(" · Assessment ").Append(H(r.Id)).Append("</p></footer></body></html>");

@@ -4,6 +4,7 @@ using System.Windows.Input;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
@@ -38,6 +39,12 @@ public sealed class ConfigurationViewModel : PageViewModel
     private ObjectRow? _selectedObject;
     private SnapshotSummary? _selectedStored;
     private NameResolver _names = new();
+    private string _mailDomain = "";
+    private string _exchangeImportFile = "";
+    private string _domainContext = "";
+    private string _proposalContext = "";
+    private string _proposalTenant = "";
+    private ControlDefinition? _proposalControl;
 
     public ConfigurationViewModel(ShellViewModel shell) : base(shell, "Configuration")
     {
@@ -48,6 +55,22 @@ public sealed class ConfigurationViewModel : PageViewModel
         ExportXlsxCommand = Command(() => Export(ExportFormat.Xlsx), () => Workspace.Snapshot is not null);
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
         CopySummaryCommand = CopyText(() => SnapshotText);
+        SaveMailDomainCommand = Sync(() => Workspace.SaveExchangeDomain(MailDomainInput), () => SupportsExchange && Workspace.Profile is not null && Workspace.Idle);
+        ExportExchangeCaptureCommand = Command(ExportExchangeCapture, () => SupportsExchange && Workspace.Profile is not null && Workspace.Idle);
+        ChooseExchangeCaptureCommand = Sync(() =>
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Read-only Exchange capture (*.json)|*.json", Title = "Select an engineer-generated Exchange capture" };
+            if (dialog.ShowDialog() == true) ExchangeImportFile = dialog.FileName;
+        }, () => SupportsExchange && Workspace.Idle);
+        ImportExchangeCaptureCommand = Sync(() => Workspace.ImportExchangeCapture(ExchangeImportFile, MailDomainInput), () => SupportsExchange && Workspace.Profile is not null && Workspace.Idle);
+        CheckExchangeDnsCommand = Command(() => Workspace.CheckExchangeDnsAsync(), () => Workspace.Snapshot?.ExchangeCapture is not null && Workspace.Profile is not null && Workspace.Idle);
+        ExportExchangeProposalCommand = Sync(() =>
+        {
+            _lastExportFile = Workspace.ExportExchangeProposal(SelectedProposalControl?.Id ?? "", ProposalTenantConfirmation, MailDomainInput);
+            LastExport = "Exported commented review proposal; no commands were run: " + _lastExportFile;
+            ProposalTenantConfirmation = "";
+            OnPropertyChanged(nameof(LastExport)); RaiseAll();
+        }, () => SupportsExchange && Workspace.Snapshot?.ExchangeCapture is not null && Workspace.Idle);
         Refresh();
     }
 
@@ -58,6 +81,21 @@ public sealed class ConfigurationViewModel : PageViewModel
     public ICommand ExportXlsxCommand { get; }
     public ICommand OpenExportCommand { get; }
     public ICommand CopySummaryCommand { get; }
+    public ICommand SaveMailDomainCommand { get; }
+    public ICommand ExportExchangeCaptureCommand { get; }
+    public ICommand ChooseExchangeCaptureCommand { get; }
+    public ICommand ImportExchangeCaptureCommand { get; }
+    public ICommand CheckExchangeDnsCommand { get; }
+    public ICommand ExportExchangeProposalCommand { get; }
+    public ObservableCollection<ControlDefinition> ProposalControls { get; } = new();
+    public ControlDefinition? SelectedProposalControl { get => _proposalControl; set => SetProperty(ref _proposalControl, value); }
+    public string ProposalTenantConfirmation { get => _proposalTenant; set => SetProperty(ref _proposalTenant, value); }
+    public bool SupportsExchange => Workspace.Standard?.Controls.Any(c => c.Area == "Exchange") == true;
+    public string MailDomainInput { get => _mailDomain; set => SetProperty(ref _mailDomain, value); }
+    public string ExchangeImportFile { get => _exchangeImportFile; set => SetProperty(ref _exchangeImportFile, value); }
+    public string ExchangeSummary => Workspace.Snapshot?.ExchangeCapture is { } capture && capture.TenantId == Workspace.Profile?.TenantId
+        ? $"Imported {capture.CapturedAt} for {capture.Domain}; module {capture.ModuleVersion}. {capture.Dns.Count} DNS observation(s). Review Exchange and Purview in Assessment. Source claims are not independently authenticated; this capture cannot authorise a write."
+        : "No Exchange/Purview capture loaded. Exporting a script does not sign in or execute it. Imported evidence is for offline review only.";
 
     public ObservableCollection<CollectionRow> Collections { get; } = new();
     public ObservableCollection<ObjectRow> Objects { get; } = new();
@@ -114,8 +152,29 @@ public sealed class ConfigurationViewModel : PageViewModel
         RaiseAll();
     }
 
+    private async Task ExportExchangeCapture()
+    {
+        var domain = MailDomain.Validate(MailDomainInput);
+        var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
+        _lastExportFile = await Workspace.ExportAsync(() => Workspace.Exporter.ExportExchangeReadScript(profile.TenantId, domain, DateTimeOffset.UtcNow));
+        LastExport = "Exported read-only script for manual review and execution: " + _lastExportFile;
+        OnPropertyChanged(nameof(LastExport)); RaiseAll();
+    }
+
     public override void Refresh()
     {
+        var proposalContext = Workspace.Profile?.TenantId + "|" + Workspace.Snapshot?.Id;
+        if (_proposalContext != proposalContext)
+        { _proposalContext = proposalContext; ProposalTenantConfirmation = ""; SelectedProposalControl = null; }
+        var selectedId = SelectedProposalControl?.Id;
+        ProposalControls.Clear();
+        foreach (var control in Workspace.Standard?.Controls.Where(c => c.Area is "Exchange" or "Purview") ?? Enumerable.Empty<ControlDefinition>())
+            ProposalControls.Add(control);
+        SelectedProposalControl = ProposalControls.FirstOrDefault(c => c.Id == selectedId);
+        var savedDomain = Workspace.Profile?.Parameters.PolicyInputs?.GetValueOrDefault("exchangeDomain")?.ToString() ?? "";
+        var context = (Workspace.Profile?.TenantId ?? "") + "|" + savedDomain;
+        if (_domainContext != context) { _domainContext = context; MailDomainInput = savedDomain; ExchangeImportFile = ""; }
+        OnPropertyChanged(nameof(SupportsExchange)); OnPropertyChanged(nameof(ExchangeSummary));
         Collections.Clear();
         _allObjects.Clear();
         CollectionFilters.Clear();

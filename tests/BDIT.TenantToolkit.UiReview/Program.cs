@@ -153,6 +153,24 @@ internal static partial class Program
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
+                    if (nav.Key == "configuration")
+                    {
+                        var tabs = Descendants(controls[0]).OfType<TabControl>().First();
+                        tabs.SelectedIndex = 2; content.UpdateLayout(); Pump();
+                        var pageLabel = "exchange-purview " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, pageLabel); RecordLowContrast(content, pageLabel); RecordClipping(content, pageLabel);
+                        SaveImage(content, size, Path.Combine(output, "exchange-purview-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+                    }
+                    if (nav.Key == "standard")
+                    {
+                        var exports = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
+                        exports.IsExpanded = true; content.UpdateLayout(); Pump();
+                        var label = "engineer-documents " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
+                        SaveImage(content, size, Path.Combine(output, "engineer-documents-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                    }
                   }
                   catch (InvalidOperationException ex)
                   {
@@ -180,6 +198,13 @@ internal static partial class Program
                 shell.Navigate(nav.Key);
                 SeedPage(shell, nav.Key);
                 CheckKeyboardReach(window, content, nav.Key);
+                if (nav.Key == "standard")
+                {
+                    var exports = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
+                    exports.IsExpanded = true; content.UpdateLayout(); Pump();
+                    CheckKeyboardReach(window, content, "standard with engineer exports expanded");
+                    exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                }
             }
             PressCommands(shell, content, traces);
             WriteReviewNotes(output);
