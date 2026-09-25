@@ -1,123 +1,129 @@
-# Automation coverage — 2026.09.11
+# Automation coverage - 2026.09.12
 
-Use **Policy automation** for inputs, imports, prerequisites, assignments, packages and readiness. Create policy/app candidates through the existing **Plan → Deploy** workflow. Candidates stay disabled/unassigned until a separate activation is explicitly approved.
+**96 controls: 25 Entra, 61 Intune, eight Exchange and two Purview. There are 61 creation recipes.** The other 35 controls use reviewed tenant actions, evidence-backed observations or explicit manual procedures. Creation counts do not describe production deployment or certification. No service or device behaviour was tested against a tenant for this release.
 
-**50 controls: 42 candidate recipes (5 of them prerequisites), 4 reviewed tenant-action workflows (3 assessed automatically from captured evidence since 2026.09.7), 4 readiness/engineer workflows. 46 of 50 controls report automatically.** Policies target the built-in All users and All devices populations; the groups the toolkit creates exist to be excluded from them. This is implemented source, not verified tenant behaviour or certification. Some recipes require client-approved inputs before a plan can create them.
+Create selected candidates through **Plan changes > Deploy**. Assessment and Plan have an area filter; changing the Plan area clears the selection. **Policy automation** holds separate reviewed tenant settings, assignments and package actions. Configuration has the [Exchange/Purview capture and proposal workflow](EXCHANGE-PURVIEW.md). The [two engineer documents](ENGINEER-DOCUMENTS.md) contain every exact setting and manual check, generated directly from the loaded catalogue.
 
 ## Required client inputs
 
-- Public IP ranges (CIDR) of the office egress for the named location. Confirm them with the client; an internal range or a stale address silently excludes the wrong network. Everything else about the prerequisites is generated.
-- Android minimum supported OS and Enrolment Status Page blocking app IDs. Both now ship a dated default (Android 14; no blocking applications), so leaving them empty creates the candidate with a warning instead of blocking it. Minimum Windows build 10.0.26200.0 and minimum iOS 26.7 are recorded in the recipes and were reviewed on 15 September 2026.
-- Reviewed OneDrive and Edge Settings Catalogue instances or policy JSON exports including their separate settings collection. This release does not guess Microsoft setting identifiers, browser preferences, or foreign tenant IDs. The engine resolves definition IDs/choices before creation. Import requires explicit GUID replacements, including GUIDs embedded in string values.
-- Store IDs for Chrome, Adobe Reader, OneDrive and Teams. Only Intune-compatible Microsoft Store identifiers are accepted; a community winget ID is not sufficient. If a product is unavailable through that source, import a supported Win32 metadata export for that control and publish its client-approved .intunewin package.
-- RMM and third-party endpoint agent .intunewin packages, installation/uninstall commands and detection rules. The code publishes supplied packages; it does not generate vendor installers, embed tenant tokens, create vendor subscriptions, or prove console check-in.
-- Exact group/device IDs for activation, assignment, TAP onboarding and Autopatch. The preview resolves group names and rejects invalid/overlapping targets. Group membership and licensing are ongoing responsibilities. Autopatch preview requires deployment access because Microsoft exposes its reads through a write-capable permission.
+- Offices: one stable unique key, mandatory name and one or more public CIDRs per location. Invalid/private/reserved ranges and overlaps with those ranges are refused; each PRE-008 instance is independently selected and untrusted. The singular office location used by a CA exclusion must still be deliberately resolved.
+- Two distinct emergency identities, current operator and approved exclusion groups for CA. Groups are created empty; an ID alone does not prove correct membership. Admin consent reviewers are mandatory, explicitly resolved enabled users with no default.
+- OneDrive/Edge native settings instances, client-reviewed Store identifiers, all iOS store URLs, all Android URLs/package IDs, and Managed Google Play readiness. No guessed native definition IDs, foreign tenant IDs or ABM/VPP/supervised-only dependency.
+- RMM and ESET client packages, commands and detection rules. The standard supplies no installer or credentials. Metadata, publication and actual installation/health are separate checks.
+- Exchange domain: mandatory when the domain-bound control is selected; it must be a valid entered DNS name and match the captured accepted domain before its proposal. Impersonation users-to-protect are entered by the engineer in the preset policy.
+- Licence/edition, supported builds and reviewed operating-system minimums. Dated defaults warn; they do not establish current entitlement or device acceptance. Only inputs needed by the chosen workflow should be completed; a required empty value is refused with an explanation.
 
 ## Coverage by control
 
-The control IDs below are those of **2026.09.11**, the shipped release. The prerequisites were renumbered between
-2026.09.10 and .11, and two of the old numbers now name a different control, so an older report cannot be read
-against this table by ID alone:
-
-| ID | Meant in 2026.09.9 and .10 | Means in 2026.09.11 |
-| --- | --- | --- |
-| PRE-001 | Policy Exclusions Users | *not present* — the control is now PRE-009 |
-| PRE-002 | Policy Exclusions Devices | *not present* — the control is now PRE-010 |
-| PRE-003 | MAM Only Users | *not present* — the control is now PRE-004 |
-| PRE-004 | Pilot Devices | **MAM Only Users** |
-| PRE-005 | LOC - M365 Office | **Pilot Devices** |
-
-PRE-004 and PRE-005 are the two that matter: they resolve, and they resolve to the wrong group. Read the control
-name, not only the ID, when reconciling a report written before 2026.09.11. Historical releases keep their own
-numbering and are not rewritten.
-
-| Control | Requirement | Implementation path | Inputs / remaining review |
+| Area | Control | Requirement | Implementation / remaining check |
 | --- | --- | --- | --- |
-| PRE-009 | GRP - Policy Exclusions Users | Candidate recipe | Emergency accounts and the deploying engineer are added by an engineer |
-| PRE-010 | GRP - Policy Exclusions Devices | Candidate recipe | Build and test machines only |
-| PRE-004 | GRP - MAM Only Users | Candidate recipe | No built-in equivalent; population named explicitly |
-| PRE-005 | GRP - Pilot Devices | Candidate recipe | Optional; the staged step before All devices |
-| PRE-008 | LOC - M365 Office | Candidate recipe | officeIpRanges; marking the location trusted is a separate reviewed step |
-| ID-001 | Emergency access accounts | Readiness check plus engineer/external step | Review scope and prerequisites |
-| ID-002 | Authentication methods and Temporary Access Pass | Assessed from the authentication methods policy (Authenticator and TAP enabled, SMS and voice disabled); changed through reviewed authentication-method actions | Number-matching enforcement, emergency-account sign-in and removal of existing SMS/voice registrations remain engineer checks |
-| ID-003 | Administrator access | Assessed from directory role membership (two to four permanent Global Administrators) | Eligible Privileged Identity Management assignments, dedicated-account and licence checks remain engineer checks |
-| CA-001 | Require MFA | Candidate recipe | emergencyAccountIds, officeLocationId |
-| CA-003 | Block legacy authentication | Candidate recipe | emergencyAccountIds |
-| CA-004 | Block unsupported platforms | Candidate recipe | Review scope and prerequisites |
-| CA-005 | Require compliant desktop devices | Candidate recipe | officeLocationId |
-| CA-006 | Require compliant mobile devices | Candidate recipe | officeLocationId, mamGroupId |
-| CA-007 | Require mobile app protection | Candidate recipe | Review scope and prerequisites |
-| CA-008 | Corporate mobile compliance | Candidate recipe | emergencyAccountIds, officeLocationId, mamGroupId |
-| CA-009 | Secure security-info registration | Candidate recipe | emergencyAccountIds, officeLocationId |
-| CA-010 | Secure device registration | Candidate recipe | officeLocationId |
-| ENR-001 | Automatic MDM enrolment | Assessed from the MDM enrolment policies (Intune policy applies to all users); changed through the reviewed MDM scope action | Licensing and Entra-join state remain engineer checks |
-| ENR-002 | Enrolment restrictions | Candidate recipe | Review scope and prerequisites |
-| ENR-003 | Windows Autopilot profile | Candidate recipe | Review scope and prerequisites |
-| ENR-004 | Enrolment Status Page | Candidate recipe | espBlockingAppIds |
-| ENR-005 | Apple MDM ownership and certificate | Readiness check plus engineer/external step | Review scope and prerequisites |
-| ENR-006 | Managed Google Play connection | Readiness check plus engineer/external step | Review scope and prerequisites |
-| CMP-001 | Devices with no compliance policy | Assessed from Intune tenant settings (secure-by-default on); changed through the reviewed tenant compliance action | Compliance policy assignment and CA device requirements remain separate controls |
-| CMP-WIN-001 | Windows core compliance | Candidate recipe | Review scope and prerequisites |
-| CMP-WIN-002 | Defender compliance supplement | Candidate recipe | Review scope and prerequisites |
-| CMP-IOS-001 | iOS and iPadOS compliance | Candidate recipe | Review scope and prerequisites |
-| CMP-AND-001 | Android personal work profile compliance | Candidate recipe | androidMinimumVersion |
-| CMP-AND-002 | Android corporate compliance | Candidate recipe | androidMinimumVersion |
-| CFG-WIN-001 | BitLocker and recovery escrow | Candidate recipe | Review scope and prerequisites |
-| CFG-WIN-002 | Windows LAPS | Candidate recipe | Review scope and prerequisites |
-| CFG-WIN-003 | Windows Hello for Business | Candidate recipe | Review scope and prerequisites |
-| CFG-WIN-004 | Windows core restrictions | Candidate recipe | Review scope and prerequisites |
-| CFG-WIN-005 | OneDrive sign-in and Known Folder Move | Candidate recipe | oneDriveSettings |
-| CFG-WIN-006 | Microsoft Edge configuration | Candidate recipe | edgeSettings |
-| CFG-WIN-007 | Long paths (optional) | Candidate recipe | Review scope and prerequisites |
-| SEC-WIN-001 | Antivirus configuration | Candidate recipe | Review scope and prerequisites |
-| SEC-WIN-002 | Microsoft Defender EDR onboarding | Candidate recipe | Review scope and prerequisites |
-| SEC-WIN-003 | Firewall protection | Candidate recipe | Review scope and prerequisites |
-| MAM-IOS-001 | iOS app protection | Candidate recipe | Review scope and prerequisites |
-| MAM-AND-001 | Android app protection | Candidate recipe | Review scope and prerequisites |
-| APP-WIN-001 | Microsoft 365 Apps | Candidate recipe | Review scope and prerequisites |
-| APP-WIN-002 | Company Portal | Candidate recipe | Review scope and prerequisites |
-| APP-WIN-003 | Google Chrome | Candidate recipe | chromeStoreId |
-| APP-WIN-004 | Adobe Acrobat Reader | Candidate recipe | adobeReaderStoreId |
-| APP-WIN-005 | OneDrive application | Candidate recipe | oneDriveStoreId |
-| APP-WIN-006 | Microsoft Teams | Candidate recipe | teamsStoreId |
-| APP-WIN-007 | Remote management agent | Candidate recipe | rmmFileName, rmmInstallCommand, rmmUninstallCommand, rmmDetectionRules |
-| APP-WIN-008 | Endpoint protection agent | Candidate recipe | endpointAgentFileName, endpointAgentInstallCommand, endpointAgentUninstallCommand, endpointAgentDetectionRules |
-| UPD-001 | Windows Autopatch | Reviewed Autopatch category enrolment/removal | Review scope and prerequisites |
+| Entra | PRE-009 | GRP - Policy Exclusions Users | Empty group candidate. |
+| Entra | PRE-010 | GRP - Policy Exclusions Devices | Empty group candidate. |
+| Entra | PRE-004 | GRP - MAM Only Users | Empty group candidate. |
+| Entra | PRE-005 | GRP - Pilot Devices | Empty group candidate. |
+| Entra | PRE-008 | Office locations (one candidate per named office) | One untrusted candidate per selected office. |
+| Entra | ID-001 | Emergency access accounts | Engineer-controlled emergency identities, custody and recovery tests. |
+| Entra | ID-002 | Authentication methods and Temporary Access Pass | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-003 | Administrator access | Captured direct roles plus manual PIM, account-purpose and licence review. |
+| Entra | CA-001 | Require MFA | Disabled CA candidate; separate activation. |
+| Entra | CA-003 | Block legacy authentication | Disabled CA candidate; separate activation. |
+| Entra | CA-004 | Block unsupported platforms | Disabled CA candidate; separate activation. |
+| Entra | CA-005 | Require compliant desktop devices | Disabled CA candidate; separate activation. |
+| Entra | CA-006 | Require compliant mobile devices | Disabled CA candidate; separate activation. |
+| Entra | CA-007 | Require mobile app protection | Disabled CA candidate; separate activation. |
+| Entra | CA-008 | Corporate mobile compliance | Disabled CA candidate; separate activation. |
+| Entra | CA-009 | Secure security-info registration | Disabled CA candidate; separate activation. |
+| Entra | CA-010 | Secure device registration | Disabled CA candidate; separate activation. |
+| Intune | ENR-001 | Automatic MDM enrolment | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Intune | ENR-002 | Enrolment restrictions | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | ENR-003 | Windows Autopilot profile | Deferred classic profile; retain reference pending retirement decision. |
+| Intune | ENR-004 | Enrolment Status Page | Deferred classic ESP; retain reference pending retirement decision. |
+| Intune | ENR-005 | Apple MDM ownership and certificate | Client-owned Apple push certificate and renewal. |
+| Intune | ENR-006 | Managed Google Play connection | Manual Play connection/consent; projected metadata read, no connection token. |
+| Intune | CMP-001 | Devices with no compliance policy | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Intune | CMP-WIN-001 | Windows core compliance | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CMP-IOS-001 | iOS and iPadOS compliance | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CMP-AND-001 | Android personal work profile compliance | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CMP-AND-002 | Android corporate compliance | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-001 | BitLocker and recovery escrow | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-002 | Windows LAPS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-003 | Windows Hello for Business | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-004 | Windows core restrictions | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-005 | OneDrive sign-in and Known Folder Move | Unassigned candidate; separate assignment and device/app verification. Required native settings supplied/reviewed by engineer. |
+| Intune | CFG-WIN-006 | Microsoft Edge configuration | Unassigned candidate; separate assignment and device/app verification. Required native settings supplied/reviewed by engineer. |
+| Intune | CFG-WIN-007 | Long paths | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | SEC-WIN-002 | Microsoft Defender EDR onboarding | Deferred Defender onboarding; ESET selected, retirement proposed. |
+| Intune | MAM-IOS-001 | iOS app protection | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | MAM-AND-001 | Android app protection | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-001 | Microsoft 365 Apps | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-002 | Company Portal | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-003 | Google Chrome | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-004 | Adobe Acrobat Reader | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-005 | OneDrive application | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-006 | Microsoft Teams | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-007 | Remote management agent | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-WIN-008 | ESET endpoint protection (client package) | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | UPD-001 | Windows Autopatch | Read captured update conflicts, manually confirm prerequisites and all-device coverage; separate reviewed device-category enrolment is not full Autopatch rollout. |
+| Entra | PRE-011 | GRP - Autopilot Device Preparation | Empty group candidate. Existing Intune Provisioning Client owner set by a separate reviewed, exact-ID action. |
+| Entra | ID-004 | Passkeys including Microsoft Authenticator | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-005 | System-preferred MFA | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-006 | Authenticator registration campaign | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-007 | User application consent off | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-008 | Admin consent workflow | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
+| Entra | ID-009 | Self-service password reset off | Check SSPR is off by hand; never change it. |
+| Entra | CA-011 | Require phishing-resistant MFA for administrators | Disabled CA candidate; separate activation. |
+| Intune | ENR-007 | Windows Autopilot device preparation | Device-preparation portal workflow; native creation contract not confirmed. |
+| Intune | CFG-WIN-008 | Windows web sign-in | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-009 | Chrome single sign-on | Native CloudAPAuthEnabled definition ID unconfirmed; manual, no uploaded ADMX. |
+| Intune | CFG-WIN-010 | UK region and keyboard | UK setup region/keyboard by hand; Welcome/new-user settings untouched. |
+| Intune | CFG-WIN-011 | UK time zone | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-012 | Show file extensions | Explorer file extensions by hand; no confirmed native catalogue ID. |
+| Intune | CFG-WIN-013 | OneDrive Files On-Demand | OneDrive Files On-Demand by hand; native catalogue ID unconfirmed. |
+| Intune | CFG-WIN-014 | Storage Sense | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-015 | Hide consumer features | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-016 | Taskbar starting layout | Five starting pins by hand; no enforced taskbar template. |
+| Intune | CFG-WIN-017 | Microsoft Store available | Review effective Store access; no broad unblock/removal write. |
+| Intune | CFG-WIN-018 | Windows settings backup and restore (ESR successor) | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-019 | Fast startup off | Power Options by hand; Hiberboot disabled does not force off. |
+| Intune | CFG-WIN-020 | No sleep on mains | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | CFG-WIN-021 | Remove consumer Copilot app | Unassigned candidate; separate assignment and device/app verification. Consumer app only; documented conditions and conflicting Pro applicability require manual verification. |
+| Intune | APP-IOS-001 | Outlook for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-002 | Teams for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-003 | Microsoft Authenticator for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-004 | OneDrive for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-005 | Edge for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-006 | Word for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-007 | Excel for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-IOS-008 | Company Portal for iOS/iPadOS | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-001 | Outlook for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-002 | Teams for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-003 | Microsoft Authenticator for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-004 | OneDrive for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-005 | Edge for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-006 | Word for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-007 | Excel for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Intune | APP-AND-008 | Company Portal for Android | Unassigned candidate; separate assignment and device/app verification. |
+| Exchange | EX-001 | Own-domain SPF spam bypass | Imported read-only observations; selected inert manual proposal, no toolkit write execution. Disabled/audit only until trusted SPF/From boundary is established. |
+| Exchange | EX-002 | Standard preset security policy | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Exchange | EX-003 | Block external automatic forwarding | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Exchange | EX-004 | Disable organisation SMTP AUTH | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Exchange | EX-005 | External sender tagging in Outlook | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Exchange | EX-006 | Mailbox auditing enabled | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Exchange | EX-007 | DKIM signing and published selectors | Imported read-only observations; selected inert manual proposal, no toolkit write execution. Show actual CNAME targets; both fresh answers required before an enable proposal. |
+| Exchange | EX-008 | DMARC record report | Report-only observations and manual verification; no write. |
+| Purview | PUR-001 | Unified audit log enabled | Imported read-only observations; selected inert manual proposal, no toolkit write execution. |
+| Purview | PUR-002 | Audit retention report | Report-only observations and manual verification; no write. |
 
-### Why the application controls always ask for review
+## Retired and deferred controls
 
-APP-WIN-001 to APP-WIN-008 report **review exclusion prerequisite**, never compliant, and that is the intended
-outcome for the shipped 2026.09.11 catalogue rather than a gap. Each of the eight declares an exclusion prerequisite
-(PRE-009 for the user-targeted control, PRE-010 for the seven device-targeted ones), and a group's name or object ID
-does not establish which users or devices it actually removes from scope. Assessment stops on that ground before it
-inspects the assignment's targets, so the positive result — a required, unfiltered assignment to a built-in
-population — is unreachable for every application control the catalogue currently contains. The branch is kept for a
-future application control that targets a built-in population with no exclusion prerequisite; until one ships, confirm
-application deployment in Intune rather than expecting the report to establish it.
+SEC-WIN-001 (Defender antivirus), CMP-WIN-002 (Defender compliance supplement) and SEC-WIN-003 (managed firewall) are removed from .12 only. ESET is APP-WIN-008; no firewall policy is introduced. ENR-003/004 and SEC-WIN-002 remain deferred references, not recipes. Recommend retiring them from default scope after the maintainer's decision; retain CFG-WIN-004 SmartScreen as separate shell protection pending confirmation.
 
-## Consequences and recovery
+Historical renumbering remains important: in .9/.10 PRE-001/002 named the user/device exclusion groups (now PRE-009/010), PRE-003 named MAM Only Users (now PRE-004), PRE-004 named Pilot Devices (now PRE-005), and PRE-005 named the office location (now PRE-008 instances). Read release and control name when reconciling older evidence; never transfer ownership by a reused ID or name.
 
-- Targeting uses the built-in All users and All devices populations, so a policy reaches everyone it should without a membership list to maintain. Each assignment names one exclusion group, which is the only membership an engineer has to keep current.
-- A reviewable input the client has not supplied falls back to the standard's dated default and the plan row warns, naming the value and saying it must be confirmed before assignment. Identity inputs carry no default and still block the control.
-- Prerequisite groups are created empty with assigned membership. No member, owner, dynamic rule, mail enablement or role-assignable flag is written, so a created group grants nothing until an engineer populates it. Deleting a toolkit-created group removes it from every policy that already references it.
-- The office named location is created untrusted. Marking it trusted changes risk evaluation for every Conditional Access policy in the tenant and is a separate decision. Only IPv4/IPv6 CIDR ranges supplied as a reviewed input are written; country locations are refused.
-- Deployment mode now requests Group.ReadWrite.All. That permission is wider than any object the toolkit writes with it: creation is restricted to the collection root by the route allow list and the payload by the creation guard, but the consent itself covers all groups. Re-consent is required on both registrations before prerequisites can be created; assessment mode remains read-only.
+## Boundaries and verification
 
-- CA activation changes only state, preserving stored targeting and exclusions. It requires two emergency accounts and the current operator retained in user exclusions. Report-only and disabled containment are separate choices.
-- Intune assignment writes replace the empty candidate assignment list with explicitly selected groups. Removal clears all current assignments from an owned object. Removing assignments does not guarantee settings reverse on devices. Device/user group exclusion semantics must be reviewed.
-- MDM All clears Microsoft's selected-group targeting. Tenant secure-by-default compliance can affect existing CA immediately. SMS/voice disablement can deny users their only method. TAP is limited to an approved group and one-use passes of at most one hour; no pass is issued by this workflow.
-- Toolkit-owned candidate deletion supports the added policy/app collections. Settings Catalogue child-settings updates remain blocked; delete/recreate an unassigned candidate after review. Publishing a package into an app with already committed content is also blocked; upgrades need a separate procedure.
-- Package publishing journals each Graph request and records app/version/file IDs. It never saves encryption keys or signed storage URLs. An unknown package write blocks another upload/activation; deleting the recorded unassigned app can remove its content after review. An accepted final publication can be re-verified without repeating writes.
-- Autopatch enrolment establishes category authority for selected devices. It does not create ring groups, approve an OS release, guarantee licence assignment, or undo installed updates. Enrolment removal is restricted to a toolkit-recorded enrolment.
-- Apple certificate and Google Play first-time ownership/consent still require their external workflows. Emergency/admin identity checks do not prove credential custody, effective/group/PIM permissions or working recovery. The UI explicitly reports those limits.
+Assessment remains read-only. Every automated write requires complete durable before evidence, preview/selection, matching typed tenant, exact identity, unchanged reviewed inputs, durable intent and individual results. CA retains the operator and emergency exclusions. New Intune policies/apps have no assignments, groups have no members, and locations are untrusted. An uncertain request is not retried. Failed or malformed reads are unknown.
 
-## Microsoft documentation checked during implementation
+PRE-011 ownership is limited to the recorded, still-empty group and the existing Microsoft provisioning service principal; the toolkit does not create a principal or add group members. Imported Exchange evidence cannot satisfy a deployment snapshot. Exchange proposal exports are commented review files that refuse execution. Retention policy and DLP writes are excluded.
 
-- [MDM scope update](https://learn.microsoft.com/en-us/graph/api/mobiledevicemanagementpolicies-update?view=graph-rest-beta) — All removes selected groups; delegated Mobility Management scope.
-- [TAP method configuration](https://learn.microsoft.com/en-us/graph/api/resources/temporaryaccesspassauthenticationmethodconfiguration?view=graph-rest-1.0) and [tenant compliance settings](https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-devicemanagementsettings?view=graph-rest-1.0).
-- [Settings Catalogue definitions](https://learn.microsoft.com/en-us/graph/api/intune-deviceconfigv2-devicemanagementconfigurationsettingdefinition-list?view=graph-rest-beta), [ESP](https://learn.microsoft.com/en-us/graph/api/resources/intune-onboarding-windows10enrollmentcompletionpageconfiguration?view=graph-rest-beta), [Office suite app](https://learn.microsoft.com/en-us/graph/api/resources/intune-apps-officesuiteapp?view=graph-rest-beta), [Store app](https://learn.microsoft.com/en-us/graph/api/resources/intune-apps-wingetapp?view=graph-rest-beta).
-- [Win32 app creation](https://learn.microsoft.com/en-us/graph/api/intune-apps-win32lobapp-create?view=graph-rest-1.0) and [content-file lifecycle](https://learn.microsoft.com/en-us/graph/api/resources/intune-apps-mobileappcontentfile?view=graph-rest-1.0).
-- [Windows compliance supplement](https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-windows10compliancepolicy?view=graph-rest-beta) — Defender-specific properties use beta; `signatureOutOfDate=true` requires current signatures. [iOS app protection](https://learn.microsoft.com/en-us/graph/api/resources/intune-mam-iosmanagedappprotection?view=graph-rest-beta) declares the Microsoft-app selection group.
-- [Autopatch enrolment](https://learn.microsoft.com/en-us/graph/api/windowsupdates-updatableasset-enrollassets?view=graph-rest-beta), [removal](https://learn.microsoft.com/en-us/graph/api/windowsupdates-updatableasset-unenrollassets?view=graph-rest-beta), [licensing prerequisites](https://learn.microsoft.com/en-us/windows/deployment/windows-autopatch/prepare/windows-autopatch-prerequisites).
-
-Beta APIs remain explicitly identified. Compilation and documentation checks do not prove these payloads or workflows are accepted by a tenant.
+App assignment records do not prove installation or effective exclusions. Policy presence does not establish Windows edition support, licence effect, all-device Autopatch coverage, working sign-in, or third-party protection. Follow the generated after-checks and record anything untested as unverified. Microsoft sources and permission/licence notes are in each control and its generated documents; [application setup](APPLICATION-SETUP.md) records the three added delegated scopes and renewed consent for both apps.

@@ -12,6 +12,8 @@ Update the configured permission lists and grant administrator consent again to 
 
 Existing `Policy.Read.All` covers the consent-policy reads; no invented consent read scope is requested. The provisioning-group owner action uses existing `Group.ReadWrite.All`. Passkey profiles and system-preferred MFA use the declared authentication policy scopes. Exchange/Purview use a separate engineer-run delegated PowerShell capture with read-only Exchange RBAC; they add no Exchange credentials or write scopes to these Graph applications.
 
+The local [engineer document exports](ENGINEER-DOCUMENTS.md) need no sign-in, application registration or consent. [Exchange/Purview observations and proposals](EXCHANGE-PURVIEW.md) use no toolkit-run Exchange authentication or write execution. Exported references do not grant access; the engineer must independently hold the documented delegated role before an authorised manual session.
+
 ## Guided setup
 
 The **Application setup** page is one guided sequence: sign in, approve once, connect. Everything below it on the page is for existing applications and manual repair.

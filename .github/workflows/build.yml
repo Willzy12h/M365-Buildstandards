@@ -81,6 +81,17 @@ jobs:
             dist/*.zip.sha256
           if-no-files-found: error
 
+      - name: Upload generated engineer documents
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineer-standard-documents
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.md
+          if-no-files-found: error
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

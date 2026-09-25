@@ -41,10 +41,11 @@ internal static class ReleaseIdentityAssessment
         {
             case "ID-004":
                 if (snapshot.Collections.TryGetValue("passkeyProfiles", out var profiles) && profiles.Usable && profiles.Items.Count == 0
-                    && obj["state"] is not null && obj["keyRestrictions"] is JsonObject restrictions
+                    && Text(obj["state"]) is "enabled" or "disabled" && obj["keyRestrictions"] is JsonObject restrictions
                     && restrictions["isEnforced"] is JsonValue v && v.TryGetValue<bool>(out var enforced)
                     && restrictions["aaGuids"] is JsonArray keys && restrictions["enforcementType"]?.ToString() is "allow" or "block"
-                    && obj["passkeyProfiles"] is not JsonArray { Count: > 0 } && obj["defaultPasskeyProfile"] is null)
+                    && keys.All(k => Text(k) is { } key && Guid.TryParse(key, out _))
+                    && obj["passkeyProfiles"] is null or JsonArray { Count: 0 } && obj["defaultPasskeyProfile"] is null)
                 {
                     var ids = keys.Select(k => k?.ToString()).ToList();
                     var allowed = !enforced || (restrictions["enforcementType"]!.ToString() == "allow"
@@ -54,12 +55,13 @@ internal static class ReleaseIdentityAssessment
                 }
                 finding.Notes.Add("Review included/excluded users, attestation and any passkey profiles; registration and Authenticator use are not verified."); break;
             case "ID-005":
-                if (Value(obj, "systemCredentialPreferences", "state") is { } preferred) match = preferred.ToString() == "enabled";
+                if (Text(Value(obj, "systemCredentialPreferences", "state")) is { } preferred && preferred is "enabled" or "disabled" or "default") match = preferred == "enabled";
                 finding.Notes.Add("Review included/excluded users and a user's actual MFA experience."); break;
             case "ID-006":
                 if (Value(obj, "registrationEnforcement", "authenticationMethodsRegistrationCampaign") is JsonObject campaign
-                    && campaign["state"] is not null && campaign["includeTargets"] is JsonArray targets)
-                    match = campaign["state"]!.ToString() == "enabled" && targets.Any(t => t?["id"]?.ToString() == "all_users" && t?["targetedAuthenticationMethod"]?.ToString() == "microsoftAuthenticator");
+                    && Text(campaign["state"]) is "enabled" or "disabled" or "default" && campaign["includeTargets"] is JsonArray targets
+                    && targets.All(t => t is JsonObject target && !string.IsNullOrWhiteSpace(Text(target["id"])) && !string.IsNullOrWhiteSpace(Text(target["targetedAuthenticationMethod"]))))
+                    match = Text(campaign["state"]) == "enabled" && targets.OfType<JsonObject>().Any(t => Text(t["id"]) == "all_users" && Text(t["targetedAuthenticationMethod"]) == "microsoftAuthenticator");
                 finding.Notes.Add("Review excluded users and completed registration; campaign configuration does not prove enrolment."); break;
             case "ID-007":
                 if (Value(obj, "defaultUserRolePermissions", "permissionGrantPoliciesAssigned") is JsonArray grants
@@ -67,7 +69,8 @@ internal static class ReleaseIdentityAssessment
                     match = !grants.Any(g => g!.ToString().StartsWith("managePermissionGrantsForSelf.", StringComparison.Ordinal));
                 break;
             case "ID-008":
-                if (obj["isEnabled"] is JsonValue enabled && enabled.TryGetValue<bool>(out var flag) && obj["reviewers"] is JsonArray reviewers)
+                if (obj["isEnabled"] is JsonValue enabled && enabled.TryGetValue<bool>(out var flag) && obj["reviewers"] is JsonArray reviewers
+                    && reviewers.All(r => r is JsonObject reviewer && !string.IsNullOrWhiteSpace(Text(reviewer["query"])) && Text(reviewer["queryType"]) == "MicrosoftGraph"))
                     match = flag && reviewers.Count > 0;
                 finding.Notes.Add("Compare the reviewers with client-approved users and test a request manually; presence is not proof of correct reviewers."); break;
         }
@@ -77,6 +80,9 @@ internal static class ReleaseIdentityAssessment
             : "The captured settings differ from the standard; preview the supported reviewed action or follow the manual steps.";
         return true;
     }
+
+    // A successful collection does not make a malformed nested value reliable evidence.
+    private static string? Text(JsonNode? value) => value is JsonValue scalar && scalar.TryGetValue<string>(out var text) ? text : null;
 
     private static JsonNode? Value(JsonObject parent, params string[] path)
     {

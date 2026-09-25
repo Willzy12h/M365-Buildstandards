@@ -1,7 +1,7 @@
 {
   "algorithm": "SHA-256",
-  "generatedAt": "2026-09-25T11:37:12.767Z",
-  "generatedBy": "Astra standard 2026.09.12 phase 6",
+  "generatedAt": "2026-09-25T12:37:14.800Z",
+  "generatedBy": "Build-Portable 1.1.0-preview.14",
   "noteText": "SHA-256 integrity digests of the M365 Build Standard release files. Detects modification after release; this is not a cryptographic signature.",
   "files": {
     "2026.09.10.json": "fc22f752390661db71bc5bd11ec895e2e934a6be16d5464e0c9790d60231d48d",

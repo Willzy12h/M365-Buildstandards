@@ -1,5 +1,9 @@
 # Integration decisions
 
+## Release completion - PR #19, phase 7
+
+INT-030 through INT-037 remain the release decisions. Preview.14 ships .12 as the default without modifying any older published catalogue. The portable allow-list gains the engineer document and Exchange/Purview guides; CI publishes the four catalogue-only generated document files separately from synthetic interface evidence. Final audit malformed-identity cases now remain unknown; this tightens the existing invariant without adding a schema, permission or write mechanism. The maintainer recommendations in HANDOVER remain proposals, not newly implemented decisions.
+
 ## Engineer documents - PR #19, phase 6
 
 - **INT-037 - catalogue-only engineer exports:** generate The Build Standard and Manual implementation and verification guide from the loaded catalogue in HTML and Markdown. The API accepts no profile, snapshot, client name or connection; client values remain named placeholders. Group by the recorded Entra/Intune/Exchange/Purview area. Include exact candidate settings, intended production scope, licence/edition notes, required inputs, sources and unverified limits. The manual guide requires non-empty INT-031 before, ordered portal steps, PowerShell and after/pass sections for every control; refuse an incomplete guide instead of silently omitting content. PowerShell references are for separately reviewed engineer use, not toolkit execution or proof of deployment. Shared delegated preflight guidance does not claim to replace complete evidence, durable intent, selective approval or service verification. Keep the existing client document and historical catalogue behaviour unchanged. All four exports are local commands in the interface harness.

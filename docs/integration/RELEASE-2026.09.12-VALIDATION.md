@@ -51,3 +51,35 @@ Strict solution and harness builds: **0 warnings, 0 errors**. Engine: **767 pass
 Harness: **287** named operable controls; **22** readable tables; **4027** text and **155** input contrast checks; **4810** clipping checks; **14** pages / **24** tab views / **2738** keyboard stops; **10** confirmation checks; **56** registered commands exercised, **65** completed presses, **four** expected refusals and **63** intentionally not pressed; **74** images / **42** page-size combinations; **zero** binding issues. All four new local document exports completed. Expanded export panels were measured at all three sizes, walked by keyboard, and the smallest screenshot was inspected. Commands/refusal reasons and tab-order output were read.
 
 The browser URL policy blocked opening a generated local HTML file. Browser appearance is therefore **unverified**; no alternate browser or policy workaround was attempted. Generated structure/content and the WPF export interface were checked separately. No tenant, DNS or device operation was performed and no existing client data was read.
+
+## Phase 7 audit
+
+Phase 6 CI completed successfully at `c987c05d5b95005451becaea4f097782425978ab`: [run 36134561604](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36134561604).
+
+The final assessment audit reproduced malformed identity evidence being classified as a settings difference or a match requiring review, and a scalar registration target throwing from the assessment. The new 19-case test file was run before the fix: **eight failed, eleven passed**. Typed state/array-member checks corrected the product; the same **19 passed, zero failed/skipped** afterwards. No test was weakened or removed. Valid matching/non-matching cases remain distinct, and malformed data returns UnableToAssess.
+
+The final safeguard audit added **18 Android prerequisite cases**: missing, incomplete, duplicate and malformed captured binding; blocked planning; and a binding that changes or disappears between preview and execution. All 18 passed. Removing only the captured-binding guard produced **13 failed / five passed**; removing only the pre-write binding guard produced **four failed / 14 passed**. Both production files were restored byte for byte before the final full run. The executor cases use the scripted fake Graph client and assert no app write when validation fails.
+
+Final local results: strict solution and interface-harness builds **0 warnings / 0 errors**; engine **804 passed / 0 failed / 0 skipped**; application **73 passed / 0 failed / 0 skipped**. The full engine suite was rerun after restoring the two guards. The app, interface and package results were obtained with the same final product code; the later additions were tests and this record.
+
+Final harness: **287** named operable controls; **22** readable tables; **4027** text / **155** input contrast checks; **4810** clipping checks; **14** pages / **24** tab views / **2738** keyboard stops; **10** confirmation checks; **56** registered commands exercised in **65** completed presses; **four** expected refusals; **63** intentionally not pressed; **74** images / **42** page-size combinations; **zero** binding issues. Commands, refusal reasons and the new export keyboard path were inspected. The four refusals remain the deliberate no-sign-in, no-selection, duplicate-synthetic-client and missing-candidate-name cases. All four engineer exports completed; tenant and real DNS commands were not pressed.
+
+The first preview.14 package check found an Exchange guide link to an internal document omitted from the portable allow-list. It was corrected to an immutable repository link; the unchanged package link check then passed. The successful local ZIP contains **13 operator guides**; **282 file hashes**, ZIP CRC and the checksum sidecar were checked. Local ZIP SHA-256: `80ad219438baf7dbba490af24a6cb2ec06cab578255b2a5f1c9365c612313602`. This identifies the local build, not a claim that a separately built CI archive has identical bytes.
+
+All nine earlier standard JSON files were compared byte for byte with integration `5cadd3a070b0e308bdffc327dfc7954bd69b9e83` and are unchanged. The .12 catalogue has **96 controls / 61 recipes** and digest `9553ecbcae476f45742042f7503095bb811019dec48527156c3791b05efa6a70`. All 96 coverage rows and manual sections were checked; the 96 PowerShell references passed offline syntax parsing in phase 6 and were not changed afterwards. No reference was executed. Generated HTML/Markdown structure/content passed; browser/print appearance remains unverified after the URL-policy block.
+
+### Completion audit
+
+| Requirement | Implementation / evidence |
+| --- | --- |
+| Read-only assessment, unknown stays unknown | Existing Graph permission/route guards, release identity and Exchange evidence tests; malformed evidence regression above |
+| Complete durable before evidence, preview/selectivity, typed tenant, durable intent, individual outcomes, no ambiguous retry | Existing planner/executor/evidence suites and ReleaseIdentitySafetyTests for all six new reviewed kinds; Exchange exports are inert rather than a new execution mechanism |
+| Disabled CA, unassigned Intune/apps, empty groups, untrusted locations, operator excluded, no name adoption | Release20260912Tests pins new recipes and transport refusals; existing creation, conflict, ownership and recovery suites remain intact |
+| Android prerequisite at planning and immediately before creation | AndroidStoreReadinessTests, including observed guard-removal failures |
+| Required inputs, public offices and schema compatibility | Release20260912Tests and app input tests; INT-031/035 recorded before implementation, historical omitted-field compatibility retained |
+| Every decided item implemented or explicitly manual with reason | All 96 rows in AUTOMATION-COVERAGE; per-control catalogue instructions; unresolved native contracts and maintainer recommendations in HANDOVER |
+| Exchange phase 5 stop point honoured | INT-030/036 fallback, no Exchange write transport; selected inert proposals, both DKIM selectors required, disabled SPF candidate, DMARC/retention report-only |
+| Both complete catalogue-generated documents | EngineerStandardDocumentsTests, all four local export commands and separate CI artifact; no client/profile parameter accepted by generator |
+| Primary sources, new permissions, published standards, review records | API investigation and per-control Microsoft references; APPLICATION-SETUP, changelog and INT-032; nine historical files unchanged; fresh phase 0 findings fixed |
+
+The final PR body records the phase 7 commit and its observed CI run, including exact test counts and artifact availability. CI must be green on that head before the draft is marked ready. No merge, approval, live acceptance or source-repository change is part of this delivery.

@@ -10,7 +10,7 @@ The capture includes audit ingestion and retention policies, transport rules, bo
 
 DKIM displays the **actual returned** selector targets. Both fresh DNS answers must match those targets before readiness can be reported. This is one resolver's view and does not establish successful message signing. DMARC reports presence and basic policy syntax; it is not a full RFC validator and does not change DNS. Check alignment, reporting destinations and actual mail manually.
 
-The supported module has internal retries. Consequently, this release does not execute Exchange writes in the toolkit; see the fallback decision in [the API investigation](integration/API-INVESTIGATION-2026.09.12.md). The own-domain SPF spam-bypass rule also has an unverified header-trust/alignment boundary and must not be labelled spoof-safe.
+The supported module has internal retries. Consequently, this release does not execute Exchange writes in the toolkit; see the fallback decision in [the recorded API investigation](https://github.com/Willzy12h/M365-Buildstandards/blob/c987c05d5b95005451becaea4f097782425978ab/docs/integration/API-INVESTIGATION-2026.09.12.md). The own-domain SPF spam-bypass rule also has an unverified header-trust/alignment boundary and must not be labelled spoof-safe.
 
 ## Selected manual proposals
 

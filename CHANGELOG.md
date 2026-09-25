@@ -1,4 +1,4 @@
-# 1.1.0-preview.14 (in progress)
+# 1.1.0-preview.14
 
 - New standard 2026.09.12; published releases are unchanged. PRE-008 expands to individually selected office locations using stable client keys, with public-only CIDR validation at profile, planner and transport boundaries. The old single PRE-008 ownership record is never adopted for a new instance.
 - Adds administrator phishing-resistant MFA, reviewed identity settings, empty Autopilot device-preparation group and separate owner approval. Modern passkey profiles require manual configuration; the legacy reviewed method action refuses to overwrite them.
@@ -6,6 +6,12 @@
 - Adds seven native Windows CSP candidates and sixteen unassigned mobile store-app candidates. Native settings without confirmed definition IDs or complete supported mechanisms have explicit manual guidance. Windows settings backup is the documented July 2026 successor to Entra-managed ESR.
 - **Both applications need administrator consent again** after their configured permissions are updated. New delegated scopes: `Application.Read.All` to resolve the Microsoft provisioning service principal; deployment-only `Policy.ReadWrite.Authorization` for user consent and `Policy.ReadWrite.ConsentRequest` for the reviewer-bound workflow. See [application setup and permissions](docs/APPLICATION-SETUP.md).
 - Fixes HTML collection-status reporting, numeric release ordering and keyboard access to nested automation tabs found in the fresh phase 0 review. All validation uses synthetic fixtures; no tenant or device behaviour is claimed as tested.
+- **96 controls and 61 candidate recipes**, grouped by Entra, Intune, Exchange and Purview in Assessment and Plan. Selection stays within the displayed area; office instances are recorded separately. Retired from .12 only: SEC-WIN-001, CMP-WIN-002 and SEC-WIN-003.
+- Exchange/Purview observations use an engineer-run delegated read-only PowerShell capture and a strict, tenant-bound import. DKIM shows the actual records; DNS checks are explicit and replaceable with fakes. Missing or malformed observations stay unknown. Imported captures cannot authorise deployment.
+- Exchange write execution remains a documented manual fallback: Microsoft module retries do not satisfy the single-attempt uncertain-write rule. A selected, typed-confirmed export produces an inert commented proposal with before observations and after checks. DKIM enablement requires both CNAMEs; the SPF bypass remains a disabled audit candidate until its trusted SPF/From boundary is established. DMARC and audit retention are report-only; DLP and retention-policy writes are excluded.
+- **The Build Standard** and **Manual implementation and verification guide** export from the Build Standard page as HTML and Markdown. Every control includes exact settings, scope, licence, required inputs, sources and complete manual sections. These catalogue-only exports contain no client profile or tenant evidence. CI also supplies the four generated files as `engineer-standard-documents`.
+- Final audit correction: malformed new identity-policy states, passkey keys, registration targets and consent reviewers report unknown instead of implying a settings difference or stopping assessment. Regression tests were observed failing before the correction and passing afterwards.
+- The portable package includes the engineer-document and Exchange/Purview instructions. Source, synthetic tests, rendered WPF workflows and package checks remain separate from unperformed Microsoft service/device acceptance. Generated HTML browser appearance remains unverified because the local-file preview was blocked by browser policy.
 
 # 1.1.0-preview.13
 

@@ -4,7 +4,7 @@ A Windows application for engineers to capture tenant configuration, compare it 
 
 Claude's C#/.NET implementation is the primary baseline. Asta remains a reference for selected features and safeguards. See the [source register](docs/integration/SOURCE-REPOSITORIES.md), [baseline review](docs/integration/BASELINE-REVIEW.md), [comparison](docs/integration/COMPARISON-MATRIX.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
 
-**1.1.0-preview.13 — implementation preview, not tenant-accepted.** Standard 2026.09.11 contains 50 controls and 42 creation recipes. This release corrects prerequisite ownership, assessment, historical verification and client-input handling. The **Prerequisites and manual steps** panel explains tenant setup and manual checks on Build Standard, Plan and Policy automation. Candidate creation remains disabled/unassigned; activation and assignment require a separate reviewed approval. See [review fixes and upgrade guidance](docs/integration/REVIEW-FIXES.md), [handover](docs/integration/HANDOVER.md) and [testing evidence](docs/integration/TESTING-EVIDENCE.md).
+**1.1.0-preview.14 - implementation preview, not tenant-accepted.** Standard 2026.09.12 has 96 controls and 61 creation recipes. It adds the agreed identity, Windows/mobile, Exchange and Purview scope and both catalogue-generated engineer documents. All development and validation used synthetic fixtures; no tenant, consent, device or DNS operation was performed. See [release validation](docs/integration/RELEASE-2026.09.12-VALIDATION.md), [handover](docs/integration/HANDOVER.md) and [manual document exports](docs/ENGINEER-DOCUMENTS.md).
 
 To repair an existing preview installation, enter its exact assessment/deployment client IDs in **Application setup**, preview and approve the displayed changes, approve each app's permission list, then validate and continue. This updates registration redirects and branding through the reviewed workflow.
 
@@ -20,7 +20,7 @@ Start on **Overview and licences**, choose **Connect / change access**, and conn
 
 To recover a recorded policy change, use **Undo and recovery → Load change register**, select the original creation or latest update and preview the action. The tool captures fresh evidence, displays current settings and consequences, and requires explicit approval and the tenant ID. Supported actions delete toolkit-created policies, restore recorded inactive updates, or disable unexpectedly active Conditional Access policies. See [recovery](docs/RECOVERY.md) for the supported scope and limitations.
 
-Standard 2026.09.11 contains **50 controls, 42 creation recipes and 23 collection definitions**. 2026.09.5 added LAPS, Defender Antivirus, firewall and EDR candidates; 2026.09.6 added the Settings Catalogue, app, app-protection, enrolment, Autopilot and endpoint-protection candidates; 2026.09.7 added evidence-based assessment of the authentication-method, MDM-scope and tenant-compliance controls; 2026.09.8 added the directory prerequisites and assessed administrator access from directory role membership; 2026.09.9 moved targeting to the built-in populations, reduced the created groups to exclusions and shipped dated defaults for the reviewable inputs; 2026.09.10 expanded the Windows Hello recipe; 2026.09.11 records the remaining consent/device prerequisites. See [policy automation APIs](docs/POLICY-AUTOMATION-CODE.md) for settings, supported imports and the Entra LAPS prerequisite, and [device automation](docs/DEVICE-AUTOMATION.md) for the preserved BitLocker/long-path recipes. Eight controls have no creation recipe: four are changed only through reviewed tenant actions or read from the directory and are assessed automatically; four (ID-001, ENR-005, ENR-006, UPD-001) need an engineer or an external vendor portal and are reported for review. Deployment mode now also requests Group.ReadWrite.All, so both registrations need administrator consent again before prerequisites can be created. See [automation coverage](docs/AUTOMATION-COVERAGE.md).
+Standard 2026.09.12 groups controls into Entra, Intune, Exchange and Purview. Assessment and Plan filter by area. [Automation coverage](docs/AUTOMATION-COVERAGE.md) lists every control, client input, manual fallback and retirement. Exchange uses an engineer-run delegated read-only capture with strict import and explicit DNS checks; selected write proposals are inert review files. The Build Standard and Manual implementation and verification guide export locally in HTML/Markdown without a connection. CI publishes those four generated files alongside the portable package and synthetic UI evidence. Both Graph registrations need renewed administrator consent for the documented new scopes.
 
 If a policy write was accepted but its readback failed, select it in **Undo and recovery → Re-verify**. This performs reads and records fresh verification without repeating the write. Completed 1.0.0 records require explicit historical acknowledgement and matching ownership/settings. Unknown modern write outcomes remain blocked. Stop cancels deployment reads; an in-flight policy write retains its configured timeout (100 seconds by default). Readback and after-capture each have a 60-second budget, with incomplete evidence clearly reported.
 
@@ -30,15 +30,16 @@ Resolve exclusion accounts by sign-in address, object ID or display name. Select
 
 Conditional Access candidates are disabled with stored targeting and exclusions. Intune candidates are unassigned. Use **Policy automation** for separately approved activation/targeting and removal of assignments; creation itself never assigns. The historical CA wording "disabled and unassigned" remains unresolved; this import does not change targeting. Creator exclusions persist until deliberately reviewed.
 
-The Graph client blocks assessment writes. The executor independently validates durable complete snapshots, plan/input integrity, licensing, creation references, ownership and drift. Plans are single-use after a run begins. Guarded PATCH updates are limited to supported owned inactive policies. Directory groups and named locations are creation-only. Ambiguous writes need manual reconciliation. Snapshots are evidence, not automatic rollback.
+The Graph client blocks assessment writes. The executor independently validates durable complete snapshots, plan/input integrity, licensing, creation references, ownership and drift. Plans are single-use after a run begins. Guarded PATCH updates are limited to supported owned inactive policies. Directory group membership and named locations remain creation-only; the provisioning owner on the recorded empty PRE-011 group is a separate constrained action. Ambiguous writes need manual reconciliation. Snapshots are evidence, not automatic rollback.
 
 ## Build and package
 
 Requires .NET 8 SDK on the build machine:
 
 ```powershell
-dotnet build BDIT.TenantToolkit.sln -c Release
+dotnet build BDIT.TenantToolkit.sln -c Release -warnaserror
 dotnet test tests/BDIT.TenantToolkit.Tests -c Release
+dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release
 ./build/Build-Portable.ps1
 ```
 

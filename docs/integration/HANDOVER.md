@@ -4,7 +4,26 @@
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
 
-## Current work
+## Current release work - PR #19
+
+**Preview.14 / standard 2026.09.12** is implemented on `astra/release-2026-09-12`, based on integration `5cadd3a070b0e308bdffc327dfc7954bd69b9e83`. [PR #19](https://github.com/Willzy12h/M365-Buildstandards/pull/19) targets integration; it is for human review, not merged or approved by the agent. Each NEXT-RELEASE-PLAN phase was committed and published in order. Use [the release validation ledger](RELEASE-2026.09.12-VALIDATION.md) and the exact PR-head CI run for observed counts; older evidence below is historical.
+
+The release has **96 controls, 61 candidate recipes**, repeatable public-IP offices, the agreed identity/Windows/mobile changes and Entra/Intune/Exchange/Purview area filters. Both engineer documents generate all controls in HTML/Markdown without client data; CI publishes the four generated files. Exchange/Purview use a strict delegated read-only capture import and fakeable explicit DNS checks. The authorised phase 5 fallback produces selected inert PowerShell proposals: module retries cannot meet the uncertain-write rule, and no toolkit Exchange write execution is added.
+
+No tenant sign-in, Graph/Exchange/Intune call, consent, application operation, DNS query or device operation was performed. No existing client evidence, token or saved connection was read. Microsoft contracts are researched, and their runtime acceptance remains unverified. The WPF interface was rendered offline; the browser URL policy blocked local HTML preview, so generated HTML browser/print appearance remains unverified.
+
+### Maintainer decisions and manual acceptance
+
+- Recommend retiring classic ENR-003/004 from default scope in favour of device preparation. They remain deferred references; no hardware hashes, serial numbers, corporate identifiers or registration are added.
+- Recommend retiring SEC-WIN-002 Defender onboarding under ESET. Retain CFG-WIN-004 SmartScreen as independent shell protection unless deliberately changed. Removed only from .12: SEC-WIN-001, CMP-WIN-002 and SEC-WIN-003.
+- Recommend keeping Exchange writes manual until a supported single-attempt delegated route is established. Keep the own-domain SPF bypass disabled/in audit mode until trusted SPF/header and From-domain alignment is demonstrated. This does not claim that a matched text header proves sender authenticity.
+- Native catalogue IDs/complete mechanisms are unconfirmed for Chrome SSO, file extensions, OneDrive Files On-Demand and device preparation. UK setup, five user-changeable starting pins, Store access and fast-startup force-off are manual. Do not add uploaded ADMX, custom templates, platform/remediation scripts or new credentials as a workaround. Recommend a separately scoped native-definition investigation before any new write mechanism.
+- Recommend deferring Outlook mobile account configuration. Modern passkey-profile migration needs manual handling; legacy passkey editing refuses populated profiles. Consumer Copilot Pro applicability is contradictory in Microsoft documentation and must be checked manually. Keep Microsoft 365 Copilot.
+- The maintainer's later authorised acceptance must cover both apps' renewed consent, exact API/module responses, eligible licences/editions, pilot sign-in/recovery, app/ESET installation, Autopatch prerequisites/all-device coverage and the generated after-checks. Do not infer those from synthetic tests or CI.
+
+New scopes and reasons are in [application setup](../APPLICATION-SETUP.md); decisions INT-030 through INT-037 record the contracts and manual boundaries. The phase 0 findings were independently reproduced and fixed; prior PR #17/#18 findings are closed history and were not reopened.
+
+## Completed baseline history
 
 **Preview.13 / standard 2026.09.11 is on integration.** PR #17 (Claude) is the full code and interface review; its record is [FULL-REVIEW-2026-09-24.md](FULL-REVIEW-2026-09-24.md). Read that first: it lists what was fixed, and seven findings in protected areas that were reported for a decision. PR #18 settled them — five fixed, one (finding 4) kept as a hardening inventory — and made application setup one guided sequence (see [application setup](../APPLICATION-SETUP.md)) and object IDs read as friendly names.
 
