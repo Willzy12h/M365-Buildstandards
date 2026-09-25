@@ -102,7 +102,7 @@ public sealed partial class StandardsLoader
         {
             PolicyInputDefaults.AssertReviewable(p);
             if (!ParameterKeyPattern().IsMatch(p.Key)) throw new ConfigurationException($"Parameter key '{p.Key}' is invalid.");
-            if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray"))
+            if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray" or "mailDomain"))
                 throw new ConfigurationException($"Parameter '{p.Key}' has an unsupported type.");
         }
         if (c.Controls.Count == 0) throw new ConfigurationException("Standard defines no controls.");

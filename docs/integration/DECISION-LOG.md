@@ -1,5 +1,11 @@
 # Integration decisions
 
+## Exchange/Purview evidence contract - PR #19, phase 4
+
+- `exchangeDomain` uses a schema-5 `mailDomain` parameter type: canonical ASCII DNS domain validation, no URL/wildcard/IP/command text, and no default. It is mandatory when the three domain-dependent controls are selected, and before capture export/import. Saving an empty required domain is refused with its field name.
+
+- **INT-035 - inert external captures:** add a null-omitted `TenantSnapshot.ExchangeCapture` record with schema version, source capture ID/time, module version, separate observed Exchange/Purview tenant IDs, delegated provenance, an explicit domain, allow-listed collection statuses/projections and separately timestamped DNS answers. Import is bounded, rejects duplicate/unknown JSON fields and cross-tenant provenance, and never interprets scripts. It creates an offline snapshot with no Graph collections, clears approvals and cannot satisfy `SnapshotRequirements`, even if its complete flag is altered. Missing fields/collections and read errors stay unknown. The domain must be explicitly entered and validated; domain-dependent checks also require captured accepted-domain membership. DNS uses `IDnsLookup`, with a fixed, bounded Windows `Resolve-DnsName` adapter and fake test answers; no tenant authentication or configuration writes. The toolkit never launches the generated Exchange capture script. Source claims in an imported file are not authenticated proof of Microsoft responses.
+
 ## Interface sections - PR #19, phase 3
 
 - **INT-034 - area filters within the existing workflow:** keep the existing flow pages and add All areas, Entra, Intune, Exchange and Purview filters on Assessment and Plan. Assessment combines area with result, category and search. Plan selection is confined to the displayed area; changing area clears the selection, with that behaviour stated beside the filter. The exact-change preview continues to show the whole built plan. Schema-5 controls use their recorded area; older releases retain a presentation-only ID-family fallback. Expanded office controls retain their stable identities and prerequisite guidance. No connection, write command or persisted approval is created by changing a filter. The offline harness uses .12 and checks the new controls at all three existing sizes.

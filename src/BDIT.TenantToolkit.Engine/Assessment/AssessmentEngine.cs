@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
 
 namespace BDIT.TenantToolkit.Engine.Assessment;
@@ -43,6 +44,8 @@ public sealed class AssessmentEngine
             if (!string.Equals(d.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
                 throw new TenantMismatchException($"Deviation {d.Id} belongs to a different tenant.");
 
+        if (snapshot.ExchangeCapture is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
+
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
         var result = new AssessmentResult
@@ -75,6 +78,15 @@ public sealed class AssessmentEngine
         }
         if (snapshot.BetaCollections.Any())
             result.Limitations.Add("Beta Graph endpoints were used for: " + string.Join(", ", snapshot.BetaCollections.Select(k => standard.FindCollection(k)?.Label ?? k)) + ". Beta APIs can change without notice.");
+        if (snapshot.ExchangeCapture is { } external)
+        {
+            result.Limitations.Add("Imported Exchange/Purview observations are for offline assessment only. They cannot authorise toolkit writes and their source is not independently authenticated.");
+            foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
+                result.CollectionStatus[definition.Command] = external.Collections.TryGetValue(key, out var c)
+                    ? c.Status == CaptureStatus.Collected && !ExchangeCaptureSchema.Complete(external, key, out _)
+                        ? "Incomplete fields; unable to assess" : c.Status + (c.Error is null ? "" : ": " + c.Error)
+                    : "Not attempted";
+        }
         if (!string.Equals(snapshot.StandardRelease, standard.Release, StringComparison.OrdinalIgnoreCase))
             result.Limitations.Add($"The snapshot was captured under standard release {snapshot.StandardRelease}; it is being assessed against {standard.Release}. Collections added in the newer release may be absent.");
 
@@ -146,6 +158,7 @@ public sealed class AssessmentEngine
         var def = standard.FindCollection(control.Collection);
         snapshot.Collections.TryGetValue(control.Collection ?? "", out var capture);
 
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, snapshot.ExchangeCapture, finding, now)) return finding;
         if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.Apply(control, snapshot, finding)) return finding;
         if (standard.SchemaVersion >= 5 && def is not null && (capture is null || !capture.Usable))
         {

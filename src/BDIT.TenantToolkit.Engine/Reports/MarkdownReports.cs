@@ -71,6 +71,7 @@ public static class MarkdownReports
             if (f.IsActionable && !string.IsNullOrEmpty(f.EngineerAction)) sb.AppendLine($"- Engineer action: {E(f.EngineerAction)}");
             if (f.Deviation is not null) sb.AppendLine($"- Approved deviation: {E(f.Deviation.Reason)} (approved by {E(f.Deviation.ApprovedBy)}, review by {E(f.Deviation.ReviewBy)})");
             foreach (var n in f.Notes) sb.AppendLine($"- Note: {E(n)}");
+            foreach (var observed in f.ObservedObjects) sb.AppendLine($"- Observed: {E(observed)}");
             foreach (var c in f.Candidates)
             {
                 sb.AppendLine();

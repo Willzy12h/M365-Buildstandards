@@ -649,6 +649,18 @@
         "APP-AND-008"
       ],
       "description": "Exact package ID from the reviewed Managed Google Play listing. No guessed package identifier."
+    },
+    {
+      "key": "exchangeDomain",
+      "label": "Client mail domain",
+      "type": "mailDomain",
+      "required": true,
+      "requiredForControls": [
+        "EX-001",
+        "EX-007",
+        "EX-008"
+      ],
+      "description": "Engineer-entered accepted domain, without a URL or wildcard. Mandatory for spam bypass, DKIM and DMARC; no default is inferred from a connection."
     }
   ],
   "controls": [
@@ -6014,6 +6026,406 @@
           "v4_0": true
         },
         "isPrivate": false
+      }
+    },
+    {
+      "id": "EX-001",
+      "name": "Own-domain SPF spam bypass",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "Only messages from the explicitly entered client From domain with a trusted, aligned SPF pass may receive SCL -1. No other conditions, actions or exceptions.",
+      "desiredState": "Only messages from the explicitly entered client From domain with a trusted, aligned SPF pass may receive SCL -1. No other conditions, actions or exceptions.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online mail-flow rules and appropriate RBAC."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/new-transportrule"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/new-transportrule"
+      }
+    },
+    {
+      "id": "EX-002",
+      "name": "Standard preset security policy",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "Enable the Standard preset for all recipients. The engineer manually supplies the impersonation users-to-protect list.",
+      "desiredState": "Enable the Standard preset for all recipients. The engineer manually supplies the impersonation users-to-protect list.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "EOP for core protection; Defender for Office 365 P1/P2 for additional protections. Verify affected-user entitlement."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/defender-office-365/preset-security-policies"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/preset-security-policies"
+      }
+    },
+    {
+      "id": "EX-003",
+      "name": "Block external automatic forwarding",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "Set AutoForwardingMode to Off on every effective outbound spam policy.",
+      "desiredState": "Set AutoForwardingMode to Off on every effective outbound spam policy.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online Protection and appropriate policy RBAC."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-hostedoutboundspamfilterpolicy"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-hostedoutboundspamfilterpolicy"
+      }
+    },
+    {
+      "id": "EX-004",
+      "name": "Disable organisation SMTP AUTH",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "SmtpClientAuthenticationDisabled = true at organisation level.",
+      "desiredState": "SmtpClientAuthenticationDisabled = true at organisation level.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online; review applications/devices that submit mail and supported alternatives."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticated-client-smtp-submission"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticated-client-smtp-submission"
+      }
+    },
+    {
+      "id": "EX-005",
+      "name": "External sender tagging in Outlook",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "Medium",
+      "purpose": "ExternalInOutlook Enabled = true; preserve the reviewed allow-list.",
+      "desiredState": "ExternalInOutlook Enabled = true; preserve the reviewed allow-list.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online with a supported Outlook client."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-externalinoutlook"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-externalinoutlook"
+      }
+    },
+    {
+      "id": "EX-006",
+      "name": "Mailbox auditing enabled",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "OrganizationConfig AuditDisabled = false.",
+      "desiredState": "OrganizationConfig AuditDisabled = false.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online and applicable Microsoft Purview Audit entitlement."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/purview/audit-log-search-for-mailbox-activities"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-search-for-mailbox-activities"
+      }
+    },
+    {
+      "id": "EX-007",
+      "name": "DKIM signing and published selectors",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "Publish both CNAME targets returned for the accepted client domain; enable signing only after both names resolve to those exact targets.",
+      "desiredState": "Publish both CNAME targets returned for the accepted client domain; enable signing only after both names resolve to those exact targets.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Exchange Online accepted custom domain; access to the authoritative DNS provider for manual publication."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dkim-configure"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dkim-configure"
+      }
+    },
+    {
+      "id": "EX-008",
+      "name": "DMARC record report",
+      "area": "Exchange",
+      "category": "Exchange",
+      "severity": "High",
+      "purpose": "Read and report the _dmarc TXT record, policy and ambiguity. No DNS or DMARC write.",
+      "desiredState": "Read and report the _dmarc TXT record, policy and ambiguity. No DNS or DMARC write.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "DNS access for independent review; no added Graph permission."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dmarc-configure"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dmarc-configure"
+      }
+    },
+    {
+      "id": "PUR-001",
+      "name": "Unified audit log enabled",
+      "area": "Purview",
+      "category": "Purview",
+      "severity": "High",
+      "purpose": "UnifiedAuditLogIngestionEnabled = true.",
+      "desiredState": "UnifiedAuditLogIngestionEnabled = true.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Qualifying Microsoft 365 Audit service; use read-only audit RBAC for capture and appropriate configuration roles for manual changes."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
+      }
+    },
+    {
+      "id": "PUR-002",
+      "name": "Audit retention report",
+      "area": "Purview",
+      "category": "Purview",
+      "severity": "Medium",
+      "purpose": "Report audit retention. The default is 180 days; longer retention requires appropriate add-on/licence entitlement and policy or external export.",
+      "desiredState": "Report audit retention. The default is 180 days; longer retention requires appropriate add-on/licence entitlement and policy or external export.",
+      "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
+      "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes.",
+      "assessment": {
+        "mode": "Manual",
+        "manualInstructions": "Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes."
+      },
+      "expectedProduction": {
+        "state": "Reviewed configuration",
+        "assignment": "Applicable licensed mail users; review exclusions and effective scope"
+      },
+      "safeDeployment": {
+        "state": "manual",
+        "assignment": "No automatic change"
+      },
+      "licence": {
+        "servicePlans": [],
+        "note": "Purview Audit entitlement is per affected user/workload. Longer retention may need Audit Premium or a retention add-on; verify current licensing before promising duration."
+      },
+      "dependencies": [],
+      "prerequisites": [
+        {
+          "title": "Delegated read-only capture and client review",
+          "automation": "Manual",
+          "details": "Use a fresh PowerShell process and a supported installed ExchangeOnlineManagement module. Confirm the observed tenant IDs, collection status and client domain; import never authenticates or executes the script.",
+          "documentationUrl": "https://learn.microsoft.com/en-us/purview/audit-log-retention-policies"
+        }
+      ],
+      "references": {
+        "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-retention-policies"
       }
     }
   ],

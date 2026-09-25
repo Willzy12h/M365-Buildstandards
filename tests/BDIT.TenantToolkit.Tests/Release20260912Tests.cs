@@ -81,7 +81,9 @@ public sealed class Release20260912Tests
         Assert.Null(old["controls"]![0]!["area"]); Assert.False(old["controls"]![0]!.AsObject().ContainsKey("implementation"));
         Assert.False(old["collections"]!["namedLocations"]!.AsObject().ContainsKey("publicIpRangesOnly"));
         Assert.False(ToolkitJson.ToNode(TestData.Profile())!["parameters"]!.AsObject().ContainsKey("officeLocations"));
-        var s = Standard(); Assert.Equal(5, s.SchemaVersion); Assert.Equal(86, s.Controls.Count);
+        var s = Standard(); Assert.Equal(5, s.SchemaVersion);
+        Assert.Equal(86, s.Controls.Count(c => c.Area is "Entra" or "Intune"));
+        Assert.Equal(96, s.Controls.Count);
         Assert.DoesNotContain(s.Controls, c => c.Id is "SEC-WIN-001" or "SEC-WIN-003" or "CMP-WIN-002");
         Assert.All(new[] { "ENR-003", "ENR-004", "SEC-WIN-002" }, id => Assert.False(s.FindControl(id)!.HasRecipe));
     }

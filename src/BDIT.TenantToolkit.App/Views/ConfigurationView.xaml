@@ -83,6 +83,30 @@
               </DataGrid>
             </DockPanel>
           </TabItem>
+          <TabItem Header="Exchange &amp; Purview">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+              <StackPanel>
+                <TextBlock Text="Read-only Exchange and Purview assessment" Style="{StaticResource H2}"/>
+                <TextBlock Text="1. Enter the client's accepted mail domain. 2. Export and review the capture script. Run it manually in a fresh PowerShell process with an installed supported Exchange Online module and delegated read-only RBAC. 3. Import its JSON. 4. Check public DNS and review the findings in Assessment." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <TextBlock Text="Client mail domain (mandatory; no default)" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding MailDomainInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Client mail domain for Exchange and DNS"/>
+                <WrapPanel>
+                  <Button Content="Save mail domain" Command="{Binding SaveMailDomainCommand}" Style="{StaticResource SecondaryButton}"/>
+                  <Button Content="Export read-only capture script" Command="{Binding ExportExchangeCaptureCommand}" Style="{StaticResource SecondaryButton}"/>
+                </WrapPanel>
+                <TextBlock Text="Engineer-generated capture JSON (maximum 2 MiB)" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding ExchangeImportFile, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Exchange capture file to import"/>
+                <WrapPanel>
+                  <Button Content="Choose capture" Command="{Binding ChooseExchangeCaptureCommand}" Style="{StaticResource QuietButton}"/>
+                  <Button Content="Import for offline assessment" Command="{Binding ImportExchangeCaptureCommand}" Style="{StaticResource SecondaryButton}"/>
+                  <Button Content="Check DKIM and DMARC DNS" Command="{Binding CheckExchangeDnsCommand}" Style="{StaticResource SecondaryButton}"/>
+                </WrapPanel>
+                <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
+                <TextBlock Text="The DNS check queries your configured Windows resolver. Failures stay unknown. DKIM CNAME targets and DMARC results appear in finding evidence. The toolkit never runs the Exchange script or performs Exchange/Purview writes." Style="{StaticResource Muted}"/>
+                <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported Exchange capture script" Style="{StaticResource ReadOnlyDetail}" Margin="0,10,0,0"/>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
         </TabControl>
       </Grid>
     </Grid>

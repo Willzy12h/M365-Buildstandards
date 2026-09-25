@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 
 namespace BDIT.TenantToolkit.Engine.Planning;
 
@@ -30,6 +31,9 @@ public static class PolicyInputParser
 
         switch (type)
         {
+            case "mailDomain":
+                try { node = JsonValue.Create(MailDomain.Validate(text)); return true; }
+                catch (ConfigurationException ex) { return Fail(out problem, ex.Message); }
             case "guid":
                 if (!ProfileValidator.IsGuid(text)) return Fail(out problem, "Enter one object ID, for example 00000000-0000-0000-0000-000000000000.");
                 node = JsonValue.Create(text);

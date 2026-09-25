@@ -6,6 +6,7 @@
     <Description>Standards loading, collection, assessment, deviations, drift, planning, guarded execution, evidence and reports.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Exchange\ReadCapture.ps1" LogicalName="Exchange.ReadCapture.ps1" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
   </ItemGroup>

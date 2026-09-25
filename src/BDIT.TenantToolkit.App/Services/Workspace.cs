@@ -15,6 +15,7 @@ using BDIT.TenantToolkit.Engine.Collection;
 using BDIT.TenantToolkit.Engine.Drift;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
+using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Recovery;
@@ -453,6 +454,42 @@ public sealed class Workspace : ObservableObject
         Logger.Info("Assessment", $"Assessment {Assessment.Id}: {Assessment.Summary.Compliant} compliant, {Assessment.Summary.Missing} missing, {Assessment.Summary.PartialMatch} partial, {Assessment.Summary.UnableToAssess} unknown.", profile.TenantId);
         Notify();
     }
+
+    public void SaveExchangeDomain(string domain)
+    {
+        var profile = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(Profile ?? throw new ToolkitException("Select a client first.")));
+        profile.Parameters.PolicyInputs ??= new();
+        profile.Parameters.PolicyInputs["exchangeDomain"] = System.Text.Json.Nodes.JsonValue.Create(MailDomain.Validate(domain));
+        SaveProfile(profile);
+        InvalidatePolicyState();
+    }
+
+    public void ImportExchangeCapture(string fileName, string enteredDomain)
+    {
+        if (Busy) throw new ToolkitException("Wait for the active operation before importing evidence.");
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var standard = RequireStandard();
+        if (standard.SchemaVersion < 5 || !standard.Controls.Any(c => c.Area == "Exchange"))
+            throw new ConfigurationException("Select standard 2026.09.12 or a release with Exchange controls before importing.");
+        MailDomain.Validate(enteredDomain);
+        using var stream = File.OpenRead(fileName);
+        using var reader = new StreamReader(stream, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
+        var buffer = new char[ExchangeCaptureSchema.MaximumBytes + 1];
+        var count = reader.ReadBlock(buffer, 0, buffer.Length);
+        if (count > ExchangeCaptureSchema.MaximumBytes) throw new ConfigurationException("Exchange capture exceeds the 2 MiB limit.");
+        var snapshot = ExchangeEvidenceImporter.Import(new string(buffer, 0, count), profile, standard, enteredDomain, DateTimeOffset.UtcNow);
+        Evidence.SaveSnapshot(snapshot);
+        LoadStoredSnapshot(snapshot.Id);
+    }
+
+    public Task CheckExchangeDnsAsync(IDnsLookup? dns = null) => RunExclusiveAsync("Checking public DKIM and DMARC DNS records", async _ =>
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var snapshot = Snapshot ?? throw new ToolkitException("Import an Exchange capture first.");
+        var updated = await ExchangeEvidenceImporter.CheckDnsAsync(snapshot, profile, RequireStandard(), dns ?? new WindowsDnsLookup(), DateTimeOffset.UtcNow, OperationToken);
+        Evidence.SaveSnapshot(updated);
+        LoadStoredSnapshot(updated.Id);
+    });
 
     public DeploymentPlan BuildPlan(IReadOnlyList<string> controlIds)
     {

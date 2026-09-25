@@ -2,6 +2,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Exchange;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
 
@@ -55,6 +56,9 @@ public sealed class ReportExporter
             default: throw new ArgumentOutOfRangeException(nameof(format));
         }
     }
+
+    public string ExportExchangeReadScript(string tenantId, string domain, DateTimeOffset now) =>
+        WriteText(Target("exchange-read-capture", domain, Timestamps.Format(now), "ps1"), ExchangeCaptureScripts.ReadOnlyCapture(tenantId, domain));
 
     public string ExportRun(DeploymentRun run, IReadOnlyList<JournalEntry> journal, ExportFormat format)
     {

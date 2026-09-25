@@ -153,6 +153,15 @@ internal static partial class Program
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                     }
+                    if (nav.Key == "configuration")
+                    {
+                        var tabs = Descendants(controls[0]).OfType<TabControl>().First();
+                        tabs.SelectedIndex = 2; content.UpdateLayout(); Pump();
+                        var pageLabel = "exchange-purview " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, pageLabel); RecordLowContrast(content, pageLabel); RecordClipping(content, pageLabel);
+                        SaveImage(content, size, Path.Combine(output, "exchange-purview-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+                    }
                   }
                   catch (InvalidOperationException ex)
                   {

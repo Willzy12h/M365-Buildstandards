@@ -64,6 +64,7 @@ public sealed class PolicyInputField : ObservableObject
         "jsonArray" => "A JSON array.",
         "integer" => "A whole number.",
         "boolean" => "true or false.",
+        "mailDomain" => "Client mail domain, without a URL or wildcard. No default.",
         _ => "Text."
     } + (IsRequired ? " Required." : HasDefault ? $" Optional; the default {DefaultText} is used if you leave it empty." : " Optional.");
 
