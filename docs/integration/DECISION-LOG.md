@@ -1,5 +1,11 @@
 # Integration decisions
 
+## Exchange write fallback - PR #19, phase 5
+
+- **INT-036 - selected, inert PowerShell proposals:** implement INT-030's authorised fallback by exporting one explicitly selected control at a time from Configuration. Require a matching typed tenant confirmation, an intact saved imported capture, fresh complete observations for the selected action and the explicitly entered accepted domain. Render the selected control's catalogue manual instructions and PowerShell as line comments, with an unconditional refusal if the file is invoked. The export is a review artefact, never an executable deployment script or an approval to make changes. Show before observations, the proposed settings, separate after checks and the uncertainty/reconciliation instructions. No authentication or Exchange write transport is added. DKIM enabling instructions are included only when both fresh DNS CNAME answers match the actual captured targets; an absent configuration receives only a disabled-creation proposal followed by recapture. The SPF bypass proposal remains disabled and in audit mode because header trust/alignment is unverified; it never includes activation. Do not adopt existing custom rules by name. The manual catalogue fields introduced by INT-031 hold these instructions so the phase 6 guide uses the same reviewed content. No new schema or Graph permission is needed.
+
+Maintainer proposal: retain manual, change-controlled Exchange operation until Microsoft documents a supported single-attempt delegated write route. Keep the own-domain bypass disabled until the trusted SPF/From alignment boundary is demonstrated. These are verification and implementation limits; the maintainer's standard outcomes are unchanged.
+
 ## Exchange/Purview evidence contract - PR #19, phase 4
 
 - `exchangeDomain` uses a schema-5 `mailDomain` parameter type: canonical ASCII DNS domain validation, no URL/wildcard/IP/command text, and no default. It is mandatory when the three domain-dependent controls are selected, and before capture export/import. Saving an empty required domain is refused with its field name.

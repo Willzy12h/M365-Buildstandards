@@ -88,5 +88,18 @@ public sealed class ExchangeWorkspaceTests : IDisposable
         public Task<DnsObservation> QueryAsync(string name,DnsRecordKind kind,CancellationToken ct)
         { Questions++; return Task.FromResult(ExchangeTestData.Answer(name,kind)); }
     }
+
+    [Fact]
+    public void Proposal_export_refuses_missing_confirmation_then_writes_only_the_selected_inert_document()
+    {
+        _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);
+        Assert.Throws<PlanValidationException>(() => _workspace.ExportExchangeProposal("PUR-001", "", ExchangeTestData.Domain));
+        var file = _workspace.ExportExchangeProposal("PUR-001", TestData.TenantA, ExchangeTestData.Domain);
+        var content = File.ReadAllText(file);
+        Assert.StartsWith(BDIT.TenantToolkit.Engine.Exchange.ExchangeProposal.Refusal, content);
+        Assert.Contains("REVIEW PROPOSAL: PUR-001", content);
+        Assert.DoesNotContain("REVIEW PROPOSAL: EX-001", content);
+        Assert.False(_workspace.SnapshotIsLive); Assert.Null(_workspace.Plan); Assert.Null(_workspace.AcknowledgedSnapshotId);
+    }
     public void Dispose() { _logger.Dispose(); _root.Dispose(); }
 }

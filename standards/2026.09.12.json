@@ -6038,7 +6038,7 @@
       "desiredState": "Only messages from the explicitly entered client From domain with a trusted, aligned SPF pass may receive SCL -1. No other conditions, actions or exceptions.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "This remains a proposal: SPF authenticates the envelope sender, and an Authentication-Results text match has an unverified trust/alignment boundary. Never call the rule spoof-safe without controlled mail-flow validation. The domain is mandatory."
@@ -6066,6 +6066,23 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/new-transportrule"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Enter the client's exact accepted mail domain; there is no default. Review all transport rules and priorities, not just a matching name.",
+          "SPF checks the envelope sender. Without SPF, spoofed From addresses could bypass spam filtering; even with an SPF header condition, trusted header provenance and From alignment remain unverified. Keep this proposal disabled until those boundaries are demonstrated."
+        ],
+        "portalSteps": [
+          "Exchange admin centre > Mail flow > Rules > Add a rule > Create a new rule. Give the new candidate a unique reviewed name; never overwrite an existing rule by name.",
+          "Set sender address matching to Header (From) and a fully anchored pattern for the exact entered domain. Add only Authentication-Results matching SPF pass and the SCL -1 action. No extra exceptions or actions.",
+          "Save disabled in test/audit mode. Do not activate this proposal until trusted SPF results and own-domain alignment are established using controlled mail-flow tests."
+        ],
+        "powerShell": "# Unverified trust/alignment: disabled audit candidate only; no activation command.\n# Choose a new unique name after inspecting all rules; an existing name is a conflict, not ownership.\n$newName = Read-Host 'Unique name for a NEW disabled rule'\nif ([string]::IsNullOrWhiteSpace($newName)) { throw 'A reviewed new name is required.' }\n$rules = @(Get-TransportRule -ResultSize Unlimited -ErrorAction Stop)\nif (@($rules | Where-Object { $_.Name -eq $newName }).Count -ne 0) { throw 'Existing rule: do not adopt or overwrite by name.' }\n$fromPattern = '^[^@]+@' + [regex]::Escape($domain) + '$'\nAssert-ManualTenant\nNew-TransportRule -Name $newName -FromAddressMatchesPatterns $fromPattern -SenderAddressLocation Header -HeaderMatchesMessageHeader 'Authentication-Results' -HeaderMatchesPatterns '\\bspf=pass\\b' -SetSCL -1 -Enabled $false -Mode Audit -ErrorAction Stop\n# Record the exact returned Identity/Guid. Never retry New-TransportRule after an uncertain result.\nGet-TransportRule -ResultSize Unlimited | Format-List Name,Guid,State,Mode,Conditions,Actions,Exceptions,SenderAddressLocation",
+        "after": [
+          "Pass for the candidate: disabled, audit mode, exact own-domain From predicate, SPF-pass condition, SCL -1, no other actions or exceptions. Record its exact ID; name alone is insufficient.",
+          "Production effect is NOT verified. Test aligned legitimate mail, spoofed own-domain mail, SPF-fail and SPF-pass unrelated envelope domains, forged headers, subdomains and other-domain messages before considering activation. Keep disabled if trust/alignment is not established."
+        ]
       }
     },
     {
@@ -6078,7 +6095,7 @@
       "desiredState": "Enable the Standard preset for all recipients. The engineer manually supplies the impersonation users-to-protect list.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Inspect both EOP and ATP rule components, state, recipient conditions/exceptions and Strict preset precedence. Additional Defender protections depend on per-user entitlement."
@@ -6106,6 +6123,23 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/preset-security-policies"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Confirm Defender for Office 365 entitlement for all intended recipients. Capture both Standard preset components and the Strict preset; Strict can take precedence.",
+          "Review existing recipient conditions/exceptions and obtain approval to include all recipients. Identify impersonation users to protect manually."
+        ],
+        "portalSteps": [
+          "Microsoft Defender > Email & collaboration > Policies & rules > Threat policies > Preset security policies > Standard protection > Manage protection settings.",
+          "Enable Standard protection and select All recipients for both Exchange Online Protection and Defender for Office 365 protection; clear recipient exclusions only after reviewing their purpose.",
+          "In impersonation protection, enter the client-approved users to protect manually. Finish and save; review Strict policy precedence separately."
+        ],
+        "powerShell": "# If either Standard component is absent, initialise the preset in the Defender portal first and recapture.\nGet-EOPProtectionPolicyRule | Format-List Name,State,SentTo,SentToMemberOf,RecipientDomainIs,ExceptIfSentTo,ExceptIfSentToMemberOf,ExceptIfRecipientDomainIs\nGet-ATPProtectionPolicyRule | Format-List Name,State,SentTo,SentToMemberOf,RecipientDomainIs,ExceptIfSentTo,ExceptIfSentToMemberOf,ExceptIfRecipientDomainIs\nAssert-ManualTenant\nSet-EOPProtectionPolicyRule -Identity 'Standard Preset Security Policy' -SentTo $null -SentToMemberOf $null -RecipientDomainIs $null -ExceptIfSentTo $null -ExceptIfSentToMemberOf $null -ExceptIfRecipientDomainIs $null -ErrorAction Stop\nAssert-ManualTenant\nEnable-EOPProtectionPolicyRule -Identity 'Standard Preset Security Policy' -ErrorAction Stop\nAssert-ManualTenant\nSet-ATPProtectionPolicyRule -Identity 'Standard Preset Security Policy' -SentTo $null -SentToMemberOf $null -RecipientDomainIs $null -ExceptIfSentTo $null -ExceptIfSentToMemberOf $null -ExceptIfRecipientDomainIs $null -ErrorAction Stop\nAssert-ManualTenant\nEnable-ATPProtectionPolicyRule -Identity 'Standard Preset Security Policy' -ErrorAction Stop\n# Each line above is a separate change, with its own saved intent and read-back. Stop after an uncertain response.\n# Maintain users-to-protect through the portal; this proposal does not manage that list.",
+        "after": [
+          "Pass for configuration: both Standard components enabled, with all six recipient condition/exception lists empty. Check Strict precedence and the manually maintained users-to-protect list.",
+          "Verify effective protection on representative licensed recipients and record exceptions; imported settings alone do not prove mail-flow outcomes."
+        ]
       }
     },
     {
@@ -6118,7 +6152,7 @@
       "desiredState": "Set AutoForwardingMode to Off on every effective outbound spam policy.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Default alone does not cover users affected by another outbound policy. Review all policies, rules, priority and real mail flow; preserve deliberate exceptions for explicit review."
@@ -6146,6 +6180,21 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-hostedoutboundspamfilterpolicy"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Capture every outbound spam policy and its priority/recipient rule scope. Review approved mail-forwarding dependencies before changing the policy that applies to them."
+        ],
+        "portalSteps": [
+          "Microsoft Defender > Email & collaboration > Policies & rules > Threat policies > Anti-spam > Outbound spam filter policy.",
+          "Open Default and each applicable custom outbound policy > Edit protection settings > Automatic forwarding rules > Off - Forwarding is disabled. Review and save each approved policy separately."
+        ],
+        "powerShell": "Get-HostedOutboundSpamFilterPolicy | Format-List Identity,IsDefault,AutoForwardingMode\nGet-HostedOutboundSpamFilterRule | Format-List Identity,State,Priority,HostedOutboundSpamFilterPolicy,SentTo,SentToMemberOf,RecipientDomainIs\n# Select one exact policy identity from the reviewed before evidence. Repeat only for separately approved policies.\n$policyIdentity = Read-Host 'Exact reviewed outbound policy identity'\nif ([string]::IsNullOrWhiteSpace($policyIdentity)) { throw 'Select an exact policy.' }\nGet-HostedOutboundSpamFilterPolicy -Identity $policyIdentity -ErrorAction Stop | Format-List *\nAssert-ManualTenant\nSet-HostedOutboundSpamFilterPolicy -Identity $policyIdentity -AutoForwardingMode Off -ErrorAction Stop\nGet-HostedOutboundSpamFilterPolicy -Identity $policyIdentity -ErrorAction Stop | Format-List Identity,AutoForwardingMode",
+        "after": [
+          "Pass: Default and all applicable custom outbound spam policies explicitly show Off. A change to Default alone cannot prove all-recipient coverage.",
+          "Test an authorised representative external automatic-forward attempt and confirm it is blocked; review exceptions and priority. Internal forwarding and ordinary manually sent messages are different behaviours."
+        ]
       }
     },
     {
@@ -6158,7 +6207,7 @@
       "desiredState": "SmtpClientAuthenticationDisabled = true at organisation level.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Mailbox overrides can still exist. This control reports the organisation switch separately and does not silently modify mailbox settings."
@@ -6186,6 +6235,21 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticated-client-smtp-submission"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Inventory applications/devices using SMTP AUTH and obtain approval for the organisation-wide change. Review mailbox-level SmtpClientAuthenticationDisabled overrides separately."
+        ],
+        "portalSteps": [
+          "Exchange admin centre > Settings > Mail flow > Turn off SMTP AUTH protocol for your organisation. Select it and save after dependency review.",
+          "For any mailbox exceptions, review Users > Active users > Mail > Manage email apps in Microsoft 365 admin centre; do not assume the organisation switch overrides a mailbox setting."
+        ],
+        "powerShell": "Get-TransportConfig | Format-List SmtpClientAuthenticationDisabled\nAssert-ManualTenant\nSet-TransportConfig -SmtpClientAuthenticationDisabled $true -ErrorAction Stop\nGet-TransportConfig | Format-List SmtpClientAuthenticationDisabled\n# Review approved mailbox overrides separately with Get-CASMailbox -Identity <reviewed-mailbox>. No bulk mailbox change is proposed.",
+        "after": [
+          "Pass for this control: organisation SmtpClientAuthenticationDisabled is True. Record all mailbox exceptions and other authentication restrictions.",
+          "Verify affected applications use an approved alternative and no required mail flow is unexpectedly broken. Organisation configuration alone does not prove SMTP AUTH unavailable for every mailbox."
+        ]
       }
     },
     {
@@ -6198,7 +6262,7 @@
       "desiredState": "ExternalInOutlook Enabled = true; preserve the reviewed allow-list.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Check supported Outlook clients and message presentation after propagation. An enabled switch does not establish the display on every client."
@@ -6226,6 +6290,20 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-externalinoutlook"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Capture the current external tagging Enabled flag and AllowList; preserve the list. Confirm supported Outlook versions and agree any exceptions separately."
+        ],
+        "portalSteps": [
+          "Use Exchange Online PowerShell for the organisation-wide external-tag switch; a current equivalent portal control is unverified.",
+          "Open a supported Outlook client and inspect a newly received message from an external sender. Allow time for configuration propagation and review the preserved allow-list."
+        ],
+        "powerShell": "Get-ExternalInOutlook | Format-List Enabled,AllowList\nAssert-ManualTenant\nSet-ExternalInOutlook -Enabled $true -ErrorAction Stop\nGet-ExternalInOutlook | Format-List Enabled,AllowList",
+        "after": [
+          "Pass for configuration: Enabled True and the pre-existing AllowList unchanged. Pass for behaviour: a new external message displays the external indicator in a supported Outlook client; record propagation delay and intentional exceptions."
+        ]
       }
     },
     {
@@ -6238,7 +6316,7 @@
       "desiredState": "OrganizationConfig AuditDisabled = false.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "The organisation switch does not prove every mailbox event is captured. Review bypass associations, mailbox audit coverage and searchable events; AuditEnabled alone is insufficient."
@@ -6266,6 +6344,20 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-search-for-mailbox-activities"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Capture organisation AuditDisabled and review mailbox audit bypass associations, licensed workload coverage and required events. This switch alone does not prove searchable event coverage."
+        ],
+        "portalSteps": [
+          "Use Exchange Online PowerShell to read and, if approved, clear the organisation-wide AuditDisabled flag; a current equivalent portal control is unverified.",
+          "Microsoft Purview > Solutions > Audit: search for a controlled, authorised mailbox activity after ingestion has had time to occur. Review any bypass association separately."
+        ],
+        "powerShell": "Get-OrganizationConfig | Format-List AuditDisabled\nAssert-ManualTenant\nSet-OrganizationConfig -AuditDisabled $false -ErrorAction Stop\nGet-OrganizationConfig | Format-List AuditDisabled\n# Read Get-MailboxAuditBypassAssociation for each separately reviewed identity; do not infer event coverage from the organisation switch.",
+        "after": [
+          "Pass for configuration: AuditDisabled False. Separately demonstrate a relevant searchable mailbox audit event, check bypass associations and licence coverage, and record the event type and time without exporting message contents."
+        ]
       }
     },
     {
@@ -6278,7 +6370,7 @@
       "desiredState": "Publish both CNAME targets returned for the accepted client domain; enable signing only after both names resolve to those exact targets.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Never construct selector targets from an old naming pattern. If no configuration exists, an engineer first creates it disabled and captures the generated values. Timeout, mismatched, stale or missing CNAMEs block signing readiness."
@@ -6306,6 +6398,23 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dkim-configure"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Enter the exact accepted mail domain. Capture its DKIM configuration and actual Selector1CNAME/Selector2CNAME; never derive targets from an old naming convention.",
+          "If configuration is absent, propose New-DkimSigningConfig -DomainName <accepted-domain> -Enabled $false only, then recapture its returned CNAME targets. Publish both CNAMEs with the DNS provider and wait for resolution."
+        ],
+        "portalSteps": [
+          "Microsoft Defender > Email & collaboration > Policies & rules > Threat policies > Email authentication settings > DKIM. Select the exact accepted domain.",
+          "Show the two service-provided CNAME targets and publish both at the authoritative DNS provider. Check each selector against the returned target; do not enable signing while either is missing, different or unresolved.",
+          "Only after both CNAMEs resolve correctly, enable Sign messages for this domain with DKIM signatures. Record the before and after status."
+        ],
+        "powerShell": "$dkim = Get-DkimSigningConfig -Identity $domain -ErrorAction Stop\n$dkim | Format-List Name,Enabled,Status,Selector1CNAME,Selector2CNAME\nforeach ($number in 1,2) {\n    $name = 'selector' + $number + '._domainkey.' + $domain\n    $expected = $dkim.('Selector' + $number + 'CNAME')\n    if ([string]::IsNullOrWhiteSpace($expected)) { throw 'Actual CNAME target is unknown.' }\n    $answer = @(Resolve-DnsName -Name $name -Type CNAME -DnsOnly -NoHostsFile -ErrorAction Stop | Where-Object { $_.Type.ToString() -eq 'CNAME' -and $_.Name.TrimEnd('.') -ieq $name })\n    if ($answer.Count -ne 1 -or $answer[0].NameHost.TrimEnd('.') -ine $expected.TrimEnd('.')) { throw 'Both current CNAMEs must match their actual targets.' }\n}\nAssert-ManualTenant\nSet-DkimSigningConfig -Identity $domain -Enabled $true -ErrorAction Stop\nGet-DkimSigningConfig -Identity $domain | Format-List Name,Enabled,Status,Selector1CNAME,Selector2CNAME",
+        "after": [
+          "Pass for configuration: both CNAMEs match the actual service targets; Enabled True and Status Valid. A DNS timeout, absent target or stale observation is unknown, not permission to enable.",
+          "Send a controlled new outbound message and inspect DKIM-Signature and authentication results for this exact From domain. Pass requires successful aligned signing, not just a portal toggle or cached DNS answer."
+        ]
       }
     },
     {
@@ -6318,7 +6427,7 @@
       "desiredState": "Read and report the _dmarc TXT record, policy and ambiguity. No DNS or DMARC write.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Review SPF/DKIM alignment, reporting addresses, subdomain handling and actual messages. A record is not proof of effective protection; the toolkit does not select or change enforcement policy."
@@ -6346,6 +6455,21 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dmarc-configure"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Enter the exact accepted mail domain. This control only reports DMARC; it neither creates nor changes the TXT record. Identify the owner of SPF/DKIM and DMARC reporting."
+        ],
+        "portalSteps": [
+          "At the domain's DNS provider, inspect TXT records for _dmarc.<accepted-domain>. Record the complete value and TTL without changing it.",
+          "Review one DMARC1 record, its p policy, percentage, alignment and reporting addresses. Check effective subdomain inheritance and any legitimate third-party senders."
+        ],
+        "powerShell": "Resolve-DnsName -Name ('_dmarc.' + $domain) -Type TXT -DnsOnly -NoHostsFile -ErrorAction Stop | Format-List Name,Type,Strings,TTL\n# Report only. No DNS or Exchange write. An absent answer differs from a resolver error; multiple DMARC records are ambiguous.",
+        "after": [
+          "Pass for the check: record presence/absence/unknown accurately, include the resolver observation time, and review syntax and policy manually. No required enforcement policy is silently inferred.",
+          "Confirm real-message SPF/DKIM alignment and review aggregate reports before proposing any separate DNS change. A syntactically plausible record does not prove delivery or protection."
+        ]
       }
     },
     {
@@ -6358,7 +6482,7 @@
       "desiredState": "UnifiedAuditLogIngestionEnabled = true.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Read back the switch and later verify searchable events. Ingestion and search availability can be delayed; licence and event coverage require engineer checks."
@@ -6386,6 +6510,20 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Confirm Audit entitlement and configuration RBAC, record the ingestion switch and identify an authorised test event. Use read-only RBAC for capture and separate change authority for the proposed switch."
+        ],
+        "portalSteps": [
+          "Microsoft Purview > Solutions > Audit. If offered, select Start recording user and admin activity; otherwise use the supported PowerShell switch after reviewing its existing state.",
+          "Allow ingestion time, then search a narrow period for an authorised activity. Absence before ingestion completes does not prove the switch failed."
+        ],
+        "powerShell": "Get-AdminAuditLogConfig | Format-List UnifiedAuditLogIngestionEnabled\nAssert-ManualTenant\nSet-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $true -ErrorAction Stop\nGet-AdminAuditLogConfig | Format-List UnifiedAuditLogIngestionEnabled",
+        "after": [
+          "Pass for configuration: UnifiedAuditLogIngestionEnabled True. Pass for behaviour: an authorised relevant activity becomes searchable in Purview Audit after the documented ingestion delay. Record the time, workload and licence scope."
+        ]
       }
     },
     {
@@ -6398,7 +6536,7 @@
       "desiredState": "Report audit retention. The default is 180 days; longer retention requires appropriate add-on/licence entitlement and policy or external export.",
       "businessImpact": "Review the observed setting, client scope and service effect before production changes.",
       "engineerAction": "Export and review the read-only capture script, run it manually with delegated read-only RBAC, import its JSON and inspect Assessment. Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes.",
-      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes.",
+      "documentationNotes": "Microsoft behaviour is documented but unverified against a live tenant. The toolkit never executes Exchange writes. Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes. The selective PowerShell export is an inert, commented review proposal (INT-036).",
       "assessment": {
         "mode": "Manual",
         "manualInstructions": "Read explicit retention policies and review affected-user entitlement. A failed read or an empty policy list cannot prove a tenant-wide effective retention duration. No retention policy or DLP changes."
@@ -6426,6 +6564,20 @@
       ],
       "references": {
         "microsoft": "https://learn.microsoft.com/en-us/purview/audit-log-retention-policies"
+      },
+      "implementation": {
+        "before": [
+          "Use the guide's delegated Exchange preflight and Assert-ManualTenant before each proposed write. Save complete before observations and durable intent, approve exact scope, and stop on drift or any uncertain response. The module can retry internally; toolkit execution is unavailable. All Microsoft behaviour remains unverified.",
+          "Review affected-user Audit licences/add-ons, record types and required retention. The documented default is 180 days; an empty custom policy list is not evidence of effective retention for every event."
+        ],
+        "portalSteps": [
+          "Microsoft Purview > Solutions > Audit > Policies > Audit retention policies: inspect policy priority, users, record types and durations without changing them.",
+          "Review the applicable users' licences and export arrangements. Report longer-retention requirements as a separate proposal; retention policies and DLP changes are outside this release."
+        ],
+        "powerShell": "# In a separately tenant-checked delegated Security & Compliance connection (Connect-IPPSSession), read only:\n$purview = @(Get-ConnectionInformation | Where-Object { $_.State -eq 'Connected' -and $_.IsEopSession })\nif ($purview.Count -ne 1 -or $purview[0].TenantID.ToString() -ine $expectedTenant) { throw 'Wrong or ambiguous Purview tenant.' }\nGet-UnifiedAuditLogRetentionPolicy | Format-List Name,Priority,RetentionDuration,RecordTypes,Operations,UserIds\n# No retention or DLP policy write is proposed.",
+        "after": [
+          "Pass for the report: list returned policies, affected scope and confirmed entitlement or explicitly state unknown. Distinguish the documented 180-day default from demonstrated event retention; preserve an evidence/export plan where longer storage is required."
+        ]
       }
     }
   ],

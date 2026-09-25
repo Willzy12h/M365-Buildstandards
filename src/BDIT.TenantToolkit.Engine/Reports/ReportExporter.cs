@@ -60,6 +60,9 @@ public sealed class ReportExporter
     public string ExportExchangeReadScript(string tenantId, string domain, DateTimeOffset now) =>
         WriteText(Target("exchange-read-capture", domain, Timestamps.Format(now), "ps1"), ExchangeCaptureScripts.ReadOnlyCapture(tenantId, domain));
 
+    public string ExportExchangeProposal(string reviewedText, string controlId, DateTimeOffset now) =>
+        WriteText(Target("exchange-review-proposal", controlId, Timestamps.Format(now), "ps1"), reviewedText);
+
     public string ExportRun(DeploymentRun run, IReadOnlyList<JournalEntry> journal, ExportFormat format)
     {
         var label = string.IsNullOrWhiteSpace(run.PrimaryDomain) ? run.TenantId : run.PrimaryDomain;

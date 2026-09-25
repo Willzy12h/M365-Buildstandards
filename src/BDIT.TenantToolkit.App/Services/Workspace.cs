@@ -491,6 +491,16 @@ public sealed class Workspace : ObservableObject
         LoadStoredSnapshot(updated.Id);
     });
 
+    public string ExportExchangeProposal(string controlId, string typedTenant, string enteredDomain)
+    {
+        if (Busy) throw new ToolkitException("Wait for the active operation before exporting a proposal.");
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var snapshot = Snapshot ?? throw new ToolkitException("Import an Exchange capture first.");
+        var now = DateTimeOffset.UtcNow;
+        var text = ExchangeProposal.Create(RequireStandard(), profile, snapshot, Evidence, controlId, typedTenant, enteredDomain, now);
+        return Exporter.ExportExchangeProposal(text, controlId, now);
+    }
+
     public DeploymentPlan BuildPlan(IReadOnlyList<string> controlIds)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation.");

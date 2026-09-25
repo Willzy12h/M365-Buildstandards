@@ -103,7 +103,13 @@
                 </WrapPanel>
                 <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
                 <TextBlock Text="The DNS check queries your configured Windows resolver. Failures stay unknown. DKIM CNAME targets and DMARC results appear in finding evidence. The toolkit never runs the Exchange script or performs Exchange/Purview writes." Style="{StaticResource Muted}"/>
-                <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported Exchange capture script" Style="{StaticResource ReadOnlyDetail}" Margin="0,10,0,0"/>
+                <TextBlock Text="Review a manual change proposal" Style="{StaticResource H2}" Margin="0,18,0,6"/>
+                <TextBlock Text="Select one control and type the tenant ID shown above. Export contains before observations, commented PowerShell and after checks. It cannot execute changes. Fresh complete evidence is required; DKIM enabling instructions require both matching DNS answers." Style="{StaticResource Muted}"/>
+                <ComboBox ItemsSource="{Binding ProposalControls}" SelectedItem="{Binding SelectedProposalControl}" DisplayMemberPath="Name" AutomationProperties.Name="Exchange or Purview control for proposal" Margin="0,8,0,8"/>
+                <TextBlock Text="Type the selected client's full tenant ID" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding ProposalTenantConfirmation, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tenant confirmation for manual Exchange proposal"/>
+                <Button Content="Export selected review proposal" Command="{Binding ExportExchangeProposalCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported Exchange script or proposal" Style="{StaticResource ReadOnlyDetail}" Margin="0,10,0,0"/>
               </StackPanel>
             </ScrollViewer>
           </TabItem>

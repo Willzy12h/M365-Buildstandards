@@ -455,6 +455,7 @@ internal static partial class Program
         ("ConfigurationViewModel.CopySummaryCommand", Clipboard),
         ("ConfigurationViewModel.SaveMailDomainCommand", Press),
         ("ConfigurationViewModel.ExportExchangeCaptureCommand", Press),
+        ("ConfigurationViewModel.ExportExchangeProposalCommand", Press),
         ("ConfigurationViewModel.ImportExchangeCaptureCommand", Press),
         ("ConfigurationViewModel.ChooseExchangeCaptureCommand", Prompt),
         ("ConfigurationViewModel.CheckExchangeDnsCommand", "performs real DNS queries; replaced with fake answers in automated tests"),
@@ -582,6 +583,14 @@ internal static partial class Program
         ["ConfigurationViewModel.SaveMailDomainCommand"] = PrepareExchangeCommands,
         ["ConfigurationViewModel.ExportExchangeCaptureCommand"] = PrepareExchangeCommands,
         ["ConfigurationViewModel.ImportExchangeCaptureCommand"] = PrepareExchangeCommands,
+        ["ConfigurationViewModel.ExportExchangeProposalCommand"] = shell =>
+        {
+            PrepareExchangeCommands(shell);
+            shell.Workspace.ImportExchangeCapture(SyntheticExchangePath(), "example.invalid");
+            var vm = shell.Page<ConfigurationViewModel>();
+            vm.SelectedProposalControl = vm.ProposalControls.Single(c => c.Id == "PUR-001");
+            vm.ProposalTenantConfirmation = Tenant;
+        },
         ["HistoryViewModel.CompareCommand"] = SelectCaptures,
         ["HistoryViewModel.OpenSnapshotCommand"] = SelectCaptures,
         ["HistoryViewModel.ExportRunHtmlCommand"] = SelectRun,
@@ -630,6 +639,7 @@ internal static partial class Program
     // Read through a method: inside the static initialiser above, the compiler treats any static member as possibly
     // unassigned, field or property alike.
     private static string SyntheticImportPath() => SyntheticImportFile;
+    private static string SyntheticExchangePath() => SyntheticExchangeFile;
 
     private static void SelectCaptures(ShellViewModel shell)
     {
@@ -690,6 +700,8 @@ internal static partial class Program
             Delegated = true, Domain = "example.invalid", CapturedAt = Stamp, ModuleVersion = "3.9.2", Source = ExchangeCaptureSchema.Source };
         foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
             external.Collections[key] = new ExchangeCollectionCapture { Command = definition.Command };
+        external.Collections["auditConfig"].Status = CaptureStatus.Collected;
+        external.Collections["auditConfig"].Items.Add(new System.Text.Json.Nodes.JsonObject { ["UnifiedAuditLogIngestionEnabled"] = false });
         File.WriteAllText(SyntheticExchangeFile, ToolkitJson.Serialize(external));
     }
     private static readonly List<string> CommandLog = new();

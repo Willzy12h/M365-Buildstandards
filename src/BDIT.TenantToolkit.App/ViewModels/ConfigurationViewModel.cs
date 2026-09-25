@@ -42,6 +42,9 @@ public sealed class ConfigurationViewModel : PageViewModel
     private string _mailDomain = "";
     private string _exchangeImportFile = "";
     private string _domainContext = "";
+    private string _proposalContext = "";
+    private string _proposalTenant = "";
+    private ControlDefinition? _proposalControl;
 
     public ConfigurationViewModel(ShellViewModel shell) : base(shell, "Configuration")
     {
@@ -61,6 +64,13 @@ public sealed class ConfigurationViewModel : PageViewModel
         }, () => SupportsExchange && Workspace.Idle);
         ImportExchangeCaptureCommand = Sync(() => Workspace.ImportExchangeCapture(ExchangeImportFile, MailDomainInput), () => SupportsExchange && Workspace.Profile is not null && Workspace.Idle);
         CheckExchangeDnsCommand = Command(() => Workspace.CheckExchangeDnsAsync(), () => Workspace.Snapshot?.ExchangeCapture is not null && Workspace.Profile is not null && Workspace.Idle);
+        ExportExchangeProposalCommand = Sync(() =>
+        {
+            _lastExportFile = Workspace.ExportExchangeProposal(SelectedProposalControl?.Id ?? "", ProposalTenantConfirmation, MailDomainInput);
+            LastExport = "Exported commented review proposal; no commands were run: " + _lastExportFile;
+            ProposalTenantConfirmation = "";
+            OnPropertyChanged(nameof(LastExport)); RaiseAll();
+        }, () => SupportsExchange && Workspace.Snapshot?.ExchangeCapture is not null && Workspace.Idle);
         Refresh();
     }
 
@@ -76,6 +86,10 @@ public sealed class ConfigurationViewModel : PageViewModel
     public ICommand ChooseExchangeCaptureCommand { get; }
     public ICommand ImportExchangeCaptureCommand { get; }
     public ICommand CheckExchangeDnsCommand { get; }
+    public ICommand ExportExchangeProposalCommand { get; }
+    public ObservableCollection<ControlDefinition> ProposalControls { get; } = new();
+    public ControlDefinition? SelectedProposalControl { get => _proposalControl; set => SetProperty(ref _proposalControl, value); }
+    public string ProposalTenantConfirmation { get => _proposalTenant; set => SetProperty(ref _proposalTenant, value); }
     public bool SupportsExchange => Workspace.Standard?.Controls.Any(c => c.Area == "Exchange") == true;
     public string MailDomainInput { get => _mailDomain; set => SetProperty(ref _mailDomain, value); }
     public string ExchangeImportFile { get => _exchangeImportFile; set => SetProperty(ref _exchangeImportFile, value); }
@@ -149,6 +163,14 @@ public sealed class ConfigurationViewModel : PageViewModel
 
     public override void Refresh()
     {
+        var proposalContext = Workspace.Profile?.TenantId + "|" + Workspace.Snapshot?.Id;
+        if (_proposalContext != proposalContext)
+        { _proposalContext = proposalContext; ProposalTenantConfirmation = ""; SelectedProposalControl = null; }
+        var selectedId = SelectedProposalControl?.Id;
+        ProposalControls.Clear();
+        foreach (var control in Workspace.Standard?.Controls.Where(c => c.Area is "Exchange" or "Purview") ?? Enumerable.Empty<ControlDefinition>())
+            ProposalControls.Add(control);
+        SelectedProposalControl = ProposalControls.FirstOrDefault(c => c.Id == selectedId);
         var savedDomain = Workspace.Profile?.Parameters.PolicyInputs?.GetValueOrDefault("exchangeDomain")?.ToString() ?? "";
         var context = (Workspace.Profile?.TenantId ?? "") + "|" + savedDomain;
         if (_domainContext != context) { _domainContext = context; MailDomainInput = savedDomain; ExchangeImportFile = ""; }
