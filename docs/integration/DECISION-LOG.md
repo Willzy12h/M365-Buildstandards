@@ -1,5 +1,9 @@
 # Integration decisions
 
+## Interface sections - PR #19, phase 3
+
+- **INT-034 - area filters within the existing workflow:** keep the existing flow pages and add All areas, Entra, Intune, Exchange and Purview filters on Assessment and Plan. Assessment combines area with result, category and search. Plan selection is confined to the displayed area; changing area clears the selection, with that behaviour stated beside the filter. The exact-change preview continues to show the whole built plan. Schema-5 controls use their recorded area; older releases retain a presentation-only ID-family fallback. Expanded office controls retain their stable identities and prerequisite guidance. No connection, write command or persisted approval is created by changing a filter. The offline harness uses .12 and checks the new controls at all three existing sizes.
+
 ## Standard 2026.09.12 investigation — PR #19, 25 September 2026
 
 - **INT-030 — Exchange/Purview route and phase 5 gate:** use documented Exchange Online PowerShell delegated authentication for engineer-run, allow-listed read-only capture, with strict tenant-bound import into toolkit evidence and fakeable DNS queries. Do not execute Exchange writes from the toolkit: the supported module documents internal retries after network delays and no documented single-attempt write switch was found. Generate selected reviewed implementation PowerShell instead, clearly labelled as an engineer-run proposal; export/import never runs it. No undocumented REST, app-only authentication, certificates, secrets, module installation or execution-policy changes. This is the fallback authorised by NEXT-RELEASE-PLAN. The SPF-header/From-domain trust boundary is unverified and is a further blocker to automatically deploying the bypass rule. See [primary-source investigation](API-INVESTIGATION-2026.09.12.md).

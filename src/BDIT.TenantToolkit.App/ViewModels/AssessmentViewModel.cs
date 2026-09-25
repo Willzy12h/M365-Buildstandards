@@ -10,6 +10,7 @@ namespace BDIT.TenantToolkit.App.ViewModels;
 public sealed class FindingRow
 {
     public ControlFinding Finding { get; init; } = new();
+    public string Area { get; init; } = "";
     public string ControlId => Finding.ControlId;
     public string Name => Finding.Name;
     public string Category => Finding.Category;
@@ -30,6 +31,7 @@ public sealed class AssessmentViewModel : PageViewModel
 {
     private string _filterStatus = "Actionable";
     private string _filterCategory = "All";
+    private string _filterArea = "All areas";
     private string _search = "";
     private FindingRow? _selected;
     private CandidateMatch? _selectedCandidate;
@@ -68,6 +70,7 @@ public sealed class AssessmentViewModel : PageViewModel
     public IReadOnlyList<FilterOption> StatusFilters { get; } = new[] { new FilterOption("Actionable", "Actionable"), new FilterOption("All", "All results") }
         .Concat(Enum.GetValues<FindingStatus>().Select(s => new FilterOption(s.ToString(), StatusLabels.For(s)))).ToList();
     public ObservableCollection<string> CategoryFilters { get; } = new();
+    public IReadOnlyList<string> AreaFilters => ControlAreas.Filters;
     public ObservableCollection<CandidateMatch> Candidates { get; } = new();
     public ObservableCollection<PropertyDifference> Differences { get; } = new();
     public ObservableCollection<string> Limitations { get; } = new();
@@ -77,6 +80,7 @@ public sealed class AssessmentViewModel : PageViewModel
 
     public string FilterStatus { get => _filterStatus; set { if (SetProperty(ref _filterStatus, value)) ApplyFilter(); } }
     public string FilterCategory { get => _filterCategory; set { if (SetProperty(ref _filterCategory, value)) ApplyFilter(); } }
+    public string FilterArea { get => _filterArea; set { if (SetProperty(ref _filterArea, value)) ApplyFilter(); } }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
     public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
 
@@ -181,7 +185,8 @@ public sealed class AssessmentViewModel : PageViewModel
         var a = Workspace.Assessment;
         if (a is not null)
         {
-            foreach (var f in a.Findings) _all.Add(new FindingRow { Finding = f });
+            var controls = Workspace.Standard is { } standard ? ControlInstances.All(standard, Workspace.Profile).ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase) : new();
+            foreach (var f in a.Findings) _all.Add(new FindingRow { Finding = f, Area = ControlAreas.For(controls.GetValueOrDefault(f.ControlId) ?? new ControlDefinition { Id = f.ControlId }) });
             foreach (var c in a.Findings.Select(f => f.Category).Distinct().OrderBy(c => c, StringComparer.OrdinalIgnoreCase)) CategoryFilters.Add(c);
             foreach (var l in a.Limitations) Limitations.Add(l);
         }
@@ -200,6 +205,7 @@ public sealed class AssessmentViewModel : PageViewModel
             if (FilterStatus == "Actionable" && !row.Finding.IsActionable) continue;
             if (FilterStatus != "All" && FilterStatus != "Actionable" && row.StatusKey != FilterStatus) continue;
             if (FilterCategory != "All" && row.Category != FilterCategory) continue;
+            if (FilterArea != "All areas" && row.Area != FilterArea) continue;
             if (q.Length > 0 && !row.ControlId.Contains(q, StringComparison.OrdinalIgnoreCase) && !row.Name.Contains(q, StringComparison.OrdinalIgnoreCase) && !row.Reason.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
             Findings.Add(row);
         }

@@ -30,15 +30,18 @@
           <TabItem Header="1  Select controls">
             <DockPanel Margin="0,16,0,0">
               <WrapPanel DockPanel.Dock="Top">
+                <TextBlock Text="Area" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Width="145" ItemsSource="{Binding AreaFilters}" SelectedItem="{Binding FilterArea, Mode=TwoWay}" AutomationProperties.Name="Filter plan area" Margin="0,0,14,8"/>
                 <Button Content="Select eligible controls" Command="{Binding SelectEligibleCommand}" Style="{StaticResource SecondaryButton}"/>
                 <Button Content="Clear selection" Command="{Binding ClearSelectionCommand}" Style="{StaticResource QuietButton}"/>
+                <TextBlock Text="Changing area clears selection." Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="8,0,0,8" ToolTip="Select eligible controls applies to the displayed area. Review exact changes shows the whole built plan."/>
               </WrapPanel>
               <Grid>
                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="300"/><ColumnDefinition Width="12"/><ColumnDefinition Width="2*" MinWidth="230"/></Grid.ColumnDefinitions>
                <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                 Background="{StaticResource Line}" ToolTip="Drag to resize the controls table and prerequisite guidance." AutomationProperties.Name="Resize plan prerequisite guidance"/>
                <views:PrerequisitePanel Grid.Column="2" Items="{Binding SelectionPrerequisites}"/>
-              <DataGrid Grid.Column="0" ItemsSource="{Binding Controls}" SelectedItem="{Binding SelectedControl}" IsReadOnly="False" AutomationProperties.Name="Controls to include in the plan">
+              <DataGrid Grid.Column="0" ItemsSource="{Binding VisibleControls}" SelectedItem="{Binding SelectedControl}" IsReadOnly="False" AutomationProperties.Name="Controls to include in the plan">
                 <DataGrid.Columns>
                   <DataGridCheckBoxColumn Header="Select" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="66"/>
                   <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100" IsReadOnly="True"/>

@@ -595,7 +595,7 @@ public sealed class Workspace : ObservableObject
     public void SaveManualCheck(string controlId, string status, string note)
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
-        if (RequireStandard().FindControl(controlId) is null) throw new ConfigurationException("Unknown control.");
+        if (ControlInstances.Find(RequireStandard(), profile, controlId) is null) throw new ConfigurationException("Unknown control.");
         if (status is not ("Pending" or "Pass" or "Fail" or "Unknown")) throw new ConfigurationException("Invalid outcome.");
         if (status != "Pending" && (note ?? "").Trim().Length < 8) throw new ConfigurationException("Record an evidence note of at least 8 characters.");
         var register = Evidence.LoadManualChecks(profile.TenantId);

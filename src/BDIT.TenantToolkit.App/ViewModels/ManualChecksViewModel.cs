@@ -67,7 +67,7 @@ public sealed class ManualChecksViewModel : PageViewModel
         ManualCheckRegister register;
         try { register = Workspace.LoadManualChecks(); }
         catch (ToolkitException ex) { Shell.ShowError(ex); register = new ManualCheckRegister(); }
-        foreach (var c in Workspace.Standard.Controls)
+        foreach (var c in ControlInstances.All(Workspace.Standard, Workspace.Profile))
         {
             register.Checks.TryGetValue(c.Id, out var check);
             Rows.Add(new ManualCheckRow
