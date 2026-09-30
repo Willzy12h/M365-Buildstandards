@@ -1,12 +1,12 @@
-# Build Standard 2026.09.12 - summary
+# Build Standard 2026.09.30 - summary
 
-The loaded catalogue is the source of truth: 96 controls across Entra, Intune, Exchange and Purview, with 61 creation recipes. Open **Build Standard > Export engineer standards and manual guide** for the complete settings and manual procedures in HTML or Markdown. [Export instructions](ENGINEER-DOCUMENTS.md) and [coverage by control](AUTOMATION-COVERAGE.md) describe the implemented scope. Older published catalogue files are unchanged.
+The loaded catalogue is the source of truth: 93 controls across Entra, Intune, Exchange and Purview, with 61 creation recipes. Open **Build Standard > Export engineer standards and manual guide** for the complete settings and manual procedures in HTML or Markdown. [Export instructions](ENGINEER-DOCUMENTS.md) and [coverage by control](AUTOMATION-COVERAGE.md) describe the implemented scope. Older published catalogue files are unchanged.
 
 ## Required outcomes
 
 - Identity: passkeys including Authenticator, phishing-resistant administrator MFA, system-preferred MFA, Authenticator registration campaign, user self-consent off and admin consent workflow with named reviewers. SSPR stays off and is checked only.
 - Offices: individually named public-IP locations, created untrusted. CA creation remains disabled, with two emergency accounts and the current operator excluded.
-- Devices: everyday Entra join with automatic MDM enrolment; Autopilot device preparation with a separately reviewed provisioning owner on an empty group. Classic registration/ESP are deferred. Reset this PC is untouched.
+- Devices: everyday Entra join with automatic MDM enrolment; Autopilot device preparation with a separately reviewed provisioning owner on an empty group. Classic registration/profile/ESP are retired from this default; old tenant configurations require separate review. Reset this PC is untouched.
 - Windows: ESET antivirus/EDR; no managed firewall; BitLocker recovery rotation; Hello minimum eight with lowercase required and digits allowed; long paths and web sign-in. Native supported settings implement UK time zone, Storage Sense, eligible-edition consumer features, Windows settings backup, mains sleep and conditional removal of consumer Copilot only. Chrome SSO, UK setup, file extensions, Files On-Demand, a user-changeable starting taskbar and fast startup have explicit manual procedures where the native contract is unconfirmed. Microsoft Store is unrestricted by this standard; Microsoft 365 Copilot stays.
 - Compliance: mark non-compliant after five days on every policy, with no email notifications. Autopatch is intended for all eligible devices, with manual prerequisite/licence and conflict review; category enrolment alone does not prove rollout.
 - Mobile: eight Microsoft apps on each platform, created unassigned; Android requires Managed Google Play. No ABM, VPP or supervised-only requirement.

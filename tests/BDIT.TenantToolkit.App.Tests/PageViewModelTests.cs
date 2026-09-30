@@ -52,6 +52,31 @@ public sealed class PageViewModelTests : IDisposable
         Assert.Contains(nameof(PlanViewModel.ContextText), raised);
     }
 
+    [Fact]
+    public void Inspecting_a_control_updates_guidance_without_selecting_it_for_execution()
+    {
+        var plan = _shell.Page<PlanViewModel>();
+        var control = plan.Controls[0];
+        var raised = new List<string?>();
+        plan.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        plan.SelectedControl = control;
+        Assert.False(control.IsSelected);
+        Assert.Contains(control.ControlId, plan.SelectionDetail);
+        Assert.Contains(nameof(PlanViewModel.SelectionDetail), raised);
+        Assert.Contains(nameof(PlanViewModel.SelectionProcedure), raised);
+        plan.SelectedControl = null;
+        Assert.Contains("Tick an eligible", plan.SelectionDetail);
+    }
+
+    [Fact]
+    public void Offline_next_step_keeps_engineer_exports_available_and_saved_evidence_inert()
+    {
+        Assert.Contains("export the engineer guide offline", _shell.NextAction);
+        _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        Assert.Contains("Connect read-only", _shell.NextAction);
+        Assert.False(_shell.Workspace.SnapshotIsLive);
+    }
+
     /// <summary>A refresh replaces the rows; the new rows must be followed too, not only the first set.</summary>
     [Fact]
     public void The_plan_page_count_follows_ticks_after_a_refresh()

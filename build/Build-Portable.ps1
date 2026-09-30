@@ -72,7 +72,7 @@ Invoke-Step 'Stage package contents' {
     $documents = @(
         'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
-        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md'
+        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md', 'NATIVE-SETTINGS-AND-MOBILE.md'
     )
     New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
     foreach ($document in $documents) {
@@ -89,6 +89,11 @@ Invoke-Step 'Stage package contents' {
     Copy-Item -LiteralPath (Join-Path $root 'CHANGELOG.md') -Destination $stage -Force
 
     $runtimeVersion = (Get-ChildItem -LiteralPath (Join-Path $stage 'app') -Filter 'System.Private.CoreLib.dll' -Recurse | Select-Object -First 1).VersionInfo.ProductVersion
+    $sourceCommit = 'unavailable (source archive)'
+    if ((Test-Path -LiteralPath (Join-Path $root '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $sourceCommit = & git rev-parse HEAD
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the Git source commit.' }
+    }
     $manifest = [ordered]@{
         product        = 'M365 BuildStandard Tool'
         version        = $version
@@ -96,6 +101,8 @@ Invoke-Step 'Stage package contents' {
         selfContained  = $true
         dotnetRuntime  = $runtimeVersion
         dotnetSdk      = (& dotnet --version)
+        sourceCommit   = $sourceCommit
+        defaultStandard = (Get-Content -LiteralPath (Join-Path $stage 'config\toolkit.settings.json') -Raw | ConvertFrom-Json).defaultStandardRelease
         builtAt        = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
         builtOn        = $env:COMPUTERNAME
         standards      = (Get-ChildItem -LiteralPath (Join-Path $stage 'standards') -Filter '*.json' | Where-Object { $_.Name -ne 'manifest.json' } | ForEach-Object { $_.Name })

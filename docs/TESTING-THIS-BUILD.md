@@ -1,6 +1,6 @@
 # Testing this build
 
-Preview.14 / standard 2026.09.12 was developed and tested with synthetic fixtures only. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
+Preview.15 / standard 2026.09.30 was developed and tested with synthetic fixtures only. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
 
 ## 1. Get the build
 
@@ -29,7 +29,7 @@ The same run publishes **synthetic-ui-review** at three window sizes, with bindi
 
 Launch the application and go straight to these two pages.
 
-**Build Standard.** Load 2026.09.12, browse all 96 controls and expand **Export engineer standards and manual guide**. Export both documents in both formats; every control should appear under its area with exact settings and complete manual sections. No client selection or connection is needed. Historical releases should refuse an incomplete manual guide with an explanation. The separate *Prepared for* export is the client-facing document. [Export instructions](ENGINEER-DOCUMENTS.md) explain the distinction; HTML browser/print appearance has not been verified in this development environment.
+**Build Standard.** Load 2026.09.30, browse all 93 controls and expand **Export engineer standards and manual guide**. Export both documents in both formats; every control should appear under its area with exact settings and complete manual sections. No client selection or connection is needed. Historical releases should refuse an incomplete manual guide with an explanation. The separate *Prepared for* export is the client-facing document. [Export instructions](ENGINEER-DOCUMENTS.md) explain the distinction; HTML browser/print appearance has not been verified in this development environment.
 
 **Assessment and Plan.** Review the Entra, Intune, Exchange and Purview area filters. A new Plan area clears selection; Select visible selects only eligible rows displayed in that area. **Configuration > Exchange and Purview** exposes the domain, read-only script export, capture import and selected inert proposal. Do not execute the references or press DNS during an offline review; use only synthetic imported captures for local checks.
 

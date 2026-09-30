@@ -4,7 +4,11 @@
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
 
-## Current release work - PR #19
+## Current continuation — Preview.15 / 2026.09.30
+
+The user authorised completion on 30 September. PR #19 remains the owned Astra/Codex release claim, now a draft while the successor changes. Use [COMPLETION-REGISTER](COMPLETION-REGISTER.md) for current results and acceptance status. The missing Claude context document is no longer a prerequisite. .NET 10 migration, legacy retirements, engineer detail/evidence workflow and package validation continue together. The .NET migration Windows workflow at bdac57b passed; it does not certify later source changes. No tenant or device operations have occurred.
+
+## Prior release work - PR #19
 
 **Preview.14 / standard 2026.09.12** is implemented on `astra/release-2026-09-12`, based on integration `5cadd3a070b0e308bdffc327dfc7954bd69b9e83`. [PR #19](https://github.com/Willzy12h/M365-Buildstandards/pull/19) targets integration; it is for human review, not merged or approved by the agent. Each NEXT-RELEASE-PLAN phase was committed and published in order. Use [the release validation ledger](RELEASE-2026.09.12-VALIDATION.md) and the exact PR-head CI run for observed counts; older evidence below is historical.
 

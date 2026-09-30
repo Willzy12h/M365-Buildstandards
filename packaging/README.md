@@ -57,9 +57,9 @@ Then, as you need them: `BUILD-STANDARD-SUMMARY.md` for what the standard requir
 existing policy is equivalent, `LICENSING.md` for the licence counts, `RECOVERY.md` for undoing a recorded change,
 and `UNRESOLVED-WRITES.md` when a write's outcome is uncertain.
 
-For 2026.09.12, `ENGINEER-DOCUMENTS.md` explains the two complete catalogue exports (HTML/Markdown), and
+For 2026.09.30, `ENGINEER-DOCUMENTS.md` explains the two complete catalogue exports (HTML/Markdown), and
 `EXCHANGE-PURVIEW.md` explains read-only capture import, explicit DNS checks and inert manual proposals.
-The standard has 96 controls and 61 candidate recipes. Export the engineer documents from Build Standard
+The standard has 93 controls and 61 candidate recipes. Export the engineer documents from Build Standard
 without selecting or connecting a client.
 
 ## What it will not do

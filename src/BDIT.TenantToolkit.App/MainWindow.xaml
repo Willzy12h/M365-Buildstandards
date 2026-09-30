@@ -35,6 +35,8 @@
       <Border DockPanel.Dock="Bottom" Padding="18,16" Background="{StaticResource BgNavHeader}">
         <StackPanel>
           <TextBlock Text="{Binding StandardText}" Foreground="{StaticResource TextNav}" FontSize="11"/>
+          <TextBlock Text="NEXT STEP" Foreground="{StaticResource TextNav}" FontSize="10" FontWeight="SemiBold" Margin="0,10,0,4"/>
+          <TextBlock Text="{Binding NextAction}" Foreground="{StaticResource TextNav}" FontSize="11" ToolTip="{Binding NextAction}"/>
           <TextBlock Text="{Binding VersionText}" Foreground="#9DB5CA" FontSize="10" Margin="0,7,0,0" MaxHeight="66" TextTrimming="CharacterEllipsis" ToolTip="{Binding VersionText}"/>
         </StackPanel>
       </Border>

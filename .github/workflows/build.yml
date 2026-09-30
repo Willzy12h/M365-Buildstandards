@@ -60,6 +60,14 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
 
+      - name: Verify fresh extraction and actual packaged first launch
+        shell: powershell
+        run: |
+          $zips = @(Get-ChildItem dist -Filter '*.zip')
+          if ($zips.Count -ne 1) { throw 'Expected exactly one portable review ZIP.' }
+          $zip = $zips[0]
+          ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json"
+
       - name: Upload synthetic UI review
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,6 +88,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.zip.sha256
+            dist/portable-verification.json
           if-no-files-found: error
 
       - name: Upload generated engineer documents

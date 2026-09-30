@@ -48,11 +48,40 @@ public sealed class PlanViewModel : PageViewModel
     public ControlSelection? SelectedControl
     {
         get => _selectedControl;
-        set { SetProperty(ref _selectedControl, value); OnPropertyChanged(nameof(SelectionPrerequisites)); }
+        set
+        {
+            SetProperty(ref _selectedControl, value);
+            OnPropertyChanged(nameof(SelectionPrerequisites));
+            OnPropertyChanged(nameof(SelectionDetail));
+            OnPropertyChanged(nameof(SelectionProcedure));
+        }
     }
     private ControlDefinition? FindControl(string? id) => Workspace.Standard is { } standard ? ControlInstances.Find(standard, Workspace.Profile, id ?? "") : null;
     public IReadOnlyList<ControlPrerequisite>? SelectionPrerequisites => FindControl(SelectedControl?.ControlId)?.Prerequisites;
     public IReadOnlyList<ControlPrerequisite>? RowPrerequisites => FindControl(SelectedRow?.ControlId)?.Prerequisites;
+
+    public string SelectionDetail
+    {
+        get
+        {
+            var c = FindControl(SelectedControl?.ControlId);
+            if (c is null) return "Select a row to read its purpose and requirements. Tick an eligible control to include it in the plan.";
+            var inputs = Workspace.Standard!.Parameters.Where(p => (p.RequiredForControls?.Contains(c.Id, StringComparer.OrdinalIgnoreCase) ?? false) || (c.Payload is not null && ParameterUsage.Uses(c.Payload, p.Key)));
+            return $"{c.Id} · {c.Name}\n{c.Purpose}\n\nDesired result: {c.DesiredState}\nPlanning: {SelectedControl!.Status} — {SelectedControl.Explanation}\nSafe candidate: {c.SafeDeployment.State}\nLicence: {string.Join(", ", c.Licence.ServicePlans)}\n{c.Licence.Note}\n\nClient inputs: " +
+                string.Join("; ", inputs.Select(p => p.Label + (p.Required ? " (required)" : "") + (p.HasDefault ? " (review shipped default)" : ""))) +
+                $"\n\nEngineer action: {c.EngineerAction}\n{c.DocumentationNotes}";
+        }
+    }
+    public string SelectionProcedure
+    {
+        get
+        {
+            var m = FindControl(SelectedControl?.ControlId)?.Implementation;
+            if (m is null) return "Select a control. For older catalogues, use the generated build standard and linked references.";
+            return "BEFORE\n" + string.Join("\n", m.Before) + "\n\nPROCEDURE\n" +
+                string.Join("\n", m.PortalSteps.Select((s, i) => $"{i + 1}. {s}")) + "\n\nVERIFY\n" + string.Join("\n", m.After);
+        }
+    }
 
     public PlanRow? SelectedRow
     {

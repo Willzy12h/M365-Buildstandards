@@ -1,6 +1,6 @@
-# Automation coverage - 2026.09.12
+# Automation coverage - 2026.09.30
 
-**96 controls: 25 Entra, 61 Intune, eight Exchange and two Purview. There are 61 creation recipes.** The other 35 controls use reviewed tenant actions, evidence-backed observations or explicit manual procedures. Creation counts do not describe production deployment or certification. No service or device behaviour was tested against a tenant for this release.
+**93 controls: 25 Entra, 58 Intune, eight Exchange and two Purview. There are 61 creation recipes.** The other 32 controls use reviewed tenant actions, evidence-backed observations or explicit manual procedures. Creation counts do not describe production deployment or certification. No service or device behaviour was tested against a tenant for this release.
 
 Create selected candidates through **Plan changes > Deploy**. Assessment and Plan have an area filter; changing the Plan area clears the selection. **Policy automation** holds separate reviewed tenant settings, assignments and package actions. Configuration has the [Exchange/Purview capture and proposal workflow](EXCHANGE-PURVIEW.md). The [two engineer documents](ENGINEER-DOCUMENTS.md) contain every exact setting and manual check, generated directly from the loaded catalogue.
 
@@ -36,8 +36,6 @@ Create selected candidates through **Plan changes > Deploy**. Assessment and Pla
 | Entra | CA-010 | Secure device registration | Disabled CA candidate; separate activation. |
 | Intune | ENR-001 | Automatic MDM enrolment | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
 | Intune | ENR-002 | Enrolment restrictions | Unassigned candidate; separate assignment and device/app verification. |
-| Intune | ENR-003 | Windows Autopilot profile | Deferred classic profile; retain reference pending retirement decision. |
-| Intune | ENR-004 | Enrolment Status Page | Deferred classic ESP; retain reference pending retirement decision. |
 | Intune | ENR-005 | Apple MDM ownership and certificate | Client-owned Apple push certificate and renewal. |
 | Intune | ENR-006 | Managed Google Play connection | Manual Play connection/consent; projected metadata read, no connection token. |
 | Intune | CMP-001 | Devices with no compliance policy | Captured assessment plus separate reviewed tenant change; complete scope/behaviour checks by hand. |
@@ -52,7 +50,6 @@ Create selected candidates through **Plan changes > Deploy**. Assessment and Pla
 | Intune | CFG-WIN-005 | OneDrive sign-in and Known Folder Move | Unassigned candidate; separate assignment and device/app verification. Required native settings supplied/reviewed by engineer. |
 | Intune | CFG-WIN-006 | Microsoft Edge configuration | Unassigned candidate; separate assignment and device/app verification. Required native settings supplied/reviewed by engineer. |
 | Intune | CFG-WIN-007 | Long paths | Unassigned candidate; separate assignment and device/app verification. |
-| Intune | SEC-WIN-002 | Microsoft Defender EDR onboarding | Deferred Defender onboarding; ESET selected, retirement proposed. |
 | Intune | MAM-IOS-001 | iOS app protection | Unassigned candidate; separate assignment and device/app verification. |
 | Intune | MAM-AND-001 | Android app protection | Unassigned candidate; separate assignment and device/app verification. |
 | Intune | APP-WIN-001 | Microsoft 365 Apps | Unassigned candidate; separate assignment and device/app verification. |
@@ -116,7 +113,7 @@ Create selected candidates through **Plan changes > Deploy**. Assessment and Pla
 
 ## Retired and deferred controls
 
-SEC-WIN-001 (Defender antivirus), CMP-WIN-002 (Defender compliance supplement) and SEC-WIN-003 (managed firewall) are removed from .12 only. ESET is APP-WIN-008; no firewall policy is introduced. ENR-003/004 and SEC-WIN-002 remain deferred references, not recipes. Recommend retiring them from default scope after the maintainer's decision; retain CFG-WIN-004 SmartScreen as separate shell protection pending confirmation.
+SEC-WIN-001 (Defender antivirus), CMP-WIN-002 (Defender compliance supplement) and SEC-WIN-003 (managed firewall) were removed beginning with .12. ESET is APP-WIN-008; no firewall policy is introduced. ENR-003/004 and SEC-WIN-002 are retired from the 2026.09.30 default. CFG-WIN-004 SmartScreen remains independent shell protection. Historical catalogues and existing tenant objects remain unchanged. See [native/manual dispositions](NATIVE-SETTINGS-AND-MOBILE.md).
 
 Historical renumbering remains important: in .9/.10 PRE-001/002 named the user/device exclusion groups (now PRE-009/010), PRE-003 named MAM Only Users (now PRE-004), PRE-004 named Pilot Devices (now PRE-005), and PRE-005 named the office location (now PRE-008 instances). Read release and control name when reconciling older evidence; never transfer ownership by a reused ID or name.
 

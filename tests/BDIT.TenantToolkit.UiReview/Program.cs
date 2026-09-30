@@ -81,7 +81,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "automation", "standard" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "history", "automation", "standard" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -340,7 +340,9 @@ internal static partial class Program
             Status = RunStatus.ReviewRequired, Error = "Synthetic verification failure illustrates honest result reporting.", Release = standard.Release,
             Results = plan.Rows.Select((r, i) => new RunResult { ControlId = r.ControlId, Name = r.Name, Collection = r.Collection, PlannedAction = r.Action.ToString(), Status = i == 0 ? ResultStatus.Completed : i == 1 ? ResultStatus.Error : ResultStatus.NotRun,
                 WriteAcceptance = i < 2 ? WriteAcceptance.Accepted : WriteAcceptance.NotAttempted, Configuration = i == 0 ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown,
-                Verification = "Functional verification pending", Reason = "Offline synthetic result — no write occurred." }).ToList() };
+                Verification = "Functional verification pending", WrittenPayload = r.Payload?.DeepClone().AsObject(),
+                AfterObject = i == 0 ? new JsonObject { ["id"] = Id(600), ["state"] = "disabled", ["synthetic"] = true } : null,
+                Reason = "Offline synthetic result — no write occurred." }).ToList() };
         Set(workspace, nameof(Workspace.LastRun), run);
         workspace.Logger.Info("UI review", "OFFLINE SYNTHETIC DATA. No authentication, Graph collection or tenant write was called.");
     }
@@ -376,7 +378,15 @@ internal static partial class Program
         {
             var vm = shell.Page<PlanViewModel>();
             vm.SelectedRow = vm.Rows.FirstOrDefault();
-            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "ENR-003");
+            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "ENR-007");
+        }
+        if (key == "deploy")
+            shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
+        if (key == "history")
+        {
+            var vm = shell.Page<HistoryViewModel>();
+            vm.SelectedRun = vm.Runs.FirstOrDefault();
+            vm.SelectedResult = vm.RunResults.FirstOrDefault();
         }
         if (key == "standard")
         {

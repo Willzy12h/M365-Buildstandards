@@ -16,6 +16,7 @@ public sealed class HistoryViewModel : PageViewModel
     private DriftItem? _selectedDriftItem;
     private string _lastExport = "";
     private string _tenant = "";
+    private RunResult? _selectedResult;
 
     public HistoryViewModel(ShellViewModel shell) : base(shell, "Evidence and drift")
     {
@@ -44,6 +45,12 @@ public sealed class HistoryViewModel : PageViewModel
     public ObservableCollection<SnapshotSummary> Snapshots { get; } = new();
     public ObservableCollection<DeploymentRun> Runs { get; } = new();
     public ObservableCollection<RunResult> RunResults { get; } = new();
+    public RunResult? SelectedResult
+    {
+        get => _selectedResult;
+        set { if (SetProperty(ref _selectedResult, value)) OnPropertyChanged(nameof(SelectedEvidence)); }
+    }
+    public ResultEvidence SelectedEvidence => new(SelectedResult, Shell.CopyCommand);
     public ObservableCollection<JournalEntry> Journal { get; } = new();
     public ObservableCollection<ControlStatusChange> ControlChanges { get; } = new();
     public ObservableCollection<DriftItem> DriftItems { get; } = new();
@@ -61,6 +68,7 @@ public sealed class HistoryViewModel : PageViewModel
         {
             if (!SetProperty(ref _selectedRun, value)) return;
             RunResults.Clear();
+            SelectedResult = null;
             Journal.Clear();
             if (value is null) return;
             foreach (var r in value.Results) RunResults.Add(r);

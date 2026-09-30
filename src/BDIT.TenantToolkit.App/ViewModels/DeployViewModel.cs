@@ -17,6 +17,7 @@ public sealed class PrerequisiteRow
 public sealed class DeployViewModel : PageViewModel
 {
     private string _lastExport = "";
+    private RunResult? _selectedResult;
 
     public DeployViewModel(ShellViewModel shell) : base(shell, "Deploy")
     {
@@ -45,6 +46,12 @@ public sealed class DeployViewModel : PageViewModel
     public ICommand ExportRunHtmlCommand { get; }
     public ICommand ExportRunJsonCommand { get; }
     public ICommand ExportRunXlsxCommand { get; }
+    public RunResult? SelectedResult
+    {
+        get => _selectedResult;
+        set { if (SetProperty(ref _selectedResult, value)) OnPropertyChanged(nameof(SelectedEvidence)); }
+    }
+    public ResultEvidence SelectedEvidence => new(SelectedResult, Shell.CopyCommand);
 
     public ObservableCollection<PrerequisiteRow> Prerequisites { get; } = new();
     public ObservableCollection<RunResult> Results { get; } = new();
@@ -135,8 +142,10 @@ public sealed class DeployViewModel : PageViewModel
             Status = Workspace.Snapshot is not null && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot.Id ? "Ready" : "Pending",
             Detail = "Export the before-change capture and acknowledge it. Plans expire with their snapshot after " + Workspace.Settings.SnapshotMaxAgeMinutes + " minutes."
         });
+        var selectedId = SelectedResult?.ControlId;
         Results.Clear();
         if (Workspace.LastRun is not null) foreach (var r in Workspace.LastRun.Results) Results.Add(r);
+        SelectedResult = Results.FirstOrDefault(r => r.ControlId == selectedId);
         OnPropertyChanged(nameof(RunText));
         OnPropertyChanged(nameof(CanDeploy));
         OnPropertyChanged(nameof(IsRunning));

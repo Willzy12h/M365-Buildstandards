@@ -4,6 +4,10 @@
 
 - Move the application, tests and Windows release pipeline to .NET 10 LTS, pinned SDK 10.0.401 and ProtectedData 10.0.12. The portable release remains self-contained.
 - Honour operator cancellation before read dispatch and after buffered responses. An accepted LAPS write retains unknown verification when stopped; no automatic write replay.
+- Publish immutable standard 2026.09.30 (93 controls, 61 unchanged candidate recipes); retire classic Autopilot/ESP and Defender onboarding, preserve SmartScreen/ESET and all historical release bytes.
+- Document native/manual settings, Outlook managed-device account setup and migrated passkey-profile procedures.
+- Add control purpose/input/manual guidance, persistent next-step hints, and reusable before/requested/after result details on deployment and saved evidence pages.
+- Verify fresh ZIP extraction, exact staged bytes, blank settings, empty evidence and actual packaged offline startup/shutdown in Windows CI.
 - Continue PR #19 with a single completion register. Final Windows/package results and remaining acceptance gates will be recorded against the final commit.
 
 - New standard 2026.09.12; published releases are unchanged. PRE-008 expands to individually selected office locations using stable client keys, with public-only CIDR validation at profile, planner and transport boundaries. The old single PRE-008 ownership record is never adopted for a new instance.
