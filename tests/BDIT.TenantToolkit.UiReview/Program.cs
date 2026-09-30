@@ -279,7 +279,8 @@ internal static partial class Program
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(output, "harness-error.txt"), ex.ToString());
+            File.WriteAllText(Path.Combine(output, "harness-error.txt"), ex + Environment.NewLine
+                + string.Join(Environment.NewLine, PageFailures));
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
             Console.Error.WriteLine(ex);
             return 1;
@@ -378,7 +379,9 @@ internal static partial class Program
         {
             var vm = shell.Page<PlanViewModel>();
             vm.SelectedRow = vm.Rows.FirstOrDefault();
-            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "ENR-007");
+            // Exercise actual bound prerequisite content. ENR-007 has its manual procedure
+            // in Implementation, whereas Hello has the prerequisite entries this check expands.
+            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "CFG-WIN-003");
         }
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
