@@ -70,11 +70,11 @@ public sealed class HistoryViewModel : PageViewModel
             RunResults.Clear();
             SelectedResult = null;
             Journal.Clear();
+            OnPropertyChanged(nameof(RunText));
             if (value is null) return;
             foreach (var r in value.Results) RunResults.Add(r);
             try { foreach (var j in Workspace.Evidence.ReadJournal(value.TenantId, value.Id)) Journal.Add(j); }
             catch (ToolkitException ex) { Shell.ShowError(ex); }
-            OnPropertyChanged(nameof(RunText));
         }
     }
 

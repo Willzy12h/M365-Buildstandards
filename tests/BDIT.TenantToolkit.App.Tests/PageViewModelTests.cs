@@ -133,4 +133,33 @@ public sealed class PageViewModelTests : IDisposable
         Assert.Null(history.Drift);
         Assert.False(history.ExportDriftHtmlCommand.CanExecute(null));
     }
+
+    [Fact]
+    public void Switching_client_clears_selected_run_evidence_and_notifies_its_visible_summary()
+    {
+        var workspace = _shell.Workspace;
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantA), save: false);
+        var history = _shell.Page<HistoryViewModel>();
+        var result = new BDIT.TenantToolkit.Core.Models.RunResult { ControlId = "SYN-001" };
+        history.SelectedRun = new BDIT.TenantToolkit.Core.Models.DeploymentRun
+        {
+            Id = "synthetic-run", TenantId = TestData.TenantA, Results = new() { result }
+        };
+        history.SelectedResult = result;
+        Assert.Contains("synthetic-run", history.RunText);
+        var raised = new List<string?>();
+        history.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
+
+        Assert.Null(history.SelectedRun);
+        Assert.Null(history.SelectedResult);
+        Assert.Empty(history.RunResults);
+        Assert.Empty(history.Journal);
+        Assert.Contains(nameof(HistoryViewModel.RunText), raised);
+        Assert.Contains(nameof(HistoryViewModel.SelectedEvidence), raised);
+        Assert.DoesNotContain("synthetic-run", history.RunText);
+        Assert.DoesNotContain("SYN-001", history.SelectedEvidence.CopyText);
+        Assert.False(history.ExportRunHtmlCommand.CanExecute(null));
+    }
 }

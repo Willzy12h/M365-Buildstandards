@@ -76,7 +76,36 @@ jobs:
           $zips = @(Get-ChildItem dist -Filter '*.zip')
           if ($zips.Count -ne 1) { throw 'Expected exactly one portable review ZIP.' }
           $zip = $zips[0]
-          ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json"
+          try {
+            ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json"
+          } catch {
+            $detail = ($_ | Out-String) + $_.ScriptStackTrace
+            $detail = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Extracted portable validation::$detail"
+            throw
+          }
+
+      # Keep small, synthetic validation facts visible on the check itself as well as in downloadable artifacts.
+      - name: Record validation evidence on the check
+        if: always()
+        shell: pwsh
+        run: |
+          function Notice([string]$title, [string]$message) {
+            $safe = $message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::notice title=${title}::$safe"
+          }
+          Get-ChildItem TestResults -Filter '*.trx' -ErrorAction SilentlyContinue | ForEach-Object {
+            [xml]$result = Get-Content -LiteralPath $_.FullName -Raw
+            $counters = $result.TestRun.ResultSummary.Counters
+            Notice $_.Name "Total=$($counters.total); executed=$($counters.executed); passed=$($counters.passed); failed=$($counters.failed); notExecuted=$($counters.notExecuted)"
+          }
+          if (Test-Path dist/ui-review/verification.json) {
+            $ui = Get-Content dist/ui-review/verification.json -Raw | ConvertFrom-Json
+            Notice 'Offline WPF result' "Status=$($ui.status); pagesAtSizes=$($ui.records.Count); commandsPressed=$($ui.commandsPressed); bindingIssues=$($ui.bindingIssues.Count); idleWindowClosed=$($ui.idleWindowClosed); tenantCalls=$($ui.tenantCalls)"
+          }
+          if (Test-Path dist/portable-verification.json) {
+            Notice 'Extracted portable result' (Get-Content dist/portable-verification.json -Raw)
+          }
 
       - name: Upload synthetic UI review
         if: always()
