@@ -17,7 +17,7 @@ To check the download, compare the `.sha256` file with:
 Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256
 ```
 
-The same run publishes **synthetic-ui-review** at three window sizes, with binding, command/refusal and keyboard records, and **engineer-standard-documents** with both generated documents in HTML and Markdown. These contain catalogue data, not tenant evidence. Browser appearance and human screen-reader experience remain separate manual checks.
+The same run publishes **synthetic-ui-review** at three window sizes, with binding, command/refusal and keyboard records, and **engineer-standard-documents** with both generated documents in HTML and Markdown. These contain catalogue data, not tenant evidence. Chromium catalogue-export checks and representative print inspection are recorded in the release completion register. Human screen-reader experience remains a separate acceptance check.
 
 ## 2. What it will and will not do
 
@@ -29,7 +29,7 @@ The same run publishes **synthetic-ui-review** at three window sizes, with bindi
 
 Launch the application and go straight to these two pages.
 
-**Build Standard.** Load 2026.09.30, browse all 93 controls and expand **Export engineer standards and manual guide**. Export both documents in both formats; every control should appear under its area with exact settings and complete manual sections. No client selection or connection is needed. Historical releases should refuse an incomplete manual guide with an explanation. The separate *Prepared for* export is the client-facing document. [Export instructions](ENGINEER-DOCUMENTS.md) explain the distinction; HTML browser/print appearance has not been verified in this development environment.
+**Build Standard.** Load 2026.09.30, browse all 93 controls and expand **Export engineer standards and manual guide**. Export both documents in both formats; every control should appear under its area with exact settings and complete manual sections. No client selection or connection is needed. Historical releases should refuse an incomplete manual guide with an explanation. The separate *Prepared for* export is the client-facing document. [Export instructions](ENGINEER-DOCUMENTS.md) explain the distinction; Chromium checks cover all 93 articles, internal anchors, catalogue identity and viewport overflow; both printed PDFs retain all control IDs, and representative pages have been visually inspected. This does not replace checking your chosen browser, printer or assistive technology.
 
 **Assessment and Plan.** Review the Entra, Intune, Exchange and Purview area filters. A new Plan area clears selection; Select visible selects only eligible rows displayed in that area. **Configuration > Exchange and Purview** exposes the domain, read-only script export, capture import and selected inert proposal. Do not execute the references or press DNS during an offline review; use only synthetic imported captures for local checks.
 

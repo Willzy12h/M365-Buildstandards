@@ -1,0 +1,113 @@
+{
+  "checks": [
+    {
+      "name": "Manual candidates are not selectable",
+      "passed": true
+    },
+    {
+      "name": "Inspecting a row does not select an action",
+      "passed": true
+    },
+    {
+      "name": "Changing module clears previous ticks",
+      "passed": true
+    },
+    {
+      "name": "Reviewed queue shows both selected inert candidates",
+      "passed": true
+    },
+    {
+      "name": "Wrong synthetic tenant confirmation refuses progression",
+      "passed": true
+    },
+    {
+      "name": "Acceptance configuration and functional results remain distinct",
+      "passed": true
+    },
+    {
+      "name": "Missing after evidence does not look successful",
+      "passed": true
+    },
+    {
+      "name": "Copy reports successful synthetic output",
+      "passed": true
+    },
+    {
+      "name": "Prototype has no viewport overflow (1480, 940)",
+      "passed": true
+    },
+    {
+      "name": "Prototype has no viewport overflow (1180, 760)",
+      "passed": true
+    },
+    {
+      "name": "Prototype has no viewport overflow (940, 660)",
+      "passed": true
+    },
+    {
+      "name": "Prototype has no viewport overflow (1180, 640)",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard displays the verified catalogue digest",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard contains all 93 control articles",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard historical retirements absent from contents",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard all internal anchors resolve",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard no horizontal viewport overflow",
+      "passed": true
+    },
+    {
+      "name": "BuildStandard printed PDF contains all control IDs",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide displays the verified catalogue digest",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide contains all 93 control articles",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide historical retirements absent from contents",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide all internal anchors resolve",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide no horizontal viewport overflow",
+      "passed": true
+    },
+    {
+      "name": "ManualGuide printed PDF contains all control IDs",
+      "passed": true
+    },
+    {
+      "name": "No JavaScript exceptions",
+      "passed": true
+    },
+    {
+      "name": "Offline views made no external requests",
+      "passed": true
+    }
+  ],
+  "passed": 26,
+  "failed": 0,
+  "javascriptErrors": [],
+  "externalRequests": [],
+  "note": "Chromium local prototype and catalogue exports. No .NET browser host, authentication, physical DPI or live service acceptance."
+}

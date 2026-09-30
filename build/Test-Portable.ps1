@@ -28,6 +28,9 @@ try {
         }
     } finally { $archive.Dispose() }
     Expand-Archive -LiteralPath $zip -DestinationPath $extract
+    # Windows PowerShell/.NET Framework may expand an existing TEMP 8.3 alias in GetFullPath.
+    # Canonicalise the existing root in the same way as every child before testing containment.
+    $extract = [IO.Path]::GetFullPath($extract)
     $listed = @{}
     foreach ($line in Get-Content -LiteralPath (Join-Path $extract 'SHA256SUMS.txt')) {
         if ($line -notmatch '^([a-fA-F0-9]{64})  (.+)$') { throw 'Malformed package checksum line.' }

@@ -83,3 +83,16 @@ Preview.5 adds four data-driven Windows candidates and a restricted Graph-export
 ## Independent review corrections
 
 PR #9 retains Claude's WPF/Core/Graph/Engine structure and adds guards rather than importing a second runtime. See [review dispositions](REVIEW-FIXES.md) for behavioural comparisons and regression evidence covering directory prerequisites, older evidence, assessment, typed inputs, targets and reporting.
+
+## Preview.15: current continuation
+
+| Area | Choice and evidence | Remaining limit |
+| --- | --- | --- |
+| Runtime | Retain Claude's component separation; upgrade all projects to .NET 10, official SDK 10.0.401 and self-contained win-x64 | Live WAM/consent needs Windows tenant acceptance |
+| Interface | WPF detail/prerequisite guidance and shared result evidence, keeping UI logic outside the engine. Standalone inert HTML comparison passes 26 browser checks | HTML is not an embedded host; no authentication/bridge equivalence claimed |
+| Device references | rc.15 runtime and later supplied snapshot/Preview 23 source inform selection, detail, outcomes and evidence patterns. Available Engineer Console source is rc.1; claimed rc.5 was not supplied | No claim to latest laptop files or integrated device successor |
+| Standard | Successor .30 has 93 controls/61 unchanged candidate payloads; ten published catalogues remain byte-identical | Microsoft/device effectiveness remains unverified |
+| Evidence | Missing historical fields stay unknown; client switch clears selected result and visible summary; tests cover these boundaries | Actual tenant evidence was not accessed |
+| Reports | Engine-generated HTML/Markdown; Chromium checks and representative A4 inspection completed | Physical print and screen-reader experience require human checks |
+
+See [interface decision](INTERFACE-DECISION-2026.09.30.md), [release goal](RELEASE-GOAL-2026.09.30.md) and [completion register](COMPLETION-REGISTER.md).
