@@ -6,7 +6,7 @@ The plan for making this maintainable and extensible is [docs/integration/ARCHIT
 
 ## Current continuation — Preview.15 / 2026.09.30
 
-The user authorised completion on 30 September. PR #19 remains the owned Astra/Codex release claim, now a draft while the successor changes. Use [COMPLETION-REGISTER](COMPLETION-REGISTER.md) for current results and acceptance status. The missing Claude context document is no longer a prerequisite. .NET 10 migration, legacy retirements, engineer detail/evidence workflow and package validation continue together. The .NET migration Windows workflow at bdac57b passed; it does not certify later source changes. No tenant or device operations have occurred.
+The user authorised completion on 30 September. PR #19 remains the owned Astra/Codex release claim, now a draft while the successor changes. Use [COMPLETION-REGISTER](COMPLETION-REGISTER.md) for current results and acceptance status. The missing Claude context document is no longer a prerequisite. .NET 10 migration, legacy retirements, engineer detail/evidence workflow and package validation continue together. The verified candidate is 7fb73d1e90ccd26eb62be8b0bfab7a3cc8751198: Windows run 36787138102 passes 810 engine/79 application tests, 42 native page/size checks and actual fresh-package startup/shutdown with 287 matching files. The completion register links the ZIP, checksum, generated documents and real WPF renders. Cloud artifact retrieval/visual inspection and human/live acceptance remain outstanding. No tenant or device operations have occurred. The user saved the short goal pointing to RELEASE-GOAL-2026.09.30.md; use that document for the definition of done.
 
 ## Prior release work - PR #19
 

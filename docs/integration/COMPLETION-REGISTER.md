@@ -7,7 +7,7 @@ The existing release claim is continued on `astra/release-2026-09-12`, targeting
 | Item | State | Evidence / remaining work |
 | --- | --- | --- |
 | Baseline reconciliation | Verified | Only PR #19 open across the three repositories; its head and source refs unchanged. Both prior Windows workflows passed. Current cloud strict cross-build and 804 engine tests passed |
-| .NET 10 application and pipeline | Implemented; Windows build/test/UI checks passed | SDK 10.0.401, runtime/ProtectedData 10.0.12; all projects, bootstrap, CI and package metadata migrated. Cloud strict solution and harness builds pass; 809 engine tests pass after successor tests. Migration Windows workflow 36783189048 at bdac57b passes engine/application tests, UI harness and portable builder. Successor/interface Windows checks pass at 13b3fbe (run 36785503355). Extracted startup and WAM acceptance remain separate |
+| .NET 10 application and pipeline | Verified for the offline preview | SDK 10.0.401, runtime/ProtectedData 10.0.12; all projects, bootstrap, CI and package metadata migrated. Cloud strict solution and harness builds pass. Final Windows run at 7fb73d1 passes 810 engine and 79 application tests (zero failures/skips). Migration Windows workflow 36783189048 at bdac57b passes engine/application tests, UI harness and portable builder. Successor/interface Windows checks pass at 13b3fbe (run 36785503355). Fresh extracted startup/shutdown now pass at 7fb73d1; WAM acceptance remains separate |
 | Immutable successor standard | Implemented; synthetic verified | 2026.09.30: 93 controls/61 unchanged candidate payloads; approved three retirements, all ten historical digests pinned, complete manual sections and primary sources tested |
 | Native Windows settings | Complete manual dispositions; live validation outstanding | NATIVE-SETTINGS-AND-MOBILE.md and generated guide record prerequisites/procedure/result/check. Public source research does not establish authenticated catalog IDs; no unsupported transport added |
 | Exchange execution | Implemented; manual boundary retained | Existing strict read-only capture/import and selected inert proposals; module retries prevent supported single-attempt toolkit writes |
@@ -19,13 +19,40 @@ The existing release claim is continued on `astra/release-2026-09-12`, targeting
 | Interface choice | WPF retained; comparison recorded | INTERFACE-DECISION-2026.09.30.md: standalone HTML selection/review/outcomes prototype, 26 browser checks; embedded host/authentication/bridge parity not claimed |
 | Architecture roadmap | Reconciled | ARCHITECTURE-DISPOSITION-2026.09.30.md records each workstream; current cancellation, shared presentation and release provenance addressed; broader compiler/async/scheduling work deferred explicitly |
 | Generated reports/manual procedures | Engine exports and browser/print review passed | Both documents contain 93 articles, verified digest and resolving anchors; no horizontal overflow; printed PDFs retain all IDs. Representative introduction and long payload pages visually inspected. Physical printing/Narrator remain open |
-| Deployment safeguards | Existing regression baseline verified | Re-run negative/refusal, tenant/evidence/ownership/drift, disabled/unassigned, cancellation/recovery and ambiguous-write cases after changes |
-| Portable Windows release | Build passed; extracted-package verification under diagnosis | At 13b3fbe, strict build, both test suites, portable builder and native WPF harness pass; fresh-extraction check fails. Final package is not certified or published from that run |
+| Deployment safeguards | Regression baseline verified on the candidate | Full 810 engine/79 application suites pass, including refusal, tenant/evidence/ownership/drift, disabled/unassigned, cancellation/recovery and ambiguous-write cases. Live service acceptance remains open |
+| Portable Windows release | Final candidate verified and published for review | Run 36787138102 at 7fb73d1 passes strict builds, both suites, native UI harness and actual extracted-package first launch/shutdown. 287 files match stage/checksums; blank connection settings and no shipped evidence verified |
 | Human and tenant acceptance | Unperformed | CONTROLLED-ACCEPTANCE.md defines setup/read-only checks, two inert candidates and separately approved pilot/recovery. Physical DPI/keyboard/Narrator, WAM/consent and service/device effectiveness remain unperformed |
 
 Device references: verified 30 September handoff, preserved rc.15 runtime, Preview 23 components and subsequent snapshot. Only workflow/design patterns are used; the PowerShell/WinForms device product is separate from the .NET migration. No real device or tenant operations are authorised by this development task.
 
-## Current validation
+## Verified portable candidate — 7fb73d1
+
+The [successful Windows run 36787138102](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36787138102) builds source **7fb73d1e90ccd26eb62be8b0bfab7a3cc8751198**, application **1.1.0-preview.15**, standard **2026.09.30**. Subsequent changes recording these results are documentation only; use this exact package/run identity when reproducing acceptance.
+
+| Check | Observed result |
+| --- | --- |
+| Strict solution and UI harness builds | Pass |
+| Engine tests | 810 executed, 810 passed, 0 failed, 0 skipped |
+| Windows application tests | 79 executed, 79 passed, 0 failed, 0 skipped |
+| Native WPF | 42 page/size records, 69 command presses, zero binding issues; idle window closes; zero tenant calls |
+| Large synthetic fixtures | 10,000 group objects over 100 GET pages retained; 10,000 finding filter/restoration test passes |
+| Fresh portable extraction | 287 files; all checksums and stage bytes match; no connection IDs or private/generated evidence shipped |
+| Actual packaged executable | Window opens, default standard loads, expected writable directories are created, clean shutdown |
+| Browser/reference reports | 26 checks pass, zero JavaScript errors/external requests; representative print pages inspected |
+| Live Microsoft/device operations | None performed |
+
+ZIP SHA-256: `35aa42bd0bc6be2c48b1c71b026d28fdb20ff70670363d074f072a19c7f5409c`.
+
+Artifacts from that exact run:
+
+- [Portable Windows package, checksum and extraction result](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36787138102/artifacts/11130272322).
+- [Actual synthetic .NET 10 WPF renders and UI records](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36787138102/artifacts/11130476810).
+- [Generated engineer documents](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36787138102/artifacts/11130372157).
+- [Test results](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36787138102/artifacts/11130297305).
+
+These are an offline-tested preview for review, not client-use acceptance. Native screenshots were generated and checked by the Windows harness; downloading and visually inspecting them here remains blocked by the cloud network policy. PR #19 remains draft while that review is outstanding. Physical accessibility, Windows sign-in/consent, effective exclusions, service/device behaviour and supported live recovery remain separate gates in CONTROLLED-ACCEPTANCE.md. No authorisation for those live operations is implied.
+
+## Validation history
 
 Baseline checks are recorded in RELEASE-2026.09.12-VALIDATION.md and the exact baseline PR-head CI. New release results will be added here as they execute; installed tools and historical pass counts do not certify changed source.
 
