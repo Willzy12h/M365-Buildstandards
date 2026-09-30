@@ -309,6 +309,9 @@ public sealed class GraphClient : IGraphClient
         var forceRefreshNext = false;
         while (true)
         {
+            // Cached tokens and buffered HTTP responses can complete synchronously without
+            // observing cancellation. Honour an operator stop at our own read boundaries.
+            ct.ThrowIfCancellationRequested();
             attempt++;
             var sw = Stopwatch.StartNew();
             HttpResponseMessage response;
@@ -321,6 +324,7 @@ public sealed class GraphClient : IGraphClient
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeout.CancelAfter(_options.ReadTimeout);
+                timeout.Token.ThrowIfCancellationRequested();
                 response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested && attempt < _options.MaxReadAttempts)
@@ -346,8 +350,10 @@ public sealed class GraphClient : IGraphClient
 
             using (response)
             {
+                ct.ThrowIfCancellationRequested();
                 var status = (int)response.StatusCode;
                 var text = await response.Content.ReadAsStringAsync(ct);
+                ct.ThrowIfCancellationRequested();
                 _log.Debug("Graph", $"GET {Describe(path)} -> {status} in {LogFormat.Ms(sw.ElapsedMilliseconds)}", TenantId);
 
                 if (response.IsSuccessStatusCode)

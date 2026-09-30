@@ -49,6 +49,27 @@ public class GraphClientTests
             "/identity/conditionalAccess/policies/" + TestData.Operator, null, stop.Token));
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task Cancelled_read_does_not_acquire_a_token_or_dispatch()
+    {
+        var (client, handler, tokens) = Create();
+        using var stop = new CancellationTokenSource();
+        stop.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetAsync(GraphApi.V1, "/organization", stop.Token));
+        Assert.Equal(0, tokens.Calls);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Stop_during_a_synchronous_read_response_cannot_report_success()
+    {
+        var (client, handler, _) = Create();
+        using var stop = new CancellationTokenSource();
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[]}", _ => stop.Cancel());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetAsync(GraphApi.V1, "/organization", stop.Token));
+        Assert.Single(handler.Requests);
+    }
     [Fact]
     public async Task Recovery_DELETE_is_bodyless_single_attempt_and_requires_deployment_object_route()
     {

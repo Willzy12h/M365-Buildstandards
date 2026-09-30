@@ -34,7 +34,7 @@ The Graph client blocks assessment writes. The executor independently validates 
 
 ## Build and package
 
-Requires .NET 8 SDK on the build machine:
+Requires .NET 10 SDK on the build machine:
 
 ```powershell
 dotnet build BDIT.TenantToolkit.sln -c Release -warnaserror
@@ -43,7 +43,7 @@ dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release
 ./build/Build-Portable.ps1
 ```
 
-BUILD-ME-FIRST.cmd provides the existing user-local SDK bootstrap. Packaging produces a self-contained win-x64 ZIP; engineers need no Node, runtime installation or routine local administrator rights. WPF requires Windows. Core/Graph/Engine target net8.0, with Windows-specific MSAL cache protection.
+BUILD-ME-FIRST.cmd provides the existing user-local SDK bootstrap. Packaging produces a self-contained win-x64 ZIP; engineers need no Node, runtime installation or routine local administrator rights. WPF requires Windows. Core/Graph/Engine target net10.0, with Windows-specific MSAL cache protection.
 
 Extract a reviewed package to a writable folder and use Start.cmd. Shipped custom client IDs are blank. Registration, consent and live tenant testing require separately authorised scope.
 

@@ -1,5 +1,11 @@
 # 1.1.0-preview.14
 
+## 1.1.0-preview.15 — in development, 30 September 2026
+
+- Move the application, tests and Windows release pipeline to .NET 10 LTS, pinned SDK 10.0.401 and ProtectedData 10.0.12. The portable release remains self-contained.
+- Honour operator cancellation before read dispatch and after buffered responses. An accepted LAPS write retains unknown verification when stopped; no automatic write replay.
+- Continue PR #19 with a single completion register. Final Windows/package results and remaining acceptance gates will be recorded against the final commit.
+
 - New standard 2026.09.12; published releases are unchanged. PRE-008 expands to individually selected office locations using stable client keys, with public-only CIDR validation at profile, planner and transport boundaries. The old single PRE-008 ownership record is never adopted for a new instance.
 - Adds administrator phishing-resistant MFA, reviewed identity settings, empty Autopilot device-preparation group and separate owner approval. Modern passkey profiles require manual configuration; the legacy reviewed method action refuses to overwrite them.
 - Windows Hello explicitly requires a lowercase letter and allows digits, minimum eight characters; BitLocker rotates recovery passwords; compliance grace is 120 hours with no notification actions. ESET replaces the removed antivirus/compliance controls; firewall management is removed. Legacy Autopilot/ESP and Defender EDR remain visible manual references pending retirement decisions.

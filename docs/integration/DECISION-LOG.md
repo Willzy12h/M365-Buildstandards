@@ -1,5 +1,11 @@
 # Integration decisions
 
+## Release continuation — 30 September 2026
+
+- **INT-038 — .NET 10 LTS:** the user authorised migration for support lifetime. Retarget the Core/Graph/Engine/CLI, WPF application and both test/harness families to .NET 10; use official SDK 10.0.401, retaining the existing C# 12 source contract. Keep MSAL 4.89.0 and its broker together; verify them under the new Windows runtime rather than changing authentication architecture. Update ProtectedData to a supported 10.0 package, bootstrap, CI and self-contained win-x64 packaging. Tests, WPF inspection, extracted startup and WAM/live acceptance remain distinct. Microsoft's release metadata gives .NET 10 end of support as 14 November 2028. No Graph permission, schema, approval or deployment mechanism changes are introduced by the framework migration. The separate PowerShell/WinForms device toolkit is a design reference.
+
+- **INT-039 — approved recommendation completion:** continue PR #19's existing Astra/Codex claim; do not duplicate or overwrite its release work. The user supplied the recommendations as the intended direction: retire classic ENR-003/004 and Defender EDR onboarding SEC-WIN-002 from a new immutable default standard, retain independent SmartScreen, Business Premium and ESET package/licensing requirements, keep Exchange manual and SPF bypass disabled/audit-only pending trust/alignment acceptance, and investigate supported native Windows/mobile/passkey mechanisms. Historical standard bytes and evidence compatibility are preserved. COMPLETION-REGISTER records the current implementation and acceptance evidence. Missing project-context documentation is explicitly no longer a prerequisite.
+
 ## Release completion - PR #19, phase 7
 
 INT-030 through INT-037 remain the release decisions. Preview.14 ships .12 as the default without modifying any older published catalogue. The portable allow-list gains the engineer document and Exchange/Purview guides; CI publishes the four catalogue-only generated document files separately from synthetic interface evidence. Final audit malformed-identity cases now remain unknown; this tightens the existing invariant without adding a schema, permission or write mechanism. The maintainer recommendations in HANDOVER remain proposals, not newly implemented decisions.
