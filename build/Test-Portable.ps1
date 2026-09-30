@@ -45,7 +45,12 @@ try {
     if ($files.Count -ne $listed.Count + 1) { throw 'Unlisted files in fresh extraction.' }
     if (@(Get-ChildItem -LiteralPath $stage -File -Recurse).Count -ne $files.Count) { throw 'Stage file count differs from ZIP.' }
     foreach ($folder in 'data','logs','reports') {
-        if (@(Get-ChildItem -LiteralPath (Join-Path $extract $folder) -Recurse -File).Count -ne 0) { throw "Private/generated content shipped in $folder." }
+        $directory = Join-Path $extract $folder
+        # Compress-Archive omits empty directories. Absence is empty, and the application must create them at launch.
+        if (Test-Path -LiteralPath $directory) {
+            if (-not (Test-Path -LiteralPath $directory -PathType Container)) { throw "Expected an evidence directory: $folder" }
+            if (@(Get-ChildItem -LiteralPath $directory -Recurse -File -Force).Count -ne 0) { throw "Private/generated content shipped in $folder." }
+        }
     }
     $settings = Get-Content -LiteralPath (Join-Path $extract 'config\toolkit.settings.json') -Raw | ConvertFrom-Json
     if ($settings.assessmentClientId -or $settings.deploymentClientId) { throw 'Connection identifiers are not blank.' }
@@ -60,6 +65,9 @@ try {
         if ($process.HasExited) { throw "Packaged application exited during startup: $($process.ExitCode)" }
     } while ($process.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
     if ($process.MainWindowHandle -eq 0) { throw 'Packaged first launch did not show its window.' }
+    foreach ($folder in 'data','logs','reports') {
+        if (-not (Test-Path -LiteralPath (Join-Path $extract $folder) -PathType Container)) { throw "First launch did not create $folder." }
+    }
     $startup = Get-Content -LiteralPath (Join-Path $extract 'logs\startup.log') -Raw
     if ($startup -notmatch ('Initialised\. Standard: ' + [regex]::Escape($settings.defaultStandardRelease))) { throw 'Packaged first launch did not load the default standard.' }
     if ($startup -match 'FATAL|CRASH') { throw 'Packaged startup recorded an error.' }

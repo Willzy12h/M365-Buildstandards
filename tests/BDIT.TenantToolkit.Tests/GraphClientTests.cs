@@ -158,6 +158,29 @@ public class GraphClientTests
     }
 
     [Fact]
+    public async Task Large_collection_preserves_all_objects_across_one_hundred_pages_without_writes()
+    {
+        var (client, handler, _) = Create(SessionMode.Assessment);
+        for (var page = 0; page < 100; page++)
+        {
+            var response = new JsonObject
+            {
+                ["value"] = new JsonArray(Enumerable.Range(page * 100, 100)
+                    .Select(i => (JsonNode)new JsonObject { ["id"] = $"synthetic-{i:D5}", ["displayName"] = $"Synthetic group {i}" }).ToArray())
+            };
+            if (page < 99) response["@odata.nextLink"] = $"https://graph.microsoft.com/v1.0/groups?$skiptoken=page-{page + 1}";
+            handler.Enqueue(HttpStatusCode.OK, response.ToJsonString());
+        }
+
+        var items = await client.GetAllAsync(GraphApi.V1, "/groups", CancellationToken.None);
+
+        Assert.Equal(Enumerable.Range(0, 10_000).Select(i => $"synthetic-{i:D5}"), items.Select(i => i["id"]!.GetValue<string>()));
+        Assert.Equal(100, handler.Requests.Count);
+        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
+        Assert.Contains("page-99", handler.Requests[^1].RequestUri!.Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Read_retries_on_429_and_5xx_then_succeeds()
     {
         var (client, handler, _) = Create();

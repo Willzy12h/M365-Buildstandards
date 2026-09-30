@@ -46,7 +46,7 @@ Keep the next available action visible. Advanced payloads and supporting detail 
 
 Improved WPF is the default. Compare a representative local HTML/CSS workflow for usability, accessibility, offline behaviour, portability, authentication integration, testing and maintenance. Clearly distinguish a standalone browser prototype from a validated embedded .NET browser host. A shell migration requires demonstrated benefit and tested engine safeguards; it is not a prerequisite to releasing the improved WPF implementation.
 
-**Pass criteria:** native Windows checks exercise the changed selection and evidence behaviour, all pages and relevant tabs, accessible names, column widths, contrast, clipping, keyboard reach, confirmation/refusal and local commands. Supply real .NET 10 WPF captures at the tested sizes, labelled as synthetic. Human keyboard/Narrator and physical DPI acceptance remain separate.
+**Pass criteria:** native Windows checks exercise the changed selection and evidence behaviour, all pages and relevant tabs, accessible names, column widths, contrast, clipping, keyboard reach, confirmation/refusal and local commands. Supply real .NET 10 WPF captures at 1480×940, 1180×760 and 1180×640, labelled as synthetic. These logical window sizes do not establish physical DPI behaviour. Human keyboard/Narrator and physical DPI acceptance remain separate.
 
 ## 3. Establish .NET 10 and portable operation
 
@@ -68,7 +68,7 @@ Cancellation must not erase an accepted write or invent successful verification.
 
 Generate the catalogue-only Build Standard and Manual Implementation and Verification Guide in HTML and Markdown. Include all current controls, settings, dependencies, procedures and checks. Keep these distinct from reports containing actual client evidence.
 
-Exercise capture/import, assessment, planning, selection, confirmation/refusal, outcomes, exports, evidence reopening, cancellation/recovery and existing representative large-data fixtures where supported by the harnesses. Inspect HTML in a browser and representative printed pages; check navigation, long content and payload readability.
+Exercise capture/import, assessment, planning, selection, confirmation/refusal, outcomes, exports, evidence reopening and cancellation/recovery. Use a synthetic 10,000-object collection across 100 pages to check pagination completeness, and 10,000 findings to check filtering/restoration without losing or mutating evidence. These functional scale checks do not establish real-window latency or production capacity. Inspect HTML in a browser and representative printed pages; check navigation, long content and payload readability.
 
 **Pass criteria:** all 93 control sections appear, internal anchors resolve, retired controls are absent from the successor documents, catalogue identity is visible, representative viewport layouts do not overflow and printed documents retain the control content. Packaged documentation links resolve. Record browser, native UI and live-service results separately.
 

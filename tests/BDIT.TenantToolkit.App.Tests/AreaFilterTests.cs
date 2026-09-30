@@ -32,6 +32,34 @@ public sealed class AreaFilterTests : IDisposable
     }
 
     [Fact]
+    public void Large_assessment_filters_restore_without_losing_or_mutating_recorded_findings()
+    {
+        var findings = Enumerable.Range(0, 10_000).Select(i => new ControlFinding
+        {
+            ControlId = $"EX-SYN-{i:D5}", Name = $"Synthetic finding {i}", Category = "Synthetic scale fixture",
+            Status = i % 2 == 0 ? FindingStatus.Missing : FindingStatus.UnableToAssess,
+            Reason = "Synthetic volume check; no service result."
+        }).ToList();
+        SetFindings(findings);
+        var vm = _shell.Page<AssessmentViewModel>();
+        vm.Refresh(); vm.FilterStatus = "All";
+        Assert.Equal(10_000, vm.Findings.Count);
+        vm.FilterStatus = nameof(FindingStatus.UnableToAssess);
+        Assert.Equal(5_000, vm.Findings.Count);
+        vm.Search = "EX-SYN-09999";
+        vm.Selected = Assert.Single(vm.Findings);
+        Assert.Contains("EX-SYN-09999", vm.SelectedDetail);
+        vm.Search = "absent-value";
+        Assert.Empty(vm.Findings);
+        Assert.Null(vm.Selected);
+        vm.Search = ""; vm.FilterStatus = "All";
+        Assert.Equal(10_000, vm.Findings.Select(f => f.ControlId).Distinct().Count());
+        Assert.Equal(10_000, _shell.Workspace.Assessment!.Findings.Count);
+        Assert.Same(findings[^1], _shell.Workspace.Assessment.Findings[^1]);
+        Assert.Null(_shell.Workspace.Plan);
+    }
+
+    [Fact]
     public void Assessment_combines_area_status_category_and_search_without_altering_evidence()
     {
         var controls = _shell.Workspace.RequireStandard().Controls;
