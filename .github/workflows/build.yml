@@ -58,7 +58,17 @@ jobs:
 
       - name: Render offline WPF workflows and check bindings
         shell: pwsh
-        run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+        run: |
+          dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+          $reviewExit = $LASTEXITCODE
+          if ($reviewExit -ne 0) {
+            $errorFile = Join-Path $pwd 'dist/ui-review/harness-error.txt'
+            if (Test-Path -LiteralPath $errorFile) {
+              $detail = (Get-Content -LiteralPath $errorFile -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Offline WPF validation::$detail"
+            }
+            exit $reviewExit
+          }
 
       - name: Verify fresh extraction and actual packaged first launch
         shell: powershell
