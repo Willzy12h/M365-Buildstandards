@@ -8,7 +8,7 @@ public enum GraphApi { V1, Beta }
 /// <summary>A versioned M365 Build Standard release loaded from standards/&lt;release&gt;.json.</summary>
 public sealed class StandardCatalogue
 {
-    public const int SupportedSchemaVersion = 4;
+    public const int SupportedSchemaVersion = 5;
 
     public int SchemaVersion { get; set; }
     public string Release { get; set; } = "";
@@ -42,6 +42,8 @@ public sealed class StandardCatalogue
 /// <summary>Describes one Microsoft Graph collection that the assessment reads.</summary>
 public sealed class CollectionDefinition
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PublicIpRangesOnly { get; set; }
     /// <summary>"v1.0" or "beta". Beta use is isolated per collection and flagged in evidence.</summary>
     public string Api { get; set; } = "v1.0";
     public string Path { get; set; } = "";
@@ -67,6 +69,8 @@ public sealed class CollectionDefinition
 
 public sealed class ParameterDefinition
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? RequiredForControls { get; set; }
     public string Key { get; set; } = "";
     public string Label { get; set; } = "";
     /// <summary>guid, guidList, string, integer, boolean or jsonArray; validated before resolving a recipe.</summary>
@@ -100,6 +104,12 @@ public sealed class ParameterDefinition
 
 public sealed class ControlDefinition
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Area { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RepeatFor { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ManualImplementation? Implementation { get; set; }
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Category { get; set; } = "";
@@ -269,4 +279,12 @@ public sealed class ControlPrerequisite
     public string Details { get; set; } = "";
     public string Automation { get; set; } = "Manual review";
     public string DocumentationUrl { get; set; } = "";
+}
+
+public sealed class ManualImplementation
+{
+    public List<string> Before { get; set; } = new();
+    public List<string> PortalSteps { get; set; } = new();
+    public string PowerShell { get; set; } = "";
+    public List<string> After { get; set; } = new();
 }

@@ -8,7 +8,7 @@
   stage standards, config, the operator documents and launchers -> write VERSION.json and SHA256SUMS.txt -> zip.
   The package carries one executable on purpose: the headless runner (bdit) is a build and CI tool, and a second
   executable would widen the application-control exception a client has to allow for no field benefit.
-  Requires the .NET 8 SDK on the build machine only. Engineers never need the SDK.
+  Requires the .NET 10 SDK on the build machine only. Engineers never need the SDK.
 .PARAMETER SkipTests
   Skip the test step (not recommended for a release).
 .PARAMETER Runtime
@@ -33,9 +33,9 @@ function Invoke-Step([string]$Name, [scriptblock]$Action) {
 }
 
 $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
-if (-not $dotnet) { throw 'The .NET SDK (dotnet) is not on PATH. Install the .NET 8 SDK on the build machine: https://dotnet.microsoft.com/download/dotnet/8.0' }
-$sdks = & dotnet --list-sdks
-if (-not ($sdks | Where-Object { $_ -match '^8\.' })) { throw "No .NET 8 SDK found. Installed SDKs:`n$($sdks -join "`n")" }
+if (-not $dotnet) { throw 'The .NET SDK (dotnet) is not on PATH. Install the .NET 10 SDK on the build machine: https://dotnet.microsoft.com/download/dotnet/10.0' }
+$sdkVersion = & dotnet --version
+if ($LASTEXITCODE -ne 0 -or $sdkVersion -notmatch '^10\.0\.\d+$') { throw 'The SDK selected by global.json must be a stable .NET 10 SDK. Run BUILD-ME-FIRST.cmd or install the pinned SDK.' }
 
 [xml]$props = Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props')
 $version = ($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ }) | Select-Object -First 1
@@ -50,7 +50,7 @@ if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
 Invoke-Step 'Restore' { & dotnet restore BDIT.TenantToolkit.sln }
-Invoke-Step 'Build' { & dotnet build BDIT.TenantToolkit.sln -c $Configuration --no-restore }
+Invoke-Step 'Build' { & dotnet build BDIT.TenantToolkit.sln -c $Configuration --no-restore -warnaserror }
 if (-not $SkipTests) {
     Invoke-Step 'Test' { & dotnet test tests\BDIT.TenantToolkit.Tests\BDIT.TenantToolkit.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=test-results.trx' --results-directory (Join-Path $dist 'test-results') }
     Invoke-Step 'Test the application' { & dotnet test tests\BDIT.TenantToolkit.App.Tests\BDIT.TenantToolkit.App.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=app-test-results.trx' --results-directory (Join-Path $dist 'test-results') }
@@ -72,7 +72,7 @@ Invoke-Step 'Stage package contents' {
     $documents = @(
         'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
-        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md'
+        'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md', 'NATIVE-SETTINGS-AND-MOBILE.md', 'CONTROLLED-ACCEPTANCE.md'
     )
     New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
     foreach ($document in $documents) {
@@ -89,6 +89,11 @@ Invoke-Step 'Stage package contents' {
     Copy-Item -LiteralPath (Join-Path $root 'CHANGELOG.md') -Destination $stage -Force
 
     $runtimeVersion = (Get-ChildItem -LiteralPath (Join-Path $stage 'app') -Filter 'System.Private.CoreLib.dll' -Recurse | Select-Object -First 1).VersionInfo.ProductVersion
+    $sourceCommit = 'unavailable (source archive)'
+    if ((Test-Path -LiteralPath (Join-Path $root '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $sourceCommit = & git rev-parse HEAD
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the Git source commit.' }
+    }
     $manifest = [ordered]@{
         product        = 'M365 BuildStandard Tool'
         version        = $version
@@ -96,6 +101,8 @@ Invoke-Step 'Stage package contents' {
         selfContained  = $true
         dotnetRuntime  = $runtimeVersion
         dotnetSdk      = (& dotnet --version)
+        sourceCommit   = $sourceCommit
+        defaultStandard = (Get-Content -LiteralPath (Join-Path $stage 'config\toolkit.settings.json') -Raw | ConvertFrom-Json).defaultStandardRelease
         builtAt        = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
         builtOn        = $env:COMPUTERNAME
         standards      = (Get-ChildItem -LiteralPath (Join-Path $stage 'standards') -Filter '*.json' | Where-Object { $_.Name -ne 'manifest.json' } | ForEach-Object { $_.Name })
@@ -104,7 +111,7 @@ Invoke-Step 'Stage package contents' {
             @{ name = 'Microsoft.Identity.Client'; version = '4.89.0' },
             @{ name = 'Microsoft.Identity.Client.Broker'; version = '4.89.0' },
             @{ name = 'Microsoft.Identity.Client.NativeInterop'; version = '0.20.6' },
-            @{ name = 'System.Security.Cryptography.ProtectedData'; version = '8.0.0' }
+            @{ name = 'System.Security.Cryptography.ProtectedData'; version = '10.0.12' }
         )
         note           = 'Preview tool, unsigned. SHA256SUMS.txt and the ZIP .sha256 file detect modification in transit; verify them before first use. Allow app\BDIT.TenantToolkit.App.exe in any application-control policy by path or hash.'
     }

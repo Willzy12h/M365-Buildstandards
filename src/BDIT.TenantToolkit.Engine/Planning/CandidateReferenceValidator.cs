@@ -8,6 +8,12 @@ public static class CandidateReferenceValidator
 {
     public static async Task ValidateAsync(IGraphClient graph, JsonObject payload, CancellationToken ct)
     {
+        if (payload["@odata.type"]?.ToString() == "#microsoft.graph.androidManagedStoreApp")
+        {
+            var play = await graph.GetAsync(GraphApi.Beta, "/deviceManagement/androidManagedStoreAccountEnterpriseSettings?$select=id,bindStatus,lastAppSyncDateTime,lastAppSyncStatus", ct);
+            if (play["bindStatus"]?.ToString() != "boundAndValidated")
+                throw new SafetyViolationException("Managed Google Play is no longer bound and validated. No app write was sent.");
+        }
         if (payload["selectedMobileAppIds"] is JsonArray apps)
             foreach (var id in apps)
             {

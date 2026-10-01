@@ -68,6 +68,8 @@ public sealed class GraphClient : IGraphClient
         GraphRouteAllowList.ValidatePathSyntax(path);
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return new JsonObject { ["value"] = new JsonArray(expanded.Select(i => (JsonNode)i).ToArray()) };
         var node = await SendReadAsync(api, Root(api) + path, route, ct);
         return node as JsonObject ?? throw new GraphRequestException(200, "GET", path, null, "Graph returned a non-object body.");
     }
@@ -78,6 +80,8 @@ public sealed class GraphClient : IGraphClient
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
 
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return expanded;
         var items = new List<JsonObject>();
         var url = Root(api) + path;
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -124,7 +128,7 @@ public sealed class GraphClient : IGraphClient
         if (method == GraphWriteMethod.Post && existing)
             throw new WriteDeniedException("POST must target the collection root, not an existing object.");
 
-        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope };
+        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope, PublicIpRangesOnly = route.PublicIpRangesOnly };
         try { WritePayloadGuard.Assert(definition, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
 
@@ -237,7 +241,7 @@ public sealed class GraphClient : IGraphClient
             ct.ThrowIfCancellationRequested();
         }
         catch (Exception ex) { throw new WriteNotSentException(SensitiveDataScrubber.Scrub(ex.Message), ex); }
-        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
+        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
     private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)
@@ -309,6 +313,9 @@ public sealed class GraphClient : IGraphClient
         var forceRefreshNext = false;
         while (true)
         {
+            // Cached tokens and buffered HTTP responses can complete synchronously without
+            // observing cancellation. Honour an operator stop at our own read boundaries.
+            ct.ThrowIfCancellationRequested();
             attempt++;
             var sw = Stopwatch.StartNew();
             HttpResponseMessage response;
@@ -321,6 +328,7 @@ public sealed class GraphClient : IGraphClient
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeout.CancelAfter(_options.ReadTimeout);
+                timeout.Token.ThrowIfCancellationRequested();
                 response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested && attempt < _options.MaxReadAttempts)
@@ -346,8 +354,10 @@ public sealed class GraphClient : IGraphClient
 
             using (response)
             {
+                ct.ThrowIfCancellationRequested();
                 var status = (int)response.StatusCode;
                 var text = await response.Content.ReadAsStringAsync(ct);
+                ct.ThrowIfCancellationRequested();
                 _log.Debug("Graph", $"GET {Describe(path)} -> {status} in {LogFormat.Ms(sw.ElapsedMilliseconds)}", TenantId);
 
                 if (response.IsSuccessStatusCode)

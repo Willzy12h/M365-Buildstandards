@@ -40,6 +40,7 @@ public partial class App : Application
             _logger = new ToolkitLogger(paths.LogsDirectory, Diagnostics ? LogLevel.Debug : ToolkitLogger.ParseLevel(settings.LogLevel));
             _logger.Info("App", $"M365 BuildStandard Tool {ToolkitVersion.Current} starting (diagnostics={Diagnostics}). Root: {paths.Root}");
 
+            RuntimeDependencies.VerifyTextEditing();
             _workspace = new Workspace(paths, settings, _logger, Diagnostics);
             _workspace.Initialise();
             StartupNote("Initialised. Standard: " + (_workspace.Standard?.Release ?? "(none loaded)"));

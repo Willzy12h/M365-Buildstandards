@@ -30,23 +30,36 @@
           <TabItem Header="1  Select controls">
             <DockPanel Margin="0,16,0,0">
               <WrapPanel DockPanel.Dock="Top">
+                <TextBlock Text="Area" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Width="145" ItemsSource="{Binding AreaFilters}" SelectedItem="{Binding FilterArea, Mode=TwoWay}" AutomationProperties.Name="Filter plan area" Margin="0,0,14,8"/>
                 <Button Content="Select eligible controls" Command="{Binding SelectEligibleCommand}" Style="{StaticResource SecondaryButton}"/>
                 <Button Content="Clear selection" Command="{Binding ClearSelectionCommand}" Style="{StaticResource QuietButton}"/>
+                <TextBlock Text="Select a row for details; tick it for the plan. Area changes clear ticks." Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="8,0,0,8" ToolTip="Select eligible controls applies to the displayed area. Review exact changes shows the whole built plan."/>
               </WrapPanel>
               <Grid>
                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="300"/><ColumnDefinition Width="12"/><ColumnDefinition Width="2*" MinWidth="230"/></Grid.ColumnDefinitions>
                <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                 Background="{StaticResource Line}" ToolTip="Drag to resize the controls table and prerequisite guidance." AutomationProperties.Name="Resize plan prerequisite guidance"/>
-               <views:PrerequisitePanel Grid.Column="2" Items="{Binding SelectionPrerequisites}"/>
-              <DataGrid Grid.Column="0" ItemsSource="{Binding Controls}" SelectedItem="{Binding SelectedControl}" IsReadOnly="False" AutomationProperties.Name="Controls to include in the plan">
+               <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                 <StackPanel>
+                   <TextBlock Text="CONTROL DETAILS" Style="{StaticResource Eyebrow}"/>
+                   <TextBox Text="{Binding SelectionDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Selected control detail"/>
+                   <Button Content="Copy control detail" Command="{Binding Shell.CopyCommand}" CommandParameter="{Binding SelectionDetail}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                   <views:PrerequisitePanel Items="{Binding SelectionPrerequisites}"/>
+                   <Expander Header="Manual procedure and verification"><TextBox Text="{Binding SelectionProcedure, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Selected control manual procedure"/></Expander>
+                 </StackPanel>
+               </ScrollViewer>
+              <DataGrid Grid.Column="0" ItemsSource="{Binding VisibleControls}" SelectedItem="{Binding SelectedControl}" IsReadOnly="False" AutomationProperties.Name="Controls to include in the plan">
                 <DataGrid.Columns>
-                  <DataGridCheckBoxColumn Header="Select" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="66"/>
+                  <DataGridTemplateColumn Header="Select" Width="66"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Eligible}" ToolTip="{Binding SelectionGuidance}" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Name, StringFormat='Include {0} in plan'}" HorizontalAlignment="Center"/>
+                  </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                   <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100" IsReadOnly="True"/>
                   <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="220" IsReadOnly="True"/>
                   <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="150" IsReadOnly="True"/>
                   <DataGridTextColumn Header="Automation" Binding="{Binding Status}" Width="130" IsReadOnly="True"/>
                   <DataGridTextColumn Header="Candidate state" Binding="{Binding SafeState}" Width="125" IsReadOnly="True"/>
-                  <DataGridTextColumn Header="Explanation" Binding="{Binding Explanation}" Width="*" MinWidth="260" IsReadOnly="True"/>
+                  <DataGridTextColumn Header="Explanation" Binding="{Binding SelectionGuidance}" Width="*" MinWidth="260" IsReadOnly="True"/>
                 </DataGrid.Columns>
               </DataGrid>
               </Grid>

@@ -14,6 +14,8 @@ public static class CaptureStatus
 /// <summary>A read-only capture of tenant configuration, stored locally as evidence and used for assessment, planning and drift.</summary>
 public sealed class TenantSnapshot
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ExchangeCapture? ExchangeCapture { get; set; }
     public string Id { get; set; } = "";
     public string TenantId { get; set; } = "";
     public string TenantName { get; set; } = "";
