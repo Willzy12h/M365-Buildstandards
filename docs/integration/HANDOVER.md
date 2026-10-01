@@ -1,13 +1,13 @@
 # Handover and priorities
 
-Current user continuation: Preview.16 quality-of-life work in PR #19 follows [QOL-GOAL-2026.10.01.md](QOL-GOAL-2026.10.01.md). This supplements the original release goal. Read COMPLETION-REGISTER for exact validation; older Preview.15 evidence is historical. Do not copy the supplied client exports into source or tests.
+Current user continuation: Preview.16 quality-of-life work in PR #19 follows [QOL-GOAL-2026.10.01.md](QOL-GOAL-2026.10.01.md). This supplements the original release goal. Read COMPLETION-REGISTER and the current PR body/checks for exact validation and package links; older Preview.15 evidence is historical. The short desktop goal is “Finish the M365 BuildStandard usability update in PR #19, following docs/integration/QOL-GOAL-2026.10.01.md.” Do not copy the supplied client exports into source or tests.
 
 
 ## Architecture roadmap
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
 
-## Current continuation — Preview.15 / 2026.09.30
+## Previous continuation — Preview.15 / 2026.09.30
 
 The user authorised completion on 30 September. PR #19 remains the owned Astra/Codex release claim, now a draft while the successor changes. Use [COMPLETION-REGISTER](COMPLETION-REGISTER.md) for current results and acceptance status. The missing Claude context document is no longer a prerequisite. .NET 10 migration, legacy retirements, engineer detail/evidence workflow and package validation continue together. The verified candidate is 7fb73d1e90ccd26eb62be8b0bfab7a3cc8751198: Windows run 36787138102 passes 810 engine/79 application tests, 42 native page/size checks and actual fresh-package startup/shutdown with 287 matching files. The completion register links the ZIP, checksum, generated documents and real WPF renders. Cloud artifact retrieval/visual inspection and human/live acceptance remain outstanding. No tenant or device operations have occurred. The user saved the short goal pointing to RELEASE-GOAL-2026.09.30.md; use that document for the definition of done.
 
