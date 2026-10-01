@@ -104,6 +104,16 @@ public sealed class ConfigurationViewModel : PageViewModel
     public ICommand SelectExchangeDomainCommand { get; }
     public bool IncludePurview { get; set; } = true;
     public IReadOnlyList<string> AcceptedMailDomains => Workspace.ExchangeDomains;
+    public IReadOnlyList<CollectionRow> ExchangeCollectionStatus => Workspace.ExchangeSnapshot?.ExchangeCapture is not { } capture
+        ? Array.Empty<CollectionRow>() : ExchangeCaptureSchema.Definitions.Select(d =>
+        {
+            capture.Collections.TryGetValue(d.Key, out var collection);
+            var complete = ExchangeCaptureSchema.Complete(capture, d.Key, out _);
+            return new CollectionRow { Collection = d.Value.Command, Status = collection?.Status == CaptureStatus.Collected && !complete
+                ? "Incomplete fields" : collection?.Status ?? CaptureStatus.NotAttempted, Count = collection?.Items.Count ?? 0,
+                Detail = collection?.Error ?? (complete ? "Configuration observations only; effective behaviour still needs engineer verification."
+                    : "Read not complete. Check module compatibility, read RBAC and the selected service; re-capture. Missing settings cannot be inferred.") };
+        }).ToList();
     private string? _selectedMailDomain;
     public string? SelectedMailDomain { get => _selectedMailDomain; set => SetProperty(ref _selectedMailDomain, value); }
     public string ExchangeDependencyGuidance => ExchangeCaptureRunner.DependencyGuidance;
@@ -201,7 +211,7 @@ public sealed class ConfigurationViewModel : PageViewModel
         var context = (Workspace.Profile?.TenantId ?? "") + "|" + savedDomain;
         if (_domainContext != context) { _domainContext = context; MailDomainInput = savedDomain; ExchangeImportFile = ""; }
         OnPropertyChanged(nameof(SupportsExchange)); OnPropertyChanged(nameof(ExchangeSummary));
-        OnPropertyChanged(nameof(AcceptedMailDomains));
+        OnPropertyChanged(nameof(AcceptedMailDomains)); OnPropertyChanged(nameof(ExchangeCollectionStatus));
         if (!AcceptedMailDomains.Contains(SelectedMailDomain ?? "", StringComparer.OrdinalIgnoreCase)) SelectedMailDomain = AcceptedMailDomains.FirstOrDefault();
         if (Workspace.ExchangeSnapshot?.ExchangeCapture is { } current) MailDomainInput = current.Domain;
         Collections.Clear();

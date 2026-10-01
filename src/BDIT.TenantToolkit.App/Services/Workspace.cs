@@ -311,6 +311,8 @@ public sealed class Workspace : ObservableObject
         foreach (var p in all) Profiles.Add(p);
         if (Profile?.Id == profile.Id)
         {
+            if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            { ExchangeSnapshot = null; ExchangeCapturedByTool = false; Assessment = null; CancelPendingDiscovery(); }
             Profile = profile;
             Plan = null;
             AcknowledgedSnapshotId = null;

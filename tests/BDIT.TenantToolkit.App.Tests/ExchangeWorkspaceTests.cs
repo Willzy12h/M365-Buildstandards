@@ -137,6 +137,19 @@ public sealed class ExchangeWorkspaceTests : IDisposable
         Assert.Equal(calls, runner.Calls);
     }
 
+    [Fact]
+    public void Editing_a_saved_profile_to_another_tenant_clears_separate_Exchange_context()
+    {
+        var saved = _workspace.SaveProfile(_workspace.Profile!);
+        _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);
+        Assert.NotEmpty(_workspace.ExchangeDomains);
+        saved = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(saved));
+        saved.TenantId = TestData.TenantB;
+        _workspace.SaveProfile(saved);
+        Assert.Null(_workspace.ExchangeSnapshot); Assert.Empty(_workspace.ExchangeDomains);
+        Assert.False(_workspace.ExchangeCapturedByTool);
+    }
+
     private sealed class FakeRunner : IExchangeCaptureRunner
     {
         public string Tenant = "", Domain = "", Account = "";

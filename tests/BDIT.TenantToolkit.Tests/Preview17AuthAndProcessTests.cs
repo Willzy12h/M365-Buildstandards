@@ -1,3 +1,5 @@
+using BDIT.TenantToolkit.Core.Configuration;
+using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Exchange;
@@ -34,6 +36,19 @@ public sealed class Preview17AuthAndProcessTests
         Assert.Throws<TenantMismatchException>(() => identity.VerifyConnection(session));
         session.OperatorObjectId = TestData.Operator; session.Mode = SessionMode.Deployment;
         Assert.Throws<TenantMismatchException>(() => identity.VerifyConnection(session));
+    }
+
+    [Theory]
+    [InlineData("Directory.AccessAsUser.All")]
+    [InlineData("Application.ReadWrite.All")]
+    [InlineData("Directory.Write.All")]
+    public async Task Quick_Connect_refuses_write_capable_requested_scopes_before_authentication(string scope)
+    {
+        using var root = new TempRoot(); using var http = new HttpClient();
+        using var log = new ToolkitLogger(root.Paths.LogsDirectory, LogLevel.Debug);
+        var error = await Assert.ThrowsAsync<ConfigurationException>(() => TenantDiscoveryService.DiscoverRetainedAsync(http,
+            new ToolkitSettings(), TestData.Standard(), new[] { "User.Read", scope }, IntPtr.Zero, log, CancellationToken.None));
+        Assert.Contains("cannot request write", error.Message);
     }
 
     [Fact]
