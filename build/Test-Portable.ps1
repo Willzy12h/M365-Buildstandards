@@ -117,13 +117,17 @@ public static class PortableTextMenu {
     $range.ScrollIntoView($false)
     $range.Select()
     Start-Sleep -Milliseconds 200
-    # Click inside the selected text, not the unused area of the editor (which can clear the selection).
-    # Sending WM_CONTEXTMENU to the top-level HWND does not reproduce WPF's input routing to its text editor.
-    $rectangles = $range.GetBoundingRectangles()
-    if ($rectangles.Count -lt 4 -or $rectangles[2] -le 0 -or $rectangles[3] -le 0) { throw 'Selected packaged text is not visible for a right-click.' }
-    $clickX = [int]($rectangles[0] + [Math]::Min(8, $rectangles[2] / 2))
-    $clickY = [int]($rectangles[1] + $rectangles[3] / 2)
-    if (-not $field.Current.BoundingRectangle.Contains($clickX, $clickY) -or -not $window.Current.BoundingRectangle.Contains($clickX, $clickY)) { throw 'Refused to right-click outside the owned packaged text box.' }
+    # Use the editor's visible bounds. WPF's TextPattern can expose no character rectangles even when its
+    # single-line editor is visible; verify the actual selection separately instead of relying on that geometry.
+    $selection = $field.GetCurrentPattern([Windows.Automation.TextPattern]::Pattern).GetSelection()
+    $selectedText = (@($selection | ForEach-Object { $_.GetText(-1) }) -join '')
+    if ($selectedText -ne $testText) { throw "Packaged editor did not select the synthetic text (selected length=$($selectedText.Length))." }
+    $bounds = $field.Current.BoundingRectangle
+    if ($field.Current.IsOffscreen -or $bounds.Width -lt 32 -or $bounds.Height -lt 10) { throw "Packaged editor is not visible for a right-click (offscreen=$($field.Current.IsOffscreen); bounds=$bounds)." }
+    # The short text fits in this editor. The point just after its left padding is inside the selection.
+    $clickX = [int]($bounds.Left + 16)
+    $clickY = [int]($bounds.Top + $bounds.Height / 2)
+    if (-not $bounds.Contains($clickX, $clickY) -or -not $window.Current.BoundingRectangle.Contains($clickX, $clickY)) { throw 'Refused to right-click outside the owned packaged text box.' }
     if (-not [PortableTextMenu]::SetCursorPos($clickX, $clickY)) { throw 'Could not position the pointer over the packaged text box.' }
     [PortableTextMenu]::mouse_event(0x0008, 0, 0, 0, [UIntPtr]::Zero)
     [PortableTextMenu]::mouse_event(0x0010, 0, 0, 0, [UIntPtr]::Zero)
