@@ -19,6 +19,7 @@ public sealed class ControlSelection : ObservableObject
     public string Status { get; init; } = "";
     public string Explanation { get; init; } = "";
     public string SafeState { get; init; } = "";
+    public string SelectionGuidance => Eligible ? "Tick to include a reviewed candidate. " + Explanation : "Selection unavailable: " + Explanation;
     public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
 }
 
@@ -56,6 +57,12 @@ public sealed class PlanViewModel : PageViewModel
             OnPropertyChanged(nameof(SelectionProcedure));
         }
     }
+    private static string ActionOwnership(ControlDefinition control) => !control.HasRecipe
+        ? "Engineer action. Follow the manual procedure and record before/after proof; the tool does not complete it."
+        : control.Id.StartsWith("PRE-", StringComparison.OrdinalIgnoreCase)
+            ? "Tool action: after approval, create the defined group or named location. Engineer action: enter the required IDs/office CIDRs, check membership and intended use, and record verification. A created empty group is not a completed prerequisite."
+            : "Tool action: create an inactive/unassigned candidate after approval. Engineer action: verify settings, test and approve any later activation or assignment separately.";
+
     private ControlDefinition? FindControl(string? id) => Workspace.Standard is { } standard ? ControlInstances.Find(standard, Workspace.Profile, id ?? "") : null;
     public IReadOnlyList<ControlPrerequisite>? SelectionPrerequisites => FindControl(SelectedControl?.ControlId)?.Prerequisites;
     public IReadOnlyList<ControlPrerequisite>? RowPrerequisites => FindControl(SelectedRow?.ControlId)?.Prerequisites;
@@ -69,7 +76,7 @@ public sealed class PlanViewModel : PageViewModel
             var inputs = Workspace.Standard!.Parameters.Where(p => (p.RequiredForControls?.Contains(c.Id, StringComparer.OrdinalIgnoreCase) ?? false) || (c.Payload is not null && ParameterUsage.Uses(c.Payload, p.Key)));
             return $"{c.Id} · {c.Name}\n{c.Purpose}\n\nDesired result: {c.DesiredState}\nPlanning: {SelectedControl!.Status} — {SelectedControl.Explanation}\nSafe candidate: {c.SafeDeployment.State}\nLicence: {string.Join(", ", c.Licence.ServicePlans)}\n{c.Licence.Note}\n\nClient inputs: " +
                 string.Join("; ", inputs.Select(p => p.Label + (p.Required ? " (required)" : "") + (p.HasDefault ? " (review shipped default)" : ""))) +
-                $"\n\nEngineer action: {c.EngineerAction}\n{c.DocumentationNotes}";
+                $"\n\nWho does what: {ActionOwnership(c)}\n\nEngineer action: {c.EngineerAction}\n{c.DocumentationNotes}";
         }
     }
     public string SelectionProcedure
@@ -200,13 +207,16 @@ public sealed class PlanViewModel : PageViewModel
                     status = "Candidate";
                     eligible = true;
                     explanation = finding.Status == FindingStatus.Missing
-                        ? (control.Collection == "conditionalAccess" ? "Create a disabled candidate with exclusions; no activation." : "Create an unassigned candidate; no assignment.")
+                        ? (control.Category == "PRE" || control.Id.StartsWith("PRE-", StringComparison.OrdinalIgnoreCase) ? "Tool creates this prerequisite after plan approval. Engineer verifies membership, scope and recovery access separately." : control.Collection == "conditionalAccess" ? "Create a disabled candidate with exclusions; no activation." : "Create an unassigned candidate; no assignment.")
                         : "Toolkit-created object; an inactive update or no change will be proposed.";
                 }
                 else
                 {
                     status = StatusLabels.For(finding.Status);
-                    explanation = finding.Reason;
+                    explanation = finding.Reason + (finding.Status == FindingStatus.UnableToAssess
+                        ? " Next: resolve collection errors in 2 · Configuration, re-capture and assess."
+                        : finding.Owned ? " Next: review the finding and supporting evidence in 3 · Assessment."
+                        : " Next: review this existing object in 3 · Assessment. The tool does not adopt or change it by name.");
                 }
                 var selection = new ControlSelection
                 {

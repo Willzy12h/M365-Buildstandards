@@ -308,21 +308,21 @@ internal static partial class Program
     /// <summary>
     /// The last thing between an engineer and a tenant write. It is built here from the synthetic plan exactly as the
     /// Deploy page builds it, laid out at its default and minimum sizes, and its one safety behaviour is exercised:
-    /// the deploy button stays disabled until the connected tenant ID is typed in full. Nothing is deployed - the dialog
+    /// the deploy button stays disabled until the verified tenant and exact changes are explicitly approved. Nothing is deployed - the dialog
     /// is closed without a result, and the harness's Graph client refuses every call regardless.
     /// </summary>
     private static void CheckConfirmationDialog(Workspace workspace, string output)
     {
         var profile = workspace.Profile ?? throw new InvalidOperationException("The synthetic client is not loaded.");
         var plan = workspace.Plan ?? throw new InvalidOperationException("The synthetic plan is not loaded.");
-        var dialog = new ConfirmTenantDialog(profile, plan)
+        var dialog = new ConfirmTenantDialog(profile, plan, workspace.Session)
         {
             ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000
         };
         try
         {
             if (dialog.Content is not FrameworkElement root) throw new InvalidOperationException("The confirmation dialog has no content.");
-            var typed = Part<TextBox>(dialog, "TypedTenantIdBox");
+            var approval = Part<CheckBox>(dialog, "ApprovalBox");
             var deploy = Part<Button>(dialog, "DeployButton");
             var changes = Part<ListBox>(dialog, "ChangeList");
             if (changes.Items.Count != plan.WriteRows.Count())
@@ -346,26 +346,16 @@ internal static partial class Program
             // The engineer must be able to start typing straight away.
             dialog.Activate(); Pump();
             var focused = Keyboard.FocusedElement as DependencyObject ?? FocusManager.GetFocusedElement(dialog) as DependencyObject;
-            if (!ReferenceEquals(focused, typed))
-                KeyboardProblems.Add($"  confirm-dialog · focus starts on {(focused as Control is { } c ? Describe(c) : focused?.GetType().Name ?? "nothing")}, not the tenant ID box");
+            if (!ReferenceEquals(focused, approval))
+                KeyboardProblems.Add($"  confirm-dialog · focus starts on {(focused as Control is { } c ? Describe(c) : focused?.GetType().Name ?? "nothing")}, not the approval checkbox");
 
-            // The gate itself: nothing short of the exact tenant ID enables the write.
-            var gate = new (string Text, bool Enabled)[]
+            // The approved UX contract is deliberate review, not GUID transcription. No write occurs here.
+            foreach (var enabled in new[] { false, true, false })
             {
-                ("", false),
-                (profile.TenantId[..^1], false),
-                (profile.TenantId + "0", false),
-                ("00000000-0000-0000-0000-000000000000", false),
-                (profile.Company, false),
-                (profile.TenantId, true),
-                ("  " + profile.TenantId.ToUpperInvariant() + "  ", true),
-                ("", false)
-            };
-            foreach (var (text, enabled) in gate)
-            {
-                typed.Text = text; Pump();
-                if (deploy.IsEnabled != enabled)
-                    throw new InvalidOperationException($"The confirmation dialog's deploy button is {(deploy.IsEnabled ? "enabled" : "disabled")} after typing '{text}'.");
+                approval.IsChecked = enabled; Pump();
+                if (deploy.IsEnabled != enabled || (enabled && dialog.ConfirmedTenantId != profile.TenantId)
+                    || (!enabled && dialog.ConfirmedTenantId.Length != 0))
+                    throw new InvalidOperationException("The explicit reviewed-tenant approval gate failed.");
                 DialogChecks++;
             }
             if (deploy.IsDefault) throw new InvalidOperationException("The deploy button is the default button, so Enter would deploy.");
@@ -439,6 +429,8 @@ internal static partial class Program
 
         ("ApplicationSetupViewModel.ApplyIdsCommand", Press),
         ("ApplicationSetupViewModel.CopyApplicationGuideCommand", Clipboard),
+        ("ApplicationSetupViewModel.QuickSetupCommand", SignIn),
+        ("ApplicationSetupViewModel.UseExistingCommand", TenantRead),
         ("ApplicationSetupViewModel.ConnectCommand", SignIn),
         ("ApplicationSetupViewModel.PreviewCommand", TenantRead),
         ("ApplicationSetupViewModel.CreateCommand", TenantWrite),
@@ -456,6 +448,9 @@ internal static partial class Program
         ("ConfigurationViewModel.ExportXlsxCommand", Press),
         ("ConfigurationViewModel.LoadStoredCommand", Press),
         ("ConfigurationViewModel.CaptureCommand", TenantRead),
+        ("ConfigurationViewModel.ExportExchangeEvidenceCommand", Press),
+        ("ConfigurationViewModel.CaptureExchangeCommand", "starts delegated Exchange/Purview sign-in and read-only service capture"),
+        ("ConfigurationViewModel.SelectExchangeDomainCommand", Press),
         ("ConfigurationViewModel.OpenExportCommand", Explorer),
         ("ConfigurationViewModel.CopySummaryCommand", Clipboard),
         ("ConfigurationViewModel.SaveMailDomainCommand", Press),
@@ -589,6 +584,17 @@ internal static partial class Program
             var vm = shell.Page<ConfigurationViewModel>();
             vm.SelectedStored = vm.StoredSnapshots.FirstOrDefault();
         },
+        ["ConfigurationViewModel.ExportExchangeEvidenceCommand"] = shell =>
+        {
+            PrepareExchangeCommands(shell);
+            shell.Workspace.ImportExchangeCapture(SyntheticExchangePath(), "example.invalid");
+        },
+        ["ConfigurationViewModel.SelectExchangeDomainCommand"] = shell =>
+        {
+            PrepareExchangeCommands(shell);
+            shell.Workspace.ImportExchangeCapture(SyntheticExchangePath(), "example.invalid");
+            shell.Page<ConfigurationViewModel>().SelectedMailDomain = "example.invalid";
+        },
         ["ConfigurationViewModel.SaveMailDomainCommand"] = PrepareExchangeCommands,
         ["ConfigurationViewModel.ExportExchangeCaptureCommand"] = PrepareExchangeCommands,
         ["ConfigurationViewModel.ImportExchangeCaptureCommand"] = PrepareExchangeCommands,
@@ -709,6 +715,8 @@ internal static partial class Program
             Delegated = true, Domain = "example.invalid", CapturedAt = Stamp, ModuleVersion = "3.9.2", Source = ExchangeCaptureSchema.Source };
         foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
             external.Collections[key] = new ExchangeCollectionCapture { Command = definition.Command };
+        external.Collections["acceptedDomains"].Status = CaptureStatus.Collected;
+        external.Collections["acceptedDomains"].Items.Add(new System.Text.Json.Nodes.JsonObject { ["DomainName"] = "example.invalid" });
         external.Collections["auditConfig"].Status = CaptureStatus.Collected;
         external.Collections["auditConfig"].Items.Add(new System.Text.Json.Nodes.JsonObject { ["UnifiedAuditLogIngestionEnabled"] = false });
         File.WriteAllText(SyntheticExchangeFile, ToolkitJson.Serialize(external));
@@ -834,7 +842,7 @@ internal static partial class Program
     private static readonly string[] StateProperties =
     {
         nameof(Workspace.Standard), nameof(Workspace.Profile), nameof(Workspace.Connection), nameof(Workspace.Snapshot),
-        nameof(Workspace.SnapshotIsLive), nameof(Workspace.Assessment), nameof(Workspace.Plan),
+        nameof(Workspace.SnapshotIsLive), nameof(Workspace.ExchangeSnapshot), nameof(Workspace.ExchangeCapturedByTool), nameof(Workspace.Assessment), nameof(Workspace.Plan),
         nameof(Workspace.AcknowledgedSnapshotId), nameof(Workspace.LastRun), nameof(Workspace.ApplicationSetup)
     };
 

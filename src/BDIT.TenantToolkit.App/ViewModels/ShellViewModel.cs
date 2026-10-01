@@ -94,7 +94,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);
 
-        NavigateCommand = new RelayCommand(p => { if (p is NavItem item) Navigate(item.Key); });
+        NavigateCommand = new RelayCommand(p => { if (p is NavItem item) Navigate(item.Key); else if (p is string key) Navigate(key); });
         CopyCommand = new RelayCommand(p => CopyToClipboard(p as string ?? p?.ToString() ?? ""));
         CopyDetailsCommand = new RelayCommand(() => CopyToClipboard(DetailsText));
         DisconnectCommand = new AsyncCommand(Workspace.DisconnectAsync, ShowError, () => (Workspace.IsConnected || Workspace.ApplicationSetup is not null) && Workspace.Idle);

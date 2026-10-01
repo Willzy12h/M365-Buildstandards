@@ -89,8 +89,18 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
               <StackPanel>
                 <TextBlock Text="Read-only Exchange and Purview assessment" Style="{StaticResource H2}"/>
-                <TextBlock Text="1. Enter the client's accepted mail domain. 2. Export and review the capture script. Run it manually in a fresh PowerShell process with an installed supported Exchange Online module and delegated read-only RBAC. 3. Import its JSON. 4. Check public DNS and review the findings in Assessment." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
-                <TextBlock Text="Client mail domain (mandatory; no default)" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="Capture from this app using the verified tenant and signed-in account. Organisation-wide checks do not require you to enter a mail domain. Accepted mail domains are discovered for DKIM, DMARC and domain-specific rules. Microsoft may request separate Exchange/Purview authentication; no tenant settings are changed." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <TextBlock Text="{Binding ExchangeDependencyGuidance}" Style="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <CheckBox Content="Include Purview audit retention (separate read RBAC/sign-in may be needed)" IsChecked="{Binding IncludePurview, Mode=TwoWay}"/>
+                <Button Content="Capture Exchange and Purview · read-only" Command="{Binding CaptureExchangeCommand}" HorizontalAlignment="Left"/>
+                <TextBlock Text="Accepted mail domain · only for domain-specific checks" Style="{StaticResource FieldLabel}"/>
+                <ComboBox ItemsSource="{Binding AcceptedMailDomains}" SelectedItem="{Binding SelectedMailDomain, Mode=TwoWay}" AutomationProperties.Name="Discovered accepted mail domain"/>
+                <Button Content="Assess selected mail domain" Command="{Binding SelectExchangeDomainCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
+                <Button Content="Check DKIM and DMARC DNS" Command="{Binding CheckExchangeDnsCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <Button Content="Export Exchange/Purview observations" Command="{Binding ExportExchangeEvidenceCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <Expander Header="Offline import and manual export" Margin="0,8,0,12"><StackPanel Margin="0,12,0,0">
+                <TextBlock Text="Mail domain for an offline import or export" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding MailDomainInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Client mail domain for Exchange and DNS"/>
                 <WrapPanel>
                   <Button Content="Save mail domain" Command="{Binding SaveMailDomainCommand}" Style="{StaticResource SecondaryButton}"/>
@@ -101,10 +111,10 @@
                 <WrapPanel>
                   <Button Content="Choose capture" Command="{Binding ChooseExchangeCaptureCommand}" Style="{StaticResource QuietButton}"/>
                   <Button Content="Import for offline assessment" Command="{Binding ImportExchangeCaptureCommand}" Style="{StaticResource SecondaryButton}"/>
-                  <Button Content="Check DKIM and DMARC DNS" Command="{Binding CheckExchangeDnsCommand}" Style="{StaticResource SecondaryButton}"/>
                 </WrapPanel>
                 <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
-                <TextBlock Text="The DNS check queries your configured Windows resolver. Failures stay unknown. DKIM CNAME targets and DMARC results appear in finding evidence. The toolkit never runs the Exchange script or performs Exchange/Purview writes." Style="{StaticResource Muted}"/>
+                <TextBlock Text="The DNS check queries your configured Windows resolver. Failures stay unknown. DKIM CNAME targets and DMARC results appear in finding evidence. The toolkit performs no Exchange/Purview writes." Style="{StaticResource Muted}"/>
+                </StackPanel></Expander>
                 <TextBlock Text="Review a manual change proposal" Style="{StaticResource H2}" Margin="0,18,0,6"/>
                 <TextBlock Text="Select one control and type the tenant ID shown above. Export contains before observations, commented PowerShell and after checks. It cannot execute changes. Fresh complete evidence is required; DKIM enabling instructions require both matching DNS answers." Style="{StaticResource Muted}"/>
                 <ComboBox ItemsSource="{Binding ProposalControls}" SelectedItem="{Binding SelectedProposalControl}" DisplayMemberPath="Name" AutomationProperties.Name="Exchange or Purview control for proposal" Margin="0,8,0,8"/>

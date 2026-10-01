@@ -13,9 +13,9 @@ public static class ExchangeAssessment
     {
         if (!ControlIds.Contains(control.Id)) return false;
         finding.Status = FindingStatus.UnableToAssess;
-        finding.Reason = "Import a tenant-bound Exchange/Purview capture. Missing or incomplete observations do not establish missing configuration.";
+        finding.Reason = "Capture Exchange/Purview from Configuration or import a tenant-bound capture. Missing or incomplete observations do not establish missing configuration.";
         if (capture is null) return true;
-        finding.Notes.Add($"Engineer-imported observations from {capture.CapturedAt}; module {capture.ModuleVersion}. Source provenance is not independently authenticated. No live tenant check or write was performed by the toolkit.");
+        finding.Notes.Add($"Read-only Exchange/Purview observations from {capture.CapturedAt}; module {capture.ModuleVersion}. Exported source claims are not signed. These separate observations cannot authorise a tenant write.");
         if (Timestamps.TryParse(capture.CapturedAt, out var captured) && now - captured > TimeSpan.FromDays(1))
         { finding.Reason = "The Exchange capture is over 24 hours old; import a fresh capture before assessing current settings."; return true; }
         if (control.Id is "EX-001" or "EX-007" or "EX-008")
@@ -23,7 +23,7 @@ public static class ExchangeAssessment
             if (!ExchangeCaptureSchema.Complete(capture, "acceptedDomains", out var domains)
                 || !domains.Any(d => string.Equals(Text(d, "DomainName"), capture.Domain, StringComparison.OrdinalIgnoreCase)))
             { finding.Reason = "The entered domain is not established as an accepted domain by complete imported evidence."; return true; }
-            finding.ObservedObjects.Add("Engineer-entered mail domain: " + capture.Domain);
+            finding.ObservedObjects.Add("Selected mail domain: " + capture.Domain);
         }
         switch (control.Id)
         {

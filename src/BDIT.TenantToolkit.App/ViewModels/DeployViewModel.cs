@@ -12,6 +12,7 @@ public sealed class PrerequisiteRow
     public string Step { get; init; } = "";
     public string Status { get; init; } = "";
     public string Detail { get; init; } = "";
+    public string PageKey { get; init; } = "";
 }
 
 public sealed class DeployViewModel : PageViewModel
@@ -24,7 +25,7 @@ public sealed class DeployViewModel : PageViewModel
         EnableDeploymentCommand = Command(EnableDeploymentAsync, () => Workspace.Profile is not null && Workspace.Idle && !Workspace.IsDeploymentSession);
         CaptureCommand = Command(Workspace.CaptureAsync, () => Workspace.IsConnected && Workspace.Idle);
         ExportBeforeCommand = Command(ExportBefore, () => Workspace.Snapshot is not null && Workspace.SnapshotIsLive);
-        AcknowledgeCommand = Sync(Workspace.AcknowledgeSnapshot, () => Workspace.Snapshot is not null && Workspace.SnapshotIsLive && Workspace.Idle);
+        AcknowledgeCommand = Sync(Workspace.AcknowledgeSnapshot, () => Workspace.Snapshot?.Complete == true && Workspace.SnapshotIsLive && Workspace.Idle);
         DeployCommand = Command(DeployAsync, () => CanDeploy);
         PauseCommand = Sync(Workspace.PauseDeployment, () => IsRunning && !(Workspace.Control?.Paused ?? false));
         ResumeCommand = Sync(Workspace.ResumeDeployment, () => IsRunning && (Workspace.Control?.Paused ?? false));
@@ -64,7 +65,7 @@ public sealed class DeployViewModel : PageViewModel
 
     public bool IsRunning => Workspace.Executor.IsRunning;
     public bool CanDeploy => Workspace.IsDeploymentSession && Workspace.Plan is not null && Workspace.SnapshotIsLive
-                             && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot?.Id && Workspace.Idle && Workspace.Plan.WriteRows.Any();
+                             && Workspace.Snapshot?.Complete == true && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot?.Id && Workspace.Idle && Workspace.Plan.WriteRows.Any();
 
     public string RunText
     {
@@ -104,9 +105,11 @@ public sealed class DeployViewModel : PageViewModel
     {
         Workspace.ValidatePlanForExecution();
         var plan = Workspace.Plan!;
-        var dialog = new ConfirmTenantDialog(Workspace.Profile!, plan) { Owner = System.Windows.Application.Current.MainWindow };
+        var reviewedDigest = plan.PlanDigest;
+        var dialog = new ConfirmTenantDialog(Workspace.Profile!, plan, Workspace.Session) { Owner = System.Windows.Application.Current.MainWindow };
         if (dialog.ShowDialog() != true) return;
-        await Workspace.DeployAsync(dialog.TypedTenantId);
+        if (Workspace.Plan?.PlanDigest != reviewedDigest) throw new PlanValidationException("The plan changed during review. Review it again.");
+        await Workspace.DeployAsync(dialog.ConfirmedTenantId);
         Refresh();
     }
 
@@ -117,38 +120,50 @@ public sealed class DeployViewModel : PageViewModel
         LastExport = "Exported: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportRun(run, journal, format));
     }
 
+    private string CaptureReadinessDetail()
+    {
+        var snapshot = Workspace.Snapshot;
+        if (snapshot is null) return "Open 2 · Configuration and capture the tenant in this session.";
+        var failures = snapshot.Collections.Where(c => c.Value.Status != CaptureStatus.Collected)
+            .Select(c => $"{c.Key}: {c.Value.Status}. {c.Value.Error ?? "Review Collection status for missing details."}");
+        var detail = string.Join("\n", failures);
+        return $"{snapshot.Id} captured {snapshot.CapturedAt}\n" + (snapshot.Complete
+            ? "Complete. Freshness and route checks are repeated before approval."
+            : "Incomplete: open 2 · Configuration → Collection status. Resolve permissions or unsupported requests, then re-capture.\n" + detail);
+    }
+
     public override void Refresh()
     {
         Prerequisites.Clear();
         var session = Workspace.Session;
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "1. Deployment access",
+            Step = "1 · Connect: deployment access", PageKey = "connect",
             Status = session is null ? "Not connected" : session.Mode == SessionMode.Deployment ? "Ready" : "Read-only session",
             Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}" : DeploymentApplicationText
         });
         var missingScopes = Workspace.Access?.Writes.Where(w => w.Status == "Missing scope").Select(w => w.Label).ToList() ?? new List<string>();
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "2. Write scopes",
+            Step = "1 · Connect: permissions", PageKey = "connect",
             Status = session?.Mode != SessionMode.Deployment ? "Pending" : Workspace.Access is null ? "Unknown" : missingScopes.Count == 0 ? "Observed" : "Missing",
             Detail = Workspace.Access is null ? "Run the access check before relying on scope observations." : missingScopes.Count == 0 ? "Scope observation does not prove API acceptance." : "Missing: " + string.Join(", ", missingScopes)
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "3. Live capture",
+            Step = "2 · Configuration: live capture", PageKey = "configuration",
             Status = Workspace.Snapshot is null ? "Pending" : Workspace.SnapshotIsLive ? (Workspace.Snapshot.Complete ? "Ready" : "Incomplete") : "Stored capture",
-            Detail = Workspace.Snapshot is null ? "Read the tenant configuration in this session." : $"{Workspace.Snapshot.Id} captured {Workspace.Snapshot.CapturedAt}"
+            Detail = CaptureReadinessDetail()
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "4. Reviewed plan",
+            Step = "5 · Plan changes: reviewed plan", PageKey = "plan",
             Status = Workspace.Plan is null ? "Pending" : Workspace.Plan.WriteRows.Any() ? "Ready" : "No changes",
             Detail = Workspace.Plan is null ? "Build a plan on the Plan changes page." : $"{Workspace.Plan.WriteRows.Count()} write(s) · digest {Workspace.Plan.PlanDigest[..12]}…"
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "5. Before-change evidence acknowledged",
+            Step = "6 · Deploy: preserve evidence", PageKey = "deploy",
             Status = Workspace.Snapshot is not null && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot.Id ? "Ready" : "Pending",
             Detail = "Export the before-change capture and acknowledge it. Plans expire with their snapshot after " + Workspace.Settings.SnapshotMaxAgeMinutes + " minutes."
         });

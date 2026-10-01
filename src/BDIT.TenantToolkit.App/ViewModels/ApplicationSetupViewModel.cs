@@ -13,10 +13,13 @@ namespace BDIT.TenantToolkit.App.ViewModels;
 /// <summary>
 /// Guided application setup: one administrator sign-in, one reviewed approval, then the toolkit creates both
 /// applications, opens Microsoft's permission approval for each in turn and reads the actual grants back. The
-/// safeguards of the step-by-step flow all remain: writes need the reviewed plan, the approval tick and the typed
+/// safeguards of the step-by-step flow all remain: writes need the reviewed plan, the approval tick bound to the verified
 /// tenant ID; names never establish ownership; an unsuccessful, missing or stopped approval ends the sequence and says
 /// so; and nothing is retried after an uncertain write.
 /// </summary>
+public sealed record ExistingApplicationChoice(SessionMode Mode, string Name, string ClientId)
+{ public string Label => $"{Mode} · {Name} · {ClientId}"; }
+
 public sealed class ApplicationSetupViewModel : PageViewModel
 {
     private string _tenantId = "", _namePrefix = "M365 BuildStandard", _assessmentId = "", _deploymentId = "",
@@ -24,10 +27,13 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     private bool _permissionsApproved, _assignOperator = true;
     private ApplicationSetupPlan? _plan;
     private ApplicationSetupRow? _selectedRow;
+    private ExistingApplicationChoice? _selectedExisting;
     private string _validatedContext = "";
     private string _resultsTenantId = "";
     public ApplicationSetupViewModel(ShellViewModel shell) : base(shell, "Application setup")
     {
+        QuickSetupCommand = Command(QuickSetupAsync, () => Workspace.Idle && ProfileValidator.IsGuid(TenantId.Trim()));
+        UseExistingCommand = Command(UseExistingAsync, () => Workspace.Idle && SelectedExisting is not null && Workspace.ApplicationSetup is not null);
         ConnectCommand = Command(ConnectAsync, () => Workspace.Idle && ProfileValidator.IsGuid(TenantId.Trim()));
         PreviewCommand = Command(PreviewAsync, () => Workspace.Idle && Workspace.ApplicationSetup is not null);
         CreateCommand = Command(SetUpAsync, () => Workspace.Idle && CanApproveSetup(_plan, TenantId,
@@ -62,7 +68,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     {
         get
         {
-            if (Workspace.ApplicationSetup is null) return "Next: enter the client's tenant ID and select Sign in as administrator.";
+            if (Workspace.ApplicationSetup is null) return "Next: select Quick setup. The connected tenant is filled in for you; administrator access is needed for application checks and approved setup writes.";
             if (Validations.Count > 0)
                 return Ready(SessionMode.Assessment)
                     ? (Ready(SessionMode.Deployment) ? "Both applications passed setup checks. Select Connect read-only now to test effective access."
@@ -70,7 +76,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
                     : "Assessment: " + NextAction(Validations.FirstOrDefault(v => v.Mode == SessionMode.Assessment), SessionMode.Assessment);
             if (_plan is null) return "Next: select Preview again to review the applications.";
             if (_plan.Rows.Any(r => r.Status == "Review existing"))
-                return "Tool applications with these names already exist. Enter their client IDs under Existing applications, then select Preview again.";
+                return "Existing applications found. Select the exact client ID in the picker and choose Check selected application. Names alone do not establish ownership.";
             return "Next: review the verified tenant and both applications below, tick approval and select Approve and create/configure applications. Previewing alone creates nothing. Microsoft will then open administrator consent in your browser.";
         }
     }
@@ -80,6 +86,10 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     public ObservableCollection<ApplicationSetupRow> PlanRows { get; } = new();
     public ObservableCollection<ApplicationSetupItemResult> Results { get; } = new();
     public ObservableCollection<ApplicationPermissionValidation> Validations { get; } = new();
+    public ICommand QuickSetupCommand { get; }
+    public ICommand UseExistingCommand { get; }
+    public ObservableCollection<ExistingApplicationChoice> ExistingApplications { get; } = new();
+    public ExistingApplicationChoice? SelectedExisting { get => _selectedExisting; set => SetProperty(ref _selectedExisting, value); }
     public ICommand ConnectCommand { get; }
     public ICommand PreviewCommand { get; }
     public ICommand CreateCommand { get; }
@@ -103,6 +113,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         && TenantConfirmation.Matches(verifiedTenant, plan.TenantId)
         && string.Equals(plan.OperatorId, verifiedOperator, StringComparison.OrdinalIgnoreCase)
         && plan.Rows.Any(r => r.Status is "Create" or "Configure existing")
+        && plan.Rows.All(r => r.Status is "Create" or "Configure existing")
         && plan.CreatedAt <= DateTimeOffset.UtcNow.AddMinutes(1)
         && DateTimeOffset.UtcNow - plan.CreatedAt <= TimeSpan.FromMinutes(5);
 
@@ -171,14 +182,47 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         return (modes, null);
     }
 
-    public void UseTenant(string tenantId, string company) { TenantId = tenantId; }
+    public void UseTenant(string tenantId, string company)
+    {
+        if (!string.Equals(TenantId.Trim(), tenantId.Trim(), StringComparison.OrdinalIgnoreCase))
+        { AssessmentClientId = ""; DeploymentClientId = ""; Results.Clear(); }
+        TenantId = tenantId;
+    }
     private ApplicationSetupService RequireSetup()
     {
         var setup = Workspace.ApplicationSetup ?? throw new ToolkitException("Sign in for application setup first.");
         if (!string.Equals(setup.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The setup session is connected to another tenant. Sign in again.");
         return setup;
     }
-    private void InvalidatePlan() { _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
+    private void InvalidatePlan() { ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
+    private async Task QuickSetupAsync()
+    {
+        await Workspace.ConnectApplicationSetupAsync(TenantId);
+        if (!string.Equals(Workspace.ApplicationSetup?.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) return;
+        await CheckOrPreviewAsync();
+    }
+    private async Task UseExistingAsync()
+    {
+        var choice = SelectedExisting ?? throw new ConfigurationException("Select an exact application ID first.");
+        RequireSetup();
+        if (choice.Mode == SessionMode.Assessment) AssessmentClientId = choice.ClientId;
+        else DeploymentClientId = choice.ClientId;
+        await CheckOrPreviewAsync();
+    }
+    private async Task CheckOrPreviewAsync()
+    {
+        if (ProfileValidator.IsGuid(AssessmentClientId.Trim()) && ProfileValidator.IsGuid(DeploymentClientId.Trim()))
+        {
+            await ValidateAsync();
+            if (Validations.Count == 2 && Validations.All(v => v.ConfigurationValid))
+            {
+                Outcome = "Existing applications checked; no registration changes are needed. " + NextStep;
+                return;
+            }
+        }
+        await PreviewAsync();
+    }
+
     private async Task ConnectAsync()
     {
         InvalidatePlan();
@@ -191,7 +235,15 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         InvalidatePlan();
         _plan = await RequireSetup().PreviewAsync(Workspace.RequireStandard(), NamePrefix, Workspace.OperationToken,
             AssessmentClientId.Trim(), DeploymentClientId.Trim(), AssignOperator);
-        foreach (var row in _plan.Rows) PlanRows.Add(row);
+        foreach (var row in _plan.Rows)
+        {
+            PlanRows.Add(row);
+            foreach (var match in row.ExistingMatches.GroupBy(m => m["appId"]?.GetValue<string>() ?? "", StringComparer.OrdinalIgnoreCase))
+                if (ProfileValidator.IsGuid(match.Key))
+                    ExistingApplications.Add(new ExistingApplicationChoice(row.Mode,
+                        match.First()["displayName"]?.GetValue<string>() ?? row.DisplayName, match.Key));
+        }
+        SelectedExisting = ExistingApplications.FirstOrDefault();
         SelectedRow = PlanRows.FirstOrDefault();
         OnPropertyChanged(nameof(PlanSummary));
         OnPropertyChanged(nameof(NextStep));
@@ -388,6 +440,13 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     private string ValidationContext => $"{TenantId.Trim()}|{Workspace.ApplicationSetup?.Identity.TenantId}|{Workspace.ApplicationSetup?.Identity.AccountObjectId}|{Workspace.Standard?.IntegrityDigest}|{AssessmentClientId}|{DeploymentClientId}";
     public override void Refresh()
     {
+        if (Workspace.Session is { TenantVerified: true } session && Workspace.Profile is { } profile
+            && !string.Equals(TenantId.Trim(), session.TenantId, StringComparison.OrdinalIgnoreCase))
+        {
+            UseTenant(session.TenantId, session.TenantName);
+            AssessmentClientId = profile.AssessmentClientId;
+            DeploymentClientId = profile.DeploymentClientId;
+        }
         if (Validations.Count > 0 && _validatedContext != ValidationContext) Validations.Clear();
         OnPropertyChanged(nameof(SetupIdentity)); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep));
         OnPropertyChanged(nameof(ApplicationGuide));

@@ -1,3 +1,7 @@
+# Preview.17 continuation — validation in progress
+
+Approved QoL implementation is on PR #19; see [goal](QOL-GOAL-2026.10.01.md) and decisions INT-045–048. Local strict solution/UI-review builds passed; 849 engine tests passed, none failed/skipped. Windows app/native UI/portable checks are pending on the Preview.17 source. No live tenant authentication, consent or service write was performed. Earlier Preview.16 results below are historical.
+
 # Release completion register
 
 ## Preview.16 usability continuation

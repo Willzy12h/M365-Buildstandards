@@ -5,7 +5,7 @@ Read-only, delegated Exchange/Purview configuration export for offline assessmen
 .DESCRIPTION
 Run manually in a fresh PowerShell process with an already installed supported
 ExchangeOnlineManagement module (3.2.0 or later) and a read-only RBAC account.
-The toolkit never runs this script. No installation, policy bypass, certificates,
+The toolkit can run this embedded read template in an owned fresh process. No installation, policy bypass, certificates,
 credentials, tokens, mailbox contents or write cmdlets are included.
 Runtime compatibility and actual responses remain unverified until engineer testing.
 .EXAMPLE
@@ -18,14 +18,19 @@ https://learn.microsoft.com/powershell/module/exchangepowershell/get-connectioni
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$OutputFile,
-    [switch]$IncludePurview
+    [switch]$IncludePurview,
+    [switch]$Integrated,
+    [string]$UserPrincipalName = ''
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $expectedTenant = [guid]'__TENANT__'
 $domain = '__DOMAIN__'
 if (Test-Path -LiteralPath $OutputFile) { throw 'Use a new output filename; existing evidence is never overwritten.' }
-Import-Module ExchangeOnlineManagement -MinimumVersion 3.2.0 -ErrorAction Stop
+$minimumVersion = if ($Integrated) { [version]'3.7.0' } else { [version]'3.2.0' }
+$module = @(Get-Module -ListAvailable ExchangeOnlineManagement | Where-Object { $_.Version -ge $minimumVersion } | Sort-Object Version -Descending | Select-Object -First 1)
+if ($module.Count -ne 1) { Write-Output 'BDIT:MODULE_MISSING'; throw 'A supported ExchangeOnlineManagement module must already be installed.' }
+Import-Module -Name $module[0].Path -ErrorAction Stop
 if (@(Get-ConnectionInformation).Count -ne 0) { throw 'Use a fresh PowerShell process with no existing Exchange or Purview connection.' }
 $definitions = @'
 __DEFINITIONS__
@@ -53,6 +58,7 @@ function Assert-CaptureConnection {
 function Read-CaptureCollection {
     param([string]$Key, [scriptblock]$Read)
     $definition = $definitions.PSObject.Properties[$Key].Value
+    Write-Output ('BDIT:READ:' + $Key)
     try {
         $null = Assert-CaptureConnection -Purview $definition.purview
         $projected = @()
@@ -83,7 +89,10 @@ function Read-CaptureCollection {
 
 try {
     $readCommands = @($definitions.PSObject.Properties | Where-Object { -not $_.Value.purview } | ForEach-Object { $_.Value.command })
-    Connect-ExchangeOnline -CommandName $readCommands -ShowBanner:$false -ErrorAction Stop
+    Write-Output 'BDIT:EXCHANGE'
+    $connectArguments = @{ CommandName = $readCommands; ShowBanner = $false; ErrorAction = 'Stop' }
+    if ($UserPrincipalName) { $connectArguments.UserPrincipalName = $UserPrincipalName }
+    Connect-ExchangeOnline @connectArguments
     $capture.exchangeTenantId = Assert-CaptureConnection -Purview $false
     Read-CaptureCollection 'acceptedDomains' { Get-AcceptedDomain -ErrorAction Stop }
     Read-CaptureCollection 'auditConfig' { Get-AdminAuditLogConfig -ErrorAction Stop }
@@ -97,7 +106,10 @@ try {
     Read-CaptureCollection 'dkim' { Get-DkimSigningConfig -ErrorAction Stop }
     if ($IncludePurview) {
         try {
-            Connect-IPPSSession -CommandName Get-UnifiedAuditLogRetentionPolicy -ShowBanner:$false -ErrorAction Stop
+            Write-Output 'BDIT:PURVIEW'
+            $purviewArguments = @{ CommandName = 'Get-UnifiedAuditLogRetentionPolicy'; ShowBanner = $false; ErrorAction = 'Stop' }
+            if ($UserPrincipalName) { $purviewArguments.UserPrincipalName = $UserPrincipalName }
+            Connect-IPPSSession @purviewArguments
             $capture.purviewTenantId = Assert-CaptureConnection -Purview $true
             Read-CaptureCollection 'auditRetention' { Get-UnifiedAuditLogRetentionPolicy -ErrorAction Stop }
         }

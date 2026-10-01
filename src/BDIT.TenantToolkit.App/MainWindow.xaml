@@ -102,12 +102,14 @@
                 </Style></TextBlock.Style>
               </TextBlock>
             </Border>
+            <Button Content="Copy connection details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
             <Button Content="Disconnect tenant" Command="{Binding DisconnectCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
           </StackPanel>
         </Grid>
       </Border>
-      <Expander DockPanel.Dock="Top" Header="Connection details" Background="White" Padding="28,3" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}">
-        <DockPanel Margin="0,8,0,6">
+      <Expander DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="28,12" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}">
+        <Expander.Header><TextBlock Text="Connection details · tenant, domain, account and permissions" FontWeight="SemiBold"/></Expander.Header>
+        <DockPanel Margin="0,12,0,6">
           <Button DockPanel.Dock="Right" Content="Copy details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top"/>
           <TextBox AutomationProperties.Name="Connection details" Text="{Binding DetailsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" MaxHeight="180" Margin="0,0,12,0"/>
         </DockPanel>

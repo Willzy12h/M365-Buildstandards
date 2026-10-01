@@ -109,11 +109,12 @@ public sealed class ConnectViewModel : PageViewModel
         ? "Use the client's own Microsoft 365 account. We will find the organisation, tenant ID and domain for you. Review them before connecting read-only."
         : "Quick Connect is disabled because the shared Microsoft Graph PowerShell assessment fallback is disabled. Use a saved client or enter dedicated application details below.";
     public string DiscoveredTenantText => _discovered is not { } d ? "" :
-        $"Organisation: {d.Name}\nPrimary domain: {(d.Domain.Length == 0 ? "Not returned by Microsoft" : d.Domain)}\nTenant ID: {d.TenantId}\nSigned-in account: {d.Account}\nMode: read-only assessment\n\nThis creates a one-time connection. Saved client settings and policy exceptions are not copied. Microsoft may ask you to sign in or approve assessment read permissions next."
+        $"Organisation: {d.Name}\nPrimary domain: {(d.Domain.Length == 0 ? "Not returned by Microsoft" : d.Domain)}\nTenant ID: {d.TenantId}\nSigned-in account: {d.Account}\nMode: read-only assessment\n\nThis creates a one-time connection. Saved client settings and policy exceptions are not copied. Your sign-in is retained for five minutes. Confirmation rechecks this organisation and account without another sign-in. A configured different dedicated application may need Microsoft consent or authentication."
         + (d.TokenHasWriteScopes ? "\n\nThe shared application's token includes previously consented write permissions. This tool blocks writes during discovery and assessment; a dedicated assessment registration provides token-level separation." : "");
 
     private void SetDiscovery(DiscoveredTenant? tenant)
     {
+        if (tenant is null) Workspace.CancelPendingDiscovery();
         _discovered = tenant;
         OnPropertyChanged(nameof(HasDiscoveredTenant));
         OnPropertyChanged(nameof(DiscoveredTenantText));

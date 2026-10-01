@@ -25,7 +25,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-24 | Claude | M365-Buildstandards | full review: build strictness, interface checks (dialogs, commands, keyboard, scaling, contrast), code review fixes, documentation | `claude/github-repo-access-ygieh2` | #17 | Merged |
 | 2026-09-24 | Claude | M365-Buildstandards | application setup (guided flow), interface (friendly names), review findings 1, 2, 3, 6 and 7 from FULL-REVIEW-2026-09-24; next release plan | `claude/github-repo-access-ygieh2` | #18 | Merged |
 
-| 2026-09-25 | Astra/Codex | M365-Buildstandards | standard 2026.09.12 and successor; collection/assessment, planning/deployment safeguards, Exchange/Purview, interface, generated documents, .NET 10 and portable release completion; continued 2026-09-30 under COMPLETION-REGISTER; authentication, setup/capture QoL and portable context-menu regression under QOL-GOAL-2026.10.01 | `astra/release-2026-09-12` | #19 | Open |
+| 2026-09-25 | Astra/Codex | M365-Buildstandards | standard 2026.09.12 and successor; collection/assessment, planning/deployment safeguards, Exchange/Purview, interface, generated documents, .NET 10 and portable release completion; continued 2026-09-30 under COMPLETION-REGISTER; authentication, setup/capture QoL and portable context-menu regression under QOL-GOAL-2026.10.01; approved Preview.17 retained authentication, quick setup/deployment review and integrated read-only Exchange/Purview | `astra/release-2026-09-12` | #19 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 

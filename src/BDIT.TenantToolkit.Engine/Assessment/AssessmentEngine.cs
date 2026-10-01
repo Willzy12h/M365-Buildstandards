@@ -34,7 +34,7 @@ public sealed class AssessmentEngine
         _toolkitVersion = toolkitVersion;
     }
 
-    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy)
+    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null)
     {
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The snapshot and the selected client profile belong to different tenants.");
@@ -44,7 +44,8 @@ public sealed class AssessmentEngine
             if (!string.Equals(d.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
                 throw new TenantMismatchException($"Deviation {d.Id} belongs to a different tenant.");
 
-        if (snapshot.ExchangeCapture is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
+        var exchangeEvidence = separateExchange ?? snapshot.ExchangeCapture;
+        if (exchangeEvidence is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
 
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
@@ -78,9 +79,9 @@ public sealed class AssessmentEngine
         }
         if (snapshot.BetaCollections.Any())
             result.Limitations.Add("Beta Graph endpoints were used for: " + string.Join(", ", snapshot.BetaCollections.Select(k => standard.FindCollection(k)?.Label ?? k)) + ". Beta APIs can change without notice.");
-        if (snapshot.ExchangeCapture is { } external)
+        if (exchangeEvidence is { } external)
         {
-            result.Limitations.Add("Imported Exchange/Purview observations are for offline assessment only. They cannot authorise toolkit writes and their source is not independently authenticated.");
+            result.Limitations.Add($"Separate Exchange/Purview evidence {external.Id}, captured {external.CapturedAt}, selected domain {external.Domain}. Read-only observations cannot authorise toolkit writes; exported source claims are not signed.");
             foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
                 result.CollectionStatus[definition.Command] = external.Collections.TryGetValue(key, out var c)
                     ? c.Status == CaptureStatus.Collected && !ExchangeCaptureSchema.Complete(external, key, out _)
@@ -96,7 +97,7 @@ public sealed class AssessmentEngine
         foreach (var control in ControlInstances.All(standard, profile))
         {
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
-            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow);
+            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow, exchangeEvidence);
             result.Findings.Add(finding);
         }
 
@@ -105,7 +106,7 @@ public sealed class AssessmentEngine
     }
 
     private static ControlFinding AssessControl(ControlDefinition control, StandardCatalogue standard, TenantSnapshot snapshot, ManagedObjectMappings mappings,
-        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now)
+        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now, ExchangeCapture? exchangeEvidence)
     {
         var finding = new ControlFinding
         {
@@ -158,7 +159,7 @@ public sealed class AssessmentEngine
         var def = standard.FindCollection(control.Collection);
         snapshot.Collections.TryGetValue(control.Collection ?? "", out var capture);
 
-        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, snapshot.ExchangeCapture, finding, now)) return finding;
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, exchangeEvidence, finding, now)) return finding;
         if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.Apply(control, snapshot, finding)) return finding;
         if (standard.SchemaVersion >= 5 && def is not null && (capture is null || !capture.Usable))
         {

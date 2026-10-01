@@ -19,10 +19,10 @@
             <TextBlock Text="AppRoleAssignment.ReadWrite.All — assign the approved engineer to the tool enterprise apps." Margin="0,5,0,0"/>
             <TextBlock Text="The setup session is temporary and never saved. Consent granted in Microsoft Entra can persist after disconnecting and must be reviewed or revoked there." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
           </StackPanel></Border></Expander>
-          <TextBlock Text="Client tenant ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TenantId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Application setup tenant ID"/>
+          <TextBlock Text="Target tenant ID · carried from the verified connection" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TenantId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Application setup tenant ID"/>
           <CheckBox AutomationProperties.Name="Assign me to both applications so I can connect straight away" IsChecked="{Binding AssignOperator, Mode=TwoWay}"><TextBlock Text="Assign me to both applications so I can connect straight away (grants no administrator role). Other engineers are assigned in Entra." TextWrapping="Wrap"/></CheckBox>
           <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
-          <WrapPanel><Button Content="Sign in as administrator" Command="{Binding ConnectCommand}" Style="{StaticResource WarningButton}"/><Button Content="Disconnect setup session" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+          <WrapPanel><Button Content="Quick setup · check existing applications" Command="{Binding QuickSetupCommand}" Style="{StaticResource WarningButton}"/><Button Content="Administrator sign-in / preview" Command="{Binding ConnectCommand}" Style="{StaticResource WarningButton}"/><Button Content="Disconnect setup session" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
         </StackPanel>
       </Border>
       <Border x:Name="ApprovalSection" Style="{StaticResource Card}">
@@ -31,6 +31,11 @@
           <TextBlock Text="This is a preview until you approve creation below. Check the verified tenant name and ID and both application names. You do not need to type the tenant ID again. Expand the permission details before approving." Style="{StaticResource Muted}" Margin="0,12,0,12"/>
           <TextBlock Text="{Binding PlanSummary}" FontWeight="SemiBold" Margin="0,0,0,16"/>
           <DataGrid ItemsSource="{Binding PlanRows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" MaxHeight="230" Margin="0,0,0,16" AutomationProperties.Name="Proposed applications"><DataGrid.Columns><DataGridTextColumn Header="Application" Binding="{Binding DisplayName}" Width="250"/><DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="120"/><DataGridTextColumn Header="Action" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
+          <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Existing applications · choose the exact client ID, then check its ownership and permissions" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding ExistingApplications}" SelectedItem="{Binding SelectedExisting, Mode=TwoWay}" DisplayMemberPath="Label" AutomationProperties.Name="Existing application client ID"/>
+            <Button Content="Check selected application" Command="{Binding UseExistingCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+          </StackPanel>
           <Expander Header="Review delegated permissions and exact payload" Margin="0,0,0,12"><StackPanel Margin="0,10,0,0">
           <TextBlock Text="Permissions for the selected application" Style="{StaticResource FieldLabel}"/>
           <DataGrid ItemsSource="{Binding Permissions}" MaxHeight="360" Margin="0,0,0,12" AutomationProperties.Name="Requested delegated permissions"><DataGrid.Columns><DataGridTextColumn Header="Permission" Binding="{Binding Name}" Width="300"/><DataGridTextColumn Header="What it permits" Binding="{Binding Description}" Width="*"/><DataGridCheckBoxColumn Header="Admin consent" Binding="{Binding AdminConsentRequired}" Width="115"/></DataGrid.Columns></DataGrid>

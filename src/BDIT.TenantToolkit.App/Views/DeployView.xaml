@@ -16,14 +16,15 @@
       </Border>
       <Border Style="{StaticResource Card}">
         <StackPanel>
-          <TextBlock Text="1  Check readiness" Style="{StaticResource H2}"/>
+          <TextBlock Text="Check readiness" Style="{StaticResource H2}"/>
           <TextBlock Text="Complete the required access, capture and evidence steps for this plan." Style="{StaticResource Muted}" Margin="0,0,0,14"/>
           <TextBox Text="{Binding DeploymentApplicationText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Deployment application and setup guidance"/>
           <DataGrid ItemsSource="{Binding Prerequisites}" MaxHeight="250" Margin="0,0,0,16" AutomationProperties.Name="Deployment prerequisites">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Prerequisite" Binding="{Binding Step}" Width="260"/>
               <DataGridTemplateColumn Header="Status" Width="145"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Background="{Binding Status, Converter={StaticResource StatusToBrush}}" CornerRadius="4" Padding="7,4"><TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-              <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/>
+              <DataGridTextColumn Header="Detail and next action" Binding="{Binding Detail}" Width="*"/>
+              <DataGridTemplateColumn Header="Open" Width="90"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="Open step" Command="{Binding DataContext.Shell.NavigateCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding PageKey}" Style="{StaticResource QuietButton}" Margin="0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
             </DataGrid.Columns>
           </DataGrid>
           <WrapPanel>

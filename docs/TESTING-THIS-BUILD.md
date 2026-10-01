@@ -57,13 +57,13 @@ reader. No tenant is needed for any of this.
    status colours in the tables (green, amber, red, blue) are distinguishable. The status is always written as well,
    so colour is never the only signal.
 5. **Final confirmation.** This needs a connected deployment session, so leave it for section 5: the *Deploy* button
-   must stay disabled until the tenant ID is typed in full, and pressing Enter must never deploy.
+   must stay disabled until you explicitly approve the displayed verified tenant and exact listed changes; pressing Enter must never deploy. Changing the tenant/operator/client or plan invalidates approval.
 
 Note anything that does not behave as described, with the page and window size, under *What is worth your feedback*.
 
 ## 4. Connect a tenant read-only
 
-1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Select **Sign in as administrator**, review the two applications and their permissions, tick the approval, type the tenant ID and select **Create apps and grant permissions**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
+1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Select **Sign in as administrator**, review the two applications and their permissions, tick the reviewed approval and select **Approve and create/configure applications**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
 2. Choose **Connect read-only now**.
 3. **Overview and licences** loads subscription counts. **Capture** reads the tenant configuration.
 4. **Assessment** compares the capture with the standard. Export the engineer report in any format.

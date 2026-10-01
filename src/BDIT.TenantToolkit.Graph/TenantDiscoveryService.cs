@@ -17,7 +17,7 @@ public sealed record DiscoveredTenant(string TenantId, string Name, string Domai
         Company = Name, TenantId = TenantId, Domain = Domain
     }, DateTimeOffset.UtcNow);
 
-    /// <summary>The second, tenant-pinned sign-in must still be the identity the engineer confirmed.</summary>
+    /// <summary>The confirmed, tenant-pinned connection must still be the identity the engineer confirmed.</summary>
     public void VerifyConnection(TenantSession session)
     {
         if (session.Mode != SessionMode.Assessment || !session.TenantVerified || !session.OperatorVerified
@@ -28,7 +28,7 @@ public sealed record DiscoveredTenant(string TenantId, string Name, string Domai
     }
 }
 
-/// <summary>Bounded identity discovery only. Dispose temporary tokens before presenting a confirmation.</summary>
+/// <summary>Bounded identity discovery. A retained result can be consumed once for assessment only.</summary>
 public static class TenantDiscoveryService
 {
     internal static GraphRouteAllowList Routes() => GraphRouteAllowList.Only(new[]
@@ -52,6 +52,26 @@ public static class TenantDiscoveryService
             return await ReadIdentityAsync(graph, auth.Outcome, ct);
         }
         finally { await auth.DisconnectAsync(); }
+    }
+
+    public static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
+        StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct)
+    {
+        if (!settings.AllowMicrosoftGraphPowerShellFallback)
+            throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
+        if (new TenantSession { Scopes = readScopes.ToList() }.HasWriteScopes)
+            throw new ConfigurationException("Quick Connect cannot request write permissions.");
+        var auth = await MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser,
+            TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct, readScopes);
+        try
+        {
+            var graph = new GraphClient(http, auth, auth.Outcome.TenantId, SessionMode.Assessment, Routes(),
+                new GraphClientOptions { ReadTimeout = TimeSpan.FromSeconds(settings.GraphReadTimeoutSeconds) }, log);
+            var identity = await ReadIdentityAsync(graph, auth.Outcome, ct);
+            ct.ThrowIfCancellationRequested();
+            return new PendingTenantDiscovery(identity, standard.IntegrityDigest, auth);
+        }
+        catch { await auth.ReleaseAsync(); throw; }
     }
 
     internal static async Task<DiscoveredTenant> ReadIdentityAsync(IGraphClient graph, SignInOutcome token, CancellationToken ct)
@@ -79,4 +99,29 @@ public static class TenantDiscoveryService
         return new DiscoveredTenant(token.TenantId, name, domain, account, token.AccountObjectId,
             new TenantSession { Scopes = token.Scopes.ToList() }.HasWriteScopes);
     }
+}
+
+/// <summary>In-memory, single-use assessment authentication; never persisted as approval.</summary>
+public sealed class PendingTenantDiscovery : IAsyncDisposable
+{
+    private MsalAuthenticator? _auth;
+    public DiscoveredTenant Identity { get; }
+    public string StandardDigest { get; }
+    public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
+    internal PendingTenantDiscovery(DiscoveredTenant identity, string standardDigest, MsalAuthenticator auth)
+    { Identity = identity; StandardDigest = standardDigest; _auth = auth; }
+    public static void VerifyContext(DiscoveredTenant identity, TenantProfile profile, string expectedDigest,
+        string currentDigest, DateTimeOffset createdAt, DateTimeOffset now)
+    {
+        if (!string.Equals(identity.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
+            || expectedDigest != currentDigest || createdAt > now.AddMinutes(1) || now - createdAt > TimeSpan.FromMinutes(5))
+            throw new TenantMismatchException("Quick Connect confirmation expired or the tenant/standard changed. Start Quick Connect again.");
+    }
+    internal MsalAuthenticator Take(TenantProfile profile, StandardCatalogue standard)
+    {
+        VerifyContext(Identity, profile, StandardDigest, standard.IntegrityDigest, CreatedAt, DateTimeOffset.UtcNow);
+        return Interlocked.Exchange(ref _auth, null) ?? throw new AuthenticationRequiredException("Quick Connect was already confirmed or cancelled.");
+    }
+    public async ValueTask DisposeAsync()
+    { var auth = Interlocked.Exchange(ref _auth, null); if (auth is not null) await auth.ReleaseAsync(); }
 }

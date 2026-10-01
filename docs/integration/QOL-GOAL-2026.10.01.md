@@ -1,3 +1,21 @@
+# Preview.17 seamless tenant workflow goal
+
+Continue and validate PR #19 on .NET 10, following the user's approved QoL scope. Preview.16 was validated before this continuation; its checks remain historical evidence, not proof of Preview.17.
+
+## Result and acceptance
+
+1. **Quick Connect:** request assessment read permissions on the initial shared-app sign-in, retain authentication in memory for five minutes, then use it once after explicit tenant/account confirmation. Re-read organisation and operator without another interactive request. Changed tenant/operator/standard, cancellation and expiry reject confirmation. A different configured dedicated app needs its own token and the UI explains this. Page navigation remains local; renewal remains silent.
+2. **Quick setup:** carry the connected verified tenant into setup. Check configured IDs or discover existing named registrations, present exact client IDs for explicit selection, then validate tenant ownership, public-client configuration, actual consent grants and engineer assignment. Show the changes needed before approval; never adopt solely by name or create duplicates after an uncertain response. Setup retains Graph assessment/capture. Administrator consent remains a separately explained Microsoft browser step.
+3. **Policy deployment review:** present organisation, domain, operator, exact changes and plan digest. Require explicit approval and the deliberate deploy button without typing the GUID again. The engine still receives the exact approved tenant ID and enforces immutable/fresh plan, complete live Graph evidence, operator/client/profile/standard identity, durable intent and no ambiguous retries. CA stays disabled; Intune stays unassigned. Activation/recovery remain separate.
+4. **Clarity:** make connection details easier to find/copy. Explain tool vs engineer prerequisite actions and proof of completion. Disabled selection shows its cause and remedy. Readiness labels use sidebar page numbers, show collection errors and link to the affected step; incomplete evidence stays incomplete.
+5. **Exchange/Purview:** from Configuration, run only the embedded delegated read script in an owned Windows PowerShell process. A supported preinstalled ExchangeOnlineManagement module is required; check dependencies, retain WAM defaults, verify each observed service tenant and collect only allow-listed configuration fields. No module installation, script-policy bypass, mailbox contents, credentials or service writes. Show progress, allow cancellation and import results automatically. Use the connected primary domain as a reference without manual input; discover accepted mail domains for domain-specific checks. Organisation-wide checks continue even when accepted-domain evidence fails. Keep strict offline import/export and fake DNS tests.
+6. **Evidence separation:** Exchange observations have their own saved snapshot and assessment references. Capture/import/DNS/domain selection preserve Graph snapshot, live flag, plan and acknowledgement because their inputs are unchanged. Separate observations can never satisfy Graph deployment gates. Changing client/profile policy inputs still invalidates applicable approval.
+7. **Release:** strict builds, engine/application regression tests, native Windows UI checks at all three supported sizes and the freshly extracted self-contained package/context-menu checks must pass on the published source. Publish ZIP, checksum, tests and UI images through PR #19. Record exact validation and remaining live acceptance. Published catalogues and persisted schemas remain unchanged.
+
+Live Microsoft WAM/MFA/consent prompt counts, actual Exchange/Purview module/RBAC/tenant responses, GDAP, collection completeness and device effects require separately authorised engineer acceptance. Do not merge or publish a production release automatically.
+
+## Previous Preview.16 goal (historical)
+
 # M365 BuildStandard: connection and usability release goal
 
 ## Goal

@@ -98,12 +98,12 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     // Discovery is deliberately a separate entry point: normal assessment, deployment and setup still require
     // a known tenant. No arbitrary client, scopes, cache file or login hint can be supplied to discovery.
     internal static Task<MsalAuthenticator> DiscoverAsync(IntPtr parentWindow, bool useBrowser, TimeSpan timeout,
-        IToolkitLog log, CancellationToken ct) => SignInCoreAsync(new SignInRequest
+        IToolkitLog log, CancellationToken ct, IReadOnlyList<string>? assessmentScopes = null) => SignInCoreAsync(new SignInRequest
         {
             ClientId = ToolkitSettings.MicrosoftGraphPowerShellClientId,
             ClientLabel = "Microsoft Graph PowerShell", Mode = SessionMode.Assessment,
-            Scopes = new[] { "User.Read", "Organization.Read.All" },
-            Purpose = "discover organisation (read-only)", ParentWindowHandle = parentWindow,
+            Scopes = assessmentScopes ?? new[] { "User.Read", "Organization.Read.All" },
+            Purpose = "Quick Connect assessment (read-only)", ParentWindowHandle = parentWindow,
             UseSystemBrowser = useBrowser, Timeout = timeout
         }, "organizations", discoverTenant: true, log, ct);
 
@@ -227,6 +227,14 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         }
     }
 
+    /// <summary>Release an owned session without signing other toolkit sessions out of the broker.</summary>
+    public async Task ReleaseAsync()
+    {
+        await _gate.WaitAsync();
+        try { _disconnected = true; _accessToken = null; _account = null; _accountIdentifier = null; }
+        finally { _gate.Release(); }
+    }
+
     public async Task DisconnectAsync()
     {
         await _gate.WaitAsync();
@@ -236,7 +244,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             _accessToken = null;
             try
             {
-                foreach (var account in await _pca.GetAccountsAsync()) await _pca.RemoveAsync(account);
+                if (_account is not null) await _pca.RemoveAsync(_account);
             }
             catch (MsalException ex)
             {

@@ -1,3 +1,13 @@
+# 1.1.0-preview.17
+
+- Retain Quick Connect authentication for one confirmed read-only connection, bound to tenant/operator/standard and five-minute expiry. Recheck identity without another interactive request; explain when a different dedicated app needs authentication.
+- Carry the connected tenant into Quick setup, check configured/existing applications by exact ID, and show configuration, grants and assignment needs. Preserve Graph assessment/capture while using the separate privileged setup session.
+- Replace policy GUID retyping with explicit approval of the verified tenant and exact change list. Preserve immutable plan validation, complete live evidence, durable intent and inactive/unassigned candidates.
+- Make connection details easier to find/copy. Explain prerequisite ownership, disabled plan selection and readiness remedies with matching navigation labels.
+- Integrate the embedded read-only Exchange/Purview capture in an owned Windows PowerShell process with module checks, WAM defaults, tenant verification, progress and cancellation. Discover accepted domains for domain-specific assessment; no manual domain entry for organisation-wide capture.
+- Keep Exchange evidence independent of Graph captures/plans/acknowledgements. Support separate observation export, offline import, selected-domain DNS refresh and bounded strict evidence validation. No Exchange/Purview writes, module installation or policy bypass.
+- Windows, portable-package and live-service acceptance are tracked in the completion register; passing synthetic tests is not proof of Microsoft service access.
+
 # 1.1.0-preview.16 — connection and usability update
 
 - Add client-account Quick Connect with organisation/account confirmation, optional browser fallback and a separate explicit-customer partner/GDAP sign-in route. Discovery creates no saved connection and cannot enable deployment.

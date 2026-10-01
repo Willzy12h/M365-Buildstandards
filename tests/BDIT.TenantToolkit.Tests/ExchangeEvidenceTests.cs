@@ -212,7 +212,7 @@ public sealed class ExchangeEvidenceTests
     {
         var script = ExchangeCaptureScripts.ReadOnlyCapture(TestData.TenantA,ExchangeTestData.Domain);
         foreach (var cmd in ExchangeCaptureSchema.Definitions.Values.Select(d=>d.Command)) Assert.Contains(cmd,script);
-        Assert.Contains("-CommandName $readCommands",script); Assert.Contains("Assert-CaptureConnection -Purview $definition.purview",script);
+        Assert.Contains("CommandName = $readCommands",script); Assert.Contains("Assert-CaptureConnection -Purview $definition.purview",script);
         Assert.Contains("Use a fresh PowerShell process",script); Assert.DoesNotContain("__DEFINITIONS__",script);
         foreach (var forbidden in new[] { "Set-Transport", "Set-Dkim", "New-Transport", "Set-AdminAudit", "Install-Module", "-Certificate", "-Credential", "-AccessToken", "-ExecutionPolicy" }) Assert.DoesNotContain(forbidden,script);
         var c = ExchangeTestData.Capture(); ExchangeTestData.AddDns(c); var report = Assess(c);

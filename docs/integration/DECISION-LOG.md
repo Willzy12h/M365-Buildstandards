@@ -1,3 +1,14 @@
+## Approved Preview.17 continuation — PR #19, 1 October 2026
+
+The user approved the source-reviewed QoL proposal with “Action these changes”. This supersedes the presentation/lifecycle restrictions below only in the stated areas; no live tenant operation is authorised.
+
+- **INT-045 — retain Quick Connect authentication:** request the selected standard's assessment read scopes at the initial sign-in, keep the authenticator transiently in memory, then reverify the same tenant/operator at confirmation without another interactive request. The pending result is single-use, expires after five minutes, and is bound to the standard digest. Cancellation, changing client/standard and shutdown release it. A configured different dedicated client still needs its own authentication; explain why. No discovery token may authorise deployment.
+- **INT-046 — reviewed policy approval without GUID retyping:** replace policy deployment's typed-ID dialog with the connected organisation/domain/operator, immutable plan summary and exact write list, plus an explicit approval tick and deliberate deploy button. Pass the approved exact tenant ID to the unchanged executor validation. Keep fresh complete live evidence, session/plan identity, durable intent, inert candidates and no ambiguous retries. Other activation/recovery confirmations retain their contracts.
+- **INT-047 — integrated read-only Exchange/Purview capture:** run the embedded allow-listed delegated read script in an owned Windows PowerShell process with a preinstalled supported module. Check each service's observed tenant before collection. No module installation, arbitrary scripts or write commands. Use the verified profile domain as a reference, discover accepted mail domains and offer selection for domain-specific checks. Keep the existing strict schema and imported provenance; process ownership is additional runtime evidence, not a signed export. Exchange evidence is independent of Graph evidence and cannot enable writes. Imports remain supported and offline. Authentication/consent may still require Microsoft interaction for this separate service.
+- **INT-048 — guided setup and workflow clarity:** carry the connected tenant into setup, offer Quick setup with discovery of existing registrations and explicit exact-ID selection, and read back configuration, actual grants and operator assignment. Names alone never adopt an application. Explain disabled plan selection and prerequisite action ownership, align readiness labels with navigation, and expose failed collection details and copy controls. Published catalogue bytes remain unchanged.
+
+Windows broker, service RBAC and live Microsoft responses require engineer acceptance; offline and native UI tests cannot establish them.
+
 # Integration decisions
 
 ## User-requested usability continuation — Preview.16
