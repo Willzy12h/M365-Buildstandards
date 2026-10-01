@@ -165,6 +165,22 @@ public static class PortableTextMenu {
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
     [IO.File]::WriteAllText([IO.Path]::GetFullPath($ResultPath), (($result | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
     Write-Host "Verified $($files.Count) extracted files, exact stage bytes and packaged offline startup/shutdown."
+} catch {
+    $failure = $_
+    # Only the owned fresh-extraction logs are inspected; this process has blank settings and never signs in.
+    # Preserve any application error behind a failed automation step instead of reporting only "menu not found".
+    $runtimeErrors = @()
+    if (Test-Path -LiteralPath (Join-Path $extract 'logs')) {
+        try {
+            $runtimeErrors = @(Get-ChildItem -LiteralPath (Join-Path $extract 'logs') -File | ForEach-Object {
+                Get-Content -LiteralPath $_.FullName | Where-Object { $_ -match 'Unhandled UI exception|Could not load file or assembly|FATAL|CRASH' }
+            } | Select-Object -First 10)
+        } catch { } # A diagnostic read must not replace the original failure.
+    }
+    if ($runtimeErrors.Count -gt 0) {
+        throw ($failure.Exception.Message + "`nPackaged runtime errors:`n" + ($runtimeErrors -join "`n") + "`n" + $failure.ScriptStackTrace)
+    }
+    throw
 } finally {
     if ($process -and -not $process.HasExited) { $process.Kill(); $process.WaitForExit(5000) | Out-Null }
     if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
