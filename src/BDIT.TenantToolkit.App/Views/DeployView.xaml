@@ -40,14 +40,14 @@
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Review and deploy" Command="{Binding DeployCommand}" Margin="24,0,0,0" VerticalAlignment="Center"/>
           <StackPanel>
-            <TextBlock Text="2  Confirm the tenant and deploy" Style="{StaticResource H2}"/>
-            <TextBlock Text="This writes to the tenant. Confirm its full ID in the next step. The toolkit revalidates the plan and reads each target before a write."/>
+            <TextBlock Text="Review and approve this tenant" Style="{StaticResource H2}"/>
+            <TextBlock Text="This writes to the tenant. Review the verified organisation, account and listed changes in the next step. Approve explicitly; no tenant ID retyping is needed. The toolkit revalidates the plan and reads each target before writing."/>
           </StackPanel>
         </DockPanel>
       </Border>
       <Border Style="{StaticResource Card}">
         <StackPanel>
-          <TextBlock Text="3  Verify the outcome" Style="{StaticResource H2}"/>
+          <TextBlock Text="Verify the outcome" Style="{StaticResource H2}"/>
           <TextBlock Text="{Binding RunText}" Margin="0,0,0,12"/>
           <WrapPanel>
             <Button Content="Pause after current action" Command="{Binding PauseCommand}" Style="{StaticResource SecondaryButton}"/>

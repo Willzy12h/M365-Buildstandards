@@ -67,9 +67,20 @@ public sealed class Preview17WorkflowTests
     [Fact]
     public void Unknown_plan_controls_remain_disabled_with_a_concrete_next_action()
     {
-        var row = new ControlSelection { Eligible = false, Explanation = "Read failed. Resolve collection errors in 2 · Configuration and re-capture." };
-        Assert.Contains("Selection unavailable", row.SelectionGuidance);
+        using var root = new TempRoot(); root.WriteStandard("test.json", TestData.StandardJson); root.WriteManifest();
+        using var log = new ToolkitLogger(root.Paths.LogsDirectory, LogLevel.Debug);
+        var workspace = new Workspace(root.Paths, new ToolkitSettings(), log, true); workspace.Initialise();
+        var control = workspace.RequireStandard().Controls.First(c => c.HasRecipe);
+        typeof(Workspace).GetProperty(nameof(Workspace.Assessment))!.SetValue(workspace, new AssessmentResult
+        {
+            Findings = new() { new ControlFinding { ControlId = control.Id, Status = FindingStatus.UnableToAssess, Reason = "Synthetic denied read." } }
+        });
+        var shell = new ShellViewModel(workspace); var vm = shell.Page<PlanViewModel>(); vm.Refresh();
+        var row = vm.Controls.Single(c => c.ControlId == control.Id);
+        Assert.Contains("Synthetic denied read", row.SelectionGuidance);
         Assert.Contains("2 · Configuration", row.SelectionGuidance);
         Assert.False(row.Eligible);
+        vm.SelectEligibleCommand.Execute(null);
+        Assert.False(row.IsSelected);
     }
 }

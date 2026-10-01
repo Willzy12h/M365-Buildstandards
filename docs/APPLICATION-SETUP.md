@@ -24,7 +24,7 @@ Default names are **M365 BuildStandard Assessment Tool** and **M365 BuildStandar
 
 **Capture configuration (read-only)** issues reads and saves evidence locally, even if the session is deployment-capable. It creates, changes, enables and assigns no tenant object. The object table's **Reported state** is the resource's state field, not compliance: **Not reported** means no state field; **Unknown** means a null, empty or unexpected value. Neither implies enabled, disabled or compliant.
 
-For an incomplete capture, open **Collection status**. New captures include the exact assignment/settings/relationship failure, not just a summary. HTTP 400/404 can indicate an unsupported route; do not assume that increasing permissions resolves it. HTTP 401/403 calls for checking the reported permissions/roles and sign-in. Correct the cause and recapture; an old failed capture is not rewritten. Missing Exchange/Purview observations still require their separate reviewed import workflow.
+For an incomplete capture, open **Collection status**. New captures include the exact assignment/settings/relationship failure, not just a summary. HTTP 400/404 can indicate an unsupported route; do not assume that increasing permissions resolves it. HTTP 401/403 calls for checking the reported permissions/roles and sign-in. Correct the cause and recapture; an old failed capture is not rewritten. Missing Exchange/Purview observations use the separate read-only capture button or offline import; they do not replace Graph evidence.
 
 Preview.16 reads authentication method configurations from the policy GET and passkey profiles from the FIDO2 GET, whose documented responses contain the arrays. It reads compliance scheduled-action configurations explicitly. Missing/truncated arrays or any nested read failure still leave evidence incomplete. These changes use existing read permissions and preserve published catalogue bytes.
 
@@ -40,7 +40,7 @@ Update the configured permission lists and grant administrator consent again to 
 
 Existing `Policy.Read.All` covers the consent-policy reads; no invented consent read scope is requested. The provisioning-group owner action uses existing `Group.ReadWrite.All`. Passkey profiles and system-preferred MFA use the declared authentication policy scopes. Exchange/Purview use a separate integrated, delegated read-only PowerShell capture (manual export/import remains available) with appropriate Exchange/Purview RBAC; they add no Exchange credentials or write scopes to these Graph applications.
 
-The local [engineer document exports](ENGINEER-DOCUMENTS.md) need no sign-in, application registration or consent. [Exchange/Purview observations and proposals](EXCHANGE-PURVIEW.md) use no toolkit-run Exchange authentication or write execution. Exported references do not grant access; the engineer must independently hold the documented delegated role before an authorised manual session.
+The local [engineer document exports](ENGINEER-DOCUMENTS.md) need no sign-in, application registration or consent. [Exchange/Purview observations and proposals](EXCHANGE-PURVIEW.md) use a separate delegated read-only connection with appropriate service RBAC. The toolkit can collect observations from its embedded template; it never executes service writes or selected manual proposals. Exported references do not grant access.
 
 ## Guided setup
 
