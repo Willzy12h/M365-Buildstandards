@@ -79,7 +79,7 @@ try {
     if ($startup -match 'FATAL|CRASH') { throw 'Packaged startup recorded an error.' }
 
     # Exercise the actual extracted application, which cannot borrow its DLLs from the review harness.
-    # UI Automation is restricted to our own process; the only input is a synthetic label. No sign-in is pressed.
+    # UI Automation is restricted to our own process; the only input is synthetic catalogue search text. No sign-in is pressed.
     Add-Type -AssemblyName UIAutomationClient
     Add-Type -AssemblyName UIAutomationTypes
     Add-Type -AssemblyName WindowsBase
@@ -103,11 +103,14 @@ public static class PortableTextMenu {
         if (-not $element) { throw "Packaged UI did not expose: $Name" }
         return $element
     }
-    $connect = Find-Named 'Connect'
-    $connect.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    # Use the visible catalogue search editor. Client details are below the connection cards and require page
+    # scrolling; TextPattern.ScrollIntoView scrolls the text editor itself, not that outer page.
+    $standard = Find-Named 'Build Standard'
+    $standard.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
     Start-Sleep -Milliseconds 500
-    $field = Find-Named 'Client label'
-    $field.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue('Synthetic portable context-menu check')
+    $field = Find-Named 'Search standard controls'
+    $testText = 'Synthetic text check'
+    $field.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($testText)
     if (-not [PortableTextMenu]::SetForegroundWindow($process.MainWindowHandle)) { throw 'Could not foreground the owned packaged window for its text-menu check.' }
     $field.SetFocus()
     $range = $field.GetCurrentPattern([Windows.Automation.TextPattern]::Pattern).DocumentRange
@@ -143,7 +146,7 @@ public static class PortableTextMenu {
     }
     $copy.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
     Start-Sleep -Milliseconds 100
-    if ((Get-Clipboard -Raw).TrimEnd("`r", "`n") -ne 'Synthetic portable context-menu check') { throw 'Packaged text-box context-menu Copy did not copy the selected synthetic text.' }
+    if ((Get-Clipboard -Raw).TrimEnd("`r", "`n") -ne $testText) { throw 'Packaged text-box context-menu Copy did not copy the selected synthetic text.' }
     foreach ($log in Get-ChildItem -LiteralPath (Join-Path $extract 'logs') -File) {
         if ((Get-Content -LiteralPath $log.FullName -Raw) -match 'Unhandled UI exception|Could not load file or assembly|FATAL|CRASH') { throw 'Packaged text editing recorded a runtime error.' }
     }
