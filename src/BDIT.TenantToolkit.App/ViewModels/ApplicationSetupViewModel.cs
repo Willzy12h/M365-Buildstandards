@@ -199,7 +199,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     });
 
     /// <summary>
-    /// The guided sequence behind "Create apps and grant permissions". Each stage runs only if the one before it
+    /// The guided sequence behind "Approve and create/configure applications". Each stage runs only if the one before it
     /// finished cleanly, and the page says where and why it stopped.
     /// </summary>
     private Task SetUpAsync() => Workspace.RunExclusiveAsync("Setting up the tenant applications", async progress =>
@@ -223,7 +223,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         Outcome = created + "\n" + result.NextSteps;
         InvalidatePlan();
         if (!ProfileValidator.IsGuid(AssessmentClientId) || !ProfileValidator.IsGuid(DeploymentClientId)) return;
-        Shell.Page<ConnectViewModel>().UseApplicationIds(TenantId.Trim(), AssessmentClientId, DeploymentClientId);
+        Shell.Page<ConnectViewModel>().UseApplicationIds(TenantId.Trim(), AssessmentClientId, DeploymentClientId, plan.TenantName);
         if (!ReadyForApproval(result))
         {
             var context = ValidationContext;

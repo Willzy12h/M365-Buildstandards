@@ -81,7 +81,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "history", "automation", "standard" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -149,6 +149,12 @@ internal static partial class Program
                             new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
                         content.UpdateLayout(); Pump();
                         var label = "quick-connect-confirmation " + (int)size.Width + "x" + (int)size.Height;
+                        var confirm = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, connect.ConfirmQuickConnectCommand));
+                        // Rendering occurs before Loaded. Verify automatic scrolling separately on the shown window.
+                        confirm.BringIntoView(); content.UpdateLayout(); Pump();
+                        var visible = VisibleBounds(confirm, content);
+                        if (visible.Width < confirm.ActualWidth - 1 || visible.Height < confirm.ActualHeight - 1)
+                            throw new InvalidOperationException("Quick Connect's confirmation action cannot be brought fully into view.");
                         RecordUnnamedControls(content, label); RecordClipping(content, label); RecordLowContrast(content, label);
                         SaveImage(content, size, Path.Combine(output, "quick-connect-confirmation-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                         connect.CancelQuickConnectCommand.Execute(null);
@@ -216,6 +222,7 @@ internal static partial class Program
             window.Left = -10000; window.Top = -10000; window.Width = 1480; window.Height = 940;
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
+            VerifyQuickConnectScroll(shell, window, content);
             foreach (var nav in shell.NavItems)
             {
                 traces.Context = "keyboard " + nav.Key;
@@ -317,6 +324,30 @@ internal static partial class Program
     /// sizes is what an engineer at that scaling sees, without needing a high-DPI display on the build machine.
     /// </summary>
     private static readonly Size[] PageSizes = { new(1480, 940), new(1180, 760), new(1180, 640) };
+
+    private static void VerifyQuickConnectScroll(ShellViewModel shell, Window window, FrameworkElement content)
+    {
+        shell.Navigate("connect"); Pump(); content.UpdateLayout();
+        var connect = shell.Page<ConnectViewModel>();
+        foreach (var size in PageSizes)
+        {
+            window.Width = size.Width; window.Height = size.Height;
+            connect.CancelQuickConnectCommand.Execute(null);
+            content.UpdateLayout(); Pump();
+            Descendants(content).OfType<ScrollViewer>().First(s => s.ScrollableHeight > 0).ScrollToTop();
+            content.UpdateLayout(); Pump();
+            typeof(ConnectViewModel).GetMethod("SetDiscovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(connect,
+                new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
+            content.UpdateLayout(); Pump(); content.UpdateLayout(); Pump();
+            var confirm = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, connect.ConfirmQuickConnectCommand));
+            var visible = VisibleBounds(confirm, content);
+            if (visible.Width < confirm.ActualWidth - 1 || visible.Height < confirm.ActualHeight - 1)
+                throw new InvalidOperationException($"Quick Connect did not scroll its confirmation fully into view at {size.Width}x{size.Height}.");
+        }
+        connect.CancelQuickConnectCommand.Execute(null);
+        window.Width = 1480; window.Height = 940;
+        content.UpdateLayout(); Pump();
+    }
 
     /// <summary>1920x1080 at 150% is 1280x720 device-independent units; the taskbar takes 48 of them.</summary>
     private static readonly Size SmallestWorkArea = new(1280, 672);

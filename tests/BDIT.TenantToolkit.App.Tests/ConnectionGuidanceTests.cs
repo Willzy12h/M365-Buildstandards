@@ -5,7 +5,10 @@ using BDIT.TenantToolkit.App.ViewModels;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Graph;
+using BDIT.TenantToolkit.Graph.Auth;
+using BDIT.TenantToolkit.Graph.Setup;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -118,6 +121,31 @@ public sealed class ConnectionGuidanceTests : IDisposable
         foreach (var page in _shell.NavItems) _shell.Navigate(page.Key);
         Assert.Same(connection, _workspace.Connection);
         Assert.Empty(graph.Reads); Assert.Empty(graph.Writes);
+    }
+
+    private sealed class NoTokens : IAccessTokenProvider
+    {
+        public Task<string> GetAccessTokenAsync(CancellationToken ct) => throw new InvalidOperationException("No authentication in a UI handoff test.");
+        public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) => GetAccessTokenAsync(ct);
+    }
+
+    [Fact]
+    public void Setup_opened_directly_initialises_a_fresh_connection_form_only_for_its_verified_tenant()
+    {
+        var vm = _shell.Page<ConnectViewModel>();
+        vm.Selected = TestData.Profile(TestData.TenantB);
+        Assert.Throws<TenantMismatchException>(() => vm.UseApplicationIds(TestData.TenantA, TestData.ClientId, TestData.Emergency));
+        using var http = new System.Net.Http.HttpClient();
+        var setup = new ApplicationSetupService(http, new NoTokens(), new SignInOutcome
+        { TenantId = TestData.TenantA, AccountObjectId = TestData.Operator }, NullLog.Instance);
+        typeof(Workspace).GetProperty(nameof(Workspace.ApplicationSetup))!.SetValue(_workspace, setup);
+        vm.UseApplicationIds(TestData.TenantA, TestData.ClientId, TestData.Emergency, "Verified synthetic client");
+        Assert.Equal(TestData.TenantA, vm.EditTenantId);
+        Assert.Equal("Verified synthetic client", vm.EditCompany);
+        Assert.Equal(TestData.Emergency, vm.EditDeploymentClientId);
+        Assert.Empty(vm.EditEmergencyIds); Assert.Empty(vm.ExclusionAccounts);
+        Assert.False(vm.RememberConnection); Assert.Empty(_workspace.Profiles);
+        Assert.Null(_workspace.Connection);
     }
 
     [Theory]

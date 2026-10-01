@@ -29,7 +29,7 @@ public partial class ApplicationSetupView : UserControl
         if (e.Action != NotifyCollectionChangedAction.Add) return;
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
-            if (IsLoaded && _viewModel?.PlanRows.Count > 0) ApprovalSection.BringIntoView();
+            if (IsLoaded && _viewModel?.PlanRows.Count > 0) CreateApplicationsButton.BringIntoView();
         });
     }
 }

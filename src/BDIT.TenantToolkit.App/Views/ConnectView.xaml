@@ -13,7 +13,7 @@
             <StackPanel>
               <TextBlock Text="Confirm the organisation and account" Style="{StaticResource H2}"/>
               <TextBox Text="{Binding DiscoveredTenantText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Discovered organisation and account"/>
-              <WrapPanel><Button Content="Connect to this tenant read-only" Command="{Binding ConfirmQuickConnectCommand}"/><Button Content="Cancel" Command="{Binding CancelQuickConnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+              <WrapPanel><Button x:Name="ConfirmQuickConnectButton" Content="Connect to this tenant read-only" Command="{Binding ConfirmQuickConnectCommand}"/><Button Content="Cancel" Command="{Binding CancelQuickConnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
             </StackPanel>
           </Border>
         </StackPanel>

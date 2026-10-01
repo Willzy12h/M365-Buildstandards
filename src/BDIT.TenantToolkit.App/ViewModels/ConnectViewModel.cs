@@ -347,10 +347,21 @@ public sealed class ConnectViewModel : PageViewModel
         RaiseAll();
     }
 
-    public void UseApplicationIds(string tenantId, string assessmentId, string deploymentId)
+    public void UseApplicationIds(string tenantId, string assessmentId, string deploymentId, string tenantName = "")
     {
         if (!string.Equals(EditTenantId, tenantId, StringComparison.OrdinalIgnoreCase))
-            throw new TenantMismatchException("App setup belongs to another tenant. Select that client before applying its application IDs.");
+        {
+            // Setup can be opened before the connection form has a client. Only the current verified setup
+            // session can initialise that form; never apply IDs to a different client's edit buffer.
+            if (!string.Equals(Workspace.ApplicationSetup?.Identity.TenantId, tenantId, StringComparison.OrdinalIgnoreCase))
+                throw new TenantMismatchException("App setup belongs to another tenant. Select that client before applying its application IDs.");
+            var current = Workspace.Profile;
+            var profile = current is not null && string.Equals(current.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)
+                ? current : new TenantProfile { TenantId = tenantId, Company = string.IsNullOrWhiteSpace(tenantName) ? "Client " + tenantId[..8] : tenantName };
+            Selected = null;
+            LoadForm(profile);
+            RememberConnection = Profiles.Any(p => p.Id == profile.Id);
+        }
         EditAssessmentClientId = assessmentId;
         EditDeploymentClientId = deploymentId;
         LookupStatus = "Application IDs filled in. Connect read-only to verify effective access.";
