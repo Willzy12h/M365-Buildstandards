@@ -70,6 +70,21 @@ jobs:
             exit $reviewExit
           }
 
+      - name: Parse Exchange read template and reject an injected write (PowerShell 5.1)
+        shell: powershell
+        run: |
+          $scripts = @(Get-ChildItem dist/ui-review -Recurse -Filter 'exchange-read-capture-*.ps1')
+          if ($scripts.Count -eq 0) { throw 'The synthetic command review produced no Exchange read template.' }
+          foreach ($script in $scripts) { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $script.FullName }
+          $mutation = Join-Path $pwd ('dist/ui-review/rejected-write-' + [guid]::NewGuid().ToString('N') + '.ps1')
+          try {
+            [IO.File]::WriteAllText($mutation, [IO.File]::ReadAllText($scripts[0].FullName) + "`nSet-TransportConfig -SmtpClientAuthenticationDisabled `$false`n")
+            $refused = $false
+            try { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $mutation } catch { $refused = $_.Exception.Message -like '*Unsupported command*Set-TransportConfig*' }
+            if (-not $refused) { throw 'Exchange read command guard did not reject an injected write.' }
+            Write-Output '::notice title=Exchange read template::PowerShell 5.1 parse passed; injected write refused; no module loaded or tenant command executed.'
+          } finally { Remove-Item -LiteralPath $mutation -ErrorAction SilentlyContinue }
+
       - name: Verify fresh extraction and actual packaged first launch
         shell: powershell
         run: |
