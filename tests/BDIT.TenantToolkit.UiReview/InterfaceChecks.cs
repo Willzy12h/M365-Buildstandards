@@ -426,6 +426,10 @@ internal static partial class Program
         ("ConnectViewModel.NewProfileCommand", Press),
         ("ConnectViewModel.DeleteProfileCommand", Prompt),
         ("ConnectViewModel.ConnectAssessmentCommand", SignIn),
+        ("ConnectViewModel.QuickConnectCommand", SignIn),
+        ("ConnectViewModel.ConfirmQuickConnectCommand", SignIn),
+        ("ConnectViewModel.CancelQuickConnectCommand", Disabled),
+        ("ConnectViewModel.ConnectPartnerCommand", SignIn),
         ("ConnectViewModel.ConnectDeploymentCommand", SignIn),
         ("ConnectViewModel.ConnectSelectedCommand", SignIn),
         ("ConnectViewModel.CheckAccessCommand", TenantRead),
@@ -434,6 +438,7 @@ internal static partial class Program
         ("ConnectViewModel.CopyAccessCommand", Clipboard),
 
         ("ApplicationSetupViewModel.ApplyIdsCommand", Press),
+        ("ApplicationSetupViewModel.CopyApplicationGuideCommand", Clipboard),
         ("ApplicationSetupViewModel.ConnectCommand", SignIn),
         ("ApplicationSetupViewModel.PreviewCommand", TenantRead),
         ("ApplicationSetupViewModel.CreateCommand", TenantWrite),

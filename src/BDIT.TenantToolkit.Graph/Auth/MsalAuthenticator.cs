@@ -1,4 +1,5 @@
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
 using Microsoft.Identity.Client;
@@ -91,9 +92,28 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         if (!ProfileValidator.IsGuid(request.TenantId)) throw new ConfigurationException("Sign-in requires a tenant ID GUID.");
         if (!ProfileValidator.IsGuid(request.ClientId)) throw new ConfigurationException("Sign-in requires an application (client) ID GUID.");
         if (request.Scopes.Count == 0) throw new ConfigurationException("Sign-in requires at least one scope.");
+        return await SignInCoreAsync(request, request.TenantId, discoverTenant: false, log, ct);
+    }
+
+    // Discovery is deliberately a separate entry point: normal assessment, deployment and setup still require
+    // a known tenant. No arbitrary client, scopes, cache file or login hint can be supplied to discovery.
+    internal static Task<MsalAuthenticator> DiscoverAsync(IntPtr parentWindow, bool useBrowser, TimeSpan timeout,
+        IToolkitLog log, CancellationToken ct) => SignInCoreAsync(new SignInRequest
+        {
+            ClientId = ToolkitSettings.MicrosoftGraphPowerShellClientId,
+            ClientLabel = "Microsoft Graph PowerShell", Mode = SessionMode.Assessment,
+            Scopes = new[] { "User.Read", "Organization.Read.All" },
+            Purpose = "discover organisation (read-only)", ParentWindowHandle = parentWindow,
+            UseSystemBrowser = useBrowser, Timeout = timeout
+        }, "organizations", discoverTenant: true, log, ct);
+
+    private static async Task<MsalAuthenticator> SignInCoreAsync(SignInRequest request, string authorityTenant,
+        bool discoverTenant, IToolkitLog log, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
 
         var builder = PublicClientApplicationBuilder.Create(request.ClientId)
-            .WithAuthority(AzureCloudInstance.AzurePublic, request.TenantId)
+            .WithAuthority(AzureCloudInstance.AzurePublic, authorityTenant)
             .WithRedirectUri("http://localhost")
             .WithClientName(request.ClientName)
             .WithClientVersion(request.ClientVersion);
@@ -117,7 +137,26 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         AuthenticationResult result;
         try
         {
-            log.Info("Auth", $"Opening Microsoft sign-in in {(broker ? "a Windows pop-up" : "the system browser")} for tenant {request.TenantId} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
+            AuthenticationResult? cached = null;
+            // Only explicit reconnects with a known tenant/account may reuse a cache entry. Discovery and the
+            // partner account chooser intentionally remain interactive. This never adds an interactive retry mid-run.
+            if (!discoverTenant && !string.IsNullOrWhiteSpace(request.LoginHint))
+            {
+                var accounts = (await pca.GetAccountsAsync()).Where(a => string.Equals(a.Username, request.LoginHint, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (accounts.Count == 1)
+                {
+                    try { cached = await pca.AcquireTokenSilent(scopes, accounts[0]).WithTenantId(request.TenantId).ExecuteAsync(timeout.Token); }
+                    catch (MsalUiRequiredException) { /* This explicit connect may now ask Microsoft for interaction. */ }
+                }
+            }
+            if (cached is not null)
+            {
+                log.Info("Auth", "Reused cached sign-in for the requested tenant and application.", request.TenantId);
+                result = cached;
+            }
+            else
+            {
+            log.Info("Auth", $"Microsoft interaction is required: opening {(broker ? "Windows sign-in" : "the system browser")} for tenant {authorityTenant} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
             var interactive = pca.AcquireTokenInteractive(scopes);
             if (string.IsNullOrWhiteSpace(request.LoginHint)) interactive.WithPrompt(Prompt.SelectAccount);
             else interactive.WithLoginHint(request.LoginHint);
@@ -127,6 +166,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                     HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
                 });
             result = await interactive.ExecuteAsync(timeout.Token);
+            }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -137,14 +177,15 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             throw new AuthenticationRequiredException($"Microsoft sign-in failed ({ex.ErrorCode}). {ex.Message}", ex);
         }
 
-        if (!string.Equals(result.TenantId, request.TenantId, StringComparison.OrdinalIgnoreCase))
+        if (!ProfileValidator.IsGuid(result.TenantId ?? "")
+            || (!discoverTenant && !string.Equals(result.TenantId, request.TenantId, StringComparison.OrdinalIgnoreCase)))
         {
             try { await pca.RemoveAsync(result.Account); } catch (MsalException) { }
             if (OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(request.CacheFile)) TokenCacheProtection.Delete(request.CacheFile, log);
             throw new TenantMismatchException($"Microsoft returned a token for tenant {result.TenantId}, not the requested tenant {request.TenantId}. Connection rejected.");
         }
 
-        return new MsalAuthenticator(pca, scopes, request.TenantId, request.CacheFile, log, result, request.ClientId);
+        return new MsalAuthenticator(pca, scopes, result.TenantId!, request.CacheFile, log, result, request.ClientId);
     }
 
     public Task<string> GetAccessTokenAsync(CancellationToken ct) => GetAccessTokenAsync(false, ct);
@@ -159,7 +200,8 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             if (forceRefresh) _accessToken = null;
             try
             {
-                var result = await _pca.AcquireTokenSilent(_scopes, _account).WithForceRefresh(forceRefresh).ExecuteAsync(ct);
+                var result = await _pca.AcquireTokenSilent(_scopes, _account)
+                    .WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct);
                 if (!string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal))
                     throw new AuthenticationRequiredException("The authenticated identity changed during silent renewal. Disconnect and reconnect.");

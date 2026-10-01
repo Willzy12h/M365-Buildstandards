@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Engine.Identity;
+using BDIT.TenantToolkit.Graph;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -17,6 +18,7 @@ public sealed class ConnectViewModel : PageViewModel
     private bool _rememberConnection;
     private ExclusionAccount? _selectedAccount, _selectedExclusion;
     private List<string> _additionalIds = new();
+    private DiscoveredTenant? _discovered;
 
     public ConnectViewModel(ShellViewModel shell) : base(shell, "Connect")
     {
@@ -24,6 +26,11 @@ public sealed class ConnectViewModel : PageViewModel
         SaveProfileCommand = Sync(SaveProfile);
         DeleteProfileCommand = Command(DeleteProfileAsync, () => Selected is not null && Workspace.Idle);
         ConnectAssessmentCommand = Command(() => ConnectAsync(SessionMode.Assessment), () => Workspace.Idle);
+        QuickConnectCommand = Command(DiscoverAsync, () => Workspace.Idle && Workspace.Settings.AllowMicrosoftGraphPowerShellFallback);
+        ConfirmQuickConnectCommand = Command(ConfirmQuickConnectAsync, () => Workspace.Idle && _discovered is not null);
+        CancelQuickConnectCommand = Sync(() => SetDiscovery(null), () => Workspace.Idle && _discovered is not null);
+        ConnectPartnerCommand = Command(() => ConnectAsync(SessionMode.Assessment, chooseAccount: true),
+            () => Workspace.Idle && ProfileValidator.IsGuid(EditTenantId.Trim()) && !string.IsNullOrWhiteSpace(EditCompany));
         ConnectSelectedCommand = Command(ConnectSelectedAsync, () => Selected is not null && Workspace.Idle);
         CopyApplicationCommand = CopyText(() => ApplicationText);
         CopyAccessCommand = CopyText(AccessReportText);
@@ -54,10 +61,24 @@ public sealed class ConnectViewModel : PageViewModel
     private void OpenSetup()
     {
         var setup = Shell.Page<ApplicationSetupViewModel>();
+        var sameTenant = string.Equals(setup.TenantId.Trim(), EditTenantId.Trim(), StringComparison.OrdinalIgnoreCase);
+        var assessmentId = EditAssessmentClientId.Trim();
+        var deploymentId = EditDeploymentClientId.Trim();
+        if (assessmentId.Length == 0) assessmentId = sameTenant && setup.AssessmentClientId.Length > 0 ? setup.AssessmentClientId : Workspace.Settings.AssessmentClientId;
+        if (deploymentId.Length == 0) deploymentId = sameTenant && setup.DeploymentClientId.Length > 0 ? setup.DeploymentClientId : Workspace.Settings.DeploymentClientId;
         setup.UseTenant(EditTenantId.Trim(), EditCompany);
-        setup.AssessmentClientId = EditAssessmentClientId.Trim();
-        setup.DeploymentClientId = EditDeploymentClientId.Trim();
+        setup.AssessmentClientId = assessmentId;
+        setup.DeploymentClientId = deploymentId;
         Shell.Navigate("setup");
+    }
+
+    public void OpenSetupForProfile(TenantProfile profile)
+    {
+        // The deployment page's target is the connected profile, never a different unsaved edit buffer.
+        Selected = null;
+        LoadForm(profile);
+        RememberConnection = Profiles.Any(p => p.Id == profile.Id);
+        OpenSetup();
     }
     public ExclusionAccount? SelectedAccount { get => _selectedAccount; set => SetProperty(ref _selectedAccount, value); }
     public ExclusionAccount? SelectedExclusion { get => _selectedExclusion; set => SetProperty(ref _selectedExclusion, value); }
@@ -71,11 +92,51 @@ public sealed class ConnectViewModel : PageViewModel
     public ICommand SaveProfileCommand { get; }
     public ICommand DeleteProfileCommand { get; }
     public ICommand ConnectAssessmentCommand { get; }
+    public ICommand QuickConnectCommand { get; }
+    public ICommand ConfirmQuickConnectCommand { get; }
+    public ICommand CancelQuickConnectCommand { get; }
+    public ICommand ConnectPartnerCommand { get; }
     public ICommand ConnectDeploymentCommand { get; }
     public ICommand ConnectSelectedCommand { get; }
     public ICommand CheckAccessCommand { get; }
     public ICommand CopyApplicationCommand { get; }
     public ICommand CopyAccessCommand { get; }
+
+    public bool HasDiscoveredTenant => _discovered is not null;
+    public string QuickConnectGuidance => Workspace.Settings.AllowMicrosoftGraphPowerShellFallback
+        ? "Use the client's own Microsoft 365 account. We will find the organisation, tenant ID and domain for you. Review them before connecting read-only."
+        : "Quick Connect is disabled because the shared Microsoft Graph PowerShell assessment fallback is disabled. Use a saved client or enter dedicated application details below.";
+    public string DiscoveredTenantText => _discovered is not { } d ? "" :
+        $"Organisation: {d.Name}\nPrimary domain: {(d.Domain.Length == 0 ? "Not returned by Microsoft" : d.Domain)}\nTenant ID: {d.TenantId}\nSigned-in account: {d.Account}\nMode: read-only assessment\n\nThis creates a one-time connection. Saved client settings and policy exceptions are not copied. Microsoft may ask you to sign in or approve assessment read permissions next."
+        + (d.TokenHasWriteScopes ? "\n\nThe shared application's token includes previously consented write permissions. This tool blocks writes during discovery and assessment; a dedicated assessment registration provides token-level separation." : "");
+
+    private void SetDiscovery(DiscoveredTenant? tenant)
+    {
+        _discovered = tenant;
+        OnPropertyChanged(nameof(HasDiscoveredTenant));
+        OnPropertyChanged(nameof(DiscoveredTenantText));
+        System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+    }
+
+    private async Task DiscoverAsync()
+    {
+        SetDiscovery(null);
+        SetDiscovery(await Workspace.DiscoverTenantAsync());
+    }
+
+    private async Task ConfirmQuickConnectAsync()
+    {
+        var identity = _discovered ?? throw new ConfigurationException("Use Quick Connect and review the discovered organisation first.");
+        var profile = identity.NewProfile();
+        var previous = Workspace.Connection;
+        await Workspace.ConnectAsync(profile, SessionMode.Assessment, identity.Account, identity);
+        if (ReferenceEquals(previous, Workspace.Connection)) return;
+        Selected = null;
+        LoadForm(profile);
+        RememberConnection = false;
+        SetDiscovery(null);
+        Shell.Navigate("overview");
+    }
 
     /// <summary>Names the client the buttons below will act on, so "selected" is never ambiguous.</summary>
     public string SelectionText => Selected is null
@@ -114,6 +175,7 @@ public sealed class ConnectViewModel : PageViewModel
         get => _selected;
         set
         {
+            SetDiscovery(null);
             SetProperty(ref _selected, value);
             LoadForm(value);
         }
@@ -237,8 +299,9 @@ public sealed class ConnectViewModel : PageViewModel
         Shell.Navigate("overview");
     }
 
-    public async Task ConnectAsync(SessionMode mode)
+    public async Task ConnectAsync(SessionMode mode, bool chooseAccount = false)
     {
+        SetDiscovery(null);
         var profile = RememberConnection ? Workspace.SaveProfile(FormToProfile()) : ProfileValidator.Validate(FormToProfile(), DateTimeOffset.UtcNow);
         EditId = profile.Id;
         if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
@@ -251,7 +314,7 @@ public sealed class ConnectViewModel : PageViewModel
             if (confirm != System.Windows.MessageBoxResult.Yes) return;
         }
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, mode);
+        await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }

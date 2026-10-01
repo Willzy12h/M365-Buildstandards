@@ -56,6 +56,11 @@ public sealed class DeployViewModel : PageViewModel
     public ObservableCollection<PrerequisiteRow> Prerequisites { get; } = new();
     public ObservableCollection<RunResult> Results { get; } = new();
     public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
+    public string DeploymentButtonText => Workspace.Settings.ResolveClient(SessionMode.Deployment, Workspace.Profile) is null
+        ? "Configure deployment application" : "Enable deployment access";
+    public string DeploymentApplicationText => Workspace.Settings.ResolveClient(SessionMode.Deployment, Workspace.Profile) is { } app
+        ? $"Deployment application: {app.Label} · Application (client) ID: {app.ClientId}. Enable deployment access to verify sign-in and permissions; a configured ID alone does not establish access."
+        : "No deployment application client ID is recorded for this connection. Select Configure deployment application. If it already exists in Entra, enter its Application (client) ID, approve permissions and check your account assignment. Use Continue to deployment when ready; do not create a duplicate or use the assessment application's ID.";
 
     public bool IsRunning => Workspace.Executor.IsRunning;
     public bool CanDeploy => Workspace.IsDeploymentSession && Workspace.Plan is not null && Workspace.SnapshotIsLive
@@ -75,6 +80,11 @@ public sealed class DeployViewModel : PageViewModel
     private async Task EnableDeploymentAsync()
     {
         var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
+        if (Workspace.Settings.ResolveClient(SessionMode.Deployment, profile) is null)
+        {
+            Shell.Page<ConnectViewModel>().OpenSetupForProfile(profile);
+            return;
+        }
         var confirm = System.Windows.MessageBox.Show(
             "Deployment access signs you in again with the M365 BuildStandard Deployment Tool application and requests write permissions for this tenant.\n\n" +
             "Any capture, assessment and plan from the read-only session are discarded and must be repeated in the deployment session.\n\nNothing is written until you confirm a reviewed plan. Continue?",
@@ -115,7 +125,7 @@ public sealed class DeployViewModel : PageViewModel
         {
             Step = "1. Deployment access",
             Status = session is null ? "Not connected" : session.Mode == SessionMode.Deployment ? "Ready" : "Read-only session",
-            Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}" : "Enable deployment access to sign in with the deployment application."
+            Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}" : DeploymentApplicationText
         });
         var missingScopes = Workspace.Access?.Writes.Where(w => w.Status == "Missing scope").Select(w => w.Label).ToList() ?? new List<string>();
         Prerequisites.Add(new PrerequisiteRow
@@ -148,6 +158,8 @@ public sealed class DeployViewModel : PageViewModel
         SelectedResult = Results.FirstOrDefault(r => r.ControlId == selectedId);
         OnPropertyChanged(nameof(RunText));
         OnPropertyChanged(nameof(CanDeploy));
+        OnPropertyChanged(nameof(DeploymentButtonText));
+        OnPropertyChanged(nameof(DeploymentApplicationText));
         OnPropertyChanged(nameof(IsRunning));
     }
 }

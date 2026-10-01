@@ -1,3 +1,14 @@
+# 1.1.0-preview.16 — connection and usability update
+
+- Add client-account Quick Connect with organisation/account confirmation, optional browser fallback and a separate explicit-customer partner/GDAP sign-in route. Discovery creates no saved connection and cannot enable deployment.
+- Reuse an unchanged verified connection and try matching cached credentials on explicit reconnect before requesting interaction. Page navigation does not sign in. Microsoft can still require MFA or consent for a different application or mode.
+- Make application creation approval prominent, bring it into view after preview and remove repeated setup tenant-ID typing at the user’s request. Approval remains bound to the verified tenant/operator and fresh reviewed plan; policy deployment still requires its separate typed confirmation.
+- Identify both applications and their client IDs, explain consent versus assignment versus effective access, and label administrator consent as a browser step distinct from WAM. Preserve known same-tenant setup IDs and route missing deployment configuration to the correct client’s setup.
+- Label configuration capture as read-only and replace blank state cells with Not reported or Unknown. Retain individual detail-read errors for incomplete captures.
+- Read authentication-method and passkey collections from their documented parent responses. Read Intune scheduled actions and configurations explicitly. Missing, malformed or partial data stays unknown, with no automatic write changes or alterations to published standards.
+- Validate the Accessibility runtime dependency before use, fail an incomplete publish and extend extracted-package checks to text-box context-menu copying. A corrupt local extraction requires a fresh complete ZIP.
+- Scope and acceptance: [QoL goal](https://github.com/Willzy12h/M365-Buildstandards/blob/astra/release-2026-09-12/docs/integration/QOL-GOAL-2026.10.01.md). Current validation is recorded in the completion register and PR checks; no live sign-in, consent or tenant write was performed by the agent.
+
 # 1.1.0-preview.15 — 30 September 2026
 
 - Move the application, tests and Windows release pipeline to .NET 10 LTS, pinned SDK 10.0.401 and ProtectedData 10.0.12. The portable release remains self-contained.

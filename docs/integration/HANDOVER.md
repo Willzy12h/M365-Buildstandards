@@ -1,5 +1,8 @@
 # Handover and priorities
 
+Current user continuation: Preview.16 quality-of-life work in PR #19 follows [QOL-GOAL-2026.10.01.md](QOL-GOAL-2026.10.01.md). This supplements the original release goal. Read COMPLETION-REGISTER for exact validation; older Preview.15 evidence is historical. Do not copy the supplied client exports into source or tests.
+
+
 ## Architecture roadmap
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.

@@ -27,9 +27,17 @@ public sealed class ObjectRow
     public string Name { get; init; } = "";
     public string ObjectId { get; init; } = "";
     public string Type { get; init; } = "";
-    public string State { get; init; } = "";
+    public string State => DescribeState(Item);
+    public string StateExplanation => "State is the resource's reported state field, not a compliance result. 'Not reported' means the response has no state field (some object types do not expose one). 'Unknown' means the field was empty, null or unexpected. Neither means enabled, disabled or compliant; inspect settings, targeting and collection completeness separately.";
     public string Targeting { get; init; } = "";
     public JsonObject Item { get; init; } = new();
+
+    public static string DescribeState(JsonObject item)
+    {
+        if (!item.TryGetPropertyValue("state", out var state)) return "Not reported";
+        if (state is not JsonValue value || !value.TryGetValue<string>(out var text) || string.IsNullOrWhiteSpace(text)) return "Unknown";
+        return text;
+    }
 }
 
 public sealed class ConfigurationViewModel : PageViewModel
@@ -199,7 +207,7 @@ public sealed class ConfigurationViewModel : PageViewModel
                     Api = c.Api,
                     Status = c.Status != CaptureStatus.Collected ? "Not collected" : c.DetailIncomplete ? "Partially collected" : c.Count == 0 ? "No objects returned" : "Collected",
                     Count = c.Count,
-                    Detail = c.Error ?? (c.DetailIncomplete ? "Assignment or setting details incomplete for at least one object" : "")
+                    Detail = c.Error ?? (c.DetailIncomplete ? "Assignment or setting details incomplete for at least one object. Recapture with this build to record individual failures here; existing capture logs may also contain them." : "Read completed; this is not a compliance result.")
                 });
                 CollectionFilters.Add(label);
                 foreach (var item in c.Items)
@@ -212,7 +220,6 @@ public sealed class ConfigurationViewModel : PageViewModel
                         Name = Text(item[def?.NameProperty ?? "displayName"]) ?? Text(item["displayName"]) ?? Text(item["name"]) ?? Text(item["userPrincipalName"]) ?? id,
                         ObjectId = id,
                         Type = (Text(item["@odata.type"]) ?? label).Replace("#microsoft.graph.", "", StringComparison.Ordinal),
-                        State = Text(item["state"]) ?? "",
                         Targeting = _names.AssignmentSummary(item),
                         Item = item
                     });

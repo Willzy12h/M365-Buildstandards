@@ -142,6 +142,30 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "connect")
+                    {
+                        var connect = shell.Page<ConnectViewModel>();
+                        typeof(ConnectViewModel).GetMethod("SetDiscovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(connect,
+                            new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
+                        content.UpdateLayout(); Pump();
+                        var label = "quick-connect-confirmation " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, label); RecordClipping(content, label); RecordLowContrast(content, label);
+                        SaveImage(content, size, Path.Combine(output, "quick-connect-confirmation-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        connect.CancelQuickConnectCommand.Execute(null);
+                        if (connect.HasDiscoveredTenant) throw new InvalidOperationException("Cancelling the discovery preview did not clear it.");
+                    }
+                    if (nav.Key == "setup")
+                    {
+                        var setup = shell.Page<ApplicationSetupViewModel>();
+                        var approve = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, setup.CreateCommand));
+                        approve.BringIntoView(); content.UpdateLayout(); Pump();
+                        var visible = VisibleBounds(approve, content);
+                        if (visible.Width < approve.ActualWidth - 1 || visible.Height < approve.ActualHeight - 1)
+                            throw new InvalidOperationException("The application creation approval cannot be brought fully into view.");
+                        SaveImage(content, size, Path.Combine(output, "setup-create-approval-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        Descendants(content).OfType<ScrollViewer>().First(s => s.ScrollableHeight > 0).ScrollToTop();
+                        content.UpdateLayout(); Pump();
+                    }
                     if (nav.Key == "plan")
                     {
                         var tabs = Descendants(controls[0]).OfType<TabControl>().First();

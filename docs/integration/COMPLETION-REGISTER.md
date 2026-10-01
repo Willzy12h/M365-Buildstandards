@@ -1,5 +1,10 @@
 # Release completion register
 
+## Preview.16 usability continuation
+
+The active supplement is [QOL-GOAL-2026.10.01.md](QOL-GOAL-2026.10.01.md). User-requested changes cover Quick Connect, explicit partner sign-in, fewer redundant prompts, visible application creation approval without repeated setup GUID entry, clear app IDs/browser consent/assignment, deployment setup routing, read-only capture/state explanations, corrected Graph relationship reads and portable text-context-menu validation. Standard 2026.09.30 is unchanged. Source development and local synthetic tests are in progress; the older Preview.15 CI counts/artifacts below do not validate these changes. Windows CI and exact new artifact evidence will be recorded before completion. The supplied live exports are private diagnostic inputs and are not committed. No live operation has been performed by the agent.
+
+
 Continuation of Astra/Codex PR #19, authorised 30 September 2026. Baseline: `687e756eb626b1ab62b61faa672b8825033abcab`, Preview.14 / standard 2026.09.12. Claude's C# implementation remains the foundation; source repositories and Claude branches are preserved. The user removed the missing project-context file prerequisite.
 
 The existing release claim is continued on `astra/release-2026-09-12`, targeting integration. PR #19 is draft during implementation. Planned, implemented, synthetically verified, UI inspected, packaged and live accepted are separate states. This register is the current release record; earlier validation documents remain historical. The [detailed release goal](RELEASE-GOAL-2026.09.30.md) defines scope, measurable pass criteria and the distinction between implementation, offline-tested preview and controlled client-use acceptance.

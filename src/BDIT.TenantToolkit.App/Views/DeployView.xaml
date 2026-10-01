@@ -18,6 +18,7 @@
         <StackPanel>
           <TextBlock Text="1  Check readiness" Style="{StaticResource H2}"/>
           <TextBlock Text="Complete the required access, capture and evidence steps for this plan." Style="{StaticResource Muted}" Margin="0,0,0,14"/>
+          <TextBox Text="{Binding DeploymentApplicationText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Deployment application and setup guidance"/>
           <DataGrid ItemsSource="{Binding Prerequisites}" MaxHeight="250" Margin="0,0,0,16" AutomationProperties.Name="Deployment prerequisites">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Prerequisite" Binding="{Binding Step}" Width="260"/>
@@ -26,8 +27,8 @@
             </DataGrid.Columns>
           </DataGrid>
           <WrapPanel>
-            <Button Content="Enable deployment access" Command="{Binding EnableDeploymentCommand}" Style="{StaticResource WarningButton}"/>
-            <Button Content="Capture configuration" Command="{Binding CaptureCommand}" Style="{StaticResource SecondaryButton}"/>
+            <Button Content="{Binding DeploymentButtonText}" Command="{Binding EnableDeploymentCommand}" Style="{StaticResource WarningButton}"/>
+            <Button Content="Capture configuration (read-only)" Command="{Binding CaptureCommand}" Style="{StaticResource SecondaryButton}"/>
             <Button Content="Export before-change capture" Command="{Binding ExportBeforeCommand}" Style="{StaticResource SecondaryButton}"/>
             <Button Content="Acknowledge capture" Command="{Binding AcknowledgeCommand}" Style="{StaticResource SecondaryButton}"/>
           </WrapPanel>

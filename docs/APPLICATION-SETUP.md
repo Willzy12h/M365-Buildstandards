@@ -1,5 +1,33 @@
 # Application setup
 
+## Quick Connect and the next step
+
+For a client's own account, select **Quick Connect with Microsoft** on Connect. Windows sign-in discovers the organisation, domain, tenant ID and account. Review the displayed identity, then select **Connect to this tenant read-only**. The toolkit may need a second app-specific sign-in/consent for assessment permissions. It does not copy another saved client's policy inputs, save a profile automatically, or enable deployment. An installation that disables the shared assessment fallback must use its dedicated application details instead.
+
+**Partner / GDAP sign-in** uses an explicitly selected customer: choose its saved connection or enter its label and tenant ID, then use the separate partner button. Choose the partner account in Microsoft's account chooser. Existing GDAP, roles, assignment rules and application consent are still enforced by Microsoft. This is not automatic customer discovery or a promise of access to every endpoint.
+
+Navigating pages does not authenticate. An unchanged verified connection can be reused; an explicit reconnect first tries a matching cached account. Different applications/modes and Microsoft's MFA or consent requirements can still require interaction. Ordinary reads renew silently and stop with reconnect guidance when Microsoft requires interaction mid-operation.
+
+**No deployment application configured** means the current connection has no dedicated deployment client ID. Select **Configure deployment application** on Deploy to open setup for that client. If the application already exists, enter its Application (client) ID; do not recreate it or substitute an assessment ID. After configuration, consent and assignment checks, **Continue to deployment** requests the separate write-capable identity. Capture and plan again before policy deployment.
+
+### Identify, approve and use an existing enterprise application
+
+Default names are **M365 BuildStandard Assessment Tool** and **M365 BuildStandard Deployment Tool** (the name prefix is configurable). The page shows application IDs, observed creation names or clearly labelled configured names, and verified enterprise-app object IDs when available. Copy the identities and next steps for a local ticket.
+
+1. In Entra, switch to the verified client tenant. Open **Entra ID → Enterprise applications → All applications**, search by the **Application ID**, and compare it with the tool's Application (client) ID. An enterprise application's **Object ID** is different.
+2. Use **Approve assessment/deployment permissions in browser**. Check Microsoft's application name and permission list, select **Accept** as an authorised administrator, and return to the tool. WAM handles desktop sign-in; the browser handles this tenant-wide administrator-consent endpoint. They are different steps.
+3. If assignment is missing, open that enterprise application's **Users and groups → Add user/group** and assign the intended engineer. Keep assignment required. For the current setup operator, a new reviewed preview with **Assign me** enabled can perform the explicitly approved assignment. Group/GDAP access is a separate check.
+4. Select **Check again**. Configuration, consent and direct assignment are checked independently. Browser success and application creation alone do not establish readiness. Allow for consent propagation; do not recreate an app because approval timed out.
+5. Select **Connect read-only now**, then inspect actual access-check results. These are desktop sign-in applications, not websites to launch from My Apps. Roles, licences and service behaviour still matter.
+
+## Read-only capture and troubleshooting
+
+**Capture configuration (read-only)** issues reads and saves evidence locally, even if the session is deployment-capable. It creates, changes, enables and assigns no tenant object. The object table's **Reported state** is the resource's state field, not compliance: **Not reported** means no state field; **Unknown** means a null, empty or unexpected value. Neither implies enabled, disabled or compliant.
+
+For an incomplete capture, open **Collection status**. New captures include the exact assignment/settings/relationship failure, not just a summary. HTTP 400/404 can indicate an unsupported route; do not assume that increasing permissions resolves it. HTTP 401/403 calls for checking the reported permissions/roles and sign-in. Correct the cause and recapture; an old failed capture is not rewritten. Missing Exchange/Purview observations still require their separate reviewed import workflow.
+
+Preview.16 reads authentication method configurations from the policy GET and passkey profiles from the FIDO2 GET, whose documented responses contain the arrays. It reads compliance scheduled-action configurations explicitly. Missing/truncated arrays or any nested read failure still leave evidence incomplete. These changes use existing read permissions and preserve published catalogue bytes.
+
 ## Standard 2026.09.12 permission changes
 
 Update the configured permission lists and grant administrator consent again to **both applications** before using .12. No consent or tenant check was performed during development. Assessment remains delegated and read-only.
@@ -20,7 +48,7 @@ The **Application setup** page is one guided sequence: sign in, approve once, co
 
 1. Enter the client label and tenant ID on Connect and select **Set up or validate applications**, or open the page and enter the tenant ID. If deployment has no configured app, **Connect for deployment** opens the same page.
 2. **Sign in as administrator.** Windows Web Account Manager (WAM) opens Microsoft's own sign-in window; tick the browser option first if needed. Microsoft asks the account to accept the four temporary setup permissions listed on the page. *Assign me to both applications* is ticked by default so the engineer who runs setup can connect straight away; untick it when that account will not use the tool (partner/GDAP engineers, for example). The toolkit writes nothing at sign-in; accepting Microsoft's prompt can leave a consent grant for Microsoft Graph Command Line Tools in Entra, as described below. Setup reuses a connected setup session for the same tenant.
-3. **Review and approve.** Signing in previews the plan automatically: the tenant name and ID, both applications, every permission each will request and the exact registration payload. Tick the approval, type the tenant ID in full and select **Create apps and grant permissions**. The button stays disabled until the typed ID matches (spaces around it and letter case are ignored; a shortened or different ID is refused).
+3. **Review and approve.** Signing in previews the plan automatically: the tenant name and ID, both applications, every permission each will request and the exact registration payload. Review the verified tenant, tick approval and select **Approve and create/configure applications**. Previewing alone creates nothing. You do not need to type the tenant ID again for setup: approval binds the exact verified tenant, operator and fresh plan. A changed identity/input invalidates approval. The separate policy-deployment typed confirmation remains.
 4. The toolkit then, in order and stopping at the first stage that does not finish cleanly:
    - saves before-change evidence and each write outcome, creates or configures the reviewed registrations, registers the sign-in and consent redirects, uploads the tool icon, sets the project URLs and applies the approved engineer assignment. Client IDs fill in automatically;
    - reads both applications back from Microsoft Graph, and only if every write was confirmed goes on;
@@ -30,7 +58,7 @@ The **Application setup** page is one guided sequence: sign in, approve once, co
 
 If a stage does not finish, the page says which and why, and nothing is retried automatically. A partial or uncertain creation stops before any consent is requested. A declined, unsuccessful or timed-out approval, or a stop, leaves the created applications in place: use **Approve assessment permissions** / **Approve deployment permissions** under *Existing applications and manual steps*, then **Check again**. Do not recreate the applications.
 
-**Existing applications.** Tool applications found by name block creation, because names never establish ownership. Enter their exact client IDs under *Existing applications and manual steps* and select **Preview again**; the same approval and typed tenant ID then repair them.
+**Existing applications.** Tool applications found by name block creation, because names never establish ownership. Enter their exact client IDs under *Existing applications and manual steps* and select **Preview again**; approval of the displayed verified tenant and reviewed plan can then repair them.
 
 Two registrations preserve a token-level read-only boundary: **M365 BuildStandard Assessment Tool** has read scopes; **M365 BuildStandard Deployment Tool** also has the required write scopes. The normal client never grants its own access. Both are delegated, single-tenant public clients, with assignment required and no secrets. Admin consent does not itself prove directory roles, Intune RBAC, licences or successful deployment.
 

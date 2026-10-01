@@ -2,7 +2,22 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
       <TextBlock Text="01 / CONNECT TO A CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="Start with read-only access" Style="{StaticResource H1}"/>
-      <TextBlock Text="Choose a saved client or connect once. Microsoft handles credentials and MFA in a Windows sign-in window. Browser fallback is available below." Style="{StaticResource Lead}"/>
+      <TextBlock Text="Sign in with Microsoft to find a client, or choose a saved connection. Microsoft handles credentials and MFA in a Windows sign-in window." Style="{StaticResource Lead}"/>
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Quick Connect — client's own account" Style="{StaticResource H2}"/>
+          <TextBlock Text="{Binding QuickConnectGuidance}" Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+          <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
+          <Button Content="Quick Connect with Microsoft" Command="{Binding QuickConnectCommand}" HorizontalAlignment="Left"/>
+          <Border Background="{StaticResource AccentSoft}" Padding="16" Margin="0,12,0,0" Visibility="{Binding HasDiscoveredTenant, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+              <TextBlock Text="Confirm the organisation and account" Style="{StaticResource H2}"/>
+              <TextBox Text="{Binding DiscoveredTenantText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Discovered organisation and account"/>
+              <WrapPanel><Button Content="Connect to this tenant read-only" Command="{Binding ConfirmQuickConnectCommand}"/><Button Content="Cancel" Command="{Binding CancelQuickConnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Saved clients" Style="{StaticResource H2}"/>
@@ -45,6 +60,12 @@
           <CheckBox Content="Remember this connection on this computer" IsChecked="{Binding RememberConnection, Mode=TwoWay}"/>
           <TextBlock Text="Leave unticked for a one-time connection. Captures and run evidence are still retained locally." Style="{StaticResource Muted}" Margin="0,0,0,16"/>
           <WrapPanel><Button Content="Connect read-only" Command="{Binding ConnectAssessmentCommand}"/><Button Content="Save client details" Command="{Binding SaveProfileCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+          <Expander Header="Partner / GDAP sign-in" Margin="0,12,0,0">
+            <StackPanel Margin="0,10,0,0">
+              <TextBlock Text="Choose a saved customer above, or enter its label and tenant ID. This button opens Microsoft's account chooser in that customer's tenant; select your partner account. An existing GDAP relationship, the appropriate role and customer application consent are required. The toolkit does not list customers or grant partner access." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+              <Button Content="Connect with partner / GDAP account" Command="{Binding ConnectPartnerCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+            </StackPanel>
+          </Expander>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">

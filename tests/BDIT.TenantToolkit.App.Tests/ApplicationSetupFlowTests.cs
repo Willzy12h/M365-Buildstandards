@@ -59,30 +59,31 @@ public sealed class ApplicationSetupFlowTests : IDisposable
     }
 
     /// <summary>
-    /// The one button that writes to the tenant and asks Microsoft for consent is enabled only by a reviewed plan, the
-    /// approval tick and the plan's tenant ID typed in full. Removing either condition fails this test.
+    /// The user explicitly replaced retyping the setup GUID with approval of the displayed verified identity.
+    /// Approval still binds the exact tenant, operator, fresh plan and requested work; policy deployment is separate.
     /// </summary>
     [Fact]
-    public void Creating_and_granting_waits_for_the_approval_and_the_typed_tenant_ID()
+    public void Creating_and_granting_requires_approval_bound_to_the_verified_tenant_operator_and_plan()
     {
         var setup = _shell.Page<ApplicationSetupViewModel>();
         setup.TenantId = TestData.TenantA;
         Assert.False(setup.CreateCommand.CanExecute(null));
 
-        typeof(ApplicationSetupViewModel).GetField("_plan", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .SetValue(setup, new ApplicationSetupPlan { TenantId = TestData.TenantA, TenantName = "Synthetic client" });
-        setup.Confirmation = TestData.TenantA;
-        Assert.False(setup.CreateCommand.CanExecute(null));
-
-        setup.PermissionsApproved = true;
+        var plan = new ApplicationSetupPlan { TenantId = TestData.TenantA, OperatorId = TestData.Operator,
+            TenantName = "Synthetic client", CreatedAt = DateTimeOffset.UtcNow, Rows = { new ApplicationSetupRow { Status = "Create" } } };
+        Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, TestData.TenantA, TestData.TenantA, TestData.Operator, false));
+        Assert.False(ApplicationSetupViewModel.CanApproveSetup(null, TestData.TenantA, TestData.TenantA, TestData.Operator, true));
         foreach (var refused in new[] { "", TestData.TenantA[..30], TestData.TenantB, TestData.TenantA + "0", "Synthetic client" })
         {
-            setup.Confirmation = refused;
-            Assert.False(setup.CreateCommand.CanExecute(null), refused);
+            Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, refused, TestData.TenantA, TestData.Operator, true), refused);
+            Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, TestData.TenantA, refused, TestData.Operator, true), refused);
         }
-
-        setup.Confirmation = "  " + TestData.TenantA.ToUpperInvariant() + " ";
-        Assert.True(setup.CreateCommand.CanExecute(null));
+        Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, TestData.TenantA, TestData.TenantA, TestData.Emergency, true));
+        Assert.True(ApplicationSetupViewModel.CanApproveSetup(plan, "  " + TestData.TenantA.ToUpperInvariant() + " ", TestData.TenantA, TestData.Operator, true));
+        plan.CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-6);
+        Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, TestData.TenantA, TestData.TenantA, TestData.Operator, true));
+        plan.CreatedAt = DateTimeOffset.UtcNow; plan.Rows.Clear();
+        Assert.False(ApplicationSetupViewModel.CanApproveSetup(plan, TestData.TenantA, TestData.TenantA, TestData.Operator, true));
     }
 
     [Fact]

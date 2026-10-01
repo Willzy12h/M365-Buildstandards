@@ -96,3 +96,15 @@ PR #9 retains Claude's WPF/Core/Graph/Engine structure and adds guards rather th
 | Reports | Engine-generated HTML/Markdown; Chromium checks and representative A4 inspection completed | Physical print and screen-reader experience require human checks |
 
 See [interface decision](INTERFACE-DECISION-2026.09.30.md), [release goal](RELEASE-GOAL-2026.09.30.md) and [completion register](COMPLETION-REGISTER.md).
+
+
+## Preview.16: user-observed usability issues
+
+| Area | Choice | Evidence / limit |
+| --- | --- | --- |
+| Connect | Transient Quick Connect plus explicit-customer partner sign-in; preserve pinned normal authentication | Synthetic identity/mode/profile tests; live WAM/GDAP still pending |
+| Setup | Visible creation approval bound to verified identity; no repeated setup GUID; clear browser consent, app IDs and access stages | User-requested UX change; preserve policy deployment confirmation and service execution guards |
+| Read collection | Documented parent arrays and explicit scheduled-action reads, with strict completeness | User-supplied capture inspected locally; Microsoft documentation and synthetic HTTP cases, no fresh live capture by agent |
+| Runtime | Preserve WPF/.NET 10 self-contained packaging; load-check Accessibility and exercise fresh-package context-menu Copy | Local publish includes matching dependency; exact Windows CI result will be recorded in completion register |
+
+See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.

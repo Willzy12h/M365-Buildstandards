@@ -68,6 +68,8 @@ public sealed class GraphClient : IGraphClient
         GraphRouteAllowList.ValidatePathSyntax(path);
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return new JsonObject { ["value"] = new JsonArray(expanded.Select(i => (JsonNode)i).ToArray()) };
         var node = await SendReadAsync(api, Root(api) + path, route, ct);
         return node as JsonObject ?? throw new GraphRequestException(200, "GET", path, null, "Graph returned a non-object body.");
     }
@@ -78,6 +80,8 @@ public sealed class GraphClient : IGraphClient
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
 
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return expanded;
         var items = new List<JsonObject>();
         var url = Root(api) + path;
         var seen = new HashSet<string>(StringComparer.Ordinal);

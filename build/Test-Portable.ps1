@@ -56,6 +56,12 @@ try {
     if ($settings.assessmentClientId -or $settings.deploymentClientId) { throw 'Connection identifiers are not blank.' }
     $metadata = Get-Content -LiteralPath (Join-Path $extract 'VERSION.json') -Raw | ConvertFrom-Json
     if (-not $metadata.selfContained -or $metadata.sourceCommit -notmatch '^[a-fA-F0-9]{40}$' -or $metadata.dotnetRuntime -notmatch '^10\.') { throw 'Release metadata does not identify a self-contained .NET 10 build.' }
+    $accessibility = Join-Path $extract 'app\Accessibility.dll'
+    if (-not (Test-Path -LiteralPath $accessibility -PathType Leaf)) { throw 'Portable package is missing Accessibility.dll, required by text-box context menus.' }
+    $accessibilityIdentity = [Reflection.AssemblyName]::GetAssemblyName($accessibility)
+    if ($accessibilityIdentity.Name -ne 'Accessibility' -or $accessibilityIdentity.Version.ToString() -ne '4.0.0.0') { throw 'Unexpected Accessibility assembly identity.' }
+    $deps = Get-Content -LiteralPath (Join-Path $extract 'app\BDIT.TenantToolkit.App.deps.json') -Raw
+    if (-not $deps.Contains('"Accessibility.dll"')) { throw 'Accessibility.dll is missing from the runtime dependency manifest.' }
     $exe = Join-Path $extract 'app\BDIT.TenantToolkit.App.exe'
     $process = Start-Process -FilePath $exe -WorkingDirectory $extract -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
@@ -71,11 +77,60 @@ try {
     $startup = Get-Content -LiteralPath (Join-Path $extract 'logs\startup.log') -Raw
     if ($startup -notmatch ('Initialised\. Standard: ' + [regex]::Escape($settings.defaultStandardRelease))) { throw 'Packaged first launch did not load the default standard.' }
     if ($startup -match 'FATAL|CRASH') { throw 'Packaged startup recorded an error.' }
+
+    # Exercise the actual extracted application, which cannot borrow its DLLs from the review harness.
+    # UI Automation is restricted to our own process; the only input is a synthetic label. No sign-in is pressed.
+    Add-Type -AssemblyName UIAutomationClient
+    Add-Type -AssemblyName UIAutomationTypes
+    Add-Type -AssemblyName WindowsBase
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class PortableTextMenu {
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+}
+'@
+    $window = [Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+    $descendants = [Windows.Automation.TreeScope]::Descendants
+    function Find-Named([string]$Name) {
+        $condition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, $Name)
+        $element = $window.FindFirst($descendants, $condition)
+        if (-not $element) { throw "Packaged UI did not expose: $Name" }
+        return $element
+    }
+    $connect = Find-Named 'Connect'
+    $connect.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Start-Sleep -Milliseconds 500
+    $field = Find-Named 'Client label'
+    $field.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue('Synthetic portable context-menu check')
+    $field.SetFocus()
+    $field.GetCurrentPattern([Windows.Automation.TextPattern]::Pattern).DocumentRange.Select()
+    # WM_CONTEXTMENU with -1 is the native keyboard context-menu request (Shift+F10 / Menu key), sent to the focused editor.
+    if (-not [PortableTextMenu]::PostMessage($process.MainWindowHandle, 0x007B, $process.MainWindowHandle, [IntPtr]::new(-1))) { throw 'Could not request the packaged text context menu.' }
+    $copyCondition = [Windows.Automation.AndCondition]::new(
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$process.Id),
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, 'Copy'),
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::MenuItem))
+    $copy = $null
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        Start-Sleep -Milliseconds 100
+        $copy = [Windows.Automation.AutomationElement]::RootElement.FindFirst($descendants, $copyCondition)
+    } while (-not $copy -and [DateTime]::UtcNow -lt $deadline)
+    if (-not $copy -or -not $copy.Current.IsEnabled) { throw 'Packaged text-box context menu did not expose an enabled Copy command.' }
+    $copy.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Start-Sleep -Milliseconds 100
+    if ((Get-Clipboard -Raw).TrimEnd("`r", "`n") -ne 'Synthetic portable context-menu check') { throw 'Packaged text-box context-menu Copy did not copy the selected synthetic text.' }
+    foreach ($log in Get-ChildItem -LiteralPath (Join-Path $extract 'logs') -File) {
+        if ((Get-Content -LiteralPath $log.FullName -Raw) -match 'Unhandled UI exception|Could not load file or assembly|FATAL|CRASH') { throw 'Packaged text editing recorded a runtime error.' }
+    }
     if (-not $process.CloseMainWindow()) { throw 'Packaged application did not accept graceful close.' }
     if (-not $process.WaitForExit(15000) -or $process.ExitCode -ne 0) { throw 'Packaged application did not shut down cleanly.' }
     $result = [ordered]@{ sourceCommit=$metadata.sourceCommit; version=$metadata.version; standard=$settings.defaultStandardRelease;
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
+        accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

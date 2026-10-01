@@ -327,15 +327,38 @@ public sealed class Workspace : ObservableObject
 
     // ---- connection ----------------------------------------------------------------------------------------------
 
-    public Task ConnectAsync(TenantProfile profile, SessionMode mode) => RunExclusiveAsync(
+    public async Task<DiscoveredTenant?> DiscoverTenantAsync()
+    {
+        DiscoveredTenant? discovered = null;
+        await RunExclusiveAsync("Finding the signed-in organisation", async progress =>
+        {
+            progress.Report("Choose the client's own work or school account in Microsoft sign-in.");
+            var result = await TenantDiscoveryService.DiscoverAsync(_http, Settings, AuthenticationWindow(), Logger, OperationToken);
+            OperationToken.ThrowIfCancellationRequested();
+            discovered = result;
+        });
+        return discovered;
+    }
+
+    public Task ConnectAsync(TenantProfile profile, SessionMode mode, string? loginHint = null,
+        DiscoveredTenant? expectedIdentity = null) => RunExclusiveAsync(
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
             var standard = RequireStandard();
             Connections.ParentWindowHandle = AuthenticationWindow();
-            Connections.LoginHint = Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
+            Connections.LoginHint = loginHint ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
             Plan = null;
             AcknowledgedSnapshotId = null;
-            var nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
+            // Repeated connection buttons for the same complete profile need fresh read checks, not another
+            // interactive sign-in. A changed mode, application, profile or discovery confirmation uses full verification.
+            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode))
+            {
+                progress.Report("Reusing the current verified session; checking read access without another sign-in.");
+                Access = await Connections.CheckAccessAsync(Connection!, standard, progress, OperationToken);
+                await LoadLicencesCoreAsync(includeUsers: false);
+                return;
+            }
+            var nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, expectedIdentity);
             await DisconnectCoreAsync();
             await DisconnectSetupCoreAsync();
             Profile = profile;
@@ -347,6 +370,12 @@ public sealed class Workspace : ObservableObject
             Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
             await LoadLicencesCoreAsync(includeUsers: false);
         });
+
+    public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
+        && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
+        && string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(session.ClientId, Settings.ResolveClient(mode, profile)?.ClientId, StringComparison.OrdinalIgnoreCase)
+        && CanonicalJson.Sha256Value(Profile) == CanonicalJson.Sha256Value(profile);
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
     {

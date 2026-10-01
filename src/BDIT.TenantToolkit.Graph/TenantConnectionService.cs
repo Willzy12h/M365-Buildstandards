@@ -64,8 +64,12 @@ public sealed class TenantConnectionService
         return scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct)
+    public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
+        DiscoveredTenant? expectedIdentity = null)
     {
+        if (expectedIdentity is not null && (mode != SessionMode.Assessment
+            || !string.Equals(profile.TenantId, expectedIdentity.TenantId, StringComparison.OrdinalIgnoreCase)))
+            throw new TenantMismatchException("Quick Connect confirmation belongs to another tenant or permission mode.");
         var client = _settings.ResolveClient(mode, profile)
             ?? throw new ConfigurationException(mode == SessionMode.Deployment
                 ? "No deployment application is configured. Register the M365 BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
@@ -155,6 +159,8 @@ public sealed class TenantConnectionService
             if (client.IsSharedFallback)
                 session.Notices.Add("Connected through the shared Microsoft Graph PowerShell application. This is acceptable for read-only assessment only.");
 
+            ct.ThrowIfCancellationRequested();
+            expectedIdentity?.VerifyConnection(session);
             _log.Info("Connect", $"Connected to verified tenant {session.TenantId} ({session.TenantName}) as {session.Account} in {mode} mode via {client.Label}.", session.TenantId);
             return new ConnectedTenant(session, graph, authenticator);
         }
