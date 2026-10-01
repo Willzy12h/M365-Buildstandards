@@ -8,6 +8,8 @@ First Preview.16 Windows run [36794151068](https://github.com/Willzy12h/M365-Bui
 
 Additional source checks cover direct setup-to-connection handoff, preserving a verified target and clearing another client's edit buffer, and bringing the actual creation/Quick Connect confirmation buttons into view. Strict cloud solution/harness builds pass without warnings. Negative controls removed the discovery tenant-confirmation guard (1/6 tests failed) and converted missing/truncated embedded arrays into empty successful lists (3/6 tests failed); after restoring both guards, all 32 focused tests passed. These are synthetic source safeguards, not live Microsoft acceptance.
 
+Reconnect review found that local save timestamps prevented reuse of otherwise unchanged one-time profiles. The reuse comparison now excludes only top-level creation/update timestamps; all other profile fields remain compared. The connection form also retains office locations and per-control inputs edited elsewhere, using the latest same-client values, and clears these when a new client is selected. Application tests cover both retention and separation.
+
 
 Continuation of Astra/Codex PR #19, authorised 30 September 2026. Baseline: `687e756eb626b1ab62b61faa672b8825033abcab`, Preview.14 / standard 2026.09.12. Claude's C# implementation remains the foundation; source repositories and Claude branches are preserved. The user removed the missing project-context file prerequisite.
 

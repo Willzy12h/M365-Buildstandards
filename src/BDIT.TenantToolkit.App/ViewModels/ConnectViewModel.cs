@@ -3,6 +3,7 @@ using System.Windows.Input;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Identity;
 using BDIT.TenantToolkit.Graph;
 
@@ -11,6 +12,7 @@ namespace BDIT.TenantToolkit.App.ViewModels;
 public sealed class ConnectViewModel : PageViewModel
 {
     private TenantProfile? _selected;
+    private TenantProfile? _loadedProfile;
     private string _editId = "", _editCompany = "", _editTenantId = "", _editDomain = "", _editAssessmentClientId = "", _editDeploymentClientId = "";
     private string _editEmergencyIds = "", _editOfficeLocationId = "", _editMamGroupId = "", _editPilotGroupId = "", _editCaExclusionGroupId = "", _editNotes = "";
     private string _accessSummary = "";
@@ -225,6 +227,7 @@ public sealed class ConnectViewModel : PageViewModel
 
     private void LoadForm(TenantProfile? p)
     {
+        _loadedProfile = p is null ? null : ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(p));
         RememberConnection = p is not null;
         AccountMatches.Clear();
         SelectedAccount = null;
@@ -246,6 +249,19 @@ public sealed class ConnectViewModel : PageViewModel
         OnPropertyChanged(nameof(ApplicationText));
     }
 
+    private TenantProfile? LoadedClient
+    {
+        get
+        {
+            bool Matches(TenantProfile? p) => p is not null
+                && string.Equals(p.TenantId, EditTenantId.Trim(), StringComparison.OrdinalIgnoreCase)
+                && string.Equals(p.Id, EditId, StringComparison.OrdinalIgnoreCase);
+            if (!Matches(_loadedProfile)) return null;
+            // Another page may have saved new office/policy inputs since this form was loaded.
+            return Matches(Workspace.Profile) ? Workspace.Profile : Profiles.FirstOrDefault(Matches) ?? _loadedProfile;
+        }
+    }
+
     private TenantProfile FormToProfile() => new()
     {
         Id = EditId,
@@ -256,9 +272,12 @@ public sealed class ConnectViewModel : PageViewModel
         DeploymentClientId = EditDeploymentClientId,
         Notes = EditNotes,
         ExclusionAccounts = ExclusionAccounts.ToList(),
-        CreatedAt = Selected?.CreatedAt ?? "",
+        CreatedAt = LoadedClient?.CreatedAt ?? "",
         Parameters = new TenantParameters
         {
+            // These are edited on their own pages. Reconnecting must retain them for the same loaded client.
+            OfficeLocations = LoadedClient?.Parameters.OfficeLocations,
+            PolicyInputs = LoadedClient?.Parameters.PolicyInputs,
             EmergencyAccountIds = EditEmergencyIds.Split(new[] { ',', ';', ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).ToList(),
             AdditionalExclusionAccountIds = _additionalIds.ToList(),
             OfficeLocationId = EditOfficeLocationId,

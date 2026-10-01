@@ -375,7 +375,16 @@ public sealed class Workspace : ObservableObject
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
         && string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(session.ClientId, Settings.ResolveClient(mode, profile)?.ClientId, StringComparison.OrdinalIgnoreCase)
-        && CanonicalJson.Sha256Value(Profile) == CanonicalJson.Sha256Value(profile);
+        && ConnectionProfileDigest(Profile) == ConnectionProfileDigest(profile);
+
+    private static string ConnectionProfileDigest(TenantProfile profile)
+    {
+        // Form validation and saving update these local timestamps even when every client setting is unchanged.
+        // Keep every other field in the comparison, including future additions to the profile schema.
+        var value = ToolkitJson.ToNode(profile)!.AsObject();
+        value.Remove("createdAt"); value.Remove("updatedAt");
+        return CanonicalJson.Sha256(value);
+    }
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
     {

@@ -98,6 +98,9 @@ jobs:
             [xml]$result = Get-Content -LiteralPath $_.FullName -Raw
             $counters = $result.TestRun.ResultSummary.Counters
             Notice $_.Name "Total=$($counters.total); executed=$($counters.executed); passed=$($counters.passed); failed=$($counters.failed); notExecuted=$($counters.notExecuted)"
+            foreach ($failed in @($result.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed')) {
+              Notice ('Failed test: ' + $failed.testName) ($failed.Output.ErrorInfo.Message + "`n" + $failed.Output.ErrorInfo.StackTrace)
+            }
           }
           if (Test-Path dist/ui-review/verification.json) {
             $ui = Get-Content dist/ui-review/verification.json -Raw | ConvertFrom-Json

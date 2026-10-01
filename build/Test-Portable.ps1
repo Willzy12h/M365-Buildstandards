@@ -88,7 +88,11 @@ using System;
 using System.Runtime.InteropServices;
 public static class PortableTextMenu {
     [DllImport("user32.dll", SetLastError=true)]
-    public static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+    public static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")]
+    public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
 }
 '@
     $window = [Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
@@ -104,10 +108,22 @@ public static class PortableTextMenu {
     Start-Sleep -Milliseconds 500
     $field = Find-Named 'Client label'
     $field.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue('Synthetic portable context-menu check')
+    if (-not [PortableTextMenu]::SetForegroundWindow($process.MainWindowHandle)) { throw 'Could not foreground the owned packaged window for its text-menu check.' }
     $field.SetFocus()
-    $field.GetCurrentPattern([Windows.Automation.TextPattern]::Pattern).DocumentRange.Select()
-    # WM_CONTEXTMENU with -1 is the native keyboard context-menu request (Shift+F10 / Menu key), sent to the focused editor.
-    if (-not [PortableTextMenu]::PostMessage($process.MainWindowHandle, 0x007B, $process.MainWindowHandle, [IntPtr]::new(-1))) { throw 'Could not request the packaged text context menu.' }
+    $range = $field.GetCurrentPattern([Windows.Automation.TextPattern]::Pattern).DocumentRange
+    $range.ScrollIntoView($false)
+    $range.Select()
+    Start-Sleep -Milliseconds 200
+    # Click inside the selected text, not the unused area of the editor (which can clear the selection).
+    # Sending WM_CONTEXTMENU to the top-level HWND does not reproduce WPF's input routing to its text editor.
+    $rectangles = $range.GetBoundingRectangles()
+    if ($rectangles.Count -lt 4 -or $rectangles[2] -le 0 -or $rectangles[3] -le 0) { throw 'Selected packaged text is not visible for a right-click.' }
+    $clickX = [int]($rectangles[0] + [Math]::Min(8, $rectangles[2] / 2))
+    $clickY = [int]($rectangles[1] + $rectangles[3] / 2)
+    if (-not $field.Current.BoundingRectangle.Contains($clickX, $clickY) -or -not $window.Current.BoundingRectangle.Contains($clickX, $clickY)) { throw 'Refused to right-click outside the owned packaged text box.' }
+    if (-not [PortableTextMenu]::SetCursorPos($clickX, $clickY)) { throw 'Could not position the pointer over the packaged text box.' }
+    [PortableTextMenu]::mouse_event(0x0008, 0, 0, 0, [UIntPtr]::Zero)
+    [PortableTextMenu]::mouse_event(0x0010, 0, 0, 0, [UIntPtr]::Zero)
     $copyCondition = [Windows.Automation.AndCondition]::new(
         [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$process.Id),
         [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, 'Copy'),
@@ -118,7 +134,13 @@ public static class PortableTextMenu {
         Start-Sleep -Milliseconds 100
         $copy = [Windows.Automation.AutomationElement]::RootElement.FindFirst($descendants, $copyCondition)
     } while (-not $copy -and [DateTime]::UtcNow -lt $deadline)
-    if (-not $copy -or -not $copy.Current.IsEnabled) { throw 'Packaged text-box context menu did not expose an enabled Copy command.' }
+    if (-not $copy -or -not $copy.Current.IsEnabled) {
+        $menuCondition = [Windows.Automation.AndCondition]::new(
+            [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$process.Id),
+            [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::MenuItem))
+        $menus = @([Windows.Automation.AutomationElement]::RootElement.FindAll($descendants, $menuCondition) | ForEach-Object { $_.Current.Name + ' (enabled=' + $_.Current.IsEnabled + ')' })
+        throw ('Packaged text-box context menu did not expose an enabled Copy command. Owned menu items: ' + ($menus -join ', '))
+    }
     $copy.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
     Start-Sleep -Milliseconds 100
     if ((Get-Clipboard -Raw).TrimEnd("`r", "`n") -ne 'Synthetic portable context-menu check') { throw 'Packaged text-box context-menu Copy did not copy the selected synthetic text.' }

@@ -109,6 +109,9 @@ public sealed class ConnectionGuidanceTests : IDisposable
         typeof(Workspace).GetProperty(nameof(Workspace.Profile))!.SetValue(_workspace, profile);
         typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace, connection);
         Assert.True(_workspace.CanReuseConnection(TestData.Profile(), SessionMode.Assessment));
+        var resaved = TestData.Profile();
+        resaved.CreatedAt = "2026-09-01T00:00:00Z"; resaved.UpdatedAt = "2026-10-01T00:00:00Z";
+        Assert.True(_workspace.CanReuseConnection(resaved, SessionMode.Assessment));
         Assert.False(_workspace.CanReuseConnection(TestData.Profile(), SessionMode.Deployment));
         Assert.False(_workspace.CanReuseConnection(TestData.Profile(TestData.TenantB), SessionMode.Assessment));
         Assert.False(_workspace.CanReuseConnection(TestData.Profile(office: TestData.Emergency), SessionMode.Assessment));
@@ -121,6 +124,28 @@ public sealed class ConnectionGuidanceTests : IDisposable
         foreach (var page in _shell.NavItems) _shell.Navigate(page.Key);
         Assert.Same(connection, _workspace.Connection);
         Assert.Empty(graph.Reads); Assert.Empty(graph.Writes);
+    }
+
+    [Fact]
+    public void Connection_form_preserves_advanced_client_inputs_and_clears_them_for_a_new_client()
+    {
+        var profile = TestData.Profile();
+        profile.Parameters.OfficeLocations = new() { new OfficeLocation { Key = "office", Name = "Synthetic office", IpRanges = new() { "8.8.8.0/24" } } };
+        profile.Parameters.PolicyInputs = new() { ["synthetic-control"] = new JsonObject { ["value"] = "synthetic setting" } };
+        var vm = _shell.Page<ConnectViewModel>();
+        vm.Selected = profile;
+        vm.SaveProfileCommand.Execute(null);
+        var saved = Assert.Single(_workspace.Profiles);
+        Assert.Equal("8.8.8.0/24", Assert.Single(Assert.Single(saved.Parameters.OfficeLocations!).IpRanges));
+        Assert.Equal("synthetic setting", saved.Parameters.PolicyInputs!["synthetic-control"]!["value"]!.GetValue<string>());
+        saved.Parameters.PolicyInputs["synthetic-control"]!["value"] = "updated on another page";
+        vm.SaveProfileCommand.Execute(null);
+        Assert.Equal("updated on another page", Assert.Single(_workspace.Profiles).Parameters.PolicyInputs!["synthetic-control"]!["value"]!.GetValue<string>());
+        vm.NewProfileCommand.Execute(null);
+        vm.EditTenantId = TestData.TenantB; vm.EditCompany = "Another synthetic client";
+        vm.SaveProfileCommand.Execute(null);
+        var other = Assert.Single(_workspace.Profiles, p => p.TenantId == TestData.TenantB);
+        Assert.Null(other.Parameters.OfficeLocations); Assert.Null(other.Parameters.PolicyInputs);
     }
 
     private sealed class NoTokens : IAccessTokenProvider
