@@ -71,7 +71,7 @@
     </DockPanel>
     <DockPanel Grid.Column="1">
       <!-- Identity stays visible while navigating, including during a write-capable session. -->
-      <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="28,18">
+      <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="28,9">
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <StackPanel Margin="0,0,24,0">
@@ -102,8 +102,8 @@
                 </Style></TextBlock.Style>
               </TextBlock>
             </Border>
-            <Button Content="Copy connection details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
-            <Button Content="Disconnect tenant" Command="{Binding DisconnectCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Copy details" Padding="6,6" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Margin="0,5,4,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
+            <Button Content="Disconnect tenant" Padding="6,6" Command="{Binding DisconnectCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/></StackPanel>
           </StackPanel>
         </Grid>
       </Border>

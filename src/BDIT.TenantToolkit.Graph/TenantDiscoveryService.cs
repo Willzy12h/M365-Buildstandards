@@ -59,7 +59,7 @@ public static class TenantDiscoveryService
     {
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
-        if (new TenantSession { Scopes = readScopes.ToList() }.HasWriteScopes)
+        if (readScopes.Any(s => s.Contains("Write", StringComparison.OrdinalIgnoreCase) || s.Contains("AccessAsUser", StringComparison.OrdinalIgnoreCase)))
             throw new ConfigurationException("Quick Connect cannot request write permissions.");
         var auth = await MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser,
             TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct, readScopes);

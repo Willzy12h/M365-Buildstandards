@@ -138,6 +138,7 @@ public sealed class TenantConnectionService
             AccountObjectId = authenticator.Outcome.AccountObjectId,
             ClientId = client.ClientId,
             ClientLabel = client.Label,
+            AuthenticationType = OperatingSystem.IsWindows() && !_settings.UseSystemBrowser ? "Delegated (Windows sign-in / WAM)" : "Delegated (system browser)",
             Mode = mode,
             Scopes = authenticator.Outcome.Scopes.ToList(),
             ConnectedAt = Timestamps.Format(DateTimeOffset.UtcNow),

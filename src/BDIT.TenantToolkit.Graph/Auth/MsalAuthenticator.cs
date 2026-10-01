@@ -96,7 +96,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     }
 
     // Discovery is deliberately a separate entry point: normal assessment, deployment and setup still require
-    // a known tenant. No arbitrary client, scopes, cache file or login hint can be supplied to discovery.
+    // a known tenant. The client remains fixed and no cache file or login hint is accepted; the discovery service validates assessment read scopes.
     internal static Task<MsalAuthenticator> DiscoverAsync(IntPtr parentWindow, bool useBrowser, TimeSpan timeout,
         IToolkitLog log, CancellationToken ct, IReadOnlyList<string>? assessmentScopes = null) => SignInCoreAsync(new SignInRequest
         {
