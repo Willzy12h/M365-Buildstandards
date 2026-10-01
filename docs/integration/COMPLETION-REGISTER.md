@@ -1,6 +1,27 @@
-# Preview.17 continuation — validation in progress
+# Preview.17 QoL implementation complete — 1 October 2026
 
-Approved QoL implementation is on PR #19; see [goal](QOL-GOAL-2026.10.01.md) and decisions INT-045–048. Local strict solution/UI-review builds passed; 852 engine tests passed, none failed/skipped. Windows app/native UI/portable checks are pending on the Preview.17 source. No live tenant authentication, consent or service write was performed. Earlier Preview.16 results below are historical.
+PR #19 implements the approved [seamless workflow goal](QOL-GOAL-2026.10.01.md), decisions INT-045–048. Quick Connect retains one-use assessment authentication; Quick setup carries the verified tenant and checks/selects existing exact app IDs; policy deployment explicitly reviews the tenant and changes without GUID transcription. Connection copying, prerequisite ownership, disabled selections and readiness guidance are clearer. Exchange/Purview capture runs the embedded read template from the app and retains separate evidence, accepted-domain selection, collection errors, export and cancellation. Graph evidence/plans/acknowledgements survive separate Exchange reads.
+
+## Recorded implementation evidence
+
+Validated implementation revision **eb0b3c41fe5196ce9a35b5b01a1ba2e16ab5e330**, version **1.1.0-preview.17**, default immutable standard **2026.09.30**. [Push run 36842530565](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842530565) and [PR run 36842535977](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842535977) passed. This record is a documentation follow-up; PR #19 carries the final revision/run/artifact links after its own CI completes.
+
+- Strict .NET 10 Release solution and native review builds: zero warnings/errors.
+- **852 engine tests + 112 application tests = 964** passed; zero failed/skipped.
+- Native WPF: **42 page/size combinations**, **71 commands pressed**, zero binding issues, idle close/shutdown passed. Supported sizes: 1480×940, 1180×760 and 1180×640. The first run exposed unnecessary scrolling; compact copy actions and adjusted header spacing corrected it without weakening layout assertions.
+- Windows PowerShell **5.1** parsed the generated embedded read template, then refused an injected `Set-TransportConfig` write. No module was loaded and no capture/authentication was executed by this check.
+- Fresh extracted portable folder: **287 files**, exact staged bytes/internal checksums, blank connection settings/empty evidence, actual executable startup/graceful shutdown, Accessibility 4.0 loading and physical context-menu Copy all passed. No tenant operation occurred.
+- Implementation ZIP SHA-256: `2a1ea6093bc38d7c018dca1e54500873dd3369493f180edb7dee1be673f065a5`.
+
+Implementation-run downloads: [portable ZIP and checksum](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842530565/artifacts/11152170905), [native UI renders](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842530565/artifacts/11152470353), [test results](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842530565/artifacts/11152825026), [engineer documents](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/36842530565/artifacts/11152805060). Final follow-up downloads are identified in PR #19; don't mix their ZIP hashes with this implementation archive.
+
+## Remaining live acceptance
+
+No live tenant sign-in, administrator consent, policy/service write, DNS or device action was performed by the agent. WAM/MFA prompt counts, dedicated-app grants/assignment/GDAP, fresh Graph service responses, actual Exchange/Purview module authentication/RBAC/tenant checks and cancellation need authorised engineer acceptance. The PowerShell parser check is not live module compatibility. Exchange capture requires a supported preinstalled module; the app neither installs it nor bypasses script policy. Imports remain unsigned observations and cannot authorise Graph deployment.
+
+Native images were generated and structurally checked in Windows CI; this cloud instance cannot download GitHub artifact storage under its unchanged active network policy, so visual inspection here remains unperformed. The full ZIP is required; the user's old extracted folder was not repaired in place. The PR remains draft for review and outstanding live acceptance; no merge or production release was made.
+
+## Historical records through Preview.16
 
 # Release completion register
 

@@ -14,6 +14,10 @@ Continue and validate PR #19 on .NET 10, following the user's approved QoL scope
 
 Live Microsoft WAM/MFA/consent prompt counts, actual Exchange/Purview module/RBAC/tenant responses, GDAP, collection completeness and device effects require separately authorised engineer acceptance. Do not merge or publish a production release automatically.
 
+## Validation recorded
+
+Implementation revision `eb0b3c41fe5196ce9a35b5b01a1ba2e16ab5e330` passed strict builds, 964 automated tests, all 42 native page/size checks, PowerShell 5.1 template parsing/injected-write refusal and freshly extracted portable/context-menu validation. See [completion register](COMPLETION-REGISTER.md) and PR #19 for exact source/artifact links and remaining live acceptance.
+
 ## Previous Preview.16 goal (historical)
 
 # M365 BuildStandard: connection and usability release goal

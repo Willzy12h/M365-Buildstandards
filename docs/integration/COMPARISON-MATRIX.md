@@ -7,7 +7,7 @@
 | Policy approval | Repeated tenant GUID transcription | Verified tenant/domain/account, exact changes, explicit tick and deliberate deploy. Native dialog checks and changed-context negative tests; engine immutable approval unchanged. |
 | Planning/readiness | Ambiguous ownership, grey selections, unrelated numbering | Tool/engineer guidance, reason/remedy, matching navigation pages and collection error details. No eligibility/evidence gate loosened. |
 | Exchange | Engineer script export/run/import replaced Graph snapshot | Owned embedded read process; module/tenant checks, progress/cancel, domain discovery, independent evidence. ExchangeWorkspaceTests protects Graph state and wrong-tenant refusal; strict import/DNS/proposal guards retained. Windows PowerShell 5.1 parses the generated template and rejects an injected write without executing it. |
-| Packaging | Validated Preview.16 | Preview.17 strict build, both test suites, native UI and freshly extracted portable package checks pending Windows CI. Catalogue bytes/persisted schemas unchanged. |
+| Packaging | Validated Preview.16 | Preview.17 strict builds passed; 852 engine/112 app tests, 42 native page/size checks and the freshly extracted portable package/context-menu checks passed. Exact implementation evidence is in COMPLETION-REGISTER. Catalogue bytes/persisted schemas unchanged. |
 
 # Behavioural comparison
 
