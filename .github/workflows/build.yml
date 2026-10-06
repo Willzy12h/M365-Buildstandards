@@ -7,12 +7,18 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_preview18:
+        description: 'Publish the already validated Preview.18 artifact (manual release-owner approval only)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   build:
+    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # WPF requires Windows; the toolkit only ever ships win-x64.
     runs-on: windows-latest
     timeout-minutes: 20
@@ -180,6 +186,7 @@ jobs:
           if-no-files-found: error
 
   standard:
+    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
     runs-on: windows-latest
     timeout-minutes: 10
@@ -216,6 +223,7 @@ jobs:
           Write-Host "All recipes are disabled candidates with no assignments."
 
   secrets:
+    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # Tenant evidence and client identifiers must never reach the repository.
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -246,3 +254,44 @@ jobs:
             fail=1
           fi
           exit $fail
+
+  publish-preview18:
+    # Manual only. The maintainer explicitly authorised this preview's publication on 6 October.
+    # Promote the original tested ZIP; never rebuild or merge branches in this job.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_preview18
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: publish-preview18
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the pinned successful source run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 build/Publish-ValidatedPreview.py --check-run
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 37515288607
+          name: portable-windows-review
+          path: release-input/portable
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 37515288607
+          name: synthetic-ui-review
+          path: release-input/ui
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 37515288607
+          name: standard-definition-exports
+          path: release-input/standards
+      - name: Verify original bytes, upload assets and publish the prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 build/Publish-ValidatedPreview.py
