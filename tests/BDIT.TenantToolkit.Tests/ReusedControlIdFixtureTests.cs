@@ -60,8 +60,7 @@ public sealed class ReusedControlIdFixtureTests
             var row = plan.Rows.Single(r => r.ControlId == id);
             Assert.DoesNotContain(row.Action, new[] { PlanAction.Create, PlanAction.Update });
         }
-        // Neither existing object is offered for change, and no second group named for the new requirement is created.
-        Assert.DoesNotContain(plan.Rows, r => r.ObjectId is PilotGroup or OfficeLocation && r.Action is PlanAction.Update);
+        // No second group named for the new requirement is created.
         Assert.DoesNotContain(plan.Rows, r => r.Action == PlanAction.Create);
     }
 

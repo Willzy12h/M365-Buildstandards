@@ -15,7 +15,7 @@ public static class MarkdownReports
         .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
         .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
-    /// <summary>Plain wording for <see cref="AssessmentResult.SnapshotIntegrity"/>, shared by the tabular reports.</summary>
+    /// <summary>Plain wording for <see cref="AssessmentResult.SnapshotIntegrity"/>, shared by every report, the CLI and the app.</summary>
     public static string IntegrityText(string state) => state switch
     {
         SnapshotIntegrityState.Intact => "intact",

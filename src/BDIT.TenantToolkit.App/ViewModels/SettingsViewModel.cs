@@ -64,11 +64,13 @@ public sealed class SettingsViewModel : PageViewModel
 
     private string Restore() => new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, DigestForTransfer("restored"));
 
-    /// <summary>The trusted digest, or null after the explicit acknowledgement. A typed but malformed digest is an error, never treated as absent.</summary>
+    /// <summary>
+    /// Whatever was typed, for the engine to validate, so a malformed digest is refused rather than treated as absent;
+    /// null only when the field is empty, which the commands allow only after the explicit acknowledgement.
+    /// </summary>
     private string? DigestForTransfer(string action)
     {
-        if (TrustedDigest.Trim().Length > 0 && !TrustedDigestValid) throw new ConfigurationException("The trusted archive SHA-256 must be 64 hexadecimal characters. Correct it, or clear it and acknowledge that none is available.");
-        if (TrustedDigestValid) return TrustedDigest.Trim();
+        if (TrustedDigest.Trim().Length > 0) return TrustedDigest;
         Workspace.Logger.Warn("Transfer", $"Backup {action} without an independently received archive digest, at the engineer's explicit acknowledgement.");
         return null;
     }
@@ -83,9 +85,9 @@ public sealed class SettingsViewModel : PageViewModel
         try { LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptFromArchive(BackupFile, digest)); }
         finally
         {
-            // Adoption requires an empty evidence folder, so evidence present now was put there by this adoption. The
-            // in-memory client list must match it, or a client saved next would rewrite profiles.json without the
-            // adopted clients. A reload failure is logged rather than replacing the adoption's own result or error.
+            // If adoption put evidence in place, the in-memory client list must match it, or a client saved next would
+            // rewrite profiles.json without the adopted clients. Reloading when adoption was refused is harmless. A
+            // reload failure is logged rather than replacing the adoption's own result or error.
             var data = Workspace.Paths.DataDirectory;
             if (Directory.Exists(data) && Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories).Any())
             {

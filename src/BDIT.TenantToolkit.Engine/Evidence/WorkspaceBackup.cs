@@ -12,8 +12,9 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     private const int MaxFiles = 20000;
     private const long MaxFileBytes = 32L * 1024 * 1024;
     private const long MaxTotalBytes = 1024L * 1024 * 1024;
+    private const int MaxChecksumListBytes = 4 * 1024 * 1024;
     private readonly long _maximumBytes = maximumBytes > 0 && maximumBytes <= MaxTotalBytes ? maximumBytes : throw new ArgumentOutOfRangeException(nameof(maximumBytes), "Transfer limit must be positive and at most 1 GiB.");
-    public const string Guide = "Sensitive local evidence backup. Close other copies of the tool and disconnect before backing up. Includes every JSON/JSONL/NDJSON record under data/, including historical and unresolved writes, profiles, imported catalogues and application setup evidence. Authentication caches and policy-write locks are excluded. Unknown file types and links cause refusal rather than silent loss. Logs, reports, config and binaries are excluded; retain the original approved package separately. Restore checks the archive against the trusted SHA-256 received through the approved handoff channel, verifies every file checksum and extracts into a new separate folder only. Adoption copies a verified restore into an empty evidence folder and re-verifies every file in place. Neither overwrites existing evidence or makes old captures, plans or approvals live. Checksums detect modification against a trusted reference; they are not a publisher signature. Store and share this archive under the organisation's client-evidence policy.";
+    public const string Guide = "Sensitive local evidence backup. Close other copies of the tool and disconnect before backing up. Includes every JSON/JSONL/NDJSON record under data/, including historical and unresolved writes, profiles, imported catalogues and application setup evidence. Authentication caches and policy-write locks are excluded. Unknown file types and links cause refusal rather than silent loss. Logs, reports, config and binaries are excluded; retain the original approved package separately. Restore checks the archive against the trusted SHA-256 received through the approved handoff channel, verifies every file checksum and extracts into a new separate folder only. Adoption extracts the archive, checked against the same trusted SHA-256, into an empty evidence folder and re-verifies every file in place. Neither overwrites existing evidence or makes old captures, plans or approvals live. Checksums detect modification against a trusted reference; they are not a publisher signature. Store and share this archive under the organisation's client-evidence policy.";
 
     public string Create()
     {
@@ -41,7 +42,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
                 }
                 var manifest = string.Join('\n', hashes.Select(h => h.Value + "  " + h.Key)) + "\n";
                 var manifestBytes = Encoding.UTF8.GetByteCount(manifest);
-                if (manifestBytes > 4 * 1024 * 1024 || total + manifestBytes > _maximumBytes) throw new ConfigurationException("Backup including its metadata exceeds the bounded transfer size.");
+                if (manifestBytes > MaxChecksumListBytes || total + manifestBytes > _maximumBytes) throw new ConfigurationException("Backup including its metadata exceeds the bounded transfer size.");
                 WriteText(archive, "SHA256SUMS.txt", manifest, null);
             }
             if (!source.SequenceEqual(Sources(), StringComparer.Ordinal)) throw new IntegrityException("Evidence files changed during backup. Close other tool copies and try again.");
@@ -152,17 +153,14 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     /// Re-checks a restored folder against the checksum list written at restore: every listed file present with its
     /// recorded SHA-256, and nothing unlisted under data/. Read-only. Returns the number of evidence files verified.
     /// </summary>
-    public static int VerifyRestored(string restoredFolder) => VerifiedRestore(Path.GetFullPath(restoredFolder)).Count(h => h.Key.StartsWith("data/", StringComparison.Ordinal));
-
-    /// <summary>Verifies a restored folder and returns its checksum list, so adoption copies exactly what was verified.</summary>
-    private static Dictionary<string, string> VerifiedRestore(string restoredFolder)
+    public static int VerifyRestored(string restoredFolder)
     {
+        restoredFolder = Path.GetFullPath(restoredFolder);
         CheckParents(restoredFolder);
         var listFile = Path.Combine(restoredFolder, "SHA256SUMS.txt");
         if (!File.Exists(listFile)) throw new IntegrityException("The restored folder has no SHA256SUMS.txt. Restore the backup again with Verify and restore separately.");
-        if (new FileInfo(listFile).Length > 4 * 1024 * 1024) throw new IntegrityException("Restored checksum list is too large.");
-        Dictionary<string, string> hashes;
-        using (var input = File.OpenRead(listFile)) hashes = ReadHashes(input);
+        if (new FileInfo(listFile).Length > MaxChecksumListBytes) throw new IntegrityException("Restored checksum list is too large.");
+        var hashes = ParseHashes(File.ReadAllBytes(listFile));
         var data = Path.Combine(restoredFolder, "data");
         var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (Directory.Exists(data)) CollectFiles(data, data, present);
@@ -178,7 +176,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
             if (!string.Equals(CopyHash(input, Stream.Null, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase))
                 throw new IntegrityException($"Restored file failed its SHA-256 check: {name}.");
         }
-        return hashes;
+        return listedData.Count;
     }
 
     /// <summary>
@@ -295,20 +293,16 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
 
     private static Dictionary<string, string> ReadHashes(ZipArchiveEntry entry)
     {
-        if (entry.Length > 4 * 1024 * 1024) throw new IntegrityException("Backup checksum list is too large.");
+        if (entry.Length > MaxChecksumListBytes) throw new IntegrityException("Backup checksum list is too large.");
         using var content = new MemoryStream();
-        using (var input = entry.Open()) CopyHash(input, content, 4 * 1024 * 1024);
+        using (var input = entry.Open()) CopyHash(input, content, MaxChecksumListBytes);
         if (content.Length != entry.Length) throw new IntegrityException("Backup checksum list size is inconsistent.");
-        content.Position = 0;
-        return ReadHashes(content);
+        return ParseHashes(content.ToArray());
     }
 
-    private static Dictionary<string, string> ReadHashes(Stream input)
+    private static Dictionary<string, string> ParseHashes(byte[] list)
     {
-        using var content = new MemoryStream();
-        CopyHash(input, content, 4 * 1024 * 1024);
-        content.Position = 0;
-        using var reader = new StreamReader(content, new UTF8Encoding(false, true));
+        using var reader = new StreamReader(new MemoryStream(list), new UTF8Encoding(false, true));
         var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         while (reader.ReadLine() is { } line)
         {

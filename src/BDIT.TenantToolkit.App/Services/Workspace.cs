@@ -147,7 +147,7 @@ public sealed class Workspace : ObservableObject
     }
 
     /// <summary>
-    /// Loads clients adopted from a verified restore. Adoption needs an empty workspace, so nothing is selected or
+    /// Loads clients adopted from a backup archive. Adoption needs an empty workspace, so nothing is selected or
     /// connected; reloading at once stops a new client saved before a restart from overwriting the adopted profiles.
     /// </summary>
     public void ReloadAdoptedEvidence()

@@ -42,10 +42,10 @@ public sealed class AssessmentEngine
         : SnapshotIntegrityState.Modified;
 
     /// <param name="evidenceTime">
-    /// Supply the Graph capture time when assessing stored evidence (headless reports, history). Exchange/Purview
-    /// freshness and DNS observations are then judged against the later of that time and the Exchange capture, so the
-    /// same stored evidence produces the same findings whenever it is re-assessed (CLA-20261006-06). Null, for live
-    /// work, judges them against the current time.
+    /// Supply the capture time of the stored snapshot being assessed (headless reports, history). Exchange/Purview
+    /// freshness and DNS observations are then judged as of the latest of that time, the Exchange capture and any later
+    /// DNS refresh, never later than now, so the same stored evidence produces the same findings whenever it is
+    /// re-assessed (CLA-20261006-06). Null, for live work, judges them against the current time.
     /// </param>
     public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null, DateTimeOffset? evidenceTime = null)
     {

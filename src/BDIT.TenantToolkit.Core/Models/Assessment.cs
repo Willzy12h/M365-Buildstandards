@@ -154,7 +154,8 @@ public sealed class AssessmentResult
     public string ToolkitVersion { get; set; } = "";
     public bool SnapshotComplete { get; set; }
     /// <summary>
-    /// Whether the assessed Graph snapshot still matches its recorded integrity digest: <see cref="SnapshotIntegrityState"/>.
+    /// Whether the assessed snapshot (Graph, or Exchange/Purview when assessed alone) still matches its recorded
+    /// integrity digest: <see cref="SnapshotIntegrityState"/>.
     /// Absent (empty) on assessments written before this field existed.
     /// </summary>
     public string SnapshotIntegrity { get; set; } = "";

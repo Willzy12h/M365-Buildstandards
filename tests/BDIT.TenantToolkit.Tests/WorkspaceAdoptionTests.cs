@@ -110,8 +110,8 @@ public sealed class WorkspaceAdoptionTests
     [Fact]
     public void Adoption_is_bound_to_the_trusted_archive_digest_so_a_rewritten_checksum_list_cannot_pass()
     {
-        // Review finding: adopting from a restored folder only proved the folder agreed with the checksum list stored
-        // beside it. An archive whose content and internal checksums are both rewritten must still be refused.
+        // A restored folder only proves it agrees with the checksum list stored beside it, so adoption starts from the
+        // archive. An archive whose content and internal checksums are both rewritten must be refused.
         using var source = new TempRoot(); File.WriteAllText(source.Paths.ProfilesFile, "[]");
         var original = new WorkspaceBackup(source.Paths).Create();
         var trusted = WorkspaceBackup.ArchiveDigest(original);

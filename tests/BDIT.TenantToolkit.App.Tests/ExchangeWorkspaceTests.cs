@@ -51,8 +51,8 @@ public sealed class ExchangeWorkspaceTests : IDisposable
     [Fact]
     public void Exchange_only_evidence_reopened_from_history_is_judged_as_of_its_capture()
     {
-        // Review finding: only stored Graph snapshots were judged as of their capture, so reopening a stored
-        // Exchange-only snapshot days later marked every EX/PUR control stale while the headless runner did not.
+        // Reopening stored Exchange-only evidence days later must reproduce its findings, as the headless runner does,
+        // rather than marking every EX/PUR control stale.
         var capture = ExchangeTestData.Capture();
         capture.CapturedAt = Timestamps.Format(DateTimeOffset.UtcNow.AddDays(-3));
         var stored = ExchangeEvidenceImporter.Snapshot(capture, TestData.Profile(), _workspace.RequireStandard());
@@ -70,8 +70,7 @@ public sealed class ExchangeWorkspaceTests : IDisposable
     [Fact]
     public void A_modified_stored_Exchange_snapshot_cannot_be_reopened_as_evidence()
     {
-        // Review finding: the headless runner refused modified supplemental Exchange evidence, but reopening it from
-        // history did not check its digest and reported its findings as resting on intact evidence.
+        // Modified Exchange evidence is refused when reopened from history, as the headless runner refuses it.
         var stored = ExchangeEvidenceImporter.Snapshot(ExchangeTestData.Capture(), TestData.Profile(), _workspace.RequireStandard());
         var file = _workspace.Evidence.SaveSnapshot(stored);
         File.WriteAllText(file, File.ReadAllText(file).Replace("\"3.9.2\"", "\"3.9.3\"", StringComparison.Ordinal));
