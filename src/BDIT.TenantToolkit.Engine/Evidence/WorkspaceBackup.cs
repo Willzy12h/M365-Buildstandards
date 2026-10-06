@@ -74,13 +74,9 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     /// </param>
     public string RestoreSeparate(string archiveFile, string destination, string? trustedArchiveSha256 = null)
     {
-        if (trustedArchiveSha256 is not null)
-        {
-            var expected = trustedArchiveSha256.Trim();
-            if (expected.Length != 64 || expected.Any(c => !Uri.IsHexDigit(c))) throw new ConfigurationException("The trusted archive SHA-256 must be 64 hexadecimal characters.");
-            if (!string.Equals(ArchiveDigest(archiveFile), expected, StringComparison.OrdinalIgnoreCase))
-                throw new IntegrityException("The backup archive does not match the trusted SHA-256 received for it. Nothing was restored. Obtain the archive again through the approved handoff channel.");
-        }
+        var expected = trustedArchiveSha256?.Trim();
+        if (expected is not null && (expected.Length != 64 || expected.Any(c => !Uri.IsHexDigit(c))))
+            throw new ConfigurationException("The trusted archive SHA-256 must be 64 hexadecimal characters.");
         destination = Path.GetFullPath(destination);
         if (File.Exists(destination) || Directory.Exists(destination)) throw new ConfigurationException("Restore requires a new separate folder. Existing folders are never overwritten.");
         var parent = Path.GetDirectoryName(destination) ?? throw new ConfigurationException("Restore needs a parent folder.");
@@ -90,8 +86,17 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
         var staging = Path.Combine(parent, ".restore-" + Guid.NewGuid().ToString("N"));
         try
         {
-            if (new FileInfo(archiveFile).Length > _maximumBytes + MaxFileBytes) throw new ConfigurationException("Backup archive exceeds the bounded transfer size.");
-            using var archive = ZipFile.OpenRead(archiveFile);
+            // One read-locked stream is both hashed and extracted, so the bytes checked against the trusted digest are
+            // exactly the bytes restored; nothing can replace the file between the two.
+            using var stream = new FileStream(archiveFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (stream.Length > _maximumBytes + MaxFileBytes) throw new ConfigurationException("Backup archive exceeds the bounded transfer size.");
+            if (expected is not null)
+            {
+                if (!string.Equals(Convert.ToHexStringLower(SHA256.HashData(stream)), expected, StringComparison.OrdinalIgnoreCase))
+                    throw new IntegrityException("The backup archive does not match the trusted SHA-256 received for it. Nothing was restored. Obtain the archive again through the approved handoff channel.");
+                stream.Position = 0;
+            }
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             if (archive.Entries.Count > MaxFiles + 2) throw new ConfigurationException("Backup contains too many entries.");
             var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
             long total = 0;
@@ -197,12 +202,12 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
                 if (!string.Equals(CopyHash(input, output, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase))
                     throw new IntegrityException($"Restored file changed while it was being adopted: {name}. Nothing was adopted.");
             }
-            // Only empty folders remain here (checked above); replacing them keeps the move a single rename.
+            // Only empty folders remain here (checked above). They are removed one by one without recursion, so a file
+            // that appears meanwhile makes the removal fail rather than being deleted.
             if (Directory.Exists(paths.DataDirectory))
             {
-                if (Directory.EnumerateFiles(paths.DataDirectory, "*", SearchOption.AllDirectories).Any())
-                    throw new ConfigurationException("Evidence appeared in this workspace during adoption. Nothing was adopted.");
-                Directory.Delete(paths.DataDirectory, true);
+                try { DeleteEmptyTree(paths.DataDirectory); }
+                catch (IOException) { throw new ConfigurationException("Evidence appeared in this workspace during adoption. Nothing was adopted."); }
             }
             Directory.Move(stagedData, paths.DataDirectory);
         }
@@ -216,6 +221,13 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
                 throw new IntegrityException($"Adopted file failed its in-place SHA-256 check: {name}. Do not use this workspace; keep the restored folder and contact the evidence custodian.");
         }
         return $"Adopted {count} verified evidence file(s) into {paths.DataDirectory}. Restart the tool to load them, then sign in and capture fresh evidence before any new plan.";
+    }
+
+    private static void DeleteEmptyTree(string directory)
+    {
+        CheckLink(directory);
+        foreach (var child in Directory.EnumerateDirectories(directory)) DeleteEmptyTree(child);
+        Directory.Delete(directory, recursive: false);
     }
 
     private static void CollectFiles(string directory, string dataRoot, ISet<string> names)
