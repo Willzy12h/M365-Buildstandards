@@ -12,11 +12,11 @@ namespace BDIT.TenantToolkit.Engine.Assessment;
 public static class AssessmentContext
 {
     public static AssessmentResult Assess(AssessmentEngine engine, EvidenceStore store, TenantSnapshot snapshot,
-        StandardCatalogue standard, TenantProfile profile, string actor, ExchangeCapture? supplementalExchange = null)
+        StandardCatalogue standard, TenantProfile profile, string actor, ExchangeCapture? supplementalExchange = null, DateTimeOffset? evidenceTime = null)
     {
         var mappings = store.LoadMappings(profile.TenantId);
         var deviations = store.LoadDeviations(profile.TenantId);
-        return engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange);
+        return engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange, evidenceTime);
     }
 
     /// <summary>

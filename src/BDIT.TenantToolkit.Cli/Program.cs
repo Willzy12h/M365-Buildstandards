@@ -158,7 +158,9 @@ public static class Program
             supplemental = AssessmentContext.ReadSupplement(exchangeFile, profile.TenantId, DateTimeOffset.UtcNow);
         }
         var result = AssessmentContext.Assess(new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current),
-            context.Evidence, snapshot, standard, profile, "bdit (headless)", supplemental);
+            context.Evidence, snapshot, standard, profile, "bdit (headless)", supplemental,
+            // A headless report always reads stored evidence, so freshness is judged as of that evidence.
+            Timestamps.TryParse(snapshot.CapturedAt, out var capturedAt) ? capturedAt : null);
 
         var format = Format(options, ExportFormat.Html);
         var written = context.Exporter.ExportAssessment(result, format);

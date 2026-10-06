@@ -41,7 +41,13 @@ public sealed class AssessmentEngine
         : EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest) ? SnapshotIntegrityState.Intact
         : SnapshotIntegrityState.Modified;
 
-    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null)
+    /// <param name="evidenceTime">
+    /// Supply the Graph capture time when assessing stored evidence (headless reports, history). Exchange/Purview
+    /// freshness and DNS observations are then judged against the later of that time and the Exchange capture, so the
+    /// same stored evidence produces the same findings whenever it is re-assessed (CLA-20261006-06). Null, for live
+    /// work, judges them against the current time.
+    /// </param>
+    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null, DateTimeOffset? evidenceTime = null)
     {
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The snapshot and the selected client profile belong to different tenants.");
@@ -53,6 +59,9 @@ public sealed class AssessmentEngine
 
         var exchangeEvidence = separateExchange ?? snapshot.ExchangeCapture;
         if (exchangeEvidence is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
+        var exchangeReference = _clock.UtcNow;
+        if (evidenceTime is { } asOf && exchangeEvidence is { } paired && Timestamps.TryParse(paired.CapturedAt, out var exchangeCaptured))
+            exchangeReference = asOf > exchangeCaptured ? asOf : exchangeCaptured;
 
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
@@ -95,6 +104,8 @@ public sealed class AssessmentEngine
         if (exchangeEvidence is { } external)
         {
             result.Limitations.Add($"Separate Exchange/Purview evidence {external.Id}, captured {external.CapturedAt}, selected domain {external.Domain}. Read-only observations cannot authorise toolkit writes; exported source claims are not signed.");
+            if (evidenceTime is not null)
+                result.Limitations.Add($"Stored evidence: Exchange/Purview freshness and DNS observations were judged as of {Timestamps.Format(exchangeReference)}, the time of the evidence, not the time of this report.");
             foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
                 result.CollectionStatus[definition.Command] = external.Collections.TryGetValue(key, out var c)
                     ? c.Status == CaptureStatus.Collected && !ExchangeCaptureSchema.Complete(external, key, out _)
@@ -110,7 +121,7 @@ public sealed class AssessmentEngine
         foreach (var control in ControlInstances.All(standard, profile))
         {
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
-            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow, exchangeEvidence);
+            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow, exchangeEvidence, exchangeReference);
             result.Findings.Add(finding);
         }
 
@@ -119,7 +130,7 @@ public sealed class AssessmentEngine
     }
 
     private static ControlFinding AssessControl(ControlDefinition control, StandardCatalogue standard, TenantSnapshot snapshot, ManagedObjectMappings mappings,
-        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now, ExchangeCapture? exchangeEvidence)
+        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now, ExchangeCapture? exchangeEvidence, DateTimeOffset exchangeReference)
     {
         var finding = new ControlFinding
         {
@@ -172,7 +183,7 @@ public sealed class AssessmentEngine
         var def = standard.FindCollection(control.Collection);
         snapshot.Collections.TryGetValue(control.Collection ?? "", out var capture);
 
-        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, exchangeEvidence, finding, now)) return finding;
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, exchangeEvidence, finding, exchangeReference)) return finding;
         if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.Apply(control, snapshot, finding)) return finding;
         if (standard.SchemaVersion >= 5 && def is not null && (capture is null || !capture.Usable))
         {
@@ -290,8 +301,12 @@ public sealed class AssessmentEngine
         {
             finding.Status = FindingStatus.PartialMatch;
             var managed = candidates.FirstOrDefault(c => c.ToolkitManaged);
-            finding.Reason = managed is not null
+            // Only Conditional Access candidates carry the deploying operator's exclusion. Saying so for a group or an
+            // Intune policy invited an engineer to dismiss real drift as expected (CLA-20261006-08).
+            finding.Reason = managed is not null && ConditionalAccessSafety.IsConditionalAccess(def)
                 ? $"'{managed.Name}' is the object the toolkit created for this control, but its settings no longer match the recipe exactly. A safe candidate is created with the deploying operator excluded, so this is expected until that exclusion is removed; any other difference was made outside the toolkit. Review the differences before treating this control as covered."
+                : managed is not null
+                ? $"'{managed.Name}' is the object the toolkit created for this control, but its settings no longer match the recipe. The difference was made outside the toolkit or reflects a changed requirement in this release. Review the differences before treating this control as covered."
                 : candidates.Any(c => c.NameMatch && !c.SettingsMatch)
                     ? "An existing object uses the standard name but its settings differ. Review side by side; existing objects are never adopted or overwritten automatically."
                     : "Potential overlap: an existing object matches part of the recipe. Review side by side; existing policies are not adopted automatically.";

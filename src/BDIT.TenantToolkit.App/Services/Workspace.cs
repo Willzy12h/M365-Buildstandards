@@ -524,7 +524,9 @@ public sealed class Workspace : ObservableObject
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var snapshot = Snapshot ?? ExchangeSnapshot ?? throw new ToolkitException("Read the tenant configuration first.");
         var standard = RequireStandard();
-        Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture);
+        // A stored Graph snapshot is judged as of its own capture, so reopening history reproduces its findings.
+        DateTimeOffset? evidenceTime = Snapshot is { } graph && !SnapshotIsLive && Timestamps.TryParse(graph.CapturedAt, out var capturedAt) ? capturedAt : null;
+        Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture, evidenceTime);
         Evidence.SaveAssessment(Assessment);
         Logger.Info("Assessment", $"Assessment {Assessment.Id}: {Assessment.Summary.Compliant} compliant, {Assessment.Summary.Missing} missing, {Assessment.Summary.PartialMatch} partial, {Assessment.Summary.UnableToAssess} unknown.", profile.TenantId);
         Notify();
