@@ -166,6 +166,19 @@ jobs:
           name: test-results
           path: TestResults/
 
+      # Keep catalogue assets separate from tenant reports and the application package.
+      - name: Upload generated standard definitions
+        uses: actions/upload-artifact@v4
+        with:
+          name: standard-definition-exports
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip.sha256
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.json
+          if-no-files-found: error
+
   standard:
     # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
     runs-on: windows-latest

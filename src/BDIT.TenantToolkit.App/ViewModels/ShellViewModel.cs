@@ -195,7 +195,7 @@ public sealed class ShellViewModel : ObservableObject
             if (!Workspace.Plan.WriteRows.Any()) return "The plan has no writes. Review manual steps and blocked rows.";
             if (!Workspace.IsDeploymentSession) return "Deployment access requires a new capture and reviewed plan.";
             if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return "Export and acknowledge before evidence in Deploy, then review confirmation.";
-            return "Review the queued actions and typed tenant confirmation. Engine checks still apply.";
+            return "Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.";
         }
     }
     public string VersionText => $"{Workspace.Settings.ProductName} {Workspace.Version} · Evidence: {Workspace.Paths.DataDirectory}";

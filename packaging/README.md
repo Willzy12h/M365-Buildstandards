@@ -45,12 +45,13 @@ installing — the .NET runtime is included. If application control is enforced 
 
 ## Where to start
 
-1. **`docs\TESTING-THIS-BUILD.md`** — what you can review with no tenant at all, and the order to follow when you
+1. **`docs\OPERATOR-START.md`** — the current engineer journey, read-only boundaries, standard exports and handoff.
+2. **`docs\TESTING-THIS-BUILD.md`** — what you can review with no tenant at all, and the order to follow when you
    do connect one. Start here.
-2. **`docs\APPLICATION-SETUP.md`** — creating or validating the two application registrations, and administrator
+3. **`docs\APPLICATION-SETUP.md`** — creating or validating the two application registrations, and administrator
    consent.
-3. **`docs\LIVE-VALIDATION.md`** — the checks to complete in an authorised test tenant before any client tenant.
-4. **`docs\AUTOMATION-COVERAGE.md`** — every control, what is automated, and what still needs an engineer.
+4. **`docs\LIVE-VALIDATION.md`** — the checks to complete in an authorised test tenant before any client tenant.
+5. **`docs\AUTOMATION-COVERAGE.md`** — every control, what is automated, and what still needs an engineer.
 
 Then, as you need them: `BUILD-STANDARD-SUMMARY.md` for what the standard requires, `POLICY-AUTOMATION-CODE.md` and
 `DEVICE-AUTOMATION.md` for the settings each recipe writes, `EQUIVALENCE-SIGNALS.md` for how the report decides an
@@ -76,3 +77,5 @@ failed is reported as unknown, never as absent.
 The source, its full history and the internal review records are at
 <https://github.com/Willzy12h/M365-Buildstandards>. `CHANGELOG.md` in this package lists what changed in each
 release.
+
+Use `docs\WORKSPACE-CONTINUITY.md` for sensitive local backup and separate restore, `docs\INTERNAL-OPERATING-MODEL.md` for responsibilities/incidents, and `docs\RELEASE-AND-SERVICING.md` for the approval and support record. `DEPENDENCIES.json` and `licenses/` contain resolved package/runtime inventory and supplied notices.

@@ -1,6 +1,6 @@
 # Handover and priorities
 
-Current user continuation: Preview.16 quality-of-life work in PR #19 follows [QOL-GOAL-2026.10.01.md](QOL-GOAL-2026.10.01.md). This supplements the original release goal. Read COMPLETION-REGISTER and the current PR body/checks for exact validation and package links; older Preview.15 evidence is historical. The short desktop goal is “Finish the M365 BuildStandard usability update in PR #19, following docs/integration/QOL-GOAL-2026.10.01.md.” Do not copy the supplied client exports into source or tests.
+Current user continuation: approved A–G and integrated default/settings exports, implemented incrementally as Preview.18 in PR #19. Read [PRODUCT-COMPLETION-PLAN.md](PRODUCT-COMPLETION-PLAN.md), [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). PR #20 carries the separate persisted-contract decisions and must merge before dependent workflow/backfill/lineage implementation. Live tenant actions and final publication remain separately approved. Older Preview.15–17 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 
 ## Architecture roadmap

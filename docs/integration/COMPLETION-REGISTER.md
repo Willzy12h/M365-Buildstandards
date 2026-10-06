@@ -1,3 +1,17 @@
+# Preview.18 product completion in progress — 6 October 2026
+
+The user approved A–G and R17 integrated default/settings exports, preserving safeguards/historical standards and keeping live tenant actions/publication separately approved. Current source work is in PR #19; decision PR #20 defines the cross-cutting workflow/evidence/lineage contracts and requires human merge before dependent implementation. This is not a finished-product or GA claim.
+
+Implemented independent scope: catalogue-only full export set and individual formats; shared existing-input assessment with explicit headless Exchange supplement; previewed support metadata; intact sensitive evidence backup and separate restore; current operator/continuity/incident/release guides; resolved dependency/runtime inventory and notices. Published standards remain unchanged.
+
+Observed during development: strict .NET 10 Linux cross-build of solution and native harness, zero warnings/errors; 894 Engine tests passed before the additional actual CLI parity test (six focused context tests subsequently passed, including the actual process). Independent Astra transfer review reran 16 tests without rebuilding; both findings resolved. All eleven historical export releases passed. Nineteen packaged guides had zero local link errors. Native WPF/App/PowerShell/fresh package checks for the current implementation await exact-head Windows CI; final counts and artifact hashes must be recorded after that run.
+
+Independent findings: historical optional ESP empty defaults, missing harness command registrations and hidden export result corrected; real restored Unknown-run behavioural acceptance and shared metadata-inclusive size boundary added. Four contract findings (identity/cardinality, client scope, supersession and cutover closure) were resolved in PR #20 at `674b1ba6b638a4cb43da74d3217cfff0aac14bd2`; reviewer reports implementation-ready after merge. The shared feedback register carries continuing implementation/gates.
+
+Historical Preview.17 acceptance below identifies earlier source/artifacts only. No live sign-in/consent/tenant operation or production publication occurred in this source work.
+
+---
+
 # Preview.17 QoL implementation complete — 1 October 2026
 
 PR #19 implements the approved [seamless workflow goal](QOL-GOAL-2026.10.01.md), decisions INT-045–048. Quick Connect retains one-use assessment authentication; Quick setup carries the verified tenant and checks/selects existing exact app IDs; policy deployment explicitly reviews the tenant and changes without GUID transcription. Connection copying, prerequisite ownership, disabled selections and readiness guidance are clearer. Exchange/Purview capture runs the embedded read template from the app and retains separate evidence, accepted-domain selection, collection errors, export and cancellation. Graph evidence/plans/acknowledgements survive separate Exchange reads.

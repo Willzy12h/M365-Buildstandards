@@ -1,5 +1,7 @@
 # Automation coverage - 2026.09.30
 
+The full standard export now generates a per-control capability/access matrix from the loaded catalogue and actual scope/route definitions. Recipe availability and recovery transport are separate from live acceptance, which remains Not run. Follow [the current start guide](OPERATOR-START.md).
+
 **93 controls: 25 Entra, 58 Intune, eight Exchange and two Purview. There are 61 creation recipes.** The other 32 controls use reviewed tenant actions, evidence-backed observations or explicit manual procedures. Creation counts do not describe production deployment or certification. No service or device behaviour was tested against a tenant for this release.
 
 Create selected candidates through **Plan changes > Deploy**. Assessment and Plan have an area filter; changing the Plan area clears the selection. **Policy automation** holds separate reviewed tenant settings, assignments and package actions. Configuration has the [Exchange/Purview capture and proposal workflow](EXCHANGE-PURVIEW.md). The [two engineer documents](ENGINEER-DOCUMENTS.md) contain every exact setting and manual check, generated directly from the loaded catalogue.
@@ -119,7 +121,7 @@ Historical renumbering remains important: in .9/.10 PRE-001/002 named the user/d
 
 ## Boundaries and verification
 
-Assessment remains read-only. Every automated write requires complete durable before evidence, preview/selection, matching typed tenant, exact identity, unchanged reviewed inputs, durable intent and individual results. CA retains the operator and emergency exclusions. New Intune policies/apps have no assignments, groups have no members, and locations are untrusted. An uncertain request is not retried. Failed or malformed reads are unknown.
+Assessment remains read-only. Every automated write requires complete durable before evidence, preview/selection, explicit approval of the displayed verified tenant and exact identity, unchanged reviewed inputs, durable intent and individual results. CA retains the operator and emergency exclusions. New Intune policies/apps have no assignments, groups have no members, and locations are untrusted. An uncertain request is not retried. Failed or malformed reads are unknown.
 
 PRE-011 ownership is limited to the recorded, still-empty group and the existing Microsoft provisioning service principal; the toolkit does not create a principal or add group members. Imported Exchange evidence cannot satisfy a deployment snapshot. Exchange proposal exports are commented review files that refuse execution. Retention policy and DLP writes are excluded.
 

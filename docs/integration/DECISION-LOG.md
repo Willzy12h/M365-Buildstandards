@@ -129,3 +129,14 @@ The following entries document existing reviewed exceptions plainly and the addi
 
 - **INT-025 — guided application setup (PR #18):** one administrator sign-in, one reviewed approval with the typed tenant ID, then creation, both administrator consents in turn and a read-back of actual grants. The separate tick before sign-in is removed because the toolkit writes nothing at sign-in and Microsoft's own prompt asks for the setup permissions. Assigning the engineer running setup is the default. Each stage runs only if the previous one finished cleanly; nothing is retried after an uncertain write and consent is never inferred from the browser.
 - **INT-026 — scope of standard 2026.09.12 and the Exchange and Purview sections:** the maintainer's decisions on identity, office locations, devices, Windows configuration, ESET as antivirus and EDR, compliance, Autopatch, mobile apps, Exchange and Purview, and what is excluded or deferred, are recorded in [NEXT-RELEASE-PLAN.md](NEXT-RELEASE-PLAN.md). They are settled for that release. Schema changes and the Exchange connection route it calls for still need their own entries here when they are made.
+
+
+## INT-052 — Catalogue specification exports and existing-format continuity (PR #19)
+
+Approved A–G/R17 work reloads the manifest-verified catalogue source, verifies unchanged in-memory identity and preserves exact JSON bytes. HTML/Markdown distinguish fixed settings, reviewable defaults and unresolved client identity; manual requirements receive no invented API defaults. The full set adds compatible integrity metadata, current capability/access scope and complete existing manual references. This is reusable definition data, not tenant evidence or deployment authority; published catalogues remain untouched.
+
+Desktop and headless reporting share existing profile/mapping/deviation/snapshot/optional Exchange assessment inputs. Offline supplemental input is bounded and tenant/integrity validated. No new authentication, write transport or persisted schema is introduced.
+
+Support export contains only previewed generated technical metadata. Sensitive backup preserves current JSON/JSONL/NDJSON data bytes, refuses unsupported types/links, excludes authentication caches and restores only into a new separate directory after bounded checksum validation. It neither rewrites historical evidence nor reauthorises old plans. Upgrade remains a deliberate complete-package transfer with fresh authentication, preserved unresolved records and trusted handoff.
+
+Resolved package/runtime inventory comes from published dependencies with supplied licence notices. Source cleanliness is recorded, preview/live limits are explicit, and production promotion uses an independently approved exact artifact. INT-049–051 producers remain gated by decision PR #20; this decision does not bypass that merge gate.

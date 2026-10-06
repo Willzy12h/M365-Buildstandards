@@ -1,6 +1,6 @@
 # Internal product completion plan
 
-**Status: proposed, 6 October 2026.** No additional runtime work is approved by writing this plan. Review [the product recommendations](FINAL-PRODUCT-REVIEW-2026.10.06.md) and approve a bounded set of packages. Source baseline is `2bf96a83846474a522b074479f07a3e076a5a03d`, Preview.17 in draft PR #19. Re-fetch and check claims before implementation; a future checkout may be newer.
+**Status: source development approved, 6 October 2026.** The user explicitly approved A–G, preserving safeguards and historical standards, with live tenant actions and final publication separately approved. They also approved an integrated catalogue export set: all default values/settings in HTML for visibility, JSON for reuse/import and a document-ready specification. This is R17 in the feedback register. Runtime baseline is `2bf96a83846474a522b074479f07a3e076a5a03d`, Preview.17; proposal documentation is `e339515c02e91d843361c0154b75b095b07fa69f` in draft PR #19. Re-fetch and check claims before implementation; a future checkout may be newer.
 
 This supplements [AGENT-COORDINATION](AGENT-COORDINATION.md), [DECISION-LOG](DECISION-LOG.md), [COMPLETION-REGISTER](COMPLETION-REGISTER.md), the [architecture disposition](ARCHITECTURE-DISPOSITION-2026.09.30.md) and existing [controlled acceptance](../CONTROLLED-ACCEPTANCE.md). It does not override them. The [feedback register](PRODUCT-FEEDBACK-REGISTER.md) provides the item-level work list.
 
@@ -25,7 +25,7 @@ One or two tested candidates validate a workflow harness, not the whole standard
 
 | Package | Feedback IDs | Depends on | Primary result |
 |---|---|---|---|
-| A | R07, R10, R11, R15 | Existing Preview.17 | Agreed support/acceptance contract, current guide and named ownership |
+| A | R07, R10, R11, R15, R17 | Existing Preview.17 | Support/acceptance contract, current guide, ownership and integrated default/settings exports |
 | B | R01, R05 | A; approved model decision | Durable completion workspace and evidence-aware manual/exception review |
 | C | R02, R03, R04 | A/B; approved lineage/disposition contract | Safe legacy review, version reconciliation and bounded cutover case |
 | D | R07, R08 | A; B/C interfaces where needed | Reusable Graph/Exchange assessment and actionable service preflight |
@@ -44,6 +44,8 @@ Reconcile current labels, confirmation wording and start instructions. Give engi
 Record organisational owners and the access model, including engineer onboarding/offboarding and bootstrap consent review. Generate or check scope descriptions from the actual loaded standard; do not maintain a divergent permission list.
 
 **Acceptance:** all current controls have matrix rows; no supported claim lacks evidence; no active guide contradicts Preview.17 confirmation/default standard; the guide explains browser consent versus WAM, missing grants and missing deployment application. Historical validation identities are preserved. Business owner approves support/access assumptions.
+
+**Approved export supplement (R17):** an offline catalogue-only export set must preserve exact verified JSON bytes with a compatible integrity manifest, produce printable HTML and Markdown covering fixed settings, reviewable defaults and unresolved client inputs, and include the existing manual guide where available. All controls, licences, prerequisites, interfaces, candidate versus intended production state and source identity must remain visible. JSON reuse is not tenant evidence or authority to write. Verify exact source/manifest round-trip, all-control coverage, default/placeholder distinction, escaping and no client data. Do not change published catalogue bytes or invent values for manual-only controls.
 
 ### B — Durable completion workspace
 

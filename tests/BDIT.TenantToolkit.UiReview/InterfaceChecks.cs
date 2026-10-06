@@ -517,6 +517,10 @@ internal static partial class Program
         ("StandardViewModel.ExportEngineerMarkdownCommand", Press),
         ("StandardViewModel.ExportManualHtmlCommand", Press),
         ("StandardViewModel.ExportManualMarkdownCommand", Press),
+        ("StandardViewModel.ExportDefinitionSetCommand", Press),
+        ("StandardViewModel.ExportDefinitionHtmlCommand", Press),
+        ("StandardViewModel.ExportDefinitionJsonCommand", Press),
+        ("StandardViewModel.ExportDefinitionMarkdownCommand", Press),
 
         ("AutomationViewModel.SaveInputsCommand", Press),
         ("AutomationViewModel.ImportCommand", Press),
@@ -540,6 +544,11 @@ internal static partial class Program
         ("SettingsViewModel.OpenDataCommand", Explorer),
         ("SettingsViewModel.OpenConfigCommand", Explorer),
         ("SettingsViewModel.OpenStandardsCommand", Explorer),
+        ("SettingsViewModel.ExportSupportCommand", Press),
+        ("SettingsViewModel.CopySupportCommand", Clipboard),
+        ("SettingsViewModel.CreateBackupCommand", Press),
+        ("SettingsViewModel.ChooseBackupCommand", FilePicker),
+        ("SettingsViewModel.RestoreBackupCommand", Press),
     };
 
     private const string Press = "press";
@@ -574,6 +583,19 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["SettingsViewModel.CreateBackupCommand"] = shell =>
+        {
+            typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(shell.Workspace, null);
+            typeof(Workspace).GetProperty(nameof(Workspace.ApplicationSetup))!.SetValue(shell.Workspace, null);
+        },
+        ["SettingsViewModel.RestoreBackupCommand"] = shell =>
+        {
+            typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(shell.Workspace, null);
+            typeof(Workspace).GetProperty(nameof(Workspace.ApplicationSetup))!.SetValue(shell.Workspace, null);
+            var vm = shell.Page<SettingsViewModel>();
+            vm.BackupFile = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(shell.Workspace.Paths).Create();
+            vm.RestoreFolder = Path.Combine(shell.Workspace.Paths.ReportsDirectory, "synthetic-restore-" + Guid.NewGuid().ToString("N"));
+        },
         ["ConnectViewModel.RemoveExclusionCommand"] = shell =>
         {
             var vm = shell.Page<ConnectViewModel>();

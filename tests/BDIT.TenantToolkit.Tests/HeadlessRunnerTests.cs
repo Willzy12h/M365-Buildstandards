@@ -92,8 +92,11 @@ public class HeadlessRunnerTests
 
         Assert.Contains("new EvidenceStore(", program, StringComparison.Ordinal);
         Assert.Contains("Evidence.LoadProfiles()", program, StringComparison.Ordinal);
-        Assert.Contains("Evidence.LoadMappings(", program, StringComparison.Ordinal);
-        Assert.Contains("Evidence.LoadDeviations(", program, StringComparison.Ordinal);
+        Assert.Contains("AssessmentContext.Assess(", program, StringComparison.Ordinal);
+        var sharedContext = File.ReadAllText(Path.Combine(Directory_, "..", "BDIT.TenantToolkit.Engine", "Assessment", "AssessmentContext.cs"));
+        Assert.Contains("store.LoadMappings(", sharedContext, StringComparison.Ordinal);
+        Assert.Contains("store.LoadDeviations(", sharedContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("store.Save", sharedContext, StringComparison.Ordinal);
 
         // The loading rules belong to the store. Reading an evidence file straight off disk here would be the copy
         // coming back; the snapshot named on the command line is the one file the runner is given rather than finds.

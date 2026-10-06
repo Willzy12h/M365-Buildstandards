@@ -524,9 +524,7 @@ public sealed class Workspace : ObservableObject
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var snapshot = Snapshot ?? ExchangeSnapshot ?? throw new ToolkitException("Read the tenant configuration first.");
         var standard = RequireStandard();
-        var mappings = Evidence.LoadMappings(profile.TenantId);
-        var deviations = Evidence.LoadDeviations(profile.TenantId);
-        Assessment = Engine.Assess(snapshot, standard, profile, mappings, deviations, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture);
+        Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture);
         Evidence.SaveAssessment(Assessment);
         Logger.Info("Assessment", $"Assessment {Assessment.Id}: {Assessment.Summary.Compliant} compliant, {Assessment.Summary.Missing} missing, {Assessment.Summary.PartialMatch} partial, {Assessment.Summary.UnableToAssess} unknown.", profile.TenantId);
         Notify();

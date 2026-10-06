@@ -1,6 +1,6 @@
 # Testing this build
 
-Preview.15 / standard 2026.09.30 was developed and tested with synthetic fixtures only. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
+Preview.18 / standard 2026.09.30 was developed and tested with synthetic fixtures only. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
 
 ## 1. Get the build
 
@@ -17,12 +17,14 @@ To check the download, compare the `.sha256` file with:
 Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256
 ```
 
+The same run also publishes **standard-definition-exports** containing catalogue-only default/settings documents and reusable JSON with integrity metadata. Use [the engineer start guide](OPERATOR-START.md) and [continuity guide](WORKSPACE-CONTINUITY.md) to exercise standard exports, support metadata and separate backup/restore.
+
 The same run publishes **synthetic-ui-review** at three window sizes, with binding, command/refusal and keyboard records, and **engineer-standard-documents** with both generated documents in HTML and Markdown. These contain catalogue data, not tenant evidence. Chromium catalogue-export checks and representative print inspection are recorded in the release completion register. Human screen-reader experience remains a separate acceptance check.
 
 ## 2. What it will and will not do
 
 - Nothing is enabled or assigned automatically. Conditional Access policies are created **disabled**, device policies are created **unassigned**, groups are created **empty**, and the office named location is created **untrusted**.
-- Assessment mode is read-only and holds no write permission at the token level. Deployment is a separate application with separate consent.
+- Assessment operations are read-only and request read scopes; any write-capable token is explicitly highlighted. Deployment is a separate application with separate consent.
 - Any live sign-in, read, consent or write requires separate human authorisation, including a disposable tenant. This release has no live Microsoft acceptance evidence.
 
 ## 3. Review the interface without a tenant
@@ -63,8 +65,8 @@ Note anything that does not behave as described, with the page and window size, 
 
 ## 4. Connect a tenant read-only
 
-1. On **Connect**, enter a client label and the tenant ID, then choose **Set up or validate applications**. Select **Sign in as administrator**, review the two applications and their permissions, tick the reviewed approval and select **Approve and create/configure applications**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
-2. Choose **Connect read-only now**.
+1. On **Connect**, choose **Quick Connect with Microsoft**, sign in with the client account, inspect the verified tenant/account and choose **Connect to this tenant read-only**. If application readiness needs attention, use **Set up or validate applications**; the verified tenant is carried into setup. Select **Quick setup · check existing applications** or **Administrator sign-in / preview**, review the two applications and their permissions, tick the reviewed approval and select **Approve and create/configure applications**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
+2. After any separately approved setup/consent, choose **Connect read-only now**. A different dedicated app or changed/expired identity may require its own sign-in.
 3. **Overview and licences** loads subscription counts. **Capture** reads the tenant configuration.
 4. **Assessment** compares the capture with the standard. Export the engineer report in any format.
 

@@ -55,6 +55,7 @@ try {
     $settings = Get-Content -LiteralPath (Join-Path $extract 'config\toolkit.settings.json') -Raw | ConvertFrom-Json
     if ($settings.assessmentClientId -or $settings.deploymentClientId) { throw 'Connection identifiers are not blank.' }
     $metadata = Get-Content -LiteralPath (Join-Path $extract 'VERSION.json') -Raw | ConvertFrom-Json
+    & (Join-Path $PSScriptRoot 'Test-DependencyInventory.ps1') -PackageRoot $extract -TestRejections
     if (-not $metadata.selfContained -or $metadata.sourceCommit -notmatch '^[a-fA-F0-9]{40}$' -or $metadata.dotnetRuntime -notmatch '^10\.') { throw 'Release metadata does not identify a self-contained .NET 10 build.' }
     $accessibility = Join-Path $extract 'app\Accessibility.dll'
     if (-not (Test-Path -LiteralPath $accessibility -PathType Leaf)) { throw 'Portable package is missing Accessibility.dll, required by text-box context menus.' }

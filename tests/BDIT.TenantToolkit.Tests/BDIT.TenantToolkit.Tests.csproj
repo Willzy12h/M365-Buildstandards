@@ -16,5 +16,6 @@
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
+    <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Cli\BDIT.TenantToolkit.Cli.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

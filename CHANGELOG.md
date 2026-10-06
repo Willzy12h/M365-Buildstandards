@@ -146,6 +146,14 @@
 
 # Changelog
 
+## 1.1.0-preview.18
+
+- Add integrated catalogue-only standard definition exports: printable defaults/settings HTML, exact reusable JSON/manifest, document-ready Markdown, manual references and generated capability/access matrix. Preserve every published release and distinguish fixed values, reviewable defaults and unresolved client identities.
+- Share existing assessment inputs between desktop and headless reporting; accept explicit separate Exchange/Purview evidence without changing write authority.
+- Add previewed local support metadata and sensitive byte-preserving evidence backup, with bounded checksum verification and restore to a new separate folder. Preserve historical digests, unknown fields and unresolved-write blockers; exclude authentication caches.
+- Derive packaged dependency/runtime inventory and supplied licence notices from resolved publish metadata; add current operator, continuity, incident and release guides.
+- User-approved durable completion/backfill/version-aware contracts remain in separate decision PR #20 before dependent implementation. Preview status, live acceptance and publication gates remain explicit.
+
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
 - Distinguish confirmed pre-request failures from uncertain write outcomes. Auth/guard failures before transport no longer permanently lock a control; original plans remain single-use.

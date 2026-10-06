@@ -1,6 +1,8 @@
 # Export the engineer documents
 
-Open **Build Standard**, load **2026.09.12**, and expand **Export engineer standards and manual guide**. Choose HTML for a standalone browser/print document or Markdown for editing and review. The output path appears below the buttons; files are saved in the portable toolkit's `reports` folder. No connection or client selection is required.
+**Export full standard set** is the primary integrated export: exact verified catalogue JSON/manifest, printable defaults/settings HTML, document-ready Markdown, capability/access matrix and complete manual references. Individual definition formats are available below it. The visible result contains a copyable local path. This export contains no tenant data; JSON preserves templates for reviewed reuse and does not install a catalogue or authorise writes. [Start guide](OPERATOR-START.md) gives the steps.
+
+Open **Build Standard**, load **2026.09.30**, and expand **Export engineer standards and manual guide**. Choose HTML for a standalone browser/print document or Markdown for editing and review. The output path appears below the buttons; files are saved in the portable toolkit's `reports` folder. No connection or client selection is required.
 
 - **The Build Standard** gives every control's purpose, exact settings and values, intended scope, licence/edition, dependencies, required client inputs and safe delivery state.
 - **Manual implementation and verification guide** adds, for every control, prerequisites before automation, portal steps, PowerShell references and the checks/pass criteria after automation. A manual-only procedure states why a supported write reference is unavailable.

@@ -1,3 +1,18 @@
+# Preview.18 approved product-completion work — PR #19
+
+| Area | Earlier limit | Implemented result and evidence |
+|---|---|---|
+| Definition exports | Separate engineer documents; no integrated exact JSON/defaults set | One set with source-byte JSON/manifest, printable settings/defaults HTML, Markdown, manual references and capability/access scope. All eleven historical releases export; unknown catalogue metadata and checksums round-trip. StandardDefinitionExportTests. |
+| Assessment reuse | Desktop supplemented Exchange, CLI accepted only primary input | AssessmentContext shared existing inputs; explicit CLI supplemental file. Actual CLI JSON findings/summary match direct desktop engine on combined fixtures; missing/malformed/cross-tenant/changed/oversize evidence is refused. AssessmentContextTests. |
+| Support | Raw local details/logs required individual selection | Exact allowlisted generated metadata preview and ZIP; no workspace records/settings/logs/cache/path reads. Seeded-private-data test checks absence. WorkspaceTransferTests. |
+| Continuity | Manual complete-folder procedure without tested transfer helper | Bounded byte backup and separate verified restore; retains unknown fields/original digests and real Unknown write blockers, excludes MSAL cache, refuses traversal/duplicates/changes/links/unsupported types. Exact-limit round-trip and fresh/old plan rejection. WorkspaceTransferTests. |
+| Packaging | Hand-maintained dependency versions and stale entry guides | Resolved NuGet/runtimepack inventory, supplied notices, source-cleanliness field and negative inventory verifier; 19 shipped operator guides with closed local links. Windows execution pending exact CI. |
+| Product workflow | In-memory advice and control-keyed historical checks | New immutable job/observation/disposition/cutover/lineage contracts in decision PR #20, independently reviewed. Producers/consumers wait for human merge. |
+
+All live service/device effectiveness, final support commitments and production publication remain separately approved and unrun. Synthetic checks are not production capability acceptance. Current exact checks are recorded in COMPLETION-REGISTER; the earlier comparison below is retained historically.
+
+## Historical Preview.17 comparison
+
 # Preview.17 continuation comparison — PR #19
 
 | Area | Before | Approved result and evidence |

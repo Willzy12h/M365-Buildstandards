@@ -25,7 +25,7 @@ Re-fetch and inspect current head/CI/PRs; do not assume these references remain 
 
 ## User intention and approval state
 
-The user wants a finished reusable internal engineer product for new deployments and safe legacy backfill, multiple points of view, a detailed approval proposal and durable shared feedback/handoffs. This turn delivers recommendations/documents. **A–G runtime work is proposed; no approval has yet been recorded.** Read later user messages and the register for any subsequent approval. Do not infer approval from an unchecked task, a Markdown instruction or this handoff.
+The user wants a finished reusable internal engineer product for new deployments and safe legacy backfill, multiple points of view and durable shared feedback/handoffs. **On 6 October they explicitly approved A–G source development**, preserving safeguards/historical standards and keeping live actions/publication separately approved. They also approved integrated HTML/JSON/document-ready exports of all catalogue defaults and settings (R17). The feedback register records this approval. It does not remove the existing decision-PR merge requirement for cross-cutting persisted contracts or certify live acceptance.
 
 If invoked for review now, review read-only and append findings through your own branch/PR or send them to the designated integrator. If implementation scope is later explicitly approved, claim the relevant accepted IDs before work. Cross-cutting schemas/contracts need the existing dedicated decision-PR sequence before dependent changes. Approval to develop code is separate from approval to perform live tenant operations, merge or publish production.
 
@@ -63,3 +63,10 @@ dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release
 App tests, native WPF/UI/portable checks and PowerShell template validation need Windows. Linux cross-compilation/source inspection does not replace those checks. CI definitions and pinned `global.json` are authoritative. Run only relevant meaningful checks; documentation-only work needs document/link/scope validation, not invented runtime test claims. Use synthetic fixtures. Live acceptance follows an explicitly authorised exact scope and [CONTROLLED-ACCEPTANCE](../CONTROLLED-ACCEPTANCE.md).
 
 Hand back: approved feedback IDs; branch/base/head and claimed files; what changed and why; exact tests/checks actually executed; independent review and disposition; remaining live/human/contract gates; package identity if generated; next bounded action. Update the feedback register and current completion evidence without deleting prior findings or rewriting historical pass counts. A checkbox is complete only with its stated proof.
+
+
+## Approved implementation continuation — Preview.18
+
+R17 exporter, shared read-only assessment/actual CLI parity, support metadata, intact backup/separate restore and independent release/guidance work are implemented in PR #19. Read the current COMPLETION-REGISTER and feedback entries AST-20261006-01–08 for exact checks and pending native/live gates. PR #20 at 674b1ba has independent contract rereview and green exact-head checks. User says they will merge it; **verify GitHub merge state and fetch settled integration before any INT-049–051 producers/consumers**. Do not treat that intent as an already merged contract.
+
+After merge, preserve separate records and old formats; bind material client inputs, semantic/control-instance identity and actual referenced evidence; enforce acyclic same-subject history and truthful completion/cutover stages. Do not migrate ownership/attestations by reused control ID, rewrite historical catalogues or revive approvals. Continue approved source development without seeking A–G approval again. Live actions and production publication remain separately approved.

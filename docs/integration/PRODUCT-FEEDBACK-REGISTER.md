@@ -2,7 +2,7 @@
 
 **Initial review: 6 October 2026. Baseline: `2bf96a83846474a522b074479f07a3e076a5a03d`.**
 
-This is the shared Astra/Claude product feedback list requested by the user. Initial recommendations below are **proposed**, not approved or implemented. The review documents are delivered; that does not complete these runtime/release recommendations. Existing historical findings and validated work remain in [COMPLETION-REGISTER](COMPLETION-REGISTER.md), [DECISION-LOG](DECISION-LOG.md) and earlier review dispositions.
+This is the shared Astra/Claude product feedback list requested by the user. On 6 October the user explicitly approved work packages A–G for source development, preserving safeguards/historical standards and reserving live actions/publication for separate approval. R01–R12/R15–R16 are approved within those packages; R13/R14 remain outside that scope. They additionally approved R17, integrated catalogue defaults/settings exports. Approval is not implementation or verification. Existing historical findings and validated work remain in [COMPLETION-REGISTER](COMPLETION-REGISTER.md), [DECISION-LOG](DECISION-LOG.md) and earlier review dispositions.
 
 Read the [review](FINAL-PRODUCT-REVIEW-2026.10.06.md), [plan](PRODUCT-COMPLETION-PLAN.md), [agent handoff](PRODUCT-AGENT-HANDOFF.md) and [coordination protocol](AGENT-COORDINATION.md). This register tracks feedback, not live work ownership; draft PRs and WORK-CLAIMS retain that role.
 
@@ -22,26 +22,27 @@ Priorities: **P0** defines trustworthy release/backfill scope or blocks the adve
 
 ## Initial review items
 
-Every item is currently unassigned for implementation, with no implementation commit or new validation. Packages are in [the completion plan](PRODUCT-COMPLETION-PLAN.md#work-packages).
+Approved source work continues in Astra's existing PR #19 claim, with cross-cutting persisted contracts in a dedicated decision PR before dependent implementation. Independent portions are implemented with the checks below; package-level live/native/contract gates remain open. Packages are in [the completion plan](PRODUCT-COMPLETION-PLAN.md#work-packages).
 
 | Done | ID | Priority / type | Recommendation and source evidence | Package | State |
 |---|---|---|---|---|---|
-| [ ] | R01 | P1 / proposal | Durable tenant completion workspace; current advice is in-memory projection, ShellViewModel.cs:178–198, DeployViewModel.cs:135 | B | Proposed |
-| [ ] | R02 | P0 / proposal | Legacy per-control dispositions without ownership adoption; AssessmentEngine.cs:243/313, DeploymentPlanner.cs:241–261 | C | Proposed |
-| [ ] | R03 | P0 / observed limit + proposal | Release lineage and source/target impact; Mapping.cs:9–29, DriftAnalyser.cs:30/131, AUTOMATION-COVERAGE.md:118. No unsafe write was demonstrated | C | Proposed |
-| [ ] | R04 | P1 / proposal | Evidence-backed cutover case preserving existing protection; DeploymentPlanner.cs:278–318, ReviewedChangeService.cs:96/143 | C | Proposed |
-| [ ] | R05 | P1 / observed limit + proposal | Historical/version-aware manual checks and exception renewal; ManualCheck.cs:4–17, Deviation.cs:12–31, Workspace.cs:764–780. No automatic-assessment bypass is alleged | B | Proposed |
-| [ ] | R06 | P1 / observed limit + proposal | Tested upgrade/backup/restore/handoff; ToolkitPaths.cs:14–24/43–62, RECOVERY.md:27/41 | E | Proposed |
-| [ ] | R07 | P1 / proposal; live gates P0 | Derived access/role/app/module preflight and lifecycle runbook; APPLICATION-SETUP.md:63–84, ExchangeCaptureRunner.cs:13 | A/D | Proposed |
-| [ ] | R08 | P1 / observed reuse gap | Combined Graph/separate Exchange desktop–CLI parity; Workspace.cs:522–530, Cli/Program.cs:117–144, AssessmentEngine.cs:37–48 | D | Proposed |
-| [ ] | R09 | P2 / proposal | Previewable allowlisted support bundle/copy diagnostics; SettingsViewModel.cs:9/30–54, ShellViewModel.cs:154–158, ToolkitLogger.cs:93–100 | E | Proposed |
-| [ ] | R10 | P2 / confirmed guidance inconsistency; accessibility hypothesis | Current labels/start guide/confirmation wording; ShellViewModel.cs:198, StandardViewModel.cs:41, AUTOMATION-COVERAGE.md:122, TESTING-THIS-BUILD.md:3/66, HANDOVER.md:3. Dynamic announcements need actual Narrator testing | A/G | Proposed |
-| [ ] | R11 | P0 / observed acceptance limit + proposal | Capability support matrix and two recorded business journeys; COMPLETION-REGISTER.md:7, CONTROLLED-ACCEPTANCE.md:11–48, AUTOMATION-COVERAGE.md:3 | A/F/G | Proposed |
-| [ ] | R12 | P1 / proposal | Durable approved release/promotion/servicing, resolved inventory and signing decision; Build-Portable.ps1:69–82/97–118/144–156, build.yml:88–101/141–149 | F | Proposed |
+| [ ] | R01 | P1 / proposal | Durable tenant completion workspace; current advice is in-memory projection, ShellViewModel.cs:178–198, DeployViewModel.cs:135 | B | Approved; claimed in #19 |
+| [ ] | R02 | P0 / proposal | Legacy per-control dispositions without ownership adoption; AssessmentEngine.cs:243/313, DeploymentPlanner.cs:241–261 | C | Approved; claimed in #19 |
+| [ ] | R03 | P0 / observed limit + proposal | Release lineage and source/target impact; Mapping.cs:9–29, DriftAnalyser.cs:30/131, AUTOMATION-COVERAGE.md:118. No unsafe write was demonstrated | C | Approved; claimed in #19 |
+| [ ] | R04 | P1 / proposal | Evidence-backed cutover case preserving existing protection; DeploymentPlanner.cs:278–318, ReviewedChangeService.cs:96/143 | C | Approved; claimed in #19 |
+| [ ] | R05 | P1 / observed limit + proposal | Historical/version-aware manual checks and exception renewal; ManualCheck.cs:4–17, Deviation.cs:12–31, Workspace.cs:764–780. No automatic-assessment bypass is alleged | B | Approved; claimed in #19 |
+| [ ] | R06 | P1 / observed limit + proposal | Tested upgrade/backup/restore/handoff; ToolkitPaths.cs:14–24/43–62, RECOVERY.md:27/41 | E | Approved; claimed in #19 |
+| [ ] | R07 | P1 / proposal; live gates P0 | Derived access/role/app/module preflight and lifecycle runbook; APPLICATION-SETUP.md:63–84, ExchangeCaptureRunner.cs:13 | A/D | Approved; claimed in #19 |
+| [ ] | R08 | P1 / observed reuse gap | Combined Graph/separate Exchange desktop–CLI parity; Workspace.cs:522–530, Cli/Program.cs:117–144, AssessmentEngine.cs:37–48 | D | Approved; claimed in #19 |
+| [ ] | R09 | P2 / proposal | Previewable allowlisted support bundle/copy diagnostics; SettingsViewModel.cs:9/30–54, ShellViewModel.cs:154–158, ToolkitLogger.cs:93–100 | E | Approved; claimed in #19 |
+| [ ] | R10 | P2 / confirmed guidance inconsistency; accessibility hypothesis | Current labels/start guide/confirmation wording; ShellViewModel.cs:198, StandardViewModel.cs:41, AUTOMATION-COVERAGE.md:122, TESTING-THIS-BUILD.md:3/66, HANDOVER.md:3. Dynamic announcements need actual Narrator testing | A/G | Approved; claimed in #19 |
+| [ ] | R11 | P0 / observed acceptance limit + proposal | Capability support matrix and two recorded business journeys; COMPLETION-REGISTER.md:7, CONTROLLED-ACCEPTANCE.md:11–48, AUTOMATION-COVERAGE.md:3 | A/F/G | Approved; claimed in #19 |
+| [ ] | R12 | P1 / proposal | Durable approved release/promotion/servicing, resolved inventory and signing decision; Build-Portable.ps1:69–82/97–118/144–156, build.yml:88–101/141–149 | F | Approved; claimed in #19 |
 | [ ] | R13 | P3 / optional proposal | Future reproducible standard-authoring sources/compiler; ARCHITECTURE-ROADMAP W1 and ARCHITECTURE-DISPOSITION:9 | Later | Proposed; exclude from recommended A–G |
 | [ ] | R14 | P3 / optional proposal | Offline portfolio reporting and one chosen import adapter; Cli/Program.cs:62/117, PolicyImporter.cs:12/80, disposition W4/W8 | Later | Proposed; exclude from recommended A–G |
-| [ ] | R15 | P1 / operating-model proposal | Named product/release/standard/support/evidence owners, custody and incident workflow; UNRESOLVED-WRITES.md:5–15, RECOVERY.md:21–43 | A/E | Proposed |
-| [ ] | R16 | P1 / process proposal | Adopt this feedback/handoff cycle and perform independent review; AGENT-COORDINATION.md:38–72. Documents prepared; Claude review and protocol adoption not performed | G | Documented; adoption/review proposed |
+| [ ] | R15 | P1 / operating-model proposal | Named product/release/standard/support/evidence owners, custody and incident workflow; UNRESOLVED-WRITES.md:5–15, RECOVERY.md:21–43 | A/E | Approved; claimed in #19 |
+| [ ] | R16 | P1 / process proposal | Adopt this feedback/handoff cycle and perform independent review; AGENT-COORDINATION.md:38–72. Documents prepared; Claude review and protocol adoption not performed | G | Approved; claimed in #19 |
+| [ ] | R17 | P1 / user-approved addition | Integrated offline standard export set: exact verified catalogue JSON/manifest, full defaults/settings HTML, document-ready Markdown and existing manual references. No tenant data or invented manual defaults | A | Approved; claimed in #19 |
 
 Paths above are repository-relative source filenames. For implementation, use the full paths in the review and inspect the current revision; line numbers describe the reviewed baseline and can move. New defects require their own precise entry instead of being hidden inside a broad recommendation.
 
@@ -51,7 +52,8 @@ The package acceptance paragraphs define completion; reviewers may split a broad
 
 | Item / sub-item | User approval reference | Owner / claim PR | Implementation commit | Actual checks / evidence | Independent reviewer / disposition | Pending gates | Decision / date |
 |---|---|---|---|---|---|---|---|
-| Initial R01–R16 | Pending | Unassigned | None | Source review only; historical CI belongs to baseline | Four Astra perspective reviews; no Claude review | Scope approval; future implementation and applicable acceptance | Proposed 2026-10-06 |
+| R01–R12, R15–R17 | User explicitly approved A–G and integrated exports, 2026-10-06 | Astra / #19; persisted contracts require dedicated decision PR | None | Source review only; historical CI belongs to baseline | Four Astra perspective reviews; no Claude review | Contract merge where applicable; implementation; live/human/release gates | Approved 2026-10-06 |
+| R13/R14 | Not included in approved A–G | Unassigned | None | None | Optional follow-on recommendations | Separate scope decision | Deferred 2026-10-06 |
 
 ## New finding / response template
 
@@ -80,3 +82,19 @@ Customer evidence, names, tokens, private keys and configured client details mus
 ## Proposal-document review — 6 October 2026
 
 The engineer-experience and legacy-migration reviewers independently read all four proposal documents. Both reported a pass subject to three wording/scope corrections: assign support export consistently to E; include R10 accessibility/newcomer checks in G's mapping; bound manual migration procedures to enumerated supported scenarios, with escalation/approved deferral for unsupported cases. The integrator applied all three corrections. Live/human acceptance limits remain. This is document/source review, not implementation or operational acceptance of R01–R16.
+
+
+## Independent implementation review — 6 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Verification / remaining gate |
+|---|---|---|---|---|
+| AST-20261006-01 | Engineer experience / R17 | Historical optional ESP empty default was rejected by generic resolver | Use existing PolicyInputDefaults.Resolve allowance; check actual retired-control use in the fixture | All eleven historical releases export; Linux source tests passed. Native final UI pending. |
+| AST-20261006-02 | Engineer experience / R17 | Four new export commands missing from native registry | Register and exercise all four | Strict native harness cross-build passed; Windows execution pending. |
+| AST-20261006-03 | Engineer experience / R17 | Main export result hidden in collapsed section | Copyable result sits outside the expander | Source corrected; native layout/copy review pending. |
+| AST-20261006-04 | Architecture / R06 | Byte fixture did not prove a real unresolved write remained blocking | Added genuine saved Unknown run, new restored store, digest equality and fresh/old plan refusal | Independent focused run: 16 passed, 0 failed/skipped. Closed for synthetic engine scope. |
+| AST-20261006-05 | Architecture / R06 | Create/restore total-size definitions differed by generated metadata | Both include README/checksum list; test exact-limit round-trip and one-byte refusal | Independent focused run: 16 passed. Closed. |
+| AST-20261006-06 | Legacy / PR20 | Identity/cardinality, reviewed inputs, supersession and cutover closure contracts underspecified | Added common identity/history/validity rules and negative acceptance | Independent rereview of 674b1ba: all four resolved; implementation-ready after human merge. |
+| AST-20261006-07 | Release / R12 | Inventory verifier checked only identity/notices | Validate name/version/kind, both inventory arrays and notices; add changed-field/missing-notice negatives | Source corrected; exact Windows execution pending. |
+| AST-20261006-08 | Release / R12 | Local dirty builds recorded only HEAD | Record source cleanliness at build start; dirty builds cannot serve as clean promotion proof | Source corrected; Windows metadata check pending. |
+
+No remaining blocking finding in the independently reviewed export/transfer/package source scope. This does not close live, native or contract-merge gates. Claude has not performed a review in this session. A later reviewer appends new findings without rewriting these observations.
