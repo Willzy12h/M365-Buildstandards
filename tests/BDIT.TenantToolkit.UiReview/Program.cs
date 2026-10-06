@@ -194,12 +194,20 @@ internal static partial class Program
                     }
                     if (nav.Key == "standard")
                     {
+                        var more = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
+                        more.IsExpanded = true; content.UpdateLayout(); Pump();
                         var exports = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
                         exports.IsExpanded = true; content.UpdateLayout(); Pump();
                         var label = "engineer-documents " + (int)size.Width + "x" + (int)size.Height;
                         RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
                         SaveImage(content, size, Path.Combine(output, "engineer-documents-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                         exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                        var definitions = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Defaults and settings — HTML, reusable JSON and document source");
+                        definitions.IsExpanded = true; content.UpdateLayout(); Pump();
+                        var definitionLabel = "standard-definition-formats " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, definitionLabel); RecordLowContrast(content, definitionLabel); RecordClipping(content, definitionLabel);
+                        SaveImage(content, size, Path.Combine(output, "standard-definition-formats-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        definitions.IsExpanded = false; more.IsExpanded = false; content.UpdateLayout(); Pump();
                     }
                   }
                   catch (InvalidOperationException ex)
@@ -231,10 +239,16 @@ internal static partial class Program
                 CheckKeyboardReach(window, content, nav.Key);
                 if (nav.Key == "standard")
                 {
+                    var more = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
+                    more.IsExpanded = true; content.UpdateLayout(); Pump();
                     var exports = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
                     exports.IsExpanded = true; content.UpdateLayout(); Pump();
                     CheckKeyboardReach(window, content, "standard with engineer exports expanded");
                     exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                    var definitions = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Defaults and settings — HTML, reusable JSON and document source");
+                    definitions.IsExpanded = true; content.UpdateLayout(); Pump();
+                    CheckKeyboardReach(window, content, "standard with definition formats expanded");
+                    definitions.IsExpanded = false; more.IsExpanded = false; content.UpdateLayout(); Pump();
                 }
             }
             PressCommands(shell, content, traces);
