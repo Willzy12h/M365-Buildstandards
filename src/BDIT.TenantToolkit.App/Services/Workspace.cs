@@ -126,15 +126,32 @@ public sealed class Workspace : ObservableObject
 
     public void Initialise()
     {
-        foreach (var p in Evidence.LoadProfiles()) Profiles.Add(p);
+        LoadProfiles();
         foreach (var r in Standards.ListReleases()) Releases.Add(r);
         var preferred = Releases.FirstOrDefault(r => string.Equals(r.Release, Settings.DefaultStandardRelease, StringComparison.OrdinalIgnoreCase)) ?? Releases.FirstOrDefault();
         if (preferred is not null) TrySelectStandard(preferred.FileName);
+        Notify();
+    }
+
+    private void LoadProfiles()
+    {
+        Profiles.Clear();
+        foreach (var p in Evidence.LoadProfiles()) Profiles.Add(p);
         foreach (var p in Profiles)
         {
             try { Evidence.MarkInterruptedRuns(p.TenantId); }
             catch (ToolkitException ex) { Logger.Warn("App", $"Could not review previous runs for {p.Company}: {ex.Message}"); }
         }
+    }
+
+    /// <summary>
+    /// Loads clients adopted from a verified restore. Adoption needs an empty workspace, so nothing is selected or
+    /// connected; reloading at once stops a new client saved before a restart from overwriting the adopted profiles.
+    /// </summary>
+    public void ReloadAdoptedEvidence()
+    {
+        if (Profile is not null || IsConnected || !Idle) throw new ToolkitException("Adopted evidence can only be loaded into an idle, disconnected workspace with no client selected.");
+        LoadProfiles();
         Notify();
     }
 

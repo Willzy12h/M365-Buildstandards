@@ -34,7 +34,7 @@ public sealed class SettingsViewModel : PageViewModel
             () => CanTransfer() && File.Exists(BackupFile) && RestoreFolder.Length > 0 && (TrustedDigestValid || NoTrustedDigest));
         VerifyRestoreCommand = Command(async () => LastResult = await Workspace.ExportAsync(() => $"Restored folder verified: {WorkspaceBackup.VerifyRestored(RestoreFolder)} evidence file(s) match their recorded SHA-256."),
             () => Workspace.Idle && Directory.Exists(RestoreFolder));
-        AdoptRestoreCommand = Command(Adopt, () => CanTransfer() && Directory.Exists(RestoreFolder));
+        AdoptRestoreCommand = Command(Adopt, () => CanTransfer() && Workspace.Profile is null && Directory.Exists(RestoreFolder));
         // Sensitive restores go to transfers/, apart from reports engineers share.
         RestoreFolder = Path.Combine(Workspace.Paths.TransfersDirectory, "restored-evidence-" + Guid.NewGuid().ToString("N"));
     }
@@ -80,6 +80,7 @@ public sealed class SettingsViewModel : PageViewModel
             "Adopt restored evidence", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
         LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptInto(RestoreFolder));
+        Workspace.ReloadAdoptedEvidence();
     }
     private bool CanTransfer() => Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null;
 

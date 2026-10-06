@@ -46,6 +46,34 @@ public class WorkspaceTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// CLA-20261006-04: after adoption the running workspace must load the adopted clients at once. Otherwise a client
+    /// saved before a restart is written over the adopted profiles file and the handed-over clients disappear.
+    /// </summary>
+    [Fact]
+    public void Adopted_clients_are_loaded_at_once_and_survive_a_new_client_being_saved()
+    {
+        using var source = new TempRoot();
+        new BDIT.TenantToolkit.Engine.Evidence.EvidenceStore(source.Paths, NullLog.Instance).SaveProfiles([TestData.Profile()]);
+        var backup = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(source.Paths);
+        var restored = backup.RestoreSeparate(backup.Create(), Path.Combine(source.Root, "restored"));
+
+        Assert.Empty(_workspace.Profiles);
+        new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(_root.Paths).AdoptInto(restored);
+        _workspace.ReloadAdoptedEvidence();
+        Assert.Equal(TestData.TenantA, Assert.Single(_workspace.Profiles).TenantId);
+
+        var second = TestData.Profile(TestData.TenantB); second.Id = Guid.NewGuid().ToString();
+        _workspace.SaveProfile(second);
+        var saved = new BDIT.TenantToolkit.Engine.Evidence.EvidenceStore(_root.Paths, NullLog.Instance).LoadProfiles();
+        Assert.Contains(saved, p => p.TenantId == TestData.TenantA);
+        Assert.Contains(saved, p => p.TenantId == TestData.TenantB);
+
+        // With a client selected the workspace is no longer the empty one adoption was checked against.
+        _workspace.ApplyProfileToSession(second, save: false);
+        Assert.Throws<ToolkitException>(() => _workspace.ReloadAdoptedEvidence());
+    }
+
     /// <summary>Selecting the client is the first step; nothing downstream may assume one without it.</summary>
     [Fact]
     public void Assessment_refuses_before_a_client_is_selected()
