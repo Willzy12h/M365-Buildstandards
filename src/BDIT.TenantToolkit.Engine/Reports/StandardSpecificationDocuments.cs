@@ -17,6 +17,17 @@ public static class StandardSpecificationDocuments
         + "Fixed values, reviewable shipped defaults and unresolved client inputs are distinguished. "
         + "Intended production state is separate from the inert candidate recipe. Manual-only settings are documented as requirements; no API defaults are invented.";
 
+    /// <summary>
+    /// Exclusions the planner adds to every Conditional Access candidate at plan time (DeploymentPlanner), which the raw
+    /// catalogue payload does not show. Without this a reader of CA-001 saw only the emergency accounts (CLA-20261006-13).
+    /// </summary>
+    public const string ConditionalAccessPlanTimeAdditions = "Plan-time safety additions (not in the catalogue payload): the planner keeps the policy disabled and also excludes any additional exclusion accounts and the approved CA exclusion group from the client profile, the standard's user exclusion group once it exists, and the verified signed-in operator. The operator exclusion does not expire; remove it deliberately after testing.";
+
+    private static bool IsConditionalAccess(ControlDefinition control) => string.Equals(control.Collection, "conditionalAccess", StringComparison.Ordinal);
+
+    private static string StalenessLine(DateTimeOffset now) =>
+        "Default staleness evaluated on " + now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (the export date); each input shows when it was last reviewed.";
+
     public static IReadOnlyList<Setting> Settings(ControlDefinition control, StandardCatalogue standard, DateTimeOffset now)
     {
         var result = new List<Setting>();
@@ -52,7 +63,7 @@ public static class StandardSpecificationDocuments
     public static string Html(StandardCatalogue standard, DateTimeOffset now)
     {
         var text = new StringBuilder("<section id=\"defaults-settings\" aria-labelledby=\"specification-heading\"><h2 id=\"specification-heading\">Default values and settings specification</h2><p>");
-        text.Append(H(Explanation)).Append("</p><p>Default review checked as of ").Append(H(now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))).Append(". The exported JSON retains the original templates and exact source bytes.</p>");
+        text.Append(H(Explanation)).Append("</p><p>").Append(H(StalenessLine(now))).Append(" The exported JSON retains the original templates and exact source bytes.</p>");
         text.Append("<h3>Catalogue input defaults</h3>");
         Table(text, new[] { "Input / type", "Default", "Review date", "Requirement / scope" }, standard.Parameters.Select(p => new[]
         {
@@ -71,6 +82,7 @@ public static class StandardSpecificationDocuments
             var settings = Settings(control, standard, now);
             if (settings.Count == 0) text.Append("<p>Manual or observed-only requirement: ").Append(H(control.DesiredState)).Append(". See its control reference below for procedure and verification.</p>");
             else Table(text, new[] { "JSON pointer", "Catalogue template", "Default / value", "Classification" }, settings.Select(s => new[] { s.Path, s.Template, s.Value, s.Origin }));
+            if (settings.Count > 0 && IsConditionalAccess(control)) text.Append("<p>").Append(H(ConditionalAccessPlanTimeAdditions)).Append("</p>");
             text.Append("<p><a href=\"#").Append(H(control.Id)).Append("\">Purpose, intended state, licences and prerequisites</a></p></section>");
         }
         text.Append("</section>");
@@ -84,7 +96,7 @@ public static class StandardSpecificationDocuments
     {
         var text = new StringBuilder("# Default values and settings specification\n\n");
         text.Append("Release **").Append(M(standard.Release)).Append("** · catalogue SHA-256 `").Append(standard.IntegrityDigest).Append("`\n\n")
-            .Append(Explanation).Append("\n\nDefault review checked as of ").Append(now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append(". JSON preserves the original templates.\n\n## Catalogue input defaults\n\n");
+            .Append(Explanation).Append("\n\n").Append(StalenessLine(now)).Append(" JSON preserves the original templates.\n\n## Catalogue input defaults\n\n");
         foreach (var p in standard.Parameters)
         {
             text.Append("### ").Append(M(p.Key + " — " + p.Label)).Append("\n\nType: ").Append(M(p.Type)).Append(p.Required ? " · required" : " · when applicable").Append("\n\n")
@@ -104,6 +116,7 @@ public static class StandardSpecificationDocuments
             foreach (var s in settings)
                 text.Append("- **").Append(M(s.Path)).Append("**: ").Append(M(s.Value)).Append(" · ").Append(M(s.Origin))
                     .Append(s.Template == s.Value ? "" : " · template " + M(s.Template)).Append("\n");
+            if (settings.Count > 0 && IsConditionalAccess(control)) text.Append('\n').Append(M(ConditionalAccessPlanTimeAdditions)).Append('\n');
             text.Append('\n');
         }
         text.Append("---\n\n").Append(EngineerStandardDocuments.Markdown(standard, EngineerDocumentKind.BuildStandard));

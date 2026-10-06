@@ -5,6 +5,35 @@
 
 This is a review: it proposes changes and does not make them. No runtime code, standard, workflow or Astra-claimed file was changed. Nothing was merged or published, and no tenant, consent, DNS, module or device operation was performed. Findings are proposals for the integrator (Astra/Codex), who records each disposition in `PRODUCT-FEEDBACK-REGISTER.md`. The A–G source approval is not reopened.
 
+## Implementation status (added after the review, at William's request)
+
+William then asked Claude to fix the recommendations. They are implemented on this branch, on top of PR #19 head `2668d00`; see the `Unreleased` CHANGELOG entry. Status:
+
+| ID | Status |
+|---|---|
+| 01, 02, 03, 04, 05, 06, 08, 11, 13, 14, 15, 16 | Implemented with tests |
+| 07 | Fixture only; lineage messaging waits for the PR #20 merge (INT-051) |
+| 09 | Workflow split and SHA pins done. Adding required reviewers to the `release` environment and enabling immutable releases are repository-owner settings |
+| 12 | Settings, Deviations and Manual-checks renders added. The "primary export off-screen at 1180×640" observation is **withdrawn**: that render scrolls the page deliberately to show the expander, so it is not evidence of a defect |
+| 10, 17 | Not implemented. 10 needs the privacy owner to approve the field list; 17 is a post-merge decision row |
+
+Two corrections from implementation:
+- CLA-02 affected **20** controls, not 14. The six release-identity controls (ID-004…008 and UPD-001) were also labelled "Manual".
+- `CHANGELOG.md` has no Preview.18 entry. That is for the release owner to add.
+
+Checks executed with the source-built .NET SDK 10.0.112 on Linux (a scratch copy of `global.json`, never committed):
+- Full solution build with `-warnaserror`, including WPF App, App.Tests and the UI harness via Windows targeting: 0 warnings, 0 errors.
+- Engine tests: **916 passed**, 0 failed. Baseline before changes was 902.
+- PowerShell 7.6: `Test-StandardsManifest.ps1` passes, and fails on a changed, unlisted or missing catalogue; the ZIP writer emits `/` names.
+
+Not run here:
+- Windows App tests.
+- Native WPF harness.
+- Windows PowerShell 5.1 packaging.
+- Fresh-package startup.
+
+CI on the PR must provide these.
+
 ## 0. Exact revisions reviewed
 
 | Item | Identity | How it was checked |

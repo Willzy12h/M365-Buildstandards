@@ -7,31 +7,25 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      publish_preview18:
-        description: 'Publish the already validated Preview.18 artifact (manual release-owner approval only)'
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # WPF requires Windows; the toolkit only ever ships win-x64.
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.401'
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.nuget/packages
           key: nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
@@ -133,7 +127,7 @@ jobs:
 
       - name: Upload synthetic UI review
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: synthetic-ui-review
           path: |
@@ -145,7 +139,7 @@ jobs:
             dist/ui-review/tab-order.txt
 
       - name: Upload portable review package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: portable-windows-review
           path: |
@@ -155,7 +149,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload generated engineer documents
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: engineer-standard-documents
           path: |
@@ -167,14 +161,14 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results
           path: TestResults/
 
       # Keep catalogue assets separate from tenant reports and the application package.
       - name: Upload generated standard definitions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: standard-definition-exports
           path: |
@@ -186,12 +180,11 @@ jobs:
           if-no-files-found: error
 
   standard:
-    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Every standard release is valid JSON
         shell: pwsh
@@ -223,12 +216,11 @@ jobs:
           Write-Host "All recipes are disabled candidates with no assignments."
 
   secrets:
-    if: github.event_name != 'workflow_dispatch' || !inputs.publish_preview18
     # Tenant evidence and client identifiers must never reach the repository.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Reporting and evidence source must be tracked
         shell: bash
@@ -254,44 +246,3 @@ jobs:
             fail=1
           fi
           exit $fail
-
-  publish-preview18:
-    # Manual only. The maintainer explicitly authorised this preview's publication on 6 October.
-    # Promote the original tested ZIP; never rebuild or merge branches in this job.
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_preview18
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    concurrency:
-      group: publish-preview18
-      cancel-in-progress: false
-    permissions:
-      actions: read
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify the pinned successful source run
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 build/Publish-ValidatedPreview.py --check-run
-      - uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: 37515288607
-          name: portable-windows-review
-          path: release-input/portable
-      - uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: 37515288607
-          name: synthetic-ui-review
-          path: release-input/ui
-      - uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: 37515288607
-          name: standard-definition-exports
-          path: release-input/standards
-      - name: Verify original bytes, upload assets and publish the prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 build/Publish-ValidatedPreview.py

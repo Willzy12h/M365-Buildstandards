@@ -362,7 +362,7 @@ public sealed class ConnectViewModel : PageViewModel
             foreach (var w in a.Writes) AccessWrites.Add(w);
             foreach (var n in a.Notes) AccessNotes.Add(n);
             if (a.RoleError is not null) AccessNotes.Add("Role inspection: " + a.RoleError);
-            AccessSummary = $"Checked {a.At} for {a.Account} · Global Administrator: {a.GlobalAdministrator} · {a.CandidateRecipes} automated recipes, {a.ManualControls} manual controls.";
+            AccessSummary = $"Checked {a.At} for {a.Account} · Global Administrator: {a.GlobalAdministrator} · {a.CandidateRecipes} candidate recipes (inert), {a.ManualControls} manual controls.";
         }
         RaiseAll();
     }

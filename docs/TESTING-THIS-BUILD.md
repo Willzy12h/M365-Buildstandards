@@ -4,7 +4,9 @@ Preview.18 / standard 2026.09.30 was developed and tested with synthetic fixture
 
 ## 1. Get the build
 
-Every green run of **Build and test** publishes a ready-to-run package. You do not need Visual Studio or the .NET SDK.
+Engineers use a **published release**, not a CI artifact. Open the repository's **Releases** page, choose the release you were told to use (for example `v1.1.0-preview.18`), and download the application ZIP. Its `RELEASE-RECORD.json` names the exact source commit, validated run, package SHA-256 and standard; compare the ZIP's SHA-256 with that record and with the digest given to you through the approved channel. You do not need Visual Studio or the .NET SDK.
+
+Reviewers checking an unreleased change use the CI artifact instead. It is not a promoted package and must not be given to engineers:
 
 1. Open the repository's **Actions** tab and select the successful run for the exact PR head under review. After merge, use the reviewed `integration` run. Check the commit, not only the green badge on an older run.
 2. Download the **portable-windows-review** artifact. It contains the application ZIP and its `.sha256` checksum.

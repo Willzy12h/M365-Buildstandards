@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using System.IO;
 using Microsoft.Win32;
+using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
@@ -65,6 +66,8 @@ public sealed class SettingsViewModel : PageViewModel
     {
         if (string.Equals(Path.GetDirectoryName(Path.GetFullPath(RestoreFolder)), Workspace.Paths.TransfersDirectory, StringComparison.OrdinalIgnoreCase))
             Directory.CreateDirectory(Workspace.Paths.TransfersDirectory);
+        // A digest that was typed but is malformed is an error, never silently replaced by the no-digest route.
+        if (TrustedDigest.Trim().Length > 0 && !TrustedDigestValid) throw new ConfigurationException("The trusted archive SHA-256 must be 64 hexadecimal characters. Correct it, or clear it and acknowledge that none is available.");
         var digest = TrustedDigestValid ? TrustedDigest.Trim() : null;
         if (digest is null) Workspace.Logger.Warn("Transfer", "Backup restored without an independently received archive digest, at the engineer's explicit acknowledgement.");
         return new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, digest);

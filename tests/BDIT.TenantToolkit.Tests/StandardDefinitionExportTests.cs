@@ -85,6 +85,12 @@ public sealed class StandardDefinitionExportTests
             Assert.Contains("|" + control.Id + " — ", matrix);
         }
         Assert.Equal(93, Regex.Matches(matrix, @"\|Not run live\|").Count);
+        // CLA-20261006-13: CA settings show the planner's safety additions; non-CA settings do not.
+        var caSection = markdown[markdown.IndexOf("### CA-001 — ", StringComparison.Ordinal)..];
+        Assert.Contains("Plan-time safety additions", caSection[..caSection.IndexOf("\n### ", 5, StringComparison.Ordinal)]);
+        var intuneSection = markdown[markdown.IndexOf("### CMP-WIN-001 — ", StringComparison.Ordinal)..];
+        Assert.DoesNotContain("Plan-time safety additions", intuneSection[..intuneSection.IndexOf("\n### ", 5, StringComparison.Ordinal)]);
+        Assert.Contains("Default staleness evaluated on", markdown);
         Assert.Contains("Application.ReadWrite.All", matrix);
         foreach (var parameter in standard.Parameters) { Assert.Contains(parameter.Key, html); Assert.Contains(parameter.Key, markdown); }
         foreach (var collection in standard.Collections) Assert.Contains(collection.Value.Scope, html);
@@ -170,6 +176,8 @@ public sealed class StandardDefinitionExportTests
         var standard = Load(root);
         var file = new StandardDefinitionExporter(root.Paths).Export(standard, format, Now);
         Assert.True(File.Exists(file));
+        Assert.Matches(@"standard-definition-test\.1-\d{8}T\d{6}Z-[0-9a-f]{8}\.(html|md|json)$", Path.GetFileName(file));
+        Assert.Equal(CanonicalJson.Sha256Hex(File.ReadAllBytes(file)) + "  " + Path.GetFileName(file) + "\n", File.ReadAllText(file + ".sha256"));
         if (format == ExportFormat.Json) Assert.Equal(File.ReadAllBytes(Path.Combine(root.Paths.StandardsDirectory, "test.json")), File.ReadAllBytes(file));
         Assert.Throws<ArgumentOutOfRangeException>(() => new StandardDefinitionExporter(root.Paths).Export(standard, ExportFormat.Xlsx, Now));
     }

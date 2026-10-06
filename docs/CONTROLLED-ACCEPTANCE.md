@@ -1,4 +1,6 @@
-# Controlled acceptance proposal — Preview.15
+# Controlled acceptance proposal
+
+First prepared for Preview.15; it applies unchanged to later previews. Record the exact package from the release's `RELEASE-RECORD.json` (currently `v1.1.0-preview.18`).
 
 This is a prepared test scope, not authorisation. No tenant, operator, pilot device or live credentials have been supplied for this development task. Use the exact final package commit/checksum and standard 2026.09.30; record each outcome and its evidence. Keep tenant identifiers and exports outside the source repository.
 

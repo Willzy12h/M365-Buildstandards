@@ -101,7 +101,7 @@ public sealed class StandardViewModel : PageViewModel
 
     public string HeaderText => Workspace.Standard is null
         ? "No Build Standard loaded. " + (Workspace.StandardError ?? "")
-        : $"{Workspace.Standard.Release} · {Workspace.Standard.Status} · {Workspace.Standard.Controls.Count} controls · {Workspace.Standard.Controls.Count(c => c.HasRecipe)} automated recipes · integrity digest {Workspace.Standard.IntegrityDigest} (SHA-256 manifest check; not a signature)";
+        : $"{Workspace.Standard.Release} · {Workspace.Standard.Status} · {Workspace.Standard.Controls.Count} controls · {Workspace.Standard.Controls.Count(c => c.HasRecipe)} candidate recipes (inert) · integrity digest {Workspace.Standard.IntegrityDigest} (SHA-256 manifest check; not a signature)";
 
     public string Detail
     {

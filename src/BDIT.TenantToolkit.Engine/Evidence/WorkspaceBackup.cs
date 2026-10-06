@@ -133,9 +133,11 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     /// Re-checks a restored folder against the checksum list written at restore: every listed file present with its
     /// recorded SHA-256, and nothing unlisted under data/. Read-only. Returns the number of evidence files verified.
     /// </summary>
-    public static int VerifyRestored(string restoredFolder)
+    public static int VerifyRestored(string restoredFolder) => VerifiedRestore(Path.GetFullPath(restoredFolder)).Count(h => h.Key.StartsWith("data/", StringComparison.Ordinal));
+
+    /// <summary>Verifies a restored folder and returns its checksum list, so adoption copies exactly what was verified.</summary>
+    private static Dictionary<string, string> VerifiedRestore(string restoredFolder)
     {
-        restoredFolder = Path.GetFullPath(restoredFolder);
         CheckParents(restoredFolder);
         var listFile = Path.Combine(restoredFolder, "SHA256SUMS.txt");
         if (!File.Exists(listFile)) throw new IntegrityException("The restored folder has no SHA256SUMS.txt. Restore the backup again with Verify and restore separately.");
@@ -157,7 +159,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
             if (!string.Equals(CopyHash(input, Stream.Null, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase))
                 throw new IntegrityException($"Restored file failed its SHA-256 check: {name}.");
         }
-        return listedData.Count;
+        return hashes;
     }
 
     /// <summary>
@@ -178,10 +180,8 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
             if (Directory.EnumerateFiles(paths.DataDirectory, "*", SearchOption.AllDirectories).Any())
                 throw new ConfigurationException("Adoption needs an empty evidence folder, so no existing record can be overwritten or mixed with another workspace. Use a newly extracted package.");
         }
-        var count = VerifyRestored(restoredFolder);
-        Dictionary<string, string> hashes;
-        using (var input = File.OpenRead(Path.Combine(restoredFolder, "SHA256SUMS.txt"))) hashes = ReadHashes(input);
-        var dataEntries = hashes.Where(h => h.Key.StartsWith("data/", StringComparison.Ordinal)).ToList();
+        var dataEntries = VerifiedRestore(restoredFolder).Where(h => h.Key.StartsWith("data/", StringComparison.Ordinal)).ToList();
+        var count = dataEntries.Count;
         var staging = Path.Combine(paths.Root, ".adopt-" + Guid.NewGuid().ToString("N"));
         var stagedData = Path.Combine(staging, "data");
         try

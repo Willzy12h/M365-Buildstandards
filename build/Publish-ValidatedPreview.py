@@ -1,7 +1,7 @@
 """Promote the explicitly approved Preview.18 CI artifact, without rebuilding it.
 
 Pins deliberately require a reviewed source change for a different release. This
-script runs only through the manual publish_preview18 workflow input. No tenant
+script runs only through the manual publish-preview18.yml workflow, gated by the release environment. No tenant
 credentials, branch merges, main/integration writes or live operations occur.
 """
 import argparse

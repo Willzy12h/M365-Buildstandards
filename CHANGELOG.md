@@ -1,3 +1,16 @@
+# Unreleased — Claude review corrections after 1.1.0-preview.18
+
+Source changes on top of the published Preview.18 source (`10808de`). Not a release; a package built from them needs its own version, provenance and Windows checks. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
+
+- Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
+- Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
+- Verify, rather than regenerate, the committed standards manifest in the portable build; pin 2026.09.30 by publication digest; write the package ZIP with '/' entry names (CLA-20261006-03, -14).
+- Keep backups and restores in `transfers/`, apart from shareable reports. Restore checks a trusted archive SHA-256 or an explicit logged acknowledgement; restored folders can be re-verified in the app or with `bdit verify-restore`; a verified restore can be adopted into an empty workspace with in-place re-verification. Backup is refused while a tenant write lease is held (CLA-20261006-04, -05, -15).
+- Judge stored Exchange/Purview evidence and DNS observations as of the evidence, so reopened history and headless reports reproduce their findings; live work keeps the wall-clock rule (CLA-20261006-06).
+- Limit the operator-exclusion explanation to Conditional Access drift (CLA-20261006-08). Add a fixture for release .10 ownership records under .30 (CLA-20261006-07, no behaviour change pending INT-051).
+- Separate the Preview.18 publisher into its own workflow gated by the `release` environment; pin workflow actions by commit (CLA-20261006-09).
+- Release-first engineer guidance, "candidate recipes (inert)" wording, plan-time CA exclusions in the definition export, timestamped export names with per-file digests, and native renders of Settings, Deviations and Manual checks (CLA-20261006-11, -12, -13, -16).
+
 # 1.1.0-preview.17
 
 - Retain Quick Connect authentication for one confirmed read-only connection, bound to tenant/operator/standard and five-minute expiry. Recheck identity without another interactive request; explain when a different dedicated app needs authentication.

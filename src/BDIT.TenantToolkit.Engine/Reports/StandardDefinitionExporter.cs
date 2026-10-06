@@ -19,9 +19,11 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
         var bytes = VerifiedSource(standard);
         Directory.CreateDirectory(paths.ReportsDirectory);
         var extension = format switch { ExportFormat.Html => "html", ExportFormat.Markdown => "md", _ => "json" };
-        var file = Path.Combine(paths.ReportsDirectory, $"standard-definition-{ReportExporter.SafeName(standard.Release)}-{Guid.NewGuid():N}.{extension}");
+        var file = Path.Combine(paths.ReportsDirectory, BaseName(standard, now) + "." + extension);
         if (format == ExportFormat.Json) File.WriteAllBytes(file, bytes);
         else File.WriteAllText(file, format == ExportFormat.Html ? StandardSpecificationDocuments.Html(standard, now) : StandardSpecificationDocuments.Markdown(standard, now), new UTF8Encoding(false));
+        // Every file carries its own digest, so a single reused JSON keeps its link to the verified source (CLA-20261006-16).
+        WriteDigest(file);
         return file;
     }
 
@@ -29,7 +31,7 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
     {
         var bytes = VerifiedSource(standard);
         Directory.CreateDirectory(paths.ReportsDirectory);
-        var name = $"standard-definition-{ReportExporter.SafeName(standard.Release)}-{Guid.NewGuid():N}";
+        var name = BaseName(standard, now);
         var folder = Path.Combine(paths.ReportsDirectory, name);
         var staging = folder + ".staging";
         var zip = folder + ".zip";
@@ -60,7 +62,7 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
             Write("SHA256SUMS.txt", string.Join('\n', checksums) + "\n");
             Directory.Move(staging, folder);
             ZipFile.CreateFromDirectory(folder, zip, CompressionLevel.Optimal, includeBaseDirectory: false);
-            File.WriteAllText(zip + ".sha256", CanonicalJson.Sha256Hex(File.ReadAllBytes(zip)) + "  " + Path.GetFileName(zip) + "\n", new UTF8Encoding(false));
+            WriteDigest(zip);
             return zip;
         }
         catch
@@ -74,6 +76,13 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
 
         void Write(string file, string content) => File.WriteAllText(Path.Combine(staging, file), content, new UTF8Encoding(false));
     }
+
+    /// <summary>Release and UTC export time, so exports sort chronologically; a short suffix keeps same-second exports distinct.</summary>
+    private static string BaseName(StandardCatalogue standard, DateTimeOffset now) =>
+        $"standard-definition-{ReportExporter.SafeName(standard.Release)}-{now.UtcDateTime:yyyyMMdd'T'HHmmss'Z'}-{Guid.NewGuid().ToString("N")[..8]}";
+
+    private static void WriteDigest(string file) =>
+        File.WriteAllText(file + ".sha256", CanonicalJson.Sha256Hex(File.ReadAllBytes(file)) + "  " + Path.GetFileName(file) + "\n", new UTF8Encoding(false));
 
     private byte[] VerifiedSource(StandardCatalogue standard)
     {
