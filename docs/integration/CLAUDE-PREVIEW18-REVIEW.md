@@ -23,16 +23,25 @@ Two corrections from implementation:
 
 Checks executed with the source-built .NET SDK 10.0.112 on Linux (a scratch copy of `global.json`, never committed):
 - Full solution build with `-warnaserror`, including WPF App, App.Tests and the UI harness via Windows targeting: 0 warnings, 0 errors.
-- Engine tests: **916 passed**, 0 failed. Baseline before changes was 902.
+- Engine tests: **917 passed**, 0 failed. Baseline before changes was 902.
 - PowerShell 7.6: `Test-StandardsManifest.ps1` passes, and fails on a changed, unlisted or missing catalogue; the ZIP writer emits `/` names.
+- New tests were checked to fail on the pre-fix code.
 
-Not run here:
-- Windows App tests.
-- Native WPF harness.
-- Windows PowerShell 5.1 packaging.
-- Fresh-package startup.
+Windows CI on the final head `529aeaf` (run 37526837469): all jobs passed. I read the whole build-job log, which shows:
+- Engine tests: 917 passed.
+- App tests: 113 passed. This includes the new adoption-overwrite test.
+- Native WPF harness: 42 layouts, 79 commands (including the new Verify restored folder), 0 binding issues, 0 tenant calls.
+- Windows PowerShell 5.1 packaging, with the committed manifest verified.
+- Fresh 297-file package: startup, shutdown and right-click Copy.
 
-CI on the PR must provide these.
+Code-review corrections made after the first implementation:
+- Restore hashes and extracts one read-locked stream.
+- Adoption never deletes recursively.
+- Adopted clients load at once, so a new client cannot overwrite them; Adopt is offered only with no client selected.
+- A malformed trusted digest is refused.
+- Stored-evidence time now includes later DNS refreshes.
+
+None of this is live or human acceptance.
 
 ## 0. Exact revisions reviewed
 
