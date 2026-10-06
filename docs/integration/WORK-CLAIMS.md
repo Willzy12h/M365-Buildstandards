@@ -25,6 +25,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-09-24 | Claude | M365-Buildstandards | full review: build strictness, interface checks (dialogs, commands, keyboard, scaling, contrast), code review fixes, documentation | `claude/github-repo-access-ygieh2` | #17 | Merged |
 | 2026-09-24 | Claude | M365-Buildstandards | application setup (guided flow), interface (friendly names), review findings 1, 2, 3, 6 and 7 from FULL-REVIEW-2026-09-24; next release plan | `claude/github-repo-access-ygieh2` | #18 | Merged |
 
+| 2026-10-06 | Claude | M365-Buildstandards | documentation (review-only): independent Preview.18 / PR #19 review report, CLA-20261006-01–17 proposals; no runtime, standard or Astra-claimed file changes | `claude/m365-buildstandards-preview-review-mjr04x` | Draft PR | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
