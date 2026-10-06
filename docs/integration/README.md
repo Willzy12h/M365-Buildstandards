@@ -1,5 +1,9 @@
 # Integration workflow
 
+## Current product completion proposal
+
+The [6 October multi-perspective review](FINAL-PRODUCT-REVIEW-2026.10.06.md) proposes a finished internal engineer product for new builds, legacy backfill and repeat reviews. Read its [completion plan](PRODUCT-COMPLETION-PLAN.md), [shared feedback register](PRODUCT-FEEDBACK-REGISTER.md) and [Claude/Astra handoff](PRODUCT-AGENT-HANDOFF.md). These are recommendations awaiting scope approval; they do not replace the coordination rules or certify live acceptance.
+
 ## Repositories
 
 | Name | Role | Editing rule |
