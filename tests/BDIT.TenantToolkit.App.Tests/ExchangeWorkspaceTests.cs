@@ -49,6 +49,25 @@ public sealed class ExchangeWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void Exchange_only_evidence_reopened_from_history_is_judged_as_of_its_capture()
+    {
+        // Review finding: only stored Graph snapshots were judged as of their capture, so reopening a stored
+        // Exchange-only snapshot days later marked every EX/PUR control stale while the headless runner did not.
+        var capture = ExchangeTestData.Capture();
+        capture.CapturedAt = Timestamps.Format(DateTimeOffset.UtcNow.AddDays(-3));
+        var stored = ExchangeEvidenceImporter.Snapshot(capture, TestData.Profile(), _workspace.RequireStandard());
+        _workspace.Evidence.SaveSnapshot(stored);
+
+        _workspace.LoadStoredSnapshot(stored.Id);
+        Assert.DoesNotContain(_workspace.Assessment!.Findings, f => f.Reason.Contains("over 24 hours old", StringComparison.Ordinal));
+
+        // The same three-day-old observations brought in as current work are still stale.
+        File.WriteAllText(_file, ToolkitJson.Serialize(capture));
+        _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);
+        Assert.Contains(_workspace.Assessment!.Findings, f => f.ControlId == "EX-004" && f.Reason.Contains("over 24 hours old", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Exchange_only_import_cannot_enable_Graph_deployment()
     {
         _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);

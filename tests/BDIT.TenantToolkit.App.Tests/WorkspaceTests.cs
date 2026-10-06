@@ -55,11 +55,10 @@ public class WorkspaceTests : IDisposable
     {
         using var source = new TempRoot();
         new BDIT.TenantToolkit.Engine.Evidence.EvidenceStore(source.Paths, NullLog.Instance).SaveProfiles([TestData.Profile()]);
-        var backup = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(source.Paths);
-        var restored = backup.RestoreSeparate(backup.Create(), Path.Combine(source.Root, "restored"));
+        var zip = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(source.Paths).Create();
 
         Assert.Empty(_workspace.Profiles);
-        new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(_root.Paths).AdoptInto(restored);
+        new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(_root.Paths).AdoptFromArchive(zip, BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup.ArchiveDigest(zip));
         _workspace.ReloadAdoptedEvidence();
         Assert.Equal(TestData.TenantA, Assert.Single(_workspace.Profiles).TenantId);
 

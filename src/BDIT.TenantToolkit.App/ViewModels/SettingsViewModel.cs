@@ -34,7 +34,7 @@ public sealed class SettingsViewModel : PageViewModel
             () => CanTransfer() && File.Exists(BackupFile) && RestoreFolder.Length > 0 && (TrustedDigestValid || NoTrustedDigest));
         VerifyRestoreCommand = Command(async () => LastResult = await Workspace.ExportAsync(() => $"Restored folder verified: {WorkspaceBackup.VerifyRestored(RestoreFolder)} evidence file(s) match their recorded SHA-256."),
             () => Workspace.Idle && Directory.Exists(RestoreFolder));
-        AdoptRestoreCommand = Command(Adopt, () => CanTransfer() && Workspace.Profile is null && Directory.Exists(RestoreFolder));
+        AdoptRestoreCommand = Command(Adopt, () => CanTransfer() && Workspace.Profile is null && File.Exists(BackupFile) && (TrustedDigestValid || NoTrustedDigest));
         // Sensitive restores go to transfers/, apart from reports engineers share.
         RestoreFolder = Path.Combine(Workspace.Paths.TransfersDirectory, "restored-evidence-" + Guid.NewGuid().ToString("N"));
     }
@@ -66,21 +66,32 @@ public sealed class SettingsViewModel : PageViewModel
     {
         if (string.Equals(Path.GetDirectoryName(Path.GetFullPath(RestoreFolder)), Workspace.Paths.TransfersDirectory, StringComparison.OrdinalIgnoreCase))
             Directory.CreateDirectory(Workspace.Paths.TransfersDirectory);
-        // A digest that was typed but is malformed is an error, never silently replaced by the no-digest route.
+        return new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, DigestForTransfer("restored"));
+    }
+
+    /// <summary>The trusted digest, or null after the explicit acknowledgement. A typed but malformed digest is an error, never treated as absent.</summary>
+    private string? DigestForTransfer(string action)
+    {
         if (TrustedDigest.Trim().Length > 0 && !TrustedDigestValid) throw new ConfigurationException("The trusted archive SHA-256 must be 64 hexadecimal characters. Correct it, or clear it and acknowledge that none is available.");
-        var digest = TrustedDigestValid ? TrustedDigest.Trim() : null;
-        if (digest is null) Workspace.Logger.Warn("Transfer", "Backup restored without an independently received archive digest, at the engineer's explicit acknowledgement.");
-        return new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, digest);
+        if (TrustedDigestValid) return TrustedDigest.Trim();
+        Workspace.Logger.Warn("Transfer", $"Backup {action} without an independently received archive digest, at the engineer's explicit acknowledgement.");
+        return null;
     }
 
     private async Task Adopt()
     {
         var confirm = System.Windows.MessageBox.Show(
-            "Copy the verified restored evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. The adopted clients are loaded straight away. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence.",
+            "Restore the selected backup and copy its verified evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. The adopted clients are loaded straight away. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence.",
             "Adopt restored evidence", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
-        LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptInto(RestoreFolder));
-        Workspace.ReloadAdoptedEvidence();
+        try { LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptFromArchive(BackupFile, DigestForTransfer("adopted"))); }
+        finally
+        {
+            // Whatever happened, the in-memory client list must match the evidence on disk, or a client saved next would
+            // rewrite profiles.json without the adopted clients.
+            var data = Workspace.Paths.DataDirectory;
+            if (Directory.Exists(data) && Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories).Any()) Workspace.ReloadAdoptedEvidence();
+        }
     }
     private bool CanTransfer() => Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null;
 

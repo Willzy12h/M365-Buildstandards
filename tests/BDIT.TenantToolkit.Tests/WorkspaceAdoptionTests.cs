@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
@@ -74,13 +77,12 @@ public sealed class WorkspaceAdoptionTests
         store.SaveProfiles([TestData.Profile()]);
         var oldPlanId = Guid.NewGuid().ToString();
         var run = SaveUnknownRun(store, oldPlanId);
-        var backup = new WorkspaceBackup(source.Paths);
-        var zip = backup.Create();
-        var restored = backup.RestoreSeparate(zip, Path.Combine(source.Root, "restored"), WorkspaceBackup.ArchiveDigest(zip));
+        var zip = new WorkspaceBackup(source.Paths).Create();
 
         using var target = new TempRoot(); // a newly extracted package: empty data/ with empty tenants/
-        var message = new WorkspaceBackup(target.Paths).AdoptInto(restored);
+        var message = new WorkspaceBackup(target.Paths).AdoptFromArchive(zip, WorkspaceBackup.ArchiveDigest(zip));
         Assert.Contains("Adopted 2 verified evidence file(s)", message);
+        Assert.Single(Directory.GetDirectories(target.Paths.TransfersDirectory, "adopted-from-*"));
 
         foreach (var file in Directory.GetFiles(source.Paths.DataDirectory, "*.json", SearchOption.AllDirectories))
             Assert.Equal(File.ReadAllBytes(file), File.ReadAllBytes(Path.Combine(target.Paths.DataDirectory, Path.GetRelativePath(source.Paths.DataDirectory, file))));
@@ -95,22 +97,45 @@ public sealed class WorkspaceAdoptionTests
     }
 
     [Fact]
-    public void Adoption_refuses_a_workspace_that_already_holds_evidence_and_a_tampered_restore()
+    public void Adoption_refuses_a_workspace_that_already_holds_evidence()
     {
         using var source = new TempRoot(); File.WriteAllText(source.Paths.ProfilesFile, "[]");
-        var backup = new WorkspaceBackup(source.Paths);
-        var restored = backup.RestoreSeparate(backup.Create(), Path.Combine(source.Root, "restored"));
-
+        var zip = new WorkspaceBackup(source.Paths).Create();
         using var occupied = new TempRoot(); File.WriteAllText(occupied.Paths.ProfilesFile, "[{\"existing\":true}]");
-        Assert.Throws<ConfigurationException>(() => new WorkspaceBackup(occupied.Paths).AdoptInto(restored));
+        Assert.Throws<ConfigurationException>(() => new WorkspaceBackup(occupied.Paths).AdoptFromArchive(zip, WorkspaceBackup.ArchiveDigest(zip)));
         Assert.Equal("[{\"existing\":true}]", File.ReadAllText(occupied.Paths.ProfilesFile));
+        Assert.False(Directory.Exists(occupied.Paths.TransfersDirectory) && Directory.GetDirectories(occupied.Paths.TransfersDirectory).Length > 0);
+    }
 
-        Assert.Throws<ConfigurationException>(() => new WorkspaceBackup(source.Paths).AdoptInto(source.Paths.DataDirectory));
-
-        File.WriteAllText(Path.Combine(restored, "data", "profiles.json"), "[{\"tampered\":true}]");
+    [Fact]
+    public void Adoption_is_bound_to_the_trusted_archive_digest_so_a_rewritten_checksum_list_cannot_pass()
+    {
+        // Review finding: adopting from a restored folder only proved the folder agreed with the checksum list stored
+        // beside it. An archive whose content and internal checksums are both rewritten must still be refused.
+        using var source = new TempRoot(); File.WriteAllText(source.Paths.ProfilesFile, "[]");
+        var original = new WorkspaceBackup(source.Paths).Create();
+        var trusted = WorkspaceBackup.ArchiveDigest(original);
+        var tampered = Path.Combine(source.Root, "tampered.zip"); File.Copy(original, tampered);
+        const string forged = "[{\"tampered\":true}]";
+        using (var archive = ZipFile.Open(tampered, ZipArchiveMode.Update))
+        {
+            archive.GetEntry("data/profiles.json")!.Delete();
+            using (var writer = new StreamWriter(archive.CreateEntry("data/profiles.json").Open())) writer.Write(forged);
+            var sums = archive.GetEntry("SHA256SUMS.txt")!; string list;
+            using (var reader = new StreamReader(sums.Open())) list = reader.ReadToEnd();
+            sums.Delete();
+            var forgedHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(forged)));
+            list = string.Join('\n', list.Split('\n').Select(l => l.EndsWith("  data/profiles.json", StringComparison.Ordinal) ? forgedHash + "  data/profiles.json" : l));
+            using (var writer = new StreamWriter(archive.CreateEntry("SHA256SUMS.txt").Open())) writer.Write(list);
+        }
         using var empty = new TempRoot();
-        Assert.Throws<IntegrityException>(() => new WorkspaceBackup(empty.Paths).AdoptInto(restored));
+        Assert.Throws<IntegrityException>(() => new WorkspaceBackup(empty.Paths).AdoptFromArchive(tampered, trusted));
         Assert.Empty(Directory.GetFiles(empty.Paths.DataDirectory, "*", SearchOption.AllDirectories));
+        // Without the trusted digest the forged archive is internally consistent: exactly why the interface demands
+        // the digest or an explicit, logged acknowledgement.
+        using var acknowledged = new TempRoot();
+        new WorkspaceBackup(acknowledged.Paths).AdoptFromArchive(tampered, null);
+        Assert.Equal(forged, File.ReadAllText(acknowledged.Paths.ProfilesFile));
     }
 
     [Fact]

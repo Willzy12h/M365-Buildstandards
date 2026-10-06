@@ -53,7 +53,9 @@ public static class CapabilityDocuments
     private static string EvidenceRead(StandardCatalogue standard, ControlDefinition c)
     {
         if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return "Exchange Online / Purview cmdlets (service RBAC)";
-        var key = c.Equivalence?.Collection ?? c.Collection;
+        // Settings comparison reads the control's own collection; equivalence and observed routes read the evidence
+        // collection the equivalence rule names, defaulting to the control's.
+        var key = ReadRoute(standard, c) == "Settings comparison" ? c.Collection : c.Equivalence?.Collection ?? c.Collection;
         var def = standard.FindCollection(key);
         return def is null ? "None" : def.Label + (string.IsNullOrWhiteSpace(def.Scope) ? "" : " (" + def.Scope + ")");
     }

@@ -15,11 +15,6 @@ public static class MarkdownReports
         .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
         .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
-    /// <summary>
-    /// Tenant-supplied text inside a code span. Markdown shows code spans literally, so escaped characters would appear
-    /// as entity codes on screen; only what can break out of the span or the table cell is changed: a backtick would end
-    /// the span, a pipe would split the cell, and a line break would end the row.
-    /// </summary>
     /// <summary>Plain wording for <see cref="AssessmentResult.SnapshotIntegrity"/>, shared by the tabular reports.</summary>
     public static string IntegrityText(string state) => state switch
     {
@@ -29,6 +24,11 @@ public static class MarkdownReports
         _ => "not checked"
     };
 
+    /// <summary>
+    /// Tenant-supplied text inside a code span. Markdown shows code spans literally, so escaped characters would appear
+    /// as entity codes on screen; only what can break out of the span or the table cell is changed: a backtick would end
+    /// the span, a pipe would split the cell, and a line break would end the row.
+    /// </summary>
     private static string C(string? s) => (s ?? "").Replace("`", "'", StringComparison.Ordinal)
         .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 

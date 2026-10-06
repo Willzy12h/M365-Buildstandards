@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Planning;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
@@ -23,7 +24,9 @@ public static class StandardSpecificationDocuments
     /// </summary>
     public const string ConditionalAccessPlanTimeAdditions = "Plan-time safety additions (not in the catalogue payload): the planner keeps the policy disabled and also excludes any additional exclusion accounts and the approved CA exclusion group from the client profile, the standard's user exclusion group once it exists, and the verified signed-in operator. The operator exclusion does not expire; remove it deliberately after testing.";
 
-    private static bool IsConditionalAccess(ControlDefinition control) => string.Equals(control.Collection, "conditionalAccess", StringComparison.Ordinal);
+    // The planner's own test, so the note appears exactly where the planner adds the exclusions.
+    private static bool IsConditionalAccess(ControlDefinition control, StandardCatalogue standard) =>
+        standard.FindCollection(control.Collection) is { } definition && ConditionalAccessSafety.IsConditionalAccess(definition);
 
     private static string StalenessLine(DateTimeOffset now) =>
         "Default staleness evaluated on " + now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (the export date); each input shows when it was last reviewed.";
@@ -82,7 +85,7 @@ public static class StandardSpecificationDocuments
             var settings = Settings(control, standard, now);
             if (settings.Count == 0) text.Append("<p>Manual or observed-only requirement: ").Append(H(control.DesiredState)).Append(". See its control reference below for procedure and verification.</p>");
             else Table(text, new[] { "JSON pointer", "Catalogue template", "Default / value", "Classification" }, settings.Select(s => new[] { s.Path, s.Template, s.Value, s.Origin }));
-            if (settings.Count > 0 && IsConditionalAccess(control)) text.Append("<p>").Append(H(ConditionalAccessPlanTimeAdditions)).Append("</p>");
+            if (settings.Count > 0 && IsConditionalAccess(control, standard)) text.Append("<p>").Append(H(ConditionalAccessPlanTimeAdditions)).Append("</p>");
             text.Append("<p><a href=\"#").Append(H(control.Id)).Append("\">Purpose, intended state, licences and prerequisites</a></p></section>");
         }
         text.Append("</section>");
@@ -116,7 +119,7 @@ public static class StandardSpecificationDocuments
             foreach (var s in settings)
                 text.Append("- **").Append(M(s.Path)).Append("**: ").Append(M(s.Value)).Append(" · ").Append(M(s.Origin))
                     .Append(s.Template == s.Value ? "" : " · template " + M(s.Template)).Append("\n");
-            if (settings.Count > 0 && IsConditionalAccess(control)) text.Append('\n').Append(M(ConditionalAccessPlanTimeAdditions)).Append('\n');
+            if (settings.Count > 0 && IsConditionalAccess(control, standard)) text.Append('\n').Append(M(ConditionalAccessPlanTimeAdditions)).Append('\n');
             text.Append('\n');
         }
         text.Append("---\n\n").Append(EngineerStandardDocuments.Markdown(standard, EngineerDocumentKind.BuildStandard));

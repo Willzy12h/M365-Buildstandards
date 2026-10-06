@@ -168,24 +168,35 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     }
 
     /// <summary>
-    /// Copies a verified restore into this workspace's evidence folder, which must be empty, and re-verifies every file
-    /// in place (CLA-20261006-04). It replaces the manual folder copy that could silently drop run journals and with
-    /// them the blockers on unresolved writes. No sign-in, acknowledgement, plan approval or session is restored:
-    /// historical captures stay historical and the next plan still needs fresh evidence and a new review.
+    /// Restores a backup archive and copies its evidence into this workspace's evidence folder, which must be empty,
+    /// re-verifying every file in place (CLA-20261006-04). It replaces the manual folder copy that could silently drop
+    /// run journals and with them the blockers on unresolved writes. Adoption starts from the archive, not from a
+    /// restored folder, so the trusted archive digest covers what is adopted: a folder only agrees with the checksum
+    /// list stored beside it, which whoever changed the folder could rewrite. No sign-in, acknowledgement, plan
+    /// approval or session is restored; historical captures stay historical and the next plan needs fresh evidence.
     /// </summary>
-    public string AdoptInto(string restoredFolder)
+    /// <param name="trustedArchiveSha256">As for <see cref="RestoreSeparate"/>; null only with the engineer's explicit acknowledgement.</param>
+    public string AdoptFromArchive(string archiveFile, string? trustedArchiveSha256)
     {
-        restoredFolder = Path.GetFullPath(restoredFolder);
-        if (Inside(restoredFolder, paths.DataDirectory) || Inside(paths.DataDirectory, restoredFolder))
-            throw new ConfigurationException("Adopt from a restored folder outside this workspace's evidence folder.");
         CheckParents(paths.Root);
-        if (Directory.Exists(paths.DataDirectory))
-        {
-            CheckLink(paths.DataDirectory);
-            if (Directory.EnumerateFiles(paths.DataDirectory, "*", SearchOption.AllDirectories).Any())
-                throw new ConfigurationException("Adoption needs an empty evidence folder, so no existing record can be overwritten or mixed with another workspace. Use a newly extracted package.");
-        }
-        var dataEntries = VerifiedRestore(restoredFolder).Where(h => h.Key.StartsWith("data/", StringComparison.Ordinal)).ToList();
+        AssertEmptyEvidenceFolder();
+        Directory.CreateDirectory(paths.TransfersDirectory);
+        var restored = RestoreSeparate(archiveFile, Path.Combine(paths.TransfersDirectory, "adopted-from-" + Guid.NewGuid().ToString("N")), trustedArchiveSha256);
+        return AdoptRestored(restored) + $" The verified restore is kept at {restored} for the custodian's records.";
+    }
+
+    private void AssertEmptyEvidenceFolder()
+    {
+        if (!Directory.Exists(paths.DataDirectory)) return;
+        CheckLink(paths.DataDirectory);
+        if (Directory.EnumerateFiles(paths.DataDirectory, "*", SearchOption.AllDirectories).Any())
+            throw new ConfigurationException("Adoption needs an empty evidence folder, so no existing record can be overwritten or mixed with another workspace. Use a newly extracted package.");
+    }
+
+    private string AdoptRestored(string restoredFolder)
+    {
+        AssertEmptyEvidenceFolder();
+        var dataEntries = VerifiedRestore(Path.GetFullPath(restoredFolder)).Where(h => h.Key.StartsWith("data/", StringComparison.Ordinal)).ToList();
         var count = dataEntries.Count;
         var staging = Path.Combine(paths.Root, ".adopt-" + Guid.NewGuid().ToString("N"));
         var stagedData = Path.Combine(staging, "data");
@@ -213,12 +224,19 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
         }
         finally { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
 
-        // Verify in place. A failure here leaves the adopted files untouched for the custodian to inspect; it never deletes evidence.
+        // Verify in place. On failure the adopted files are moved, intact, out of the live evidence folder: nothing is
+        // deleted, and the workspace cannot go on to use or overwrite evidence that failed its check.
         foreach (var (name, digest) in dataEntries)
         {
-            using var input = new FileStream(Path.Combine(paths.DataDirectory, name["data/".Length..].Replace('/', Path.DirectorySeparatorChar)), FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (!string.Equals(CopyHash(input, Stream.Null, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase))
-                throw new IntegrityException($"Adopted file failed its in-place SHA-256 check: {name}. Do not use this workspace; keep the restored folder and contact the evidence custodian.");
+            bool intact;
+            using (var input = new FileStream(Path.Combine(paths.DataDirectory, name["data/".Length..].Replace('/', Path.DirectorySeparatorChar)), FileMode.Open, FileAccess.Read, FileShare.Read))
+                intact = string.Equals(CopyHash(input, Stream.Null, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase);
+            if (intact) continue;
+            var quarantine = Path.Combine(paths.TransfersDirectory, "adoption-failed-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(paths.TransfersDirectory);
+            Directory.Move(paths.DataDirectory, quarantine);
+            Directory.CreateDirectory(paths.DataDirectory);
+            throw new IntegrityException($"Adopted file failed its in-place SHA-256 check: {name}. The adopted evidence was moved, unchanged, to {quarantine} and this workspace's evidence folder is empty again. Contact the evidence custodian.");
         }
         return $"Adopted {count} verified evidence file(s) into {paths.DataDirectory}. Sign in and capture fresh evidence before any new plan; no approval or session was carried over.";
     }
@@ -249,8 +267,10 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     /// </summary>
     private static void AssertNoWriteInProgress(string lockFile)
     {
-        try { using var probe = new FileStream(lockFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
+        // Read access is enough: any handle opened with FileShare.None by a lease holder refuses this open.
+        try { using var probe = new FileStream(lockFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete); }
         catch (IOException) { throw new ConfigurationException("A deployment, recovery or other tenant write is in progress in this workspace. Let it finish, close other copies of the tool and try the backup again."); }
+        catch (UnauthorizedAccessException) { throw new ConfigurationException("A tenant write lock in this workspace cannot be read. Ask the evidence custodian to check the folder permissions before backing up."); }
     }
 
     private string[] Sources()

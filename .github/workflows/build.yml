@@ -173,7 +173,7 @@ jobs:
           name: standard-definition-exports
           path: |
             dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip
-            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip.sha256
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.sha256
             dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.html
             dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.md
             dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.json

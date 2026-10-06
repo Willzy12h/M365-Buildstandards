@@ -78,6 +78,8 @@ public sealed class Workspace : ObservableObject
     public bool SnapshotIsLive { get; private set; }
     public TenantSnapshot? ExchangeSnapshot { get; private set; }
     public bool ExchangeCapturedByTool { get; private set; }
+    /// <summary>The Exchange-only snapshot most recently reopened from history. Any capture, import or refresh replaces ExchangeSnapshot, so it no longer matches.</summary>
+    private TenantSnapshot? _historicalExchange;
     public AssessmentResult? Assessment { get; private set; }
     public DeploymentPlan? Plan { get; private set; }
     public string? AcknowledgedSnapshotId { get; private set; }
@@ -527,7 +529,7 @@ public sealed class Workspace : ObservableObject
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var stored = Evidence.LoadSnapshot(profile.TenantId, snapshotId) ?? throw new ToolkitException("Snapshot not found.");
-        if (stored.ExchangeCapture is not null) { SetExchangeSnapshot(stored, false); return; }
+        if (stored.ExchangeCapture is not null) { _historicalExchange = stored; SetExchangeSnapshot(stored, false); return; }
         Snapshot = stored;
         SnapshotIsLive = false;
         Plan = null;
@@ -542,7 +544,10 @@ public sealed class Workspace : ObservableObject
         var snapshot = Snapshot ?? ExchangeSnapshot ?? throw new ToolkitException("Read the tenant configuration first.");
         var standard = RequireStandard();
         // A stored Graph snapshot is judged as of its own capture, so reopening history reproduces its findings.
-        DateTimeOffset? evidenceTime = Snapshot is { } graph && !SnapshotIsLive && Timestamps.TryParse(graph.CapturedAt, out var capturedAt) ? capturedAt : null;
+        // An Exchange-only snapshot reopened from history is judged as of its capture too, as the headless runner does.
+        var stored = Snapshot is { } graph ? (SnapshotIsLive ? null : graph)
+            : ExchangeSnapshot is { } exchange && ReferenceEquals(exchange, _historicalExchange) ? exchange : null;
+        DateTimeOffset? evidenceTime = stored is not null && Timestamps.TryParse(stored.CapturedAt, out var capturedAt) ? capturedAt : null;
         Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture, evidenceTime);
         Evidence.SaveAssessment(Assessment);
         Logger.Info("Assessment", $"Assessment {Assessment.Id}: {Assessment.Summary.Compliant} compliant, {Assessment.Summary.Missing} missing, {Assessment.Summary.PartialMatch} partial, {Assessment.Summary.UnableToAssess} unknown.", profile.TenantId);

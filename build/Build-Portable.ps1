@@ -3,7 +3,7 @@
 .SYNOPSIS
   Restores, builds, tests, publishes and packages the M365 BuildStandard Tool as a portable ZIP.
 .DESCRIPTION
-  Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> regenerate standards manifest ->
+  Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> verify committed standards manifest ->
   dotnet publish (self-contained win-x64, framework-dependent runtime NOT required on the engineer's PC) ->
   stage standards, config, the operator documents and launchers -> write VERSION.json and SHA256SUMS.txt -> zip.
   The package carries one executable on purpose: the headless runner (bdit) is a build and CI tool, and a second

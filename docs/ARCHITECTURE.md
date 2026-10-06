@@ -121,4 +121,4 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 ## Packaging
 
-`build\Build-Portable.ps1` restores, builds, tests, regenerates the standards manifest, publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.
+`build\Build-Portable.ps1` restores, builds, tests, verifies the committed standards manifest (failing on any mismatch), publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.
