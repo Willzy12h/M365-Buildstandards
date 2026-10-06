@@ -27,10 +27,10 @@ Checks executed with the source-built .NET SDK 10.0.112 on Linux (a scratch copy
 - PowerShell 7.6: `Test-StandardsManifest.ps1` passes, and fails on a changed, unlisted or missing catalogue; the ZIP writer emits `/` names.
 - New tests were checked to fail on the pre-fix code.
 
-Windows CI on the final head `529aeaf` (run 37526837469): all jobs passed. I read the whole build-job log, which shows:
-- Engine tests: 917 passed.
-- App tests: 113 passed. This includes the new adoption-overwrite test.
-- Native WPF harness: 42 layouts, 79 commands (including the new Verify restored folder), 0 binding issues, 0 tenant calls.
+Windows CI on the final code head `db6c9fa` (run 37532932213): all jobs passed. I read the whole build-job log, which shows:
+- Engine tests: 918 passed.
+- App tests: 115 passed. This includes the adoption-overwrite, historical Exchange time and tampered historical Exchange tests.
+- Native WPF harness: 42 layouts, 79 commands, 0 binding issues, 0 tenant calls.
 - Windows PowerShell 5.1 packaging, with the committed manifest verified.
 - Fresh 297-file package: startup, shutdown and right-click Copy.
 
@@ -44,6 +44,12 @@ Code-review corrections made after the first implementation:
   - Exchange-only snapshots reopened from history are judged as of their capture.
   - The lease probe needs only read access.
   - The matrix evidence column, the Conditional Access test in the spec, the CI sidecar upload and the documentation were corrected.
+- A third pass found more, also fixed:
+  - Adoption now extracts straight from the archive checked against the trusted digest, using the verified list in memory, never one read back from disk.
+  - Modified stored Exchange snapshots are refused when reopened from history, as the CLI refuses them.
+  - The stored-evidence reference time is capped at now.
+  - The adoption reload can no longer mask the adoption's own error.
+  - Cleanups: a single digest rule, enum-based matrix routes, and `transfers/` created by the engine.
 - A malformed trusted digest is refused.
 - Stored-evidence time now includes later DNS refreshes.
 
