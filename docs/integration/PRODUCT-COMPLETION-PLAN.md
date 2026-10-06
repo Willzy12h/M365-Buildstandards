@@ -122,3 +122,8 @@ Approval of A–G permits bounded source implementation and review artifacts. Ag
 Business owner chooses support/access/retention/exception/signing policies. Live acceptance needs an identified authorised tenant/operator/device and exact consequential previews; code review alone supplies none. New shared contracts follow the existing dedicated decision-PR process before dependent code.
 
 At completion of each package, update its feedback entries with exact commit/check/evidence. Only mark Verified after the stated checks pass; retain live/human Blocked or Not run states. Update the current completion register without rewriting historical results.
+
+
+## Implementation checkpoint — 6 October 2026
+
+Preview.18 independent scope is verified at f200371: standard exports/capability and access inventory; shared desktop/headless read-only context; previewed support metadata; exact-byte evidence backup/separate restore; current operator/continuity/incident/release guides; resolved package/runtime notices and provenance. Windows 1,014 tests, 42 layouts/78 commands, parser negatives and fresh package checks passed. The feedback register holds independent fixes and remaining business/human checks. This is partial delivery of approved A–G, not closure of persistent workflow/backfill or a production release. PR #20 remains the required contract-merge dependency before INT-049–051 implementation. Existing A–G source approval persists; do not seek it again.
