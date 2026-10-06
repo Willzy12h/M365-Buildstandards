@@ -22,6 +22,8 @@ public sealed class ConnectedTenant : IAsyncDisposable
         _authenticator = authenticator;
     }
 
+    public Task ReleaseAsync() => _authenticator?.ReleaseAsync() ?? Task.CompletedTask;
+
     public async ValueTask DisposeAsync()
     {
         if (_authenticator is not null) await _authenticator.DisconnectAsync();
@@ -64,8 +66,12 @@ public sealed class TenantConnectionService
         return scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct)
+    public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
+        DiscoveredTenant? expectedIdentity = null)
     {
+        if (expectedIdentity is not null && (mode != SessionMode.Assessment
+            || !string.Equals(profile.TenantId, expectedIdentity.TenantId, StringComparison.OrdinalIgnoreCase)))
+            throw new TenantMismatchException("Quick Connect confirmation belongs to another tenant or permission mode.");
         var client = _settings.ResolveClient(mode, profile)
             ?? throw new ConfigurationException(mode == SessionMode.Deployment
                 ? "No deployment application is configured. Register the M365 BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
@@ -90,6 +96,33 @@ public sealed class TenantConnectionService
             ParentWindowHandle = ParentWindowHandle, UseSystemBrowser = _settings.UseSystemBrowser, LoginHint = LoginHint
         }, _log, ct);
 
+        return await VerifyAuthenticatedAsync(profile, mode, standard, client, authenticator, progress, ct, expectedIdentity);
+    }
+
+    public async Task<ConnectedTenant> ConfirmDiscoveryAsync(PendingTenantDiscovery pending, TenantProfile profile,
+        StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct)
+    {
+        var client = _settings.ResolveClient(SessionMode.Assessment, profile)
+            ?? throw new ConfigurationException("No assessment application is configured.");
+        PendingTenantDiscovery.VerifyContext(pending.Identity, profile, pending.StandardDigest, standard.IntegrityDigest,
+            pending.CreatedAt, DateTimeOffset.UtcNow);
+        if (!client.IsSharedFallback)
+        {
+            // A different application needs its own token. Never label a shared token as dedicated access.
+            progress?.Report("The configured dedicated assessment application needs its own Microsoft sign-in; cached access is tried first.");
+            LoginHint = pending.Identity.Account;
+            try { return await ConnectAsync(profile, SessionMode.Assessment, standard, progress, ct, pending.Identity); }
+            finally { await pending.DisposeAsync(); }
+        }
+        var auth = pending.Take(profile, standard);
+        progress?.Report("Using your Quick Connect sign-in; rechecking the confirmed tenant and account without another prompt.");
+        return await VerifyAuthenticatedAsync(profile, SessionMode.Assessment, standard, client, auth, progress, ct, pending.Identity);
+    }
+
+    private async Task<ConnectedTenant> VerifyAuthenticatedAsync(TenantProfile profile, SessionMode mode,
+        StandardCatalogue standard, (string ClientId, string Label, bool IsSharedFallback) client, MsalAuthenticator authenticator,
+        IProgress<string>? progress, CancellationToken ct, DiscoveredTenant? expectedIdentity)
+    {
         var routes = GraphRouteAllowList.FromStandard(standard);
         var graph = new GraphClient(_http, authenticator, profile.TenantId, mode, routes, new GraphClientOptions
         {
@@ -105,6 +138,7 @@ public sealed class TenantConnectionService
             AccountObjectId = authenticator.Outcome.AccountObjectId,
             ClientId = client.ClientId,
             ClientLabel = client.Label,
+            AuthenticationType = OperatingSystem.IsWindows() && !_settings.UseSystemBrowser ? "Delegated (Windows sign-in / WAM)" : "Delegated (system browser)",
             Mode = mode,
             Scopes = authenticator.Outcome.Scopes.ToList(),
             ConnectedAt = Timestamps.Format(DateTimeOffset.UtcNow),
@@ -155,12 +189,14 @@ public sealed class TenantConnectionService
             if (client.IsSharedFallback)
                 session.Notices.Add("Connected through the shared Microsoft Graph PowerShell application. This is acceptable for read-only assessment only.");
 
+            ct.ThrowIfCancellationRequested();
+            expectedIdentity?.VerifyConnection(session);
             _log.Info("Connect", $"Connected to verified tenant {session.TenantId} ({session.TenantName}) as {session.Account} in {mode} mode via {client.Label}.", session.TenantId);
             return new ConnectedTenant(session, graph, authenticator);
         }
         catch
         {
-            await authenticator.DisconnectAsync();
+            await authenticator.ReleaseAsync();
             throw;
         }
     }

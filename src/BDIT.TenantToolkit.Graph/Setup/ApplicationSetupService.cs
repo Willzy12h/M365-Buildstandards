@@ -137,7 +137,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
             AssertConnected();
             plan = ToolkitJson.Deserialize<ApplicationSetupPlan>(ToolkitJson.Serialize(plan));
             if (!permissionsApproved || !TenantConfirmation.Matches(exactTenantConfirmation, Identity.TenantId))
-                throw new PlanValidationException("Approve the displayed permissions and type the exact tenant ID before application creation.");
+                throw new PlanValidationException("Approve the displayed permissions and confirm the exact verified tenant before application creation.");
             if (!_issuedPlans.TryGetValue(plan.Id, out var issued) || issued != plan.PlanHash || PlanHash(plan) != issued)
                 throw new PlanValidationException("The setup plan changed, was already used, or belongs to another session. Preview again.");
             if (!Same(plan.TenantId, Identity.TenantId) || !Same(plan.OperatorId, Identity.AccountObjectId)

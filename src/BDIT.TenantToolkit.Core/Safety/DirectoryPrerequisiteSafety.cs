@@ -34,7 +34,7 @@ public static class DirectoryPrerequisiteSafety
     public static void Assert(CollectionDefinition def, JsonObject payload)
     {
         if (IsGroup(def)) AssertGroup(payload);
-        else if (IsNamedLocation(def)) AssertNamedLocation(payload);
+        else if (IsNamedLocation(def)) AssertNamedLocation(payload, def.PublicIpRangesOnly == true);
     }
 
     private static void AssertGroup(JsonObject payload)
@@ -60,7 +60,7 @@ public static class DirectoryPrerequisiteSafety
             throw new SafetyViolationException("A group candidate needs a simple mail nickname of at most 64 letters, digits, hyphens, underscores or full stops.");
     }
 
-    private static void AssertNamedLocation(JsonObject payload)
+    private static void AssertNamedLocation(JsonObject payload, bool publicOnly)
     {
         if (payload["@odata.type"]?.ToString() != "#microsoft.graph.ipNamedLocation")
             throw new SafetyViolationException("Only IP named locations are created. Country locations depend on Microsoft's address attribution and are a separate reviewed decision.");
@@ -79,6 +79,8 @@ public static class DirectoryPrerequisiteSafety
             var cidr = entry["cidrAddress"]?.ToString() ?? "";
             if (!IsCidr(cidr, type.Contains("iPv6", StringComparison.Ordinal)))
                 throw new SafetyViolationException($"'{cidr}' is not a CIDR range of the declared type.");
+            if (publicOnly && !PublicIpRange.IsPublic(cidr))
+                throw new SafetyViolationException("Office ranges must be public, globally routable CIDR ranges.");
             foreach (var key in entry.Select(p => p.Key))
                 if (key is not ("@odata.type" or "cidrAddress"))
                     throw new SafetyViolationException($"An IP range carries only its type and address; '{key}' is not written.");

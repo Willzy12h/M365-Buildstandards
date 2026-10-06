@@ -36,6 +36,8 @@ public class CollectorAndProfileTests
         Assert.Equal(CaptureStatus.Collected, capture.Status);
         Assert.True(capture.DetailIncomplete);
         Assert.NotNull(capture.Items[0][TenantCollector.AssignmentsUnknownKey]);
+        Assert.Contains("assignments unavailable for object c1", capture.Error, StringComparison.Ordinal);
+        Assert.Contains("denied", capture.Error, StringComparison.Ordinal);
         Assert.True(snapshot.Collections["conditionalAccess"].Usable);
     }
 

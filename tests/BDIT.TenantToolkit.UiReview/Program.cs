@@ -81,7 +81,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "assessment", "plan", "deploy", "automation", "standard" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -142,6 +142,36 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "connect")
+                    {
+                        var connect = shell.Page<ConnectViewModel>();
+                        typeof(ConnectViewModel).GetMethod("SetDiscovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(connect,
+                            new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
+                        content.UpdateLayout(); Pump();
+                        var label = "quick-connect-confirmation " + (int)size.Width + "x" + (int)size.Height;
+                        var confirm = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, connect.ConfirmQuickConnectCommand));
+                        // Rendering occurs before Loaded. Verify automatic scrolling separately on the shown window.
+                        confirm.BringIntoView(); content.UpdateLayout(); Pump();
+                        var visible = VisibleBounds(confirm, content);
+                        if (visible.Width < confirm.ActualWidth - 1 || visible.Height < confirm.ActualHeight - 1)
+                            throw new InvalidOperationException("Quick Connect's confirmation action cannot be brought fully into view.");
+                        RecordUnnamedControls(content, label); RecordClipping(content, label); RecordLowContrast(content, label);
+                        SaveImage(content, size, Path.Combine(output, "quick-connect-confirmation-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        connect.CancelQuickConnectCommand.Execute(null);
+                        if (connect.HasDiscoveredTenant) throw new InvalidOperationException("Cancelling the discovery preview did not clear it.");
+                    }
+                    if (nav.Key == "setup")
+                    {
+                        var setup = shell.Page<ApplicationSetupViewModel>();
+                        var approve = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, setup.CreateCommand));
+                        approve.BringIntoView(); content.UpdateLayout(); Pump();
+                        var visible = VisibleBounds(approve, content);
+                        if (visible.Width < approve.ActualWidth - 1 || visible.Height < approve.ActualHeight - 1)
+                            throw new InvalidOperationException("The application creation approval cannot be brought fully into view.");
+                        SaveImage(content, size, Path.Combine(output, "setup-create-approval-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        Descendants(content).OfType<ScrollViewer>().First(s => s.ScrollableHeight > 0).ScrollToTop();
+                        content.UpdateLayout(); Pump();
+                    }
                     if (nav.Key == "plan")
                     {
                         var tabs = Descendants(controls[0]).OfType<TabControl>().First();
@@ -152,6 +182,32 @@ internal static partial class Program
                         RecordClipping(content, "plan-review " + (int)size.Width + "x" + (int)size.Height);
                         CapturePrerequisites(content, size, output, "plan-review");
                         SaveImage(content, size, Path.Combine(output, "plan-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                    }
+                    if (nav.Key == "configuration")
+                    {
+                        var tabs = Descendants(controls[0]).OfType<TabControl>().First();
+                        tabs.SelectedIndex = 2; content.UpdateLayout(); Pump();
+                        var pageLabel = "exchange-purview " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, pageLabel); RecordLowContrast(content, pageLabel); RecordClipping(content, pageLabel);
+                        SaveImage(content, size, Path.Combine(output, "exchange-purview-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+                    }
+                    if (nav.Key == "standard")
+                    {
+                        var more = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
+                        more.IsExpanded = true; content.UpdateLayout(); Pump();
+                        var exports = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
+                        exports.IsExpanded = true; content.UpdateLayout(); Pump();
+                        var label = "engineer-documents " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
+                        SaveImage(content, size, Path.Combine(output, "engineer-documents-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                        var definitions = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Defaults and settings — HTML, reusable JSON and document source");
+                        definitions.IsExpanded = true; content.UpdateLayout(); Pump();
+                        var definitionLabel = "standard-definition-formats " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, definitionLabel); RecordLowContrast(content, definitionLabel); RecordClipping(content, definitionLabel);
+                        SaveImage(content, size, Path.Combine(output, "standard-definition-formats-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        definitions.IsExpanded = false; more.IsExpanded = false; content.UpdateLayout(); Pump();
                     }
                   }
                   catch (InvalidOperationException ex)
@@ -174,12 +230,26 @@ internal static partial class Program
             window.Left = -10000; window.Top = -10000; window.Width = 1480; window.Height = 940;
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
+            VerifyQuickConnectScroll(shell, window, content);
             foreach (var nav in shell.NavItems)
             {
                 traces.Context = "keyboard " + nav.Key;
                 shell.Navigate(nav.Key);
                 SeedPage(shell, nav.Key);
                 CheckKeyboardReach(window, content, nav.Key);
+                if (nav.Key == "standard")
+                {
+                    var more = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
+                    more.IsExpanded = true; content.UpdateLayout(); Pump();
+                    var exports = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
+                    exports.IsExpanded = true; content.UpdateLayout(); Pump();
+                    CheckKeyboardReach(window, content, "standard with engineer exports expanded");
+                    exports.IsExpanded = false; content.UpdateLayout(); Pump();
+                    var definitions = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Defaults and settings — HTML, reusable JSON and document source");
+                    definitions.IsExpanded = true; content.UpdateLayout(); Pump();
+                    CheckKeyboardReach(window, content, "standard with definition formats expanded");
+                    definitions.IsExpanded = false; more.IsExpanded = false; content.UpdateLayout(); Pump();
+                }
             }
             PressCommands(shell, content, traces);
             WriteReviewNotes(output);
@@ -254,7 +324,8 @@ internal static partial class Program
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(output, "harness-error.txt"), ex.ToString());
+            File.WriteAllText(Path.Combine(output, "harness-error.txt"), ex + Environment.NewLine
+                + string.Join(Environment.NewLine, PageFailures));
             File.WriteAllText(Path.Combine(output, "binding-errors.txt"), string.Join(Environment.NewLine, traces.Messages));
             Console.Error.WriteLine(ex);
             return 1;
@@ -267,6 +338,30 @@ internal static partial class Program
     /// sizes is what an engineer at that scaling sees, without needing a high-DPI display on the build machine.
     /// </summary>
     private static readonly Size[] PageSizes = { new(1480, 940), new(1180, 760), new(1180, 640) };
+
+    private static void VerifyQuickConnectScroll(ShellViewModel shell, Window window, FrameworkElement content)
+    {
+        shell.Navigate("connect"); Pump(); content.UpdateLayout();
+        var connect = shell.Page<ConnectViewModel>();
+        foreach (var size in PageSizes)
+        {
+            window.Width = size.Width; window.Height = size.Height;
+            connect.CancelQuickConnectCommand.Execute(null);
+            content.UpdateLayout(); Pump();
+            Descendants(content).OfType<ScrollViewer>().First(s => s.ScrollableHeight > 0).ScrollToTop();
+            content.UpdateLayout(); Pump();
+            typeof(ConnectViewModel).GetMethod("SetDiscovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(connect,
+                new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
+            content.UpdateLayout(); Pump(); content.UpdateLayout(); Pump();
+            var confirm = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, connect.ConfirmQuickConnectCommand));
+            var visible = VisibleBounds(confirm, content);
+            if (visible.Width < confirm.ActualWidth - 1 || visible.Height < confirm.ActualHeight - 1)
+                throw new InvalidOperationException($"Quick Connect did not scroll its confirmation fully into view at {size.Width}x{size.Height}.");
+        }
+        connect.CancelQuickConnectCommand.Execute(null);
+        window.Width = 1480; window.Height = 940;
+        content.UpdateLayout(); Pump();
+    }
 
     /// <summary>1920x1080 at 150% is 1280x720 device-independent units; the taskbar takes 48 of them.</summary>
     private static readonly Size SmallestWorkArea = new(1280, 672);
@@ -306,7 +401,7 @@ internal static partial class Program
                 DesiredState = "Reviewed build standard configuration", EngineerAction = "Inspect settings, confirm scope and record evidence.", BusinessImpact = "Illustrative review finding only." });
         assessment.Summary = new AssessmentSummary { Total = assessment.Findings.Count, Missing = 8, PartialMatch = 8, SettingsMatchNotEnforced = 8, RequiresManualReview = 7, Compliant = 7, UnableToAssess = 7 };
         Set(workspace, nameof(Workspace.Assessment), assessment);
-        var plan = new DeploymentPlan { Id = Id(12), TenantId = Tenant, TenantName = profile.Company, ProfileId = profile.Id, Release = standard.Release, CreatedAt = Stamp, OperatorAccount = session.Account,
+        var plan = new DeploymentPlan { Id = Id(12), TenantId = Tenant, TenantName = profile.Company, ProfileId = profile.Id, Release = standard.Release, CreatedAt = Stamp, OperatorAccount = session.Account, OperatorObjectId = session.OperatorObjectId!, ClientId = session.ClientId,
             PlanDigest = new string('a', 64), SnapshotId = snapshot.Id, Rows = standard.Controls.Where(c => c.HasRecipe).Take(4).Select((c, i) => new PlanRow { ControlId = c.Id, Name = c.Name, Collection = c.Collection ?? "", Action = i < 2 ? PlanAction.Create : PlanAction.Manual,
                 Reason = "Synthetic reviewed candidate; no actual plan execution is possible in this harness.", SafeState = "disabled", ExpectedProductionState = "enabled after review", ExpectedProductionAssignment = "approved pilot scope",
                 Payload = new JsonObject { ["displayName"] = "Synthetic " + c.Name, ["state"] = "disabled", ["conditions"] = new JsonObject { ["users"] = new JsonObject { ["includeUsers"] = new JsonArray("All"), ["excludeUsers"] = new JsonArray(Id(5), Id(6)) } } }, Warnings = new() { "Emergency accounts and delegated creator remain excluded until deliberately reviewed." } }).ToList() };
@@ -315,7 +410,9 @@ internal static partial class Program
             Status = RunStatus.ReviewRequired, Error = "Synthetic verification failure illustrates honest result reporting.", Release = standard.Release,
             Results = plan.Rows.Select((r, i) => new RunResult { ControlId = r.ControlId, Name = r.Name, Collection = r.Collection, PlannedAction = r.Action.ToString(), Status = i == 0 ? ResultStatus.Completed : i == 1 ? ResultStatus.Error : ResultStatus.NotRun,
                 WriteAcceptance = i < 2 ? WriteAcceptance.Accepted : WriteAcceptance.NotAttempted, Configuration = i == 0 ? ConfigurationVerification.Pass : ConfigurationVerification.Unknown,
-                Verification = "Functional verification pending", Reason = "Offline synthetic result — no write occurred." }).ToList() };
+                Verification = "Functional verification pending", WrittenPayload = r.Payload?.DeepClone().AsObject(),
+                AfterObject = i == 0 ? new JsonObject { ["id"] = Id(600), ["state"] = "disabled", ["synthetic"] = true } : null,
+                Reason = "Offline synthetic result — no write occurred." }).ToList() };
         Set(workspace, nameof(Workspace.LastRun), run);
         workspace.Logger.Info("UI review", "OFFLINE SYNTHETIC DATA. No authentication, Graph collection or tenant write was called.");
     }
@@ -351,7 +448,17 @@ internal static partial class Program
         {
             var vm = shell.Page<PlanViewModel>();
             vm.SelectedRow = vm.Rows.FirstOrDefault();
-            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "ENR-003");
+            // Exercise actual bound prerequisite content. ENR-007 has its manual procedure
+            // in Implementation, whereas Hello has the prerequisite entries this check expands.
+            vm.SelectedControl = vm.Controls.First(c => c.ControlId == "CFG-WIN-003");
+        }
+        if (key == "deploy")
+            shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
+        if (key == "history")
+        {
+            var vm = shell.Page<HistoryViewModel>();
+            vm.SelectedRun = vm.Runs.FirstOrDefault();
+            vm.SelectedResult = vm.RunResults.FirstOrDefault();
         }
         if (key == "standard")
         {

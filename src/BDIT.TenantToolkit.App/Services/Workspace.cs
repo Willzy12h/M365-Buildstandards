@@ -15,6 +15,7 @@ using BDIT.TenantToolkit.Engine.Collection;
 using BDIT.TenantToolkit.Engine.Drift;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
+using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Recovery;
@@ -32,6 +33,8 @@ namespace BDIT.TenantToolkit.App.Services;
 public sealed class Workspace : ObservableObject
 {
     private readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
+    private PendingTenantDiscovery? _pendingDiscovery;
+    private Task _pendingRelease = Task.CompletedTask;
     private bool _busy;
     private string _busyMessage = "";
     private string _progressDetail = "";
@@ -73,6 +76,8 @@ public sealed class Workspace : ObservableObject
     public AccessReport? Access { get; private set; }
     public TenantSnapshot? Snapshot { get; private set; }
     public bool SnapshotIsLive { get; private set; }
+    public TenantSnapshot? ExchangeSnapshot { get; private set; }
+    public bool ExchangeCapturedByTool { get; private set; }
     public AssessmentResult? Assessment { get; private set; }
     public DeploymentPlan? Plan { get; private set; }
     public string? AcknowledgedSnapshotId { get; private set; }
@@ -137,6 +142,7 @@ public sealed class Workspace : ObservableObject
     {
         try
         {
+            CancelPendingDiscovery();
             Standard = Standards.Load(fileName);
             StandardError = null;
             Plan = null;
@@ -269,6 +275,8 @@ public sealed class Workspace : ObservableObject
         if (Connection is not null && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("These settings belong to another tenant. Reconnect before applying them.");
         if (save) profile = SaveProfile(profile);
+        CancelPendingDiscovery();
+        if (Profile?.TenantId != profile.TenantId) { ExchangeSnapshot = null; ExchangeCapturedByTool = false; }
         Profile = profile;
         Plan = null;
         AcknowledgedSnapshotId = null;
@@ -303,6 +311,8 @@ public sealed class Workspace : ObservableObject
         foreach (var p in all) Profiles.Add(p);
         if (Profile?.Id == profile.Id)
         {
+            if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+            { ExchangeSnapshot = null; ExchangeCapturedByTool = false; Assessment = null; CancelPendingDiscovery(); }
             Profile = profile;
             Plan = null;
             AcknowledgedSnapshotId = null;
@@ -326,16 +336,64 @@ public sealed class Workspace : ObservableObject
 
     // ---- connection ----------------------------------------------------------------------------------------------
 
-    public Task ConnectAsync(TenantProfile profile, SessionMode mode) => RunExclusiveAsync(
+    public async Task<DiscoveredTenant?> DiscoverTenantAsync()
+    {
+        DiscoveredTenant? discovered = null;
+        await RunExclusiveAsync("Finding the signed-in organisation", async progress =>
+        {
+            progress.Report("Choose the client's own work or school account in Microsoft sign-in.");
+            await CancelPendingDiscoveryAsync();
+            var result = await TenantDiscoveryService.DiscoverRetainedAsync(_http, Settings, RequireStandard(),
+                Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
+                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken);
+            _pendingDiscovery = result;
+            if (OperationToken.IsCancellationRequested) { await CancelPendingDiscoveryAsync(); OperationToken.ThrowIfCancellationRequested(); }
+            discovered = result.Identity;
+        });
+        return discovered;
+    }
+
+    public void CancelPendingDiscovery()
+    {
+        var pending = _pendingDiscovery; _pendingDiscovery = null;
+        if (pending is not null) _pendingRelease = ReleasePendingAsync(_pendingRelease, pending);
+    }
+    private static async Task ReleasePendingAsync(Task previous, PendingTenantDiscovery pending)
+    { await previous; await pending.DisposeAsync(); }
+    public async Task CancelPendingDiscoveryAsync() { CancelPendingDiscovery(); await _pendingRelease; }
+
+    public Task ConnectAsync(TenantProfile profile, SessionMode mode, string? loginHint = null,
+        DiscoveredTenant? expectedIdentity = null) => RunExclusiveAsync(
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
             var standard = RequireStandard();
             Connections.ParentWindowHandle = AuthenticationWindow();
-            Connections.LoginHint = Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
-            Plan = null;
-            AcknowledgedSnapshotId = null;
-            var nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
-            await DisconnectCoreAsync();
+            Connections.LoginHint = loginHint ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
+            // Repeated connection buttons for the same complete profile need fresh read checks, not another
+            // interactive sign-in. A changed mode, application, profile or discovery confirmation uses full verification.
+            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode))
+            {
+                progress.Report("Reusing the current verified session; checking read access without another sign-in.");
+                Access = await Connections.CheckAccessAsync(Connection!, standard, progress, OperationToken);
+                await LoadLicencesCoreAsync(includeUsers: false);
+                return;
+            }
+            Plan = null; AcknowledgedSnapshotId = null;
+            ConnectedTenant nextConnection;
+            if (expectedIdentity is not null)
+            {
+                var pending = _pendingDiscovery ?? throw new AuthenticationRequiredException("Quick Connect was cancelled. Start it again.");
+                if (pending.Identity != expectedIdentity) throw new TenantMismatchException("Quick Connect account changed.");
+                _pendingDiscovery = null;
+                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken); }
+                finally { await pending.DisposeAsync(); }
+            }
+            else
+            {
+                await CancelPendingDiscoveryAsync();
+                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
+            }
+            await DisconnectCoreAsync(releaseOnly: true);
             await DisconnectSetupCoreAsync();
             Profile = profile;
             Connection = nextConnection;
@@ -346,6 +404,21 @@ public sealed class Workspace : ObservableObject
             Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
             await LoadLicencesCoreAsync(includeUsers: false);
         });
+
+    public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
+        && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
+        && string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(session.ClientId, Settings.ResolveClient(mode, profile)?.ClientId, StringComparison.OrdinalIgnoreCase)
+        && ConnectionProfileDigest(Profile) == ConnectionProfileDigest(profile);
+
+    private static string ConnectionProfileDigest(TenantProfile profile)
+    {
+        // Form validation and saving update these local timestamps even when every client setting is unchanged.
+        // Keep every other field in the comparison, including future additions to the profile schema.
+        var value = ToolkitJson.ToNode(profile)!.AsObject();
+        value.Remove("createdAt"); value.Remove("updatedAt");
+        return CanonicalJson.Sha256(value);
+    }
 
     public Task CheckAccessAsync() => RunExclusiveAsync("Checking access", async progress =>
     {
@@ -358,12 +431,13 @@ public sealed class Workspace : ObservableObject
     public async Task DisconnectAsync()
     {
         if (Busy) throw new ToolkitException("Stop the active run and wait for evidence collection before disconnecting.");
+        await CancelPendingDiscoveryAsync();
         await DisconnectCoreAsync();
         await DisconnectSetupCoreAsync();
         Notify();
     }
 
-    private async Task DisconnectCoreAsync()
+    private async Task DisconnectCoreAsync(bool releaseOnly = false)
     {
         var connection = Connection;
         Connection = null;
@@ -371,12 +445,14 @@ public sealed class Workspace : ObservableObject
         InterruptedNotice = "";
         Access = null;
         Snapshot = null;
+        ExchangeSnapshot = null; ExchangeCapturedByTool = false;
         SnapshotIsLive = false;
         Assessment = null;
         Plan = null;
         AcknowledgedSnapshotId = null;
         Control = null;
-        if (connection is not null) await connection.DisposeAsync();
+        if (connection is not null)
+        { if (releaseOnly) await connection.ReleaseAsync(); else await connection.DisposeAsync(); }
     }
 
     public Task ConnectApplicationSetupAsync(string tenantId) => RunExclusiveAsync("Signing in for application setup", async progress =>
@@ -386,7 +462,7 @@ public sealed class Workspace : ObservableObject
         Plan = null; AcknowledgedSnapshotId = null;
         var nextSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken,
             AuthenticationWindow(), Settings.UseSystemBrowser, Session?.Account ?? "");
-        await DisconnectCoreAsync();
+        await CancelPendingDiscoveryAsync();
         await DisconnectSetupCoreAsync();
         ApplicationSetup = nextSetup;
     });
@@ -433,7 +509,9 @@ public sealed class Workspace : ObservableObject
     public void LoadStoredSnapshot(string snapshotId)
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
-        Snapshot = Evidence.LoadSnapshot(profile.TenantId, snapshotId) ?? throw new ToolkitException("Snapshot not found.");
+        var stored = Evidence.LoadSnapshot(profile.TenantId, snapshotId) ?? throw new ToolkitException("Snapshot not found.");
+        if (stored.ExchangeCapture is not null) { SetExchangeSnapshot(stored, false); return; }
+        Snapshot = stored;
         SnapshotIsLive = false;
         Plan = null;
         AcknowledgedSnapshotId = null;
@@ -444,14 +522,103 @@ public sealed class Workspace : ObservableObject
     public void RunAssessment()
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
-        var snapshot = Snapshot ?? throw new ToolkitException("Read the tenant configuration first.");
+        var snapshot = Snapshot ?? ExchangeSnapshot ?? throw new ToolkitException("Read the tenant configuration first.");
         var standard = RequireStandard();
-        var mappings = Evidence.LoadMappings(profile.TenantId);
-        var deviations = Evidence.LoadDeviations(profile.TenantId);
-        Assessment = Engine.Assess(snapshot, standard, profile, mappings, deviations, Session?.Account ?? "offline review");
+        Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture);
         Evidence.SaveAssessment(Assessment);
         Logger.Info("Assessment", $"Assessment {Assessment.Id}: {Assessment.Summary.Compliant} compliant, {Assessment.Summary.Missing} missing, {Assessment.Summary.PartialMatch} partial, {Assessment.Summary.UnableToAssess} unknown.", profile.TenantId);
         Notify();
+    }
+
+    public void SaveExchangeDomain(string domain)
+    {
+        var profile = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(Profile ?? throw new ToolkitException("Select a client first.")));
+        profile.Parameters.PolicyInputs ??= new();
+        profile.Parameters.PolicyInputs["exchangeDomain"] = System.Text.Json.Nodes.JsonValue.Create(MailDomain.Validate(domain));
+        SaveProfile(profile);
+        InvalidatePolicyState();
+    }
+
+    public void ImportExchangeCapture(string fileName, string enteredDomain)
+    {
+        if (Busy) throw new ToolkitException("Wait for the active operation before importing evidence.");
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var standard = RequireStandard();
+        if (standard.SchemaVersion < 5 || !standard.Controls.Any(c => c.Area == "Exchange"))
+            throw new ConfigurationException("Select standard 2026.09.12 or a release with Exchange controls before importing.");
+        MailDomain.Validate(enteredDomain);
+        using var stream = File.OpenRead(fileName);
+        using var reader = new StreamReader(stream, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
+        var buffer = new char[ExchangeCaptureSchema.MaximumBytes + 1];
+        var count = reader.ReadBlock(buffer, 0, buffer.Length);
+        if (count > ExchangeCaptureSchema.MaximumBytes) throw new ConfigurationException("Exchange capture exceeds the 2 MiB limit.");
+        var snapshot = ExchangeEvidenceImporter.Import(new string(buffer, 0, count), profile, standard, enteredDomain, DateTimeOffset.UtcNow);
+        Evidence.SaveSnapshot(snapshot);
+        SetExchangeSnapshot(snapshot, false);
+    }
+
+    private void SetExchangeSnapshot(TenantSnapshot snapshot, bool capturedByTool)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase) || snapshot.ExchangeCapture is null)
+            throw new TenantMismatchException("Exchange evidence belongs to another tenant or has no observations.");
+        ExchangeCaptureSchema.Validate(snapshot.ExchangeCapture, profile.TenantId, DateTimeOffset.UtcNow);
+        ExchangeSnapshot = snapshot; ExchangeCapturedByTool = capturedByTool;
+        // The Graph capture, plan and acknowledgement are unchanged. Exchange cannot satisfy their gates.
+        RunAssessment(); Notify();
+    }
+
+    public Task CaptureExchangeAsync(bool includePurview, IExchangeCaptureRunner? runner = null) => RunExclusiveAsync("Reading Exchange/Purview configuration", async progress =>
+    {
+        var connection = RequireConnection(); var profile = Profile!; var standard = RequireStandard();
+        if (!connection.Session.TenantVerified || !connection.Session.OperatorVerified || standard.SchemaVersion < 5)
+            throw new TenantMismatchException("Verify the connected tenant and operator before Exchange capture.");
+        var domain = MailDomain.Validate(connection.Session.PrimaryDomain.Length > 0 ? connection.Session.PrimaryDomain : profile.Domain);
+        var json = await (runner ?? new ExchangeCaptureRunner()).CaptureAsync(profile.TenantId, domain,
+            connection.Session.Account, includePurview, progress, OperationToken);
+        OperationToken.ThrowIfCancellationRequested();
+        var snapshot = ExchangeEvidenceImporter.Import(json, profile, standard, domain, DateTimeOffset.UtcNow);
+        Evidence.SaveSnapshot(snapshot);
+        SetExchangeSnapshot(snapshot, true);
+    });
+
+    public IReadOnlyList<string> ExchangeDomains => ExchangeSnapshot?.ExchangeCapture is { } capture
+        && ExchangeCaptureSchema.Complete(capture, "acceptedDomains", out var domains)
+        ? domains.Select(d => d["DomainName"]?.GetValue<string>() ?? "").Where(d =>
+            { try { return MailDomain.Validate(d) == d; } catch (ConfigurationException) { return false; } })
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).ToList()
+        : Array.Empty<string>();
+
+    public void SelectExchangeDomain(string domain)
+    {
+        if (Busy) throw new ToolkitException("Wait for capture to finish before selecting a mail domain.");
+        domain = MailDomain.Validate(domain);
+        if (!ExchangeDomains.Contains(domain, StringComparer.OrdinalIgnoreCase))
+            throw new ConfigurationException("Select a domain from complete accepted-domain observations.");
+        var previous = ExchangeSnapshot ?? throw new ToolkitException("Capture Exchange first.");
+        var capture = ToolkitJson.Deserialize<ExchangeCapture>(ToolkitJson.Serialize(previous.ExchangeCapture!));
+        capture.Domain = domain; capture.Dns.Clear();
+        var snapshot = ExchangeEvidenceImporter.Snapshot(capture, Profile!, RequireStandard());
+        Evidence.SaveSnapshot(snapshot); SetExchangeSnapshot(snapshot, ExchangeCapturedByTool);
+    }
+
+    public Task CheckExchangeDnsAsync(IDnsLookup? dns = null) => RunExclusiveAsync("Checking public DKIM and DMARC DNS records", async _ =>
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var snapshot = ExchangeSnapshot ?? throw new ToolkitException("Capture or import Exchange observations first.");
+        var updated = await ExchangeEvidenceImporter.CheckDnsAsync(snapshot, profile, RequireStandard(), dns ?? new WindowsDnsLookup(), DateTimeOffset.UtcNow, OperationToken);
+        Evidence.SaveSnapshot(updated);
+        SetExchangeSnapshot(updated, ExchangeCapturedByTool);
+    });
+
+    public string ExportExchangeProposal(string controlId, string typedTenant, string enteredDomain)
+    {
+        if (Busy) throw new ToolkitException("Wait for the active operation before exporting a proposal.");
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var snapshot = ExchangeSnapshot ?? throw new ToolkitException("Capture or import Exchange observations first.");
+        var now = DateTimeOffset.UtcNow;
+        var text = ExchangeProposal.Create(RequireStandard(), profile, snapshot, Evidence, controlId, typedTenant, enteredDomain, now);
+        return Exporter.ExportExchangeProposal(text, controlId, now);
     }
 
     public DeploymentPlan BuildPlan(IReadOnlyList<string> controlIds)
@@ -529,6 +696,7 @@ public sealed class Workspace : ObservableObject
         Control = new DeploymentControl();
         LastRun = await Executor.StartAsync(new ExecutionRequest
         {
+            TypedTenant = typedTenantId,
             Plan = plan,
             Profile = profile,
             Standard = RequireStandard(),
@@ -560,7 +728,7 @@ public sealed class Workspace : ObservableObject
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var standard = RequireStandard();
-        if (standard.FindControl(deviation.ControlId) is null) throw new ConfigurationException($"'{deviation.ControlId}' is not a control in the loaded standard.");
+        if (ControlInstances.Find(standard, profile, deviation.ControlId) is null) throw new ConfigurationException($"'{deviation.ControlId}' is not a control in the loaded standard.");
         if (string.IsNullOrWhiteSpace(deviation.Reason) || deviation.Reason.Trim().Length < 8) throw new ConfigurationException("Record a meaningful reason for the deviation (at least 8 characters).");
         if (string.IsNullOrWhiteSpace(deviation.ApprovedBy)) throw new ConfigurationException("Record who approved the deviation.");
         if (deviation.ReviewBy.Length > 0 && !DateOnly.TryParse(deviation.ReviewBy, System.Globalization.CultureInfo.InvariantCulture, out _))
@@ -594,7 +762,7 @@ public sealed class Workspace : ObservableObject
     public void SaveManualCheck(string controlId, string status, string note)
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
-        if (RequireStandard().FindControl(controlId) is null) throw new ConfigurationException("Unknown control.");
+        if (ControlInstances.Find(RequireStandard(), profile, controlId) is null) throw new ConfigurationException("Unknown control.");
         if (status is not ("Pending" or "Pass" or "Fail" or "Unknown")) throw new ConfigurationException("Invalid outcome.");
         if (status != "Pending" && (note ?? "").Trim().Length < 8) throw new ConfigurationException("Record an evidence note of at least 8 characters.");
         var register = Evidence.LoadManualChecks(profile.TenantId);
@@ -690,6 +858,7 @@ public sealed class Workspace : ObservableObject
             await Executor.WaitForCompletionAsync(Control);
         }
         if (_operationCompletion is not null) await _operationCompletion.Task;
+        await CancelPendingDiscoveryAsync();
         await DisconnectCoreAsync();
         await DisconnectSetupCoreAsync();
         Logger.Info("App", "Toolkit closed.");

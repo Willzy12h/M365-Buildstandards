@@ -78,13 +78,13 @@ public static class TabularReports
             .Add("Actionable medium", s.MediumActionable).Add("Actionable low", s.LowActionable)
             .Add("Interpretation", "Assessment compares captured settings with the M365 Build Standard. It is read-only and is not a security certification. Unknown data is reported as unknown, never as absent.");
 
-        var findings = new Sheet("Findings", new[] { "Control", "Name", "Category", "Severity", "Status", "Reason", "Expected production state", "Expected production assignment", "Best matching object", "Object state", "Toolkit-managed", "Deviation" });
+        var findings = new Sheet("Findings", new[] { "Control", "Name", "Category", "Severity", "Status", "Reason", "Expected production state", "Expected production assignment", "Best matching object", "Object state", "Toolkit-managed", "Deviation", "Observed evidence", "Notes" });
         var differences = new Sheet("Differences", new[] { "Control", "Candidate object", "Object ID", "Setting", "Current value", "build standard", "Match" });
         foreach (var f in r.Findings)
         {
             var best = f.BestCandidate;
             findings.Add(f.ControlId, f.Name, f.Category, f.Severity, StatusLabels.For(f.Status), f.Reason, f.ExpectedProductionState, f.ExpectedProductionAssignment,
-                best is null ? "" : $"{best.Name} [{best.ObjectId}]", best is null ? "" : StatusLabels.For(best.Enforcement), f.Owned, f.Deviation?.Reason ?? "");
+                best is null ? "" : $"{best.Name} [{best.ObjectId}]", best is null ? "" : StatusLabels.For(best.Enforcement), f.Owned, f.Deviation?.Reason ?? "", string.Join("\n", f.ObservedObjects), string.Join("\n", f.Notes));
             foreach (var c in f.Candidates)
                 foreach (var d in c.Differences)
                     differences.Add(f.ControlId, c.Name, c.ObjectId, d.Setting, d.Current, d.Standard, d.Match ? "Match" : "Different");
@@ -186,6 +186,28 @@ public static class TabularReports
                     if (path.StartsWith("_", StringComparison.Ordinal) && path != "_assignments") continue;
                     details.Add(label, name, id, path, names.Render(value));
                 }
+            }
+        }
+        if (snapshot.ExchangeCapture is { } exchange)
+        {
+            capture.Add("External source", exchange.Source).Add("External source capture ID", exchange.Id).Add("Module version", exchange.ModuleVersion)
+                .Add("External provenance", "Engineer-imported observations; not independently authenticated and cannot authorise writes.");
+            foreach (var (key, collection) in exchange.Collections)
+            {
+                var complete = Exchange.ExchangeCaptureSchema.Complete(exchange, key, out _);
+                status.Add(collection.Command, "Exchange/Purview import", complete ? "Collected" : "Unknown or incomplete", collection.Items.Count, !complete, collection.Error ?? "");
+                foreach (var item in collection.Items)
+                {
+                    var name = item["Name"]?.ToString() ?? item["Identity"]?.ToString() ?? collection.Command;
+                    overview.Add(collection.Command, name, "", "Imported observation", item["State"]?.ToString() ?? "", "Review scope in observed settings");
+                    foreach (var (path, value) in CanonicalJson.Leaves(item)) details.Add(collection.Command, name, "", path, value?.ToJsonString() ?? "Unknown");
+                }
+            }
+            foreach (var dns in exchange.Dns)
+            {
+                status.Add(dns.Name, "DNS " + dns.Kind, dns.Status, dns.Records.Count, dns.Status == DnsResultStatus.Error, dns.Error ?? "");
+                details.Add("DNS " + dns.Kind, dns.Name, "", "Queried at", dns.QueriedAt);
+                foreach (var record in dns.Records) details.Add("DNS " + dns.Kind, dns.Name, "", "Record", record);
             }
         }
         return new[] { capture, status, overview, details };

@@ -21,12 +21,32 @@ public sealed class StandardViewModel : PageViewModel
         SelectReleaseCommand = Sync(() => { if (SelectedRelease is not null) Workspace.SelectRelease(SelectedRelease.FileName); }, () => SelectedRelease is not null && Workspace.Idle);
         ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDocumentMarkdownCommand = Command(() => ExportDocument(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportEngineerHtmlCommand = Command(() => ExportEngineer(EngineerDocumentKind.BuildStandard, ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportEngineerMarkdownCommand = Command(() => ExportEngineer(EngineerDocumentKind.BuildStandard, ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportManualHtmlCommand = Command(() => ExportEngineer(EngineerDocumentKind.ManualGuide, ExportFormat.Html), () => ManualGuideAvailable && Workspace.Idle);
+        ExportManualMarkdownCommand = Command(() => ExportEngineer(EngineerDocumentKind.ManualGuide, ExportFormat.Markdown), () => ManualGuideAvailable && Workspace.Idle);
+        ExportDefinitionSetCommand = Command(ExportDefinitionSet, () => Workspace.Standard is not null && Workspace.Idle);
+        ExportDefinitionHtmlCommand = Command(() => ExportDefinition(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportDefinitionJsonCommand = Command(() => ExportDefinition(ExportFormat.Json), () => Workspace.Standard is not null && Workspace.Idle);
+        ExportDefinitionMarkdownCommand = Command(() => ExportDefinition(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
         Refresh();
     }
 
     public ICommand SelectReleaseCommand { get; }
     public ICommand ExportDocumentCommand { get; }
     public ICommand ExportDocumentMarkdownCommand { get; }
+    public ICommand ExportEngineerHtmlCommand { get; }
+    public ICommand ExportEngineerMarkdownCommand { get; }
+    public ICommand ExportManualHtmlCommand { get; }
+    public ICommand ExportManualMarkdownCommand { get; }
+    public ICommand ExportDefinitionSetCommand { get; }
+    public ICommand ExportDefinitionHtmlCommand { get; }
+    public ICommand ExportDefinitionJsonCommand { get; }
+    public ICommand ExportDefinitionMarkdownCommand { get; }
+    public bool ManualGuideAvailable => Workspace.Standard is { Controls.Count: > 0 } standard && standard.Controls.All(EngineerStandardDocuments.HasCompleteManual);
+    public string EngineerDocumentHint => ManualGuideAvailable
+        ? "Both engineer documents include every control in the loaded catalogue. They contain settings and named inputs, with no client profile or tenant evidence."
+        : "The Build Standard exports for this release. Select the current 2026.09.30 release for a complete manual guide; older catalogues may not contain complete manual sections.";
     public ObservableCollection<StandardRelease> Releases => Workspace.Releases;
     public ObservableCollection<ControlDefinition> Controls { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
@@ -40,7 +60,8 @@ public sealed class StandardViewModel : PageViewModel
         set => SetProperty(ref _clientName, value);
     }
 
-    public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
+    public string LastExport { get => _lastExport; private set { if (SetProperty(ref _lastExport, value)) OnPropertyChanged(nameof(HasExport)); } }
+    public bool HasExport => LastExport.Length > 0;
 
     /// <summary>
     /// Writes the proposed catalogue for the loaded release; tenant assessment and deployment evidence are separate.
@@ -50,6 +71,24 @@ public sealed class StandardViewModel : PageViewModel
         var standard = Workspace.RequireStandard();
         var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportBuildStandard(standard, ClientName, DateTimeOffset.UtcNow, format));
         LastExport = "Build standard document written: " + file;
+    }
+    private async Task ExportEngineer(EngineerDocumentKind kind, ExportFormat format)
+    {
+        var standard = Workspace.RequireStandard();
+        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportEngineerStandard(standard, kind, format));
+        LastExport = EngineerStandardDocuments.Title(kind) + " written: " + file;
+    }
+    private async Task ExportDefinitionSet()
+    {
+        var standard = Workspace.RequireStandard();
+        var file = await Workspace.ExportAsync(() => new StandardDefinitionExporter(Workspace.Paths).ExportSet(standard, DateTimeOffset.UtcNow));
+        LastExport = "Complete standard definition set written: " + file;
+    }
+    private async Task ExportDefinition(ExportFormat format)
+    {
+        var standard = Workspace.RequireStandard();
+        var file = await Workspace.ExportAsync(() => new StandardDefinitionExporter(Workspace.Paths).Export(standard, format, DateTimeOffset.UtcNow));
+        LastExport = "Standard defaults/settings definition written: " + file;
     }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
     public string Category { get => _category; set { if (SetProperty(ref _category, value)) ApplyFilter(); } }
@@ -107,6 +146,8 @@ public sealed class StandardViewModel : PageViewModel
         OnPropertyChanged(nameof(HeaderText));
         OnPropertyChanged(nameof(SelectedRelease));
         OnPropertyChanged(nameof(Category));
+        OnPropertyChanged(nameof(ManualGuideAvailable));
+        OnPropertyChanged(nameof(EngineerDocumentHint));
     }
 
     private void ApplyFilter()

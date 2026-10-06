@@ -14,7 +14,10 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
           <TextBlock Text="STANDARD &amp; REFERENCE" Style="{StaticResource Eyebrow}"/>
-          <TextBlock Text="M365 Build Standard" Style="{StaticResource H1}"/>
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock Text="M365 Build Standard" Style="{StaticResource H1}"/>
+            <Button Grid.Column="1" Content="Export full standard set" Command="{Binding ExportDefinitionSetCommand}" AutomationProperties.Name="Export complete build standard defaults and settings set" Style="{StaticResource PrimaryButton}" VerticalAlignment="Top" Margin="12,4,0,8"/>
+          </Grid>
           <TextBlock Style="{StaticResource Lead}" Text="Review each control, its expected production state and candidate creation recipe. Manual controls remain visible alongside automation."/>
           <Border Style="{StaticResource Panel}">
             <StackPanel>
@@ -27,6 +30,19 @@
                 <ComboBox AutomationProperties.Name="Control category" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
                 <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
               </WrapPanel>
+              <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Latest standard export result" Style="{StaticResource ReadOnlyDetail}" Visibility="{Binding HasExport, Converter={StaticResource BoolToVis}}"/>
+              <Expander Header="More export formats and engineer guides" IsExpanded="False" Margin="0,8,0,0"><ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
+              <Expander Header="Defaults and settings — HTML, reusable JSON and document source" IsExpanded="False" Margin="0,8,0,0">
+                <StackPanel Margin="0,8,0,0">
+                  <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Text="Export all catalogue controls, fixed settings, reviewable defaults and unresolved client inputs. The full set includes exact verified JSON with its manifest, printable HTML, Markdown and the manual guide where available. No tenant data is included."/>
+                  <WrapPanel Margin="0,8,0,0">
+                    <Button Content="Defaults/settings (HTML)" Command="{Binding ExportDefinitionHtmlCommand}" AutomationProperties.Name="Export all standard defaults and settings as HTML" Style="{StaticResource SecondaryButton}"/>
+                    <Button Content="Catalogue (JSON)" Command="{Binding ExportDefinitionJsonCommand}" AutomationProperties.Name="Export exact verified standard catalogue as JSON" Style="{StaticResource SecondaryButton}"/>
+                    <Button Content="Specification (Markdown)" Command="{Binding ExportDefinitionMarkdownCommand}" AutomationProperties.Name="Export default settings specification as Markdown" Style="{StaticResource SecondaryButton}"/>
+                  </WrapPanel>
+                  <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported standard definition path" Style="{StaticResource ReadOnlyDetail}"/>
+                </StackPanel>
+              </Expander>
               <Expander Header="Export a client build standard document" IsExpanded="False" Margin="0,8,0,0">
                <StackPanel Margin="0,8,0,0">
               <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Text="Export the proposed standard, intended scope and required client decisions. This catalogue document does not prove deployment or tenant compliance; use the assessment and deployment evidence for observed results."/>
@@ -39,6 +55,23 @@
               <TextBlock Text="{Binding LastExport}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                </StackPanel>
               </Expander>
+              <Expander Header="Export engineer standards and manual guide" IsExpanded="False" Margin="0,8,0,0">
+                <StackPanel Margin="0,8,0,0">
+                  <TextBlock Text="{Binding EngineerDocumentHint}" Style="{StaticResource Muted}"/>
+                  <TextBlock Text="The Build Standard - settings, purpose, scope and licences" Style="{StaticResource FieldLabel}" Margin="0,8,0,4"/>
+                  <WrapPanel>
+                    <Button Content="Standard (HTML)" Command="{Binding ExportEngineerHtmlCommand}" AutomationProperties.Name="Export engineer build standard as HTML" Style="{StaticResource SecondaryButton}"/>
+                    <Button Content="Standard (Markdown)" Command="{Binding ExportEngineerMarkdownCommand}" AutomationProperties.Name="Export engineer build standard as Markdown" Style="{StaticResource SecondaryButton}"/>
+                  </WrapPanel>
+                  <TextBlock Text="Manual guide - before, by hand and after checks" Style="{StaticResource FieldLabel}" Margin="0,4,0,4"/>
+                  <WrapPanel>
+                    <Button Content="Manual guide (HTML)" Command="{Binding ExportManualHtmlCommand}" AutomationProperties.Name="Export manual implementation guide as HTML" Style="{StaticResource SecondaryButton}"/>
+                    <Button Content="Manual guide (Markdown)" Command="{Binding ExportManualMarkdownCommand}" AutomationProperties.Name="Export manual implementation guide as Markdown" Style="{StaticResource SecondaryButton}"/>
+                  </WrapPanel>
+                  <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported engineer document path" Style="{StaticResource ReadOnlyDetail}"/>
+                </StackPanel>
+              </Expander>
+              </StackPanel></ScrollViewer></Expander>
             </StackPanel>
           </Border>
         </StackPanel>

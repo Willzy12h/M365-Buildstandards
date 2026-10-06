@@ -1,4 +1,47 @@
+# Preview.18 approved product-completion work — PR #19
+
+| Area | Earlier limit | Implemented result and evidence |
+|---|---|---|
+| Definition exports | Separate engineer documents; no integrated exact JSON/defaults set | One set with source-byte JSON/manifest, printable settings/defaults HTML, Markdown, manual references and capability/access scope. All eleven historical releases export; unknown catalogue metadata and checksums round-trip. StandardDefinitionExportTests. |
+| Assessment reuse | Desktop supplemented Exchange, CLI accepted only primary input | AssessmentContext shared existing inputs; explicit CLI supplemental file. Actual CLI JSON findings/summary match direct desktop engine on combined fixtures; missing/malformed/cross-tenant/changed/oversize evidence is refused. AssessmentContextTests. |
+| Support | Raw local details/logs required individual selection | Exact allowlisted generated metadata preview and ZIP; no workspace records/settings/logs/cache/path reads. Seeded-private-data test checks absence. WorkspaceTransferTests. |
+| Continuity | Manual complete-folder procedure without tested transfer helper | Bounded byte backup and separate verified restore; retains unknown fields/original digests and real Unknown write blockers, excludes MSAL cache, refuses traversal/duplicates/changes/links/unsupported types. Exact-limit round-trip and fresh/old plan rejection. WorkspaceTransferTests. |
+| Packaging | Hand-maintained dependency versions and stale entry guides | Resolved NuGet/runtimepack inventory, supplied notices, source-cleanliness field and negative inventory verifier; 19 shipped operator guides with closed local links. Windows execution pending exact CI. |
+| Product workflow | In-memory advice and control-keyed historical checks | New immutable job/observation/disposition/cutover/lineage contracts in decision PR #20, independently reviewed. Producers/consumers wait for human merge. |
+
+All live service/device effectiveness, final support commitments and production publication remain separately approved and unrun. Synthetic checks are not production capability acceptance. Current exact checks are recorded in COMPLETION-REGISTER; the earlier comparison below is retained historically.
+
+## Historical Preview.17 comparison
+
+# Preview.17 continuation comparison — PR #19
+
+| Area | Before | Approved result and evidence |
+| --- | --- | --- |
+| Quick Connect | Discovery auth disposed before confirmation; second sign-in | One-use retained auth, standard/tenant/time guards and reverified operator. Preview17AuthAndProcessTests plus existing discovery guards; live WAM prompt count pending. |
+| Setup | Direct navigation lacked tenant; existing IDs entered manually | Verified tenant prefill, Quick setup checks, explicit existing-ID picker, configuration/grants/assignment validation. Preview17WorkflowTests plus existing setup HTTP/approval guards. |
+| Policy approval | Repeated tenant GUID transcription | Verified tenant/domain/account, exact changes, explicit tick and deliberate deploy. Native dialog checks and changed-context negative tests; engine immutable approval unchanged. |
+| Planning/readiness | Ambiguous ownership, grey selections, unrelated numbering | Tool/engineer guidance, reason/remedy, matching navigation pages and collection error details. No eligibility/evidence gate loosened. |
+| Exchange | Engineer script export/run/import replaced Graph snapshot | Owned embedded read process; module/tenant checks, progress/cancel, domain discovery, independent evidence. ExchangeWorkspaceTests protects Graph state and wrong-tenant refusal; strict import/DNS/proposal guards retained. Windows PowerShell 5.1 parses the generated template and rejects an injected write without executing it. |
+| Packaging | Validated Preview.16 | Preview.17 strict builds passed; 852 engine/112 app tests, 42 native page/size checks and the freshly extracted portable package/context-menu checks passed. Exact implementation evidence is in COMPLETION-REGISTER. Catalogue bytes/persisted schemas unchanged. |
+
 # Behavioural comparison
+
+## Preview.14 / standard 2026.09.12 - PR #19
+
+The C#/.NET 8 baseline remains authoritative. Neither preserved source repository was changed. This increment implements the maintainer's NEXT-RELEASE-PLAN; it does not reopen the completed PR #17/#18 review.
+
+| Area | Result | Evidence / remaining checks |
+| --- | --- | --- |
+| Standard and schema | Add .12 only, schema 5 optional null-omitted metadata, 96 controls / 61 recipes; older bytes preserved | Release20260912Tests; complete manual metadata and historical export tests |
+| Offices and candidates | Stable per-office identity; all reserved/non-public CIDR classes refused; empty groups/untrusted locations; new CA disabled and Intune objects unassigned | Release20260912Tests, creation guards, planner and executor regressions; AndroidStoreReadinessTests detects removal of either Play prerequisite guard |
+| Reviewed identity changes | Six constrained new actions, typed confirmation, complete durable before evidence, preserved unrelated settings, exact ownership, intent-before-request and no retry | ReleaseIdentitySafetyTests runs each new kind through refusal, persistence failure, drift and uncertain transport cases |
+| Assessment | New identity and Exchange/Purview observations; malformed/incomplete evidence remains unknown | ReleaseIdentityAssessmentTests (red/green malformed cases); ExchangeEvidenceTests, fake DNS only |
+| Exchange architecture | Supported delegated engineer capture, strict inert import, no app-only credentials; selected commented proposals instead of automatic writes | INT-030/035/036, ExchangeEvidenceTests and ExchangeProposalTests; module/SPF trust and all service effects unverified |
+| Engineer documents | All 96 controls in both HTML/Markdown exports, generated from catalogue only | EngineerStandardDocumentsTests, four local harness commands and CI download; browser appearance unverified |
+| Interface | Area filters with isolated selection, three Configuration tabs, expanded document exports | App tests; full keyboard, names, contrast, clipping and command harness at three sizes |
+| Packaging | Preview.14, two extra operator guides, four generated document downloads | Strict build, both suites, portable package/link checks and exact-head CI recorded in release ledger |
+
+See [release validation](RELEASE-2026.09.12-VALIDATION.md) for counts and failures corrected, [coverage](../AUTOMATION-COVERAGE.md) for every control and [handover](HANDOVER.md) for manual items/decisions. All evidence is synthetic/local or CI; none is live Microsoft acceptance.
 
 ## Confirmed F1–F5 follow-up
 
@@ -66,3 +109,28 @@ Preview.5 adds four data-driven Windows candidates and a restricted Graph-export
 ## Independent review corrections
 
 PR #9 retains Claude's WPF/Core/Graph/Engine structure and adds guards rather than importing a second runtime. See [review dispositions](REVIEW-FIXES.md) for behavioural comparisons and regression evidence covering directory prerequisites, older evidence, assessment, typed inputs, targets and reporting.
+
+## Preview.15: current continuation
+
+| Area | Choice and evidence | Remaining limit |
+| --- | --- | --- |
+| Runtime | Retain Claude's component separation; upgrade all projects to .NET 10, official SDK 10.0.401 and self-contained win-x64 | Live WAM/consent needs Windows tenant acceptance |
+| Interface | WPF detail/prerequisite guidance and shared result evidence, keeping UI logic outside the engine. Standalone inert HTML comparison passes 26 browser checks | HTML is not an embedded host; no authentication/bridge equivalence claimed |
+| Device references | rc.15 runtime and later supplied snapshot/Preview 23 source inform selection, detail, outcomes and evidence patterns. Available Engineer Console source is rc.1; claimed rc.5 was not supplied | No claim to latest laptop files or integrated device successor |
+| Standard | Successor .30 has 93 controls/61 unchanged candidate payloads; ten published catalogues remain byte-identical | Microsoft/device effectiveness remains unverified |
+| Evidence | Missing historical fields stay unknown; client switch clears selected result and visible summary; tests cover these boundaries | Actual tenant evidence was not accessed |
+| Reports | Engine-generated HTML/Markdown; Chromium checks and representative A4 inspection completed | Physical print and screen-reader experience require human checks |
+
+See [interface decision](INTERFACE-DECISION-2026.09.30.md), [release goal](RELEASE-GOAL-2026.09.30.md) and [completion register](COMPLETION-REGISTER.md).
+
+
+## Preview.16: user-observed usability issues
+
+| Area | Choice | Evidence / limit |
+| --- | --- | --- |
+| Connect | Transient Quick Connect plus explicit-customer partner sign-in; preserve pinned normal authentication | Synthetic identity/mode/profile tests; live WAM/GDAP still pending |
+| Setup | Visible creation approval bound to verified identity; no repeated setup GUID; clear browser consent, app IDs and access stages | User-requested UX change; preserve policy deployment confirmation and service execution guards |
+| Read collection | Documented parent arrays and explicit scheduled-action reads, with strict completeness | User-supplied capture inspected locally; Microsoft documentation and synthetic HTTP cases, no fresh live capture by agent |
+| Runtime | Preserve WPF/.NET 10 self-contained packaging; load-check Accessibility and exercise fresh-package context-menu Copy | Local publish includes matching dependency; exact Windows CI result will be recorded in completion register |
+
+See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.

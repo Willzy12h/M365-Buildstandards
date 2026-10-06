@@ -1,9 +1,16 @@
 using System.Windows.Input;
+using System.IO;
+using Microsoft.Win32;
+using BDIT.TenantToolkit.Engine.Evidence;
+using BDIT.TenantToolkit.Engine.Reports;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
 public sealed class SettingsViewModel : PageViewModel
 {
+    private string _lastResult = "";
+    private string _backupFile = "";
+    private string _restoreFolder = "";
     public SettingsViewModel(ShellViewModel shell) : base(shell, "Settings and diagnostics")
     {
         OpenReportsCommand = Sync(() => OpenFolder(Workspace.Paths.ReportsDirectory));
@@ -11,6 +18,17 @@ public sealed class SettingsViewModel : PageViewModel
         OpenDataCommand = Sync(() => OpenFolder(Workspace.Paths.DataDirectory));
         OpenConfigCommand = Sync(() => OpenFolder(Workspace.Paths.ConfigDirectory));
         OpenStandardsCommand = Sync(() => OpenFolder(Workspace.Paths.StandardsDirectory));
+        ExportSupportCommand = Command(async () => LastResult = "Support metadata written: " + await Workspace.ExportAsync(() => SupportBundle.Export(Workspace.Paths, Workspace.Standard)), () => Workspace.Idle);
+        CopySupportCommand = CopyText(() => SupportPreview);
+        CreateBackupCommand = Command(async () => LastResult = "Sensitive evidence backup written: " + (BackupFile = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).Create())), CanTransfer);
+        ChooseBackupCommand = Sync(() =>
+        {
+            var dialog = new OpenFileDialog { Filter = "Workspace backup (*.zip)|*.zip", CheckFileExists = true };
+            if (dialog.ShowDialog() == true) BackupFile = dialog.FileName;
+        }, CanTransfer);
+        RestoreBackupCommand = Command(async () => LastResult = "Verified separate restore written: " + await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder)),
+            () => CanTransfer() && File.Exists(BackupFile) && RestoreFolder.Length > 0);
+        RestoreFolder = Path.Combine(Workspace.Paths.ReportsDirectory, "restored-evidence-" + Guid.NewGuid().ToString("N"));
     }
 
     public ICommand OpenReportsCommand { get; }
@@ -18,6 +36,17 @@ public sealed class SettingsViewModel : PageViewModel
     public ICommand OpenDataCommand { get; }
     public ICommand OpenConfigCommand { get; }
     public ICommand OpenStandardsCommand { get; }
+    public ICommand ExportSupportCommand { get; }
+    public ICommand CopySupportCommand { get; }
+    public ICommand CreateBackupCommand { get; }
+    public ICommand ChooseBackupCommand { get; }
+    public ICommand RestoreBackupCommand { get; }
+    public string SupportPreview => SupportBundle.Preview(Workspace.Standard);
+    public string BackupGuide => WorkspaceBackup.Guide;
+    public string LastResult { get => _lastResult; private set => SetProperty(ref _lastResult, value); }
+    public string BackupFile { get => _backupFile; set => SetProperty(ref _backupFile, value); }
+    public string RestoreFolder { get => _restoreFolder; set => SetProperty(ref _restoreFolder, value); }
+    private bool CanTransfer() => Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null;
 
     public string Text
     {
@@ -59,5 +88,5 @@ public sealed class SettingsViewModel : PageViewModel
 
     private static void OpenFolder(string path) => Infrastructure.ShellFolders.OpenFolder(path);
 
-    public override void Refresh() => OnPropertyChanged(nameof(Text));
+    public override void Refresh() { OnPropertyChanged(nameof(Text)); OnPropertyChanged(nameof(SupportPreview)); }
 }

@@ -1,0 +1,14 @@
+<UserControl x:Class="BDIT.TenantToolkit.App.Views.ResultEvidencePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel>
+    <TextBlock Text="SELECTED ACTION EVIDENCE" Style="{StaticResource Eyebrow}"/>
+    <TextBox Text="{Binding Summary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Selected action outcome"/>
+    <Button Content="Copy outcome and evidence" Command="{Binding CopyCommand}" CommandParameter="{Binding CopyText}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <TabControl MinHeight="180" MaxHeight="300" Margin="0,8,0,12">
+      <TabItem Header="Before"><TextBox Text="{Binding Before, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" AutomationProperties.Name="Recorded before evidence"/></TabItem>
+      <TabItem Header="Requested"><TextBox Text="{Binding Requested, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" AutomationProperties.Name="Recorded requested payload"/></TabItem>
+      <TabItem Header="After"><TextBox Text="{Binding After, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" AutomationProperties.Name="Recorded after evidence"/></TabItem>
+    </TabControl>
+  </StackPanel>
+</UserControl>

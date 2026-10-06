@@ -64,6 +64,7 @@ public static class Program
             "releases" => Releases(options),
             "report" => Report(options),
             "document" => Document(options),
+            "standard" => StandardDefinition(options),
             "help" or "--help" or "-h" => Help(),
             _ => Unknown(command)
         };
@@ -84,15 +85,22 @@ public static class Program
               bdit releases
                   List the Build Standard releases available to this installation.
 
-              bdit report --snapshot <file> [--release <r>] [--format <f>] [--root <dir>]
+              bdit report --snapshot <file> [--exchange-snapshot <file>] [--release <r>] [--format <f>] [--root <dir>]
                   Assess a captured snapshot against a standard and write the engineer report.
                   Requires this installation's client record for the snapshot's tenant, because the
                   client inputs, ownership records and accepted deviations change the result.
                   Formats: html, markdown, json, csv, xlsx. Default html.
+                  Optional Exchange evidence uses the existing raw capture or exported snapshot format.
+                  It must belong to the same tenant; missing or invalid supplied evidence is refused.
 
               bdit document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
                   Write the client-facing build standard document.
                   Formats: html, markdown. Default html.
+
+              bdit standard [--release <r>] [--format <f>] [--root <dir>]
+                  Export all standard defaults/settings, with no client data.
+                  No format: full ZIP set with exact catalogue JSON/manifest, HTML and Markdown.
+                  Individual formats: html, markdown, json. JSON retains original placeholders.
 
             Common options:
               --root <dir>     Toolkit root holding standards/, config/ and reports/.
@@ -137,11 +145,15 @@ public static class Program
                 + "Assessment reads that client's inputs, ownership records and accepted deviations, so a report "
                 + "written without them would not match the application's. Run this on the installation that captured "
                 + "the snapshot, or add the client in the application first.");
-        var mappings = context.Evidence.LoadMappings(profile.TenantId);
-        var deviations = context.Evidence.LoadDeviations(profile.TenantId);
-
-        var result = new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current)
-            .Assess(snapshot, standard, profile, mappings, deviations, "bdit (headless)");
+        ExchangeCapture? supplemental = null;
+        if (options.TryGetValue("exchange-snapshot", out var exchangeFile))
+        {
+            if (string.IsNullOrWhiteSpace(exchangeFile) || !File.Exists(exchangeFile))
+                throw new ConfigurationException("Supplemental Exchange evidence file not found.");
+            supplemental = AssessmentContext.ReadSupplement(exchangeFile, profile.TenantId, DateTimeOffset.UtcNow);
+        }
+        var result = AssessmentContext.Assess(new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current),
+            context.Evidence, snapshot, standard, profile, "bdit (headless)", supplemental);
 
         var format = Format(options, ExportFormat.Html);
         var written = context.Exporter.ExportAssessment(result, format);
@@ -163,6 +175,17 @@ public static class Program
             throw new ConfigurationException("The build standard document is written as html or markdown.");
 
         Console.WriteLine("Document: " + context.Exporter.ExportBuildStandard(standard, client, DateTimeOffset.UtcNow, format));
+        return 0;
+    }
+
+    private static int StandardDefinition(IReadOnlyDictionary<string, string> options)
+    {
+        var context = Context.Open(options);
+        var exporter = new StandardDefinitionExporter(context.Paths);
+        var standard = context.Standard();
+        var now = DateTimeOffset.UtcNow;
+        var file = options.ContainsKey("format") ? exporter.Export(standard, Format(options, ExportFormat.Html), now) : exporter.ExportSet(standard, now);
+        Console.WriteLine("Standard definition: " + file);
         return 0;
     }
 

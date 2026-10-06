@@ -94,7 +94,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);
 
-        NavigateCommand = new RelayCommand(p => { if (p is NavItem item) Navigate(item.Key); });
+        NavigateCommand = new RelayCommand(p => { if (p is NavItem item) Navigate(item.Key); else if (p is string key) Navigate(key); });
         CopyCommand = new RelayCommand(p => CopyToClipboard(p as string ?? p?.ToString() ?? ""));
         CopyDetailsCommand = new RelayCommand(() => CopyToClipboard(DetailsText));
         DisconnectCommand = new AsyncCommand(Workspace.DisconnectAsync, ShowError, () => (Workspace.IsConnected || Workspace.ApplicationSetup is not null) && Workspace.Idle);
@@ -108,6 +108,7 @@ public sealed class ShellViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(BusyMessage));
+                OnPropertyChanged(nameof(NextAction));
                 OnPropertyChanged(nameof(ProgressDetail));
             }
         };
@@ -174,6 +175,29 @@ public sealed class ShellViewModel : ObservableObject
         ? (Workspace.Session.PrimaryDomain.Length > 0 ? Workspace.Session.PrimaryDomain : Workspace.Session.TenantId) + (Workspace.Session.TenantVerified ? " · verified" : " · NOT verified")
         : Workspace.Profile?.TenantId ?? "Choose or create a client on the Connect page";
     public string StandardText => Workspace.Standard is null ? "No Build Standard loaded" : $"Build Standard {Workspace.Standard.Release} · {Workspace.Standard.IntegrityDigest[..Math.Min(12, Workspace.Standard.IntegrityDigest.Length)]}";
+    public string NextAction
+    {
+        get
+        {
+            if (Workspace.Busy) return "Operation in progress. Review its status before starting another action.";
+            if (Workspace.Standard is null) return "Load a valid Build Standard in Settings.";
+            if (Workspace.ApplicationSetup is not null) return "Finish application setup validation, then connect with assessment access.";
+            if (Workspace.Profile is null) return "Choose a client in Connect, or export the engineer guide offline.";
+            if (!Workspace.IsConnected) return "Connect read-only, or reopen saved evidence for review.";
+            if (Workspace.Snapshot is null) return "Capture this tenant in Configuration.";
+            if (!Workspace.SnapshotIsLive) return "Stored evidence is for review. Capture again before planning a change.";
+            if (!Workspace.Snapshot.Complete) return "Review failed collections and capture again. Incomplete evidence blocks writes.";
+            if (Workspace.LastRun is { } run && run.BeforeSnapshotId == Workspace.Snapshot.Id) return run.Status == RunStatus.Completed
+                ? "Review recorded outcomes and complete the separate functional checks."
+                : "Review incomplete outcomes in Evidence and recovery. Reconcile uncertain writes before planning again.";
+            if (Workspace.Assessment is null) return "Assess the capture, then inspect findings and prerequisites.";
+            if (Workspace.Plan is null) return "Select eligible controls in Plan changes and review the exact proposal.";
+            if (!Workspace.Plan.WriteRows.Any()) return "The plan has no writes. Review manual steps and blocked rows.";
+            if (!Workspace.IsDeploymentSession) return "Deployment access requires a new capture and reviewed plan.";
+            if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return "Export and acknowledge before evidence in Deploy, then review confirmation.";
+            return "Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.";
+        }
+    }
     public string VersionText => $"{Workspace.Settings.ProductName} {Workspace.Version} · Evidence: {Workspace.Paths.DataDirectory}";
 
     public string DetailsText
@@ -209,6 +233,7 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(TenantTitle));
         OnPropertyChanged(nameof(TenantSubtitle));
         OnPropertyChanged(nameof(StandardText));
+        OnPropertyChanged(nameof(NextAction));
         OnPropertyChanged(nameof(DetailsText));
         OnPropertyChanged(nameof(IsBusy));
         if (Workspace.StandardError is not null && ErrorMessage.Length == 0) ErrorMessage = Workspace.StandardError;

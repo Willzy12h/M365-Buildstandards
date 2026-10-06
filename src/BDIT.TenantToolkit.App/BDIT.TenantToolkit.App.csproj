@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <AssemblyName>BDIT.TenantToolkit.App</AssemblyName>
     <RootNamespace>BDIT.TenantToolkit.App</RootNamespace>
@@ -20,4 +20,7 @@
     <ProjectReference Include="..\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
   </ItemGroup>
+  <Target Name="VerifyPublishedTextEditingDependency" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
+    <Error Condition="!Exists('$(PublishDir)Accessibility.dll')" Text="The portable publish is incomplete: Accessibility.dll is required by WPF text-box context menus." />
+  </Target>
 </Project>

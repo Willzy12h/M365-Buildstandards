@@ -3,6 +3,27 @@
     <StackPanel Margin="28,24">
       <TextBlock Text="WORKSPACE SETTINGS" Style="{StaticResource Eyebrow}"/><TextBlock Text="Settings and diagnostics" Style="{StaticResource H1}"/>
       <TextBlock Text="Inspect application configuration and locate the local evidence, reports and logs for this workspace." Style="{StaticResource Lead}"/>
+      <Border Style="{StaticResource Card}"><StackPanel>
+        <TextBlock Text="Local support metadata" Style="{StaticResource H2}"/>
+        <TextBlock Text="Review the exact generated contents below. This bundle uploads nothing and excludes tenant records, logs, settings and authentication caches." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+        <TextBox AutomationProperties.Name="Support bundle contents preview" Text="{Binding SupportPreview, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,0,0,12"/>
+        <WrapPanel><Button Content="Export support metadata" Command="{Binding ExportSupportCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy support metadata" Command="{Binding CopySupportCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+        <TextBox AutomationProperties.Name="Local export or restore result" Text="{Binding LastResult, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
+      </StackPanel></Border>
+      <Border Style="{StaticResource Card}"><StackPanel>
+        <TextBlock Text="Evidence backup and separate restore" Style="{StaticResource H2}"/>
+        <TextBlock Text="Disconnect and close all other copies first. Backup contains sensitive client evidence. Restore creates a new folder and preserves original records; it does not replace active data or restore deployment approval." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+        <Button Content="Create sensitive evidence backup" Command="{Binding CreateBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+        <Expander Header="Restore a backup into a separate folder" Margin="0,12,0,0"><StackPanel>
+          <TextBlock Text="Backup ZIP" Style="{StaticResource Muted}"/>
+          <TextBox AutomationProperties.Name="Evidence backup ZIP path" Text="{Binding BackupFile, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,8"/>
+          <Button Content="Choose backup ZIP" Command="{Binding ChooseBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+          <TextBlock Text="New destination folder (must not exist)" Style="{StaticResource Muted}" Margin="0,12,0,0"/>
+          <TextBox AutomationProperties.Name="Separate restore destination" Text="{Binding RestoreFolder, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"/>
+          <Button Content="Verify and restore separately" Command="{Binding RestoreBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+          <TextBox AutomationProperties.Name="Evidence transfer limitations" Text="{Binding BackupGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
+        </StackPanel></Expander>
+      </StackPanel></Border>
       <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Application and environment" Style="{StaticResource H2}"/><TextBox AutomationProperties.Name="Application and environment details" Text="{Binding Text, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" Margin="0"/></StackPanel></Border>
       <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Workspace folders" Style="{StaticResource H2}"/><TextBlock Text="Open a folder in File Explorer to inspect its contents." Style="{StaticResource Muted}" Margin="0,0,0,16"/><WrapPanel>
         <Button Content="Reports" Command="{Binding OpenReportsCommand}" Style="{StaticResource SecondaryButton}"/>

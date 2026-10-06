@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
 
 namespace BDIT.TenantToolkit.Engine.Assessment;
@@ -33,7 +34,7 @@ public sealed class AssessmentEngine
         _toolkitVersion = toolkitVersion;
     }
 
-    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy)
+    public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null)
     {
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The snapshot and the selected client profile belong to different tenants.");
@@ -42,6 +43,9 @@ public sealed class AssessmentEngine
         foreach (var d in deviations)
             if (!string.Equals(d.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
                 throw new TenantMismatchException($"Deviation {d.Id} belongs to a different tenant.");
+
+        var exchangeEvidence = separateExchange ?? snapshot.ExchangeCapture;
+        if (exchangeEvidence is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
 
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
@@ -75,16 +79,25 @@ public sealed class AssessmentEngine
         }
         if (snapshot.BetaCollections.Any())
             result.Limitations.Add("Beta Graph endpoints were used for: " + string.Join(", ", snapshot.BetaCollections.Select(k => standard.FindCollection(k)?.Label ?? k)) + ". Beta APIs can change without notice.");
+        if (exchangeEvidence is { } external)
+        {
+            result.Limitations.Add($"Separate Exchange/Purview evidence {external.Id}, captured {external.CapturedAt}, selected domain {external.Domain}. Read-only observations cannot authorise toolkit writes; exported source claims are not signed.");
+            foreach (var (key, definition) in ExchangeCaptureSchema.Definitions)
+                result.CollectionStatus[definition.Command] = external.Collections.TryGetValue(key, out var c)
+                    ? c.Status == CaptureStatus.Collected && !ExchangeCaptureSchema.Complete(external, key, out _)
+                        ? "Incomplete fields; unable to assess" : c.Status + (c.Error is null ? "" : ": " + c.Error)
+                    : "Not attempted";
+        }
         if (!string.Equals(snapshot.StandardRelease, standard.Release, StringComparison.OrdinalIgnoreCase))
             result.Limitations.Add($"The snapshot was captured under standard release {snapshot.StandardRelease}; it is being assessed against {standard.Release}. Collections added in the newer release may be absent.");
 
         var licence = LicenceEvaluator.FromSnapshot(snapshot);
         if (!licence.Available) result.Limitations.Add("Subscribed licences could not be read; licence requirements are not verified.");
 
-        foreach (var control in standard.Controls)
+        foreach (var control in ControlInstances.All(standard, profile))
         {
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
-            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow);
+            var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow, exchangeEvidence);
             result.Findings.Add(finding);
         }
 
@@ -93,7 +106,7 @@ public sealed class AssessmentEngine
     }
 
     private static ControlFinding AssessControl(ControlDefinition control, StandardCatalogue standard, TenantSnapshot snapshot, ManagedObjectMappings mappings,
-        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now)
+        Deviation? deviation, NameResolver names, IReadOnlyDictionary<string, JsonNode?> parameters, LicenceEvaluator licence, DateTimeOffset now, ExchangeCapture? exchangeEvidence)
     {
         var finding = new ControlFinding
         {
@@ -145,6 +158,15 @@ public sealed class AssessmentEngine
 
         var def = standard.FindCollection(control.Collection);
         snapshot.Collections.TryGetValue(control.Collection ?? "", out var capture);
+
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.Apply(control, exchangeEvidence, finding, now)) return finding;
+        if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.Apply(control, snapshot, finding)) return finding;
+        if (standard.SchemaVersion >= 5 && def is not null && (capture is null || !capture.Usable))
+        {
+            finding.Status = FindingStatus.UnableToAssess;
+            finding.Reason = "Required configuration evidence is unavailable or incomplete. Absence cannot be inferred.";
+            return finding;
+        }
 
         if (def is null || control.Assessment.Mode == AssessmentMode.Manual || control.Payload is null)
         {

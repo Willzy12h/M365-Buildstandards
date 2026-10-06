@@ -2,7 +2,7 @@
 
 ## Stack
 
-- .NET 8, C# 12, WPF (`net8.0-windows`), published self-contained for `win-x64`. No installer, no elevation, no machine-wide changes.
+- .NET 10, C# 12, WPF (`net10.0-windows`), published self-contained for `win-x64`. No installer, no elevation, no machine-wide changes.
 - Dependencies: `Microsoft.Identity.Client` (MSAL) and `System.Security.Cryptography.ProtectedData` (DPAPI). Everything else is the base class library: `System.Text.Json` for models and canonical hashing, `System.IO.Compression` for XLSX and CSV bundles.
 - No DI container, no ORM, no database. Evidence is versioned JSON under `data\`.
 
@@ -121,4 +121,4 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 ## Packaging
 
-`build\Build-Portable.ps1` restores, builds, tests, regenerates the standards manifest, publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 8 SDK.
+`build\Build-Portable.ps1` restores, builds, tests, regenerates the standards manifest, publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.

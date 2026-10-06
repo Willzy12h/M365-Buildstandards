@@ -10,6 +10,7 @@ public static class SnapshotRequirements
 {
     public static string? IncompleteReason(TenantSnapshot snapshot, StandardCatalogue standard)
     {
+        if (snapshot.ExchangeCapture is not null) return "Imported Exchange/Purview evidence is for offline assessment only and cannot authorise a write.";
         if (!snapshot.Complete) return "The before-change snapshot is incomplete. Capture every required collection successfully before deploying.";
         if (!string.Equals(snapshot.StandardRelease, standard.Release, StringComparison.Ordinal))
             return "The snapshot was captured against a different standard release. Capture it again.";

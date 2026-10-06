@@ -2,6 +2,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Exchange;
 
 namespace BDIT.TenantToolkit.Engine.Reports;
 
@@ -55,6 +56,12 @@ public sealed class ReportExporter
             default: throw new ArgumentOutOfRangeException(nameof(format));
         }
     }
+
+    public string ExportExchangeReadScript(string tenantId, string domain, DateTimeOffset now) =>
+        WriteText(Target("exchange-read-capture", domain, Timestamps.Format(now), "ps1"), ExchangeCaptureScripts.ReadOnlyCapture(tenantId, domain));
+
+    public string ExportExchangeProposal(string reviewedText, string controlId, DateTimeOffset now) =>
+        WriteText(Target("exchange-review-proposal", controlId, Timestamps.Format(now), "ps1"), reviewedText);
 
     public string ExportRun(DeploymentRun run, IReadOnlyList<JournalEntry> journal, ExportFormat format)
     {
@@ -121,6 +128,18 @@ public sealed class ReportExporter
     {
         File.WriteAllText(file, content, new System.Text.UTF8Encoding(false));
         return file;
+    }
+
+    public string ExportEngineerStandard(StandardCatalogue standard, EngineerDocumentKind kind, ExportFormat format)
+    {
+        var name = kind == EngineerDocumentKind.BuildStandard ? "engineer-build-standard" : "manual-implementation-guide";
+        var content = format switch
+        {
+            ExportFormat.Html => EngineerStandardDocuments.Html(standard, kind),
+            ExportFormat.Markdown => EngineerStandardDocuments.Markdown(standard, kind),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Engineer documents export as HTML or Markdown.")
+        };
+        return WriteText(Target(name, standard.Release, standard.PublishedOn, format == ExportFormat.Html ? "html" : "md"), content);
     }
 
     private static string WriteBytes(string file, byte[] content)

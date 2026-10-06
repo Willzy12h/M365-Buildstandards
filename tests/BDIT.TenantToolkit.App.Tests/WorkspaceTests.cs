@@ -11,7 +11,7 @@ namespace BDIT.TenantToolkit.Tests;
 /// <summary>
 /// The workspace decides which client is selected, which capture is in hand and whether that capture may be deployed
 /// from. Those decisions are safety decisions, and until this project existed none of them were tested: the engine had
-/// 542 tests and the application had none, because the test project targets net8.0 and cannot reference WPF.
+/// 542 tests and the application had none, because the test project targets net10.0 and cannot reference WPF.
 ///
 /// The invariant these protect is that evidence loaded for review is inert. An engineer opening yesterday's capture to
 /// answer a question must not be able to plan or acknowledge a deployment from it, because the tenant has moved on and
