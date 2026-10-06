@@ -65,6 +65,7 @@ public static class Program
             "report" => Report(options),
             "document" => Document(options),
             "standard" => StandardDefinition(options),
+            "verify-restore" => VerifyRestore(options),
             "help" or "--help" or "-h" => Help(),
             _ => Unknown(command)
         };
@@ -102,6 +103,10 @@ public static class Program
                   No format: full ZIP set with exact catalogue JSON/manifest, HTML and Markdown.
                   Individual formats: html, markdown, json. JSON retains original placeholders.
 
+              bdit verify-restore --folder <dir>
+                  Re-check a separately restored evidence folder against its recorded checksums.
+                  Read-only: refuses changed, missing or unlisted files and writes nothing.
+
             Common options:
               --root <dir>     Toolkit root holding standards/, config/ and reports/.
                                Defaults to BDIT_TOOLKIT_ROOT or the installation directory.
@@ -129,8 +134,8 @@ public static class Program
 
         var context = Context.Open(options);
         var standard = context.Standard();
-        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(File.ReadAllText(file))
-            ?? throw new ConfigurationException("The snapshot file did not contain a capture.");
+        // Refuses a snapshot changed after capture, as the supplemental Exchange evidence below is refused.
+        var snapshot = AssessmentContext.ReadPrimary(file);
         if (!ProfileValidator.IsGuid(snapshot.TenantId))
             throw new ConfigurationException("The snapshot does not name a tenant, so it cannot be assessed.");
 
@@ -159,7 +164,7 @@ public static class Program
         var written = context.Exporter.ExportAssessment(result, format);
 
         var s = result.Summary;
-        Console.WriteLine($"{result.TenantName} · standard {result.Release} · snapshot {(result.SnapshotComplete ? "complete" : "INCOMPLETE")}");
+        Console.WriteLine($"{result.TenantName} · standard {result.Release} · snapshot {(result.SnapshotComplete ? "complete" : "INCOMPLETE")} · integrity {MarkdownReports.IntegrityText(result.SnapshotIntegrity)}");
         Console.WriteLine($"Compliant {s.Compliant} · match not enforced {s.SettingsMatchNotEnforced} · partial {s.PartialMatch} · missing {s.Missing} · manual {s.RequiresManualReview} · unable {s.UnableToAssess}");
         Console.WriteLine("Report: " + written);
         return 0;
@@ -186,6 +191,14 @@ public static class Program
         var now = DateTimeOffset.UtcNow;
         var file = options.ContainsKey("format") ? exporter.Export(standard, Format(options, ExportFormat.Html), now) : exporter.ExportSet(standard, now);
         Console.WriteLine("Standard definition: " + file);
+        return 0;
+    }
+
+    private static int VerifyRestore(IReadOnlyDictionary<string, string> options)
+    {
+        var folder = Require(options, "folder");
+        if (!Directory.Exists(folder)) throw new ConfigurationException($"Restored folder not found: {folder}");
+        Console.WriteLine($"Restored folder verified: {WorkspaceBackup.VerifyRestored(folder)} evidence file(s) match their recorded SHA-256.");
         return 0;
     }
 

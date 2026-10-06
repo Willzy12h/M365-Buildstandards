@@ -12,7 +12,7 @@
       </StackPanel></Border>
       <Border Style="{StaticResource Card}"><StackPanel>
         <TextBlock Text="Evidence backup and separate restore" Style="{StaticResource H2}"/>
-        <TextBlock Text="Disconnect and close all other copies first. Backup contains sensitive client evidence. Restore creates a new folder and preserves original records; it does not replace active data or restore deployment approval." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+        <TextBlock Text="Disconnect and close all other copies first. Backup contains sensitive client evidence and is written to the transfers folder, not reports. Restore creates a new folder and preserves original records; it does not replace active data or restore deployment approval." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
         <Button Content="Create sensitive evidence backup" Command="{Binding CreateBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
         <Expander Header="Restore a backup into a separate folder" Margin="0,12,0,0"><StackPanel>
           <TextBlock Text="Backup ZIP" Style="{StaticResource Muted}"/>
@@ -20,7 +20,15 @@
           <Button Content="Choose backup ZIP" Command="{Binding ChooseBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
           <TextBlock Text="New destination folder (must not exist)" Style="{StaticResource Muted}" Margin="0,12,0,0"/>
           <TextBox AutomationProperties.Name="Separate restore destination" Text="{Binding RestoreFolder, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"/>
-          <Button Content="Verify and restore separately" Command="{Binding RestoreBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+          <TextBlock Text="Trusted archive SHA-256, received separately from the archive through the approved handoff channel" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <TextBox AutomationProperties.Name="Trusted archive SHA-256" Text="{Binding TrustedDigest, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" Margin="0,6,0,8"/>
+          <CheckBox AutomationProperties.Name="No trusted digest is available" IsChecked="{Binding NoTrustedDigest, Mode=TwoWay}" Margin="0,0,0,12"><TextBlock Text="No trusted digest is available. Restore against the archive's own checksums, which detect accidental damage but not deliberate change. This is logged." TextWrapping="Wrap"/></CheckBox>
+          <WrapPanel>
+            <Button Content="Verify and restore separately" Command="{Binding RestoreBackupCommand}" Style="{StaticResource SecondaryButton}"/>
+            <Button Content="Verify restored folder" Command="{Binding VerifyRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
+            <Button Content="Adopt into this empty workspace" Command="{Binding AdoptRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
+          </WrapPanel>
+          <TextBlock Text="Adopt only into a newly extracted package with no evidence. Every file is re-verified after copying; restart the tool afterwards." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
           <TextBox AutomationProperties.Name="Evidence transfer limitations" Text="{Binding BackupGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
         </StackPanel></Expander>
       </StackPanel></Border>

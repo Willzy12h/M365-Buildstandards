@@ -64,7 +64,9 @@ public sealed class Release20260930Tests
             ["2026.09.9"] = "4cbb5ecc017633e44142e00b99402e769817fe07960644964842be0170a792b9",
             ["2026.09.10"] = "fc22f752390661db71bc5bd11ec895e2e934a6be16d5464e0c9790d60231d48d",
             ["2026.09.11"] = "f30b2e162901df80a21bf2b024f85d6bca83f45696125137f3b2fd0e1625973a",
-            ["2026.09.12"] = "9553ecbcae476f45742042f7503095bb811019dec48527156c3791b05efa6a70"
+            ["2026.09.12"] = "9553ecbcae476f45742042f7503095bb811019dec48527156c3791b05efa6a70",
+            // Published as the default of the v1.1.0-preview.18 prerelease (RELEASE-RECORD.json catalogueSha256).
+            ["2026.09.30"] = "124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f"
         };
         foreach (var (release, digest) in hashes)
             Assert.Equal(digest, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(DirectoryPath, release + ".json")))).ToLowerInvariant());

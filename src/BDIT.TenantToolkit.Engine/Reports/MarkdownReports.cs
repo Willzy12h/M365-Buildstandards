@@ -20,6 +20,15 @@ public static class MarkdownReports
     /// as entity codes on screen; only what can break out of the span or the table cell is changed: a backtick would end
     /// the span, a pipe would split the cell, and a line break would end the row.
     /// </summary>
+    /// <summary>Plain wording for <see cref="AssessmentResult.SnapshotIntegrity"/>, shared by the tabular reports.</summary>
+    public static string IntegrityText(string state) => state switch
+    {
+        SnapshotIntegrityState.Intact => "intact",
+        SnapshotIntegrityState.Modified => "MODIFIED after capture",
+        SnapshotIntegrityState.NotRecorded => "not recorded",
+        _ => "not checked"
+    };
+
     private static string C(string? s) => (s ?? "").Replace("`", "'", StringComparison.Ordinal)
         .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
@@ -31,7 +40,7 @@ public static class MarkdownReports
         sb.AppendLine($"- Primary domain: {E(r.PrimaryDomain)}");
         sb.AppendLine($"- Tenant ID: `{C(r.TenantId)}`");
         sb.AppendLine($"- Standard release: {E(r.Release)} (digest `{C(r.StandardDigest)}`)");
-        sb.AppendLine($"- Snapshot: `{C(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")})");
+        sb.AppendLine($"- Snapshot: `{C(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")}; integrity {IntegrityText(r.SnapshotIntegrity)})");
         sb.AppendLine($"- Assessed: {E(r.AssessedAt)} by {E(r.AssessedBy)} with toolkit {E(r.ToolkitVersion)}");
         sb.AppendLine();
         var s = r.Summary;

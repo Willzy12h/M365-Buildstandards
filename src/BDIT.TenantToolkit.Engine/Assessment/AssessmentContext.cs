@@ -19,6 +19,20 @@ public static class AssessmentContext
         return engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange);
     }
 
+    /// <summary>
+    /// Reads a primary Graph snapshot for offline reporting. A snapshot that no longer matches its recorded integrity
+    /// digest is refused, as supplemental Exchange evidence is: a report must not present modified evidence as a
+    /// normal assessment. A snapshot with no digest (older exports) is assessed and labelled as unverified.
+    /// </summary>
+    public static TenantSnapshot ReadPrimary(string file)
+    {
+        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(File.ReadAllText(file))
+            ?? throw new ConfigurationException("The snapshot file did not contain a capture.");
+        if (AssessmentEngine.IntegrityOf(snapshot) == SnapshotIntegrityState.Modified)
+            throw new IntegrityException("The snapshot no longer matches its recorded integrity digest; it was modified after capture. Capture fresh evidence rather than reporting on it.");
+        return snapshot;
+    }
+
     /// <summary>Accepts the existing raw capture or exported snapshot format; no new persisted schema is introduced.</summary>
     public static ExchangeCapture ReadSupplement(string file, string expectedTenant, DateTimeOffset now)
     {

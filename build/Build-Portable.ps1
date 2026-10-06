@@ -60,7 +60,8 @@ if (-not $SkipTests) {
     Invoke-Step 'Test' { & dotnet test tests\BDIT.TenantToolkit.Tests\BDIT.TenantToolkit.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=test-results.trx' --results-directory (Join-Path $dist 'test-results') }
     Invoke-Step 'Test the application' { & dotnet test tests\BDIT.TenantToolkit.App.Tests\BDIT.TenantToolkit.App.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=app-test-results.trx' --results-directory (Join-Path $dist 'test-results') }
 }
-Invoke-Step 'Standards manifest' { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Update-StandardsManifest.ps1') -GeneratedBy "Build-Portable $version" }
+# Verify, never regenerate: the package ships the committed manifest bytes, and a changed catalogue fails the build.
+Invoke-Step 'Standards manifest' { & (Join-Path $PSScriptRoot 'Test-StandardsManifest.ps1') -StandardsDirectory (Join-Path $root 'standards') }
 Invoke-Step 'Publish application (self-contained)' {
     & dotnet publish src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj -c $Configuration -r $Runtime --self-contained true `
         -p:PublishSingleFile=false -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o (Join-Path $stage 'app')
@@ -157,7 +158,20 @@ Invoke-Step 'Checksums' {
 }
 
 Invoke-Step 'Zip' {
-    Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
+    # ZIP entry names use '/' as the ZIP specification requires (APPNOTE 4.4.17). Windows PowerShell's Compress-Archive
+    # wrote '\' separators, which non-Windows verification tools misread (CLA-20261006-14). Entries are added in ordinal
+    # path order; empty folders are omitted as before, and the application creates them at first launch.
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        $files = @{}
+        foreach ($file in Get-ChildItem -LiteralPath $stage -Recurse -File) { $files[$file.FullName.Substring($stage.Length + 1).Replace('\', '/')] = $file.FullName }
+        $names = [string[]]@($files.Keys)
+        [Array]::Sort($names, [StringComparer]::Ordinal)
+        foreach ($name in $names) {
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $files[$name], $name, [IO.Compression.CompressionLevel]::Optimal)
+        }
+    } finally { $archive.Dispose() }
     $zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText("$zip.sha256", "$zipHash  $stageName.zip`n", [Text.UTF8Encoding]::new($false))
     Write-Host "Package: $zip"

@@ -127,6 +127,17 @@ public sealed class AssessmentSummary
     public int LowActionable { get; set; }
 }
 
+/// <summary>Values of <see cref="AssessmentResult.SnapshotIntegrity"/>. A digest detects modification; it is not a signature.</summary>
+public static class SnapshotIntegrityState
+{
+    /// <summary>The snapshot matches the digest recorded when it was saved.</summary>
+    public const string Intact = "intact";
+    /// <summary>The snapshot no longer matches its recorded digest: it was changed after capture.</summary>
+    public const string Modified = "modified";
+    /// <summary>No digest was recorded, so the contents could not be checked against the original capture.</summary>
+    public const string NotRecorded = "notRecorded";
+}
+
 public sealed class AssessmentResult
 {
     public string Id { get; set; } = "";
@@ -142,6 +153,11 @@ public sealed class AssessmentResult
     public string StandardDigest { get; set; } = "";
     public string ToolkitVersion { get; set; } = "";
     public bool SnapshotComplete { get; set; }
+    /// <summary>
+    /// Whether the assessed Graph snapshot still matches its recorded integrity digest: <see cref="SnapshotIntegrityState"/>.
+    /// Absent (empty) on assessments written before this field existed.
+    /// </summary>
+    public string SnapshotIntegrity { get; set; } = "";
     public List<string> Limitations { get; set; } = new();
     public Dictionary<string, string> CollectionStatus { get; set; } = new(StringComparer.Ordinal);
     public List<ControlFinding> Findings { get; set; } = new();

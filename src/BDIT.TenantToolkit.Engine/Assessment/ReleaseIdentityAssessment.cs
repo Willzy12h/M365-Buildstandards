@@ -6,9 +6,12 @@ namespace BDIT.TenantToolkit.Engine.Assessment;
 
 internal static class ReleaseIdentityAssessment
 {
+    /// <summary>Controls this assessor handles. Also read by the generated capability matrix, so the two cannot disagree.</summary>
+    public static IReadOnlyList<string> ControlIds { get; } = new[] { "ID-004", "ID-005", "ID-006", "ID-007", "ID-008", "UPD-001" };
+
     public static bool Apply(ControlDefinition control, TenantSnapshot snapshot, ControlFinding finding)
     {
-        if (control.Id is not ("ID-004" or "ID-005" or "ID-006" or "ID-007" or "ID-008" or "UPD-001")) return false;
+        if (!ControlIds.Contains(control.Id)) return false;
         if (control.Id == "UPD-001")
         {
             finding.Status = FindingStatus.RequiresManualReview;

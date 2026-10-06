@@ -154,7 +154,7 @@ public sealed class WorkspaceTransferTests
     {
         using var root = new TempRoot(); File.WriteAllText(Path.Combine(root.Paths.DataDirectory, "new-format.bin"), "keep");
         Assert.Throws<ConfigurationException>(() => new WorkspaceBackup(root.Paths).Create());
-        Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
+        AssertNoBackupLeft(root);
     }
 
     [Fact]
@@ -164,6 +164,13 @@ public sealed class WorkspaceTransferTests
         using var root = new TempRoot(); var outside = Path.Combine(root.Root, "outside.json"); File.WriteAllText(outside, "private");
         File.CreateSymbolicLink(Path.Combine(root.Paths.DataDirectory, "linked.json"), outside);
         Assert.Throws<IntegrityException>(() => new WorkspaceBackup(root.Paths).Create());
+        AssertNoBackupLeft(root);
+    }
+
+    // Backups are written to transfers/, apart from shareable reports; a refusal must leave nothing in either.
+    private static void AssertNoBackupLeft(TempRoot root)
+    {
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
+        Assert.True(!Directory.Exists(root.Paths.TransfersDirectory) || Directory.GetFiles(root.Paths.TransfersDirectory).Length == 0);
     }
 }

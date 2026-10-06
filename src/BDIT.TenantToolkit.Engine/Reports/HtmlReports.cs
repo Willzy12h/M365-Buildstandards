@@ -73,6 +73,7 @@ public static class HtmlReports
         sb.Append("</div>");
         sb.Append("<p>Actionable by severity: <b>").Append(s.CriticalActionable).Append(" critical</b>, <b>").Append(s.HighActionable).Append(" high</b>, ")
           .Append(s.MediumActionable).Append(" medium, ").Append(s.LowActionable).Append(" low.</p>");
+        if (r.SnapshotIntegrity == SnapshotIntegrityState.Modified) sb.Append("<div class=\"note warn\"><b>The evidence was modified after capture.</b> The snapshot no longer matches its recorded integrity digest. Treat every finding as unverified and capture fresh evidence.</div>");
         if (!r.SnapshotComplete) sb.Append("<div class=\"note warn\"><b>The capture is incomplete.</b> Controls that depend on missing data are reported as unable to assess; they are not counted as missing.</div>");
         if (r.Limitations.Count > 0)
         {
@@ -170,6 +171,8 @@ public static class HtmlReports
         sb.Append("<dl class=\"meta\">");
         Meta(sb, "Prepared for", r.TenantName); Meta(sb, "Prepared by", companyName); Meta(sb, "Review date", r.AssessedAt.Length >= 10 ? r.AssessedAt[..10] : r.AssessedAt); Meta(sb, "Reference", r.Id);
         sb.Append("</dl>");
+        if (r.SnapshotIntegrity == SnapshotIntegrityState.Modified)
+            sb.Append("<div class=\"note warn\"><b>Not for issue.</b> The configuration evidence behind this review changed after it was captured. A fresh review is required before these results are shared.</div>");
         var s = r.Summary;
         var assessed = s.Total - s.NotApplicable;
         var inPlace = s.Compliant + s.CompliantWithDeviation;

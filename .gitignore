@@ -37,6 +37,8 @@ logs/
 
 # Anchor generated reports: an unanchored reports/ also ignores C# Reports/ source on Windows.
 /reports/
+# Sensitive evidence backups and restores in a portable root.
+/transfers/
 *.csv.zip
 config/toolkit.settings.local.json
 standards/manifest.json

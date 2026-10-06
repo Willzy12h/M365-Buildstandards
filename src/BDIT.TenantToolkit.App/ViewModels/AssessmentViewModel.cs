@@ -162,7 +162,7 @@ public sealed class AssessmentViewModel : PageViewModel
             var a = Workspace.Assessment;
             if (a is null) return Workspace.Snapshot is null ? "Read the tenant configuration to run an assessment." : "No assessment yet.";
             var s = a.Summary;
-            return $"{a.TenantName} · standard {a.Release} · assessed {a.AssessedAt} · snapshot {(a.SnapshotComplete ? "complete" : "INCOMPLETE")}\n" +
+            return $"{a.TenantName} · standard {a.Release} · assessed {a.AssessedAt} · snapshot {(a.SnapshotComplete ? "complete" : "INCOMPLETE")} · evidence integrity {MarkdownReports.IntegrityText(a.SnapshotIntegrity)}\n" +
                    $"Compliant {s.Compliant} (+{s.CompliantWithDeviation} with deviation) · Match not enforced {s.SettingsMatchNotEnforced} · Partial {s.PartialMatch} · Missing {s.Missing} · Manual review {s.RequiresManualReview} · Unable to assess {s.UnableToAssess} · Licence {s.LicenceUnavailable} · N/A {s.NotApplicable}\n" +
                    $"Actionable: {s.CriticalActionable} critical, {s.HighActionable} high, {s.MediumActionable} medium, {s.LowActionable} low.";
         }

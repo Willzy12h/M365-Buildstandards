@@ -1,6 +1,7 @@
 using System.Text;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Graph;
 using BDIT.TenantToolkit.Graph.Setup;
 
@@ -14,13 +15,15 @@ public static class CapabilityDocuments
         var text = new StringBuilder("# Capability and acceptance scope\n\n");
         text.Append("Standard ").Append(M(standard.Release)).Append(" · SHA-256 ").Append(standard.IntegrityDigest).Append("\n\n")
             .Append("This generated inventory describes available catalogue/transport paths. All live service, pilot effectiveness and recovery acceptance is **Not run** for this product release; no row is a production support certification. Candidate eligibility still depends on complete evidence, licences, reviewed inputs, ownership and exact preview. Unknown or unsupported cases stop for engineer review.\n\n")
-            .Append("| Control | Read assessment | Candidate recipe | Activation / assignment | Effective protection | Recovery transport | Acceptance |\n|---|---|---|---|---|---|---|\n");
+            .Append("| Control | Read assessment | Evidence read | Licence (service plans) | Candidate recipe | Activation / assignment | Effective protection | Recovery transport | Acceptance |\n|---|---|---|---|---|---|---|---|---|\n");
         foreach (var c in standard.Controls)
         {
             var def = standard.FindCollection(c.Collection);
             var recipe = c.HasRecipe && def?.Writable == true;
             var recovery = def?.Writable == true && RecoverySafety.Supports(def.ApiVersion, def.BasePath);
-            text.Append('|').Append(M(c.Id + " — " + c.Name)).Append('|').Append(M(c.Assessment.Mode.ToString()))
+            text.Append('|').Append(M(c.Id + " — " + c.Name)).Append('|').Append(ReadRoute(standard, c))
+                .Append('|').Append(M(EvidenceRead(standard, c)))
+                .Append('|').Append(M(c.Licence.ServicePlans.Count == 0 ? "None recorded" : string.Join(", ", c.Licence.ServicePlans)))
                 .Append('|').Append(recipe ? "Preview recipe; inert candidate" : "Engineer/manual; no candidate recipe")
                 .Append('|').Append(recipe ? "Separate scope review; adapter eligibility checked at preview" : "Engineer/manual procedure")
                 .Append("|Engineer/device/sign-in verification required|").Append(recovery ? "Owned object only; exact recovery preview required" : "No generic recovery route; engineer escalation")
@@ -33,6 +36,28 @@ public static class CapabilityDocuments
             .Append("\n\nExchange/Purview uses its own delegated connection, supported module and service RBAC; Graph consent does not grant it. Missing permissions or truncated reads remain unknown. See the packaged Exchange/Purview and application setup guides.\n");
         return text.ToString();
     }
+    /// <summary>
+    /// How the assessment engine actually reads this control, in the order AssessmentEngine routes it. Reporting the
+    /// catalogue's assessment mode alone labelled evidence-assessed controls "Manual" (CLA-20261006-02).
+    /// </summary>
+    public static string ReadRoute(StandardCatalogue standard, ControlDefinition c)
+    {
+        var def = standard.FindCollection(c.Collection);
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return "Exchange/Purview read capture (separate connection)";
+        if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.ControlIds.Contains(c.Id)) return "Observed evidence; engineer confirms";
+        if (def is not null && c.Assessment.Mode == AssessmentMode.Settings && c.Payload is not null) return "Settings comparison";
+        if (c.Equivalence is { Signals.Count: > 0 }) return "Equivalence evidence; engineer confirms";
+        return "Manual only";
+    }
+
+    private static string EvidenceRead(StandardCatalogue standard, ControlDefinition c)
+    {
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return "Exchange Online / Purview cmdlets (service RBAC)";
+        var key = c.Equivalence?.Collection ?? c.Collection;
+        var def = standard.FindCollection(key);
+        return def is null ? "None" : def.Label + (string.IsNullOrWhiteSpace(def.Scope) ? "" : " (" + def.Scope + ")");
+    }
+
     private static string M(string value) => value.Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal)
         .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
 }

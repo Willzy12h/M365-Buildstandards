@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
 
@@ -34,6 +35,12 @@ public sealed class AssessmentEngine
         _toolkitVersion = toolkitVersion;
     }
 
+    /// <summary>Checks the snapshot against the digest recorded when it was saved. Shared with the headless runner.</summary>
+    public static string IntegrityOf(TenantSnapshot snapshot) =>
+        string.IsNullOrEmpty(snapshot.IntegrityDigest) ? SnapshotIntegrityState.NotRecorded
+        : EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest) ? SnapshotIntegrityState.Intact
+        : SnapshotIntegrityState.Modified;
+
     public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null)
     {
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
@@ -63,8 +70,14 @@ public sealed class AssessmentEngine
             Release = standard.Release,
             StandardDigest = standard.IntegrityDigest,
             ToolkitVersion = _toolkitVersion,
-            SnapshotComplete = snapshot.Complete
+            SnapshotComplete = snapshot.Complete,
+            SnapshotIntegrity = IntegrityOf(snapshot)
         };
+        // Reported first, because every finding below is only as good as the evidence it was read from.
+        if (result.SnapshotIntegrity == SnapshotIntegrityState.Modified)
+            result.Limitations.Add("EVIDENCE MODIFIED: this snapshot no longer matches the integrity digest recorded when it was captured. Treat every finding as unverified; capture fresh evidence before relying on it. Deployment refuses modified evidence.");
+        else if (result.SnapshotIntegrity == SnapshotIntegrityState.NotRecorded)
+            result.Limitations.Add("Evidence integrity not recorded: this snapshot carries no integrity digest, so its contents could not be checked against the original capture.");
 
         foreach (var (key, def) in standard.Collections)
         {

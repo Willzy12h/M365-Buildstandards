@@ -106,7 +106,7 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 1. Add the control to the release file with a new ID. For manual controls set `assessment.mode` to `manual` and write `manualInstructions`. For automated controls set `mode` to `settings`, name a collection and supply a `payload` template using only properties Graph accepts on create.
 2. For Conditional Access recipes keep `state: "disabled"` and use `{{emergencyAccountIds}}` (or `{{emergencyAndGuestIds}}`) in `excludeUsers`.
-3. Run `build\Update-StandardsManifest.ps1`, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release).
+3. Add controls only to a new, unpublished release file; published releases never change. Run `build\Update-StandardsManifest.ps1`, review and commit the manifest diff, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release). The portable build only verifies the committed manifest (`build\Test-StandardsManifest.ps1`) and fails on any mismatch. Once a release is published, add its digest to `Release20260930Tests.Historical_standard_bytes_match_the_published_baseline_digests`.
 4. Validate the payload against a test tenant before enabling deployment for that control; recipes are not proven by unit tests.
 
 ## Adding a collection

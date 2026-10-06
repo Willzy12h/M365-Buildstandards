@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using System.IO;
 using Microsoft.Win32;
+using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
 
@@ -11,6 +12,8 @@ public sealed class SettingsViewModel : PageViewModel
     private string _lastResult = "";
     private string _backupFile = "";
     private string _restoreFolder = "";
+    private string _trustedDigest = "";
+    private bool _noTrustedDigest;
     public SettingsViewModel(ShellViewModel shell) : base(shell, "Settings and diagnostics")
     {
         OpenReportsCommand = Sync(() => OpenFolder(Workspace.Paths.ReportsDirectory));
@@ -26,9 +29,13 @@ public sealed class SettingsViewModel : PageViewModel
             var dialog = new OpenFileDialog { Filter = "Workspace backup (*.zip)|*.zip", CheckFileExists = true };
             if (dialog.ShowDialog() == true) BackupFile = dialog.FileName;
         }, CanTransfer);
-        RestoreBackupCommand = Command(async () => LastResult = "Verified separate restore written: " + await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder)),
-            () => CanTransfer() && File.Exists(BackupFile) && RestoreFolder.Length > 0);
-        RestoreFolder = Path.Combine(Workspace.Paths.ReportsDirectory, "restored-evidence-" + Guid.NewGuid().ToString("N"));
+        RestoreBackupCommand = Command(async () => LastResult = "Verified separate restore written: " + await Workspace.ExportAsync(Restore),
+            () => CanTransfer() && File.Exists(BackupFile) && RestoreFolder.Length > 0 && (TrustedDigestValid || NoTrustedDigest));
+        VerifyRestoreCommand = Command(async () => LastResult = await Workspace.ExportAsync(() => $"Restored folder verified: {WorkspaceBackup.VerifyRestored(RestoreFolder)} evidence file(s) match their recorded SHA-256."),
+            () => Workspace.Idle && Directory.Exists(RestoreFolder));
+        AdoptRestoreCommand = Command(Adopt, () => CanTransfer() && Directory.Exists(RestoreFolder));
+        // Sensitive restores go to transfers/, apart from reports engineers share.
+        RestoreFolder = Path.Combine(Workspace.Paths.TransfersDirectory, "restored-evidence-" + Guid.NewGuid().ToString("N"));
     }
 
     public ICommand OpenReportsCommand { get; }
@@ -41,11 +48,36 @@ public sealed class SettingsViewModel : PageViewModel
     public ICommand CreateBackupCommand { get; }
     public ICommand ChooseBackupCommand { get; }
     public ICommand RestoreBackupCommand { get; }
+    public ICommand VerifyRestoreCommand { get; }
+    public ICommand AdoptRestoreCommand { get; }
     public string SupportPreview => SupportBundle.Preview(Workspace.Standard);
     public string BackupGuide => WorkspaceBackup.Guide;
     public string LastResult { get => _lastResult; private set => SetProperty(ref _lastResult, value); }
     public string BackupFile { get => _backupFile; set => SetProperty(ref _backupFile, value); }
     public string RestoreFolder { get => _restoreFolder; set => SetProperty(ref _restoreFolder, value); }
+    /// <summary>The archive SHA-256 received separately from the archive, through the approved handoff channel.</summary>
+    public string TrustedDigest { get => _trustedDigest; set { if (SetProperty(ref _trustedDigest, value)) OnPropertyChanged(nameof(TrustedDigestValid)); } }
+    public bool TrustedDigestValid => TrustedDigest.Trim().Length == 64 && TrustedDigest.Trim().All(Uri.IsHexDigit);
+    /// <summary>Explicit acknowledgement that no independent digest is available; internal checksums then detect only accidental damage.</summary>
+    public bool NoTrustedDigest { get => _noTrustedDigest; set => SetProperty(ref _noTrustedDigest, value); }
+
+    private string Restore()
+    {
+        if (string.Equals(Path.GetDirectoryName(Path.GetFullPath(RestoreFolder)), Workspace.Paths.TransfersDirectory, StringComparison.OrdinalIgnoreCase))
+            Directory.CreateDirectory(Workspace.Paths.TransfersDirectory);
+        var digest = TrustedDigestValid ? TrustedDigest.Trim() : null;
+        if (digest is null) Workspace.Logger.Warn("Transfer", "Backup restored without an independently received archive digest, at the engineer's explicit acknowledgement.");
+        return new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, digest);
+    }
+
+    private async Task Adopt()
+    {
+        var confirm = System.Windows.MessageBox.Show(
+            "Copy the verified restored evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence. Restart the tool afterwards.",
+            "Adopt restored evidence", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+        if (confirm != System.Windows.MessageBoxResult.Yes) return;
+        LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptInto(RestoreFolder));
+    }
     private bool CanTransfer() => Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null;
 
     public string Text

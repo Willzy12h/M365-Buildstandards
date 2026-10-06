@@ -96,6 +96,25 @@ public sealed class StandardDefinitionExportTests
         Assert.Contains("Manual or observed-only requirement", html);
     }
 
+    [Fact]
+    public void Capability_matrix_reports_the_engine_route_rather_than_the_catalogue_mode()
+    {
+        // CLA-20261006-02: controls assessed from equivalence signals or a separate Exchange/Purview capture were
+        // published as "Manual". The negative cases keep genuinely manual controls labelled as such.
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.09.30.json"));
+        var standard = StandardsLoader.Parse(File.ReadAllText(file), "2026.09.30.json");
+        var rows = CapabilityDocuments.Markdown(standard).Split('\n').Where(l => l.StartsWith("|", StringComparison.Ordinal) && l.Contains(" — ", StringComparison.Ordinal))
+            .ToDictionary(l => l[1..l.IndexOf(" — ", StringComparison.Ordinal)], l => l.Split('|'));
+        Assert.Equal(93, rows.Count);
+        foreach (var id in new[] { "ID-002", "ID-003", "ENR-001", "CMP-001" }) Assert.Equal("Equivalence evidence; engineer confirms", rows[id][2]);
+        foreach (var id in new[] { "EX-001", "EX-008", "PUR-001", "PUR-002" }) Assert.Equal("Exchange/Purview read capture (separate connection)", rows[id][2]);
+        Assert.Equal("Settings comparison", rows["CA-001"][2]);
+        Assert.Equal("Manual only", rows["ID-001"][2]);
+        Assert.Equal(standard.Controls.Count(c => CapabilityDocuments.ReadRoute(standard, c) == "Manual only"), rows.Values.Count(r => r[2] == "Manual only"));
+        foreach (var control in standard.Controls.Where(c => c.Licence.ServicePlans.Count > 0))
+            Assert.Equal(string.Join(", ", control.Licence.ServicePlans), rows[control.Id][4]);
+    }
+
     [Theory]
     [InlineData("2026.09.3")][InlineData("2026.09.4")][InlineData("2026.09.5")][InlineData("2026.09.6")]
     [InlineData("2026.09.7")][InlineData("2026.09.8")][InlineData("2026.09.9")][InlineData("2026.09.10")]

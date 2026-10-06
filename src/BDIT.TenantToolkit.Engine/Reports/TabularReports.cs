@@ -70,7 +70,7 @@ public static class TabularReports
         var summary = new Sheet("Summary", new[] { "Field", "Value" })
             .Add("Tenant", r.TenantName).Add("Primary domain", r.PrimaryDomain).Add("Tenant ID", r.TenantId).Add("Client label", r.ClientLabel)
             .Add("Standard release", r.Release).Add("Standard digest", r.StandardDigest).Add("Snapshot", r.SnapshotId).Add("Captured", r.CapturedAt)
-            .Add("Assessed", r.AssessedAt).Add("Assessed by", r.AssessedBy).Add("Toolkit version", r.ToolkitVersion).Add("Snapshot complete", r.SnapshotComplete)
+            .Add("Assessed", r.AssessedAt).Add("Assessed by", r.AssessedBy).Add("Toolkit version", r.ToolkitVersion).Add("Snapshot complete", r.SnapshotComplete).Add("Snapshot integrity", MarkdownReports.IntegrityText(r.SnapshotIntegrity))
             .Add("Controls", s.Total).Add("Compliant", s.Compliant).Add("Compliant with deviation", s.CompliantWithDeviation)
             .Add("Settings match, not enforced", s.SettingsMatchNotEnforced).Add("Partial match", s.PartialMatch).Add("Missing", s.Missing)
             .Add("Unable to assess", s.UnableToAssess).Add("Requires manual review", s.RequiresManualReview).Add("Licence unavailable", s.LicenceUnavailable)

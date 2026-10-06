@@ -8,6 +8,7 @@ namespace BDIT.TenantToolkit.Core.Configuration;
 ///   data/       profiles and per-tenant evidence (never shared between tenants)
 ///   logs/       diagnostic logs
 ///   reports/    exported reports
+///   transfers/  sensitive evidence backups and separate restores (created when first used)
 /// </summary>
 public sealed class ToolkitPaths
 {
@@ -23,6 +24,8 @@ public sealed class ToolkitPaths
     public string LogsDirectory => Path.Combine(Root, "logs");
     public string ReportsDirectory => Path.Combine(Root, "reports");
     public string DocsDirectory => Path.Combine(Root, "docs");
+    /// <summary>Sensitive evidence backups and separate restores. Kept apart from shareable reports; created on demand.</summary>
+    public string TransfersDirectory => Path.Combine(Root, "transfers");
 
     private ToolkitPaths(string root, string appDirectory)
     {

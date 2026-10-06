@@ -549,6 +549,8 @@ internal static partial class Program
         ("SettingsViewModel.CreateBackupCommand", Press),
         ("SettingsViewModel.ChooseBackupCommand", FilePicker),
         ("SettingsViewModel.RestoreBackupCommand", Press),
+        ("SettingsViewModel.VerifyRestoreCommand", Press),
+        ("SettingsViewModel.AdoptRestoreCommand", Prompt),
     };
 
     private const string Press = "press";
@@ -594,7 +596,15 @@ internal static partial class Program
             typeof(Workspace).GetProperty(nameof(Workspace.ApplicationSetup))!.SetValue(shell.Workspace, null);
             var vm = shell.Page<SettingsViewModel>();
             vm.BackupFile = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(shell.Workspace.Paths).Create();
-            vm.RestoreFolder = Path.Combine(shell.Workspace.Paths.ReportsDirectory, "synthetic-restore-" + Guid.NewGuid().ToString("N"));
+            vm.RestoreFolder = Path.Combine(shell.Workspace.Paths.TransfersDirectory, "synthetic-restore-" + Guid.NewGuid().ToString("N"));
+            vm.TrustedDigest = BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup.ArchiveDigest(vm.BackupFile);
+        },
+        ["SettingsViewModel.VerifyRestoreCommand"] = shell =>
+        {
+            var vm = shell.Page<SettingsViewModel>();
+            var backup = new BDIT.TenantToolkit.Engine.Evidence.WorkspaceBackup(shell.Workspace.Paths);
+            Directory.CreateDirectory(shell.Workspace.Paths.TransfersDirectory);
+            vm.RestoreFolder = backup.RestoreSeparate(backup.Create(), Path.Combine(shell.Workspace.Paths.TransfersDirectory, "synthetic-verify-" + Guid.NewGuid().ToString("N")));
         },
         ["ConnectViewModel.RemoveExclusionCommand"] = shell =>
         {
