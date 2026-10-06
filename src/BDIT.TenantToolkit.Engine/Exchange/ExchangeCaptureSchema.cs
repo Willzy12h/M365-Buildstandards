@@ -42,16 +42,28 @@ public static class ExchangeCaptureSchema
         ["dkim"] = Definition("Get-DkimSigningConfig", "Name:t Enabled:b Status:t Selector1CNAME:t Selector2CNAME:t")
     };
 
-    public static ExchangeCapture Parse(string json, string expectedTenant, DateTimeOffset now)
+    public static ExchangeCapture Parse(string json, string expectedTenant, DateTimeOffset now) => ParseValidated(json, expectedTenant, now, allowStoredDns: false);
+
+    // Only an integrity-checked existing snapshot wrapper may carry the separately stored DNS observations.
+    internal static ExchangeCapture ParseStored(string json, string expectedTenant, DateTimeOffset now) => ParseValidated(json, expectedTenant, now, allowStoredDns: true);
+
+    private static ExchangeCapture ParseValidated(string json, string expectedTenant, DateTimeOffset now, bool allowStoredDns)
     {
         if (System.Text.Encoding.UTF8.GetByteCount(json) > MaximumBytes) throw new ConfigurationException("Exchange capture exceeds the 2 MiB limit.");
         try
         {
             using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 20 });
+            if (document.RootElement.ValueKind != JsonValueKind.Object) throw new ConfigurationException("Exchange capture must be a JSON object.");
             RejectDuplicates(document.RootElement);
+            if (document.RootElement.TryGetProperty("collections", out var collections) && collections.ValueKind == JsonValueKind.Object)
+                foreach (var collection in collections.EnumerateObject())
+                    if (collection.Value.ValueKind == JsonValueKind.Object && collection.Value.TryGetProperty("status", out var status)
+                        && status.ValueKind == JsonValueKind.String && status.GetString() == CaptureStatus.Collected
+                        && (!collection.Value.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array))
+                        throw new ConfigurationException("A collected Exchange collection must explicitly contain its items array; missing evidence is not an empty successful read.");
             var capture = JsonSerializer.Deserialize<ExchangeCapture>(json, StrictJson) ?? throw new ConfigurationException("Exchange capture is empty.");
             Validate(capture, expectedTenant, now);
-            if (capture.Dns.Count != 0) throw new ConfigurationException("Imported captures cannot supply DNS answers; run the separate DNS check.");
+            if (!allowStoredDns && capture.Dns.Count != 0) throw new ConfigurationException("Imported captures cannot supply DNS answers; run the separate DNS check.");
             return capture;
         }
         catch (JsonException ex) { throw new ConfigurationException("Exchange capture does not match the supported schema.", ex); }
@@ -123,14 +135,14 @@ public static class ExchangeCaptureSchema
         _ => false
     };
 
-    private static void RejectDuplicates(JsonElement node)
+    internal static void RejectDuplicates(JsonElement node, StringComparer? comparer = null)
     {
         if (node.ValueKind == JsonValueKind.Object)
         {
-            var names = new HashSet<string>(StringComparer.Ordinal);
+            var names = new HashSet<string>(comparer ?? StringComparer.Ordinal);
             foreach (var property in node.EnumerateObject())
-            { if (!names.Add(property.Name)) throw new ConfigurationException("Exchange capture contains duplicate JSON properties."); RejectDuplicates(property.Value); }
+            { if (!names.Add(property.Name)) throw new ConfigurationException("Exchange capture contains duplicate JSON properties."); RejectDuplicates(property.Value, comparer); }
         }
-        else if (node.ValueKind == JsonValueKind.Array) foreach (var item in node.EnumerateArray()) RejectDuplicates(item);
+        else if (node.ValueKind == JsonValueKind.Array) foreach (var item in node.EnumerateArray()) RejectDuplicates(item, comparer);
     }
 }

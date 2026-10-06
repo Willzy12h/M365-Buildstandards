@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
@@ -36,17 +37,21 @@ public static class AssessmentContext
         var node = ToolkitJson.ParseObject(json);
         if (node.ContainsKey("exchangeCapture"))
         {
+            using var document = JsonDocument.Parse(json);
+            ExchangeCaptureSchema.RejectDuplicates(document.RootElement, StringComparer.OrdinalIgnoreCase);
             var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(json);
+            if (snapshot.IntegrityDigest is null || snapshot.ExchangeCapture is null)
+                throw new ConfigurationException("Supplemental snapshot has no supported Exchange capture or integrity metadata.");
             if (!string.Equals(snapshot.TenantId, expectedTenant, StringComparison.OrdinalIgnoreCase))
                 throw new TenantMismatchException("Supplemental Exchange snapshot belongs to a different tenant.");
             if (snapshot.IntegrityDigest.Length > 0 && !EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest))
                 throw new IntegrityException("Supplemental Exchange snapshot failed its recorded integrity check.");
-            var capture = snapshot.ExchangeCapture ?? throw new ConfigurationException("Supplemental snapshot has no Exchange capture.");
+            var embedded = document.RootElement.GetProperty("exchangeCapture").GetRawText();
+            var capture = snapshot.IntegrityDigest.Length > 0
+                ? ExchangeCaptureSchema.ParseStored(embedded, expectedTenant, now)
+                : ExchangeCaptureSchema.Parse(embedded, expectedTenant, now);
             if (!string.Equals(snapshot.CapturedAt, capture.CapturedAt, StringComparison.Ordinal))
                 throw new ConfigurationException("Supplemental snapshot and capture times do not match.");
-            if (Encoding.UTF8.GetByteCount(ToolkitJson.Serialize(capture)) > ExchangeCaptureSchema.MaximumBytes)
-                throw new ConfigurationException("Exchange capture exceeds the 2 MiB limit.");
-            ExchangeCaptureSchema.Validate(capture, expectedTenant, now);
             return capture;
         }
         return ExchangeCaptureSchema.Parse(json, expectedTenant, now);

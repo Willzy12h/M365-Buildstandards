@@ -12,6 +12,36 @@ namespace BDIT.TenantToolkit.Tests;
 
 public sealed class AssessmentContextTests
 {
+    [Theory]
+    [InlineData(false, "unknown")][InlineData(true, "unknown")]
+    [InlineData(false, "missing")][InlineData(true, "missing")]
+    [InlineData(false, "duplicate")][InlineData(true, "duplicate")]
+    public void Malformed_collection_evidence_cannot_default_to_empty_success_in_raw_or_wrapped_inputs(bool wrapped, string problem)
+    {
+        using var root = new TempRoot();
+        var capture = ExchangeTestData.Capture();
+        var node = ToolkitJson.ToNode(capture)!;
+        var collection = node["collections"]!["transportRules"]!.AsObject();
+        if (problem == "unknown") collection["itemz"] = collection["items"]!.DeepClone();
+        if (problem == "missing") collection.Remove("items");
+        var json = node.ToJsonString(ToolkitJson.Options);
+        if (problem == "duplicate") json = json.Replace("\"command\": \"Get-TransportRule\"", "\"command\": \"Get-TransportRule\", \"command\": \"Get-TransportRule\"", StringComparison.Ordinal);
+        if (wrapped) json = "{\"tenantId\":\"" + TestData.TenantA + "\",\"capturedAt\":\"" + capture.CapturedAt + "\",\"exchangeCapture\":" + json + "}";
+        var file = Path.Combine(root.Root, "malformed.json"); File.WriteAllText(file, json);
+        Assert.Throws<ConfigurationException>(() => AssessmentContext.ReadSupplement(file, TestData.TenantA, ExchangeTestData.Now));
+    }
+
+    [Fact]
+    public void Stored_dns_requires_an_intact_wrapper_and_keeps_the_strict_embedded_capture_contract()
+    {
+        using var root = new TempRoot(); var capture = ExchangeTestData.Capture(); ExchangeTestData.AddDns(capture);
+        var snapshot = ExchangeEvidenceImporter.Snapshot(capture, TestData.Profile(), ExchangeTestData.Standard());
+        snapshot.IntegrityDigest = EvidenceIntegrity.Compute(snapshot);
+        var file = Path.Combine(root.Root, "dns.json"); File.WriteAllText(file, ToolkitJson.Serialize(snapshot));
+        Assert.Equal(capture.Dns.Count, AssessmentContext.ReadSupplement(file, TestData.TenantA, ExchangeTestData.Now).Dns.Count);
+        snapshot.IntegrityDigest = ""; File.WriteAllText(file, ToolkitJson.Serialize(snapshot));
+        Assert.Throws<ConfigurationException>(() => AssessmentContext.ReadSupplement(file, TestData.TenantA, ExchangeTestData.Now));
+    }
     [Fact]
     public async Task Actual_headless_json_report_matches_desktop_assessment_for_combined_existing_evidence_and_does_not_write_data()
     {
