@@ -28,7 +28,7 @@
             <Button Content="Verify restored folder" Command="{Binding VerifyRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
             <Button Content="Adopt into this empty workspace" Command="{Binding AdoptRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
           </WrapPanel>
-          <TextBlock Text="Adopt only into a newly extracted package with no evidence. Every file is re-verified after copying; restart the tool afterwards." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+          <TextBlock Text="Adopt only into a newly extracted package with no evidence. Every file is re-verified after copying and the adopted clients are loaded straight away." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
           <TextBox AutomationProperties.Name="Evidence transfer limitations" Text="{Binding BackupGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
         </StackPanel></Expander>
       </StackPanel></Border>

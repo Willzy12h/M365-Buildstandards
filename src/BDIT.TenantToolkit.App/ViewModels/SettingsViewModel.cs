@@ -76,7 +76,7 @@ public sealed class SettingsViewModel : PageViewModel
     private async Task Adopt()
     {
         var confirm = System.Windows.MessageBox.Show(
-            "Copy the verified restored evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence. Restart the tool afterwards.",
+            "Copy the verified restored evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. The adopted clients are loaded straight away. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence.",
             "Adopt restored evidence", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
         LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptInto(RestoreFolder));

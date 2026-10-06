@@ -220,7 +220,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
             if (!string.Equals(CopyHash(input, Stream.Null, MaxFileBytes), digest, StringComparison.OrdinalIgnoreCase))
                 throw new IntegrityException($"Adopted file failed its in-place SHA-256 check: {name}. Do not use this workspace; keep the restored folder and contact the evidence custodian.");
         }
-        return $"Adopted {count} verified evidence file(s) into {paths.DataDirectory}. Restart the tool to load them, then sign in and capture fresh evidence before any new plan.";
+        return $"Adopted {count} verified evidence file(s) into {paths.DataDirectory}. Sign in and capture fresh evidence before any new plan; no approval or session was carried over.";
     }
 
     private static void DeleteEmptyTree(string directory)
