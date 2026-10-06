@@ -2,13 +2,15 @@
 param([Parameter(Mandatory)][string]$PackageRoot, [switch]$TestRejections)
 $ErrorActionPreference = 'Stop'
 $deps = Get-Content -LiteralPath (Join-Path $PackageRoot 'app/BDIT.TenantToolkit.App.deps.json') -Raw | ConvertFrom-Json
-$entries = @(Get-Content -LiteralPath (Join-Path $PackageRoot 'DEPENDENCIES.json') -Raw | ConvertFrom-Json)
+# Windows PowerShell 5.1 returns a JSON array as one pipeline object; @() would wrap it in another array.
+# Assignment preserves its elements on 5.1 and collects the enumerated output on PowerShell 7.
+$entries = (Get-Content -LiteralPath (Join-Path $PackageRoot 'DEPENDENCIES.json') -Raw | ConvertFrom-Json)
 $version = Get-Content -LiteralPath (Join-Path $PackageRoot 'VERSION.json') -Raw | ConvertFrom-Json
 $versionEntries = @($version.nugetPackages) + @($version.runtimePacks)
 $expected = @($deps.libraries.PSObject.Properties | Where-Object { $_.Value.type -in @('package', 'runtimepack') })
 
 function Assert-Records($records) {
-    if ($records.Count -ne $expected.Count -or $records.Count -eq 0) { throw 'Dependency record count differs from publish metadata.' }
+    if ($records.Count -ne $expected.Count -or $records.Count -eq 0) { throw "Dependency record count differs from publish metadata (actual $($records.Count), expected $($expected.Count))." }
     $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($record in $records) {
         $match = @($expected | Where-Object { $_.Name -ceq $record.resolvedIdentity })
@@ -32,13 +34,13 @@ foreach ($entry in $entries) {
 
 if ($TestRejections) {
     foreach ($field in @('name', 'version', 'kind')) {
-        $modified = @($entries | ConvertTo-Json -Depth 6 | ConvertFrom-Json)
+        $modified = ($entries | ConvertTo-Json -Depth 6 | ConvertFrom-Json)
         $modified[0].$field = 'synthetic-invalid'
         $refused = $false
         try { Assert-Records $modified } catch { $refused = $true }
         if (-not $refused) { throw "Dependency verification did not refuse changed $field." }
     }
-    $modified = @($entries | ConvertTo-Json -Depth 6 | ConvertFrom-Json)
+    $modified = ($entries | ConvertTo-Json -Depth 6 | ConvertFrom-Json)
     $withNotice = @($modified | Where-Object { @($_.notices).Count -gt 0 })[0]
     if ($null -eq $withNotice) { throw 'Runtime package must supply at least one licence notice.' }
     $withNotice.notices = @('licenses/' + $withNotice.name + '-' + $withNotice.version + '/synthetic-missing-notice.txt')
