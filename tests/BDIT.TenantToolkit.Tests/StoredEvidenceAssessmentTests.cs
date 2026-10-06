@@ -36,6 +36,20 @@ public sealed class StoredEvidenceAssessmentTests
     }
 
     [Fact]
+    public void A_dns_refresh_after_the_capture_counts_for_stored_evidence_as_it_does_live()
+    {
+        var exchange = ExchangeTestData.Capture(); ExchangeTestData.AddDns(exchange); // DNS queried at Now
+        var captured = ExchangeTestData.Now.AddHours(-3);
+        exchange.CapturedAt = Timestamps.Format(captured);
+        var graph = TestData.Snapshot(ExchangeTestData.Standard(), capturedAt: captured);
+        string Dns(AssessmentResult r) => CanonicalJson.Sha256Value(r.Findings.Where(f => f.ControlId is "EX-007" or "EX-008").Select(f => new { f.ControlId, f.Status, f.Reason }));
+
+        var live = Assess(graph, exchange, ExchangeTestData.Now.AddMinutes(1), null);
+        var storedLater = Assess(graph, exchange, ExchangeTestData.Now.AddDays(3), captured);
+        Assert.Equal(Dns(live), Dns(storedLater));
+    }
+
+    [Fact]
     public void Exchange_evidence_much_older_than_the_graph_capture_is_still_stale()
     {
         var exchange = ExchangeTestData.Capture();

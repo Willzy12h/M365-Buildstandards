@@ -60,8 +60,14 @@ public sealed class AssessmentEngine
         var exchangeEvidence = separateExchange ?? snapshot.ExchangeCapture;
         if (exchangeEvidence is { } exchange) ExchangeCaptureSchema.Validate(exchange, profile.TenantId, _clock.UtcNow);
         var exchangeReference = _clock.UtcNow;
-        if (evidenceTime is { } asOf && exchangeEvidence is { } paired && Timestamps.TryParse(paired.CapturedAt, out var exchangeCaptured))
-            exchangeReference = asOf > exchangeCaptured ? asOf : exchangeCaptured;
+        if (evidenceTime is { } asOf && exchangeEvidence is { } paired)
+        {
+            // The latest of the Graph capture, the Exchange capture and any later DNS refresh: stored evidence is judged
+            // as of when it was last brought up to date, so a DNS refresh after the capture is not discarded.
+            exchangeReference = asOf;
+            foreach (var observed in paired.Dns.Select(d => d.QueriedAt).Append(paired.CapturedAt))
+                if (Timestamps.TryParse(observed, out var at) && at > exchangeReference) exchangeReference = at;
+        }
 
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
