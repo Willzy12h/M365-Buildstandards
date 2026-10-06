@@ -28,3 +28,5 @@ Never edit or remove another agent's row. Add your own, and update only your own
 Status values: Open, Merged, Abandoned, Blocked.
 
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+| 2026-10-06 | Astra/Codex | M365-Buildstandards | dedicated decision-only contracts for persistent job/observation, legacy disposition/cutover and read-only release lineage; no runtime implementation | `astra/product-contracts-2026-10-06` | Dedicated draft PR (created immediately after this commit) | Open |
