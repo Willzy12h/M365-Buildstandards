@@ -36,26 +36,38 @@ public static class CapabilityDocuments
             .Append("\n\nExchange/Purview uses its own delegated connection, supported module and service RBAC; Graph consent does not grant it. Missing permissions or truncated reads remain unknown. See the packaged Exchange/Purview and application setup guides.\n");
         return text.ToString();
     }
+    /// <summary>How the assessment engine reads a control, in the order AssessmentEngine routes it.</summary>
+    public enum Route { ExchangeCapture, ObservedEvidence, SettingsComparison, EquivalenceEvidence, ManualOnly }
+
     /// <summary>
-    /// How the assessment engine actually reads this control, in the order AssessmentEngine routes it. Reporting the
-    /// catalogue's assessment mode alone labelled evidence-assessed controls "Manual" (CLA-20261006-02).
+    /// The engine's actual read route for this control. Reporting the catalogue's assessment mode alone labelled
+    /// evidence-assessed controls "Manual" (CLA-20261006-02).
     /// </summary>
-    public static string ReadRoute(StandardCatalogue standard, ControlDefinition c)
+    public static Route RouteOf(StandardCatalogue standard, ControlDefinition c)
     {
-        var def = standard.FindCollection(c.Collection);
-        if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return "Exchange/Purview read capture (separate connection)";
-        if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.ControlIds.Contains(c.Id)) return "Observed evidence; engineer confirms";
-        if (def is not null && c.Assessment.Mode == AssessmentMode.Settings && c.Payload is not null) return "Settings comparison";
-        if (c.Equivalence is { Signals.Count: > 0 }) return "Equivalence evidence; engineer confirms";
-        return "Manual only";
+        if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return Route.ExchangeCapture;
+        if (standard.SchemaVersion >= 5 && ReleaseIdentityAssessment.ControlIds.Contains(c.Id)) return Route.ObservedEvidence;
+        if (standard.FindCollection(c.Collection) is not null && c.Assessment.Mode == AssessmentMode.Settings && c.Payload is not null) return Route.SettingsComparison;
+        if (c.Equivalence is { Signals.Count: > 0 }) return Route.EquivalenceEvidence;
+        return Route.ManualOnly;
     }
+
+    public static string ReadRoute(StandardCatalogue standard, ControlDefinition c) => RouteOf(standard, c) switch
+    {
+        Route.ExchangeCapture => "Exchange/Purview read capture (separate connection)",
+        Route.ObservedEvidence => "Observed evidence; engineer confirms",
+        Route.SettingsComparison => "Settings comparison",
+        Route.EquivalenceEvidence => "Equivalence evidence; engineer confirms",
+        _ => "Manual only"
+    };
 
     private static string EvidenceRead(StandardCatalogue standard, ControlDefinition c)
     {
-        if (standard.SchemaVersion >= 5 && ExchangeAssessment.ControlIds.Contains(c.Id)) return "Exchange Online / Purview cmdlets (service RBAC)";
-        // Settings comparison reads the control's own collection; equivalence and observed routes read the evidence
-        // collection the equivalence rule names, defaulting to the control's.
-        var key = ReadRoute(standard, c) == "Settings comparison" ? c.Collection : c.Equivalence?.Collection ?? c.Collection;
+        var route = RouteOf(standard, c);
+        if (route == Route.ExchangeCapture) return "Exchange Online / Purview cmdlets (service RBAC)";
+        // Settings comparison reads the control's own collection; the other routes read the collection the
+        // equivalence rule names, defaulting to the control's.
+        var key = route == Route.SettingsComparison ? c.Collection : c.Equivalence?.Collection ?? c.Collection;
         var def = standard.FindCollection(key);
         return def is null ? "None" : def.Label + (string.IsNullOrWhiteSpace(def.Scope) ? "" : " (" + def.Scope + ")");
     }

@@ -68,6 +68,18 @@ public sealed class ExchangeWorkspaceTests : IDisposable
     }
 
     [Fact]
+    public void A_modified_stored_Exchange_snapshot_cannot_be_reopened_as_evidence()
+    {
+        // Review finding: the headless runner refused modified supplemental Exchange evidence, but reopening it from
+        // history did not check its digest and reported its findings as resting on intact evidence.
+        var stored = ExchangeEvidenceImporter.Snapshot(ExchangeTestData.Capture(), TestData.Profile(), _workspace.RequireStandard());
+        var file = _workspace.Evidence.SaveSnapshot(stored);
+        File.WriteAllText(file, File.ReadAllText(file).Replace("\"3.9.2\"", "\"3.9.3\"", StringComparison.Ordinal));
+        Assert.Throws<IntegrityException>(() => _workspace.LoadStoredSnapshot(stored.Id));
+        Assert.Null(_workspace.ExchangeSnapshot);
+    }
+
+    [Fact]
     public void Exchange_only_import_cannot_enable_Graph_deployment()
     {
         _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);

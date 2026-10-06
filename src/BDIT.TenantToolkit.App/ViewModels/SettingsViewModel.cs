@@ -58,16 +58,11 @@ public sealed class SettingsViewModel : PageViewModel
     public string RestoreFolder { get => _restoreFolder; set => SetProperty(ref _restoreFolder, value); }
     /// <summary>The archive SHA-256 received separately from the archive, through the approved handoff channel.</summary>
     public string TrustedDigest { get => _trustedDigest; set { if (SetProperty(ref _trustedDigest, value)) OnPropertyChanged(nameof(TrustedDigestValid)); } }
-    public bool TrustedDigestValid => TrustedDigest.Trim().Length == 64 && TrustedDigest.Trim().All(Uri.IsHexDigit);
+    public bool TrustedDigestValid => WorkspaceBackup.IsValidDigest(TrustedDigest);
     /// <summary>Explicit acknowledgement that no independent digest is available; internal checksums then detect only accidental damage.</summary>
     public bool NoTrustedDigest { get => _noTrustedDigest; set => SetProperty(ref _noTrustedDigest, value); }
 
-    private string Restore()
-    {
-        if (string.Equals(Path.GetDirectoryName(Path.GetFullPath(RestoreFolder)), Workspace.Paths.TransfersDirectory, StringComparison.OrdinalIgnoreCase))
-            Directory.CreateDirectory(Workspace.Paths.TransfersDirectory);
-        return new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, DigestForTransfer("restored"));
-    }
+    private string Restore() => new WorkspaceBackup(Workspace.Paths).RestoreSeparate(BackupFile, RestoreFolder, DigestForTransfer("restored"));
 
     /// <summary>The trusted digest, or null after the explicit acknowledgement. A typed but malformed digest is an error, never treated as absent.</summary>
     private string? DigestForTransfer(string action)
@@ -84,13 +79,19 @@ public sealed class SettingsViewModel : PageViewModel
             "Restore the selected backup and copy its verified evidence into this workspace's empty evidence folder?\n\nEvery file is checked again after copying. The adopted clients are loaded straight away. No sign-in, plan approval or session is restored, and the next plan still needs fresh evidence.",
             "Adopt restored evidence", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
-        try { LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptFromArchive(BackupFile, DigestForTransfer("adopted"))); }
+        var digest = DigestForTransfer("adopted");
+        try { LastResult = await Workspace.ExportAsync(() => new WorkspaceBackup(Workspace.Paths).AdoptFromArchive(BackupFile, digest)); }
         finally
         {
-            // Whatever happened, the in-memory client list must match the evidence on disk, or a client saved next would
-            // rewrite profiles.json without the adopted clients.
+            // Adoption requires an empty evidence folder, so evidence present now was put there by this adoption. The
+            // in-memory client list must match it, or a client saved next would rewrite profiles.json without the
+            // adopted clients. A reload failure is logged rather than replacing the adoption's own result or error.
             var data = Workspace.Paths.DataDirectory;
-            if (Directory.Exists(data) && Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories).Any()) Workspace.ReloadAdoptedEvidence();
+            if (Directory.Exists(data) && Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories).Any())
+            {
+                try { Workspace.ReloadAdoptedEvidence(); }
+                catch (ToolkitException ex) { Workspace.Logger.Warn("Transfer", "Adopted clients could not be loaded until restart: " + ex.Message); }
+            }
         }
     }
     private bool CanTransfer() => Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null;

@@ -67,6 +67,8 @@ public sealed class AssessmentEngine
             exchangeReference = asOf;
             foreach (var observed in paired.Dns.Select(d => d.QueriedAt).Append(paired.CapturedAt))
                 if (Timestamps.TryParse(observed, out var at) && at > exchangeReference) exchangeReference = at;
+            // Never later than now: future-dated observations must stay as untrusted as they are in live assessment.
+            if (exchangeReference > _clock.UtcNow) exchangeReference = _clock.UtcNow;
         }
 
         var names = NameResolver.FromSnapshot(snapshot, profile);

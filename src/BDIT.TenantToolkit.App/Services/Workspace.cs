@@ -78,8 +78,8 @@ public sealed class Workspace : ObservableObject
     public bool SnapshotIsLive { get; private set; }
     public TenantSnapshot? ExchangeSnapshot { get; private set; }
     public bool ExchangeCapturedByTool { get; private set; }
-    /// <summary>The Exchange-only snapshot most recently reopened from history. Any capture, import or refresh replaces ExchangeSnapshot, so it no longer matches.</summary>
-    private TenantSnapshot? _historicalExchange;
+    /// <summary>True while ExchangeSnapshot was reopened from history rather than captured, imported or refreshed in this session.</summary>
+    private bool _exchangeFromHistory;
     public AssessmentResult? Assessment { get; private set; }
     public DeploymentPlan? Plan { get; private set; }
     public string? AcknowledgedSnapshotId { get; private set; }
@@ -295,7 +295,7 @@ public sealed class Workspace : ObservableObject
             throw new TenantMismatchException("These settings belong to another tenant. Reconnect before applying them.");
         if (save) profile = SaveProfile(profile);
         CancelPendingDiscovery();
-        if (Profile?.TenantId != profile.TenantId) { ExchangeSnapshot = null; ExchangeCapturedByTool = false; }
+        if (Profile?.TenantId != profile.TenantId) { ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false; }
         Profile = profile;
         Plan = null;
         AcknowledgedSnapshotId = null;
@@ -331,7 +331,7 @@ public sealed class Workspace : ObservableObject
         if (Profile?.Id == profile.Id)
         {
             if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
-            { ExchangeSnapshot = null; ExchangeCapturedByTool = false; Assessment = null; CancelPendingDiscovery(); }
+            { ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false; Assessment = null; CancelPendingDiscovery(); }
             Profile = profile;
             Plan = null;
             AcknowledgedSnapshotId = null;
@@ -464,7 +464,7 @@ public sealed class Workspace : ObservableObject
         InterruptedNotice = "";
         Access = null;
         Snapshot = null;
-        ExchangeSnapshot = null; ExchangeCapturedByTool = false;
+        ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false;
         SnapshotIsLive = false;
         Assessment = null;
         Plan = null;
@@ -529,7 +529,13 @@ public sealed class Workspace : ObservableObject
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var stored = Evidence.LoadSnapshot(profile.TenantId, snapshotId) ?? throw new ToolkitException("Snapshot not found.");
-        if (stored.ExchangeCapture is not null) { _historicalExchange = stored; SetExchangeSnapshot(stored, false); return; }
+        if (stored.ExchangeCapture is not null)
+        {
+            // Supplemental Exchange evidence is refused when modified, as the headless runner refuses it.
+            if (!Evidence.SnapshotIntegrityIntact(stored)) throw new IntegrityException("This stored Exchange/Purview snapshot no longer matches its recorded integrity digest. It was modified after capture and cannot be reopened as evidence.");
+            SetExchangeSnapshot(stored, false, fromHistory: true);
+            return;
+        }
         Snapshot = stored;
         SnapshotIsLive = false;
         Plan = null;
@@ -546,7 +552,7 @@ public sealed class Workspace : ObservableObject
         // A stored Graph snapshot is judged as of its own capture, so reopening history reproduces its findings.
         // An Exchange-only snapshot reopened from history is judged as of its capture too, as the headless runner does.
         var stored = Snapshot is { } graph ? (SnapshotIsLive ? null : graph)
-            : ExchangeSnapshot is { } exchange && ReferenceEquals(exchange, _historicalExchange) ? exchange : null;
+            : _exchangeFromHistory ? ExchangeSnapshot : null;
         DateTimeOffset? evidenceTime = stored is not null && Timestamps.TryParse(stored.CapturedAt, out var capturedAt) ? capturedAt : null;
         Assessment = AssessmentContext.Assess(Engine, Evidence, snapshot, standard, profile, Session?.Account ?? "offline review", ExchangeSnapshot?.ExchangeCapture, evidenceTime);
         Evidence.SaveAssessment(Assessment);
@@ -581,13 +587,13 @@ public sealed class Workspace : ObservableObject
         SetExchangeSnapshot(snapshot, false);
     }
 
-    private void SetExchangeSnapshot(TenantSnapshot snapshot, bool capturedByTool)
+    private void SetExchangeSnapshot(TenantSnapshot snapshot, bool capturedByTool, bool fromHistory = false)
     {
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase) || snapshot.ExchangeCapture is null)
             throw new TenantMismatchException("Exchange evidence belongs to another tenant or has no observations.");
         ExchangeCaptureSchema.Validate(snapshot.ExchangeCapture, profile.TenantId, DateTimeOffset.UtcNow);
-        ExchangeSnapshot = snapshot; ExchangeCapturedByTool = capturedByTool;
+        ExchangeSnapshot = snapshot; ExchangeCapturedByTool = capturedByTool; _exchangeFromHistory = fromHistory;
         // The Graph capture, plan and acknowledgement are unchanged. Exchange cannot satisfy their gates.
         RunAssessment(); Notify();
     }

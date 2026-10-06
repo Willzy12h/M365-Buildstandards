@@ -116,7 +116,7 @@ public sealed class StandardDefinitionExportTests
         foreach (var id in new[] { "EX-001", "EX-008", "PUR-001", "PUR-002" }) Assert.Equal("Exchange/Purview read capture (separate connection)", rows[id][2]);
         Assert.Equal("Settings comparison", rows["CA-001"][2]);
         Assert.Equal("Manual only", rows["ID-001"][2]);
-        Assert.Equal(standard.Controls.Count(c => CapabilityDocuments.ReadRoute(standard, c) == "Manual only"), rows.Values.Count(r => r[2] == "Manual only"));
+        Assert.Equal(standard.Controls.Count(c => CapabilityDocuments.RouteOf(standard, c) == CapabilityDocuments.Route.ManualOnly), rows.Values.Count(r => r[2] == "Manual only"));
         foreach (var control in standard.Controls.Where(c => c.Licence.ServicePlans.Count > 0))
             Assert.Equal(string.Join(", ", control.Licence.ServicePlans), rows[control.Id][4]);
     }

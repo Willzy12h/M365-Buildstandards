@@ -82,7 +82,7 @@ public sealed class WorkspaceAdoptionTests
         using var target = new TempRoot(); // a newly extracted package: empty data/ with empty tenants/
         var message = new WorkspaceBackup(target.Paths).AdoptFromArchive(zip, WorkspaceBackup.ArchiveDigest(zip));
         Assert.Contains("Adopted 2 verified evidence file(s)", message);
-        Assert.Single(Directory.GetDirectories(target.Paths.TransfersDirectory, "adopted-from-*"));
+        Assert.Empty(Directory.GetDirectories(target.Root, ".adopt-*"));
 
         foreach (var file in Directory.GetFiles(source.Paths.DataDirectory, "*.json", SearchOption.AllDirectories))
             Assert.Equal(File.ReadAllBytes(file), File.ReadAllBytes(Path.Combine(target.Paths.DataDirectory, Path.GetRelativePath(source.Paths.DataDirectory, file))));
