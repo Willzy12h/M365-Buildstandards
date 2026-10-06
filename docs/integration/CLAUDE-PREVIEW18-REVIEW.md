@@ -38,6 +38,12 @@ Code-review corrections made after the first implementation:
 - Restore hashes and extracts one read-locked stream.
 - Adoption never deletes recursively.
 - Adopted clients load at once, so a new client cannot overwrite them; Adopt is offered only with no client selected.
+- A second code review then found more, all fixed:
+  - Adoption now starts from the archive and its trusted digest, because a restored folder only agrees with its own checksum list. A forged-archive test covers this.
+  - Evidence that fails the in-place check is quarantined, and the app reloads clients regardless.
+  - Exchange-only snapshots reopened from history are judged as of their capture.
+  - The lease probe needs only read access.
+  - The matrix evidence column, the Conditional Access test in the spec, the CI sidecar upload and the documentation were corrected.
 - A malformed trusted digest is refused.
 - Stored-evidence time now includes later DNS refreshes.
 
