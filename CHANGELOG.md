@@ -21,6 +21,15 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 - Upgrade impact report (completes INT-051's first delivery): assess one stored capture under an earlier release and the current one, and see each requirement traced through the release lineage (same, renamed, changed, replaced, retired, added or unknown) with its status under both. On the Assessment page (**Compare with another release**) and as `bdit upgrade-impact`. It describes the standard, not the tenant, and changes no record.
 - Job and observation records (INT-049, first implementation, engine only): open a tenant job and record versioned observations against it. Each one is bound to the standard, the reviewed client inputs, the capture and the exact objects observed. A revision supersedes the current record and never overwrites it. A read-only projection shows each requirement's current outcome and flags it for review when anything it relied on changes, its review date passes or its history forks. Old manual checks are shown as legacy attestations. Nothing here touches the tenant or grants authority to deploy.
 - Legacy dispositions (INT-050, first slice, engine only): record what was decided about a legacy or missing requirement. The choices are retain external coverage, approved departure, add missing candidate, investigate, manual work or propose replacement. Each decision is bound like an observation and has a named owner and reason. Retaining an external policy names its exact objects and never creates a managed-object mapping or any right to change or delete them. An approved departure must cite an existing, in-date approved deviation for the same control and never creates one. Repeating an unchanged decision writes nothing. The projection flags a decision for review when its objects, deviation, standard, client inputs or review date change. Cutover cases are a later slice.
+- Cutover cases (INT-050, second slice, engine only): record a move from old protection to its replacement as a case. Its stages run review, candidate created, pilot reviewed, effectiveness verified, retirement reviewed and closed, one step at a time. Each stage needs its own evidence:
+  - the old objects as captured;
+  - a saved run that wrote and read back each new object;
+  - a separately approved pilot group present in a capture, with every prerequisite met;
+  - every functional criterion actually passed;
+  - an approved decision to retire or keep coexistence;
+  - for closure, a fresh complete capture showing the old protection gone (or kept, for coexistence) and the new one present.
+
+  Approval alone never closes a case. An unsupported scenario stops the case with an owner and escalation path, and a closed case is never reopened. Nothing is activated, assigned or retired by recording a stage. A disposition may now refer to a case for the same requirement in its job.
 
 # 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)
 

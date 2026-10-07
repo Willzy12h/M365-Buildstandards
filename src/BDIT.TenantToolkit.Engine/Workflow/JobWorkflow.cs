@@ -41,6 +41,8 @@ public sealed class DispositionRequest
     public List<string> ObservedObjectIds { get; set; } = new();
     /// <summary>For an approved departure: the existing same-tenant deviation it relies on.</summary>
     public string? DeviationId { get; set; }
+    /// <summary>Optional cutover case in the same job, for the same requirement instance.</summary>
+    public string? CaseId { get; set; }
     /// <summary>The current disposition this one revises. Required when the requirement already has one.</summary>
     public string? SupersedesId { get; set; }
 }
@@ -50,7 +52,7 @@ public sealed class DispositionRequest
 /// or writes the tenant, creates a managed-object mapping or a deviation, and a job confers no authority to execute:
 /// deployment still needs its own live, fresh, integrity and ownership checks and a newly reviewed approval.
 /// </summary>
-public sealed class JobWorkflow
+public sealed partial class JobWorkflow
 {
     private readonly EvidenceStore _store;
     private readonly IClock _clock;
@@ -154,14 +156,17 @@ public sealed class JobWorkflow
             ReviewDueAt = Timestamps.Format(request.ReviewDueAt),
             ObservedObjectIds = request.ObservedObjectIds.Select(id => id.Trim()).ToList(),
             DeviationId = string.IsNullOrWhiteSpace(request.DeviationId) ? null : request.DeviationId.Trim(),
+            CaseId = request.CaseId?.ToLowerInvariant(),
             SupersedesId = request.SupersedesId?.ToLowerInvariant()
         };
         var (_, capture, material) = PinEvidence(job.TenantId, request.SnapshotId, disposition.Evidence, disposition.ObservedObjectIds);
         disposition.MaterialDigest = material;
 
         WorkflowRecordRules.ValidateDisposition(disposition);
-        if (disposition.DeviationId is not null && SubjectReview.DeviationProblem(_store, job.TenantId, disposition, _clock.UtcNow))
+        if (disposition.DeviationId is not null && SubjectReview.MissingDeviation(_store, job.TenantId, disposition.DeviationId, disposition.ControlId, _clock.UtcNow))
             throw new ConfigurationException("An approved departure needs an existing, in-date approved deviation for the same control in this tenant. Record the deviation first; a disposition never creates one.");
+        if (disposition.CaseId is not null && SubjectReview.MissingCase(_store, job.TenantId, disposition))
+            throw new ConfigurationException("The cutover case must already exist in this job for the same requirement instance.");
 
         var attached = Attached(job.DispositionIds ?? new(), id => _store.LoadDisposition(job.TenantId, id));
         var current = attached.Where(d => SameSubject(d, disposition))
@@ -183,6 +188,7 @@ public sealed class JobWorkflow
     private static bool SameDecision(TenantDisposition a, TenantDisposition b) =>
         a.Decision == b.Decision && a.Owner == b.Owner
         && string.Equals(a.DeviationId, b.DeviationId, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(a.CaseId, b.CaseId, StringComparison.OrdinalIgnoreCase)
         && a.ObservedObjectIds.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(b.ObservedObjectIds)
         && a.MaterialDigest == b.MaterialDigest;
 
@@ -261,6 +267,11 @@ public sealed class JobWorkflow
 /// <summary>Digest of exactly the observed objects as one capture recorded them.</summary>
 public static class ObservedMaterial
 {
+    /// <summary>True when the capture holds an object with this ID in any collection.</summary>
+    public static bool Contains(TenantSnapshot snapshot, string objectId) =>
+        snapshot.Collections.Values.SelectMany(c => c.Items).Any(item => item["id"] is JsonValue value && value.TryGetValue<string>(out var text)
+            && string.Equals(text, objectId, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Returns null when any object is absent from the capture.</summary>
     public static string? Digest(TenantSnapshot snapshot, IEnumerable<string> objectIds)
     {

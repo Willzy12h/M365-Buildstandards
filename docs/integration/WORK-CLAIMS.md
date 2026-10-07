@@ -30,7 +30,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-07 | Claude | M365-Buildstandards | release lineage (INT-051 first slice, INT-057), reviewed client scope digest (INT-056, CLA-17), handoff refresh | `claude/m365-buildstandards-preview-review-mjr04x` (restarted from integration `d39eb73`) | #22 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | review fixes for PR #22: reviewed client scope digest (INT-056 amendment), lineage loading and validation (INT-059) | `claude/project-thread-if32r2` (from integration `34dbb72`) | #24 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-049 job and observation records (store, validation, read-only projection) | `claude/project-thread-gxrkmr` (from integration `34dbb72`) | #25 | Merged |
-| 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-050 legacy dispositions (store, validation, projection), first slice | `claude/project-thread-gxrkmr` (from integration `3e021e1`) | #27 | Open |
+| 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-050 legacy dispositions (store, validation, projection), first slice | `claude/project-thread-gxrkmr` (from integration `3e021e1`) | #27 | Merged |
+| 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-050 cutover cases (store, stage rules, projection), second slice | `claude/project-thread-gxrkmr` (from integration `0ebe7a2`) | #28 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 

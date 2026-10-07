@@ -300,15 +300,6 @@ public sealed class DispositionWorkflowTests : IDisposable
     }
 
     [Fact]
-    public void Cutover_case_references_wait_for_the_cutover_slice()
-    {
-        var disposition = Decide(Request(DispositionDecision.ProposeReplacement));
-        var copy = ToolkitJson.Deserialize<TenantDisposition>(ToolkitJson.Serialize(disposition));
-        copy.Id = Guid.NewGuid().ToString(); copy.CaseId = Guid.NewGuid().ToString();
-        Assert.Throws<ConfigurationException>(() => _store.CreateDisposition(copy));
-    }
-
-    [Fact]
     public void A_job_cannot_lose_its_dispositions()
     {
         Decide(Request());

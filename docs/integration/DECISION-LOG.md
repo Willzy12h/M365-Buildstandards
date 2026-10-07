@@ -203,4 +203,43 @@ Choices made where the contract was silent:
 - `ApprovedDeparture` must cite an existing, in-date `ApprovedDeviation` record for the same control in the same tenant; `NotApplicable` records do not qualify. Only that decision may cite a deviation.
 - Repeating the current decision writes nothing and returns the existing record. This applies when the decision, owner, deviation, object set and material digest are unchanged and the current record still stands, including against an unchanged recapture. A revision is otherwise required.
 - The job gains an optional `dispositionIds` list that is omitted until the first disposition. Jobs written by PR #25 therefore keep their bytes and digests.
-- The contract's optional case reference is carried as `caseId` and refused until the cutover slice exists.
+- The contract's optional case reference is carried as `caseId`. INT-062 enables it.
+
+## INT-062 — Cutover cases, first implementation (INT-050)
+
+Implements the cutover half of the INT-050 contract (engine only). Each revision of a case is an immutable `cutovers/<id>.json` record using the INT-060 conventions. A case is the line of revisions sharing a `caseId`, one requirement instance in one job. Each revision carries the full reviewed state:
+- old and new object IDs and a digest of the old objects as captured;
+- overlaps and the pilot groups;
+- the pilot and retirement approvals (who and where recorded);
+- prerequisites and functional criteria with their actual results;
+- recovery limits;
+- residual deviations;
+- any unsupported-scenario escalation.
+
+A revision must supersede the case's current revision. Stages move forward one step at a time and may step back. A closed case is never reopened.
+
+What each stage requires:
+- **Review:** the old objects present in the referenced capture.
+- **CandidateCreated:** a saved, intact deployment run with an accepted write and a passing readback for every new object, pinned as a new `run` evidence kind. This kind is allowed on cutovers only.
+- **PilotReviewed:** pilot groups that are group objects in a capture with collected groups, a recorded approval and every prerequisite met. Whole-tenant targeting is not a group ID, so it cannot be a pilot.
+- **EffectivenessVerified:** at least one criterion, and every criterion `Passed` with what was actually observed.
+- **RetirementReviewed:** `Retire` or `RetainCoexistence` with a recorded approval.
+- **Closed:** a complete capture taken after retirement was reviewed. It must show the new objects present and, for `Retire`, every old object gone. For `RetainCoexistence` it must show every old object still present.
+
+Any residual deviations must be existing, in-date approved deviations for the same control. An escalation stops forward movement until a revision at the same stage clears it. A closed revision cannot carry one.
+
+The projection reports `NeedsReview` in these cases:
+- a changed standard or client inputs, or missing evidence;
+- old objects changed before closure, or reappearing after a retirement;
+- new objects missing from the current capture;
+- a passed review date, or a residual deviation that has lapsed;
+- a missing predecessor, a cycle or a fork.
+
+`Closed` holds only for an unchallenged closed revision. A disposition's `caseId` must name a case attached to the same job for the same requirement instance, and a lost case projects `NeedsReview`.
+
+Histories in the projection are now listed in supersession order, then by time.
+
+Choices made where the contract was silent:
+- Retirement is performed outside the toolkit and proven by a fresh capture.
+- The "fresh assessment" at closure is that capture; stored assessment references remain an INT-049 follow-up slice.
+- Residual exceptions are limited to the case's own control.
