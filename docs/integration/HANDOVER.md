@@ -1,6 +1,6 @@
 # Handover and priorities
 
-**Current state, 7 October 2026:** PR #19 (Preview.18 work), PR #20 (INT-049–051 contracts) and PR #21 (Claude's review fixes and usability pass) are merged into `integration` (`d39eb73`). The source is `1.1.0-preview.19`, unpublished. A follow-up Claude PR, [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22), adds release lineage (INT-051 first slice) and the reviewed-client-scope digest (INT-056); it waits for Astra/Codex review. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
+**Current state, 7 October 2026 (evening):** PR #19–#24 are merged into `integration` (latest `9617d92`, PR #24), and Claude's PR #25 (INT-049 job and observation records) is merging on William's approval. The source is `1.1.0-preview.19`, unpublished. PR #22–#25 merged on William's approval without an Astra/Codex review, so the next agent's first task is an independent post-merge review of them. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 ## Owner delegation of commits and merges — 7 October 2026
 
@@ -36,20 +36,18 @@ The usability pass is merged too:
 
 The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register records each CLA ID's status.
 
-**Open follow-up PR [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22) (Claude, needs Astra/Codex review before merge):**
-- Release lineage into 2026.09.30 (INT-051 first slice, INT-057).
-  - `standards/lineage/` is verified at build and load.
-  - Assessment explains each earlier-release ownership record whose control ID now means something else, and flags records from releases without lineage.
-  - Nothing is moved or rebound.
-- `ReviewedClientScope.Digest` (INT-056, CLA-17): only company, notes and edit times are non-material.
+**Merged since, on William's approval (7 October 2026):**
+- [PR #22](https://github.com/Willzy12h/M365-Buildstandards/pull/22) (`fbce197`): release lineage into 2026.09.30 (INT-051 first slice, INT-057) and the reviewed-client-scope digest (INT-056). `standards/lineage/` is verified at build and load. Assessment explains earlier-release ownership records whose control ID now means something else. Nothing is moved or rebound.
+- [PR #23](https://github.com/Willzy12h/M365-Buildstandards/pull/23) (`34dbb72`): the upgrade impact report (INT-051 second slice, INT-058). It assesses one capture under the source and target releases, separately from tenant drift. It is available on the Assessment page and as `bdit upgrade-impact`.
+- [PR #24](https://github.com/Willzy12h/M365-Buildstandards/pull/24) (`9617d92`): fixes from the post-merge review of #22 (INT-059). Exclusion-account `resolvedAt`, `selectedBy` and list order are non-material to the scope digest. Unreadable lineage is reported, not fatal. Skipped lineage is explained, and the validator rules are tightened.
+- [PR #25](https://github.com/Willzy12h/M365-Buildstandards/pull/25): INT-049 job and observation records, engine only (INT-060). It adds tenant-partitioned jobs and immutable observations, strict readers, supersession checks and a read-only projection that reports `NeedsReview`. Old manual checks are shown as legacy attestations.
 
 **Next, in order:**
-1. Review and merge PR #22.
-2. The upgrade impact report: one capture assessed under the source and target catalogues, shown apart from tenant drift (rest of INT-051).
-3. INT-049 jobs and observations.
-4. INT-050 dispositions and cutover cases, each in its own PR, consuming `ReviewedClientScope.Digest`.
-5. Further usability from real engineer feedback.
-6. Upgrade the GitHub Actions still on Node 20. CI already forces them onto Node 24 with a warning. Do it as one reviewed PR that also checks `publish-preview18.yml`.
+1. An independent Astra/Codex review of PR #22–#25. They merged on William's approval without the other agent's review.
+2. INT-050 dispositions and cutover cases, each in its own PR, consuming `ReviewedClientScope.Digest` and following the INT-060 record conventions.
+3. INT-049 follow-up slices: desktop and CLI surfaces for jobs and observations, references to stored assessments, and the completion claim.
+4. Further usability from real engineer feedback.
+5. Upgrade the GitHub Actions still on Node 20. CI already forces them onto Node 24 with a warning. Do it as one reviewed PR that also checks `publish-preview18.yml`.
 
 **Owned by others:**
 - `release` environment reviewers and immutable releases (William, in repository settings).
