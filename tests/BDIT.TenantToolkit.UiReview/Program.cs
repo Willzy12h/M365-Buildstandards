@@ -158,6 +158,21 @@ internal static partial class Program
                         settings.TrustedDigest = "";
                         content.UpdateLayout(); Pump();
                     }
+                    if (nav.Key == "jobs")
+                    {
+                        // The cutover form: every field rendered and checked, then the form scrolled to its stage evidence.
+                        var jobs = shell.Page<JobsViewModel>();
+                        jobs.RecordKind = JobsViewModel.CutoverKind;
+                        content.UpdateLayout(); Pump();
+                        var label = "jobs-cutover " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, label); RecordClipping(content, label); RecordLowContrast(content, label);
+                        var form = Descendants(controls[0]).OfType<ScrollViewer>().Single(v => v.Content is StackPanel panel && panel.Children.OfType<TextBlock>().Any(t => t.Text == "SELECTED REQUIREMENT"));
+                        form.ScrollToVerticalOffset(form.ScrollableHeight / 2); content.UpdateLayout(); Pump();
+                        SaveImage(content, size, Path.Combine(output, "jobs-cutover-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        form.ScrollToTop();
+                        jobs.RecordKind = JobsViewModel.OutcomeKind;
+                        content.UpdateLayout(); Pump();
+                    }
                     if (nav.Key == "connect")
                     {
                         var connect = shell.Page<ConnectViewModel>();

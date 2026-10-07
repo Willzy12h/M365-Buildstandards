@@ -107,4 +107,60 @@ public sealed class JobsPageTests : IDisposable
         Assert.Contains("yyyy-MM-dd", _shell.ErrorMessage);
         Assert.Empty(_shell.Workspace.Evidence.LoadObservations(TestData.TenantA).Observations);
     }
+
+    [Fact]
+    public void A_cutover_case_is_opened_at_review_and_the_form_then_offers_the_next_stage()
+    {
+        const string oldPolicy = "aaaaaaaa-1111-4111-8111-000000000031";
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        capture.Collections["conditionalAccess"].Items.Add(TestData.ConditionalAccessPolicy(oldPolicy, "Legacy MFA", "enabled", new[] { TestData.Emergency }));
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        OpenJob();
+        Select("CA-001");
+
+        _page.RecordKind = JobsViewModel.CutoverKind;
+        Assert.Equal(JobsViewModel.NewCase, _page.SelectedCase);
+        Assert.Equal(CutoverStage.Review, _page.Stage);
+        _page.DecisionOwner = "Client security lead";
+        _page.Reason = "Replace the legacy policy.";
+        _page.ObjectIds = oldPolicy;
+        _page.RecoveryLimits = "The legacy policy stays enabled until retirement.";
+        _page.RecordCommand.Execute(null);
+        Assert.Equal("", _shell.ErrorMessage);
+
+        var revision = Assert.Single(_shell.Workspace.Evidence.LoadCutovers(TestData.TenantA).Revisions);
+        Assert.Equal(CutoverStage.Review, revision.Stage);
+        Assert.Equal(revision.CaseId, _page.SelectedCase);
+        Assert.Equal(CutoverStage.CandidateCreated, _page.Stage);
+        Assert.Equal(oldPolicy, _page.ObjectIds);
+        Assert.Equal("review", _page.Requirements.Single(r => r.InstanceKey == "CA-001").Cutover);
+
+        // The candidate stage needs a saved run; without one the engine refuses and nothing more is written.
+        _page.NewObjectIds = "aaaaaaaa-1111-4111-8111-000000000032";
+        _page.Reason = "Candidate created.";
+        _page.RecordCommand.Execute(null);
+        Assert.NotEqual("", _shell.ErrorMessage);
+        Assert.Single(_shell.Workspace.Evidence.LoadCutovers(TestData.TenantA).Revisions);
+    }
+
+    [Fact]
+    public void Cutover_lists_read_back_as_they_are_written_and_an_unknown_result_is_refused()
+    {
+        var prerequisites = CutoverText.Prerequisites("[x] Licences assigned\n[ ] Helpdesk briefed\nRollback tested");
+        Assert.Equal(new[] { true, false, false }, prerequisites.Select(p => p.Met));
+        Assert.Equal("Helpdesk briefed", prerequisites[1].Description);
+        Assert.Equal(prerequisites.Select(p => p.Description), CutoverText.Prerequisites(CutoverText.Prerequisites(prerequisites)).Select(p => p.Description));
+
+        var criteria = CutoverText.Criteria("Passed | Pilot users prompted for MFA | Sign-in logs 7 Oct\nnot run | Guests unaffected");
+        Assert.Equal(new[] { CriterionResult.Passed, CriterionResult.NotRun }, criteria.Select(c => c.Result));
+        Assert.Equal("Sign-in logs 7 Oct", criteria[0].Detail);
+        Assert.Equal(criteria.Select(c => c.Result), CutoverText.Criteria(CutoverText.Criteria(criteria)).Select(c => c.Result));
+
+        Assert.Throws<BDIT.TenantToolkit.Core.ConfigurationException>(() => CutoverText.Criteria("Probably | Something"));
+        Assert.Throws<BDIT.TenantToolkit.Core.ConfigurationException>(() => CutoverText.Criteria("Passed without a separator"));
+        Assert.Null(CutoverText.Approval(" ", ""));
+        Assert.Null(CutoverText.Escalation("", "Owner", "Path"));
+    }
 }
