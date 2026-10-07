@@ -3,6 +3,20 @@
 Current user continuation: approved A–G and integrated default/settings exports, implemented incrementally as Preview.18 in PR #19. Read [PRODUCT-COMPLETION-PLAN.md](PRODUCT-COMPLETION-PLAN.md), [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). PR #20 carries the separate persisted-contract decisions and must merge before dependent workflow/backfill/lineage implementation. Live tenant actions and final publication remain separately approved. Older Preview.15–17 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 
+## Current continuation — Claude review fixes, PR #21 (7 October 2026)
+
+[PR #21](https://github.com/Willzy12h/M365-Buildstandards/pull/21) (draft, branch `claude/m365-buildstandards-preview-review-mjr04x`) is stacked on PR #19 head `2668d00`. It holds Claude's independent Preview.18 review, [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md) (CLA-20261006-01…17), and the implemented fixes. Code head `4202f02` passed Windows CI run 37542836818: 918 Engine + 115 App tests, 42 native layouts / 79 commands, PowerShell 5.1 packaging and a fresh 297-file package. Later commits change documentation only. Nothing is merged, approved or published by this work, and no tenant action took place.
+
+What changed, in brief (the CHANGELOG `Unreleased` entry and the review's "Implementation status" have the detail):
+- Assessment refuses a modified primary snapshot and every report states evidence integrity (Intact, Modified or NotRecorded).
+- Stored evidence is judged as of its capture, including later DNS refreshes, so a later re-assessment gives the same findings.
+- The capability matrix shows each control's real read route and licence; labels say "candidate recipes (inert)".
+- The build verifies the committed standards manifest (`build/Test-StandardsManifest.ps1`) and no longer regenerates it.
+- Backups go to `transfers/` with a `.sha256` sidecar. Restore and adoption check a trusted archive SHA-256 received separately, or an explicit logged acknowledgement. Settings offers "Verify and restore separately", "Verify restored folder" and "Verify and adopt into this empty workspace"; the CLI adds `bdit verify-restore --folder`. Unknown-write blockers survive; no approval or execution authority is restored.
+- Publishing has its own workflow with `environment: release`; actions are pinned by SHA. Definition exports are timestamped with a sidecar.
+
+What is next is usability and ease of use. The prioritised backlog (U1–U10) and a paste-ready prompt for the next agent are in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Still open and owned elsewhere: CLA-10 support-bundle opt-ins (privacy owner), CLA-17 decision row, CLA-07 lineage messaging (after a human merges PR #20), repository settings for the `release` environment and immutable releases (owner), the next preview version and the missing Preview.18 CHANGELOG entry (release owner), recording CLA-01…17 in the feedback register, and all human/live acceptance.
+
 ## Architecture roadmap
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
