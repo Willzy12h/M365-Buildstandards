@@ -283,6 +283,25 @@ public static class HtmlReports
         return sb.ToString();
     }
 
+    public static string UpgradeImpact(UpgradeImpactReport r)
+    {
+        var sb = new StringBuilder();
+        Head(sb, $"M365 Upgrade Impact - {r.TenantName}");
+        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Upgrade impact</div><h1>Upgrade impact: ").Append(H(r.TenantName))
+            .Append(" · ").Append(H(r.SourceRelease)).Append(" → ").Append(H(r.TargetRelease)).Append("</h1>");
+        var sheets = TabularReports.UpgradeImpactSheets(r);
+        sb.Append("<dl class=\"meta\">");
+        foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);
+        sb.Append("</dl>");
+        sb.Append("<div class=\"tiles\">");
+        Tile(sb, r.StatusChanges, "Status changes"); Tile(sb, r.Count(UpgradeImpactChange.Unknown), "Unknown lineage"); Tile(sb, r.Count(UpgradeImpactChange.Replaced), "Replaced");
+        Tile(sb, r.Count(UpgradeImpactChange.Renamed), "Renamed"); Tile(sb, r.Count(UpgradeImpactChange.Retired), "Retired"); Tile(sb, r.Count(UpgradeImpactChange.Added), "Added");
+        sb.Append("</div>");
+        sb.Append("<h2>Requirements</h2>"); Table(sb, sheets[1]);
+        sb.Append("<footer><p>One stored capture assessed under two releases. No tenant configuration was read or changed, and no ownership record, exception or plan was created.</p></footer></body></html>");
+        return sb.ToString();
+    }
+
     private static void Meta(StringBuilder sb, string key, string? value) => sb.Append("<dt>").Append(H(key)).Append("</dt><dd>").Append(H(value)).Append("</dd>");
     private static void Tile(StringBuilder sb, int value, string label) => sb.Append("<div class=\"tile\"><b>").Append(value).Append("</b><span>").Append(H(label)).Append("</span></div>");
 

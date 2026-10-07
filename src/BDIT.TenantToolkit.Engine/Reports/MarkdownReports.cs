@@ -138,6 +138,27 @@ public static class MarkdownReports
         return sb.ToString();
     }
 
+    public static string UpgradeImpact(UpgradeImpactReport r)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# Upgrade impact: {E(r.TenantName)}");
+        sb.AppendLine();
+        sb.AppendLine($"- From {E(r.SourceRelease)} to {E(r.TargetRelease)} · lineage {(r.LineageRecorded ? "recorded and verified" : "not recorded")}");
+        sb.AppendLine($"- Capture `{C(r.SnapshotId)}` ({E(r.CapturedAt)}, captured under {E(r.SnapshotRelease)}) · Generated {E(r.GeneratedAt)}");
+        sb.AppendLine($"- Status changes: {r.StatusChanges} · " + string.Join(" · ", UpgradeImpactChange.Order.Select(c => $"{c} {r.Count(c)}")));
+        foreach (var n in r.Notes) sb.AppendLine($"- {E(n)}");
+        sb.AppendLine();
+        sb.AppendLine("| Change | From | From status | To | To status | Explanation |");
+        sb.AppendLine("|---|---|---|---|---|---|");
+        foreach (var x in r.Rows)
+            sb.AppendLine($"| {E(x.Change)} | {E(Join(x.SourceControl, x.SourceName))} | {E(x.SourceStatus)} | {E(Join(x.TargetControls, x.TargetNames))} | {E(x.TargetStatus)}{(x.StatusChanged ? " (changed)" : "")} | {E(x.Reason)} |");
+        sb.AppendLine();
+        sb.AppendLine("This report assesses one stored capture under two releases. No tenant configuration was read or changed, and no ownership record, exception or plan was created.");
+        return sb.ToString();
+    }
+
+    private static string Join(string id, string name) => id.Length == 0 ? "" : name.Length == 0 ? id : $"{id} ({name})";
+
     public static string Run(DeploymentRun run, IReadOnlyList<JournalEntry> journal)
     {
         var sb = new StringBuilder();

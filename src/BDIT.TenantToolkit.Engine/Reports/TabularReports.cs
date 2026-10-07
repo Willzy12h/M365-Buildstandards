@@ -159,6 +159,20 @@ public static class TabularReports
         return new[] { meta, controls, objects, diffs };
     }
 
+    public static IReadOnlyList<Sheet> UpgradeImpactSheets(UpgradeImpactReport r)
+    {
+        var meta = new Sheet("Upgrade impact", new[] { "Field", "Value" })
+            .Add("Tenant", r.TenantName).Add("Tenant ID", r.TenantId).Add("Capture", r.SnapshotId).Add("Captured", r.CapturedAt)
+            .Add("Captured under", r.SnapshotRelease).Add("From release", r.SourceRelease).Add("From catalogue SHA-256", r.SourceDigest)
+            .Add("To release", r.TargetRelease).Add("To catalogue SHA-256", r.TargetDigest).Add("Lineage recorded", r.LineageRecorded)
+            .Add("Generated", r.GeneratedAt).Add("Status changes", r.StatusChanges);
+        foreach (var change in UpgradeImpactChange.Order) meta.Add(change, r.Count(change));
+        foreach (var n in r.Notes) meta.Add("Note", n);
+        var rows = new Sheet("Requirements", new[] { "Change", "From control", "From name", "From status", "To control", "To name", "To status", "Status changed", "Explanation" });
+        foreach (var x in r.Rows) rows.Add(x.Change, x.SourceControl, x.SourceName, x.SourceStatus, x.TargetControls, x.TargetNames, x.TargetStatus, x.StatusChanged, x.Reason);
+        return new[] { meta, rows };
+    }
+
     /// <summary>Exports a raw configuration capture: one overview row per object plus a detail row per setting.</summary>
     public static IReadOnlyList<Sheet> SnapshotSheets(TenantSnapshot snapshot, StandardCatalogue? standard)
     {

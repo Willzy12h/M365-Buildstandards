@@ -49,6 +49,8 @@ public sealed class AssessmentViewModel : PageViewModel
         ExportClientCommand = Command(() => Export(ExportFormat.ClientHtml), () => Workspace.Assessment is not null);
         CopyDetailCommand = CopyText(() => SelectedDetail + Environment.NewLine + string.Join(Environment.NewLine, Notes));
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
+        ExportUpgradeImpactCommand = Command(ExportUpgradeImpact,
+            () => Workspace.Idle && Workspace.Snapshot is not null && Workspace.Profile is not null && Workspace.Standard is not null && CompareRelease is not null);
         Refresh();
     }
 
@@ -83,6 +85,35 @@ public sealed class AssessmentViewModel : PageViewModel
     public string FilterArea { get => _filterArea; set { if (SetProperty(ref _filterArea, value)) ApplyFilter(); } }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
     public string LastExport { get => _lastExport; private set => SetProperty(ref _lastExport, value); }
+
+    // ---- upgrade impact (INT-051) -----------------------------------------------------------------------------------
+
+    public ICommand ExportUpgradeImpactCommand { get; }
+    /// <summary>Releases other than the loaded one, to compare the current capture against.</summary>
+    public ObservableCollection<string> CompareReleases { get; } = new();
+    private string? _compareRelease;
+    public string? CompareRelease { get => _compareRelease; set => SetProperty(ref _compareRelease, value); }
+    public string CompareGuidance => Workspace.Standard is null ? "Load a standard first."
+        : $"Shows how each requirement changes between the release you choose and {Workspace.Standard.Release}, for the capture in hand. It reassesses that one capture under both releases; nothing in the tenant or in this workspace's records changes.";
+
+    private async Task ExportUpgradeImpact()
+    {
+        var target = Workspace.RequireStandard();
+        var snapshot = Workspace.Snapshot ?? throw new ToolkitException("Capture or open a configuration first.");
+        var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
+        var choice = Workspace.Releases.FirstOrDefault(r => r.Release == CompareRelease) ?? throw new ToolkitException("Choose a release to compare with.");
+        _lastExportFile = await Workspace.ExportAsync(() =>
+        {
+            var source = Workspace.Standards.Load(choice.FileName);
+            var standards = Workspace.Paths.StandardsDirectory;
+            var lineage = BDIT.TenantToolkit.Engine.Standards.ReleaseLineage.Load(standards, BDIT.TenantToolkit.Engine.Standards.StandardsManifest.Load(standards), target.Release);
+            var report = BDIT.TenantToolkit.Engine.Assessment.UpgradeImpactAnalyser.Analyse(Workspace.Engine, snapshot, source, target, lineage, profile,
+                Workspace.Evidence.LoadMappings(profile.TenantId), Workspace.Evidence.LoadDeviations(profile.TenantId), DateTimeOffset.UtcNow);
+            return Workspace.Exporter.ExportUpgradeImpact(report, ExportFormat.Html);
+        }, "Writing upgrade impact", $"Assessing the capture under {choice.Release} and {target.Release}.");
+        LastExport = $"Upgrade impact {choice.Release} → {target.Release} written: {_lastExportFile}";
+        RaiseAll();
+    }
 
     public FindingRow? Selected
     {
@@ -178,6 +209,11 @@ public sealed class AssessmentViewModel : PageViewModel
 
     public override void Refresh()
     {
+        var keep = CompareRelease;
+        CompareReleases.Clear();
+        foreach (var r in Workspace.Releases.Where(r => !string.Equals(r.Release, Workspace.Standard?.Release, StringComparison.OrdinalIgnoreCase))) CompareReleases.Add(r.Release);
+        CompareRelease = keep is not null && CompareReleases.Contains(keep) ? keep : null;
+        OnPropertyChanged(nameof(CompareGuidance));
         _all.Clear();
         CategoryFilters.Clear();
         CategoryFilters.Add("All");

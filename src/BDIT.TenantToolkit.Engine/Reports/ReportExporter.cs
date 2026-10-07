@@ -91,6 +91,20 @@ public sealed class ReportExporter
         };
     }
 
+    public string ExportUpgradeImpact(UpgradeImpactReport report, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(report.TenantName) ? report.TenantId : report.TenantName;
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "html"), HtmlReports.UpgradeImpact(report)),
+            ExportFormat.Markdown => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "md"), MarkdownReports.UpgradeImpact(report)),
+            ExportFormat.Json => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "json"), ToolkitJson.Serialize(report)),
+            ExportFormat.Csv => WriteBytes(Target("upgrade-impact", label, report.GeneratedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.UpgradeImpactSheets(report))),
+            ExportFormat.Xlsx => WriteBytes(Target("upgrade-impact", label, report.GeneratedAt, "xlsx"), XlsxWriter.Write(TabularReports.UpgradeImpactSheets(report))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
     public string ExportSnapshot(TenantSnapshot snapshot, StandardCatalogue? standard, ExportFormat format)
     {
         var label = string.IsNullOrWhiteSpace(snapshot.PrimaryDomain) ? snapshot.TenantId : snapshot.PrimaryDomain;
