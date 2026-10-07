@@ -35,7 +35,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-07 | Claude | M365-Buildstandards | packaging: GitHub Actions off Node 20 (build and publisher workflows), SHA-pinned | `claude/project-thread-gxrkmr` (from integration `7edadb8`) | #29 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | interface and evidence and reporting: workflow surfaces for INT-049/050 (desktop Jobs page, read-only `bdit jobs`/`bdit job`, completion projection) | `claude/project-thread-gxrkmr` (from integration `9ca5ebb`) | #30 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | interface: recording cutover revisions from the Jobs page (INT-050 surfaces, second slice) | `claude/project-thread-gxrkmr` (from integration `0105676`) | #31 | Merged |
-| 2026-10-07 | Claude | M365-Buildstandards | workflow: outcomes cite a stored assessment as evidence (INT-049 assessment references) | `claude/project-thread-gxrkmr` (from integration `5ce7f56`) | #32 | Open |
+| 2026-10-07 | Claude | M365-Buildstandards | workflow: outcomes cite a stored assessment as evidence (INT-049 assessment references) | `claude/project-thread-gxrkmr` (from integration `5ce7f56`) | #32 | Merged |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
