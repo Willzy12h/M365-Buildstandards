@@ -876,6 +876,15 @@ public sealed class Workspace : ObservableObject
         return disposition;
     }
 
+    public CutoverRevision RecordCutover(string jobId, CutoverRequest request)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var revision = new JobWorkflow(Evidence, SystemClock.Instance).Cutover(profile.TenantId, jobId, profile, RequireStandard(), request, Actor);
+        Logger.Info("Jobs", $"Cutover case {revision.CaseId} recorded at {revision.Stage} for {revision.InstanceKey} in job {jobId}.", profile.TenantId, revision.ControlId);
+        Notify();
+        return revision;
+    }
+
     // ---- drift ---------------------------------------------------------------------------------------------------------
 
     public DriftReport CompareSnapshots(string beforeId, string afterId)

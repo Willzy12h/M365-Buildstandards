@@ -57,18 +57,62 @@
                 <StackPanel Visibility="{Binding IsDecision, Converter={StaticResource BoolToVis}}">
                   <TextBlock Text="Decision *" Style="{StaticResource FieldLabel}"/>
                   <ComboBox ItemsSource="{Binding Decisions}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding Decision, Mode=TwoWay}" AutomationProperties.Name="Decision"/>
-                  <TextBlock Text="Decision owner *" Style="{StaticResource FieldLabel}"/>
-                  <TextBox Text="{Binding DecisionOwner, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Decision owner"/>
                   <StackPanel Visibility="{Binding IsDeparture, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="Approved deviation *" Style="{StaticResource FieldLabel}"/>
                     <ComboBox ItemsSource="{Binding DeviationIds}" IsEditable="True" Text="{Binding DeviationId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Approved deviation"/>
                     <TextBlock Text="An approved departure relies on an existing, in-date approved deviation for this control. It never creates one." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                   </StackPanel>
                 </StackPanel>
+                <StackPanel Visibility="{Binding IsCutover, Converter={StaticResource BoolToVis}}">
+                  <TextBlock Text="Case *" Style="{StaticResource FieldLabel}"/>
+                  <ComboBox ItemsSource="{Binding CutoverCases}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding SelectedCase, Mode=TwoWay}" AutomationProperties.Name="Cutover case"/>
+                  <TextBlock Text="Stage *" Style="{StaticResource FieldLabel}"/>
+                  <ComboBox ItemsSource="{Binding Stages}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding Stage, Mode=TwoWay}" AutomationProperties.Name="Cutover stage"/>
+                  <TextBlock Text="A case moves one stage at a time, each with its own evidence. Recording a stage performs, approves or retires nothing." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Visibility="{Binding HasOwner, Converter={StaticResource BoolToVis}}">
+                  <TextBlock Text="Owner *" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding DecisionOwner, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Owner"/>
+                </StackPanel>
                 <TextBlock Text="Reason" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="70" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Reason"/>
-                <TextBlock Text="Object IDs (one per line)" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{Binding ObjectsLabel}" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding ObjectIds, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" FontFamily="Consolas" AutomationProperties.Name="Object IDs"/>
+                <StackPanel Visibility="{Binding IsCutover, Converter={StaticResource BoolToVis}}">
+                  <TextBlock Text="Overlaps with the old protection" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding Overlaps, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="48" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Overlaps"/>
+                  <TextBlock Text="Recovery limits" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding RecoveryLimits, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="48" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Recovery limits"/>
+                  <TextBlock Text="New object IDs (one per line)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding NewObjectIds, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="48" TextWrapping="Wrap" VerticalContentAlignment="Top" FontFamily="Consolas" AutomationProperties.Name="New object IDs"/>
+                  <TextBlock Text="Run that created and read back the new objects" Style="{StaticResource FieldLabel}"/>
+                  <ComboBox ItemsSource="{Binding Runs}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding RunId, Mode=TwoWay}" AutomationProperties.Name="Candidate run"/>
+                  <TextBlock Text="Pilot group IDs (one per line)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding PilotGroupIds, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="48" TextWrapping="Wrap" VerticalContentAlignment="Top" FontFamily="Consolas" AutomationProperties.Name="Pilot group IDs"/>
+                  <TextBlock Text="Pilot approved by" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding PilotApprovedBy, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pilot approved by"/>
+                  <TextBlock Text="Pilot approval reference" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding PilotReference, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pilot approval reference"/>
+                  <TextBlock Text="Prerequisites (one per line, [x] when met)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding Prerequisites, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Prerequisites"/>
+                  <TextBlock Text="Criteria (result | description | what was observed)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding Criteria, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Functional criteria"/>
+                  <TextBlock Text="Results are Passed, Failed or NotRun. Record what was actually observed, and where." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+                  <TextBlock Text="Retirement" Style="{StaticResource FieldLabel}"/>
+                  <ComboBox ItemsSource="{Binding Retirements}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding Retirement, Mode=TwoWay}" AutomationProperties.Name="Retirement decision"/>
+                  <TextBlock Text="Retirement approved by" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding RetirementApprovedBy, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Retirement approved by"/>
+                  <TextBlock Text="Retirement approval reference" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding RetirementReference, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Retirement approval reference"/>
+                  <TextBlock Text="Residual approved deviations (IDs, one per line)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding ResidualDeviationIds, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="40" TextWrapping="Wrap" VerticalContentAlignment="Top" FontFamily="Consolas" AutomationProperties.Name="Residual deviations"/>
+                  <TextBlock Text="Unsupported scenario (stops the case)" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding EscalationReason, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Unsupported scenario"/>
+                  <TextBlock Text="Escalation owner" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding EscalationOwner, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Escalation owner"/>
+                  <TextBlock Text="Escalation path" Style="{StaticResource FieldLabel}"/>
+                  <TextBox Text="{Binding EscalationPath, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Escalation path"/>
+                </StackPanel>
                 <TextBlock Text="Review by (yyyy-MM-dd) *" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding ReviewDue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Review by"/>
                 <Button Content="Record" Command="{Binding RecordCommand}" HorizontalAlignment="Left"/>

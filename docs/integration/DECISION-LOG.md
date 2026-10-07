@@ -271,3 +271,12 @@ Choices made where the contract was silent:
 - A Pass with no stored evidence does not verify a requirement.
 - A new record's semantic ID is the existing history's, or else the one the shipped lineage into the release declares for the control, or else the control ID.
 - Recording cutover revisions from the desktop, and references to stored assessments, are the next slices. Cutover cases are shown on the page and in the CLI but are not yet recorded there.
+
+## INT-064 — Recording cutover revisions from the Jobs page (INT-050 surfaces, second slice)
+
+The Jobs page records cutover revisions through `JobWorkflow.Cutover`, so every INT-062 stage rule applies unchanged. For the selected requirement, an engineer starts a new case at review or picks an existing case. The form is then filled from the case's current revision and offers the next stage. A stopped or closed case stays at its stage. Each revision carries the full reviewed state. The capture in view is pinned when it is saved for this client, and a saved run is chosen for the candidate stage. A case with no single current revision is refused until it has been deliberately reviewed.
+
+Choices made where the contract was silent:
+- Prerequisites and functional criteria are typed one per line. A met prerequisite starts with `[x]`. A criterion is `result | description | what was observed`, and the result must be Passed, Failed or NotRun; anything else is refused rather than read as not run.
+- An approval or escalation with every field blank is recorded as none.
+- The CLI keeps showing cases read-only. References to stored assessments remain the next slice.

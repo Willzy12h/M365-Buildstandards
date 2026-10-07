@@ -13,13 +13,16 @@ public sealed record JobRow(string Id, string Opened, string Intention, string O
 
 /// <summary>
 /// INT-049/050 jobs: open a job for the selected client, see every requirement's projected state, and record an
-/// outcome or a decision through the engine workflow. Nothing on this page reads or writes the tenant, and a complete
+/// outcome, a decision or a cutover revision through the engine workflow. Nothing on this page reads or writes the tenant, and a complete
 /// job confers no authority: planning and deployment keep every one of their own checks.
 /// </summary>
 public sealed class JobsViewModel : PageViewModel
 {
     public const string OutcomeKind = "Outcome";
     public const string DecisionKind = "Decision";
+    public const string CutoverKind = "Cutover";
+    /// <summary>The case key that starts a new cutover case at review.</summary>
+    public const string NewCase = "";
 
     private JobRow? _selectedJob;
     private RequirementCompletion? _selectedRequirement;
@@ -29,6 +32,10 @@ public sealed class JobsViewModel : PageViewModel
     private string _recordKind = OutcomeKind, _status = ObservationStatus.Pass, _decision = DispositionDecision.Investigate;
     private string _decisionOwner = "", _reason = "", _reviewDue = "", _objectIds = "", _deviationId = "";
     private string _problems = "";
+    private string _selectedCase = NewCase, _stage = CutoverStage.Review, _newObjectIds = "", _runId = "", _overlaps = "", _recoveryLimits = "";
+    private string _pilotGroupIds = "", _pilotApprovedBy = "", _pilotReference = "", _prerequisites = "", _criteria = "";
+    private string _retirement = "", _retirementApprovedBy = "", _retirementReference = "", _residualDeviationIds = "";
+    private string _escalationReason = "", _escalationOwner = "", _escalationPath = "";
 
     public JobsViewModel(ShellViewModel shell) : base(shell, "Jobs")
     {
@@ -44,9 +51,16 @@ public sealed class JobsViewModel : PageViewModel
     public ObservableCollection<JobRow> Jobs { get; } = new();
     public ObservableCollection<RequirementCompletion> Requirements { get; } = new();
     public ObservableCollection<string> DeviationIds { get; } = new();
+    /// <summary>The selected requirement's cutover cases, and the choice to start a new one.</summary>
+    public ObservableCollection<FilterOption> CutoverCases { get; } = new();
+    /// <summary>Saved deployment runs of this client, newest first: the evidence a candidate stage pins.</summary>
+    public ObservableCollection<FilterOption> Runs { get; } = new();
 
     public IReadOnlyList<FilterOption> Intentions { get; } = JobIntention.All.Select(i => new FilterOption(i, WordsConverter.Words(i))).ToList();
-    public IReadOnlyList<FilterOption> RecordKinds { get; } = new[] { new FilterOption(OutcomeKind, "Outcome (observation)"), new FilterOption(DecisionKind, "Decision (legacy disposition)") };
+    public IReadOnlyList<FilterOption> RecordKinds { get; } = new[] { new FilterOption(OutcomeKind, "Outcome (observation)"), new FilterOption(DecisionKind, "Decision (legacy disposition)"), new FilterOption(CutoverKind, "Cutover revision") };
+    public IReadOnlyList<FilterOption> Stages { get; } = CutoverStage.Order.Select(s => new FilterOption(s, WordsConverter.Words(s))).ToList();
+    public IReadOnlyList<FilterOption> Retirements { get; } = new[] { new FilterOption("", "Not yet decided") }
+        .Concat(RetirementDecision.All.Select(r => new FilterOption(r, WordsConverter.Words(r)))).ToList();
     public IReadOnlyList<string> Statuses { get; } = ObservationStatus.All;
     public IReadOnlyList<FilterOption> Decisions { get; } = DispositionDecision.All.Select(d => new FilterOption(d, WordsConverter.Words(d))).ToList();
 
@@ -59,7 +73,12 @@ public sealed class JobsViewModel : PageViewModel
     public RequirementCompletion? SelectedRequirement
     {
         get => _selectedRequirement;
-        set { if (SetProperty(ref _selectedRequirement, value)) OnPropertyChanged(nameof(RequirementText)); }
+        set
+        {
+            if (!SetProperty(ref _selectedRequirement, value)) return;
+            OnPropertyChanged(nameof(RequirementText));
+            LoadCases();
+        }
     }
 
     public string NewIntention { get => _newIntention; set => SetProperty(ref _newIntention, value); }
@@ -69,10 +88,45 @@ public sealed class JobsViewModel : PageViewModel
     public string RecordKind
     {
         get => _recordKind;
-        set { if (SetProperty(ref _recordKind, value)) { OnPropertyChanged(nameof(IsOutcome)); OnPropertyChanged(nameof(IsDecision)); } }
+        set
+        {
+            if (!SetProperty(ref _recordKind, value)) return;
+            OnPropertyChanged(nameof(IsOutcome)); OnPropertyChanged(nameof(IsDecision)); OnPropertyChanged(nameof(IsCutover));
+            OnPropertyChanged(nameof(HasOwner)); OnPropertyChanged(nameof(ObjectsLabel));
+            FillFromCase();
+        }
     }
     public bool IsOutcome => RecordKind == OutcomeKind;
     public bool IsDecision => RecordKind == DecisionKind;
+    public bool IsCutover => RecordKind == CutoverKind;
+    public bool HasOwner => !IsOutcome;
+    public string ObjectsLabel => IsCutover ? "Old object IDs, as reviewed (one per line)" : "Object IDs (one per line)";
+
+    /// <summary>Choosing a case fills the form with its current revision, so a new revision starts from the reviewed state.</summary>
+    public string SelectedCase
+    {
+        get => _selectedCase;
+        set { if (SetProperty(ref _selectedCase, value ?? NewCase)) FillFromCase(); }
+    }
+    public string Stage { get => _stage; set => SetProperty(ref _stage, value); }
+    public string NewObjectIds { get => _newObjectIds; set => SetProperty(ref _newObjectIds, value); }
+    public string RunId { get => _runId; set => SetProperty(ref _runId, value ?? ""); }
+    public string Overlaps { get => _overlaps; set => SetProperty(ref _overlaps, value); }
+    public string RecoveryLimits { get => _recoveryLimits; set => SetProperty(ref _recoveryLimits, value); }
+    public string PilotGroupIds { get => _pilotGroupIds; set => SetProperty(ref _pilotGroupIds, value); }
+    public string PilotApprovedBy { get => _pilotApprovedBy; set => SetProperty(ref _pilotApprovedBy, value); }
+    public string PilotReference { get => _pilotReference; set => SetProperty(ref _pilotReference, value); }
+    /// <summary>One per line; "[x]" marks a met prerequisite.</summary>
+    public string Prerequisites { get => _prerequisites; set => SetProperty(ref _prerequisites, value); }
+    /// <summary>One per line: "result | description | what was observed".</summary>
+    public string Criteria { get => _criteria; set => SetProperty(ref _criteria, value); }
+    public string Retirement { get => _retirement; set => SetProperty(ref _retirement, value ?? ""); }
+    public string RetirementApprovedBy { get => _retirementApprovedBy; set => SetProperty(ref _retirementApprovedBy, value); }
+    public string RetirementReference { get => _retirementReference; set => SetProperty(ref _retirementReference, value); }
+    public string ResidualDeviationIds { get => _residualDeviationIds; set => SetProperty(ref _residualDeviationIds, value); }
+    public string EscalationReason { get => _escalationReason; set => SetProperty(ref _escalationReason, value); }
+    public string EscalationOwner { get => _escalationOwner; set => SetProperty(ref _escalationOwner, value); }
+    public string EscalationPath { get => _escalationPath; set => SetProperty(ref _escalationPath, value); }
     public string Status { get => _status; set => SetProperty(ref _status, value); }
     public string Decision { get => _decision; set { if (SetProperty(ref _decision, value)) OnPropertyChanged(nameof(IsDeparture)); } }
     public bool IsDeparture => Decision == DispositionDecision.ApprovedDeparture;
@@ -137,6 +191,11 @@ public sealed class JobsViewModel : PageViewModel
         if (!DateOnly.TryParseExact(ReviewDue.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var due))
             throw new ToolkitException("Review by must be a date in yyyy-MM-dd format.");
         var reviewDue = new DateTimeOffset(due.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        if (IsCutover)
+        {
+            RecordCutover(job, requirement, reviewDue, Workspace.SavedCapture());
+            return;
+        }
         var objects = ObjectIds.Split(new[] { '\n', '\r', ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         var capture = Workspace.SavedCapture();
         if (objects.Count > 0 && capture is null) throw new ToolkitException("Named objects need the capture they were observed in. Capture or reopen one in Configuration first.");
@@ -165,6 +224,78 @@ public sealed class JobsViewModel : PageViewModel
         }
         Reason = ""; ObjectIds = "";
         SelectedRequirement = Requirements.FirstOrDefault(r => r.InstanceKey == requirement.InstanceKey);
+    }
+
+    private void RecordCutover(JobRow job, RequirementCompletion requirement, DateTimeOffset reviewDue, TenantSnapshot? capture)
+    {
+        var head = CaseHead(SelectedCase);
+        if (SelectedCase != NewCase && head is null)
+            throw new ToolkitException("This cutover case has no single current revision. It needs a deliberate review before anything else is recorded.");
+        Workspace.RecordCutover(job.Id, new CutoverRequest
+        {
+            CaseId = head?.CaseId, SupersedesId = head?.Id,
+            SemanticId = head?.SemanticId ?? Workspace.SemanticIdFor(requirement.ControlId, null),
+            ControlId = requirement.ControlId, InstanceKey = requirement.InstanceKey, Stage = Stage, Owner = DecisionOwner, Reason = Reason,
+            ReviewDueAt = reviewDue, SnapshotId = capture?.Id, RunId = RunId.Length > 0 ? RunId : null,
+            OldObjectIds = CutoverText.Ids(ObjectIds), NewObjectIds = CutoverText.Ids(NewObjectIds), Overlaps = Overlaps, RecoveryLimits = RecoveryLimits,
+            PilotGroupIds = CutoverText.Ids(PilotGroupIds), PilotApproval = CutoverText.Approval(PilotApprovedBy, PilotReference),
+            Prerequisites = CutoverText.Prerequisites(Prerequisites), Criteria = CutoverText.Criteria(Criteria),
+            Retirement = Retirement.Length > 0 ? Retirement : null, RetirementApproval = CutoverText.Approval(RetirementApprovedBy, RetirementReference),
+            ResidualDeviationIds = CutoverText.Ids(ResidualDeviationIds), Unsupported = CutoverText.Escalation(EscalationReason, EscalationOwner, EscalationPath)
+        });
+        var caseId = head?.CaseId;
+        Reason = "";
+        SelectedRequirement = Requirements.FirstOrDefault(r => r.InstanceKey == requirement.InstanceKey);
+        // Stay on the case just written: a new case is the selected requirement's newest one.
+        SelectedCase = caseId ?? _projection?.Cutovers.Where(c => Same(c.InstanceKey, requirement.InstanceKey))
+            .OrderByDescending(c => c.History.FirstOrDefault()?.RecordedAt, StringComparer.Ordinal).FirstOrDefault()?.CaseId ?? NewCase;
+    }
+
+    private CutoverRevision? CaseHead(string caseId) =>
+        caseId == NewCase ? null : _projection?.Cutovers.FirstOrDefault(c => string.Equals(c.CaseId, caseId, StringComparison.OrdinalIgnoreCase))?.Current;
+
+    private void LoadCases()
+    {
+        var keep = SelectedCase;
+        CutoverCases.Clear();
+        CutoverCases.Add(new FilterOption(NewCase, "New case (starts at review)"));
+        if (SelectedRequirement is { } requirement)
+            foreach (var c in _projection?.Cutovers.Where(c => Same(c.InstanceKey, requirement.InstanceKey)) ?? Enumerable.Empty<CutoverProjection>())
+                CutoverCases.Add(new FilterOption(c.CaseId, $"Case {c.CaseId[..8]} · {(c.Current is null ? "needs review" : WordsConverter.Words(c.Current.Stage))}"));
+        _selectedCase = CutoverCases.Any(c => c.Key == keep) ? keep : NewCase;
+        OnPropertyChanged(nameof(SelectedCase));
+        FillFromCase();
+    }
+
+    /// <summary>The next stage, and every reviewed field, from the case's current revision; a new case starts empty at review.</summary>
+    private void FillFromCase()
+    {
+        if (!IsCutover) return;
+        var head = CaseHead(SelectedCase);
+        if (head is null)
+        {
+            Stage = CutoverStage.Review;
+            NewObjectIds = ""; Overlaps = ""; RecoveryLimits = ""; PilotGroupIds = ""; PilotApprovedBy = ""; PilotReference = "";
+            Prerequisites = ""; Criteria = ""; Retirement = ""; RetirementApprovedBy = ""; RetirementReference = ""; ResidualDeviationIds = "";
+            EscalationReason = ""; EscalationOwner = ""; EscalationPath = ""; RunId = "";
+            ObjectIds = "";
+            return;
+        }
+        var rank = CutoverStage.Rank(head.Stage);
+        Stage = head.Unsupported is not null || head.Stage == CutoverStage.Closed ? head.Stage : CutoverStage.Order[Math.Min(rank + 1, CutoverStage.Order.Length - 1)];
+        ObjectIds = CutoverText.Ids(head.OldObjectIds);
+        NewObjectIds = CutoverText.Ids(head.NewObjectIds);
+        Overlaps = head.Overlaps; RecoveryLimits = head.RecoveryLimits;
+        PilotGroupIds = CutoverText.Ids(head.PilotGroupIds);
+        PilotApprovedBy = head.PilotApproval?.ApprovedBy ?? ""; PilotReference = head.PilotApproval?.Reference ?? "";
+        Prerequisites = CutoverText.Prerequisites(head.Prerequisites);
+        Criteria = CutoverText.Criteria(head.Criteria);
+        Retirement = head.Retirement ?? "";
+        RetirementApprovedBy = head.RetirementApproval?.ApprovedBy ?? ""; RetirementReference = head.RetirementApproval?.Reference ?? "";
+        ResidualDeviationIds = CutoverText.Ids(head.ResidualDeviationIds);
+        EscalationReason = head.Unsupported?.Reason ?? ""; EscalationOwner = head.Unsupported?.Owner ?? ""; EscalationPath = head.Unsupported?.Path ?? "";
+        DecisionOwner = head.Owner;
+        RunId = "";
     }
 
     /// <summary>A revision supersedes the current record; a history with no current record needs a deliberate review first.</summary>
@@ -197,6 +328,7 @@ public sealed class JobsViewModel : PageViewModel
         _problems = string.Join("\n", problems);
         _selectedRequirement = instance is null ? null : Requirements.FirstOrDefault(r => Same(r.InstanceKey, instance));
         OnPropertyChanged(nameof(SelectedRequirement));
+        LoadCases();
         OnPropertyChanged(nameof(RequirementText));
         OnPropertyChanged(nameof(ClaimText));
         OnPropertyChanged(nameof(HasProblems));
@@ -223,6 +355,10 @@ public sealed class JobsViewModel : PageViewModel
                 }
                 problems.AddRange(unreadable.Select(u => $"A job file cannot be read ({System.IO.Path.GetFileName(u.File)}): {u.Problem}"));
                 foreach (var d in Workspace.LoadDeviations().Where(d => d.Kind == DeviationKind.ApprovedDeviation)) DeviationIds.Add(d.Id);
+                Runs.Clear();
+                Runs.Add(new FilterOption("", "No run (not the candidate stage)"));
+                foreach (var run in Workspace.Evidence.LoadRuns(Workspace.Profile.TenantId).OrderByDescending(r => r.StartedAt, StringComparer.Ordinal))
+                    Runs.Add(new FilterOption(run.Id, $"{run.StartedAt} · {WordsConverter.Words(run.Status.ToString())} · {run.Results.Count} result(s)"));
             }
             catch (ToolkitException ex) { Shell.ShowError(ex); }
         }
