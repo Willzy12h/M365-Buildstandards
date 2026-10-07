@@ -230,6 +230,13 @@ jobs:
           done
           git ls-files --error-unmatch src/BDIT.TenantToolkit.Engine/Evidence/EvidenceStore.cs
 
+      - name: Release pins and publisher checks
+        shell: bash
+        run: |
+          # Offline only: a malformed pin or a weakened publisher check fails here, not at a release dispatch.
+          python3 build/Publish-ValidatedRelease.py --validate-pins
+          python3 build/Test-PublishValidatedRelease.py
+
       - name: No tenant evidence or configured client IDs committed
         shell: bash
         run: |

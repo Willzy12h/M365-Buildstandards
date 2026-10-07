@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "version": "1.1.0-preview.18",
+  "sourceCommit": "10808de054a195c73ae742a0ae2f6240a318e421",
+  "sourceBranch": "astra/release-2026-09-12",
+  "validatedRun": "37515288607",
+  "standard": "2026.09.30",
+  "packageSha256": "9155fad428fe6c93ae8b72a6695a8ee5622f533348165d00167bcd577f3495cc",
+  "extractedFiles": 297,
+  "notes": "build/releases/1.1.0-preview.18.md",
+  "reviewPrompt": "docs/integration/CLAUDE-PREVIEW18-REVIEW-PROMPT.md",
+  "approval": "User explicitly requested publication on 6 October 2026.",
+  "distribution": "Unsigned internal review prerelease; not a GA or live acceptance claim.",
+  "pending": [
+    "PR20 contract merge and persistent workflow/legacy-backfill implementation",
+    "Claude review",
+    "Human accessibility/newcomer acceptance",
+    "Separately authorised tenant/service/device acceptance",
+    "Business support ownership"
+  ]
+}

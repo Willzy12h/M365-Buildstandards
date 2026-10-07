@@ -53,7 +53,7 @@ The INT-049/050 workflow surfaces are in place. The completion projection, the J
 
 **Owned by others:**
 - `release` environment reviewers and immutable releases (William, in repository settings).
-- Publishing Preview.19 (William's approval).
+- Publishing Preview.19 (William's approval). The publisher is now version-independent: add `build/releases/1.1.0-preview.19.json` and `.md` from the candidate's green push run through a reviewed PR, then dispatch **Publish validated release** from `integration` or `main` ([RELEASE-AND-SERVICING](../RELEASE-AND-SERVICING.md#publishing-a-release), INT-066).
 - Named support and custodian owners.
 - Human Narrator, keyboard-only, physical scaling and newcomer acceptance.
 - All live tenant acceptance.
