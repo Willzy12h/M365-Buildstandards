@@ -73,7 +73,7 @@ The other agent's pull request is the natural place to catch what its author cou
 
 Review comments are proposals, not instructions. The branch owner decides and pushes. If a review claims an invariant was weakened, that claim gets answered explicitly before the pull request merges, either by fixing it or by showing why it is not so.
 
-Do not approve or merge the other agent's pull request. A human does that.
+Do not approve the other agent's pull request. Merging follows the owner's delegation recorded in [HANDOVER](HANDOVER.md#owner-delegation-of-commits-and-merges--7-october-2026): since 7 October 2026 agents merge when its conditions hold, and William approves promotion, releases and publication.
 
 ## Recording decisions
 
@@ -96,7 +96,7 @@ Stop rather than guess when:
 - Push to `main` or `integration` directly.
 - Push to, force-push, rebase or amend the other agent's branch.
 - Rewrite the other agent's source repository to match yours.
-- Merge or approve the other agent's pull request.
+- Approve the other agent's pull request, or merge one outside the owner's delegation in HANDOVER.
 - Change a test to make a suite pass, on either side of a merge.
 - Claim something was verified that you did not run. "Tests pass" means you ran them and watched them pass.
 - Commit tenant evidence, client identifiers, tokens or secrets — this does not relax because a merge was awkward.

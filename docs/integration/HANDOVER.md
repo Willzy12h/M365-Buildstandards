@@ -3,9 +3,23 @@
 Current user continuation: approved A–G and integrated default/settings exports, implemented incrementally as Preview.18 in PR #19. Read [PRODUCT-COMPLETION-PLAN.md](PRODUCT-COMPLETION-PLAN.md), [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). PR #20 carries the separate persisted-contract decisions and must merge before dependent workflow/backfill/lineage implementation. Live tenant actions and final publication remain separately approved. Older Preview.15–17 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 
+## Owner delegation of commits and merges — 7 October 2026
+
+William (repository owner) said on 7 October 2026: "I never want to do the commits or merges manually. I can advise or approve but likely fine to do yourself." From that date agents commit, push and merge; William advises and approves. The conditions:
+
+- An agent may merge a pull request into `integration`, or into the branch a stacked pull request targets, with a merge commit (no squash, rebase or force-push), when all of these hold on the exact head being merged:
+  - every required check has passed, read from the actual run;
+  - the other agent has reviewed it, or William has approved it, and no open finding or review thread says a safeguard was weakened;
+  - it is mergeable, and any conflict was resolved on the branch owner's side, keeping the stricter behaviour, with checks re-run.
+- After merging: confirm CI on the merge commit, update WORK-CLAIMS and record the merge SHA and verifying run here or in COMPLETION-REGISTER.
+- Still needs William's explicit approval each time: promoting `integration` to `main`, tags, releases, running a publish workflow, repository or branch-protection settings, and any live tenant action. Agents never approve a pull request on William's behalf.
+- Everything else in AGENTS.md and AGENT-COORDINATION still applies, including never pushing to the other agent's branch.
+
+The first use is the merge of PR #21, PR #20 and PR #19, set out in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md).
+
 ## Current continuation — Claude review fixes, PR #21 (7 October 2026)
 
-[PR #21](https://github.com/Willzy12h/M365-Buildstandards/pull/21) (draft, branch `claude/m365-buildstandards-preview-review-mjr04x`) is stacked on PR #19 head `2668d00`. It holds Claude's independent Preview.18 review, [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md) (CLA-20261006-01…17), and the implemented fixes. Code head `4202f02` passed Windows CI run 37542836818: 918 Engine + 115 App tests, 42 native layouts / 79 commands, PowerShell 5.1 packaging and a fresh 297-file package. Later commits change documentation only. Nothing is merged, approved or published by this work, and no tenant action took place.
+[PR #21](https://github.com/Willzy12h/M365-Buildstandards/pull/21) (draft, branch `claude/m365-buildstandards-preview-review-mjr04x`) is stacked on PR #19 head `2668d00`. It holds Claude's independent Preview.18 review, [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md) (CLA-20261006-01…17), and the implemented fixes. Code head `4202f02` passed Windows CI run 37542836818: 918 Engine + 115 App tests, 42 native layouts / 79 commands, PowerShell 5.1 packaging and a fresh 297-file package. Later commits change documentation only. Nothing was merged, approved or published by this work, and no tenant action took place.
 
 What changed, in brief (the CHANGELOG `Unreleased` entry and the review's "Implementation status" have the detail):
 - Assessment refuses a modified primary snapshot and every report states evidence integrity (Intact, Modified or NotRecorded).
@@ -15,7 +29,7 @@ What changed, in brief (the CHANGELOG `Unreleased` entry and the review's "Imple
 - Backups go to `transfers/` with a `.sha256` sidecar. Restore and adoption check a trusted archive SHA-256 received separately, or an explicit logged acknowledgement. Settings offers "Verify and restore separately", "Verify restored folder" and "Verify and adopt into this empty workspace"; the CLI adds `bdit verify-restore --folder`. Unknown-write blockers survive; no approval or execution authority is restored.
 - Publishing has its own workflow with `environment: release`; actions are pinned by SHA. Definition exports are timestamped with a sidecar.
 
-What is next is usability and ease of use. The prioritised backlog (U1–U10) and a paste-ready prompt for the next agent are in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Still open and owned elsewhere: CLA-10 support-bundle opt-ins (privacy owner), CLA-17 decision row, CLA-07 lineage messaging (after a human merges PR #20), repository settings for the `release` environment and immutable releases (owner), the next preview version and the missing Preview.18 CHANGELOG entry (release owner), recording CLA-01…17 in the feedback register, and all human/live acceptance.
+What is next: review PR #21, merge PR #21, #20 and #19 under the delegation above, then usability and ease of use. The prioritised backlog (U1–U10) and a paste-ready prompt for the next agent are in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Still open and owned elsewhere: CLA-10 support-bundle opt-ins (privacy owner), CLA-17 decision row, CLA-07 lineage messaging (after PR #20 is merged), repository settings for the `release` environment and immutable releases (owner), the next preview version and the missing Preview.18 CHANGELOG entry (release owner), recording CLA-01…17 in the feedback register, and all human/live acceptance.
 
 ## Architecture roadmap
 

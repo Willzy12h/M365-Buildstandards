@@ -55,7 +55,7 @@ Code-review corrections made after the first implementation:
 
 None of this is live or human acceptance.
 
-**What next.** The fixes leave the safety model intact but add steps for the user, notably on the Settings transfer screen. The next agent's brief, [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md), asks for a review of PR #21 and then a usability pass (U1–U10): a guided handoff/receive flow, loading the digest from a chosen `.sha256` file, task-specific busy titles, clearer results and errors, an unambiguous Quick Connect header, more room in plan review at 1180×640, a short first-run path and consistent vocabulary.
+**What next.** The fixes leave the safety model intact but add steps for the user, notably on the Settings transfer screen. The next agent's brief, [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md), asks for a review of PR #21, the merge of PR #21, #20 and #19, and then a usability pass (U1–U10): a guided handoff/receive flow, loading the digest from a chosen `.sha256` file, task-specific busy titles, clearer results and errors, an unambiguous Quick Connect header, more room in plan review at 1180×640, a short first-run path and consistent vocabulary.
 
 ## 0. Exact revisions reviewed
 
