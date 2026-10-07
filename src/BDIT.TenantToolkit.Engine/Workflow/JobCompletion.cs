@@ -70,6 +70,14 @@ public sealed class JobCompletion
         catch (ToolkitException ex) { deviations = Array.Empty<Deviation>(); blockers.Add("The deviation register cannot be read: " + ex.Message); }
 
         var instances = ControlInstances.All(standard, profile);
+        try { store.AssertCompletionWritesResolved(projection.Job.TenantId, instances.Select(c => c.Id)); }
+        catch (ToolkitException ex) { blockers.Add("Write history needs reconciliation: " + ex.Message); }
+        foreach (var duplicate in projection.Subjects.Select(s => s.InstanceKey)
+                     .GroupBy(k => k, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            blockers.Add($"{duplicate.Key} has conflicting outcome identities. Review its complete history before claiming completion.");
+        foreach (var duplicate in projection.Dispositions.Select(d => d.InstanceKey)
+                     .GroupBy(k => k, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            blockers.Add($"{duplicate.Key} has conflicting decision identities. Review its complete history before claiming completion.");
         var keys = instances.Select(c => c.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var stray in projection.Subjects.Select(s => s.InstanceKey)
                      .Concat(projection.Dispositions.Select(d => d.InstanceKey))

@@ -261,6 +261,9 @@ public sealed partial class JobWorkflow
     /// <summary>A subject keeps one line of history: a revision must supersede its current record and nothing else.</summary>
     private static void CheckSupersession<T>(List<T> attached, T record) where T : ISubjectRecord
     {
+        if (attached.Any(o => string.Equals(o.InstanceKey, record.InstanceKey, StringComparison.OrdinalIgnoreCase)
+            && !SameSubject(o, record)))
+            throw new SafetyViolationException("This requirement instance already has a different identity in this job. Review its history; do not create a second outcome or decision identity.");
         var sameSubject = attached.Where(o => SameSubject(o, record)).ToList();
         if (record.SupersedesId is null)
         {

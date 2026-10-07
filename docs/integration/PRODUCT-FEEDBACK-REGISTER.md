@@ -103,6 +103,17 @@ The engineer-experience and legacy-migration reviewers independently read all fo
 
 No remaining blocking finding in the independently reviewed export/transfer/package source scope. This does not close live, native or contract-merge gates. Claude has not performed a review in this session. A later reviewer appends new findings without rewriting these observations.
 
+## Astra post-merge review — 8 October 2026 (in progress)
+
+Baseline: integration `8f0285a48bdd719914037b0ab2d9eeb6e7f6cc2b`; draft PR #36. These are confirmed projection/recording defects, not a demonstrated bypass of deployment execution guards. No human/live acceptance or broad feedback item is closed.
+
+| ID | Reviewer / scope | Confirmed defect | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261008-01 | Astra / completion | `JobCompletion.Build` could claim completion with an intact unresolved deployment write for a requirement | Reuse strict existing run, recovery, reviewed-change and LAPS history checks as read-only completion blockers | `Accepted_passes_do_not_complete_a_job_with_an_unresolved_tenant_write` failed on baseline; 1,058 engine/CLI tests passed; full solution cross-build passed with zero warnings/errors. Windows/native and independent review pending |
+| AST-20261008-02 | Astra / requirement identity | `JobWorkflow.CheckSupersession` allowed a second semantic identity for the same instance; completion selected the first outcome | Reject divergent identities during recording; block completion for already persisted conflicting outcome/decision groups without changing historical bytes | `A_second_semantic_identity_cannot_hide_a_failed_outcome_for_the_same_requirement` failed on baseline; persisted-history regression passed with 1,058 engine/CLI tests; strict cross-build passed. Windows/native and independent review pending |
+
+Historical toolkit inspection: [source inventory and reuse limitations](HISTORICAL-TOOLKIT-REVIEW-2026.10.08.md).
+
 ## Claude Preview.18 review — 6–7 October 2026
 
 Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.
