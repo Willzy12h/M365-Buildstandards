@@ -26,7 +26,7 @@ public static class LineageReview
             if (source is null)
             {
                 notes.Add(new LineageNote(id, mapping.Release, "Unknown", new[] { id },
-                    $"Review needed: the ownership record for {id} was made under {mapping.Release}, and no lineage from {mapping.Release} to {current.Release} is recorded. Confirm that {id} still means the same requirement before relying on it."));
+                    $"Review needed: the ownership record for {id} was made under {mapping.Release}, and no verified lineage from {mapping.Release} to {current.Release} is available. Confirm that {id} still means the same requirement before relying on it."));
                 continue;
             }
             var relation = source.Find(id);
@@ -52,7 +52,7 @@ public static class LineageReview
 
     /// <summary>
     /// Adds each note to the reason of the finding for the control ID the record is keyed by, and to the limitations:
-    /// one line per explained record, and one line per release with no recorded lineage, however many records it holds.
+    /// one line per explained record, and one line per release with no verified lineage, however many records it holds.
     /// </summary>
     public static void Annotate(AssessmentResult result, IReadOnlyList<LineageNote> notes)
     {
@@ -62,7 +62,7 @@ public static class LineageReview
         foreach (var note in notes.Where(n => n.Relation != "Unknown"))
             result.Limitations.Add("Release lineage: " + note.Message);
         foreach (var release in notes.Where(n => n.Relation == "Unknown").GroupBy(n => n.SourceRelease, StringComparer.OrdinalIgnoreCase))
-            result.Limitations.Add($"Release lineage: {release.Count()} ownership record(s) were made under {release.Key}, which has no recorded lineage to {result.Release} "
+            result.Limitations.Add($"Release lineage: {release.Count()} ownership record(s) were made under {release.Key}, which has no verified lineage to {result.Release} "
                 + $"({string.Join(", ", release.Select(n => n.MappedControlId))}). Confirm each control ID still means the same requirement before relying on it.");
     }
 

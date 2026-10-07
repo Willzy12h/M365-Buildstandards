@@ -18,6 +18,50 @@ public sealed class ReviewedClientScopeTests
         Assert.Equal(ReviewedClientScope.Digest(profile), ReviewedClientScope.Digest(relabelled));
     }
 
+    [Fact]
+    public void Resolving_the_same_exclusions_again_or_reordering_them_keeps_the_reviewed_scope()
+    {
+        var profile = WithExclusions(TestData.Profile());
+        var again = Copy(profile);
+        foreach (var account in again.ExclusionAccounts) { account.ResolvedAt = "2030-01-01T00:00:00Z"; account.SelectedBy = "other.engineer@test.example"; }
+        again.ExclusionAccounts.Reverse();
+        again.Parameters.EmergencyAccountIds.Reverse();
+        again.Parameters.AdditionalExclusionAccountIds.Reverse();
+        Assert.Equal(ReviewedClientScope.Digest(profile), ReviewedClientScope.Digest(again));
+    }
+
+    [Theory]
+    [InlineData("objectId")]
+    [InlineData("purpose")]
+    [InlineData("reason")]
+    [InlineData("displayName")]
+    public void A_material_exclusion_change_changes_the_reviewed_scope(string change)
+    {
+        var profile = WithExclusions(TestData.Profile());
+        var changed = Copy(profile);
+        var account = changed.ExclusionAccounts[0];
+        switch (change)
+        {
+            case "objectId": account.ObjectId = "aaaaaaaa-0000-4000-8000-0000000000fb"; break;
+            case "purpose": account.Purpose = "Approved exception"; break;
+            case "reason": account.Reason = "A different approved reason"; break;
+            case "displayName": account.DisplayName = "Another account"; break;
+        }
+        Assert.NotEqual(ReviewedClientScope.Digest(profile), ReviewedClientScope.Digest(changed));
+    }
+
+    private static TenantProfile WithExclusions(TenantProfile profile)
+    {
+        var ids = new[] { "aaaaaaaa-0000-4000-8000-0000000000e1", "aaaaaaaa-0000-4000-8000-0000000000e2" };
+        profile.Parameters.EmergencyAccountIds.AddRange(ids);
+        profile.Parameters.AdditionalExclusionAccountIds.AddRange(new[] { "aaaaaaaa-0000-4000-8000-0000000000e3", "aaaaaaaa-0000-4000-8000-0000000000e4" });
+        foreach (var id in ids)
+            profile.ExclusionAccounts.Add(new ExclusionAccount { TenantId = profile.TenantId, ObjectId = id, DisplayName = "Break glass " + id[^1],
+                UserPrincipalName = $"bg{id[^1]}@test.example", Purpose = "Emergency access", Reason = "Emergency access account",
+                ResolvedAt = "2026-09-11T09:00:00Z", SelectedBy = "engineer@test.example" });
+        return profile;
+    }
+
     [Theory]
     [InlineData("domain")]
     [InlineData("exclusions")]
