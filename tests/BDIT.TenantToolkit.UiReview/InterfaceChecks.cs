@@ -468,6 +468,7 @@ internal static partial class Program
         ("AssessmentViewModel.ExportXlsxCommand", Press),
         ("AssessmentViewModel.ExportClientCommand", Press),
         ("AssessmentViewModel.OpenExportCommand", Explorer),
+        ("AssessmentViewModel.ExportUpgradeImpactCommand", Press),
         ("AssessmentViewModel.CopyDetailCommand", Clipboard),
 
         ("DeviationsViewModel.SaveCommand", Press),
@@ -588,6 +589,12 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["AssessmentViewModel.ExportUpgradeImpactCommand"] = shell =>
+        {
+            var vm = shell.Page<AssessmentViewModel>();
+            vm.Refresh();
+            vm.CompareRelease = vm.CompareReleases.FirstOrDefault();
+        },
         ["SettingsViewModel.CreateBackupCommand"] = shell =>
         {
             typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(shell.Workspace, null);

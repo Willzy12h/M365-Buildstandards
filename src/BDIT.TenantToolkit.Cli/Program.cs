@@ -66,6 +66,7 @@ public static class Program
             "document" => Document(options),
             "standard" => StandardDefinition(options),
             "verify-restore" => VerifyRestore(options),
+            "upgrade-impact" => UpgradeImpact(options),
             "help" or "--help" or "-h" => Help(),
             _ => Unknown(command)
         };
@@ -102,6 +103,12 @@ public static class Program
                   Export all standard defaults/settings, with no client data.
                   No format: full ZIP set with exact catalogue JSON/manifest, HTML and Markdown.
                   Individual formats: html, markdown, json. JSON retains original placeholders.
+
+              bdit upgrade-impact --snapshot <file> --from <r> --to <r> [--format <f>] [--root <dir>]
+                  Assess one stored capture under two releases and show how each requirement changed,
+                  traced through the shipped release lineage. Describes the standard, not the tenant.
+                  Needs this installation's client record for the snapshot's tenant.
+                  Formats: html, markdown, json, csv, xlsx. Default html.
 
               bdit verify-restore --folder <dir>
                   Re-check a separately restored evidence folder against its recorded checksums.
@@ -196,6 +203,26 @@ public static class Program
         return 0;
     }
 
+    private static int UpgradeImpact(IReadOnlyDictionary<string, string> options)
+    {
+        var file = Require(options, "snapshot");
+        if (!File.Exists(file)) throw new ConfigurationException($"Snapshot file not found: {file}");
+        var context = Context.Open(options);
+        var source = context.Release(Require(options, "from"));
+        var target = context.Release(Require(options, "to"));
+        var snapshot = AssessmentContext.ReadPrimary(file);
+        var profile = (ProfileValidator.IsGuid(snapshot.TenantId) ? context.Profile(snapshot.TenantId) : null)
+            ?? throw new ConfigurationException($"No client record for the snapshot's tenant was found under {context.Paths.DataDirectory}. The comparison uses that client's inputs, ownership records and deviations.");
+        var lineage = ReleaseLineage.Load(context.Paths.StandardsDirectory, StandardsManifest.Load(context.Paths.StandardsDirectory), target.Release);
+        var report = UpgradeImpactAnalyser.Analyse(new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current), snapshot, source, target, lineage,
+            profile, context.Evidence.LoadMappings(profile.TenantId), context.Evidence.LoadDeviations(profile.TenantId), DateTimeOffset.UtcNow);
+        var written = context.Exporter.ExportUpgradeImpact(report, Format(options, ExportFormat.Html));
+        Console.WriteLine($"{report.TenantName} · {report.SourceRelease} → {report.TargetRelease} · lineage {(report.LineageRecorded ? "recorded" : "NOT recorded")}");
+        Console.WriteLine($"Status changes {report.StatusChanges} · " + string.Join(" · ", UpgradeImpactChange.Order.Select(c => $"{c.ToLowerInvariant()} {report.Count(c)}")));
+        Console.WriteLine("Report: " + written);
+        return 0;
+    }
+
     private static int VerifyRestore(IReadOnlyDictionary<string, string> options)
     {
         var folder = Require(options, "folder");
@@ -251,6 +278,15 @@ public static class Program
                 throw new ConfigurationException($"Release '{wanted}' was not found. Available: {string.Join(", ", releases.Select(x => x.Release))}");
 
             return Loader.Load((match ?? releases[0]).FileName);
+        }
+
+        /// <summary>A named, manifest-verified release.</summary>
+        public StandardCatalogue Release(string release)
+        {
+            var releases = Loader.ListReleases();
+            var match = releases.FirstOrDefault(x => string.Equals(x.Release, release, StringComparison.OrdinalIgnoreCase))
+                ?? throw new ConfigurationException($"Release '{release}' was not found. Available: {string.Join(", ", releases.Select(x => x.Release))}");
+            return Loader.Load(match.FileName);
         }
 
         /// <summary>The stored client record for this tenant, or null. Never a record invented to keep going.</summary>

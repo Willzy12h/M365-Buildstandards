@@ -31,6 +31,16 @@
                 <TextBox AutomationProperties.Name="Last exported report" Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" MinHeight="0" Padding="0" Margin="0"/>
               </StackPanel>
             </Expander>
+            <Expander Header="Compare with another release (upgrade impact)" Margin="0,6,0,0" AutomationProperties.Name="Compare with another release">
+              <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="{Binding CompareGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                <WrapPanel>
+                  <TextBlock Text="Compare from" VerticalAlignment="Center" Margin="0,0,8,12"/>
+                  <ComboBox Width="150" ItemsSource="{Binding CompareReleases}" SelectedItem="{Binding CompareRelease, Mode=TwoWay}" AutomationProperties.Name="Release to compare from"/>
+                  <Button Content="Export upgrade impact (HTML)" Command="{Binding ExportUpgradeImpactCommand}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,12"/>
+                </WrapPanel>
+              </StackPanel>
+            </Expander>
           </StackPanel>
         </Border>
         <Grid Grid.Row="2">
