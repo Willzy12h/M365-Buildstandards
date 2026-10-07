@@ -45,6 +45,26 @@ public sealed class WorkspaceAdoptionTests
         Assert.True(Directory.Exists(backup.RestoreSeparate(zip, Path.Combine(root.Root, "trusted"), digest.ToUpperInvariant())));
     }
 
+    [Theory]
+    [InlineData("{0}")]
+    [InlineData("  {0}  ")]
+    [InlineData("{0}  workspace-backup.zip")]
+    [InlineData("{0} *workspace-backup.zip")]
+    [InlineData("SHA256 (workspace-backup.zip) = {0}")]
+    public void A_pasted_or_loaded_checksum_line_yields_its_digest(string format)
+    {
+        var digest = new string('a', 32) + new string('F', 32);
+        Assert.Equal(digest.ToLowerInvariant(), WorkspaceBackup.NormaliseDigest(string.Format(System.Globalization.CultureInfo.InvariantCulture, format, digest)));
+    }
+
+    [Fact]
+    public void Text_without_exactly_one_digest_is_left_for_validation_to_refuse()
+    {
+        Assert.False(WorkspaceBackup.IsValidDigest(WorkspaceBackup.NormaliseDigest("not a digest")));
+        Assert.False(WorkspaceBackup.IsValidDigest(WorkspaceBackup.NormaliseDigest(new string('a', 64) + " " + new string('b', 64))));
+        Assert.False(WorkspaceBackup.IsValidDigest(WorkspaceBackup.NormaliseDigest(null)));
+    }
+
     [Fact]
     public void Verify_restored_detects_changed_extra_and_missing_files()
     {

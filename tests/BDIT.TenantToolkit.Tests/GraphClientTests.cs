@@ -298,6 +298,20 @@ public class GraphClientTests
     }
 
     [Fact]
+    public async Task Failed_request_keeps_microsoft_correlation_ids_for_the_support_record()
+    {
+        var (client, handler, _) = Create();
+        var requestId = Guid.NewGuid().ToString();
+        handler.Enqueue(HttpStatusCode.Forbidden, """{"error":{"code":"Authorization_RequestDenied","message":"user@contoso.example cannot read"}}""",
+            r => { r.Headers.Add("request-id", requestId); r.Headers.Add("client-request-id", "not-a-guid"); });
+        var ex = await Assert.ThrowsAsync<PermissionException>(() => client.GetAsync(GraphApi.V1, "/identity/conditionalAccess/policies", CancellationToken.None));
+        Assert.Equal(requestId, ex.RequestId);
+        Assert.Null(ex.ClientRequestId);
+        var record = Assert.Single(RecentGraphErrors.Shared.Snapshot(), e => e.RequestId == requestId);
+        Assert.Equal(("GET", "/identity/conditionalAccess/policies", 403, "Authorization_RequestDenied"), (record.Method, record.Route, record.Status, record.ErrorCode));
+    }
+
+    [Fact]
     public async Task Unauthorized_is_retried_once_with_a_renewed_token_then_fails_clearly()
     {
         var (client, handler, tokens) = Create();

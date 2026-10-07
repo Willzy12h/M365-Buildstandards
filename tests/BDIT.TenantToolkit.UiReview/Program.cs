@@ -142,6 +142,22 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "settings")
+                    {
+                        // The hand-off journey after a backup was made, and the receive journey with a pasted checksum line.
+                        var settings = shell.Page<SettingsViewModel>();
+                        typeof(SettingsViewModel).GetProperty(nameof(SettingsViewModel.CreatedBackup))!.SetValue(settings, Path.Combine(workspace.Paths.TransfersDirectory, "workspace-backup-synthetic.zip"));
+                        typeof(SettingsViewModel).GetProperty(nameof(SettingsViewModel.CreatedDigest))!.SetValue(settings, new string('a', 64));
+                        settings.TrustedDigest = new string('b', 64) + "  workspace-backup-synthetic.zip";
+                        content.UpdateLayout(); Pump();
+                        var label = "settings-handoff " + (int)size.Width + "x" + (int)size.Height;
+                        if (!settings.TrustedDigestValid) throw new InvalidOperationException("A pasted checksum line was not accepted as a fingerprint.");
+                        RecordUnnamedControls(content, label); RecordClipping(content, label); RecordLowContrast(content, label);
+                        SaveImage(content, size, Path.Combine(output, "settings-handoff-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        typeof(SettingsViewModel).GetProperty(nameof(SettingsViewModel.CreatedDigest))!.SetValue(settings, "");
+                        settings.TrustedDigest = "";
+                        content.UpdateLayout(); Pump();
+                    }
                     if (nav.Key == "connect")
                     {
                         var connect = shell.Page<ConnectViewModel>();

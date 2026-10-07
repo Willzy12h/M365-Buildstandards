@@ -300,8 +300,11 @@ public sealed class GraphClient : IGraphClient
                 return ToolkitJson.ParseNode(text) as JsonObject ?? new JsonObject();
             }
             if (status == 408 || status >= 500)
+            {
+                RecordFailure(httpMethod.Method, route, status, null, response);
                 throw new AmbiguousWriteException($"Graph returned HTTP {status} for the write to {GraphRouteAllowList.BasePathOf(path)}. The gateway response does not prove the write was rejected; reconcile before retrying.", null);
-            throw BuildError(status, httpMethod.Method, path, text, route);
+            }
+            throw BuildError(status, httpMethod.Method, path, text, route, response);
         }
     }
 
@@ -391,7 +394,7 @@ public sealed class GraphClient : IGraphClient
                     await BackoffAsync(attempt, wait, ct);
                     continue;
                 }
-                throw BuildError(status, "GET", path, text, route);
+                throw BuildError(status, "GET", path, text, route, response);
             }
         }
     }
@@ -431,7 +434,19 @@ public sealed class GraphClient : IGraphClient
         return Root(api) + relative;
     }
 
-    private static GraphRequestException BuildError(int status, string method, string path, string body, GraphRoute route)
+    private static string? Header(HttpResponseMessage response, string name) =>
+        response.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() : null;
+
+    /// <summary>Adds the failure to the in-memory support record; only the declared route root and correlation IDs are kept.</summary>
+    private static (string? RequestId, string? ClientRequestId) RecordFailure(string method, GraphRoute route, int status, string? code, HttpResponseMessage response)
+    {
+        var requestId = RecentGraphErrors.OnlyGuid(Header(response, "request-id"));
+        var clientRequestId = RecentGraphErrors.OnlyGuid(Header(response, "client-request-id"));
+        RecentGraphErrors.Shared.Record(DateTimeOffset.UtcNow, method, route.BasePath, status, code, requestId, clientRequestId);
+        return (requestId, clientRequestId);
+    }
+
+    private static GraphRequestException BuildError(int status, string method, string path, string body, GraphRoute route, HttpResponseMessage response)
     {
         string? code = null, message = null;
         try
@@ -443,6 +458,7 @@ public sealed class GraphClient : IGraphClient
             }
         }
         catch (JsonException) { }
+        var (requestId, clientRequestId) = RecordFailure(method, route, status, code, response);
         var basePath = GraphRouteAllowList.BasePathOf(path);
         var summary = SensitiveDataScrubber.Scrub(message ?? "").Trim();
         if (summary.Length > 300) summary = summary[..300] + "…";
@@ -451,13 +467,13 @@ public sealed class GraphClient : IGraphClient
             var hint = route.Scope;
             return new PermissionException(method, path, code,
                 $"Microsoft Graph refused {method} {basePath} (403 {code ?? "Forbidden"}). The signed-in account lacks a required permission or role. Expected delegated scope: {hint}. {summary}",
-                hint);
+                hint) { RequestId = requestId, ClientRequestId = clientRequestId };
         }
         if (status == 404)
-            return new GraphRequestException(404, method, path, code, $"{method} {basePath} returned 404 {code ?? "NotFound"}. {summary}");
+            return new GraphRequestException(404, method, path, code, $"{method} {basePath} returned 404 {code ?? "NotFound"}. {summary}") { RequestId = requestId, ClientRequestId = clientRequestId };
         if (status == 429)
-            return new GraphRequestException(429, method, path, code, $"{method} {basePath} was throttled (429) and was not retried because writes are never retried automatically. {summary}");
-        return new GraphRequestException(status, method, path, code, $"{method} {basePath} returned HTTP {status} {code ?? ""}. {summary}".Trim());
+            return new GraphRequestException(429, method, path, code, $"{method} {basePath} was throttled (429) and was not retried because writes are never retried automatically. {summary}") { RequestId = requestId, ClientRequestId = clientRequestId };
+        return new GraphRequestException(status, method, path, code, $"{method} {basePath} returned HTTP {status} {code ?? ""}. {summary}".Trim()) { RequestId = requestId, ClientRequestId = clientRequestId };
     }
 
     private static string Describe(string path)

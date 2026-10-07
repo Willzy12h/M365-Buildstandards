@@ -277,15 +277,19 @@ public sealed class Workspace : ObservableObject
         ProgressDetail = StopGuidance;
     }
 
-    public async Task<string> ExportAsync(Func<string> export)
+    public Task<string> ExportAsync(Func<string> export) =>
+        ExportAsync(export, "Writing report", "Creating the report. Closing waits for the file to finish.");
+
+    /// <summary>Runs a local file task exclusively, under a title and progress text that say what is happening.</summary>
+    public async Task<string> ExportAsync(Func<string> work, string title, string progressText)
     {
-        var file = "";
-        await RunExclusiveAsync("Writing report", async progress =>
+        var result = "";
+        await RunExclusiveAsync(title, async progress =>
         {
-            progress.Report("Creating the report. Closing waits for the file to finish.");
-            file = await Task.Run(export);
+            progress.Report(progressText);
+            result = await Task.Run(work);
         });
-        return file;
+        return result;
     }
 
     public void ApplyProfileToSession(TenantProfile input, bool save)

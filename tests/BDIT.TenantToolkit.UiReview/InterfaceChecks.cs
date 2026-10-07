@@ -551,6 +551,9 @@ internal static partial class Program
         ("SettingsViewModel.RestoreBackupCommand", Press),
         ("SettingsViewModel.VerifyRestoreCommand", Press),
         ("SettingsViewModel.AdoptRestoreCommand", Prompt),
+        ("SettingsViewModel.OpenLastOutputCommand", Explorer),
+        ("SettingsViewModel.CopyDigestCommand", Clipboard),
+        ("SettingsViewModel.LoadDigestFileCommand", FilePicker),
     };
 
     private const string Press = "press";

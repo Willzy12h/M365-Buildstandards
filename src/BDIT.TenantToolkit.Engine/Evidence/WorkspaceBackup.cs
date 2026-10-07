@@ -69,6 +69,18 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     /// <summary>The single format rule for a trusted archive digest: 64 hexadecimal characters, surrounding spaces ignored.</summary>
     public static bool IsValidDigest(string? digest) => digest?.Trim() is { Length: 64 } value && value.All(Uri.IsHexDigit);
 
+    /// <summary>
+    /// The SHA-256 in what an engineer pastes or loads: a bare digest or a checksum line such as "&lt;digest&gt;  backup.zip".
+    /// Text holding no single digest is returned trimmed, so validation still refuses it.
+    /// </summary>
+    public static string NormaliseDigest(string? text)
+    {
+        var found = (text ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(token => token.Trim('*', '(', ')', '=', ',', ';')).Where(IsValidDigest)
+            .Select(token => token.ToLowerInvariant()).Distinct(StringComparer.Ordinal).ToList();
+        return found.Count == 1 ? found[0] : (text ?? "").Trim();
+    }
+
     /// <param name="trustedArchiveSha256">
     /// The archive digest received separately from the archive. When supplied, a mismatch refuses the restore before
     /// anything is staged: the archive's own checksum list cannot detect deliberate tampering, because whoever changed

@@ -2,36 +2,85 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
       <TextBlock Text="WORKSPACE SETTINGS" Style="{StaticResource Eyebrow}"/><TextBlock Text="Settings and diagnostics" Style="{StaticResource H1}"/>
-      <TextBlock Text="Inspect application configuration and locate the local evidence, reports and logs for this workspace." Style="{StaticResource Lead}"/>
+      <TextBlock Text="Hand evidence to another engineer, receive it, send support metadata, and find this workspace's folders." Style="{StaticResource Lead}"/>
+
+      <Border Style="{StaticResource WarnPanel}" Visibility="{Binding HasTransferBlock, Converter={StaticResource BoolToVis}}">
+        <TextBlock Text="{Binding TransferBlockedReason}" TextWrapping="Wrap" AutomationProperties.Name="Why evidence transfer is unavailable"/>
+      </Border>
+
       <Border Style="{StaticResource Card}"><StackPanel>
-        <TextBlock Text="Local support metadata" Style="{StaticResource H2}"/>
-        <TextBlock Text="Review the exact generated contents below. This bundle uploads nothing and excludes tenant records, logs, settings and authentication caches." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
-        <TextBox AutomationProperties.Name="Support bundle contents preview" Text="{Binding SupportPreview, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,0,0,12"/>
-        <WrapPanel><Button Content="Export support metadata" Command="{Binding ExportSupportCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy support metadata" Command="{Binding CopySupportCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
-        <TextBox AutomationProperties.Name="Local export or restore result" Text="{Binding LastResult, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
-      </StackPanel></Border>
-      <Border Style="{StaticResource Card}"><StackPanel>
-        <TextBlock Text="Evidence backup and separate restore" Style="{StaticResource H2}"/>
-        <TextBlock Text="Disconnect and close all other copies first. Backup contains sensitive client evidence and is written to the transfers folder, not reports. Restore creates a new folder and preserves original records; it does not replace active data or restore deployment approval." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
-        <Button Content="Create sensitive evidence backup" Command="{Binding CreateBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
-        <Expander Header="Restore a backup into a separate folder" Margin="0,12,0,0"><StackPanel>
-          <TextBlock Text="Backup ZIP" Style="{StaticResource Muted}"/>
-          <TextBox AutomationProperties.Name="Evidence backup ZIP path" Text="{Binding BackupFile, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,8"/>
-          <Button Content="Choose backup ZIP" Command="{Binding ChooseBackupCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
-          <TextBlock Text="New destination folder (must not exist)" Style="{StaticResource Muted}" Margin="0,12,0,0"/>
-          <TextBox AutomationProperties.Name="Separate restore destination" Text="{Binding RestoreFolder, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"/>
-          <TextBlock Text="Trusted archive SHA-256, received separately from the archive through the approved handoff channel" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
-          <TextBox AutomationProperties.Name="Trusted archive SHA-256" Text="{Binding TrustedDigest, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" Margin="0,6,0,8"/>
-          <CheckBox AutomationProperties.Name="No trusted digest is available" IsChecked="{Binding NoTrustedDigest, Mode=TwoWay}" Margin="0,0,0,12"><TextBlock Text="No trusted digest is available. Restore against the archive's own checksums, which detect accidental damage but not deliberate change. This is logged." TextWrapping="Wrap"/></CheckBox>
+        <TextBlock Text="Hand this workspace to another engineer" Style="{StaticResource H2}"/>
+        <TextBlock Text="The backup holds sensitive client evidence. Share it only under the organisation's client-evidence policy." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+        <TextBlock Text="1. Create the backup" Style="{StaticResource FieldLabel}"/>
+        <Button Content="Create evidence backup" Command="{Binding CreateBackupCommand}" HorizontalAlignment="Left" AutomationProperties.Name="Create evidence backup"/>
+        <StackPanel Visibility="{Binding HasCreatedBackup, Converter={StaticResource BoolToVis}}" Margin="0,12,0,0">
+          <TextBlock Text="2. Send the file and its fingerprint by two different routes" Style="{StaticResource FieldLabel}"/>
+          <TextBlock Text="For example, the file through the shared folder and the fingerprint by Teams message. The receiver needs both; a fingerprint sent with the file proves nothing." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+          <TextBox Text="{Binding CreatedBackup, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Backup file to send"/>
+          <TextBox Text="{Binding CreatedDigest, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" Margin="0,6,0,6" AutomationProperties.Name="Backup SHA-256 fingerprint to send separately"/>
           <WrapPanel>
-            <Button Content="Verify and restore separately" Command="{Binding RestoreBackupCommand}" Style="{StaticResource SecondaryButton}"/>
-            <Button Content="Verify restored folder" Command="{Binding VerifyRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
-            <Button Content="Verify and adopt into this empty workspace" Command="{Binding AdoptRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
+            <Button Content="Copy fingerprint" Command="{Binding CopyDigestCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Copy backup fingerprint"/>
+            <Button Content="Open folder" Command="{Binding OpenLastOutputCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open backup folder"/>
           </WrapPanel>
-          <TextBlock Text="Adopt only into a newly extracted package with no evidence. Adoption restores the selected backup against the trusted digest, re-verifies every file after copying and loads the adopted clients straight away." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
-          <TextBox AutomationProperties.Name="Evidence transfer limitations" Text="{Binding BackupGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,12,0,0"/>
-        </StackPanel></Expander>
+        </StackPanel>
       </StackPanel></Border>
+
+      <Border Style="{StaticResource Card}"><StackPanel>
+        <TextBlock Text="Receive a workspace from another engineer" Style="{StaticResource H2}"/>
+        <TextBlock Text="{Binding ReceiveNextStep}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,12" AutomationProperties.Name="Next step to receive a workspace"/>
+        <TextBlock Text="1. Backup file" Style="{StaticResource FieldLabel}"/>
+        <DockPanel Margin="0,0,0,12">
+          <Button DockPanel.Dock="Right" Content="Choose backup file" Command="{Binding ChooseBackupCommand}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" AutomationProperties.Name="Choose backup file"/>
+          <TextBox Text="{Binding BackupFile, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Backup file path"/>
+        </DockPanel>
+        <TextBlock Text="2. SHA-256 fingerprint, received separately from the file" Style="{StaticResource FieldLabel}"/>
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Load from .sha256 file" Command="{Binding LoadDigestFileCommand}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" AutomationProperties.Name="Load fingerprint from file"/>
+          <TextBox Text="{Binding TrustedDigest, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Backup SHA-256 fingerprint received separately"/>
+        </DockPanel>
+        <TextBlock Text="{Binding DigestStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.Name="Fingerprint status"/>
+        <TextBlock Text="{Binding DigestSource}" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="{Binding HasDigestSource, Converter={StaticResource BoolToVis}}" AutomationProperties.Name="Where the fingerprint came from"/>
+        <Expander Header="No fingerprint available?" Margin="0,8,0,0" AutomationProperties.Name="No fingerprint available">
+          <CheckBox IsChecked="{Binding NoTrustedDigest, Mode=TwoWay}" Margin="0,8,0,0" AutomationProperties.Name="Continue without a fingerprint">
+            <TextBlock Text="Continue without one. The backup's own checksums then catch accidental damage but not deliberate change. Leave the fingerprint box empty. This choice is logged." TextWrapping="Wrap"/>
+          </CheckBox>
+        </Expander>
+        <TextBlock Text="3. Bring the evidence in" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+        <Button Content="Adopt into this workspace" Command="{Binding AdoptRestoreCommand}" HorizontalAlignment="Left" AutomationProperties.Name="Adopt evidence into this workspace"/>
+        <TextBlock Text="Recommended for a freshly extracted copy of the tool. Every file is checked against the fingerprint and again after copying; the clients load straight away. No sign-in, approval or plan is restored." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <Expander Header="Or restore to a separate folder to inspect it" Margin="0,12,0,0" AutomationProperties.Name="Restore to a separate folder"><StackPanel Margin="0,8,0,0">
+          <TextBlock Text="New folder (must not exist yet)" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding RestoreFolder, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" AutomationProperties.Name="Separate restore folder"/>
+          <WrapPanel>
+            <Button Content="Verify and restore" Command="{Binding RestoreBackupCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Verify and restore to separate folder"/>
+            <Button Content="Re-check restored folder" Command="{Binding VerifyRestoreCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Re-check restored folder"/>
+          </WrapPanel>
+          <TextBlock Text="Restoring never changes this workspace. Re-check confirms the restored files still match the backup's checksum list." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        </StackPanel></Expander>
+        <Expander Header="What a backup contains and does not do" Margin="0,8,0,0" AutomationProperties.Name="Evidence backup details">
+          <TextBox Text="{Binding BackupGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,8,0,0" AutomationProperties.Name="Evidence transfer limitations"/>
+        </Expander>
+      </StackPanel></Border>
+
+      <Border Style="{StaticResource Card}" Visibility="{Binding HasResult, Converter={StaticResource BoolToVis}}"><StackPanel>
+        <TextBlock Text="Result" Style="{StaticResource H2}"/>
+        <TextBox Text="{Binding LastResult, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Result and next step"/>
+        <Button Content="Open folder" Command="{Binding OpenLastOutputCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" AutomationProperties.Name="Open result folder"/>
+      </StackPanel></Border>
+
+      <Border Style="{StaticResource Card}"><StackPanel>
+        <TextBlock Text="Support metadata" Style="{StaticResource H2}"/>
+        <TextBlock Text="Nothing is uploaded. By default only version and standard identity are included. Tick extra sections if support asks for them; the preview shows exactly what will be written, and no section names a tenant, account or object." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+        <WrapPanel Margin="0,0,0,8">
+          <CheckBox Content="Windows version and display scale" IsChecked="{Binding IncludeEnvironment, Mode=TwoWay}" Margin="0,0,16,6"/>
+          <CheckBox Content="Recent Graph errors with Microsoft request IDs" IsChecked="{Binding IncludeRecentErrors, Mode=TwoWay}" Margin="0,0,16,6"/>
+          <CheckBox Content="Last capture: collection read status" IsChecked="{Binding IncludeCollectionStatus, Mode=TwoWay}" Margin="0,0,16,6"/>
+          <CheckBox Content="Timeouts and limits" IsChecked="{Binding IncludeTimeouts, Mode=TwoWay}" Margin="0,0,16,6"/>
+        </WrapPanel>
+        <TextBox Text="{Binding SupportPreview, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,0,0,12" AutomationProperties.Name="Support metadata preview"/>
+        <WrapPanel><Button Content="Export support metadata" Command="{Binding ExportSupportCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy support metadata" Command="{Binding CopySupportCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+      </StackPanel></Border>
+
       <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Application and environment" Style="{StaticResource H2}"/><TextBox AutomationProperties.Name="Application and environment details" Text="{Binding Text, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" Margin="0"/></StackPanel></Border>
       <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Workspace folders" Style="{StaticResource H2}"/><TextBlock Text="Open a folder in File Explorer to inspect its contents." Style="{StaticResource Muted}" Margin="0,0,0,16"/><WrapPanel>
         <Button Content="Reports" Command="{Binding OpenReportsCommand}" Style="{StaticResource SecondaryButton}"/>
