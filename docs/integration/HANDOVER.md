@@ -49,7 +49,7 @@ The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register
 1. An independent Astra/Codex review of PR #22–#32. They merged on William's approval without the other agent's review.
 2. Further usability from real engineer feedback.
 
-The INT-049/050 workflow surfaces are in place. The completion projection, the Jobs page and `bdit jobs`/`bdit job` landed in PR #30 (`0105676`, INT-063). Recording cutover revisions from the Jobs page landed in PR #31 (`5ce7f56`, INT-064). Outcomes that cite stored assessments landed in PR #32 (INT-065).
+The INT-049/050 workflow surfaces are in place. The completion projection, the Jobs page and `bdit jobs`/`bdit job` landed in PR #30 (`0105676`, INT-063). Recording cutover revisions from the Jobs page landed in PR #31 (`5ce7f56`, INT-064). Outcomes that cite stored assessments landed in PR #32 (`7608150`, INT-065).
 
 **Owned by others:**
 - `release` environment reviewers and immutable releases (William, in repository settings).
