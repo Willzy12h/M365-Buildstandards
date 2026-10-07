@@ -48,11 +48,13 @@ CURRENT STATE (re-fetch and verify; do not trust these references blindly)
     dispositions/<id>.json; retention names exact objects and creates no mapping; approved
     departure cites an existing in-date deviation and creates none; unchanged repeat writes
     nothing. Exact-head CI run 37685914440: 1009 Engine + 119 App tests, harness clean.
-  * PR #28: INT-050 cutover cases, engine only (INT-062): immutable cutovers/<id>.json
+  * PR #28 (7edadb8): INT-050 cutover cases, engine only (INT-062): immutable cutovers/<id>.json
     revisions per case, one stage at a time with its evidence (run readback, approved real
     pilot group, passed criteria, fresh complete capture to close); escalation stops a case.
+    Exact-head CI run 37687028581: 1029 Engine + 119 App tests, harness clean.
+  * PR #29: GitHub Actions moved to their first Node 24 majors, pinned by SHA.
 
-TASK 1 — INDEPENDENT REVIEW OF PR #22–#28
+TASK 1 — INDEPENDENT REVIEW OF PR #22–#29
 Review the merged changes against PRODUCT-CONTRACT-DECISIONS-2026.10.06.md and the
 DECISION-LOG rows INT-056–INT-062: lineage relations and loader refusals, the upgrade
 impact report's separation from drift, the reviewed-scope field list, and for INT-049 the
@@ -68,9 +70,6 @@ TASK 2 — CONTINUE THE APPROVED PRODUCT WORK (each in its own PR, in this order
    authority: a stored record never activates, assigns, retires or deploys anything.
 2. Usability from real engineer feedback, if William provides it. Keep the native harness
    passing and add renders for new screens.
-3. GitHub Actions still on Node 20 (checkout, setup-dotnet, cache, upload-artifact): CI
-   forces them to Node 24 with a warning. Upgrade to current releases pinned by SHA in one
-   reviewed PR, including publish-preview18.yml, and confirm CI.
 
 HOW TO WORK
 - Claim in docs/integration/WORK-CLAIMS.md and with a draft PR. Never push to claude/*
