@@ -46,9 +46,10 @@ The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register
 - [PR #29](https://github.com/Willzy12h/M365-Buildstandards/pull/29) (`9ca5ebb`): GitHub Actions pinned to their first Node 24 majors by commit SHA (checkout v5.1.0, setup-dotnet v5.4.0, cache v5.1.0, upload-artifact v6.0.0, download-artifact v7.0.0), in `build.yml` and `publish-preview18.yml`. The publisher only runs on a manual, approved dispatch, so CI does not exercise its download steps; they download by name, which these majors did not change.
 
 **Next, in order:**
-1. An independent Astra/Codex review of PR #22–#28. They merged on William's approval without the other agent's review.
-2. Workflow surfaces, remaining slice: references to stored assessments. Recording cutover revisions from the Jobs page landed in PR #31 (INT-064). The completion projection, the Jobs page and `bdit jobs`/`bdit job` landed in PR #30 (`0105676`, INT-063).
-3. Further usability from real engineer feedback.
+1. An independent Astra/Codex review of PR #22–#32. They merged on William's approval without the other agent's review.
+2. Further usability from real engineer feedback.
+
+The INT-049/050 workflow surfaces are in place. The completion projection, the Jobs page and `bdit jobs`/`bdit job` landed in PR #30 (`0105676`, INT-063). Recording cutover revisions from the Jobs page landed in PR #31 (`5ce7f56`, INT-064). Outcomes that cite stored assessments landed in PR #32 (INT-065).
 
 **Owned by others:**
 - `release` environment reviewers and immutable releases (William, in repository settings).

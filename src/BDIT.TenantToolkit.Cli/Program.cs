@@ -267,7 +267,7 @@ public static class Program
         foreach (var r in completion.Requirements)
         {
             var detail = string.Join(" · ", new[] { r.Outcome.Length > 0 ? "outcome " + r.Outcome : "", r.Decision.Length > 0 ? "decision " + JobCompletion.Words(r.Decision) : "",
-                r.Cutover.Length > 0 ? "cutover " + r.Cutover : "" }.Where(t => t.Length > 0));
+                r.Cutover.Length > 0 ? "cutover " + r.Cutover : "", Cited(projection, r.InstanceKey) }.Where(t => t.Length > 0));
             Console.WriteLine($"{r.InstanceKey,-22} {JobCompletion.Words(r.State),-20} {detail}");
             foreach (var reason in r.Reasons) Console.WriteLine("    " + reason);
         }
@@ -277,6 +277,14 @@ public static class Program
         if (projection.LegacyAttestations.Count > 0)
             Console.WriteLine($"{projection.LegacyAttestations.Count} legacy manual check(s) are unbound attestations and count for nothing here.");
         return 0;
+    }
+
+    /// <summary>"cites assessment …" when the current outcome for this instance cites a stored assessment.</summary>
+    private static string Cited(JobProjection projection, string instanceKey)
+    {
+        var current = projection.Subjects.FirstOrDefault(s => string.Equals(s.InstanceKey, instanceKey, StringComparison.OrdinalIgnoreCase))?.Current;
+        var cited = current?.Evidence.FirstOrDefault(e => e.Kind == EvidenceKind.Assessment);
+        return cited is null ? "" : "cites assessment " + cited.Id;
     }
 
     /// <summary>The installation, standard, stored client record and optional current capture a job is projected against.</summary>

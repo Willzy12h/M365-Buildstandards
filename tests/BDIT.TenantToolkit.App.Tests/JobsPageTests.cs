@@ -3,6 +3,7 @@ using BDIT.TenantToolkit.App.ViewModels;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Workflow;
 using Xunit;
 
@@ -143,6 +144,32 @@ public sealed class JobsPageTests : IDisposable
         _page.RecordCommand.Execute(null);
         Assert.NotEqual("", _shell.ErrorMessage);
         Assert.Single(_shell.Workspace.Evidence.LoadCutovers(TestData.TenantA).Revisions);
+    }
+
+    [Fact]
+    public void An_outcome_cites_a_stored_assessment_of_the_capture_in_view_and_verifies()
+    {
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        var assessment = new AssessmentEngine(new FixedClock(), "test").Assess(capture, standard, TestData.Profile(), TestData.Mappings(), [], "engineer@test.example");
+        assessment.Findings.Single(f => f.ControlId == "CA-003").Status = FindingStatus.Compliant;
+        _shell.Workspace.Evidence.SaveAssessment(assessment);
+        OpenJob();
+        Select("CA-003");
+
+        Assert.Contains("Compliant", Assert.Single(_page.Assessments, a => a.Key == assessment.Id).Label);
+        _page.AssessmentId = assessment.Id;
+        _page.Reason = "Matches the stored assessment.";
+        _page.RecordCommand.Execute(null);
+        Assert.Equal("", _shell.ErrorMessage);
+
+        var observation = Assert.Single(_shell.Workspace.Evidence.LoadObservations(TestData.TenantA).Observations);
+        Assert.Contains(observation.Evidence, e => e.Kind == EvidenceKind.Assessment);
+        Assert.Equal(RequirementState.Verified, _page.Requirements.Single(r => r.InstanceKey == "CA-003").State);
+        Assert.Contains("cites a stored assessment", _page.RequirementText);
+        Assert.Equal("", _page.AssessmentId);
     }
 
     [Fact]

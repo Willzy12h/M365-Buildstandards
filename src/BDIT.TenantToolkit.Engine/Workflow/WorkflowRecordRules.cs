@@ -37,7 +37,9 @@ public static class WorkflowRecordRules
     public static void ValidateObservation(TenantObservation o)
     {
         if (o.SchemaVersion != TenantObservation.CurrentSchemaVersion) throw new ConfigurationException($"Observations use schema version {TenantObservation.CurrentSchemaVersion}.");
-        Subject(o, "Observation");
+        Subject(o, "Observation", EvidenceKind.Snapshot, EvidenceKind.Assessment);
+        if (o.Evidence.Any(r => r.Kind == EvidenceKind.Assessment) && o.Evidence.Count(r => r.Kind == EvidenceKind.Snapshot) != 1)
+            throw new ConfigurationException("An assessment reference needs the one capture that was assessed.");
         if (!ObservationStatus.All.Contains(o.Status)) throw new ConfigurationException("Record the outcome as Pass, Fail, Unknown or Pending.");
         Required(o.Actor, "The person recording the observation");
         if (ObservationStatus.IsAsserted(o.Status)) Required(o.Reason, "A reason for a Pass or Fail");
@@ -47,7 +49,7 @@ public static class WorkflowRecordRules
     public static void ValidateDisposition(TenantDisposition d)
     {
         if (d.SchemaVersion != TenantDisposition.CurrentSchemaVersion) throw new ConfigurationException($"Dispositions use schema version {TenantDisposition.CurrentSchemaVersion}.");
-        Subject(d, "Disposition");
+        Subject(d, "Disposition", EvidenceKind.Snapshot);
         if (!DispositionDecision.All.Contains(d.Decision))
             throw new ConfigurationException("Choose a decision: retain external coverage, approved departure, add missing candidate, investigate, manual work or propose replacement.");
         Required(d.Actor, "The person recording the decision");
@@ -117,11 +119,11 @@ public static class WorkflowRecordRules
             throw new ConfigurationException("A case with an unsupported scenario stays open until a revision clears it.");
     }
 
-    private static void Subject(ISubjectRecord r, string what)
+    private static void Subject(ISubjectRecord r, string what, params string[] evidenceKinds)
     {
         Binding(r.Id, r.TenantId, r.JobId, r.ProfileId, r.SemanticId, r.ControlId, r.InstanceKey, r.StandardRelease, r.StandardDigest, r.ClientScopeDigest,
             r.RecordedAt, r.ReviewDueAt, r.SupersedesId, what);
-        References(r.Evidence, EvidenceKind.Snapshot);
+        References(r.Evidence, evidenceKinds);
         Distinct(r.ObservedObjectIds, "observed object");
         if (r.ObservedObjectIds.Count > 0) Digest(r.MaterialDigest, "The digest of the observed objects");
     }

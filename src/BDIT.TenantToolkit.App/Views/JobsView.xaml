@@ -53,6 +53,8 @@
                 <StackPanel Visibility="{Binding IsOutcome, Converter={StaticResource BoolToVis}}">
                   <TextBlock Text="Outcome *" Style="{StaticResource FieldLabel}"/>
                   <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status, Mode=TwoWay}" AutomationProperties.Name="Outcome"/>
+                  <TextBlock Text="Stored assessment cited as evidence" Style="{StaticResource FieldLabel}"/>
+                  <ComboBox ItemsSource="{Binding Assessments}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding AssessmentId, Mode=TwoWay}" AutomationProperties.Name="Cited assessment"/>
                 </StackPanel>
                 <StackPanel Visibility="{Binding IsDecision, Converter={StaticResource BoolToVis}}">
                   <TextBlock Text="Decision *" Style="{StaticResource FieldLabel}"/>
