@@ -72,11 +72,25 @@ public sealed class ReleaseLineageTests
     [InlineData("\"unlistedControls\": \"sameRequirement\"", "\"unlistedControls\": \"sameRequirement\", \"extra\": true")]
     [InlineData("\"targetControls\": [\n            \"PRE-009\"", "\"targetControls\": [\n            \"PRE-010\"")]
     [InlineData("\"sourceControl\": \"PRE-002\"", "\"sourceControl\": \"PRE-001\"")]
+    [InlineData("\"relation\": \"Renamed\"", "\"relation\": \"Retired\"")]
+    [InlineData("\"cardinality\": \"Retired\"", "\"cardinality\": \"Added\"")]
+    [InlineData("\"relation\": \"Renamed\"", "\"relation\": \"Added\"")]
     public void Malformed_or_conflicting_lineage_is_rejected(string find, string replace)
     {
         var json = File.ReadAllText(Path.Combine(Standards, "lineage", "lineage-2026.09.30.json"));
         Assert.Contains(find, json, StringComparison.Ordinal);
         Assert.Throws<IntegrityException>(() => ReleaseLineage.Parse(json.Replace(find, replace, StringComparison.Ordinal)));
+    }
+
+    [Theory]
+    [InlineData("\"target\": null, \"sources\": []")]
+    [InlineData("\"target\": { \"release\": \"2026.09.30\", \"sha256\": \"\" }, \"sources\": null")]
+    [InlineData("\"target\": { \"release\": \"2026.09.30\", \"sha256\": \"\" }, \"sources\": [ null ]")]
+    [InlineData("\"target\": { \"release\": \"2026.09.30\", \"sha256\": \"\" }, \"sources\": [ { \"release\": \"2026.09.10\", \"sha256\": \"\", \"unlistedControls\": \"sameRequirement\", \"relations\": null } ]")]
+    [InlineData("\"target\": { \"release\": \"2026.09.30\", \"sha256\": \"\" }, \"sources\": [ { \"release\": \"2026.09.10\", \"sha256\": \"\", \"unlistedControls\": \"sameRequirement\", \"relations\": [ { \"sourceControl\": \"PRE-004\", \"sourceName\": \"a\", \"relation\": \"Renamed\", \"cardinality\": \"OneToOne\", \"targetControls\": [ \"PRE-005\" ], \"targetNames\": null, \"semanticId\": \"s\", \"reason\": \"r\" } ] } ]")]
+    public void Null_members_are_an_integrity_failure(string body)
+    {
+        Assert.Throws<IntegrityException>(() => ReleaseLineage.Parse("{ \"schemaVersion\": 1, \"description\": \"\", " + body + " }"));
     }
 
     [Fact]
@@ -109,7 +123,7 @@ public sealed class ReleaseLineageTests
         mappings.ByControl["PRE-001"] = new ManagedObjectMapping { ControlId = "PRE-001", ObjectId = "aaaaaaaa-0000-4000-8000-000000000001", Release = "2026.09.8" };
         var note = Assert.Single(LineageReview.Review(mappings, Catalogue("2026.09.30"), Shipped()));
         Assert.Equal("Unknown", note.Relation);
-        Assert.Contains("no lineage from 2026.09.8 to 2026.09.30 is recorded", note.Message);
+        Assert.Contains("no verified lineage from 2026.09.8 to 2026.09.30 is available", note.Message);
         Assert.Single(LineageReview.Review(mappings, Catalogue("2026.09.30"), lineage: null));
 
         // Many records from one such release give one limitation line, not one each.
@@ -139,8 +153,51 @@ public sealed class ReleaseLineageTests
         var plain = engine.Assess(snapshot, current, profile, store.LoadMappings(profile.TenantId), store.LoadDeviations(profile.TenantId), "test");
         var shared = AssessmentContext.Assess(engine, store, snapshot, current, profile, "test");
         Assert.Equal(plain.Findings.Select(f => (f.ControlId, f.Status, f.Owned)), shared.Findings.Select(f => (f.ControlId, f.Status, f.Owned)));
-        Assert.StartsWith("Release lineage: Review needed", shared.Findings.Single(f => f.ControlId == "PRE-004").Reason);
+        // The renamed-requirement wording comes only from the shipped lineage, so this proves it was loaded and used,
+        // not that the no-lineage fallback ran.
+        var reason = shared.Findings.Single(f => f.ControlId == "PRE-004").Reason;
+        Assert.StartsWith("Release lineage: Review needed", reason);
+        Assert.Contains("PRE-005 (GRP - Pilot Devices)", reason);
+        Assert.DoesNotContain("no verified lineage", reason);
         Assert.Contains(shared.Limitations, l => l.StartsWith("Release lineage: ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Lineage_for_other_catalogue_bytes_is_reported_and_not_used()
+    {
+        using var root = new TempRoot();
+        CopyStandards(root);
+        var current = new StandardsLoader(root.Paths, NullLog.Instance).Load("2026.09.30.json");
+        current.IntegrityDigest = new string('0', 64);
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var profile = TestData.Profile();
+        store.SaveProfiles([profile]);
+        var mappings = new ManagedObjectMappings { TenantId = profile.TenantId };
+        mappings.ByControl["PRE-004"] = new ManagedObjectMapping { ControlId = "PRE-004", ObjectId = "aaaaaaaa-0000-4000-8000-000000000004", Collection = "groups", Release = "2026.09.10" };
+        store.SaveMappings(mappings);
+
+        var result = AssessmentContext.Assess(new AssessmentEngine(new FixedClock(), "test"), store, TestData.Snapshot(current), current, profile, "test");
+        Assert.Contains(result.Limitations, l => l.Contains("the loaded catalogue's bytes differ", StringComparison.Ordinal));
+        Assert.Contains("no verified lineage from 2026.09.10 to 2026.09.30", result.Findings.Single(f => f.ControlId == "PRE-004").Reason);
+    }
+
+    [Theory]
+    [InlineData("{ \"algorithm\": \"SHA-256\", \"files\": { \"lineage-2026.09.30.json\": 42 } }")]
+    [InlineData("{ \"algorithm\": 1, \"files\": {} }")]
+    [InlineData("{ \"algorithm\": \"SHA-256\", \"files\": [] }")]
+    public void A_malformed_lineage_manifest_is_an_integrity_failure_and_does_not_stop_assessment(string manifestJson)
+    {
+        using var root = new TempRoot();
+        CopyStandards(root);
+        File.WriteAllText(Path.Combine(root.Paths.StandardsDirectory, "lineage", "manifest.json"), manifestJson);
+        Assert.Throws<IntegrityException>(() => ReleaseLineage.Load(root.Paths.StandardsDirectory, StandardsManifest.Load(root.Paths.StandardsDirectory), "2026.09.30"));
+
+        var current = new StandardsLoader(root.Paths, NullLog.Instance).Load("2026.09.30.json");
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var profile = TestData.Profile();
+        store.SaveProfiles([profile]);
+        var result = AssessmentContext.Assess(new AssessmentEngine(new FixedClock(), "test"), store, TestData.Snapshot(current), current, profile, "test");
+        Assert.Contains(result.Limitations, l => l.StartsWith("Release lineage could not be verified and was not used", StringComparison.Ordinal));
     }
 
     private static void CopyStandards(TempRoot root)

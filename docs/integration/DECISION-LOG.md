@@ -168,7 +168,7 @@ William delegated commits and merges to the agents, keeping approval of promotio
 
 ## INT-056 — Non-material client profile fields for reviewed-scope validity (CLA-20261006-17)
 
-Follow-up to INT-049/050 now that PR #20 is merged. Their records bind a digest of the reviewed client scope. A digest of the whole profile would mark every observation and disposition `NeedsReview` after a harmless relabel, which invites rubber-stamping. The digest (`ReviewedClientScope.Digest`) therefore leaves out only `company`, `notes`, `createdAt` and `updatedAt`. Every other field stays material: tenant, domain, application overrides, parameters, offices, policy inputs, group IDs, emergency and exclusion accounts, including exclusion display names. Adding a field to the non-material list needs its own decision. A label-only edit keeps the digest; any material change alters it (tests in `ReviewedClientScopeTests`).
+Follow-up to INT-049/050 now that PR #20 is merged. Their records bind a digest of the reviewed client scope. A digest of the whole profile would mark every observation and disposition `NeedsReview` after a harmless relabel, which invites rubber-stamping. The digest (`ReviewedClientScope.Digest`) therefore leaves out only `company`, `notes`, `createdAt` and `updatedAt`. Every other field stays material: tenant, domain, application overrides, parameters, offices, policy inputs, group IDs, emergency and exclusion accounts, including exclusion display names. Adding a field to the non-material list needs its own decision. A label-only edit keeps the digest; any material change alters it (tests in `ReviewedClientScopeTests`). Amended by INT-059: exclusion `resolvedAt` and `selectedBy`, and the order of the account lists, are not material.
 
 ## INT-057 — Release lineage, initial read-only slice (INT-051, CLA-20261006-07)
 
@@ -177,4 +177,13 @@ Follow-up to INT-049/050 now that PR #20 is merged. Their records bind a digest 
 ## INT-058 — Upgrade impact report (INT-051, second slice)
 
 `UpgradeImpactAnalyser` assesses one stored capture under a source and a target release with the same client inputs, ownership records and deviations, then traces each source requirement through the verified lineage. Each row is Same requirement, Renamed, Changed, Replaced, Retired, Added or Unknown, with its status under both releases; repeated office instances are summarised per status. With no verified lineage between the two releases, every source row is Unknown and the report says so. The report is presented separately from two-capture drift, is available on the Assessment page and as `bdit upgrade-impact`, and writes only the exported report: no assessment, mapping, exception or plan is saved or changed.
+
+## INT-059 — Review fixes for release lineage and reviewed client scope (INT-056, INT-057)
+
+A post-merge review of PR #22 found four defects, fixed in one pull request.
+
+- **Reviewed scope, an amendment to INT-056.** Each exclusion account's `resolvedAt` and `selectedBy` are now non-material, and the order of the exclusion accounts, `emergencyAccountIds` and `additionalExclusionAccountIds` no longer counts. The account picker restamps `resolvedAt` and `selectedBy` whenever an engineer resolves the same account again, so INT-056 would have sent every INT-049/050 record to review for an action that changes nothing. The lists are sets: the profile validator de-duplicates them and drift compares them without regard to order. Display name, UPN, object ID, purpose and reason stay material, as INT-056 decided. No record bound the old digest yet, so nothing needs migrating.
+- **Unreadable lineage never stops work.** `ReleaseLineage.Load` and `Parse` now report any failure to read or validate lineage as an `IntegrityException`, including a malformed lineage manifest and explicit nulls. Assessment then records the limitation and continues, as INT-057 intended.
+- **Skipped lineage is explained.** When the loaded catalogue's bytes differ from the catalogue the lineage describes, assessment records why it did not use the lineage. The per-record message now says "no verified lineage … is available", which is true in both cases, where it used to say none was recorded.
+- **Validator.** A relation is keyed by its source control, and an added requirement has none, so `Added` is refused with a reason instead of a generic error. `Retired` relation and `Retired` cardinality must now appear together.
 
