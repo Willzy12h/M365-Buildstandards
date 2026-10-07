@@ -2,7 +2,7 @@
 
 ## Stack
 
-- .NET 8, C# 12, WPF (`net8.0-windows`), published self-contained for `win-x64`. No installer, no elevation, no machine-wide changes.
+- .NET 10, C# 12, WPF (`net10.0-windows`), published self-contained for `win-x64`. No installer, no elevation, no machine-wide changes.
 - Dependencies: `Microsoft.Identity.Client` (MSAL) and `System.Security.Cryptography.ProtectedData` (DPAPI). Everything else is the base class library: `System.Text.Json` for models and canonical hashing, `System.IO.Compression` for XLSX and CSV bundles.
 - No DI container, no ORM, no database. Evidence is versioned JSON under `data\`.
 
@@ -106,7 +106,7 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 1. Add the control to the release file with a new ID. For manual controls set `assessment.mode` to `manual` and write `manualInstructions`. For automated controls set `mode` to `settings`, name a collection and supply a `payload` template using only properties Graph accepts on create.
 2. For Conditional Access recipes keep `state: "disabled"` and use `{{emergencyAccountIds}}` (or `{{emergencyAndGuestIds}}`) in `excludeUsers`.
-3. Run `build\Update-StandardsManifest.ps1`, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release).
+3. Add controls only to a new, unpublished release file; published releases never change. Run `build\Update-StandardsManifest.ps1`, review and commit the manifest diff, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release). The portable build only verifies the committed manifest (`build\Test-StandardsManifest.ps1`) and fails on any mismatch. Once a release is published, add its digest to `Release20260930Tests.Historical_standard_bytes_match_the_published_baseline_digests`.
 4. Validate the payload against a test tenant before enabling deployment for that control; recipes are not proven by unit tests.
 
 ## Adding a collection
@@ -121,4 +121,4 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 ## Packaging
 
-`build\Build-Portable.ps1` restores, builds, tests, regenerates the standards manifest, publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 8 SDK.
+`build\Build-Portable.ps1` restores, builds, tests, verifies the committed standards manifest (failing on any mismatch), publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.

@@ -49,6 +49,27 @@ public class GraphClientTests
             "/identity/conditionalAccess/policies/" + TestData.Operator, null, stop.Token));
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task Cancelled_read_does_not_acquire_a_token_or_dispatch()
+    {
+        var (client, handler, tokens) = Create();
+        using var stop = new CancellationTokenSource();
+        stop.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetAsync(GraphApi.V1, "/organization", stop.Token));
+        Assert.Equal(0, tokens.Calls);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Stop_during_a_synchronous_read_response_cannot_report_success()
+    {
+        var (client, handler, _) = Create();
+        using var stop = new CancellationTokenSource();
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[]}", _ => stop.Cancel());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetAsync(GraphApi.V1, "/organization", stop.Token));
+        Assert.Single(handler.Requests);
+    }
     [Fact]
     public async Task Recovery_DELETE_is_bodyless_single_attempt_and_requires_deployment_object_route()
     {
@@ -134,6 +155,29 @@ public class GraphClientTests
         var routes = GraphRouteAllowList.FromStandard(TestData.Standard());
         var client = new GraphClient(new HttpClient(handler), tokens, TestData.TenantA, mode, routes, new GraphClientOptions { Sleep = false, MaxRetryAfter = TimeSpan.FromSeconds(300) }, NullLog.Instance);
         return (client, handler, tokens);
+    }
+
+    [Fact]
+    public async Task Large_collection_preserves_all_objects_across_one_hundred_pages_without_writes()
+    {
+        var (client, handler, _) = Create(SessionMode.Assessment);
+        for (var page = 0; page < 100; page++)
+        {
+            var response = new JsonObject
+            {
+                ["value"] = new JsonArray(Enumerable.Range(page * 100, 100)
+                    .Select(i => (JsonNode)new JsonObject { ["id"] = $"synthetic-{i:D5}", ["displayName"] = $"Synthetic group {i}" }).ToArray())
+            };
+            if (page < 99) response["@odata.nextLink"] = $"https://graph.microsoft.com/v1.0/groups?$skiptoken=page-{page + 1}";
+            handler.Enqueue(HttpStatusCode.OK, response.ToJsonString());
+        }
+
+        var items = await client.GetAllAsync(GraphApi.V1, "/groups", CancellationToken.None);
+
+        Assert.Equal(Enumerable.Range(0, 10_000).Select(i => $"synthetic-{i:D5}"), items.Select(i => i["id"]!.GetValue<string>()));
+        Assert.Equal(100, handler.Requests.Count);
+        Assert.All(handler.Requests, r => Assert.Equal(HttpMethod.Get, r.Method));
+        Assert.Contains("page-99", handler.Requests[^1].RequestUri!.Query, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -251,6 +295,20 @@ public class GraphClientTests
         Assert.Equal("Policy.Read.All", ex.RequiredScopeHint);
         Assert.Contains("Authorization_RequestDenied", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Policy.Read.All", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Failed_request_keeps_microsoft_correlation_ids_for_the_support_record()
+    {
+        var (client, handler, _) = Create();
+        var requestId = Guid.NewGuid().ToString();
+        handler.Enqueue(HttpStatusCode.Forbidden, """{"error":{"code":"Authorization_RequestDenied","message":"user@contoso.example cannot read"}}""",
+            r => { r.Headers.Add("request-id", requestId); r.Headers.Add("client-request-id", "not-a-guid"); });
+        var ex = await Assert.ThrowsAsync<PermissionException>(() => client.GetAsync(GraphApi.V1, "/identity/conditionalAccess/policies", CancellationToken.None));
+        Assert.Equal(requestId, ex.RequestId);
+        Assert.Null(ex.ClientRequestId);
+        var record = Assert.Single(RecentGraphErrors.Shared.Snapshot(), e => e.RequestId == requestId);
+        Assert.Equal(("GET", "/identity/conditionalAccess/policies", 403, "Authorization_RequestDenied"), (record.Method, record.Route, record.Status, record.ErrorCode));
     }
 
     [Fact]

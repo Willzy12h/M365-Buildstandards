@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <AssemblyName>BDIT.TenantToolkit.Tests</AssemblyName>
@@ -16,5 +16,6 @@
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
+    <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Cli\BDIT.TenantToolkit.Cli.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

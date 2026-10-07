@@ -15,6 +15,15 @@ public static class MarkdownReports
         .Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal)
         .Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
+    /// <summary>Plain wording for <see cref="AssessmentResult.SnapshotIntegrity"/>, shared by every report, the CLI and the app.</summary>
+    public static string IntegrityText(string state) => state switch
+    {
+        SnapshotIntegrityState.Intact => "intact",
+        SnapshotIntegrityState.Modified => "MODIFIED after capture",
+        SnapshotIntegrityState.NotRecorded => "not recorded",
+        _ => "not checked"
+    };
+
     /// <summary>
     /// Tenant-supplied text inside a code span. Markdown shows code spans literally, so escaped characters would appear
     /// as entity codes on screen; only what can break out of the span or the table cell is changed: a backtick would end
@@ -31,7 +40,7 @@ public static class MarkdownReports
         sb.AppendLine($"- Primary domain: {E(r.PrimaryDomain)}");
         sb.AppendLine($"- Tenant ID: `{C(r.TenantId)}`");
         sb.AppendLine($"- Standard release: {E(r.Release)} (digest `{C(r.StandardDigest)}`)");
-        sb.AppendLine($"- Snapshot: `{C(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")})");
+        sb.AppendLine($"- Snapshot: `{C(r.SnapshotId)}` captured {E(r.CapturedAt)} ({(r.SnapshotComplete ? "complete" : "incomplete")}; integrity {IntegrityText(r.SnapshotIntegrity)})");
         sb.AppendLine($"- Assessed: {E(r.AssessedAt)} by {E(r.AssessedBy)} with toolkit {E(r.ToolkitVersion)}");
         sb.AppendLine();
         var s = r.Summary;
@@ -71,6 +80,7 @@ public static class MarkdownReports
             if (f.IsActionable && !string.IsNullOrEmpty(f.EngineerAction)) sb.AppendLine($"- Engineer action: {E(f.EngineerAction)}");
             if (f.Deviation is not null) sb.AppendLine($"- Approved deviation: {E(f.Deviation.Reason)} (approved by {E(f.Deviation.ApprovedBy)}, review by {E(f.Deviation.ReviewBy)})");
             foreach (var n in f.Notes) sb.AppendLine($"- Note: {E(n)}");
+            foreach (var observed in f.ObservedObjects) sb.AppendLine($"- Observed: {E(observed)}");
             foreach (var c in f.Candidates)
             {
                 sb.AppendLine();

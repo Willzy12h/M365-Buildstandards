@@ -64,6 +64,7 @@ public sealed class PolicyInputField : ObservableObject
         "jsonArray" => "A JSON array.",
         "integer" => "A whole number.",
         "boolean" => "true or false.",
+        "mailDomain" => "Client mail domain, without a URL or wildcard. No default.",
         _ => "Text."
     } + (IsRequired ? " Required." : HasDefault ? $" Optional; the default {DefaultText} is used if you leave it empty." : " Optional.");
 
@@ -77,9 +78,10 @@ public sealed class PolicyInputField : ObservableObject
     /// Converts what was typed into the node the standard expects, or records the reason it could not. Returns false
     /// and leaves <see cref="Problem"/> set rather than throwing, so one bad field does not discard the whole form.
     /// </summary>
-    public bool TryRead(out JsonNode? node)
+    public bool TryRead(out JsonNode? node, bool requireNow = false)
     {
         var read = PolicyInputParser.TryRead(Type, Value, out node, out var problem);
+        if (requireNow && (!read || node is JsonArray { Count: 0 })) problem = "Supply " + Label + " for the selected control before saving.";
         Problem = problem;
         return read;
     }

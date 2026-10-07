@@ -42,7 +42,9 @@ public sealed partial class StandardsLoader
                 _log.Warn("Standards", $"Release file '{name}' could not be read: {ex.Message}");
             }
         }
-        return list.OrderByDescending(r => r.Release, StringComparer.OrdinalIgnoreCase).ToList();
+        // Point releases are numbers: lexical ordering places .9 ahead of .12 and selects an older fallback.
+        return list.OrderByDescending(r => Version.TryParse(r.Release, out var version) ? version : null)
+            .ThenByDescending(r => r.Release, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     /// <summary>Loads a release after verifying its digest against standards/manifest.json.</summary>
@@ -78,7 +80,7 @@ public sealed partial class StandardsLoader
 
     public static void Validate(StandardCatalogue c)
     {
-        if (c.SchemaVersion is not (3 or StandardCatalogue.SupportedSchemaVersion))
+        if (c.SchemaVersion is not (3 or 4 or StandardCatalogue.SupportedSchemaVersion))
             throw new ConfigurationException($"Standard schema version {c.SchemaVersion} is not supported; this build understands version {StandardCatalogue.SupportedSchemaVersion}.");
         if (string.IsNullOrWhiteSpace(c.Release) || c.Release.Length > 40 || !ReleasePattern().IsMatch(c.Release))
             throw new ConfigurationException("Standard release identifier is missing or invalid (letters, digits, dots and dashes only).");
@@ -100,13 +102,18 @@ public sealed partial class StandardsLoader
         {
             PolicyInputDefaults.AssertReviewable(p);
             if (!ParameterKeyPattern().IsMatch(p.Key)) throw new ConfigurationException($"Parameter key '{p.Key}' is invalid.");
-            if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray"))
+            if (p.Type is not ("guid" or "guidList" or "string" or "integer" or "boolean" or "jsonArray" or "mailDomain"))
                 throw new ConfigurationException($"Parameter '{p.Key}' has an unsupported type.");
         }
         if (c.Controls.Count == 0) throw new ConfigurationException("Standard defines no controls.");
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var control in c.Controls)
         {
+            if (control.Area is not (null or "Entra" or "Intune" or "Exchange" or "Purview"))
+                throw new ConfigurationException($"Control {control.Id} has an unsupported area.");
+            if (control.RepeatFor is not null && (control.RepeatFor != "officeLocations" || control.Collection != "namedLocations"
+                || c.FindCollection(control.Collection)?.PublicIpRangesOnly != true))
+                throw new ConfigurationException($"Control {control.Id} has an unsupported repeatable input.");
             if (!ControlIdPattern().IsMatch(control.Id)) throw new ConfigurationException($"Control ID '{control.Id}' is invalid (expected e.g. CA-001 or CMP-WIN-001).");
             if (!ids.Add(control.Id)) throw new ConfigurationException($"Duplicate control ID '{control.Id}'.");
             if (string.IsNullOrWhiteSpace(control.Name)) throw new ConfigurationException($"Control {control.Id} has no name.");

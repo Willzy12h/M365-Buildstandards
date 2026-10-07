@@ -45,24 +45,31 @@ installing — the .NET runtime is included. If application control is enforced 
 
 ## Where to start
 
-1. **`docs\TESTING-THIS-BUILD.md`** — what you can review with no tenant at all, and the order to follow when you
+1. **`docs\OPERATOR-START.md`** — the current engineer journey, read-only boundaries, standard exports and handoff.
+2. **`docs\TESTING-THIS-BUILD.md`** — what you can review with no tenant at all, and the order to follow when you
    do connect one. Start here.
-2. **`docs\APPLICATION-SETUP.md`** — creating or validating the two application registrations, and administrator
+3. **`docs\APPLICATION-SETUP.md`** — creating or validating the two application registrations, and administrator
    consent.
-3. **`docs\LIVE-VALIDATION.md`** — the checks to complete in an authorised test tenant before any client tenant.
-4. **`docs\AUTOMATION-COVERAGE.md`** — every control, what is automated, and what still needs an engineer.
+4. **`docs\LIVE-VALIDATION.md`** — the checks to complete in an authorised test tenant before any client tenant.
+5. **`docs\AUTOMATION-COVERAGE.md`** — every control, what is automated, and what still needs an engineer.
 
 Then, as you need them: `BUILD-STANDARD-SUMMARY.md` for what the standard requires, `POLICY-AUTOMATION-CODE.md` and
 `DEVICE-AUTOMATION.md` for the settings each recipe writes, `EQUIVALENCE-SIGNALS.md` for how the report decides an
 existing policy is equivalent, `LICENSING.md` for the licence counts, `RECOVERY.md` for undoing a recorded change,
 and `UNRESOLVED-WRITES.md` when a write's outcome is uncertain.
 
+For 2026.09.30, `ENGINEER-DOCUMENTS.md` explains the two complete catalogue exports (HTML/Markdown), and
+`EXCHANGE-PURVIEW.md` explains read-only capture import, explicit DNS checks and inert manual proposals.
+The standard has 93 controls and 61 candidate recipes. Export the engineer documents from Build Standard
+without selecting or connecting a client.
+
 ## What it will not do
 
 Assessment holds no write permission at the token level. Conditional Access policies are created disabled, Intune
 policies unassigned, groups empty and named locations untrusted — activating or assigning any of them is a separate
 decision you make explicitly. The toolkit never adopts an existing object because its name matches, never modifies
-an object it did not create and record, and never retries a write whose outcome it could not confirm. A read that
+an unowned policy object, and never retries a write whose outcome it could not confirm. Separately reviewed tenant-wide
+configuration actions have their own explicit before/after and confirmation checks. A read that
 failed is reported as unknown, never as absent.
 
 ## Development record
@@ -70,3 +77,5 @@ failed is reported as unknown, never as absent.
 The source, its full history and the internal review records are at
 <https://github.com/Willzy12h/M365-Buildstandards>. `CHANGELOG.md` in this package lists what changed in each
 release.
+
+Use `docs\WORKSPACE-CONTINUITY.md` for sensitive local backup and separate restore, `docs\INTERNAL-OPERATING-MODEL.md` for responsibilities/incidents, and `docs\RELEASE-AND-SERVICING.md` for the approval and support record. `DEPENDENCIES.json` and `licenses/` contain resolved package/runtime inventory and supplied notices.

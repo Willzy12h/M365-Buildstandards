@@ -21,6 +21,8 @@
    </StackPanel></TabItem>
    <TabItem Header="Policy inputs and imports"><StackPanel Margin="16">
     <TextBlock Text="Client policy inputs" Style="{StaticResource H2}"/>
+    <TextBlock Text="Office locations: stable key | name | public CIDR ranges (commas between ranges, one office per line). Keep each key when renaming an office." Style="{StaticResource Muted}"/>
+    <TextBox Text="{Binding OfficeLocations, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="65" MaxHeight="140" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Office location names and public ranges"/>
     <TextBlock Text="Fill in what the client has confirmed. Anything left empty either uses the reviewed default shown beside the field, or blocks only the controls that need it. Never enter credentials, tokens or private keys." Style="{StaticResource Muted}"/>
     <ItemsControl ItemsSource="{Binding InputFields}" AutomationProperties.Name="Client policy inputs">
      <ItemsControl.ItemTemplate><DataTemplate>

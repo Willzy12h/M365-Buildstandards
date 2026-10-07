@@ -10,34 +10,40 @@
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="1  Sign in as an administrator" Style="{StaticResource H2}"/>
-          <TextBlock Text="Use an account in the client's tenant that can create applications and grant tenant-wide consent. Microsoft first asks you to accept four temporary setup permissions, listed below; they belong to Microsoft Graph Command Line Tools, not to the tool's own applications." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
-          <Border Background="{StaticResource WarnBg}" CornerRadius="5" Padding="14" Margin="0,0,0,16"><StackPanel>
+          <TextBlock Text="Use an account in the client's tenant that can create applications and grant tenant-wide consent. Microsoft first asks you to accept four temporary setup permissions (expand the details below); they belong to Microsoft Graph Command Line Tools, not to the tool's own applications." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+          <Expander Header="Why administrator sign-in needs setup permissions" Margin="0,0,0,12"><Border Background="{StaticResource WarnBg}" CornerRadius="5" Padding="14"><StackPanel>
             <TextBlock Text="SETUP PERMISSIONS" Style="{StaticResource Eyebrow}" Foreground="{StaticResource Warn}"/>
             <TextBlock Text="User.Read — read the signed-in identity."/>
             <TextBlock Text="Application.ReadWrite.All — read and manage application registrations." Margin="0,5,0,0"/>
             <TextBlock Text="Directory.Read.All — inspect directory metadata, grants and assignments." Margin="0,5,0,0"/>
             <TextBlock Text="AppRoleAssignment.ReadWrite.All — assign the approved engineer to the tool enterprise apps." Margin="0,5,0,0"/>
             <TextBlock Text="The setup session is temporary and never saved. Consent granted in Microsoft Entra can persist after disconnecting and must be reviewed or revoked there." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
-          </StackPanel></Border>
-          <TextBlock Text="Client tenant ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TenantId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Application setup tenant ID"/>
+          </StackPanel></Border></Expander>
+          <TextBlock Text="Target tenant ID · carried from the verified connection" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TenantId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Application setup tenant ID"/>
           <CheckBox AutomationProperties.Name="Assign me to both applications so I can connect straight away" IsChecked="{Binding AssignOperator, Mode=TwoWay}"><TextBlock Text="Assign me to both applications so I can connect straight away (grants no administrator role). Other engineers are assigned in Entra." TextWrapping="Wrap"/></CheckBox>
           <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>
-          <WrapPanel><Button Content="Sign in as administrator" Command="{Binding ConnectCommand}" Style="{StaticResource WarningButton}"/><Button Content="Disconnect setup session" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+          <WrapPanel><Button Content="Quick setup · check existing applications" Command="{Binding QuickSetupCommand}" Style="{StaticResource WarningButton}"/><Button Content="Administrator sign-in / preview" Command="{Binding ConnectCommand}" Style="{StaticResource WarningButton}"/><Button Content="Disconnect setup session" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
         </StackPanel>
       </Border>
-      <Border Style="{StaticResource Card}">
+      <Border x:Name="ApprovalSection" Style="{StaticResource Card}">
         <StackPanel>
-          <DockPanel><Button DockPanel.Dock="Right" Content="Preview again" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="20,0,0,0"/><TextBlock Text="2  Review and approve" Style="{StaticResource H2}"/></DockPanel>
-          <TextBlock Text="Signing in shows this automatically. Check the tenant name first, then both applications; select an application to see every permission it will ask Microsoft for." Style="{StaticResource Muted}" Margin="0,12,0,12"/>
+          <DockPanel><Button DockPanel.Dock="Right" Content="Preview again" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="20,0,0,0"/><TextBlock Text="2  Approve and create the applications" Style="{StaticResource H2}"/></DockPanel>
+          <TextBlock Text="This is a preview until you approve creation below. Check the verified tenant name and ID and both application names. You do not need to type the tenant ID again. Expand the permission details before approving." Style="{StaticResource Muted}" Margin="0,12,0,12"/>
           <TextBlock Text="{Binding PlanSummary}" FontWeight="SemiBold" Margin="0,0,0,16"/>
           <DataGrid ItemsSource="{Binding PlanRows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" MaxHeight="230" Margin="0,0,0,16" AutomationProperties.Name="Proposed applications"><DataGrid.Columns><DataGridTextColumn Header="Application" Binding="{Binding DisplayName}" Width="250"/><DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="120"/><DataGridTextColumn Header="Action" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
+          <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Existing applications · choose the exact client ID, then check its ownership and permissions" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding ExistingApplications}" SelectedItem="{Binding SelectedExisting, Mode=TwoWay}" DisplayMemberPath="Label" AutomationProperties.Name="Existing application client ID"/>
+            <Button Content="Check selected application" Command="{Binding UseExistingCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+          </StackPanel>
+          <Expander Header="Review delegated permissions and exact payload" Margin="0,0,0,12"><StackPanel Margin="0,10,0,0">
           <TextBlock Text="Permissions for the selected application" Style="{StaticResource FieldLabel}"/>
           <DataGrid ItemsSource="{Binding Permissions}" MaxHeight="360" Margin="0,0,0,12" AutomationProperties.Name="Requested delegated permissions"><DataGrid.Columns><DataGridTextColumn Header="Permission" Binding="{Binding Name}" Width="300"/><DataGridTextColumn Header="What it permits" Binding="{Binding Description}" Width="*"/><DataGridCheckBoxColumn Header="Admin consent" Binding="{Binding AdminConsentRequired}" Width="115"/></DataGrid.Columns></DataGrid>
           <Expander Header="Exact application registration payload"><TextBox AutomationProperties.Name="Exact application registration payload" Text="{Binding SelectedPayload, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" Height="260" Margin="0,10,0,0"/></Expander>
-          <CheckBox AutomationProperties.Name="I approve these applications and asking Microsoft to grant their permissions" IsChecked="{Binding PermissionsApproved, Mode=TwoWay}" Margin="0,16,0,8"><TextBlock Text="I approve creating or repairing these two applications as shown, the engineer assignment shown, and asking Microsoft to grant each one the permissions listed." TextWrapping="Wrap"/></CheckBox>
-          <TextBlock Text="Type the tenant ID in full to confirm" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Confirmation, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Confirm application setup tenant ID"/>
-          <Button Content="Create apps and grant permissions" Command="{Binding CreateCommand}" Style="{StaticResource WarningButton}" HorizontalAlignment="Left"/>
-          <TextBlock Text="Your browser then opens Microsoft's approval page once for each application: check the list and select Accept each time. The toolkit reads the actual grants afterwards rather than trusting the browser. If anything does not complete, it stops and says why; it never retries a write it could not confirm." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
+          </StackPanel></Expander>
+          <CheckBox AutomationProperties.Name="I approve these applications and asking Microsoft to grant their permissions" IsChecked="{Binding PermissionsApproved, Mode=TwoWay}" Margin="0,16,0,8"><TextBlock Text="I confirm the verified tenant shown above and approve creating or configuring these applications, the displayed engineer assignment, and requesting the listed permissions." TextWrapping="Wrap"/></CheckBox>
+          <Button x:Name="CreateApplicationsButton" Content="Approve and create/configure applications" Command="{Binding CreateCommand}" Style="{StaticResource WarningButton}" HorizontalAlignment="Left"/>
+          <TextBlock Text="Administrator consent uses your browser (normal tool sign-in uses WAM). Microsoft's approval page opens once for each application: check the list and select Accept each time. The toolkit reads the actual grants afterwards rather than trusting the browser. If anything does not complete, it stops and says why; it never retries a write it could not confirm." Style="{StaticResource Muted}" Margin="0,8,0,0"/>
           <ItemsControl ItemsSource="{Binding Results}" Margin="0,10,0,0" AutomationProperties.Name="Application setup results"><ItemsControl.ItemTemplate><DataTemplate>
             <Border Padding="16" Margin="0,0,0,12" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6"><StackPanel>
               <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="15"/>
@@ -52,6 +58,15 @@
               </StackPanel></Expander>
             </StackPanel></Border>
           </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Identify your applications and finish access setup" Style="{StaticResource H2}"/>
+          <TextBlock Text="Already created the applications? Keep their client IDs. Check configuration, approve permissions, assign the engineer, then test a read-only connection. You do not need to recreate them." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+          <TextBox Text="{Binding ApplicationGuide, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Application identities and next actions"/>
+          <WrapPanel><Button Content="Copy application IDs and next steps" Command="{Binding CopyApplicationGuideCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open Microsoft Entra" Command="{Binding OpenEntraCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Check again" Command="{Binding ValidateCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+          <WrapPanel><Button Content="Approve assessment permissions in browser" Command="{Binding AssessmentConsentCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Approve deployment permissions in browser" Command="{Binding DeploymentConsentCommand}" Style="{StaticResource WarningButton}"/></WrapPanel>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">
@@ -83,8 +98,8 @@
           <TextBlock Text="Existing applications and manual steps" Style="{StaticResource H2}"/>
           <TextBlock Text="Not needed for a new tenant. The client IDs fill in after setup. If the tool applications already exist, enter their client IDs and select Preview again to check or repair them; names alone never establish which applications are the tool's." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <StackPanel><TextBlock Text="Assessment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding AssessmentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Assessment application client ID"/><Button Content="Approve assessment permissions" Command="{Binding AssessmentConsentCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/></StackPanel>
-            <StackPanel Grid.Column="2"><TextBlock Text="Deployment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding DeploymentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Deployment application client ID"/><Button Content="Approve deployment permissions" Command="{Binding DeploymentConsentCommand}" Style="{StaticResource WarningButton}" HorizontalAlignment="Left"/></StackPanel></Grid>
+            <StackPanel><TextBlock Text="Assessment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding AssessmentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Assessment application client ID"/><Button Content="Approve assessment permissions in browser" Command="{Binding AssessmentConsentCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/></StackPanel>
+            <StackPanel Grid.Column="2"><TextBlock Text="Deployment application (client) ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding DeploymentClientId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" AutomationProperties.Name="Deployment application client ID"/><Button Content="Approve deployment permissions in browser" Command="{Binding DeploymentConsentCommand}" Style="{StaticResource WarningButton}" HorizontalAlignment="Left"/></StackPanel></Grid>
           <TextBlock Text="Application name prefix" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding NamePrefix, UpdateSourceTrigger=PropertyChanged}" MaxWidth="460" HorizontalAlignment="Left" MinWidth="360" AutomationProperties.Name="Application name prefix"/>
           <TextBlock Text="Partner (GDAP) or group access does not appear as a direct assignment. The delegated-admin check signs in to the tenant and lets Microsoft enforce access; it grants no roles or permissions." Style="{StaticResource Muted}" Margin="0,12,0,8"/>
           <WrapPanel><Button Content="Check delegated-admin deployment access" Command="{Binding CheckDelegatedAdminCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Return to connection details" Command="{Binding ApplyIdsCommand}" Style="{StaticResource QuietButton}"/><Button Content="Open Entra for other engineers or delegated-admin access" Command="{Binding OpenEntraCommand}" Style="{StaticResource QuietButton}"/></WrapPanel>

@@ -78,10 +78,11 @@ public sealed class DeploymentPlanner
         var names = NameResolver.FromSnapshot(snapshot, profile);
         var parameters = profile.Parameters.ToTemplateValues(profile.TenantId);
         var rows = new List<PlanRow>();
-        foreach (var id in request.SelectedControlIds.Distinct(StringComparer.OrdinalIgnoreCase))
+        var instances = ControlInstances.All(standard, profile);
+        foreach (var control in request.SelectedControlIds.SelectMany(id => instances.Where(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase)
+            || standard.FindControl(id)?.RepeatFor == "officeLocations" && c.Id.StartsWith(id + "-", StringComparison.OrdinalIgnoreCase)))
+            .DistinctBy(c => c.Id, StringComparer.OrdinalIgnoreCase))
         {
-            var control = standard.FindControl(id);
-            if (control is null) continue;
             rows.Add(BuildRow(control, standard, snapshot, profile, request.Mappings, request.Deviations, session, names, parameters, _clock.UtcNow));
         }
 
@@ -135,6 +136,11 @@ public sealed class DeploymentPlanner
         }
 
         var def = standard.FindCollection(control.Collection);
+        if (control.RepeatFor == "officeLocations" && profile.Parameters.OfficeLocations is not { Count: > 0 })
+        {
+            row.Reason = "Add at least one named office and its public CIDR ranges in client policy inputs.";
+            return row;
+        }
         if (def is null || !control.HasRecipe)
         {
             row.Action = PlanAction.Manual;
@@ -372,7 +378,7 @@ public sealed class DeploymentPlanner
         {
             if (row.Payload is null) throw new PlanValidationException($"{row.ControlId}: write row has no payload.");
             var def = ctx.Standard.FindCollection(row.Collection) ?? throw new PlanValidationException($"{row.ControlId}: unknown collection '{row.Collection}'.");
-            var control = ctx.Standard.FindControl(row.ControlId) ?? throw new PlanValidationException($"Unknown control {row.ControlId}.");
+            var control = ControlInstances.Find(ctx.Standard, ctx.Profile, row.ControlId) ?? throw new PlanValidationException($"Unknown control {row.ControlId}.");
             var expected = BuildRow(control, ctx.Standard, ctx.Snapshot, ctx.Profile, ctx.Mappings, ctx.Deviations, ctx.Session,
                 NameResolver.FromSnapshot(ctx.Snapshot, ctx.Profile), ctx.Profile.Parameters.ToTemplateValues(ctx.Profile.TenantId), ctx.Now);
             if (!expected.IsWrite || expected.Action != row.Action || expected.Collection != row.Collection || expected.ObjectId != row.ObjectId

@@ -3,7 +3,6 @@ using System.Windows.Controls;
 namespace BDIT.TenantToolkit.App.Views;
 
 // Code-behind for the page user controls. Each simply loads its XAML; all logic lives in the view models.
-public partial class ConnectView : UserControl { public ConnectView() => InitializeComponent(); }
 public partial class ConfigurationView : UserControl { public ConfigurationView() => InitializeComponent(); }
 public partial class AssessmentView : UserControl { public AssessmentView() => InitializeComponent(); }
 public partial class DeviationsView : UserControl { public DeviationsView() => InitializeComponent(); }

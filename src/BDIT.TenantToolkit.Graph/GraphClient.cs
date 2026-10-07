@@ -68,6 +68,8 @@ public sealed class GraphClient : IGraphClient
         GraphRouteAllowList.ValidatePathSyntax(path);
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return new JsonObject { ["value"] = new JsonArray(expanded.Select(i => (JsonNode)i).ToArray()) };
         var node = await SendReadAsync(api, Root(api) + path, route, ct);
         return node as JsonObject ?? throw new GraphRequestException(200, "GET", path, null, "Graph returned a non-object body.");
     }
@@ -78,6 +80,8 @@ public sealed class GraphClient : IGraphClient
         var route = _routes.MatchRead(api, path)
             ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
 
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null) return expanded;
         var items = new List<JsonObject>();
         var url = Root(api) + path;
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -124,7 +128,7 @@ public sealed class GraphClient : IGraphClient
         if (method == GraphWriteMethod.Post && existing)
             throw new WriteDeniedException("POST must target the collection root, not an existing object.");
 
-        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope };
+        var definition = new CollectionDefinition { Api = api == GraphApi.Beta ? "beta" : "v1.0", Path = route.BasePath, Write = route.WriteScope, PublicIpRangesOnly = route.PublicIpRangesOnly };
         try { WritePayloadGuard.Assert(definition, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
 
@@ -237,7 +241,7 @@ public sealed class GraphClient : IGraphClient
             ct.ThrowIfCancellationRequested();
         }
         catch (Exception ex) { throw new WriteNotSentException(SensitiveDataScrubber.Scrub(ex.Message), ex); }
-        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
+        await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
     private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)
@@ -296,8 +300,11 @@ public sealed class GraphClient : IGraphClient
                 return ToolkitJson.ParseNode(text) as JsonObject ?? new JsonObject();
             }
             if (status == 408 || status >= 500)
+            {
+                RecordFailure(httpMethod.Method, route, status, null, response);
                 throw new AmbiguousWriteException($"Graph returned HTTP {status} for the write to {GraphRouteAllowList.BasePathOf(path)}. The gateway response does not prove the write was rejected; reconcile before retrying.", null);
-            throw BuildError(status, httpMethod.Method, path, text, route);
+            }
+            throw BuildError(status, httpMethod.Method, path, text, route, response);
         }
     }
 
@@ -309,6 +316,9 @@ public sealed class GraphClient : IGraphClient
         var forceRefreshNext = false;
         while (true)
         {
+            // Cached tokens and buffered HTTP responses can complete synchronously without
+            // observing cancellation. Honour an operator stop at our own read boundaries.
+            ct.ThrowIfCancellationRequested();
             attempt++;
             var sw = Stopwatch.StartNew();
             HttpResponseMessage response;
@@ -321,6 +331,7 @@ public sealed class GraphClient : IGraphClient
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeout.CancelAfter(_options.ReadTimeout);
+                timeout.Token.ThrowIfCancellationRequested();
                 response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested && attempt < _options.MaxReadAttempts)
@@ -346,8 +357,10 @@ public sealed class GraphClient : IGraphClient
 
             using (response)
             {
+                ct.ThrowIfCancellationRequested();
                 var status = (int)response.StatusCode;
                 var text = await response.Content.ReadAsStringAsync(ct);
+                ct.ThrowIfCancellationRequested();
                 _log.Debug("Graph", $"GET {Describe(path)} -> {status} in {LogFormat.Ms(sw.ElapsedMilliseconds)}", TenantId);
 
                 if (response.IsSuccessStatusCode)
@@ -381,7 +394,7 @@ public sealed class GraphClient : IGraphClient
                     await BackoffAsync(attempt, wait, ct);
                     continue;
                 }
-                throw BuildError(status, "GET", path, text, route);
+                throw BuildError(status, "GET", path, text, route, response);
             }
         }
     }
@@ -421,7 +434,19 @@ public sealed class GraphClient : IGraphClient
         return Root(api) + relative;
     }
 
-    private static GraphRequestException BuildError(int status, string method, string path, string body, GraphRoute route)
+    private static string? Header(HttpResponseMessage response, string name) =>
+        response.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() : null;
+
+    /// <summary>Adds the failure to the in-memory support record; only the declared route root and correlation IDs are kept.</summary>
+    private static (string? RequestId, string? ClientRequestId) RecordFailure(string method, GraphRoute route, int status, string? code, HttpResponseMessage response)
+    {
+        var requestId = RecentGraphErrors.OnlyGuid(Header(response, "request-id"));
+        var clientRequestId = RecentGraphErrors.OnlyGuid(Header(response, "client-request-id"));
+        RecentGraphErrors.Shared.Record(DateTimeOffset.UtcNow, method, route.BasePath, status, code, requestId, clientRequestId);
+        return (requestId, clientRequestId);
+    }
+
+    private static GraphRequestException BuildError(int status, string method, string path, string body, GraphRoute route, HttpResponseMessage response)
     {
         string? code = null, message = null;
         try
@@ -433,6 +458,7 @@ public sealed class GraphClient : IGraphClient
             }
         }
         catch (JsonException) { }
+        var (requestId, clientRequestId) = RecordFailure(method, route, status, code, response);
         var basePath = GraphRouteAllowList.BasePathOf(path);
         var summary = SensitiveDataScrubber.Scrub(message ?? "").Trim();
         if (summary.Length > 300) summary = summary[..300] + "…";
@@ -441,13 +467,13 @@ public sealed class GraphClient : IGraphClient
             var hint = route.Scope;
             return new PermissionException(method, path, code,
                 $"Microsoft Graph refused {method} {basePath} (403 {code ?? "Forbidden"}). The signed-in account lacks a required permission or role. Expected delegated scope: {hint}. {summary}",
-                hint);
+                hint) { RequestId = requestId, ClientRequestId = clientRequestId };
         }
         if (status == 404)
-            return new GraphRequestException(404, method, path, code, $"{method} {basePath} returned 404 {code ?? "NotFound"}. {summary}");
+            return new GraphRequestException(404, method, path, code, $"{method} {basePath} returned 404 {code ?? "NotFound"}. {summary}") { RequestId = requestId, ClientRequestId = clientRequestId };
         if (status == 429)
-            return new GraphRequestException(429, method, path, code, $"{method} {basePath} was throttled (429) and was not retried because writes are never retried automatically. {summary}");
-        return new GraphRequestException(status, method, path, code, $"{method} {basePath} returned HTTP {status} {code ?? ""}. {summary}".Trim());
+            return new GraphRequestException(429, method, path, code, $"{method} {basePath} was throttled (429) and was not retried because writes are never retried automatically. {summary}") { RequestId = requestId, ClientRequestId = clientRequestId };
+        return new GraphRequestException(status, method, path, code, $"{method} {basePath} returned HTTP {status} {code ?? ""}. {summary}".Trim()) { RequestId = requestId, ClientRequestId = clientRequestId };
     }
 
     private static string Describe(string path)

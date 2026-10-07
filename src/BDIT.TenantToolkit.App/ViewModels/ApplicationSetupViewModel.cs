@@ -13,23 +13,31 @@ namespace BDIT.TenantToolkit.App.ViewModels;
 /// <summary>
 /// Guided application setup: one administrator sign-in, one reviewed approval, then the toolkit creates both
 /// applications, opens Microsoft's permission approval for each in turn and reads the actual grants back. The
-/// safeguards of the step-by-step flow all remain: writes need the reviewed plan, the approval tick and the typed
+/// safeguards of the step-by-step flow all remain: writes need the reviewed plan, the approval tick bound to the verified
 /// tenant ID; names never establish ownership; an unsuccessful, missing or stopped approval ends the sequence and says
 /// so; and nothing is retried after an uncertain write.
 /// </summary>
+public sealed record ExistingApplicationChoice(SessionMode Mode, string Name, string ClientId)
+{ public string Label => $"{Mode} · {Name} · {ClientId}"; }
+
 public sealed class ApplicationSetupViewModel : PageViewModel
 {
-    private string _tenantId = "", _namePrefix = "M365 BuildStandard", _confirmation = "", _assessmentId = "", _deploymentId = "",
+    private string _tenantId = "", _namePrefix = "M365 BuildStandard", _assessmentId = "", _deploymentId = "",
         _outcome = "Enter the client's tenant ID and sign in as an administrator. The toolkit then shows both applications and their permissions for you to approve.";
     private bool _permissionsApproved, _assignOperator = true;
     private ApplicationSetupPlan? _plan;
     private ApplicationSetupRow? _selectedRow;
+    private ExistingApplicationChoice? _selectedExisting;
     private string _validatedContext = "";
+    private string _resultsTenantId = "";
     public ApplicationSetupViewModel(ShellViewModel shell) : base(shell, "Application setup")
     {
+        QuickSetupCommand = Command(QuickSetupAsync, () => Workspace.Idle && ProfileValidator.IsGuid(TenantId.Trim()));
+        UseExistingCommand = Command(UseExistingAsync, () => Workspace.Idle && SelectedExisting is not null && Workspace.ApplicationSetup is not null);
         ConnectCommand = Command(ConnectAsync, () => Workspace.Idle && ProfileValidator.IsGuid(TenantId.Trim()));
         PreviewCommand = Command(PreviewAsync, () => Workspace.Idle && Workspace.ApplicationSetup is not null);
-        CreateCommand = Command(SetUpAsync, () => Workspace.Idle && _plan is not null && PermissionsApproved && TenantConfirmation.Matches(Confirmation, _plan.TenantId));
+        CreateCommand = Command(SetUpAsync, () => Workspace.Idle && CanApproveSetup(_plan, TenantId,
+            Workspace.ApplicationSetup?.Identity.TenantId ?? "", Workspace.ApplicationSetup?.Identity.AccountObjectId ?? "", PermissionsApproved));
         ValidateCommand = Command(ValidateAsync, () => Workspace.Idle && Workspace.ApplicationSetup is not null);
         AssessmentConsentCommand = Command(() => OpenConsentAsync(SessionMode.Assessment), () => Workspace.Idle && Workspace.ApplicationSetup is not null);
         DeploymentConsentCommand = Command(() => OpenConsentAsync(SessionMode.Deployment), () => Workspace.Idle && Workspace.ApplicationSetup is not null);
@@ -40,11 +48,11 @@ public sealed class ApplicationSetupViewModel : PageViewModel
             () => Workspace.Idle && Ready(SessionMode.Deployment, false) && !Ready(SessionMode.Deployment));
         DisconnectCommand = Command(Workspace.DisconnectApplicationSetupAsync, () => Workspace.Idle && Workspace.ApplicationSetup is not null);
         OpenEntraCommand = Sync(() => OpenBrowser("https://entra.microsoft.com/"));
-        Validations.CollectionChanged += (_, _) => OnPropertyChanged(nameof(NextStep));
+        CopyApplicationGuideCommand = CopyText(() => ApplicationGuide);
+        Validations.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); };
     }
     public string TenantId { get => _tenantId; set { if (SetProperty(ref _tenantId, value)) InvalidatePlan(); } }
     public string NamePrefix { get => _namePrefix; set { if (SetProperty(ref _namePrefix, value)) InvalidatePlan(); } }
-    public string Confirmation { get => _confirmation; set => SetProperty(ref _confirmation, value); }
     public bool PermissionsApproved { get => _permissionsApproved; set => SetProperty(ref _permissionsApproved, value); }
     /// <summary>On by default: without it the engineer who ran setup cannot connect until someone assigns them in Entra.</summary>
     public bool AssignOperator { get => _assignOperator; set { if (SetProperty(ref _assignOperator, value)) InvalidatePlan(); } }
@@ -60,13 +68,16 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     {
         get
         {
-            if (Workspace.ApplicationSetup is null) return "Next: enter the client's tenant ID and select Sign in as administrator.";
+            if (Workspace.ApplicationSetup is null) return "Next: select Quick setup. The connected tenant is filled in for you; administrator access is needed for application checks and approved setup writes.";
             if (Validations.Count > 0)
-                return Ready(SessionMode.Assessment) ? "Setup is complete. Select Connect read-only now." : "Setup needs attention: see the checks in step 3.";
+                return Ready(SessionMode.Assessment)
+                    ? (Ready(SessionMode.Deployment) ? "Both applications passed setup checks. Select Connect read-only now to test effective access."
+                        : "Assessment passed setup checks: select Connect read-only now. Deployment still needs attention; see its separate checks.")
+                    : "Assessment: " + NextAction(Validations.FirstOrDefault(v => v.Mode == SessionMode.Assessment), SessionMode.Assessment);
             if (_plan is null) return "Next: select Preview again to review the applications.";
             if (_plan.Rows.Any(r => r.Status == "Review existing"))
-                return "Tool applications with these names already exist. Enter their client IDs under Existing applications, then select Preview again.";
-            return "Next: check the tenant, both applications and their permissions, tick approval, type the tenant ID and select Create apps and grant permissions.";
+                return "Existing applications found. Select the exact client ID in the picker and choose Check selected application. Names alone do not establish ownership.";
+            return "Next: review the verified tenant and both applications below, tick approval and select Approve and create/configure applications. Previewing alone creates nothing. Microsoft will then open administrator consent in your browser.";
         }
     }
     public string SelectedPayload => SelectedRow?.ApplicationPayload.ToJsonString(new() { WriteIndented = true }) ?? "Select an application to inspect its exact registration payload.";
@@ -75,6 +86,10 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     public ObservableCollection<ApplicationSetupRow> PlanRows { get; } = new();
     public ObservableCollection<ApplicationSetupItemResult> Results { get; } = new();
     public ObservableCollection<ApplicationPermissionValidation> Validations { get; } = new();
+    public ICommand QuickSetupCommand { get; }
+    public ICommand UseExistingCommand { get; }
+    public ObservableCollection<ExistingApplicationChoice> ExistingApplications { get; } = new();
+    public ExistingApplicationChoice? SelectedExisting { get => _selectedExisting; set => SetProperty(ref _selectedExisting, value); }
     public ICommand ConnectCommand { get; }
     public ICommand PreviewCommand { get; }
     public ICommand CreateCommand { get; }
@@ -87,6 +102,58 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     public ICommand CheckDelegatedAdminCommand { get; }
     public ICommand DisconnectCommand { get; }
     public ICommand OpenEntraCommand { get; }
+    public ICommand CopyApplicationGuideCommand { get; }
+
+    // The engineer explicitly approves the displayed verified tenant. Re-entering its GUID is unnecessary,
+    // but a missing/changed tenant, operator, plan or approval still prevents application creation.
+    public static bool CanApproveSetup(ApplicationSetupPlan? plan, string selectedTenant, string verifiedTenant,
+        string verifiedOperator, bool approved) => approved && plan is not null
+        && ProfileValidator.IsGuid(plan.OperatorId)
+        && TenantConfirmation.Matches(selectedTenant, plan.TenantId)
+        && TenantConfirmation.Matches(verifiedTenant, plan.TenantId)
+        && string.Equals(plan.OperatorId, verifiedOperator, StringComparison.OrdinalIgnoreCase)
+        && plan.Rows.Any(r => r.Status is "Create" or "Configure existing")
+        && plan.Rows.All(r => r.Status is "Create" or "Configure existing")
+        && plan.CreatedAt <= DateTimeOffset.UtcNow.AddMinutes(1)
+        && DateTimeOffset.UtcNow - plan.CreatedAt <= TimeSpan.FromMinutes(5);
+
+    /// <summary>Names are descriptive; IDs identify the registration and its local enterprise application.</summary>
+    public string ApplicationGuide
+    {
+        get
+        {
+            var lines = new List<string> { "Client tenant: " + (TenantId.Trim().Length == 0 ? "Not selected" : TenantId.Trim()) };
+            foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
+            {
+                var id = (mode == SessionMode.Assessment ? AssessmentClientId : DeploymentClientId).Trim();
+                var result = string.Equals(_resultsTenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)
+                    ? Results.FirstOrDefault(r => r.Mode == mode && string.Equals(r.ClientId, id, StringComparison.OrdinalIgnoreCase)) : null;
+                var check = _validatedContext == ValidationContext ? Validations.FirstOrDefault(v => v.Mode == mode
+                    && string.Equals(v.ClientId, id, StringComparison.OrdinalIgnoreCase)) : null;
+                var proposedName = NamePrefix.Trim() + (mode == SessionMode.Assessment ? " Assessment Tool" : " Deployment Tool");
+                lines.Add("");
+                lines.Add((result is null ? "Configured name (verify in Entra): " : "Setup application name: ") + (result?.DisplayName ?? proposedName));
+                lines.Add("Application (client) ID: " + (id.Length == 0 ? "Not created or entered yet" : id));
+                lines.Add("Enterprise application object ID: " + (check?.ServicePrincipalId is { Length: > 0 } sp ? sp : result?.ServicePrincipalId is { Length: > 0 } createdSp ? createdSp : "Not verified"));
+                lines.Add("Next: " + NextAction(check, mode));
+            }
+            lines.Add("\nIn Microsoft Entra, switch to this client tenant, then open Entra ID → Enterprise applications → All applications. Search by Application ID and compare it with the client ID above. The enterprise app's Object ID is different; do not enter it as the client ID.");
+            lines.Add("\nThese are desktop sign-in identities, not websites to launch from My Apps. Return here and connect using the assessment application. A successful setup check does not prove that tenant reads, licences or deployment will work.");
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
+
+    public static string NextAction(ApplicationPermissionValidation? check, SessionMode mode)
+    {
+        var name = Name(mode);
+        if (check is null) return "After administrator sign-in, enter an existing client ID or complete setup, then select Check again. Creation alone does not establish access.";
+        if (!check.ConfigurationValid) return "Review the configuration issues in step 3. For a supported repair, keep this client ID, select Preview again, review the changes and approve them. Do not create duplicate applications.";
+        if (!check.ConsentComplete) return $"Select Approve {name} permissions, check Microsoft's permission list and select Accept as an authorised administrator. Return here and select Check again; browser success alone is not verification.";
+        if (!check.EngineerAssignmentConfirmed) return "In Entra → Enterprise applications, find this Application ID → Users and groups → Add user/group, and assign the account that will use the tool. Keep assignment required. Return here and select Check again. For the current setup account, Preview again with Assign me selected offers a reviewed assignment. Group/GDAP access is checked separately.";
+        return mode == SessionMode.Assessment
+            ? "Select Connect read-only now. Microsoft sign-in and the read access results establish whether this account can use the application."
+            : "Setup checks passed. Use Continue to deployment only when write-capable access is needed; a reviewed plan and tenant confirmation are still required.";
+    }
 
     /// <summary>
     /// Whether a setup run left both applications created, configured and verified, so Microsoft can be asked to approve
@@ -115,14 +182,47 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         return (modes, null);
     }
 
-    public void UseTenant(string tenantId, string company) { TenantId = tenantId; }
+    public void UseTenant(string tenantId, string company)
+    {
+        if (!string.Equals(TenantId.Trim(), tenantId.Trim(), StringComparison.OrdinalIgnoreCase))
+        { AssessmentClientId = ""; DeploymentClientId = ""; Results.Clear(); }
+        TenantId = tenantId;
+    }
     private ApplicationSetupService RequireSetup()
     {
         var setup = Workspace.ApplicationSetup ?? throw new ToolkitException("Sign in for application setup first.");
         if (!string.Equals(setup.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The setup session is connected to another tenant. Sign in again.");
         return setup;
     }
-    private void InvalidatePlan() { _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Confirmation = ""; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); }
+    private void InvalidatePlan() { ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
+    private async Task QuickSetupAsync()
+    {
+        await Workspace.ConnectApplicationSetupAsync(TenantId);
+        if (!string.Equals(Workspace.ApplicationSetup?.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) return;
+        await CheckOrPreviewAsync();
+    }
+    private async Task UseExistingAsync()
+    {
+        var choice = SelectedExisting ?? throw new ConfigurationException("Select an exact application ID first.");
+        RequireSetup();
+        if (choice.Mode == SessionMode.Assessment) AssessmentClientId = choice.ClientId;
+        else DeploymentClientId = choice.ClientId;
+        await CheckOrPreviewAsync();
+    }
+    private async Task CheckOrPreviewAsync()
+    {
+        if (ProfileValidator.IsGuid(AssessmentClientId.Trim()) && ProfileValidator.IsGuid(DeploymentClientId.Trim()))
+        {
+            await ValidateAsync();
+            if (Validations.Count == 2 && Validations.All(v => v.ConfigurationValid))
+            {
+                Outcome = "Existing applications checked; no registration changes are needed. " + NextStep;
+                return;
+            }
+        }
+        await PreviewAsync();
+    }
+
     private async Task ConnectAsync()
     {
         InvalidatePlan();
@@ -135,7 +235,15 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         InvalidatePlan();
         _plan = await RequireSetup().PreviewAsync(Workspace.RequireStandard(), NamePrefix, Workspace.OperationToken,
             AssessmentClientId.Trim(), DeploymentClientId.Trim(), AssignOperator);
-        foreach (var row in _plan.Rows) PlanRows.Add(row);
+        foreach (var row in _plan.Rows)
+        {
+            PlanRows.Add(row);
+            foreach (var match in row.ExistingMatches.GroupBy(m => m["appId"]?.GetValue<string>() ?? "", StringComparer.OrdinalIgnoreCase))
+                if (ProfileValidator.IsGuid(match.Key))
+                    ExistingApplications.Add(new ExistingApplicationChoice(row.Mode,
+                        match.First()["displayName"]?.GetValue<string>() ?? row.DisplayName, match.Key));
+        }
+        SelectedExisting = ExistingApplications.FirstOrDefault();
         SelectedRow = PlanRows.FirstOrDefault();
         OnPropertyChanged(nameof(PlanSummary));
         OnPropertyChanged(nameof(NextStep));
@@ -143,18 +251,21 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     });
 
     /// <summary>
-    /// The guided sequence behind "Create apps and grant permissions". Each stage runs only if the one before it
+    /// The guided sequence behind "Approve and create/configure applications". Each stage runs only if the one before it
     /// finished cleanly, and the page says where and why it stopped.
     /// </summary>
     private Task SetUpAsync() => Workspace.RunExclusiveAsync("Setting up the tenant applications", async progress =>
     {
         var plan = _plan ?? throw new PlanValidationException("Preview application setup again.");
         var service = RequireSetup();
+        if (!CanApproveSetup(plan, TenantId, service.Identity.TenantId, service.Identity.AccountObjectId, PermissionsApproved))
+            throw new PlanValidationException("Review the current verified tenant and application plan, then tick approval before creating or configuring applications.");
         var standard = Workspace.RequireStandard();
         Results.Clear();
         progress.Report("Creating and configuring the applications. Each write is recorded before it is sent.");
-        var result = await service.ExecuteAsync(plan, standard, Confirmation, PermissionsApproved,
+        var result = await service.ExecuteAsync(plan, standard, TenantId.Trim(), PermissionsApproved,
             Path.Combine(Workspace.Paths.TenantDirectory(service.Identity.TenantId), "application-setup"), Workspace.OperationToken);
+        _resultsTenantId = result.TenantId;
         foreach (var row in result.Rows) Results.Add(row);
         var assessmentId = result.Rows.FirstOrDefault(r => r.Mode == SessionMode.Assessment)?.ClientId;
         var deploymentId = result.Rows.FirstOrDefault(r => r.Mode == SessionMode.Deployment)?.ClientId;
@@ -164,7 +275,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         Outcome = created + "\n" + result.NextSteps;
         InvalidatePlan();
         if (!ProfileValidator.IsGuid(AssessmentClientId) || !ProfileValidator.IsGuid(DeploymentClientId)) return;
-        Shell.Page<ConnectViewModel>().UseApplicationIds(TenantId.Trim(), AssessmentClientId, DeploymentClientId);
+        Shell.Page<ConnectViewModel>().UseApplicationIds(TenantId.Trim(), AssessmentClientId, DeploymentClientId, plan.TenantName);
         if (!ReadyForApproval(result))
         {
             var context = ValidationContext;
@@ -300,6 +411,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         foreach (var row in validation.Rows) Validations.Add(row);
         _validatedContext = context;
         OnPropertyChanged(nameof(NextStep));
+        OnPropertyChanged(nameof(ApplicationGuide));
     }
     private void GuardContext(string context)
     {
@@ -328,7 +440,15 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     private string ValidationContext => $"{TenantId.Trim()}|{Workspace.ApplicationSetup?.Identity.TenantId}|{Workspace.ApplicationSetup?.Identity.AccountObjectId}|{Workspace.Standard?.IntegrityDigest}|{AssessmentClientId}|{DeploymentClientId}";
     public override void Refresh()
     {
+        if (Workspace.Session is { TenantVerified: true } session && Workspace.Profile is { } profile
+            && !string.Equals(TenantId.Trim(), session.TenantId, StringComparison.OrdinalIgnoreCase))
+        {
+            UseTenant(session.TenantId, session.TenantName);
+            AssessmentClientId = profile.AssessmentClientId;
+            DeploymentClientId = profile.DeploymentClientId;
+        }
         if (Validations.Count > 0 && _validatedContext != ValidationContext) Validations.Clear();
         OnPropertyChanged(nameof(SetupIdentity)); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep));
+        OnPropertyChanged(nameof(ApplicationGuide));
     }
 }

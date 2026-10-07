@@ -11,12 +11,12 @@
         <StackPanel>
           <TextBlock Text="02 / CAPTURE &amp; INSPECT" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Tenant configuration" Style="{StaticResource H1}"/>
-          <TextBlock Text="Capture what is in the tenant, inspect settings and keep evidence before planning changes." Style="{StaticResource Lead}"/>
+          <TextBlock Text="Read-only: capture and inspect existing tenant settings. This process sends read requests and saves evidence locally; it does not create, update, enable or assign tenant objects, even in a deployment session." Style="{StaticResource Lead}"/>
         </StackPanel>
         <Border Grid.Row="1" Style="{StaticResource Card}">
           <StackPanel>
             <DockPanel>
-              <Button DockPanel.Dock="Right" Content="Capture configuration" Command="{Binding CaptureCommand}" Margin="20,0,0,0" VerticalAlignment="Top"/>
+              <Button DockPanel.Dock="Right" Content="Capture configuration (read-only)" Command="{Binding CaptureCommand}" Margin="20,0,0,0" VerticalAlignment="Top"/>
               <StackPanel><TextBlock Text="CURRENT CAPTURE" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding SnapshotText}" FontWeight="SemiBold"/></StackPanel>
             </DockPanel>
             <Expander Header="Export or open a saved capture" Margin="0,12,0,0">
@@ -51,27 +51,29 @@
                     <DataGridTextColumn Header="Object" Binding="{Binding Name}" Width="*" MinWidth="180"/>
                     <DataGridTextColumn Header="Collection" Binding="{Binding Collection}" Width="140"/>
                     <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="120"/>
-                    <DataGridTextColumn Header="State" Binding="{Binding State}" Width="90"/>
+                    <DataGridTextColumn Header="Reported state" Binding="{Binding State}" Width="130"><DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="ToolTip" Value="{Binding StateExplanation}"/></Style></DataGridTextColumn.ElementStyle></DataGridTextColumn>
                     <DataGridTextColumn Header="Targeting / assignments" Binding="{Binding Targeting}" Width="220"/>
                   </DataGrid.Columns>
                 </DataGrid>
               </DockPanel>
               <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16" Margin="0">
-                <DockPanel>
-                  <StackPanel DockPanel.Dock="Top"><TextBlock Text="OBJECT DETAIL" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding SelectedObject.Name, TargetNullValue=Select an object, FallbackValue=Select an object}" Style="{StaticResource H2}"/><TextBlock Text="Names are resolved where the capture contains the required information." Style="{StaticResource Muted}" Margin="0,0,0,12"/></StackPanel>
-                  <Expander DockPanel.Dock="Bottom" Header="Raw JSON" Margin="0,10,0,0">
-                    <TextBox AutomationProperties.Name="Selected object detail" Text="{Binding SelectedObjectJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Height="190" Margin="0,8,0,0"/>
-                  </Expander>
-                  <DataGrid ItemsSource="{Binding SelectedSettings}" AutomationProperties.Name="Selected object settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                  <StackPanel><TextBlock Text="OBJECT DETAIL" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding SelectedObject.Name, TargetNullValue=Select an object, FallbackValue=Select an object}" Style="{StaticResource H2}"/><TextBlock Text="Names are resolved where the capture contains the required information." Style="{StaticResource Muted}" Margin="0,0,0,8"/><TextBlock Text="Reported state is not compliance. Not reported = no state field in the response; Unknown = an empty or unexpected value. Neither means enabled or disabled." Style="{StaticResource Muted}" Margin="0,0,0,12"/></StackPanel>
+                  <DataGrid ItemsSource="{Binding SelectedSettings}" AutomationProperties.Name="Selected object settings" MinHeight="140" MaxHeight="300">
                     <DataGrid.Columns><DataGridTextColumn Header="Setting" Binding="{Binding Setting}" Width="*"/><DataGridTextColumn Header="Current value" Binding="{Binding Current}" Width="*"/></DataGrid.Columns>
                   </DataGrid>
-                </DockPanel>
+                  <Expander Header="Raw JSON" Margin="0,10,0,0">
+                    <TextBox AutomationProperties.Name="Selected object detail" Text="{Binding SelectedObjectJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Height="190" Margin="0,8,0,0"/>
+                  </Expander>
+                </StackPanel>
+                </ScrollViewer>
               </Border>
             </Grid>
           </TabItem>
           <TabItem Header="Collection status">
             <DockPanel Margin="0,16,0,0">
-              <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Background="{StaticResource AccentSoft}" Padding="16"><TextBlock Text="A successful read confirms collection only. Compliance is assessed separately. Failed or incomplete reads remain unknown."/></Border>
+              <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Background="{StaticResource AccentSoft}" Padding="16"><TextBlock Text="This capture is read-only. A successful read confirms collection only; compliance is assessed separately. Partial/failed reads leave dependent controls unable to assess. HTTP 400/404 can mean an unsupported request or resource; HTTP 401/403 requires checking sign-in, consent and roles. Review the exact detail before changing permissions. Recapture after resolving the cause; incomplete evidence cannot authorise deployment."/></Border>
               <DataGrid ItemsSource="{Binding Collections}" AutomationProperties.Name="Collection completeness">
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Collection" Binding="{Binding Collection}" Width="260"/>
@@ -82,6 +84,49 @@
                 </DataGrid.Columns>
               </DataGrid>
             </DockPanel>
+          </TabItem>
+          <TabItem Header="Exchange &amp; Purview">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+              <StackPanel>
+                <TextBlock Text="Read-only Exchange and Purview assessment" Style="{StaticResource H2}"/>
+                <TextBlock Text="Capture from this app using the verified tenant and signed-in account. Organisation-wide checks do not require you to enter a mail domain. Accepted mail domains are discovered for DKIM, DMARC and domain-specific rules. Microsoft may request separate Exchange/Purview authentication; no tenant settings are changed." Style="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <TextBlock Text="{Binding ExchangeDependencyGuidance}" Style="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <CheckBox Content="Include Purview audit retention (separate read RBAC/sign-in may be needed)" IsChecked="{Binding IncludePurview, Mode=TwoWay}"/>
+                <Button Content="Capture Exchange and Purview · read-only" Command="{Binding CaptureExchangeCommand}" HorizontalAlignment="Left"/>
+                <TextBlock Text="Accepted mail domain · only for domain-specific checks" Style="{StaticResource FieldLabel}"/>
+                <ComboBox ItemsSource="{Binding AcceptedMailDomains}" SelectedItem="{Binding SelectedMailDomain, Mode=TwoWay}" AutomationProperties.Name="Discovered accepted mail domain"/>
+                <Button Content="Assess selected mail domain" Command="{Binding SelectExchangeDomainCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
+                <DataGrid ItemsSource="{Binding ExchangeCollectionStatus}" MaxHeight="180" Margin="0,0,0,12" AutomationProperties.Name="Exchange and Purview collection status">
+                  <DataGrid.Columns><DataGridTextColumn Header="Read command" Binding="{Binding Collection}" Width="260"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="130"/><DataGridTextColumn Header="Items" Binding="{Binding Count}" Width="70"/><DataGridTextColumn Header="Detail and next action" Binding="{Binding Detail}" Width="*" MinWidth="220"/></DataGrid.Columns>
+                </DataGrid>
+                <Button Content="Check DKIM and DMARC DNS" Command="{Binding CheckExchangeDnsCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <Button Content="Export Exchange/Purview observations" Command="{Binding ExportExchangeEvidenceCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <Expander Header="Offline import and manual export" Margin="0,8,0,12"><StackPanel Margin="0,12,0,0">
+                <TextBlock Text="Mail domain for an offline import or export" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding MailDomainInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Client mail domain for Exchange and DNS"/>
+                <WrapPanel>
+                  <Button Content="Save mail domain" Command="{Binding SaveMailDomainCommand}" Style="{StaticResource SecondaryButton}"/>
+                  <Button Content="Export read-only capture script" Command="{Binding ExportExchangeCaptureCommand}" Style="{StaticResource SecondaryButton}"/>
+                </WrapPanel>
+                <TextBlock Text="Engineer-generated capture JSON (maximum 2 MiB)" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding ExchangeImportFile, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Exchange capture file to import"/>
+                <WrapPanel>
+                  <Button Content="Choose capture" Command="{Binding ChooseExchangeCaptureCommand}" Style="{StaticResource QuietButton}"/>
+                  <Button Content="Import for offline assessment" Command="{Binding ImportExchangeCaptureCommand}" Style="{StaticResource SecondaryButton}"/>
+                </WrapPanel>
+                <TextBlock Text="{Binding ExchangeSummary}" FontSize="12" Margin="0,6,0,10"/>
+                <TextBlock Text="The DNS check queries your configured Windows resolver. Failures stay unknown. DKIM CNAME targets and DMARC results appear in finding evidence. The toolkit performs no Exchange/Purview writes." Style="{StaticResource Muted}"/>
+                </StackPanel></Expander>
+                <TextBlock Text="Review a manual change proposal" Style="{StaticResource H2}" Margin="0,18,0,6"/>
+                <TextBlock Text="Select one control and type the tenant ID shown above. Export contains before observations, commented PowerShell and after checks. It cannot execute changes. Fresh complete evidence is required; DKIM enabling instructions require both matching DNS answers." Style="{StaticResource Muted}"/>
+                <ComboBox ItemsSource="{Binding ProposalControls}" SelectedItem="{Binding SelectedProposalControl}" DisplayMemberPath="Name" AutomationProperties.Name="Exchange or Purview control for proposal" Margin="0,8,0,8"/>
+                <TextBlock Text="Type the selected client's full tenant ID" Style="{StaticResource FieldLabel}"/>
+                <TextBox Text="{Binding ProposalTenantConfirmation, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tenant confirmation for manual Exchange proposal"/>
+                <Button Content="Export selected review proposal" Command="{Binding ExportExchangeProposalCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Exported Exchange script or proposal" Style="{StaticResource ReadOnlyDetail}" Margin="0,10,0,0"/>
+              </StackPanel>
+            </ScrollViewer>
           </TabItem>
         </TabControl>
       </Grid>

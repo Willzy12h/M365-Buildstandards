@@ -81,6 +81,7 @@ public sealed class TenantCollector
                 else
                     items.AddRange(await graph.GetAllAsync(def.ApiVersion, def.Path, ct));
 
+                var detailErrors = new List<string>();
                 foreach (var item in items)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -90,13 +91,13 @@ public sealed class TenantCollector
                     if (def.Assignments)
                     {
                         try { item[AssignmentsKey] = ToArray(await graph.GetAllAsync(def.ApiVersion, objectPath + "/assignments", ct)); }
-                        catch (ToolkitException ex) { item[AssignmentsUnknownKey] = true; _log.Warn("Collect", $"{def.Label}: assignments unavailable for {id}: {ex.Message}", profile.TenantId); }
+                        catch (ToolkitException ex) { item[AssignmentsUnknownKey] = true; RecordDetailError("assignments", ex); }
                     }
                     if (!string.IsNullOrEmpty(def.Relationship))
                     {
                         var relationshipName = def.Relationship.Split('?')[0].Trim('/');
                         try { item[relationshipName] = ToArray(await graph.GetAllAsync(def.ApiVersion, objectPath + "/" + def.Relationship, ct)); }
-                        catch (ToolkitException ex) { item[RelationshipUnknownKey] = true; _log.Warn("Collect", $"{def.Label}: {relationshipName} unavailable for {id}: {ex.Message}", profile.TenantId); }
+                        catch (ToolkitException ex) { item[RelationshipUnknownKey] = true; RecordDetailError(relationshipName, ex); }
                     }
                     if (!string.IsNullOrEmpty(def.Children))
                     {
@@ -105,7 +106,13 @@ public sealed class TenantCollector
                             item[SettingsKey] = ToArray(await graph.GetAllAsync(def.ApiVersion, objectPath + "/" + def.Children.Trim('/'), ct));
                             item[def.Children.Split('?')[0].Trim('/')] = item[SettingsKey]!.DeepClone();
                         }
-                        catch (ToolkitException ex) { item[SettingsUnknownKey] = true; _log.Warn("Collect", $"{def.Label}: child settings unavailable for {id}: {ex.Message}", profile.TenantId); }
+                        catch (ToolkitException ex) { item[SettingsUnknownKey] = true; RecordDetailError("child settings", ex); }
+                    }
+                    void RecordDetailError(string detail, ToolkitException ex)
+                    {
+                        var message = $"{detail} unavailable for object {id}: {ex.Message}";
+                        detailErrors.Add(message);
+                        _log.Warn("Collect", $"{def.Label}: {message}", profile.TenantId);
                     }
                 }
 
@@ -113,6 +120,9 @@ public sealed class TenantCollector
                 capture.Items = items;
                 capture.Count = items.Count;
                 capture.DetailIncomplete = items.Any(i => i[AssignmentsUnknownKey] is not null || i[SettingsUnknownKey] is not null || i[RelationshipUnknownKey] is not null);
+                if (detailErrors.Count > 0)
+                    capture.Error = string.Join(Environment.NewLine, detailErrors.Take(10))
+                        + (detailErrors.Count > 10 ? $"\n{detailErrors.Count - 10} more detail failures are recorded in the local activity log." : "");
             }
             catch (OperationCanceledException) when (preservePartialOnCancellation)
             {

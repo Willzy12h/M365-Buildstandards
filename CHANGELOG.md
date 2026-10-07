@@ -1,3 +1,77 @@
+# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
+
+- Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
+- Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
+- Verify, rather than regenerate, the committed standards manifest in the portable build; pin 2026.09.30 by publication digest; write the package ZIP with '/' entry names (CLA-20261006-03, -14).
+- Keep backups and restores in `transfers/`, apart from shareable reports. Restore checks a trusted archive SHA-256 or an explicit logged acknowledgement, hashing and extracting one read-locked stream; restored folders can be re-verified in the app or with `bdit verify-restore`. Adoption starts from the archive and its trusted digest, copies into an empty workspace, re-verifies every file in place, quarantines evidence that fails into `transfers/` and loads the adopted clients at once. Backup is refused while a tenant write lease is held (CLA-20261006-04, -05, -15).
+- Judge stored Exchange/Purview evidence and DNS observations as of the evidence, so reopened history and headless reports reproduce their findings; live work keeps the wall-clock rule (CLA-20261006-06).
+- Limit the operator-exclusion explanation to Conditional Access drift (CLA-20261006-08). Add a fixture for release .10 ownership records under .30 (CLA-20261006-07, no behaviour change pending INT-051).
+- Separate the Preview.18 publisher into its own workflow gated by the `release` environment; pin workflow actions by commit (CLA-20261006-09).
+- Release-first engineer guidance, "candidate recipes (inert)" wording, plan-time CA exclusions in the definition export, timestamped export names with per-file digests, and native renders of Settings, Deviations and Manual checks (CLA-20261006-11, -12, -13, -16).
+- Support metadata gains four opt-in, previewed sections: Windows version and display scale, recent Graph errors with Microsoft request IDs, collection read status from the last capture, and timeouts. No section names a tenant, account or object; export writes exactly the preview (CLA-20261006-10).
+- Settings walks through handing a workspace to another engineer (create backup, copy its SHA-256 fingerprint, send it separately) and receiving one (choose file, paste or load the fingerprint, adopt or restore). Pasted checksum lines are accepted; a fingerprint file beside the backup is flagged; disabled steps say what they need; results give the next step and an Open folder action.
+- Progress titles say what is happening (backup, restore, verify, adopt) instead of "Writing report".
+- Quick Connect's confirmation says when the header still describes a session already open, so a "writes possible" badge is not read as the new read-only connection.
+- Plan review gives the change detail more room at 1180×640. Overview and the engineer start guide lead with a short first read-only assessment path.
+
+# 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)
+
+- Add integrated catalogue-only standard definition exports: printable defaults/settings HTML, exact reusable JSON/manifest, document-ready Markdown, manual references and generated capability/access matrix. Preserve every published release and distinguish fixed values, reviewable defaults and unresolved client identities.
+- Share existing assessment inputs between desktop and headless reporting; accept explicit separate Exchange/Purview evidence without changing write authority.
+- Add previewed local support metadata and sensitive byte-preserving evidence backup, with bounded checksum verification and restore to a new separate folder. Preserve historical digests, unknown fields and unresolved-write blockers; exclude authentication caches.
+- Derive packaged dependency/runtime inventory and supplied licence notices from resolved publish metadata; add current operator, continuity, incident and release guides.
+- User-approved durable completion/backfill/version-aware contracts remain in separate decision PR #20 before dependent implementation. Preview status, live acceptance and publication gates remain explicit.
+
+# 1.1.0-preview.17
+
+- Retain Quick Connect authentication for one confirmed read-only connection, bound to tenant/operator/standard and five-minute expiry. Recheck identity without another interactive request; explain when a different dedicated app needs authentication.
+- Carry the connected tenant into Quick setup, check configured/existing applications by exact ID, and show configuration, grants and assignment needs. Preserve Graph assessment/capture while using the separate privileged setup session.
+- Replace policy GUID retyping with explicit approval of the verified tenant and exact change list. Preserve immutable plan validation, complete live evidence, durable intent and inactive/unassigned candidates.
+- Make connection details easier to find/copy. Explain prerequisite ownership, disabled plan selection and readiness remedies with matching navigation labels.
+- Integrate the embedded read-only Exchange/Purview capture in an owned Windows PowerShell process with module checks, WAM defaults, tenant verification, progress and cancellation. Discover accepted domains for domain-specific assessment; no manual domain entry for organisation-wide capture.
+- Keep Exchange evidence independent of Graph captures/plans/acknowledgements. Support separate observation export, offline import, selected-domain DNS refresh and bounded strict evidence validation. No Exchange/Purview writes, module installation or policy bypass.
+- Windows, portable-package and live-service acceptance are tracked in the completion register; passing synthetic tests is not proof of Microsoft service access.
+
+# 1.1.0-preview.16 — connection and usability update
+
+- Add client-account Quick Connect with organisation/account confirmation, optional browser fallback and a separate explicit-customer partner/GDAP sign-in route. Discovery creates no saved connection and cannot enable deployment.
+- Reuse an unchanged verified connection and try matching cached credentials on explicit reconnect before requesting interaction. Page navigation does not sign in. Microsoft can still require MFA or consent for a different application or mode.
+- Make application creation approval prominent, bring it into view after preview and remove repeated setup tenant-ID typing at the user’s request. Approval remains bound to the verified tenant/operator and fresh reviewed plan; policy deployment still requires its separate typed confirmation.
+- Identify both applications and their client IDs, explain consent versus assignment versus effective access, and label administrator consent as a browser step distinct from WAM. Preserve known same-tenant setup IDs and route missing deployment configuration to the correct client’s setup.
+- Label configuration capture as read-only and replace blank state cells with Not reported or Unknown. Retain individual detail-read errors for incomplete captures.
+- Read authentication-method and passkey collections from their documented parent responses. Read Intune scheduled actions and configurations explicitly. Missing, malformed or partial data stays unknown, with no automatic write changes or alterations to published standards.
+- Validate the Accessibility runtime dependency before use, fail an incomplete publish and extend extracted-package checks to text-box context-menu copying. A corrupt local extraction requires a fresh complete ZIP.
+- Scope and acceptance: [QoL goal](https://github.com/Willzy12h/M365-Buildstandards/blob/astra/release-2026-09-12/docs/integration/QOL-GOAL-2026.10.01.md). Current validation is recorded in the completion register and PR checks; no live sign-in, consent or tenant write was performed by the agent.
+
+# 1.1.0-preview.15 — 30 September 2026
+
+- Move the application, tests and Windows release pipeline to .NET 10 LTS, pinned SDK 10.0.401 and ProtectedData 10.0.12. The portable release remains self-contained.
+- Honour operator cancellation before read dispatch and after buffered responses. An accepted LAPS write retains unknown verification when stopped; no automatic write replay.
+- Publish immutable standard 2026.09.30 (93 controls, 61 unchanged candidate recipes); retire classic Autopilot/ESP and Defender onboarding, preserve SmartScreen/ESET and all historical release bytes.
+- Document native/manual settings, Outlook managed-device account setup and migrated passkey-profile procedures.
+- Add control purpose/input/manual guidance, persistent next-step hints, and reusable before/requested/after result details on deployment and saved evidence pages.
+- Add Windows CI checks for fresh ZIP extraction, exact staged bytes, blank settings, empty evidence and actual packaged offline startup/shutdown; normalise the extraction root consistently for Windows PowerShell path aliases.
+- Retain WPF after a working standalone HTML comparison; 26 browser checks and representative catalogue print inspection pass. Keep the prototype out of the runtime.
+- Add 10,000-object pagination and 10,000-finding filtering fixtures, and clear visible run details when switching clients.
+- Continue PR #19 with a detailed release goal, one completion register and a bounded live-acceptance proposal. Exact-source CI and remaining acceptance gates are recorded separately.
+
+# 1.1.0-preview.14
+
+- New standard 2026.09.12; published releases are unchanged. PRE-008 expands to individually selected office locations using stable client keys, with public-only CIDR validation at profile, planner and transport boundaries. The old single PRE-008 ownership record is never adopted for a new instance.
+- Adds administrator phishing-resistant MFA, reviewed identity settings, empty Autopilot device-preparation group and separate owner approval. Modern passkey profiles require manual configuration; the legacy reviewed method action refuses to overwrite them.
+- Windows Hello explicitly requires a lowercase letter and allows digits, minimum eight characters; BitLocker rotates recovery passwords; compliance grace is 120 hours with no notification actions. ESET replaces the removed antivirus/compliance controls; firewall management is removed. Legacy Autopilot/ESP and Defender EDR remain visible manual references pending retirement decisions.
+- Adds seven native Windows CSP candidates and sixteen unassigned mobile store-app candidates. Native settings without confirmed definition IDs or complete supported mechanisms have explicit manual guidance. Windows settings backup is the documented July 2026 successor to Entra-managed ESR.
+- **Both applications need administrator consent again** after their configured permissions are updated. New delegated scopes: `Application.Read.All` to resolve the Microsoft provisioning service principal; deployment-only `Policy.ReadWrite.Authorization` for user consent and `Policy.ReadWrite.ConsentRequest` for the reviewer-bound workflow. See [application setup and permissions](docs/APPLICATION-SETUP.md).
+- Fixes HTML collection-status reporting, numeric release ordering and keyboard access to nested automation tabs found in the fresh phase 0 review. All validation uses synthetic fixtures; no tenant or device behaviour is claimed as tested.
+- **96 controls and 61 candidate recipes**, grouped by Entra, Intune, Exchange and Purview in Assessment and Plan. Selection stays within the displayed area; office instances are recorded separately. Retired from .12 only: SEC-WIN-001, CMP-WIN-002 and SEC-WIN-003.
+- Exchange/Purview observations use an engineer-run delegated read-only PowerShell capture and a strict, tenant-bound import. DKIM shows the actual records; DNS checks are explicit and replaceable with fakes. Missing or malformed observations stay unknown. Imported captures cannot authorise deployment.
+- Exchange write execution remains a documented manual fallback: Microsoft module retries do not satisfy the single-attempt uncertain-write rule. A selected, typed-confirmed export produces an inert commented proposal with before observations and after checks. DKIM enablement requires both CNAMEs; the SPF bypass remains a disabled audit candidate until its trusted SPF/From boundary is established. DMARC and audit retention are report-only; DLP and retention-policy writes are excluded.
+- **The Build Standard** and **Manual implementation and verification guide** export from the Build Standard page as HTML and Markdown. Every control includes exact settings, scope, licence, required inputs, sources and complete manual sections. These catalogue-only exports contain no client profile or tenant evidence. CI also supplies the four generated files as `engineer-standard-documents`.
+- Final audit correction: malformed new identity-policy states, passkey keys, registration targets and consent reviewers report unknown instead of implying a settings difference or stopping assessment. Regression tests were observed failing before the correction and passing afterwards.
+- The portable package includes the engineer-document and Exchange/Purview instructions. Source, synthetic tests, rendered WPF workflows and package checks remain separate from unperformed Microsoft service/device acceptance. Generated HTML browser appearance remains unverified because the local-file preview was blocked by browser policy.
+
 # 1.1.0-preview.13
 
 - Standard 2026.09.11 brings the toolkit to 50 controls and 42 creation recipes. The directory prerequisites are created through the normal Plan and Deploy path, so the exclusion groups and the office named location are no longer a manual step before everything else. Groups are created empty and the named location untrusted; populating and trusting them remain separate decisions.

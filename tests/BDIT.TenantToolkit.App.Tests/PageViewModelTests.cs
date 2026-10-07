@@ -52,6 +52,31 @@ public sealed class PageViewModelTests : IDisposable
         Assert.Contains(nameof(PlanViewModel.ContextText), raised);
     }
 
+    [Fact]
+    public void Inspecting_a_control_updates_guidance_without_selecting_it_for_execution()
+    {
+        var plan = _shell.Page<PlanViewModel>();
+        var control = plan.Controls[0];
+        var raised = new List<string?>();
+        plan.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        plan.SelectedControl = control;
+        Assert.False(control.IsSelected);
+        Assert.Contains(control.ControlId, plan.SelectionDetail);
+        Assert.Contains(nameof(PlanViewModel.SelectionDetail), raised);
+        Assert.Contains(nameof(PlanViewModel.SelectionProcedure), raised);
+        plan.SelectedControl = null;
+        Assert.Contains("Tick an eligible", plan.SelectionDetail);
+    }
+
+    [Fact]
+    public void Offline_next_step_keeps_engineer_exports_available_and_saved_evidence_inert()
+    {
+        Assert.Contains("export the engineer guide offline", _shell.NextAction);
+        _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        Assert.Contains("Connect read-only", _shell.NextAction);
+        Assert.False(_shell.Workspace.SnapshotIsLive);
+    }
+
     /// <summary>A refresh replaces the rows; the new rows must be followed too, not only the first set.</summary>
     [Fact]
     public void The_plan_page_count_follows_ticks_after_a_refresh()
@@ -107,5 +132,34 @@ public sealed class PageViewModelTests : IDisposable
 
         Assert.Null(history.Drift);
         Assert.False(history.ExportDriftHtmlCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Switching_client_clears_selected_run_evidence_and_notifies_its_visible_summary()
+    {
+        var workspace = _shell.Workspace;
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantA), save: false);
+        var history = _shell.Page<HistoryViewModel>();
+        var result = new BDIT.TenantToolkit.Core.Models.RunResult { ControlId = "SYN-001" };
+        history.SelectedRun = new BDIT.TenantToolkit.Core.Models.DeploymentRun
+        {
+            Id = "synthetic-run", TenantId = TestData.TenantA, Results = new() { result }
+        };
+        history.SelectedResult = result;
+        Assert.Contains("synthetic-run", history.RunText);
+        var raised = new List<string?>();
+        history.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
+
+        Assert.Null(history.SelectedRun);
+        Assert.Null(history.SelectedResult);
+        Assert.Empty(history.RunResults);
+        Assert.Empty(history.Journal);
+        Assert.Contains(nameof(HistoryViewModel.RunText), raised);
+        Assert.Contains(nameof(HistoryViewModel.SelectedEvidence), raised);
+        Assert.DoesNotContain("synthetic-run", history.RunText);
+        Assert.DoesNotContain("SYN-001", history.SelectedEvidence.CopyText);
+        Assert.False(history.ExportRunHtmlCommand.CanExecute(null));
     }
 }

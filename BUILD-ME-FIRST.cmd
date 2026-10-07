@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo M365 BuildStandard Tool - first build.
-echo This installs a user-local .NET 8 SDK into .dotnet\ if needed (no admin rights), builds, tests and packages.
+echo This installs a user-local .NET 10 SDK into .dotnet\ if needed (no admin rights), builds, tests and packages.
 echo The first run downloads about 250 MB and takes several minutes.
 echo.
 "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0build\Setup-And-Build.ps1" %*

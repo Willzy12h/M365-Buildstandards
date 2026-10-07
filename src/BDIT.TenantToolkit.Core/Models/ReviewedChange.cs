@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace BDIT.TenantToolkit.Core.Models;
 
-public enum ReviewedChangeKind { SecureCompliance, MdmAll, DisableSms, DisableVoice, ConfigureTap, EnableAuthenticator, EnableConditionalAccess, ReportOnlyConditionalAccess, DisableConditionalAccess, AssignGroups, RemoveAssignments, EnrolFeatureUpdates, UnenrolFeatureUpdates, EnrolQualityUpdates, UnenrolQualityUpdates }
+public enum ReviewedChangeKind { SecureCompliance, MdmAll, DisableSms, DisableVoice, ConfigureTap, EnableAuthenticator, EnableConditionalAccess, ReportOnlyConditionalAccess, DisableConditionalAccess, AssignGroups, RemoveAssignments, EnrolFeatureUpdates, UnenrolFeatureUpdates, EnrolQualityUpdates, UnenrolQualityUpdates, EnablePasskeys, EnableSystemPreferredMfa, EnableRegistrationCampaign, DisableUserConsent, EnableAdminConsent, SetProvisioningOwner }
 
 public enum AssignmentPopulation { Groups, AllUsers, AllDevices }
 

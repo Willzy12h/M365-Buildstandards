@@ -1,10 +1,64 @@
 # Handover and priorities
 
+Current user continuation: approved A–G and integrated default/settings exports, implemented incrementally as Preview.18 in PR #19. Read [PRODUCT-COMPLETION-PLAN.md](PRODUCT-COMPLETION-PLAN.md), [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). PR #20 carries the separate persisted-contract decisions and must merge before dependent workflow/backfill/lineage implementation. Live tenant actions and final publication remain separately approved. Older Preview.15–17 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
+
+
+## Owner delegation of commits and merges — 7 October 2026
+
+William (repository owner) said on 7 October 2026: "I never want to do the commits or merges manually. I can advise or approve but likely fine to do yourself." From that date agents commit, push and merge; William advises and approves. The conditions:
+
+- An agent may merge a pull request into `integration`, or into the branch a stacked pull request targets, with a merge commit (no squash, rebase or force-push), when all of these hold on the exact head being merged:
+  - every required check has passed, read from the actual run;
+  - the other agent has reviewed it, or William has approved it, and no open finding or review thread says a safeguard was weakened;
+  - it is mergeable, and any conflict was resolved on the branch owner's side, keeping the stricter behaviour, with checks re-run.
+- After merging: confirm CI on the merge commit, update WORK-CLAIMS and record the merge SHA and verifying run here or in COMPLETION-REGISTER.
+- Still needs William's explicit approval each time: promoting `integration` to `main`, tags, releases, running a publish workflow, repository or branch-protection settings, and any live tenant action. Agents never approve a pull request on William's behalf.
+- Everything else in AGENTS.md and AGENT-COORDINATION still applies, including never pushing to the other agent's branch.
+
+The first use is the merge of PR #21, PR #20 and PR #19, set out in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md).
+
+## Current continuation — Claude review fixes, PR #21 (7 October 2026)
+
+[PR #21](https://github.com/Willzy12h/M365-Buildstandards/pull/21) (draft, branch `claude/m365-buildstandards-preview-review-mjr04x`) is stacked on PR #19 head `2668d00`. It holds Claude's independent Preview.18 review, [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md) (CLA-20261006-01…17), and the implemented fixes. Code head `4202f02` passed Windows CI run 37542836818: 918 Engine + 115 App tests, 42 native layouts / 79 commands, PowerShell 5.1 packaging and a fresh 297-file package. Later commits change documentation only. Nothing was merged, approved or published by this work, and no tenant action took place.
+
+What changed, in brief (the CHANGELOG `Unreleased` entry and the review's "Implementation status" have the detail):
+- Assessment refuses a modified primary snapshot and every report states evidence integrity (Intact, Modified or NotRecorded).
+- Stored evidence is judged as of its capture, including later DNS refreshes, so a later re-assessment gives the same findings.
+- The capability matrix shows each control's real read route and licence; labels say "candidate recipes (inert)".
+- The build verifies the committed standards manifest (`build/Test-StandardsManifest.ps1`) and no longer regenerates it.
+- Backups go to `transfers/` with a `.sha256` sidecar. Restore and adoption check a trusted archive SHA-256 received separately, or an explicit logged acknowledgement. Settings walks through handing over and receiving a workspace (adopt, or restore to a separate folder and re-check it); the CLI adds `bdit verify-restore --folder`. Unknown-write blockers survive; no approval or execution authority is restored.
+- Publishing has its own workflow with `environment: release`; actions are pinned by SHA. Definition exports are timestamped with a sidecar.
+
+What is next: review PR #21, merge PR #21, #20 and #19 under the delegation above, then usability and ease of use. The prioritised backlog (U1–U10) and a paste-ready prompt for the next agent are in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Still open and owned elsewhere: CLA-10 support-bundle opt-ins (privacy owner), CLA-17 decision row, CLA-07 lineage messaging (after PR #20 is merged), repository settings for the `release` environment and immutable releases (owner), the next preview version and the missing Preview.18 CHANGELOG entry (release owner), recording CLA-01…17 in the feedback register, and all human/live acceptance.
+
 ## Architecture roadmap
 
 The plan for making this maintainable and extensible is [docs/integration/ARCHITECTURE-ROADMAP.md](ARCHITECTURE-ROADMAP.md). It is written for a model to execute: workstreams in dependency order, machine-checkable acceptance criteria, the invariants that outrank the plan, and the non-goals. Start there before proposing structural change.
 
-## Current work
+## Previous continuation — Preview.15 / 2026.09.30
+
+The user authorised completion on 30 September. PR #19 remains the owned Astra/Codex release claim, now a draft while the successor changes. Use [COMPLETION-REGISTER](COMPLETION-REGISTER.md) for current results and acceptance status. The missing Claude context document is no longer a prerequisite. .NET 10 migration, legacy retirements, engineer detail/evidence workflow and package validation continue together. The verified candidate is 7fb73d1e90ccd26eb62be8b0bfab7a3cc8751198: Windows run 36787138102 passes 810 engine/79 application tests, 42 native page/size checks and actual fresh-package startup/shutdown with 287 matching files. The completion register links the ZIP, checksum, generated documents and real WPF renders. Cloud artifact retrieval/visual inspection and human/live acceptance remain outstanding. No tenant or device operations have occurred. The user saved the short goal pointing to RELEASE-GOAL-2026.09.30.md; use that document for the definition of done.
+
+## Prior release work - PR #19
+
+**Preview.14 / standard 2026.09.12** is implemented on `astra/release-2026-09-12`, based on integration `5cadd3a070b0e308bdffc327dfc7954bd69b9e83`. [PR #19](https://github.com/Willzy12h/M365-Buildstandards/pull/19) targets integration; it is for human review, not merged or approved by the agent. Each NEXT-RELEASE-PLAN phase was committed and published in order. Use [the release validation ledger](RELEASE-2026.09.12-VALIDATION.md) and the exact PR-head CI run for observed counts; older evidence below is historical.
+
+The release has **96 controls, 61 candidate recipes**, repeatable public-IP offices, the agreed identity/Windows/mobile changes and Entra/Intune/Exchange/Purview area filters. Both engineer documents generate all controls in HTML/Markdown without client data; CI publishes the four generated files. Exchange/Purview use a strict delegated read-only capture import and fakeable explicit DNS checks. The authorised phase 5 fallback produces selected inert PowerShell proposals: module retries cannot meet the uncertain-write rule, and no toolkit Exchange write execution is added.
+
+No tenant sign-in, Graph/Exchange/Intune call, consent, application operation, DNS query or device operation was performed. No existing client evidence, token or saved connection was read. Microsoft contracts are researched, and their runtime acceptance remains unverified. The WPF interface was rendered offline; the browser URL policy blocked local HTML preview, so generated HTML browser/print appearance remains unverified.
+
+### Maintainer decisions and manual acceptance
+
+- Recommend retiring classic ENR-003/004 from default scope in favour of device preparation. They remain deferred references; no hardware hashes, serial numbers, corporate identifiers or registration are added.
+- Recommend retiring SEC-WIN-002 Defender onboarding under ESET. Retain CFG-WIN-004 SmartScreen as independent shell protection unless deliberately changed. Removed only from .12: SEC-WIN-001, CMP-WIN-002 and SEC-WIN-003.
+- Recommend keeping Exchange writes manual until a supported single-attempt delegated route is established. Keep the own-domain SPF bypass disabled/in audit mode until trusted SPF/header and From-domain alignment is demonstrated. This does not claim that a matched text header proves sender authenticity.
+- Native catalogue IDs/complete mechanisms are unconfirmed for Chrome SSO, file extensions, OneDrive Files On-Demand and device preparation. UK setup, five user-changeable starting pins, Store access and fast-startup force-off are manual. Do not add uploaded ADMX, custom templates, platform/remediation scripts or new credentials as a workaround. Recommend a separately scoped native-definition investigation before any new write mechanism.
+- Recommend deferring Outlook mobile account configuration. Modern passkey-profile migration needs manual handling; legacy passkey editing refuses populated profiles. Consumer Copilot Pro applicability is contradictory in Microsoft documentation and must be checked manually. Keep Microsoft 365 Copilot.
+- The maintainer's later authorised acceptance must cover both apps' renewed consent, exact API/module responses, eligible licences/editions, pilot sign-in/recovery, app/ESET installation, Autopatch prerequisites/all-device coverage and the generated after-checks. Do not infer those from synthetic tests or CI.
+
+New scopes and reasons are in [application setup](../APPLICATION-SETUP.md); decisions INT-030 through INT-037 record the contracts and manual boundaries. The phase 0 findings were independently reproduced and fixed; prior PR #17/#18 findings are closed history and were not reopened.
+
+## Completed baseline history
 
 **Preview.13 / standard 2026.09.11 is on integration.** PR #17 (Claude) is the full code and interface review; its record is [FULL-REVIEW-2026-09-24.md](FULL-REVIEW-2026-09-24.md). Read that first: it lists what was fixed, and seven findings in protected areas that were reported for a decision. PR #18 settled them — five fixed, one (finding 4) kept as a hardening inventory — and made application setup one guided sequence (see [application setup](../APPLICATION-SETUP.md)) and object IDs read as friendly names.
 

@@ -17,15 +17,15 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.401'
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.nuget/packages
           key: nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
@@ -53,15 +53,81 @@ jobs:
 
       - name: Build portable Windows package
         shell: pwsh
-        run: ./build/Build-Portable.ps1 -SkipTests
+        # Exercise the engineer's native PowerShell bootstrap as well as the guarded portable builder.
+        run: ./build/Setup-And-Build.ps1 -SkipTests
 
       - name: Render offline WPF workflows and check bindings
         shell: pwsh
-        run: dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+        run: |
+          dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+          $reviewExit = $LASTEXITCODE
+          if ($reviewExit -ne 0) {
+            $errorFile = Join-Path $pwd 'dist/ui-review/harness-error.txt'
+            if (Test-Path -LiteralPath $errorFile) {
+              $detail = (Get-Content -LiteralPath $errorFile -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Offline WPF validation::$detail"
+            }
+            exit $reviewExit
+          }
+
+      - name: Parse Exchange read template and reject an injected write (PowerShell 5.1)
+        shell: powershell
+        run: |
+          $scripts = @(Get-ChildItem dist/ui-review -Recurse -Filter 'exchange-read-capture-*.ps1')
+          if ($scripts.Count -eq 0) { throw 'The synthetic command review produced no Exchange read template.' }
+          foreach ($script in $scripts) { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $script.FullName }
+          $mutation = Join-Path $pwd ('dist/ui-review/rejected-write-' + [guid]::NewGuid().ToString('N') + '.ps1')
+          try {
+            [IO.File]::WriteAllText($mutation, [IO.File]::ReadAllText($scripts[0].FullName) + "`nSet-TransportConfig -SmtpClientAuthenticationDisabled `$false`n")
+            $refused = $false
+            try { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $mutation } catch { $refused = $_.Exception.Message -like '*Unsupported command*Set-TransportConfig*' }
+            if (-not $refused) { throw 'Exchange read command guard did not reject an injected write.' }
+            Write-Output '::notice title=Exchange read template::PowerShell 5.1 parse passed; injected write refused; no module loaded or tenant command executed.'
+          } finally { Remove-Item -LiteralPath $mutation -ErrorAction SilentlyContinue }
+
+      - name: Verify fresh extraction and actual packaged first launch
+        shell: powershell
+        run: |
+          $zips = @(Get-ChildItem dist -Filter '*.zip')
+          if ($zips.Count -ne 1) { throw 'Expected exactly one portable review ZIP.' }
+          $zip = $zips[0]
+          try {
+            ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json"
+          } catch {
+            $detail = ($_ | Out-String) + $_.ScriptStackTrace
+            $detail = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Extracted portable validation::$detail"
+            throw
+          }
+
+      # Keep small, synthetic validation facts visible on the check itself as well as in downloadable artifacts.
+      - name: Record validation evidence on the check
+        if: always()
+        shell: pwsh
+        run: |
+          function Notice([string]$title, [string]$message) {
+            $safe = $message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::notice title=${title}::$safe"
+          }
+          Get-ChildItem TestResults -Filter '*.trx' -ErrorAction SilentlyContinue | ForEach-Object {
+            [xml]$result = Get-Content -LiteralPath $_.FullName -Raw
+            $counters = $result.TestRun.ResultSummary.Counters
+            Notice $_.Name "Total=$($counters.total); executed=$($counters.executed); passed=$($counters.passed); failed=$($counters.failed); notExecuted=$($counters.notExecuted)"
+            foreach ($failed in @($result.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed')) {
+              Notice ('Failed test: ' + $failed.testName) ($failed.Output.ErrorInfo.Message + "`n" + $failed.Output.ErrorInfo.StackTrace)
+            }
+          }
+          if (Test-Path dist/ui-review/verification.json) {
+            $ui = Get-Content dist/ui-review/verification.json -Raw | ConvertFrom-Json
+            Notice 'Offline WPF result' "Status=$($ui.status); pagesAtSizes=$($ui.records.Count); commandsPressed=$($ui.commandsPressed); bindingIssues=$($ui.bindingIssues.Count); idleWindowClosed=$($ui.idleWindowClosed); tenantCalls=$($ui.tenantCalls)"
+          }
+          if (Test-Path dist/portable-verification.json) {
+            Notice 'Extracted portable result' (Get-Content dist/portable-verification.json -Raw)
+          }
 
       - name: Upload synthetic UI review
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: synthetic-ui-review
           path: |
@@ -73,27 +139,52 @@ jobs:
             dist/ui-review/tab-order.txt
 
       - name: Upload portable review package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: portable-windows-review
           path: |
             dist/*.zip
             dist/*.zip.sha256
+            dist/portable-verification.json
+          if-no-files-found: error
+
+      - name: Upload generated engineer documents
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: engineer-standard-documents
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.md
           if-no-files-found: error
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results
           path: TestResults/
+
+      # Keep catalogue assets separate from tenant reports and the application package.
+      - name: Upload generated standard definitions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: standard-definition-exports
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.sha256
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.json
+          if-no-files-found: error
 
   standard:
     # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Every standard release is valid JSON
         shell: pwsh
@@ -129,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Reporting and evidence source must be tracked
         shell: bash

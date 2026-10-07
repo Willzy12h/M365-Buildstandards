@@ -69,6 +69,10 @@ public class GraphRequestException : ToolkitException
     public string? ErrorCode { get; }
     public string Method { get; }
     public string Path { get; }
+    /// <summary>Graph's <c>request-id</c> response header, for Microsoft support correlation; null when absent or not a GUID.</summary>
+    public string? RequestId { get; init; }
+    /// <summary>Graph's <c>client-request-id</c> response header; null when absent or not a GUID.</summary>
+    public string? ClientRequestId { get; init; }
 
     public GraphRequestException(int statusCode, string method, string path, string? errorCode, string message)
         : base(message)
