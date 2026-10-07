@@ -24,10 +24,31 @@ public sealed class ObservationRequest
     public string? SupersedesId { get; set; }
 }
 
+/// <summary>What an engineer decides about one legacy or missing requirement instance (INT-050).</summary>
+public sealed class DispositionRequest
+{
+    public string SemanticId { get; set; } = "";
+    public string ControlId { get; set; } = "";
+    /// <summary>Defaults to the control ID when the control is not repeated.</summary>
+    public string InstanceKey { get; set; } = "";
+    public string Decision { get; set; } = "";
+    public string Owner { get; set; } = "";
+    public string Reason { get; set; } = "";
+    public DateTimeOffset ReviewDueAt { get; set; }
+    /// <summary>The saved capture the decision relied on, if any. Its integrity digest is pinned.</summary>
+    public string? SnapshotId { get; set; }
+    /// <summary>Exact object IDs the decision is about. Each must be present in the capture.</summary>
+    public List<string> ObservedObjectIds { get; set; } = new();
+    /// <summary>For an approved departure: the existing same-tenant deviation it relies on.</summary>
+    public string? DeviationId { get; set; }
+    /// <summary>The current disposition this one revises. Required when the requirement already has one.</summary>
+    public string? SupersedesId { get; set; }
+}
+
 /// <summary>
-/// INT-049 workflow: opens jobs and records observations against them. Nothing here reads or writes the tenant, and a
-/// job confers no authority to execute: deployment still needs its own live, fresh, integrity and ownership checks and
-/// a newly reviewed approval.
+/// INT-049 and INT-050 workflow: opens jobs and records observations and dispositions against them. Nothing here reads
+/// or writes the tenant, creates a managed-object mapping or a deviation, and a job confers no authority to execute:
+/// deployment still needs its own live, fresh, integrity and ownership checks and a newly reviewed approval.
 /// </summary>
 public sealed class JobWorkflow
 {
@@ -70,14 +91,8 @@ public sealed class JobWorkflow
     /// </summary>
     public TenantObservation Record(string tenantId, string jobId, TenantProfile profile, StandardCatalogue standard, ObservationRequest request, string actor)
     {
-        RequireVerifiedStandard(standard);
-        var job = _store.RequireJob(tenantId, jobId);
-        if (!string.Equals(profile.TenantId, job.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(profile.Id, job.ProfileId, StringComparison.OrdinalIgnoreCase))
-            throw new TenantMismatchException("This client profile is not the one the job was opened for.");
-        var instance = string.IsNullOrWhiteSpace(request.InstanceKey) ? request.ControlId : request.InstanceKey;
-        if (ControlInstances.Find(standard, profile, instance) is null)
-            throw new ConfigurationException($"{instance} is not a requirement of standard {standard.Release} for this client.");
-
+        var job = BoundJob(tenantId, jobId, profile, standard);
+        var instance = Instance(standard, profile, request.ControlId, request.InstanceKey);
         var observation = new TenantObservation
         {
             Id = Guid.NewGuid().ToString(),
@@ -85,7 +100,7 @@ public sealed class JobWorkflow
             JobId = job.Id,
             SemanticId = request.SemanticId.Trim(),
             ControlId = request.ControlId.Trim(),
-            InstanceKey = instance.Trim(),
+            InstanceKey = instance,
             StandardRelease = standard.Release,
             StandardDigest = standard.IntegrityDigest,
             ProfileId = job.ProfileId,
@@ -98,19 +113,10 @@ public sealed class JobWorkflow
             ObservedObjectIds = request.ObservedObjectIds.Select(id => id.Trim()).ToList(),
             SupersedesId = request.SupersedesId?.ToLowerInvariant()
         };
-        if (request.SnapshotId is not null)
-        {
-            var (reference, snapshot) = SnapshotReference(job.TenantId, request.SnapshotId);
-            observation.Evidence.Add(reference);
-            if (observation.ObservedObjectIds.Count > 0)
-                observation.MaterialDigest = ObservedMaterial.Digest(snapshot, observation.ObservedObjectIds)
-                    ?? throw new ConfigurationException("An observed object is not in the referenced capture. Record only objects the capture contains.");
-        }
-        else if (observation.ObservedObjectIds.Count > 0)
-            throw new ConfigurationException("Observed objects need the capture they were observed in.");
+        observation.MaterialDigest = PinEvidence(job.TenantId, request.SnapshotId, observation.Evidence, observation.ObservedObjectIds).MaterialDigest;
 
         WorkflowRecordRules.ValidateObservation(observation);
-        CheckSupersession(job, observation);
+        CheckSupersession(Attached(job.ObservationIds, id => _store.LoadObservation(job.TenantId, id)), observation);
         _store.CreateObservation(observation);
 
         job.ObservationIds.Add(observation.Id);
@@ -119,26 +125,121 @@ public sealed class JobWorkflow
         return observation;
     }
 
-    /// <summary>A subject keeps one line of history: a revision must supersede its current record and nothing else.</summary>
-    private void CheckSupersession(TenantJob job, TenantObservation observation)
+    /// <summary>
+    /// Writes an INT-050 disposition and attaches it to its job, as <see cref="Record"/> does. Repeating the current,
+    /// still-valid decision about unchanged objects writes nothing and returns the existing record. A disposition never
+    /// creates a managed-object mapping, a deviation or any permission to change or delete a tenant object.
+    /// </summary>
+    public TenantDisposition Decide(string tenantId, string jobId, TenantProfile profile, StandardCatalogue standard, DispositionRequest request, string actor)
     {
-        var attached = job.ObservationIds.Select(id => _store.LoadObservation(job.TenantId, id)
-            ?? throw new ConfigurationException("An attached observation is missing. Review the job before recording more.")).ToList();
-        var sameSubject = attached.Where(o => SameSubject(o, observation)).ToList();
-        if (observation.SupersedesId is null)
+        var job = BoundJob(tenantId, jobId, profile, standard);
+        var instance = Instance(standard, profile, request.ControlId, request.InstanceKey);
+        var disposition = new TenantDisposition
         {
-            if (sameSubject.Count > 0) throw new SafetyViolationException("This requirement already has an observation. Record a revision that supersedes the current one.");
-            return;
-        }
-        var predecessor = attached.FirstOrDefault(o => string.Equals(o.Id, observation.SupersedesId, StringComparison.OrdinalIgnoreCase))
-            ?? throw new SafetyViolationException("An observation can only supersede an existing record attached to the same job.");
-        if (!SameSubject(predecessor, observation))
-            throw new SafetyViolationException("An observation can only supersede a record for the same requirement and instance.");
-        if (attached.Any(o => string.Equals(o.SupersedesId, predecessor.Id, StringComparison.OrdinalIgnoreCase)))
-            throw new SafetyViolationException("That observation has already been revised. Supersede the current record instead.");
+            Id = Guid.NewGuid().ToString(),
+            TenantId = job.TenantId,
+            JobId = job.Id,
+            SemanticId = request.SemanticId.Trim(),
+            ControlId = request.ControlId.Trim(),
+            InstanceKey = instance,
+            StandardRelease = standard.Release,
+            StandardDigest = standard.IntegrityDigest,
+            ProfileId = job.ProfileId,
+            ClientScopeDigest = ReviewedClientScope.Digest(profile),
+            Decision = request.Decision,
+            Owner = request.Owner.Trim(),
+            Reason = request.Reason.Trim(),
+            Actor = actor.Trim(),
+            RecordedAt = Timestamps.Format(_clock.UtcNow),
+            ReviewDueAt = Timestamps.Format(request.ReviewDueAt),
+            ObservedObjectIds = request.ObservedObjectIds.Select(id => id.Trim()).ToList(),
+            DeviationId = string.IsNullOrWhiteSpace(request.DeviationId) ? null : request.DeviationId.Trim(),
+            SupersedesId = request.SupersedesId?.ToLowerInvariant()
+        };
+        var (_, capture, material) = PinEvidence(job.TenantId, request.SnapshotId, disposition.Evidence, disposition.ObservedObjectIds);
+        disposition.MaterialDigest = material;
+
+        WorkflowRecordRules.ValidateDisposition(disposition);
+        if (disposition.DeviationId is not null && SubjectReview.DeviationProblem(_store, job.TenantId, disposition, _clock.UtcNow))
+            throw new ConfigurationException("An approved departure needs an existing, in-date approved deviation for the same control in this tenant. Record the deviation first; a disposition never creates one.");
+
+        var attached = Attached(job.DispositionIds ?? new(), id => _store.LoadDisposition(job.TenantId, id));
+        var current = attached.Where(d => SameSubject(d, disposition))
+            .FirstOrDefault(d => !attached.Any(o => string.Equals(o.SupersedesId, d.Id, StringComparison.OrdinalIgnoreCase)));
+        if (current is not null && (disposition.SupersedesId is null || string.Equals(disposition.SupersedesId, current.Id, StringComparison.OrdinalIgnoreCase))
+            && SameDecision(current, disposition)
+            && SubjectReview.Reasons(_store, job.TenantId, current, standard, profile, _clock.UtcNow, capture).Count == 0)
+            return current;
+
+        CheckSupersession(attached, disposition);
+        _store.CreateDisposition(disposition);
+
+        (job.DispositionIds ??= new()).Add(disposition.Id);
+        job.UpdatedAt = disposition.RecordedAt;
+        _store.ReplaceJob(job);
+        return disposition;
     }
 
-    public static bool SameSubject(TenantObservation a, TenantObservation b) =>
+    private static bool SameDecision(TenantDisposition a, TenantDisposition b) =>
+        a.Decision == b.Decision && a.Owner == b.Owner
+        && string.Equals(a.DeviationId, b.DeviationId, StringComparison.OrdinalIgnoreCase)
+        && a.ObservedObjectIds.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(b.ObservedObjectIds)
+        && a.MaterialDigest == b.MaterialDigest;
+
+    private TenantJob BoundJob(string tenantId, string jobId, TenantProfile profile, StandardCatalogue standard)
+    {
+        RequireVerifiedStandard(standard);
+        var job = _store.RequireJob(tenantId, jobId);
+        if (!string.Equals(profile.TenantId, job.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(profile.Id, job.ProfileId, StringComparison.OrdinalIgnoreCase))
+            throw new TenantMismatchException("This client profile is not the one the job was opened for.");
+        return job;
+    }
+
+    private static string Instance(StandardCatalogue standard, TenantProfile profile, string controlId, string instanceKey)
+    {
+        var instance = (string.IsNullOrWhiteSpace(instanceKey) ? controlId : instanceKey).Trim();
+        if (ControlInstances.Find(standard, profile, instance) is null)
+            throw new ConfigurationException($"{instance} is not a requirement of standard {standard.Release} for this client.");
+        return instance;
+    }
+
+    /// <summary>Pins the capture's integrity digest and, when objects are named, the digest of exactly those objects.</summary>
+    private (EvidenceReference? Reference, TenantSnapshot? Capture, string MaterialDigest) PinEvidence(string tenantId, string? snapshotId,
+        List<EvidenceReference> evidence, List<string> objectIds)
+    {
+        if (snapshotId is null)
+        {
+            if (objectIds.Count > 0) throw new ConfigurationException("Observed objects need the capture they were observed in.");
+            return (null, null, "");
+        }
+        var (reference, snapshot) = SnapshotReference(tenantId, snapshotId);
+        evidence.Add(reference);
+        var material = objectIds.Count == 0 ? ""
+            : ObservedMaterial.Digest(snapshot, objectIds) ?? throw new ConfigurationException("An observed object is not in the referenced capture. Record only objects the capture contains.");
+        return (reference, snapshot, material);
+    }
+
+    private static List<T> Attached<T>(IEnumerable<string> ids, Func<string, T?> load) where T : class =>
+        ids.Select(id => load(id) ?? throw new ConfigurationException("An attached record is missing. Review the job before recording more.")).ToList();
+
+    /// <summary>A subject keeps one line of history: a revision must supersede its current record and nothing else.</summary>
+    private static void CheckSupersession<T>(List<T> attached, T record) where T : ISubjectRecord
+    {
+        var sameSubject = attached.Where(o => SameSubject(o, record)).ToList();
+        if (record.SupersedesId is null)
+        {
+            if (sameSubject.Count > 0) throw new SafetyViolationException("This requirement already has a record in this job. Record a revision that supersedes the current one.");
+            return;
+        }
+        var predecessor = attached.FirstOrDefault(o => string.Equals(o.Id, record.SupersedesId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new SafetyViolationException("A record can only supersede an existing record attached to the same job.");
+        if (!SameSubject(predecessor, record))
+            throw new SafetyViolationException("A record can only supersede a record for the same requirement and instance.");
+        if (attached.Any(o => string.Equals(o.SupersedesId, predecessor.Id, StringComparison.OrdinalIgnoreCase)))
+            throw new SafetyViolationException("That record has already been revised. Supersede the current record instead.");
+    }
+
+    public static bool SameSubject(ISubjectRecord a, ISubjectRecord b) =>
         string.Equals(a.SemanticId, b.SemanticId, StringComparison.Ordinal)
         && string.Equals(a.ControlId, b.ControlId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(a.InstanceKey, b.InstanceKey, StringComparison.OrdinalIgnoreCase);

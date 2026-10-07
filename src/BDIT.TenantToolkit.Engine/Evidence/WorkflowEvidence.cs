@@ -12,9 +12,10 @@ namespace BDIT.TenantToolkit.Engine.Evidence;
 public sealed record UnreadableRecord(string File, string Problem);
 
 /// <summary>
-/// INT-049 persistence: tenant-partitioned jobs/&lt;id&gt;.json and immutable observations/&lt;id&gt;.json. Readers refuse
-/// unknown schema versions and unknown members, check the embedded tenant and ID against the file, and verify the
-/// integrity digest. Observations are created once and never replaced; only a job's attachment list is replaced.
+/// INT-049 and INT-050 persistence: tenant-partitioned jobs/&lt;id&gt;.json and immutable observations/&lt;id&gt;.json and
+/// dispositions/&lt;id&gt;.json. Readers refuse unknown schema versions and unknown members, check the embedded tenant and
+/// ID against the file, and verify the integrity digest. Observations and dispositions are created once and never
+/// replaced; only a job's attachment lists are replaced.
 /// </summary>
 public sealed partial class EvidenceStore
 {
@@ -25,6 +26,8 @@ public sealed partial class EvidenceStore
     private string ObservationsDirectory(string tenant) => Path.Combine(TenantDirectory(tenant), "observations");
     private string JobFile(string tenant, string id) => Path.Combine(JobsDirectory(tenant), SafeId(id) + ".json");
     private string ObservationFile(string tenant, string id) => Path.Combine(ObservationsDirectory(tenant), SafeId(id) + ".json");
+    private string DispositionsDirectory(string tenant) => Path.Combine(TenantDirectory(tenant), "dispositions");
+    private string DispositionFile(string tenant, string id) => Path.Combine(DispositionsDirectory(tenant), SafeId(id) + ".json");
 
     // ---- jobs ------------------------------------------------------------------------------------------------
 
@@ -49,6 +52,8 @@ public sealed partial class EvidenceStore
                 throw new SafetyViolationException("A job's identity, intention, standard and client inputs cannot be changed. Open a new job instead.");
             if (stored.ObservationIds.Except(job.ObservationIds, StringComparer.OrdinalIgnoreCase).Any())
                 throw new SafetyViolationException("Attached observations cannot be detached from a job.");
+            if ((stored.DispositionIds ?? new()).Except(job.DispositionIds ?? new(), StringComparer.OrdinalIgnoreCase).Any())
+                throw new SafetyViolationException("Attached dispositions cannot be detached from a job.");
             job.IntegrityDigest = RecoveryDigest(job);
             WriteJsonAtomic(JobFile(job.TenantId, job.Id), job);
         }
@@ -78,6 +83,22 @@ public sealed partial class EvidenceStore
 
     public (IReadOnlyList<TenantObservation> Observations, IReadOnlyList<UnreadableRecord> Unreadable) LoadObservations(string tenant) =>
         LoadWorkflowRecords<TenantObservation>(ObservationsDirectory(tenant), tenant, "Observation", o => (o.SchemaVersion, o.TenantId, o.Id, o.IntegrityDigest));
+
+    // ---- dispositions ----------------------------------------------------------------------------------------
+
+    /// <summary>Writes a new immutable disposition. It is unattached until its job is replaced to list it.</summary>
+    public void CreateDisposition(TenantDisposition disposition)
+    {
+        WorkflowRecordRules.ValidateDisposition(disposition);
+        disposition.IntegrityDigest = RecoveryDigest(disposition);
+        CreateRecordFile(DispositionFile(disposition.TenantId, disposition.Id), disposition, "disposition");
+    }
+
+    public TenantDisposition? LoadDisposition(string tenant, string id) =>
+        ReadWorkflowRecord<TenantDisposition>(DispositionFile(tenant, id), tenant, id, "Disposition", d => (d.SchemaVersion, d.TenantId, d.Id, d.IntegrityDigest));
+
+    public (IReadOnlyList<TenantDisposition> Dispositions, IReadOnlyList<UnreadableRecord> Unreadable) LoadDispositions(string tenant) =>
+        LoadWorkflowRecords<TenantDisposition>(DispositionsDirectory(tenant), tenant, "Disposition", d => (d.SchemaVersion, d.TenantId, d.Id, d.IntegrityDigest));
 
     // ---- shared ----------------------------------------------------------------------------------------------
 
