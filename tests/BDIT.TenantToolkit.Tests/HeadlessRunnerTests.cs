@@ -25,7 +25,7 @@ public class HeadlessRunnerTests
     private static readonly string[] Forbidden =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow"
     };
 
     [Fact]
@@ -118,9 +118,10 @@ public class HeadlessRunnerTests
     {
         if (!Available) return;
 
-        // Every evidence writer on the store is named Save*, Append* or WriteJsonAtomic. Report export is the
+        // Every evidence writer on the store is named Save*, Append*, Create*, ReplaceJob or WriteJsonAtomic. Report export is the
         // runner's own output and is named Export*, so it is not caught here.
-        var mutators = new[] { ".Save", ".Append", ".Delete", "WriteJsonAtomic" };
+        // Workflow records (INT-049/050) are written by Create* and attached by ReplaceJob; the runner only projects them.
+        var mutators = new[] { ".Save", ".Append", ".Delete", "WriteJsonAtomic", ".CreateJob", ".CreateObservation", ".CreateDisposition", ".CreateCutover", ".ReplaceJob", "CreateRecordFile" };
         foreach (var file in Sources)
         {
             var uses = File.ReadAllText(file).Split('\n')
