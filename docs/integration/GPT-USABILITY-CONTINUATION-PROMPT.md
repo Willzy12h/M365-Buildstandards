@@ -1,4 +1,4 @@
-# Continuation prompt — review Claude's follow-up, then continue the product
+# Continuation prompt — review Claude's merged follow-ups, then continue the product
 
 **Prepared 7 October 2026 by Claude for the next agent (ChatGPT/Codex, working as Astra).** Paste the block below as the task. William has delegated commits and merges to the agents; the delegation and its conditions are in [HANDOVER](HANDOVER.md#owner-delegation-of-commits-and-merges--7-october-2026). Nothing else in this prompt widens what the agent may do.
 
@@ -32,40 +32,36 @@ CURRENT STATE (re-fetch and verify; do not trust these references blindly)
   * Usability: task-specific progress titles; results with next steps and Open folder;
     Quick Connect notice when the header shows an already-open session; more room in plan
     review at 1180x640; first read-only assessment path on Overview and OPERATOR-START.
-- OPEN: Claude's follow-up PR #22 from claude/m365-buildstandards-preview-review-mjr04x into
-  integration:
-  * Release lineage into 2026.09.30 (INT-051 first slice, recorded as INT-057):
-    standards/lineage/lineage-2026.09.30.json + its manifest, verified by
-    build/Test-StandardsManifest.ps1 and ReleaseLineage.Load; LineageReview annotates
-    shared assessments (desktop and CLI) with an explanation for each earlier-release
-    ownership record whose control ID now means something else, and flags records from
-    releases without lineage. Nothing is rebound, moved or dropped; no finding status or
-    plan changes.
-  * ReviewedClientScope.Digest (INT-056, CLA-17): only company, notes, createdAt and
-    updatedAt are non-material.
+- MERGED SINCE, on William's approval and without an Astra/Codex review:
+  * PR #22 (fbce197): release lineage into 2026.09.30 (INT-051 first slice, INT-057) and
+    ReviewedClientScope.Digest (INT-056). Nothing is rebound, moved or dropped.
+  * PR #23 (34dbb72): upgrade impact report (INT-051 second slice, INT-058), desktop and
+    `bdit upgrade-impact`, shown apart from two-capture drift.
+  * PR #24 (9617d92): post-merge review fixes for #22 (INT-059): scope digest ignores
+    exclusion-account resolvedAt/selectedBy and list order; unreadable lineage is reported,
+    not fatal; skipped lineage explained; validator tightened.
+  * PR #25: INT-049 job and observation records, engine only (INT-060): jobs/<id>.json and
+    immutable observations/<id>.json, strict readers, one-line supersession, read-only
+    projection reporting NeedsReview; legacy manual checks shown as unbound attestations.
+    Check its merge SHA and the integration CI run on it.
 
-TASK 1 — REVIEW AND MERGE CLAUDE'S FOLLOW-UP PR #22
-Review it independently: lineage relations against the catalogues (PRE-001..005 in .9/.10,
-PRE-008 cardinality, retired controls, CFG-WIN-007/APP-WIN-008), the "unlisted keeps the
-same requirement" rule, loader refusal of changed/unlisted/mis-pinned files, that
-AssessmentContext ignores lineage for a non-published catalogue, that annotations never
-change status/ownership/plans, and the INT-056 field list. Record findings as
-GPT-20261007-NN. Fix small confirmed defects on your own branch (never push to claude/*)
-or ask Claude via a PR comment. Merge it yourself under the HANDOVER delegation once your
-review has no open safeguard finding and CI is green on the exact head.
+TASK 1 — INDEPENDENT REVIEW OF PR #22–#25
+Review the merged changes against PRODUCT-CONTRACT-DECISIONS-2026.10.06.md and the
+DECISION-LOG rows INT-056–INT-060: lineage relations and loader refusals, the upgrade
+impact report's separation from drift, the reviewed-scope field list, and for INT-049 the
+record shape (no authority), strict reading, supersession, NeedsReview projection and that
+reading writes nothing. Record findings as GPT-20261007-NN. Fix confirmed defects in your
+own PR (never push to claude/*), or raise them for Claude.
 
 TASK 2 — CONTINUE THE APPROVED PRODUCT WORK (each in its own PR, in this order)
-1. Upgrade impact report (rest of INT-051): assess one unchanged capture under the source
-   and target catalogues and present requirement changes separately from two-capture
-   tenant drift. Missing collection evidence stays unknown. Desktop and CLI.
-2. INT-049 versioned jobs and observations (see
-   docs/integration/PRODUCT-CONTRACT-DECISIONS-2026.10.06.md); bind
-   ReviewedClientScope.Digest; old manual checks shown as legacy/unbound, never migrated.
-3. INT-050 legacy dispositions and cutover cases; retention never creates ownership or
-   write permission; stages need recorded evidence; approval alone never closes.
-4. Usability from real engineer feedback, if William provides it. Keep the native harness
+1. INT-050 legacy dispositions and cutover cases; retention never creates ownership or
+   write permission; stages need recorded evidence; approval alone never closes. Reuse the
+   INT-060 conventions (strict schema-1 readers, create-never-replace, supersession graph).
+2. INT-049 follow-up: desktop and CLI surfaces for jobs and observations, references to
+   stored assessments, and the completion claim.
+3. Usability from real engineer feedback, if William provides it. Keep the native harness
    passing and add renders for new screens.
-5. GitHub Actions still on Node 20 (checkout, setup-dotnet, cache, upload-artifact): CI
+4. GitHub Actions still on Node 20 (checkout, setup-dotnet, cache, upload-artifact): CI
    forces them to Node 24 with a warning. Upgrade to current releases pinned by SHA in one
    reviewed PR, including publish-preview18.yml, and confirm CI.
 

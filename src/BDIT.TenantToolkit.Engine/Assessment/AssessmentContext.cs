@@ -24,8 +24,8 @@ public static class AssessmentContext
 
     /// <summary>
     /// The shipped lineage into the assessed release, or null. Lineage only explains; a lineage file that fails its
-    /// integrity check is reported and ignored rather than stopping the assessment, so every earlier-release record is
-    /// then flagged for review.
+    /// integrity check, or that describes other catalogue bytes than the ones loaded, is reported in the limitations
+    /// and ignored rather than stopping the assessment, so every earlier-release record is then flagged for review.
     /// </summary>
     private static ReleaseLineage? LoadLineage(string standardsDirectory, StandardCatalogue standard, AssessmentResult result)
     {
@@ -33,8 +33,11 @@ public static class AssessmentContext
         {
             if (!File.Exists(Path.Combine(standardsDirectory, StandardsManifest.FileName))) return null;
             var lineage = ReleaseLineage.Load(standardsDirectory, StandardsManifest.Load(standardsDirectory), standard.Release);
+            if (lineage is null || string.Equals(lineage.Target.Sha256, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase)) return lineage;
             // A catalogue imported under a published release name is not the published bytes the lineage describes.
-            return lineage is not null && string.Equals(lineage.Target.Sha256, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase) ? lineage : null;
+            result.Limitations.Add($"Release lineage into {standard.Release} was not used: it describes the published {standard.Release} catalogue, "
+                + "and the loaded catalogue's bytes differ from it.");
+            return null;
         }
         catch (IntegrityException ex)
         {

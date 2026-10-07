@@ -30,6 +30,17 @@ public sealed class ReleaseLineage
     /// </summary>
     public static ReleaseLineage? Load(string standardsDirectory, StandardsManifest standards, string targetRelease)
     {
+        // Every failure to read or verify lineage is an integrity failure, so callers that report and ignore
+        // unverifiable lineage never see an unexpected exception type stop an assessment or report.
+        try { return LoadVerified(standardsDirectory, standards, targetRelease); }
+        catch (Exception ex) when (ex is not IntegrityException)
+        {
+            throw new IntegrityException($"Release lineage for {targetRelease} could not be read: {ex.Message}");
+        }
+    }
+
+    private static ReleaseLineage? LoadVerified(string standardsDirectory, StandardsManifest standards, string targetRelease)
+    {
         var folder = Path.Combine(standardsDirectory, Folder);
         var file = Path.Combine(folder, $"lineage-{targetRelease}.json");
         if (!File.Exists(file)) return null;
@@ -39,7 +50,8 @@ public sealed class ReleaseLineage
         try { manifest = JsonDocument.Parse(File.ReadAllText(manifestPath)).RootElement; }
         catch (JsonException ex) { throw new IntegrityException("standards/lineage/manifest.json could not be read: " + ex.Message); }
         if (!manifest.TryGetProperty("algorithm", out var algorithm) || algorithm.GetString() != "SHA-256"
-            || !manifest.TryGetProperty("files", out var files) || !files.TryGetProperty(Path.GetFileName(file), out var expected))
+            || !manifest.TryGetProperty("files", out var files) || files.ValueKind != JsonValueKind.Object
+            || !files.TryGetProperty(Path.GetFileName(file), out var expected) || expected.ValueKind != JsonValueKind.String)
             throw new IntegrityException($"Release lineage {Path.GetFileName(file)} is not listed in standards/lineage/manifest.json.");
         var bytes = File.ReadAllBytes(file);
         if (!string.Equals(CanonicalJson.Sha256Hex(bytes), expected.GetString(), StringComparison.OrdinalIgnoreCase))
@@ -54,11 +66,17 @@ public sealed class ReleaseLineage
 
     public static ReleaseLineage Parse(string json)
     {
-        ReleaseLineage lineage;
-        try { lineage = JsonSerializer.Deserialize<ReleaseLineage>(json, Strict) ?? throw new IntegrityException("Release lineage is empty."); }
-        catch (JsonException ex) { throw new IntegrityException("Release lineage could not be read: " + ex.Message); }
-        lineage.Validate();
-        return lineage;
+        try
+        {
+            var lineage = JsonSerializer.Deserialize<ReleaseLineage>(json, Strict) ?? throw new IntegrityException("Release lineage is empty.");
+            // An explicit null deserialises as null rather than empty; refuse it rather than fail part-way through.
+            if (lineage.Target is null || lineage.Sources is null || lineage.Sources.Any(s => s is null || s.Relations is null
+                    || s.Relations.Any(r => r is null || r.TargetControls is null || r.TargetNames is null)))
+                throw new IntegrityException("Release lineage has a missing or null member.");
+            lineage.Validate();
+            return lineage;
+        }
+        catch (Exception ex) when (ex is not IntegrityException) { throw new IntegrityException("Release lineage could not be read: " + ex.Message); }
     }
 
     private void Validate()
@@ -77,9 +95,13 @@ public sealed class ReleaseLineage
             {
                 if (!Relations.Contains(r.Relation) || !Cardinalities.Contains(r.Cardinality))
                     throw new IntegrityException($"Release lineage {source.Release} {r.SourceControl}: unknown relation or cardinality.");
-                var consistent = r.Cardinality switch
+                // A relation is keyed by its source control, and an added requirement has none: added requirements are
+                // the target controls no source relation reaches, so they are derived, never listed.
+                if (r.Relation == "Added" || r.Cardinality == "Added")
+                    throw new IntegrityException($"Release lineage {source.Release} {r.SourceControl}: an added requirement has no source control and is not listed.");
+                var consistent = (r.Relation == "Retired") == (r.Cardinality == "Retired") && r.Cardinality switch
                 {
-                    "Retired" => r.Relation == "Retired" && r.TargetControls.Count == 0,
+                    "Retired" => r.TargetControls.Count == 0,
                     "OneToOne" or "ManyToOne" => r.TargetControls.Count == 1,
                     "OneToMany" => r.TargetControls.Count >= 1,
                     _ => false
