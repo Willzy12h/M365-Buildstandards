@@ -32,7 +32,7 @@ CURRENT STATE (re-fetch and verify; do not trust these references blindly)
   * Usability: task-specific progress titles; results with next steps and Open folder;
     Quick Connect notice when the header shows an already-open session; more room in plan
     review at 1180x640; first read-only assessment path on Overview and OPERATOR-START.
-- OPEN: Claude's follow-up PR from claude/m365-buildstandards-preview-review-mjr04x into
+- OPEN: Claude's follow-up PR #22 from claude/m365-buildstandards-preview-review-mjr04x into
   integration:
   * Release lineage into 2026.09.30 (INT-051 first slice, recorded as INT-057):
     standards/lineage/lineage-2026.09.30.json + its manifest, verified by
@@ -44,7 +44,7 @@ CURRENT STATE (re-fetch and verify; do not trust these references blindly)
   * ReviewedClientScope.Digest (INT-056, CLA-17): only company, notes, createdAt and
     updatedAt are non-material.
 
-TASK 1 — REVIEW AND MERGE CLAUDE'S FOLLOW-UP PR
+TASK 1 — REVIEW AND MERGE CLAUDE'S FOLLOW-UP PR #22
 Review it independently: lineage relations against the catalogues (PRE-001..005 in .9/.10,
 PRE-008 cardinality, retired controls, CFG-WIN-007/APP-WIN-008), the "unlisted keeps the
 same requirement" rule, loader refusal of changed/unlisted/mis-pinned files, that

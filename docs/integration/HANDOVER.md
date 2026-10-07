@@ -1,6 +1,6 @@
 # Handover and priorities
 
-**Current state, 7 October 2026:** PR #19 (Preview.18 work), PR #20 (INT-049–051 contracts) and PR #21 (Claude's review fixes and usability pass) are merged into `integration` (`d39eb73`). The source is `1.1.0-preview.19`, unpublished. A follow-up Claude PR on `claude/m365-buildstandards-preview-review-mjr04x` adds release lineage (INT-051 first slice) and the reviewed-client-scope digest (INT-056); it waits for Astra/Codex review. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
+**Current state, 7 October 2026:** PR #19 (Preview.18 work), PR #20 (INT-049–051 contracts) and PR #21 (Claude's review fixes and usability pass) are merged into `integration` (`d39eb73`). The source is `1.1.0-preview.19`, unpublished. A follow-up Claude PR, [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22), adds release lineage (INT-051 first slice) and the reviewed-client-scope digest (INT-056); it waits for Astra/Codex review. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 ## Owner delegation of commits and merges — 7 October 2026
 
@@ -36,7 +36,7 @@ The usability pass is merged too:
 
 The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register records each CLA ID's status.
 
-**Open follow-up PR (Claude, needs Astra/Codex review before merge):**
+**Open follow-up PR [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22) (Claude, needs Astra/Codex review before merge):**
 - Release lineage into 2026.09.30 (INT-051 first slice, INT-057).
   - `standards/lineage/` is verified at build and load.
   - Assessment explains each earlier-release ownership record whose control ID now means something else, and flags records from releases without lineage.
@@ -44,7 +44,7 @@ The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register
 - `ReviewedClientScope.Digest` (INT-056, CLA-17): only company, notes and edit times are non-material.
 
 **Next, in order:**
-1. Review and merge that follow-up PR.
+1. Review and merge PR #22.
 2. The upgrade impact report: one capture assessed under the source and target catalogues, shown apart from tenant drift (rest of INT-051).
 3. INT-049 jobs and observations.
 4. INT-050 dispositions and cutover cases, each in its own PR, consuming `ReviewedClientScope.Digest`.

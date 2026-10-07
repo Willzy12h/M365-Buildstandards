@@ -6,7 +6,7 @@ The [6 October multi-perspective review](FINAL-PRODUCT-REVIEW-2026.10.06.md) pro
 
 ## Current continuation
 
-PR #19, #20 and #21 are merged into `integration` (7 October 2026). Claude's follow-up PR adds release lineage and the reviewed-scope digest. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md); [HANDOVER](HANDOVER.md) has the merge delegation and what comes next.
+PR #19, #20 and #21 are merged into `integration` (7 October 2026). Claude's follow-up PR #22 adds release lineage and the reviewed-scope digest. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md); [HANDOVER](HANDOVER.md) has the merge delegation and what comes next.
 
 ## Repositories
 
