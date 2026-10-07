@@ -290,3 +290,16 @@ Choices made where the contract was silent:
 - A Pass may cite an assessment only when its finding for that instance is Compliant or RequiresManualReview. A finding of missing, partial, not enforced, unable to assess, licence unavailable, compliant with a deviation or not applicable would contradict the claim, so the citation is refused and nothing is written. Fail, Unknown and Pending may cite any finding. An attestation still cannot turn a failed collection into verified configuration.
 - Dispositions and cutover revisions keep their existing evidence kinds. Citing an assessment changes no completion rule: a Pass still needs stored evidence and acceptance to verify a requirement.
 - Older assessments written before `snapshotIntegrity` existed cannot be cited. Reassess the capture instead.
+
+## INT-066 — One publisher for every release, pinned per version (R12, CLA-20261006-09)
+
+`publish-preview18.yml` and `build/Publish-ValidatedPreview.py` hard-coded Preview.18's source, run, SHA-256, file count and notes, so every later release needed a new workflow. They are replaced by `publish-release.yml` and `build/Publish-ValidatedRelease.py --version <version>`, which read the same identities from a reviewed pin, `build/releases/<version>.json`, with notes in `build/releases/<version>.md`. Every check the Preview.18 publisher made is kept: the run is a successful original-repository `build.yml` push of the pinned commit on the pinned branch, with successful build/standard/secrets jobs and unexpired review artifacts; the ZIP matches the recorded SHA-256 and its sidecar; extracted-package evidence and `VERSION.json` identify the same source, version, standard, clean tree and .NET 10 runtime; published releases and tags are never replaced or repointed; uploaded assets are verified by server digest.
+
+Choices:
+- A pin is still a reviewed source change, so publishing a new version cannot skip review. Pins are validated strictly (unknown or missing members, malformed SHAs/run IDs/versions, Markdown paths outside the repository) in CI, with negative tests.
+- Dispatches are refused unless they run from `main` or `integration`, so an unreviewed pin on a feature branch cannot be published even if the `release` environment has no reviewers yet.
+- The version input reaches the script through an environment variable, never an expression inside `run`, so input text cannot execute.
+- Prerelease is derived from the version (`-preview.` publishes as a prerelease, not latest); a version without it publishes as the latest release.
+- Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
+- Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
+

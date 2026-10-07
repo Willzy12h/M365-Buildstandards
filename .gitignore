@@ -43,3 +43,6 @@ logs/
 config/toolkit.settings.local.json
 standards/manifest.json
 *.tmp
+
+# Python bytecode from build scripts
+__pycache__/

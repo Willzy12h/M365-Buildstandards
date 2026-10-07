@@ -36,6 +36,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-07 | Claude | M365-Buildstandards | interface and evidence and reporting: workflow surfaces for INT-049/050 (desktop Jobs page, read-only `bdit jobs`/`bdit job`, completion projection) | `claude/project-thread-gxrkmr` (from integration `9ca5ebb`) | #30 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | interface: recording cutover revisions from the Jobs page (INT-050 surfaces, second slice) | `claude/project-thread-gxrkmr` (from integration `0105676`) | #31 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | workflow: outcomes cite a stored assessment as evidence (INT-049 assessment references) | `claude/project-thread-gxrkmr` (from integration `5ce7f56`) | #32 | Merged |
+| 2026-10-07 | Claude | M365-Buildstandards | packaging: one reviewed-pin publisher for every release (INT-066); feedback register state reconciliation | `claude/project-thread-fjnhfz` (from integration `2536216`) | #34 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
