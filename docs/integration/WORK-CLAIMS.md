@@ -32,7 +32,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-049 job and observation records (store, validation, read-only projection) | `claude/project-thread-gxrkmr` (from integration `34dbb72`) | #25 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-050 legacy dispositions (store, validation, projection), first slice | `claude/project-thread-gxrkmr` (from integration `3e021e1`) | #27 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-050 cutover cases (store, stage rules, projection), second slice | `claude/project-thread-gxrkmr` (from integration `0ebe7a2`) | #28 | Merged |
-| 2026-10-07 | Claude | M365-Buildstandards | packaging: GitHub Actions off Node 20 (build and publisher workflows), SHA-pinned | `claude/project-thread-gxrkmr` (from integration `7edadb8`) | #29 | Open |
+| 2026-10-07 | Claude | M365-Buildstandards | packaging: GitHub Actions off Node 20 (build and publisher workflows), SHA-pinned | `claude/project-thread-gxrkmr` (from integration `7edadb8`) | #29 | Merged |
+| 2026-10-07 | Claude | M365-Buildstandards | interface and evidence and reporting: workflow surfaces for INT-049/050 (desktop Jobs page, read-only `bdit jobs`/`bdit job`, completion projection) | `claude/project-thread-gxrkmr` (from integration `9ca5ebb`) | #30 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 

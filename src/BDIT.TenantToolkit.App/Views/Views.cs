@@ -10,5 +10,6 @@ public partial class PlanView : UserControl { public PlanView() => InitializeCom
 public partial class DeployView : UserControl { public DeployView() => InitializeComponent(); }
 public partial class HistoryView : UserControl { public HistoryView() => InitializeComponent(); }
 public partial class ManualChecksView : UserControl { public ManualChecksView() => InitializeComponent(); }
+public partial class JobsView : UserControl { public JobsView() => InitializeComponent(); }
 public partial class StandardView : UserControl { public StandardView() => InitializeComponent(); }
 public partial class SettingsView : UserControl { public SettingsView() => InitializeComponent(); }

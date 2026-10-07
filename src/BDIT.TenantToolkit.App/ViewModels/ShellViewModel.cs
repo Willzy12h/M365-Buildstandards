@@ -75,6 +75,7 @@ public sealed class ShellViewModel : ObservableObject
         NavItems.Add(new NavItem { Key = "automation", Step = "+", Title = "Policy automation" });
         NavItems.Add(new NavItem { Key = "recovery", Step = "", Title = "Undo and recovery" });
         NavItems.Add(new NavItem { Key = "history", Step = "", Title = "Evidence and drift" });
+        NavItems.Add(new NavItem { Key = "jobs", Step = "", Title = "Jobs and completion" });
         NavItems.Add(new NavItem { Key = "checks", Step = "", Title = "Manual checks" });
         NavItems.Add(new NavItem { Key = "standard", Step = "", Title = "Build Standard" });
         NavItems.Add(new NavItem { Key = "settings", Step = "", Title = "Settings and diagnostics" });
@@ -90,6 +91,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["plan"] = new PlanViewModel(this);
         _pages["deploy"] = new DeployViewModel(this);
         _pages["history"] = new HistoryViewModel(this);
+        _pages["jobs"] = new JobsViewModel(this);
         _pages["checks"] = new ManualChecksViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);

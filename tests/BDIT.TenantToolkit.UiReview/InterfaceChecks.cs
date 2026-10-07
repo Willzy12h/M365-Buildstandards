@@ -509,6 +509,9 @@ internal static partial class Program
         ("HistoryViewModel.ExportDriftXlsxCommand", Press),
         ("HistoryViewModel.OpenSnapshotCommand", Press),
 
+        ("JobsViewModel.OpenJobCommand", Press),
+        ("JobsViewModel.RecordCommand", Press),
+
         ("ManualChecksViewModel.SaveCommand", Press),
 
         ("StandardViewModel.SelectReleaseCommand", Press),
@@ -656,6 +659,15 @@ internal static partial class Program
         ["HistoryViewModel.ExportDriftHtmlCommand"] = CompareCaptures,
         ["HistoryViewModel.ExportDriftMarkdownCommand"] = CompareCaptures,
         ["HistoryViewModel.ExportDriftXlsxCommand"] = CompareCaptures,
+        ["JobsViewModel.RecordCommand"] = shell =>
+        {
+            var vm = shell.Page<JobsViewModel>();
+            vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
+            vm.SelectedRequirement = vm.Requirements.FirstOrDefault(r => r.Outcome.Length == 0) ?? vm.Requirements.FirstOrDefault();
+            vm.RecordKind = JobsViewModel.OutcomeKind;
+            vm.Status = "Pass";
+            vm.Reason = "Synthetic outcome for the offline harness.";
+        },
         ["ManualChecksViewModel.SaveCommand"] = shell =>
         {
             var vm = shell.Page<ManualChecksViewModel>();

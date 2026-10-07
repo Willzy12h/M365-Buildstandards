@@ -8,6 +8,7 @@ using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Standards;
+using BDIT.TenantToolkit.Engine.Workflow;
 
 namespace BDIT.TenantToolkit.Cli;
 
@@ -31,7 +32,7 @@ public static class Program
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow"
     };
 
     public static int Main(string[] args)
@@ -67,6 +68,8 @@ public static class Program
             "standard" => StandardDefinition(options),
             "verify-restore" => VerifyRestore(options),
             "upgrade-impact" => UpgradeImpact(options),
+            "jobs" => Jobs(options),
+            "job" => Job(options),
             "help" or "--help" or "-h" => Help(),
             _ => Unknown(command)
         };
@@ -109,6 +112,15 @@ public static class Program
                   traced through the shipped release lineage. Describes the standard, not the tenant.
                   Needs this installation's client record for the snapshot's tenant.
                   Formats: html, markdown, json, csv, xlsx. Default html.
+
+              bdit jobs --tenant <id> [--snapshot <file>] [--release <r>] [--root <dir>]
+                  List the tenant's jobs with their completion claim. Read-only: never records anything.
+
+              bdit job --tenant <id> --job <id> [--snapshot <file>] [--release <r>] [--root <dir>]
+                  Show one job: each requirement's state and reasons, decisions, cutover cases and any
+                  unattached or unreadable records. A complete job grants no authority to change a tenant.
+                  --snapshot names the current capture the recorded objects are checked against;
+                  without it that check is skipped and the output says so.
 
               bdit verify-restore --folder <dir>
                   Re-check a separately restored evidence folder against its recorded checksums.
@@ -222,6 +234,74 @@ public static class Program
         Console.WriteLine("Report: " + written);
         return 0;
     }
+
+    private static int Jobs(IReadOnlyDictionary<string, string> options)
+    {
+        var (context, standard, profile, capture) = WorkflowContext(options);
+        var (jobs, unreadable) = context.Evidence.LoadJobs(profile.TenantId);
+        Console.WriteLine($"{profile.Company} · standard {standard.Release} · {jobs.Count} job(s)" + CaptureNote(capture));
+        foreach (var job in jobs.OrderBy(j => j.CreatedAt, StringComparer.Ordinal))
+        {
+            var projection = JobProjection.Build(context.Evidence, profile.TenantId, job.Id, standard, profile, DateTimeOffset.UtcNow, capture);
+            var completion = JobCompletion.Build(context.Evidence, projection, standard, profile, DateTimeOffset.UtcNow);
+            Console.WriteLine($"{job.Id}  {job.CreatedAt}  {JobCompletion.Words(job.Intention)} · owner {job.Owner} · {completion.Claim}");
+        }
+        foreach (var u in unreadable) Console.WriteLine($"UNREADABLE {u.File}: {u.Problem}");
+        return 0;
+    }
+
+    private static int Job(IReadOnlyDictionary<string, string> options)
+    {
+        var (context, standard, profile, capture) = WorkflowContext(options);
+        var jobId = Require(options, "job");
+        var now = DateTimeOffset.UtcNow;
+        var projection = JobProjection.Build(context.Evidence, profile.TenantId, jobId, standard, profile, now, capture);
+        var completion = JobCompletion.Build(context.Evidence, projection, standard, profile, now);
+        var job = projection.Job;
+
+        Console.WriteLine($"{profile.Company} · job {job.Id} · {JobCompletion.Words(job.Intention)} · owner {job.Owner} · opened {job.CreatedAt} by {job.Actor}");
+        Console.WriteLine($"Standard {job.StandardRelease} (now {standard.Release})" + CaptureNote(capture));
+        Console.WriteLine(completion.Claim);
+        foreach (var blocker in completion.Blockers) Console.WriteLine("  JOB: " + blocker);
+        Console.WriteLine();
+        foreach (var r in completion.Requirements)
+        {
+            var detail = string.Join(" · ", new[] { r.Outcome.Length > 0 ? "outcome " + r.Outcome : "", r.Decision.Length > 0 ? "decision " + JobCompletion.Words(r.Decision) : "",
+                r.Cutover.Length > 0 ? "cutover " + r.Cutover : "" }.Where(t => t.Length > 0));
+            Console.WriteLine($"{r.InstanceKey,-22} {JobCompletion.Words(r.State),-20} {detail}");
+            foreach (var reason in r.Reasons) Console.WriteLine("    " + reason);
+        }
+        foreach (var o in projection.Unattached) Console.WriteLine($"UNATTACHED observation {o.Id} for {o.InstanceKey} (not counted)");
+        foreach (var d in projection.UnattachedDispositions) Console.WriteLine($"UNATTACHED decision {d.Id} for {d.InstanceKey} (not counted)");
+        foreach (var c in projection.UnattachedCutovers) Console.WriteLine($"UNATTACHED cutover revision {c.Id} for {c.InstanceKey} (not counted)");
+        if (projection.LegacyAttestations.Count > 0)
+            Console.WriteLine($"{projection.LegacyAttestations.Count} legacy manual check(s) are unbound attestations and count for nothing here.");
+        return 0;
+    }
+
+    /// <summary>The installation, standard, stored client record and optional current capture a job is projected against.</summary>
+    private static (Context Context, StandardCatalogue Standard, TenantProfile Profile, TenantSnapshot? Capture) WorkflowContext(IReadOnlyDictionary<string, string> options)
+    {
+        var tenant = Require(options, "tenant");
+        if (!ProfileValidator.IsGuid(tenant)) throw new ConfigurationException("--tenant is the tenant ID, a GUID.");
+        var context = Context.Open(options);
+        var standard = context.Standard();
+        var profile = context.Profile(tenant)
+            ?? throw new ConfigurationException($"No client record for tenant {tenant} was found under {context.Paths.DataDirectory}. Jobs are projected against that client's inputs.");
+        TenantSnapshot? capture = null;
+        if (options.TryGetValue("snapshot", out var file))
+        {
+            if (!File.Exists(file)) throw new ConfigurationException($"Snapshot file not found: {file}");
+            capture = AssessmentContext.ReadPrimary(file);
+            if (!string.Equals(capture.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
+                throw new TenantMismatchException("The snapshot belongs to another tenant.");
+        }
+        return (context, standard, profile, capture);
+    }
+
+    private static string CaptureNote(TenantSnapshot? capture) => capture is null
+        ? " · no current capture given, so recorded objects were not checked against one"
+        : $" · checked against capture {capture.Id} ({capture.CapturedAt})";
 
     private static int VerifyRestore(IReadOnlyDictionary<string, string> options)
     {
