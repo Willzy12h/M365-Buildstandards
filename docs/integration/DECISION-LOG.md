@@ -165,3 +165,11 @@ Claude's Preview.18 review (CLA-20261006-01, -04, -05, -06, -10) led to these ad
 ## INT-055 — Owner delegation of commits and merges (7 October 2026)
 
 William delegated commits and merges to the agents, keeping approval of promotion to `main`, tags, releases, publication, repository settings and live tenant actions. The conditions are in [HANDOVER](HANDOVER.md#owner-delegation-of-commits-and-merges--7-october-2026). On 7 October he approved Claude merging PR #21, #20 and #19 once CI is green.
+
+## INT-056 — Non-material client profile fields for reviewed-scope validity (CLA-20261006-17)
+
+Follow-up to INT-049/050 now that PR #20 is merged. Their records bind a digest of the reviewed client scope. A digest of the whole profile would mark every observation and disposition `NeedsReview` after a harmless relabel, which invites rubber-stamping. The digest (`ReviewedClientScope.Digest`) therefore leaves out only `company`, `notes`, `createdAt` and `updatedAt`. Every other field stays material: tenant, domain, application overrides, parameters, offices, policy inputs, group IDs, emergency and exclusion accounts, including exclusion display names. Adding a field to the non-material list needs its own decision. A label-only edit keeps the digest; any material change alters it (tests in `ReviewedClientScopeTests`).
+
+## INT-057 — Release lineage, initial read-only slice (INT-051, CLA-20261006-07)
+
+`standards/lineage/lineage-2026.09.30.json` records how each control of 2026.09.9, .10, .11 and .12 relates to 2026.09.30. It pins every catalogue by the digest in `standards/manifest.json` and is itself listed in `standards/lineage/manifest.json`; the build and the loader refuse a changed, unlisted or mis-pinned lineage file. A control not listed under a source keeps the same requirement under the same ID; a test fails if that rule would cover a control that left 2026.09.30 or whose name changed. Shared assessment (desktop and CLI) adds a "Release lineage" explanation to the limitations and to the finding of each control whose ownership record came from an earlier release and means something else now; a record from a release with no lineage is flagged for review. Nothing is rebound, moved or dropped, and no finding status or plan changes. The upgrade impact report (one capture assessed under both catalogues) is the next slice.

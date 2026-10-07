@@ -34,4 +34,35 @@ foreach ($name in $listed.Keys) {
 if ($problems.Count -gt 0) {
     throw ("Standards manifest verification failed. A published catalogue must not change; a new release needs a reviewed manifest commit.`n" + ($problems -join "`n"))
 }
-Write-Host ("Standards manifest verified: {0} release files match." -f $present.Count)
+
+# Release lineage (INT-051) has its own manifest. Each lineage file must be listed and match, and must pin catalogue
+# digests that agree with the standards manifest above.
+$lineageDirectory = Join-Path $StandardsDirectory 'lineage'
+$lineageCount = 0
+if (Test-Path -LiteralPath $lineageDirectory -PathType Container) {
+    $lineageManifestPath = Join-Path $lineageDirectory 'manifest.json'
+    if (-not (Test-Path -LiteralPath $lineageManifestPath -PathType Leaf)) { throw 'standards/lineage/manifest.json is missing.' }
+    $lineageManifest = Get-Content -LiteralPath $lineageManifestPath -Raw | ConvertFrom-Json
+    if ($lineageManifest.algorithm -ne 'SHA-256' -or $null -eq $lineageManifest.files) { throw 'Lineage manifest must declare SHA-256 file digests.' }
+    $lineageListed = @{}
+    foreach ($property in $lineageManifest.files.PSObject.Properties) { $lineageListed[$property.Name] = ([string]$property.Value).ToLowerInvariant() }
+    $lineageFiles = @(Get-ChildItem -LiteralPath $lineageDirectory -Filter '*.json' -File | Where-Object { $_.Name -ne 'manifest.json' })
+    foreach ($file in $lineageFiles) {
+        if (-not $lineageListed.ContainsKey($file.Name)) { $problems += "lineage/$($file.Name) is not listed in the lineage manifest"; continue }
+        $actual = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -ne $lineageListed[$file.Name]) { $problems += "lineage/$($file.Name) does not match its manifest digest"; continue }
+        $lineage = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+        foreach ($endpoint in @($lineage.target) + @($lineage.sources)) {
+            $pinned = $listed[[string]$endpoint.release + '.json']
+            if ($pinned -ne ([string]$endpoint.sha256).ToLowerInvariant()) { $problems += "lineage/$($file.Name) pins $($endpoint.release) to bytes other than the published catalogue" }
+        }
+    }
+    foreach ($name in $lineageListed.Keys) {
+        if (-not ($lineageFiles | Where-Object { $_.Name -eq $name })) { $problems += "lineage/$name is listed but missing" }
+    }
+    $lineageCount = $lineageFiles.Count
+}
+if ($problems.Count -gt 0) {
+    throw ("Standards manifest verification failed.`n" + ($problems -join "`n"))
+}
+Write-Host ("Standards manifest verified: {0} release files and {1} lineage files match." -f $present.Count, $lineageCount)

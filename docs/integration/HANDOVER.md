@@ -1,7 +1,6 @@
 # Handover and priorities
 
-Current user continuation: approved A–G and integrated default/settings exports, implemented incrementally as Preview.18 in PR #19. Read [PRODUCT-COMPLETION-PLAN.md](PRODUCT-COMPLETION-PLAN.md), [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). PR #20 carries the separate persisted-contract decisions and must merge before dependent workflow/backfill/lineage implementation. Live tenant actions and final publication remain separately approved. Older Preview.15–17 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
-
+**Current state, 7 October 2026:** PR #19 (Preview.18 work), PR #20 (INT-049–051 contracts) and PR #21 (Claude's review fixes and usability pass) are merged into `integration` (`d39eb73`). The source is `1.1.0-preview.19`, unpublished. A follow-up Claude PR, [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22), adds release lineage (INT-051 first slice) and the reviewed-client-scope digest (INT-056); it waits for Astra/Codex review. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 ## Owner delegation of commits and merges — 7 October 2026
 
@@ -15,21 +14,49 @@ William (repository owner) said on 7 October 2026: "I never want to do the commi
 - Still needs William's explicit approval each time: promoting `integration` to `main`, tags, releases, running a publish workflow, repository or branch-protection settings, and any live tenant action. Agents never approve a pull request on William's behalf.
 - Everything else in AGENTS.md and AGENT-COORDINATION still applies, including never pushing to the other agent's branch.
 
-The first use is the merge of PR #21, PR #20 and PR #19, set out in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md).
+First use, 7 October 2026, with William's explicit approval: Claude merged PR #20 (`bf8e049`, integration CI run 37593659305 green), then PR #21 (`d39eb73`) after exact-head CI at `a515e6a` passed (run 37593722744: 928 Engine + 119 App tests, harness 42 layouts / 79 commands / 0 binding issues / 0 tenant calls, PowerShell 5.1 packaging, fresh 297-file package). PR #21 had merged `integration` in to resolve the one DECISION-LOG conflict on Claude's own branch, so PR #19's unchanged commits arrived with it and GitHub marked #19 merged. Nothing was pushed to Astra's branch.
 
-## Current continuation — Claude review fixes, PR #21 (7 October 2026)
+## Current continuation — after the 7 October merges
 
-[PR #21](https://github.com/Willzy12h/M365-Buildstandards/pull/21) (draft, branch `claude/m365-buildstandards-preview-review-mjr04x`) is stacked on PR #19 head `2668d00`. It holds Claude's independent Preview.18 review, [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md) (CLA-20261006-01…17), and the implemented fixes. Code head `4202f02` passed Windows CI run 37542836818: 918 Engine + 115 App tests, 42 native layouts / 79 commands, PowerShell 5.1 packaging and a fresh 297-file package. Later commits change documentation only. Nothing was merged, approved or published by this work, and no tenant action took place.
+**Merged into `integration`:** Claude's Preview.18 review ([CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), CLA-20261006-01…17) and its fixes:
+- Evidence integrity in every result.
+- Stored evidence judged as of its capture.
+- An honest capability matrix.
+- Manifest verification at build.
+- Verified hand-off: a SHA-256 fingerprint, adoption into an empty workspace and `bdit verify-restore`.
+- A separate, protected publisher.
+- Opt-in support sections (CLA-10, field list approved by William).
 
-What changed, in brief (the CHANGELOG `Unreleased` entry and the review's "Implementation status" have the detail):
-- Assessment refuses a modified primary snapshot and every report states evidence integrity (Intact, Modified or NotRecorded).
-- Stored evidence is judged as of its capture, including later DNS refreshes, so a later re-assessment gives the same findings.
-- The capability matrix shows each control's real read route and licence; labels say "candidate recipes (inert)".
-- The build verifies the committed standards manifest (`build/Test-StandardsManifest.ps1`) and no longer regenerates it.
-- Backups go to `transfers/` with a `.sha256` sidecar. Restore and adoption check a trusted archive SHA-256 received separately, or an explicit logged acknowledgement. Settings walks through handing over and receiving a workspace (adopt, or restore to a separate folder and re-check it); the CLI adds `bdit verify-restore --folder`. Unknown-write blockers survive; no approval or execution authority is restored.
-- Publishing has its own workflow with `environment: release`; actions are pinned by SHA. Definition exports are timestamped with a sidecar.
+The usability pass is merged too:
+- Guided hand-off and receive steps on Settings.
+- Task-specific progress titles, and results that give the next step.
+- The Quick Connect session notice.
+- More room in plan review.
+- A short first-assessment path on Overview and in the start guide.
 
-What is next: review PR #21, merge PR #21, #20 and #19 under the delegation above, then usability and ease of use. The prioritised backlog (U1–U10) and a paste-ready prompt for the next agent are in [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Still open and owned elsewhere: CLA-10 support-bundle opt-ins (privacy owner), CLA-17 decision row, CLA-07 lineage messaging (after PR #20 is merged), repository settings for the `release` environment and immutable releases (owner), the next preview version and the missing Preview.18 CHANGELOG entry (release owner), recording CLA-01…17 in the feedback register, and all human/live acceptance.
+The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register records each CLA ID's status.
+
+**Open follow-up PR [#22](https://github.com/Willzy12h/M365-Buildstandards/pull/22) (Claude, needs Astra/Codex review before merge):**
+- Release lineage into 2026.09.30 (INT-051 first slice, INT-057).
+  - `standards/lineage/` is verified at build and load.
+  - Assessment explains each earlier-release ownership record whose control ID now means something else, and flags records from releases without lineage.
+  - Nothing is moved or rebound.
+- `ReviewedClientScope.Digest` (INT-056, CLA-17): only company, notes and edit times are non-material.
+
+**Next, in order:**
+1. Review and merge PR #22.
+2. The upgrade impact report: one capture assessed under the source and target catalogues, shown apart from tenant drift (rest of INT-051).
+3. INT-049 jobs and observations.
+4. INT-050 dispositions and cutover cases, each in its own PR, consuming `ReviewedClientScope.Digest`.
+5. Further usability from real engineer feedback.
+6. Upgrade the GitHub Actions still on Node 20. CI already forces them onto Node 24 with a warning. Do it as one reviewed PR that also checks `publish-preview18.yml`.
+
+**Owned by others:**
+- `release` environment reviewers and immutable releases (William, in repository settings).
+- Publishing Preview.19 (William's approval).
+- Named support and custodian owners.
+- Human Narrator, keyboard-only, physical scaling and newcomer acceptance.
+- All live tenant acceptance.
 
 ## Architecture roadmap
 

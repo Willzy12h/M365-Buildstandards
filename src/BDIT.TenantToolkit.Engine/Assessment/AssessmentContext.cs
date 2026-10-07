@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Exchange;
+using BDIT.TenantToolkit.Engine.Standards;
 
 namespace BDIT.TenantToolkit.Engine.Assessment;
 
@@ -16,7 +17,30 @@ public static class AssessmentContext
     {
         var mappings = store.LoadMappings(profile.TenantId);
         var deviations = store.LoadDeviations(profile.TenantId);
-        return engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange, evidenceTime);
+        var result = engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange, evidenceTime);
+        LineageReview.Annotate(result, LineageReview.Review(mappings, standard, LoadLineage(store.Paths.StandardsDirectory, standard, result)));
+        return result;
+    }
+
+    /// <summary>
+    /// The shipped lineage into the assessed release, or null. Lineage only explains; a lineage file that fails its
+    /// integrity check is reported and ignored rather than stopping the assessment, so every earlier-release record is
+    /// then flagged for review.
+    /// </summary>
+    private static ReleaseLineage? LoadLineage(string standardsDirectory, StandardCatalogue standard, AssessmentResult result)
+    {
+        try
+        {
+            if (!File.Exists(Path.Combine(standardsDirectory, StandardsManifest.FileName))) return null;
+            var lineage = ReleaseLineage.Load(standardsDirectory, StandardsManifest.Load(standardsDirectory), standard.Release);
+            // A catalogue imported under a published release name is not the published bytes the lineage describes.
+            return lineage is not null && string.Equals(lineage.Target.Sha256, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase) ? lineage : null;
+        }
+        catch (IntegrityException ex)
+        {
+            result.Limitations.Add("Release lineage could not be verified and was not used: " + ex.Message);
+            return null;
+        }
     }
 
     /// <summary>
