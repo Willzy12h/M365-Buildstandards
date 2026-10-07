@@ -1,3 +1,7 @@
+## Proposed product workflow contracts — 6 October 2026
+
+INT-049 (job/attestation records), INT-050 (legacy dispositions/cutover cases) and INT-051 (release lineage/impact) are proposed in PRODUCT-CONTRACT-DECISIONS-2026.10.06.md. User approved A–G source development. The dedicated decision PR must merge before dependent implementation; this entry records a proposal, not a settled contract or live authorisation. Existing snapshot/plan/run/mapping/catalogue schemas and historical bytes remain unchanged.
+
 # Integration decisions
 
 ## Confirmed safety review F1–F5 — 21 September 2026
