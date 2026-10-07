@@ -342,6 +342,30 @@ public sealed class CutoverWorkflowTests : IDisposable
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Later_stages_cannot_hide_missing_candidate_evidence(bool modify)
+    {
+        var head = RetirementReviewed();
+        Later();
+        var fresh = Capture(old: false, created: true, at: _clock.UtcNow.AddMinutes(-1), save: true);
+        Record(Closing(head, fresh));
+        Assert.True(Assert.Single(Project(fresh).Cutovers).Closed);
+        var runFile = Directory.EnumerateFiles(Path.Combine(_store.TenantDirectory(TestData.TenantA), "runs"), "*.json").Single();
+        if (modify)
+        {
+            var node = ToolkitJson.ParseObject(File.ReadAllText(runFile));
+            node["status"] = RunStatus.Error;
+            File.WriteAllText(runFile, node.ToJsonString());
+        }
+        else File.Delete(runFile);
+
+        var projected = Assert.Single(Project(fresh).Cutovers);
+        Assert.False(projected.Closed);
+        Assert.Contains(ReviewReason.EvidenceMissing, projected.ReviewReasons);
+    }
+
+    [Theory]
     [InlineData("member")]
     [InlineData("tamper")]
     [InlineData("schema")]
