@@ -47,7 +47,7 @@ The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register
 
 **Next, in order:**
 1. An independent Astra/Codex review of PR #22–#28. They merged on William's approval without the other agent's review.
-2. Workflow surfaces: desktop and CLI for jobs, observations, dispositions and cutover cases, references to stored assessments, and the completion claim (INT-049 and INT-050 follow-up slices).
+2. Workflow surfaces, remaining slices: recording cutover revisions from the desktop, and references to stored assessments. The completion projection, the Jobs page and `bdit jobs`/`bdit job` landed in PR #30 (INT-063).
 3. Further usability from real engineer feedback.
 
 **Owned by others:**

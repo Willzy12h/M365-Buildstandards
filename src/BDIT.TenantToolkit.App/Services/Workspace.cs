@@ -20,6 +20,7 @@ using BDIT.TenantToolkit.Engine.Planning;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Engine.Recovery;
 using BDIT.TenantToolkit.Engine.Standards;
+using BDIT.TenantToolkit.Engine.Workflow;
 using BDIT.TenantToolkit.Graph;
 using BDIT.TenantToolkit.Graph.Setup;
 
@@ -810,6 +811,69 @@ public sealed class Workspace : ObservableObject
         };
         Evidence.SaveManualChecks(register);
         Notify();
+    }
+
+    // ---- jobs (INT-049/050) -------------------------------------------------------------------------------------------
+
+    /// <summary>Who a workflow record names as its actor: the signed-in account, or a stated unverified local operator.</summary>
+    public string Actor => Session?.Account ?? "local operator - not independently verified";
+
+    public (IReadOnlyList<TenantJob> Jobs, IReadOnlyList<UnreadableRecord> Unreadable) LoadJobs() =>
+        Profile is null ? (Array.Empty<TenantJob>(), Array.Empty<UnreadableRecord>()) : Evidence.LoadJobs(Profile.TenantId);
+
+    /// <summary>
+    /// Projects a job against the loaded standard, the selected client's inputs and, when it is a saved capture of this
+    /// tenant, the capture in view. Computing it writes nothing and a complete job grants no authority.
+    /// </summary>
+    public (JobProjection Projection, JobCompletion Completion) ProjectJob(string jobId)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var standard = RequireStandard();
+        var now = DateTimeOffset.UtcNow;
+        var projection = JobProjection.Build(Evidence, profile.TenantId, jobId, standard, profile, now, SavedCapture());
+        return (projection, JobCompletion.Build(Evidence, projection, standard, profile, now));
+    }
+
+    /// <summary>The capture in view when it is saved for the selected client's tenant; records can only pin a saved capture.</summary>
+    public TenantSnapshot? SavedCapture() =>
+        Profile is not null && Snapshot is not null && string.Equals(Snapshot.TenantId, Profile.TenantId, StringComparison.OrdinalIgnoreCase)
+            && Evidence.LoadSnapshot(Profile.TenantId, Snapshot.Id) is not null ? Snapshot : null;
+
+    /// <summary>The stable requirement identity for a new record: the existing line's, else shipped lineage's, else the control ID.</summary>
+    public string SemanticIdFor(string controlId, string? existing)
+    {
+        var standard = RequireStandard();
+        ReleaseLineage? lineage = null;
+        try { lineage = ReleaseLineage.Load(Paths.StandardsDirectory, StandardsManifest.Load(Paths.StandardsDirectory), standard.Release); }
+        catch (ToolkitException ex) { Logger.Warn("Jobs", "Release lineage could not be read; new records use the control ID as their identity. " + ex.Message); }
+        return SemanticIdentity.Resolve(controlId, lineage, existing);
+    }
+
+    public TenantJob OpenJob(string intention, string owner, string notes)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var job = new JobWorkflow(Evidence, SystemClock.Instance).OpenJob(profile, RequireStandard(), intention, owner, notes, Actor, SavedCapture()?.Id);
+        Logger.Info("Jobs", $"Job {job.Id} opened ({job.Intention}).", profile.TenantId);
+        Notify();
+        return job;
+    }
+
+    public TenantObservation RecordObservation(string jobId, ObservationRequest request)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var observation = new JobWorkflow(Evidence, SystemClock.Instance).Record(profile.TenantId, jobId, profile, RequireStandard(), request, Actor);
+        Logger.Info("Jobs", $"Outcome {observation.Status} recorded for {observation.InstanceKey} in job {jobId}.", profile.TenantId, observation.ControlId);
+        Notify();
+        return observation;
+    }
+
+    public TenantDisposition RecordDecision(string jobId, DispositionRequest request)
+    {
+        var profile = Profile ?? throw new ToolkitException("Select a client first.");
+        var disposition = new JobWorkflow(Evidence, SystemClock.Instance).Decide(profile.TenantId, jobId, profile, RequireStandard(), request, Actor);
+        Logger.Info("Jobs", $"Decision {disposition.Decision} recorded for {disposition.InstanceKey} in job {jobId}.", profile.TenantId, disposition.ControlId);
+        Notify();
+        return disposition;
     }
 
     // ---- drift ---------------------------------------------------------------------------------------------------------

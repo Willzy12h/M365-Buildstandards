@@ -18,6 +18,7 @@
     <DataTemplate DataType="{x:Type vm:DeployViewModel}"><views:DeployView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><views:HistoryView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ManualChecksViewModel}"><views:ManualChecksView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:JobsViewModel}"><views:JobsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:StandardViewModel}"><views:StandardView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:AutomationViewModel}"><views:AutomationView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>

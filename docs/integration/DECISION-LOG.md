@@ -243,3 +243,31 @@ Choices made where the contract was silent:
 - Retirement is performed outside the toolkit and proven by a fresh capture.
 - The "fresh assessment" at closure is that capture; stored assessment references remain an INT-049 follow-up slice.
 - Residual exceptions are limited to the case's own control.
+
+## INT-063 — Workflow surfaces and the completion projection, first slice (INT-049/050)
+
+Adds the completion projection to the engine and the first desktop and CLI surfaces over INT-060 to INT-062. Surfaces add no authority. Nothing on them reads or writes a tenant, and a complete job grants no permission to plan or deploy.
+
+The completion projection (`JobCompletion`) lists every applicable requirement instance of the current standard and client inputs. Each one is in one of four states:
+- **Verified:** a current, in-date, unchallenged Pass that relies on stored evidence, with no open decision or cutover case.
+- **Approved departure:** a current, settled approved-departure disposition. It is counted and named as an exception, never as verification. The claim reads "Complete with approved departures … (not verified)".
+- **Not applicable:** an in-date `NotApplicable` entry in the deviation register, for a requirement with no records in the job. It is left out of the count.
+- **Outstanding:** everything else. This covers Pending, Fail, Unknown, `NeedsReview`, an unsettled decision and an open, escalated or unreadable cutover case.
+
+A job is complete only when nothing is outstanding and nothing blocks the job as a whole. The job is blocked by any of these:
+- a job-level review reason;
+- an unreadable attached record;
+- an unreadable deviation register;
+- records for an instance that is no longer a requirement.
+
+No deferral closure policy exists, so deferrals never complete a job, as the contract's initial default requires.
+
+Surfaces:
+- **Desktop:** a **Jobs and completion** page. It opens a job, shows each requirement's state, reasons and history, and records an outcome or a legacy decision through `JobWorkflow`. A revision automatically supersedes the current record. When a requirement has history but no single current record, the page refuses and says a deliberate review is needed.
+- **CLI:** `bdit jobs` and `bdit job` project jobs read-only. `--snapshot` names the current capture. Without it, the material check is skipped and the output says so. The conformance tests now forbid `JobWorkflow` and every workflow writer in the runner.
+
+Choices made where the contract was silent:
+- Retaining external coverage is a decision, not an outcome. The requirement still needs an accepted Pass.
+- A Pass with no stored evidence does not verify a requirement.
+- A new record's semantic ID is the existing history's, or else the one the shipped lineage into the release declares for the control, or else the control ID.
+- Recording cutover revisions from the desktop, and references to stored assessments, are the next slices. Cutover cases are shown on the page and in the CLI but are not yet recorded there.

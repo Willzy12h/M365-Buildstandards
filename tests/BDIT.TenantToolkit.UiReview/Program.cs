@@ -81,7 +81,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "checks" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -469,6 +469,24 @@ internal static partial class Program
             // Exercise actual bound prerequisite content. ENR-007 has its manual procedure
             // in Implementation, whereas Hello has the prerequisite entries this check expands.
             vm.SelectedControl = vm.Controls.First(c => c.ControlId == "CFG-WIN-003");
+        }
+        if (key == "jobs")
+        {
+            // One synthetic job with one recorded outcome, so the page renders a projection rather than an empty table.
+            var vm = shell.Page<JobsViewModel>();
+            if (vm.Jobs.Count == 0)
+            {
+                var job = shell.Workspace.OpenJob("NewBuild", "engineer@example.invalid", "Synthetic job for the offline harness.");
+                var first = shell.Workspace.ProjectJob(job.Id).Completion.Requirements[0];
+                shell.Workspace.RecordObservation(job.Id, new BDIT.TenantToolkit.Engine.Workflow.ObservationRequest
+                {
+                    SemanticId = first.ControlId, ControlId = first.ControlId, InstanceKey = first.InstanceKey, Status = "Pass",
+                    Reason = "Synthetic outcome for the offline harness.", ReviewDueAt = DateTimeOffset.UtcNow.AddDays(90), SnapshotId = shell.Workspace.SavedCapture()?.Id
+                });
+                vm.Refresh();
+            }
+            vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
+            vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();

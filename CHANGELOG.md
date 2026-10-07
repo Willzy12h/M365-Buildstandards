@@ -30,6 +30,7 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
   - for closure, a fresh complete capture showing the old protection gone (or kept, for coexistence) and the new one present.
 
   Approval alone never closes a case. An unsupported scenario stops the case with an owner and escalation path, and a closed case is never reopened. Nothing is activated, assigned or retired by recording a stage. A disposition may now refer to a case for the same requirement in its job.
+- Jobs and completion (INT-049/050 surfaces, first slice): a new **Jobs and completion** page opens a job for the selected client. It shows where every requirement stands (verified, approved departure, not applicable or outstanding, with the reasons) and records outcomes and legacy decisions; a second record for the same requirement revises the first. `bdit jobs` and `bdit job` show the same projection read-only. A job is complete only when every applicable requirement has an accepted Pass relying on stored evidence, or an approved departure, which is named as an exception and never as verification. A complete job grants no permission to change the tenant (INT-063).
 - CI: GitHub Actions moved off Node 20 to checkout v5, setup-dotnet v5, cache v5, upload-artifact v6 and download-artifact v7, each pinned to a commit SHA, in the build and publisher workflows.
 
 # 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)

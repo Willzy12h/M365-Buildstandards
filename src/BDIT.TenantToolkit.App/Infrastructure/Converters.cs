@@ -33,9 +33,9 @@ public sealed class StatusToBrushConverter : IValueConverter
         if (text.Contains("Missing", StringComparison.OrdinalIgnoreCase) || text is "Error" or "Fail" or "Conflict" or "Blocked" or "Drift" or "Review required" or "Interrupted" or "Rejected" || text.Contains("Removed", StringComparison.OrdinalIgnoreCase))
             return Bad;
         if (text.Contains("Partial", StringComparison.OrdinalIgnoreCase) || text.Contains("Manual", StringComparison.OrdinalIgnoreCase) || text.Contains("Unable", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Stopped" or "Incomplete" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
+            || text.Contains("NotEnforced", StringComparison.OrdinalIgnoreCase) || text is "Stopped" or "Incomplete" or "Outstanding" || text.Contains("Licence", StringComparison.OrdinalIgnoreCase))
             return Warn;
-        if (text is "Create" or "Update" or "Collected" or "Completed" or "Accepted" or "NoChange" or "NotApplicable" or "Deviation" or "CompliantWithDeviation" or "In progress" or "InProgress" or "Running") return Info;
+        if (text is "Create" or "Update" or "Collected" or "Completed" or "Accepted" or "NoChange" or "NotApplicable" or "ApprovedDeparture" or "Deviation" or "CompliantWithDeviation" or "In progress" or "InProgress" or "Running") return Info;
         return Neutral;
     }
 
