@@ -12,6 +12,9 @@
           <Border Background="{StaticResource AccentSoft}" Padding="16" Margin="0,12,0,0" Visibility="{Binding HasDiscoveredTenant, Converter={StaticResource BoolToVis}}">
             <StackPanel>
               <TextBlock Text="Confirm the organisation and account" Style="{StaticResource H2}"/>
+              <Border Background="{StaticResource WarnBg}" BorderBrush="#E7D2A1" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,8" Visibility="{Binding HasCurrentSessionNotice, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding CurrentSessionNotice}" TextWrapping="Wrap" AutomationProperties.Name="Session already open"/>
+              </Border>
               <TextBox Text="{Binding DiscoveredTenantText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Discovered organisation and account"/>
               <WrapPanel><Button x:Name="ConfirmQuickConnectButton" Content="Connect to this tenant read-only" Command="{Binding ConfirmQuickConnectCommand}"/><Button Content="Cancel" Command="{Binding CancelQuickConnectCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
             </StackPanel>

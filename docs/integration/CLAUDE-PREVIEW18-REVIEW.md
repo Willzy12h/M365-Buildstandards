@@ -19,7 +19,7 @@ William then asked Claude to fix the recommendations. They are implemented on th
 
 Two corrections from implementation:
 - CLA-02 affected **20** controls, not 14. The six release-identity controls (ID-004…008 and UPD-001) were also labelled "Manual".
-- `CHANGELOG.md` has no Preview.18 entry. That is for the release owner to add.
+- ~~`CHANGELOG.md` has no Preview.18 entry.~~ Withdrawn on 7 October: the entry existed but sat near the end of the file under a stray heading. It has been moved into order, and the next version is now `1.1.0-preview.19`.
 
 Checks executed with the source-built .NET SDK 10.0.112 on Linux (a scratch copy of `global.json`, never committed):
 - Full solution build with `-warnaserror`, including WPF App, App.Tests and the UI harness via Windows targeting: 0 warnings, 0 errors.

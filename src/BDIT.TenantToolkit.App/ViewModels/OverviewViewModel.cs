@@ -29,8 +29,18 @@ public sealed class OverviewViewModel : PageViewModel
     public string ReportStatus => Workspace.Licences is not { } report ? "Licence inventory has not been loaded."
         : $"Captured {report.CapturedAt} · subscriptions: {(report.SubscriptionsComplete ? "collected" : "incomplete")} · user assignments: {(report.UsersComplete ? "collected" : "not complete")}\n{report.SubscriptionError} {report.UserError}";
     public string UserStatus => Workspace.Licences?.UsersComplete == true ? $"{Users.Count} matching assigned users displayed." : "User counts and scope are unknown until a complete assignment read succeeds.";
+    /// <summary>The first read-only assessment, step by step, shown until a tenant is connected (docs/OPERATOR-START.md).</summary>
+    public bool ShowGettingStarted => Workspace.Session is null;
+    public string GettingStarted =>
+        "1.  Connect → Quick Connect with Microsoft. Sign in with the client's account, check the organisation, then connect read-only.\n" +
+        "2.  Configuration → Capture configuration (read-only). A collection that could not be read is unknown, not absent.\n" +
+        "3.  Assessment → review the findings and their evidence.\n" +
+        "4.  Assessment → Export assessment reports → Engineer report (HTML).\n\n" +
+        "None of these steps changes the client's tenant. Receiving evidence from another engineer? Use Settings → Receive a workspace.";
+
     public override void Refresh()
     {
+        OnPropertyChanged(nameof(ShowGettingStarted));
         var sku = Selected?.SkuId;
         Licences.Clear(); Scope.Clear();
         if (Workspace.Licences is { } inventory && inventory.TenantId == Workspace.Session?.TenantId)

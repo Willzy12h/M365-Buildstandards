@@ -3,6 +3,10 @@
     <TextBlock Text="TENANT WORKSPACE" Style="{StaticResource Eyebrow}"/>
     <TextBlock Text="Overview and licences" Style="{StaticResource H1}"/>
     <TextBlock Text="{Binding Summary}" Style="{StaticResource Lead}"/>
+    <Border Style="{StaticResource Card}" Visibility="{Binding ShowGettingStarted, Converter={StaticResource BoolToVis}}"><StackPanel>
+      <TextBlock Text="Your first read-only assessment" Style="{StaticResource H2}"/>
+      <TextBlock Text="{Binding GettingStarted}" TextWrapping="Wrap" LineHeight="22" AutomationProperties.Name="First read-only assessment steps"/>
+    </StackPanel></Border>
     <WrapPanel Margin="0,0,0,12">
       <Button Content="Connect / change access" Command="{Binding ConnectCommand}" Style="{StaticResource SecondaryButton}"/>
       <Button Content="Refresh subscriptions" Command="{Binding RefreshLicencesCommand}" Style="{StaticResource SecondaryButton}"/>

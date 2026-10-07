@@ -12,12 +12,12 @@
         <StackPanel>
           <TextBlock Text="05 / SELECT &amp; REVIEW" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Plan changes" Style="{StaticResource H1}"/>
-          <TextBlock Text="Choose eligible controls, build a plan and review the exact changes before deployment." Style="{StaticResource Lead}"/>
+          <TextBlock Text="Choose eligible controls, build a plan and review the exact changes before deployment." Style="{StaticResource Lead}" Margin="0,0,0,12"/>
         </StackPanel>
-        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14" Margin="0,0,0,12">
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Margin="0,0,0,8">
           <StackPanel>
             <DockPanel><Button DockPanel.Dock="Right" Content="Build plan" Command="{Binding BuildPlanCommand}" VerticalAlignment="Top" Margin="20,0,0,0"/><StackPanel><TextBlock Text="{Binding PlanText}" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="{Binding ContextText}" Style="{StaticResource Muted}" Margin="0,6,0,0"/></StackPanel></DockPanel>
-            <Expander Header="Candidate safeguards and plan identity" Margin="0,8,0,0"><StackPanel Margin="0,8,0,0">
+            <Expander Header="Candidate safeguards and plan identity" Margin="0,4,0,0"><StackPanel Margin="0,8,0,0">
               <TextBlock FontSize="12" Text="Conditional Access stays disabled with configured targeting and exclusions. Intune stays unassigned. Matching names do not establish ownership; updates require ownership and drift checks." Margin="0,0,0,8"/>
               <TextBlock Text="{Binding Workspace.Plan.Id, StringFormat='Plan ID: {0}'}" Style="{StaticResource Mono}"/>
               <TextBlock Text="{Binding Workspace.Plan.CreatedAt, StringFormat='Created: {0}'}" Style="{StaticResource Muted}"/>
@@ -66,8 +66,8 @@
             </DockPanel>
           </TabItem>
           <TabItem Header="2  Review exact changes">
-            <Grid Margin="0,16,0,0">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="4*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="5*"/></Grid.ColumnDefinitions>
+            <Grid Margin="0,8,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="4*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="5*"/></Grid.ColumnDefinitions>
               <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" AutomationProperties.Name="Planned actions">
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Control" Binding="{Binding ControlId}" Width="100"/>
@@ -76,12 +76,11 @@
                   <DataGridTextColumn Header="Explanation" Binding="{Binding Reason}" Width="220"/>
                 </DataGrid.Columns>
               </DataGrid>
-              <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16" Margin="0">
+              <Border Grid.Column="2" Style="{StaticResource Card}" Padding="10" Margin="0">
                 <TabControl>
-                  <TabItem Header="Impact &amp; exclusions">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,14,0,0">
+                  <TabItem Header="Exact change &amp; exclusions">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
                       <StackPanel>
-                        <TextBlock Text="EXACT CHANGE PREVIEW" Style="{StaticResource Eyebrow}"/>
                         <TextBox AutomationProperties.Name="Exact change preview" Text="{Binding RowDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}"/>
                         <views:PrerequisitePanel Items="{Binding RowPrerequisites}"/>
                         <Border Background="{StaticResource WarnBg}" CornerRadius="5" Padding="12" Margin="0,0,0,12">
@@ -91,7 +90,7 @@
                     </ScrollViewer>
                   </TabItem>
                   <TabItem Header="Exact payload">
-                  <Grid Margin="0,14,0,0">
+                  <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <DockPanel><TextBlock DockPanel.Dock="Top" Text="Current object" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Current object" Text="{Binding BeforeJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>
                     <DockPanel Grid.Column="2"><TextBlock DockPanel.Dock="Top" Text="Payload to be written" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Payload to be written" Text="{Binding PayloadJson, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" Margin="0"/></DockPanel>

@@ -2,6 +2,30 @@
 
 This is an internal preview. Use the exact reviewed package and its trusted checksum reference. Available recipes are not live effectiveness acceptance. The release owner records approved scope using [controlled acceptance](CONTROLLED-ACCEPTANCE.md). A new client build and legacy backfill follow the same evidence and approval boundaries.
 
+## Your first read-only assessment
+
+Nothing in these steps changes the client's tenant.
+
+1. **Download** the application ZIP from the release you were told to use ([testing this build](TESTING-THIS-BUILD.md) shows where).
+2. **Check** its SHA-256 against the one you were given: `Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256`.
+3. **Extract** the whole ZIP to a secure local folder and run `Start.cmd`.
+4. **Connect** → **Quick Connect with Microsoft**, sign in with the client's account, check the organisation, then **Connect to this tenant read-only**.
+5. **Configuration → Capture configuration (read-only)**. A collection that could not be read is unknown, not absent.
+6. **Assessment** → review the findings and their evidence.
+7. **Assessment → Export assessment reports → Engineer report (HTML)** to keep a copy.
+
+The walkthrough below explains each step in full, including application setup, client inputs, planning and deployment.
+
+## Hand a workspace to another engineer
+
+1. Disconnect. On **Settings**, choose **Create evidence backup**.
+2. Send the backup file and its **SHA-256 fingerprint** by two different routes, for example the file by the shared folder and the fingerprint by Teams message.
+3. The receiver extracts a fresh copy of the tool and opens **Settings → Receive a workspace**: choose the file, paste or load the fingerprint, then **Adopt into this workspace**.
+
+No sign-in, approval or plan travels with the evidence. See [workspace continuity](WORKSPACE-CONTINUITY.md).
+
+## Full walkthrough
+
 1. Extract the complete package into a secure local folder. Start `Start.cmd`. No SDK or administrator rights are required to run the application. Keep client evidence out of source repositories and shared unprotected folders.
 2. On **Connect**, choose **Quick Connect** and sign in with the client's own account. Inspect the verified organisation, domain and account, then confirm the connection. The same discovery authentication is retained where the selected assessment application supports it; a different application, changed identity, expired access or Conditional Access may still require Microsoft sign-in. Partner/GDAP is a distinct path and needs an explicitly selected client tenant.
 3. Assessment requests read permissions and makes no tenant changes. Inspect the permission banner: access containing write scopes is highlighted even while assessment operations remain read-only. Copyable connection details are under **Connection details**. A hidden or blank object setting is not a pass: use collection status and assessment evidence to distinguish explicit null/empty, missing property and incomplete collection.

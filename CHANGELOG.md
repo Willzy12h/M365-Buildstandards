@@ -1,6 +1,6 @@
-# Unreleased — Claude review corrections after 1.1.0-preview.18
+# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-Source changes on top of the published Preview.18 source (`10808de`). Not a release; a package built from them needs its own version, provenance and Windows checks. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
+Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
 - Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
@@ -10,6 +10,19 @@ Source changes on top of the published Preview.18 source (`10808de`). Not a rele
 - Limit the operator-exclusion explanation to Conditional Access drift (CLA-20261006-08). Add a fixture for release .10 ownership records under .30 (CLA-20261006-07, no behaviour change pending INT-051).
 - Separate the Preview.18 publisher into its own workflow gated by the `release` environment; pin workflow actions by commit (CLA-20261006-09).
 - Release-first engineer guidance, "candidate recipes (inert)" wording, plan-time CA exclusions in the definition export, timestamped export names with per-file digests, and native renders of Settings, Deviations and Manual checks (CLA-20261006-11, -12, -13, -16).
+- Support metadata gains four opt-in, previewed sections: Windows version and display scale, recent Graph errors with Microsoft request IDs, collection read status from the last capture, and timeouts. No section names a tenant, account or object; export writes exactly the preview (CLA-20261006-10).
+- Settings walks through handing a workspace to another engineer (create backup, copy its SHA-256 fingerprint, send it separately) and receiving one (choose file, paste or load the fingerprint, adopt or restore). Pasted checksum lines are accepted; a fingerprint file beside the backup is flagged; disabled steps say what they need; results give the next step and an Open folder action.
+- Progress titles say what is happening (backup, restore, verify, adopt) instead of "Writing report".
+- Quick Connect's confirmation says when the header still describes a session already open, so a "writes possible" badge is not read as the new read-only connection.
+- Plan review gives the change detail more room at 1180×640. Overview and the engineer start guide lead with a short first read-only assessment path.
+
+# 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)
+
+- Add integrated catalogue-only standard definition exports: printable defaults/settings HTML, exact reusable JSON/manifest, document-ready Markdown, manual references and generated capability/access matrix. Preserve every published release and distinguish fixed values, reviewable defaults and unresolved client identities.
+- Share existing assessment inputs between desktop and headless reporting; accept explicit separate Exchange/Purview evidence without changing write authority.
+- Add previewed local support metadata and sensitive byte-preserving evidence backup, with bounded checksum verification and restore to a new separate folder. Preserve historical digests, unknown fields and unresolved-write blockers; exclude authentication caches.
+- Derive packaged dependency/runtime inventory and supplied licence notices from resolved publish metadata; add current operator, continuity, incident and release guides.
+- User-approved durable completion/backfill/version-aware contracts remain in separate decision PR #20 before dependent implementation. Preview status, live acceptance and publication gates remain explicit.
 
 # 1.1.0-preview.17
 
@@ -158,14 +171,6 @@ Source changes on top of the published Preview.18 source (`10808de`). Not a rele
 - Original standards/evidence retained. Live authentication, consent and device effects remain unverified.
 
 # Changelog
-
-## 1.1.0-preview.18
-
-- Add integrated catalogue-only standard definition exports: printable defaults/settings HTML, exact reusable JSON/manifest, document-ready Markdown, manual references and generated capability/access matrix. Preserve every published release and distinguish fixed values, reviewable defaults and unresolved client identities.
-- Share existing assessment inputs between desktop and headless reporting; accept explicit separate Exchange/Purview evidence without changing write authority.
-- Add previewed local support metadata and sensitive byte-preserving evidence backup, with bounded checksum verification and restore to a new separate folder. Preserve historical digests, unknown fields and unresolved-write blockers; exclude authentication caches.
-- Derive packaged dependency/runtime inventory and supplied licence notices from resolved publish metadata; add current operator, continuity, incident and release guides.
-- User-approved durable completion/backfill/version-aware contracts remain in separate decision PR #20 before dependent implementation. Preview status, live acceptance and publication gates remain explicit.
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 

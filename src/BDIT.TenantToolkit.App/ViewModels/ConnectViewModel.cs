@@ -112,12 +112,23 @@ public sealed class ConnectViewModel : PageViewModel
         $"Organisation: {d.Name}\nPrimary domain: {(d.Domain.Length == 0 ? "Not returned by Microsoft" : d.Domain)}\nTenant ID: {d.TenantId}\nSigned-in account: {d.Account}\nMode: read-only assessment\n\nThis creates a one-time connection. Saved client settings and policy exceptions are not copied. Your sign-in is retained for five minutes. Confirmation rechecks this organisation and account without another sign-in. A configured different dedicated application may need Microsoft consent or authentication."
         + (d.TokenHasWriteScopes ? "\n\nThe shared application's token includes previously consented write permissions. This tool blocks writes during discovery and assessment; a dedicated assessment registration provides token-level separation." : "");
 
+    /// <summary>
+    /// While a discovery waits for confirmation, the header still describes the session already open, which may have
+    /// deployment access. Say so beside the confirmation, so that badge is not read as describing this connection.
+    /// </summary>
+    public string CurrentSessionNotice => _discovered is null || Workspace.Session is not { } s ? "" :
+        $"The header still shows the session you already have open: {(s.TenantName.Length > 0 ? s.TenantName : s.PrimaryDomain.Length > 0 ? s.PrimaryDomain : s.TenantId)}, "
+        + (s.Mode == SessionMode.Deployment ? "with deployment access (writes possible)" : "read-only")
+        + ". Confirming replaces it with a new read-only connection to the organisation above.";
+    public bool HasCurrentSessionNotice => CurrentSessionNotice.Length > 0;
+
     private void SetDiscovery(DiscoveredTenant? tenant)
     {
         if (tenant is null) Workspace.CancelPendingDiscovery();
         _discovered = tenant;
         OnPropertyChanged(nameof(HasDiscoveredTenant));
         OnPropertyChanged(nameof(DiscoveredTenantText));
+        OnPropertyChanged(nameof(CurrentSessionNotice)); OnPropertyChanged(nameof(HasCurrentSessionNotice));
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 

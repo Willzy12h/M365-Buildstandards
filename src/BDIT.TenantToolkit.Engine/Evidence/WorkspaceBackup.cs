@@ -170,7 +170,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
         restoredFolder = Path.GetFullPath(restoredFolder);
         CheckParents(restoredFolder);
         var listFile = Path.Combine(restoredFolder, "SHA256SUMS.txt");
-        if (!File.Exists(listFile)) throw new IntegrityException("The restored folder has no SHA256SUMS.txt. Restore the backup again with Verify and restore separately.");
+        if (!File.Exists(listFile)) throw new IntegrityException("The restored folder has no SHA256SUMS.txt. Restore the backup again with Verify and restore.");
         if (new FileInfo(listFile).Length > MaxChecksumListBytes) throw new IntegrityException("Restored checksum list is too large.");
         var hashes = ParseHashes(File.ReadAllBytes(listFile));
         var data = Path.Combine(restoredFolder, "data");

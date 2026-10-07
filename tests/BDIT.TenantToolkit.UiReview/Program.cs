@@ -164,6 +164,8 @@ internal static partial class Program
                         typeof(ConnectViewModel).GetMethod("SetDiscovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(connect,
                             new object[] { new DiscoveredTenant(Tenant, "Synthetic discovered organisation", "example.invalid", "engineer@example.invalid", Operator, false) });
                         content.UpdateLayout(); Pump();
+                        if (workspace.Session is not null && !connect.HasCurrentSessionNotice)
+                            throw new InvalidOperationException("Quick Connect's confirmation does not say that the header describes the session already open.");
                         var label = "quick-connect-confirmation " + (int)size.Width + "x" + (int)size.Height;
                         var confirm = Descendants(content).OfType<Button>().Single(b => ReferenceEquals(b.Command, connect.ConfirmQuickConnectCommand));
                         // Rendering occurs before Loaded. Verify automatic scrolling separately on the shown window.

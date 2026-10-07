@@ -148,3 +148,16 @@ The user explicitly requested “publish and give me a prompt for claude to revi
 The cloud proxy refuses direct Azure artifact downloads. A manual-only GitHub Actions path therefore retrieves the original successful run's assets and checks source/job status, original ZIP identity, clean self-contained metadata and portable evidence. It stages a draft, verifies uploaded asset digests and an unchanged source tag before publishing. It never rebuilds the application, modifies main/integration, merges branches or overwrites a published release. Later tooling/review-document commits are distinct from the released binary source.
 
 Provide the full independent review prompt in the repository and as a release asset. Claude reviews source, journeys, standards exports, support/release controls and unfinished approved A–G work; it records recommendations with stable IDs and exact evidence in its own documentation-only branch/report. Astra integrates shared-register updates, preserving previous findings. PR #20's actual human merge is still required before INT-049–051 implementation. Publication neither closes that work nor substitutes for independent/human/live acceptance.
+
+## INT-054 — Evidence integrity in results, stored-evidence time and verified transfer (PR #21)
+
+Claude's Preview.18 review (CLA-20261006-01, -04, -05, -06, -10) led to these additive contracts. Published standards, existing record formats and historical bytes are unchanged.
+
+- **`AssessmentResult.SnapshotIntegrity`** is an optional field: `intact`, `modified` or `notRecorded`. A result written before it existed reads as absent, not as a failure. A primary snapshot whose integrity digest does not match is refused for assessment by the CLI and the desktop; a modified stored Exchange snapshot is refused when reopened. The digest check relies on the snapshot model serialising identically, so a future model change must keep that, or integrity will read "modified".
+- **Stored evidence is judged as of its capture:** the reference time is the latest of the Graph capture, Exchange capture and DNS query times, capped at now. Live work keeps the wall-clock rule.
+- **Evidence transfer** checks a SHA-256 fingerprint received separately from the archive, or an explicit logged acknowledgement that none exists. Adoption only fills an empty `data/` folder, re-verifies every file in place and quarantines on failure. No sign-in, approval, plan or session is transferred.
+- **Support metadata** may include four opt-in, previewed sections. Graph failures are kept in memory only, reduced to the declared route root, status, error code and GUID-shaped correlation IDs.
+
+## INT-055 — Owner delegation of commits and merges (7 October 2026)
+
+William delegated commits and merges to the agents, keeping approval of promotion to `main`, tags, releases, publication, repository settings and live tenant actions. The conditions are in [HANDOVER](HANDOVER.md#owner-delegation-of-commits-and-merges--7-october-2026). On 7 October he approved Claude merging PR #21, #20 and #19 once CI is green.

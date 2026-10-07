@@ -102,3 +102,31 @@ The engineer-experience and legacy-migration reviewers independently read all fo
 | AST-20261006-11 | Windows packaging / R12 | PowerShell 5.1 wrapped a converted JSON array in an extra array | Preserve converter output by assignment on both 5.1/7; keep exact count/identity/version/kind/notices assertions | f200371 fresh extraction and all inventory negative checks passed. Closed. |
 
 No remaining blocking finding in the independently reviewed export/transfer/package source scope. This does not close live, native or contract-merge gates. Claude has not performed a review in this session. A later reviewer appends new findings without rewriting these observations.
+
+## Claude Preview.18 review — 6–7 October 2026
+
+Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.
+
+| ID | Reviewer / scope | Finding | Response | Verification / remaining gate |
+|---|---|---|---|---|
+| CLA-20261006-01 | Claude / R08, evidence | P1: primary snapshot integrity not verified by the CLI and only logged by the desktop; results carried no integrity state | Modified snapshots refused at assessment (CLI exit 2); `AssessmentResult.SnapshotIntegrity` = intact / modified / notRecorded in every report; engineer report bannered, client summary "Not for issue" | Implemented with tests; Windows CI green. Closed for synthetic scope |
+| CLA-20261006-02 | Claude / R11, R17 | P1: capability matrix labelled 20 evidence-assessed controls "Manual" | Read route derived from engine routing (enum); evidence-read and licence columns | Implemented with tests. Correction: 20 controls, not 14 |
+| CLA-20261006-03 | Claude / R12, standards | P1: build regenerated the tracked manifest; 2026.09.30 unpinned | `build/Test-StandardsManifest.ps1` verifies, never regenerates; 2026.09.30 pinned by publication digest | PowerShell 5.1/7 positive and negative checks; Windows packaging. Closed |
+| CLA-20261006-04 | Claude / R06, E | P1: handoff ended in a manual folder copy | Backups in `transfers/`; adopt from the archive into an empty workspace with in-place re-verification and quarantine; `bdit verify-restore` | Forged-archive, lease and adoption tests; App reload test. Closed for synthetic scope |
+| CLA-20261006-05 | Claude / R06, E | P2: restore trusted only the archive's own checksum list | Trusted archive SHA-256 (fingerprint) or explicit logged acknowledgement; one read-locked stream hashed and extracted | Wrong/malformed digest refused before staging. Closed |
+| CLA-20261006-06 | Claude / R08, D | P2: stored Exchange evidence aged against the wall clock | Stored evidence judged as of the latest Graph, Exchange or DNS time, capped at now | Re-assessment at +72 h identical; DNS refresh test. Closed |
+| CLA-20261006-07 | Claude / R03 | P2: reused PRE IDs across .10/.30 give misleading ownership messages | Fixture holds no-write/no-duplicate; lineage messaging follows INT-051 | Fixture in place. Messaging after the PR #20 merge |
+| CLA-20261006-08 | Claude / assessment text | P2: operator-exclusion wording on non-CA drift | CA-only wording | Implemented with tests. Closed |
+| CLA-20261006-09 | Claude / R12, release | P2: publish job without environment protection; tag-pinned actions | Separate `publish-preview18.yml` behind `release`; actions SHA-pinned | Repository settings (environment reviewers, immutable releases) remain with the owner |
+| CLA-20261006-10 | Claude / R09 | P2: support bundle too sparse for incident step 6 | Four opt-in, previewed sections (OS/scale, recent Graph errors with request IDs, collection status, timeouts); field list approved by William on 7 October | Seeded identifiers never present; default unchanged; export equals preview. Engine tests pass; Windows CI pending at time of writing |
+| CLA-20261006-11 | Claude / R10 | P2: guidance pointed engineers at CI artifacts; "automated recipes" wording | Release-first guidance; "candidate recipes (inert)" | Closed |
+| CLA-20261006-12 | Claude / R10, G | P2: no Settings/Deviations/Checks renders | Renders added, plus a Settings hand-off render; nested-scroll observation withdrawn | Native harness. Human visual/Narrator acceptance pending |
+| CLA-20261006-13 | Claude / R17 | P2: CA spec omitted plan-time exclusions | Plan-time additions listed per CA control | Closed |
+| CLA-20261006-14 | Claude / R12 | P3: backslash ZIP entry names | `/` names, ordinal order | Test-Portable passes. Closed |
+| CLA-20261006-15 | Claude / R06 | P3: backup ignored tenant write leases | Read-only lease probe; refused while held | Closed |
+| CLA-20261006-16 | Claude / R17 | P3: GUID export names, no per-file sidecar | Release + timestamp names; `.sha256` beside every file | Closed |
+| CLA-20261006-17 | Claude / PR #20 INT-049/050 | P3: full-profile-digest binding makes label-only edits invalidate observations | Post-merge decision row listing non-material display fields | After the PR #20 merge |
+
+### Usability pass — 7 October 2026 (PR #21)
+
+At William's request Claude also made the tool easier to use, without changing any safeguard: a guided hand-off/receive flow on Settings with a copyable fingerprint, pasted checksum lines and `.sha256` loading (with a warning when the file sits beside the backup); task-specific progress titles; results that say what happened and what to do next, with **Open folder**; a Quick Connect notice saying the header still describes the session already open; more room for the change detail in plan review at 1180×640; a short first-assessment path in OPERATOR-START and on Overview; consistent "SHA-256 fingerprint" wording. Native renders and App tests cover these; human newcomer and Narrator acceptance remain open.
