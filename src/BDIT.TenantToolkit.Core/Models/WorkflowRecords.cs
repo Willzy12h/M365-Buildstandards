@@ -65,6 +65,8 @@ public sealed class TenantJob
     public string UpdatedAt { get; set; } = "";
     /// <summary>Observations attached to this job, in the order they were attached.</summary>
     public List<string> ObservationIds { get; set; } = new();
+    /// <summary>INT-050 dispositions attached to this job, in the order they were attached. Absent until the first one.</summary>
+    public List<string>? DispositionIds { get; set; }
     /// <summary>The captures the job was last reviewed against.</summary>
     public List<EvidenceReference> Evidence { get; set; } = new();
     /// <summary>Review-only reference to a plan. Never an approval or a request to execute.</summary>
@@ -76,7 +78,7 @@ public sealed class TenantJob
 /// INT-049 observation: one engineer outcome for one requirement instance, bound to the standard, client inputs and
 /// evidence it relied on. Immutable once written; a revision is a new observation that supersedes it.
 /// </summary>
-public sealed class TenantObservation
+public sealed class TenantObservation : ISubjectRecord
 {
     public const int CurrentSchemaVersion = 1;
 
@@ -118,4 +120,86 @@ public static class ReviewReason
     public const string ReviewOverdue = "Its review date has passed.";
     public const string Forked = "More than one record claims to be current for this requirement.";
     public const string PredecessorMissing = "The record it revises is missing or unreadable.";
+    public const string DeviationMissing = "The approved deviation it relies on is missing, for another control, or past its review date.";
+}
+
+/// <summary>
+/// The bindings INT-049 and INT-050 records share: one requirement instance of one job, the catalogue identity and
+/// client inputs it was decided against, the evidence relied on and the record it revises.
+/// </summary>
+public interface ISubjectRecord
+{
+    string Id { get; }
+    string TenantId { get; }
+    string JobId { get; }
+    string SemanticId { get; }
+    string ControlId { get; }
+    string InstanceKey { get; }
+    string StandardRelease { get; }
+    string StandardDigest { get; }
+    string ProfileId { get; }
+    string ClientScopeDigest { get; }
+    string RecordedAt { get; }
+    string ReviewDueAt { get; }
+    List<EvidenceReference> Evidence { get; }
+    List<string> ObservedObjectIds { get; }
+    string MaterialDigest { get; }
+    string? SupersedesId { get; }
+}
+
+/// <summary>What an engineer decided about a legacy or missing requirement (INT-050).</summary>
+public static class DispositionDecision
+{
+    /// <summary>An existing external object covers the requirement. An engineer decision, never a compliant finding or ownership.</summary>
+    public const string RetainExternalCoverage = "RetainExternalCoverage";
+    /// <summary>Relies on an existing approved deviation for the same control; it never creates one.</summary>
+    public const string ApprovedDeparture = "ApprovedDeparture";
+    public const string AddMissingCandidate = "AddMissingCandidate";
+    public const string Investigate = "Investigate";
+    public const string ManualWork = "ManualWork";
+    public const string ProposeReplacement = "ProposeReplacement";
+    public static readonly string[] All = { RetainExternalCoverage, ApprovedDeparture, AddMissingCandidate, Investigate, ManualWork, ProposeReplacement };
+
+    /// <summary>Decisions that leave no work outstanding while they remain valid. The rest name work still to do.</summary>
+    public static bool Settles(string decision) => decision is RetainExternalCoverage or ApprovedDeparture;
+}
+
+/// <summary>
+/// INT-050 disposition: one engineer decision about one requirement instance, bound like an observation to the
+/// standard, client inputs and evidence it relied on. Immutable once written; a revised decision supersedes it. It
+/// grants no ownership, mapping or permission to change or delete any tenant object.
+/// </summary>
+public sealed class TenantDisposition : ISubjectRecord
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+    public string Id { get; set; } = "";
+    public string TenantId { get; set; } = "";
+    public string JobId { get; set; } = "";
+    public string SemanticId { get; set; } = "";
+    public string ControlId { get; set; } = "";
+    public string InstanceKey { get; set; } = "";
+    public string StandardRelease { get; set; } = "";
+    public string StandardDigest { get; set; } = "";
+    public string ProfileId { get; set; } = "";
+    public string ClientScopeDigest { get; set; } = "";
+    /// <summary>One of <see cref="DispositionDecision.All"/>.</summary>
+    public string Decision { get; set; } = "";
+    /// <summary>Who answers for the decision; distinct from the actor who recorded it.</summary>
+    public string Owner { get; set; } = "";
+    public string Reason { get; set; } = "";
+    public string Actor { get; set; } = "";
+    public string RecordedAt { get; set; } = "";
+    public string ReviewDueAt { get; set; } = "";
+    public List<EvidenceReference> Evidence { get; set; } = new();
+    /// <summary>Exact object IDs the decision is about, for example the external policy retained.</summary>
+    public List<string> ObservedObjectIds { get; set; } = new();
+    public string MaterialDigest { get; set; } = "";
+    /// <summary>The same-tenant approved deviation an <see cref="DispositionDecision.ApprovedDeparture"/> relies on.</summary>
+    public string? DeviationId { get; set; }
+    /// <summary>Optional cutover case reference. Reserved for the cutover slice; refused until it exists.</summary>
+    public string? CaseId { get; set; }
+    public string? SupersedesId { get; set; }
+    public string IntegrityDigest { get; set; } = "";
 }
