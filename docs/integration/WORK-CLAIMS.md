@@ -29,7 +29,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-06 | Claude | M365-Buildstandards | Preview.18 review report (CLA-20261006-01–17) and, at William's request, their fixes: evidence integrity, capability matrix, manifest verification, evidence transfer/adoption, stored-evidence assessment, release workflow, exports, guidance; stacked on PR #19, then retargeted to integration; plus CLA-10 and the usability pass | `claude/m365-buildstandards-preview-review-mjr04x` | #21 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | release lineage (INT-051 first slice, INT-057), reviewed client scope digest (INT-056, CLA-17), handoff refresh | `claude/m365-buildstandards-preview-review-mjr04x` (restarted from integration `d39eb73`) | #22 | Merged |
 | 2026-10-07 | Claude | M365-Buildstandards | review fixes for PR #22: reviewed client scope digest (INT-056 amendment), lineage loading and validation (INT-059) | `claude/project-thread-if32r2` (from integration `34dbb72`) | #24 | Merged |
-| 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-049 job and observation records (store, validation, read-only projection) | `claude/project-thread-gxrkmr` (from integration `34dbb72`) | #25 | Open |
+| 2026-10-07 | Claude | M365-Buildstandards | evidence and reporting: INT-049 job and observation records (store, validation, read-only projection) | `claude/project-thread-gxrkmr` (from integration `34dbb72`) | #25 | Merged |
 
 Status values: Open, Merged, Abandoned, Blocked.
 
