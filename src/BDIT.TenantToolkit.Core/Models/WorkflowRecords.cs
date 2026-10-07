@@ -27,7 +27,9 @@ public static class EvidenceKind
 {
     /// <summary>A saved capture, pinned by its integrity digest.</summary>
     public const string Snapshot = "snapshot";
-    public static readonly string[] All = { Snapshot };
+    /// <summary>A saved deployment run, pinned by its integrity digest. Cutover cases only.</summary>
+    public const string Run = "run";
+    public static readonly string[] All = { Snapshot, Run };
 }
 
 /// <summary>A piece of stored evidence a record relies on, by kind, ID and the SHA-256 it had when it was relied on.</summary>
@@ -67,6 +69,8 @@ public sealed class TenantJob
     public List<string> ObservationIds { get; set; } = new();
     /// <summary>INT-050 dispositions attached to this job, in the order they were attached. Absent until the first one.</summary>
     public List<string>? DispositionIds { get; set; }
+    /// <summary>INT-050 cutover revisions attached to this job, in the order they were attached. Absent until the first one.</summary>
+    public List<string>? CutoverIds { get; set; }
     /// <summary>The captures the job was last reviewed against.</summary>
     public List<EvidenceReference> Evidence { get; set; } = new();
     /// <summary>Review-only reference to a plan. Never an approval or a request to execute.</summary>
@@ -121,17 +125,16 @@ public static class ReviewReason
     public const string Forked = "More than one record claims to be current for this requirement.";
     public const string PredecessorMissing = "The record it revises is missing or unreadable.";
     public const string DeviationMissing = "The approved deviation it relies on is missing, for another control, or past its review date.";
+    public const string CaseMissing = "The cutover case it refers to is missing from this job.";
 }
 
 /// <summary>
 /// The bindings INT-049 and INT-050 records share: one requirement instance of one job, the catalogue identity and
 /// client inputs it was decided against, the evidence relied on and the record it revises.
 /// </summary>
-public interface ISubjectRecord
+public interface ISubjectRecord : IJobRecord
 {
-    string Id { get; }
     string TenantId { get; }
-    string JobId { get; }
     string SemanticId { get; }
     string ControlId { get; }
     string InstanceKey { get; }
@@ -139,11 +142,18 @@ public interface ISubjectRecord
     string StandardDigest { get; }
     string ProfileId { get; }
     string ClientScopeDigest { get; }
-    string RecordedAt { get; }
     string ReviewDueAt { get; }
     List<EvidenceReference> Evidence { get; }
     List<string> ObservedObjectIds { get; }
     string MaterialDigest { get; }
+}
+
+/// <summary>An immutable record attached to a job, linked into a supersession graph.</summary>
+public interface IJobRecord
+{
+    string Id { get; }
+    string JobId { get; }
+    string RecordedAt { get; }
     string? SupersedesId { get; }
 }
 
@@ -198,7 +208,7 @@ public sealed class TenantDisposition : ISubjectRecord
     public string MaterialDigest { get; set; } = "";
     /// <summary>The same-tenant approved deviation an <see cref="DispositionDecision.ApprovedDeparture"/> relies on.</summary>
     public string? DeviationId { get; set; }
-    /// <summary>Optional cutover case reference. Reserved for the cutover slice; refused until it exists.</summary>
+    /// <summary>Optional cutover case for the same requirement instance in the same job.</summary>
     public string? CaseId { get; set; }
     public string? SupersedesId { get; set; }
     public string IntegrityDigest { get; set; } = "";

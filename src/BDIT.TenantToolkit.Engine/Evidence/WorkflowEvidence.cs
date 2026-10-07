@@ -12,10 +12,10 @@ namespace BDIT.TenantToolkit.Engine.Evidence;
 public sealed record UnreadableRecord(string File, string Problem);
 
 /// <summary>
-/// INT-049 and INT-050 persistence: tenant-partitioned jobs/&lt;id&gt;.json and immutable observations/&lt;id&gt;.json and
-/// dispositions/&lt;id&gt;.json. Readers refuse unknown schema versions and unknown members, check the embedded tenant and
-/// ID against the file, and verify the integrity digest. Observations and dispositions are created once and never
-/// replaced; only a job's attachment lists are replaced.
+/// INT-049 and INT-050 persistence: tenant-partitioned jobs/&lt;id&gt;.json and immutable observations/&lt;id&gt;.json,
+/// dispositions/&lt;id&gt;.json and cutovers/&lt;id&gt;.json. Readers refuse unknown schema versions and unknown members, check the embedded tenant and
+/// ID against the file, and verify the integrity digest. Observations, dispositions and cutover revisions are created
+/// once and never replaced; only a job's attachment lists are replaced.
 /// </summary>
 public sealed partial class EvidenceStore
 {
@@ -28,6 +28,8 @@ public sealed partial class EvidenceStore
     private string ObservationFile(string tenant, string id) => Path.Combine(ObservationsDirectory(tenant), SafeId(id) + ".json");
     private string DispositionsDirectory(string tenant) => Path.Combine(TenantDirectory(tenant), "dispositions");
     private string DispositionFile(string tenant, string id) => Path.Combine(DispositionsDirectory(tenant), SafeId(id) + ".json");
+    private string CutoversDirectory(string tenant) => Path.Combine(TenantDirectory(tenant), "cutovers");
+    private string CutoverFile(string tenant, string id) => Path.Combine(CutoversDirectory(tenant), SafeId(id) + ".json");
 
     // ---- jobs ------------------------------------------------------------------------------------------------
 
@@ -54,6 +56,8 @@ public sealed partial class EvidenceStore
                 throw new SafetyViolationException("Attached observations cannot be detached from a job.");
             if ((stored.DispositionIds ?? new()).Except(job.DispositionIds ?? new(), StringComparer.OrdinalIgnoreCase).Any())
                 throw new SafetyViolationException("Attached dispositions cannot be detached from a job.");
+            if ((stored.CutoverIds ?? new()).Except(job.CutoverIds ?? new(), StringComparer.OrdinalIgnoreCase).Any())
+                throw new SafetyViolationException("Attached cutover revisions cannot be detached from a job.");
             job.IntegrityDigest = RecoveryDigest(job);
             WriteJsonAtomic(JobFile(job.TenantId, job.Id), job);
         }
@@ -99,6 +103,22 @@ public sealed partial class EvidenceStore
 
     public (IReadOnlyList<TenantDisposition> Dispositions, IReadOnlyList<UnreadableRecord> Unreadable) LoadDispositions(string tenant) =>
         LoadWorkflowRecords<TenantDisposition>(DispositionsDirectory(tenant), tenant, "Disposition", d => (d.SchemaVersion, d.TenantId, d.Id, d.IntegrityDigest));
+
+    // ---- cutover cases ----------------------------------------------------------------------------------------
+
+    /// <summary>Writes a new immutable cutover revision. It is unattached until its job is replaced to list it.</summary>
+    public void CreateCutover(CutoverRevision revision)
+    {
+        WorkflowRecordRules.ValidateCutover(revision);
+        revision.IntegrityDigest = RecoveryDigest(revision);
+        CreateRecordFile(CutoverFile(revision.TenantId, revision.Id), revision, "cutover revision");
+    }
+
+    public CutoverRevision? LoadCutover(string tenant, string id) =>
+        ReadWorkflowRecord<CutoverRevision>(CutoverFile(tenant, id), tenant, id, "Cutover revision", c => (c.SchemaVersion, c.TenantId, c.Id, c.IntegrityDigest));
+
+    public (IReadOnlyList<CutoverRevision> Revisions, IReadOnlyList<UnreadableRecord> Unreadable) LoadCutovers(string tenant) =>
+        LoadWorkflowRecords<CutoverRevision>(CutoversDirectory(tenant), tenant, "Cutover revision", c => (c.SchemaVersion, c.TenantId, c.Id, c.IntegrityDigest));
 
     // ---- shared ----------------------------------------------------------------------------------------------
 
