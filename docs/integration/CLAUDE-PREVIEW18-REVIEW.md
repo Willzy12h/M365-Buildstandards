@@ -11,11 +11,11 @@ William then asked Claude to fix the recommendations. They are implemented on th
 
 | ID | Status |
 |---|---|
-| 01, 02, 03, 04, 05, 06, 08, 11, 13, 14, 15, 16 | Implemented with tests |
-| 07 | Fixture only; lineage messaging waits for the PR #20 merge (INT-051) |
+| 01, 02, 03, 04, 05, 06, 08, 10, 11, 13, 14, 15, 16 | Implemented with tests; merged into `integration` on 7 October (PR #21). 10's field list was approved by William |
+| 07 | Fixture merged; release lineage explanation in the follow-up PR (INT-057), awaiting review |
 | 09 | Workflow split and SHA pins done. Adding required reviewers to the `release` environment and enabling immutable releases are repository-owner settings |
 | 12 | Settings, Deviations and Manual-checks renders added. The "primary export off-screen at 1180×640" observation is **withdrawn**: that render scrolls the page deliberately to show the expander, so it is not evidence of a defect |
-| 10, 17 | Not implemented. 10 needs the privacy owner to approve the field list; 17 is a post-merge decision row |
+| 17 | Decision INT-056 and `ReviewedClientScope.Digest` in the follow-up PR, awaiting review |
 
 Two corrections from implementation:
 - CLA-02 affected **20** controls, not 14. The six release-identity controls (ID-004…008 and UPD-001) were also labelled "Manual".

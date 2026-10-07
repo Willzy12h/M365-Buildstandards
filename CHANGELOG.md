@@ -15,6 +15,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 - Progress titles say what is happening (backup, restore, verify, adopt) instead of "Writing report".
 - Quick Connect's confirmation says when the header still describes a session already open, so a "writes possible" badge is not read as the new read-only connection.
 - Plan review gives the change detail more room at 1180×640. Overview and the engineer start guide lead with a short first read-only assessment path.
+- Release lineage into 2026.09.30 (INT-051 first slice): earlier-release ownership records whose control ID now means a different requirement are explained in the assessment, and records from releases without lineage are flagged for review. Nothing is moved or rebound (CLA-20261006-07).
+- Reviewed client scope digest for INT-049/050 records: relabelling a client or editing notes no longer counts as a material change (CLA-20261006-17, INT-056).
 
 # 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)
 

@@ -12,8 +12,9 @@ namespace BDIT.TenantToolkit.Tests;
 /// CLA-20261006-07 (evidence for R03): control IDs were reused between releases. In 2026.09.10 PRE-004 is the pilot
 /// devices group and PRE-005 the office named location; in 2026.09.30 PRE-004 is the MAM-only users group and PRE-005
 /// the pilot devices group. Ownership mappings are keyed by control ID, so a tenant built on .10 and reviewed under
-/// .30 meets an ownership record for a different requirement. This fixture holds the safety outcome — no write, no
-/// duplicate, no adoption — until the INT-051 lineage contract (PR #20) supplies the explanation the engineer needs.
+/// .30 meets an ownership record for a different requirement. This fixture holds the safety outcome: no write, no
+/// duplicate, no adoption. The explanation the engineer sees comes from release lineage (INT-051/057), tested in
+/// <see cref="ReleaseLineageTests"/>.
 /// </summary>
 public sealed class ReusedControlIdFixtureTests
 {

@@ -48,6 +48,7 @@ public sealed partial class EvidenceStore
     }
 
     public string RootDirectory => _paths.DataDirectory;
+    public ToolkitPaths Paths => _paths;
 
     public string TenantDirectory(string tenantId) => _paths.TenantDirectory(tenantId);
 

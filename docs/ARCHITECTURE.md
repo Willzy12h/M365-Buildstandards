@@ -66,7 +66,7 @@ The executor reloads complete, integrity-checked before evidence plus current ma
 
 Validation rules enforced by `StandardsLoader.Validate`: schema version, unique control IDs of the form `AAA-000` or `AAA-BBB-000`, known collections, `api` without a version in `path`, a payload only for settings-mode controls, a name property in every payload, no `assignments` in any payload, and for Conditional Access recipes `safeDeployment.state == "disabled"` and no payload state other than `disabled`.
 
-Integrity: `standards\manifest.json` lists a SHA-256 digest per release file. `StandardsLoader.Load` refuses to load a file that is unlisted or modified. This is an integrity digest; it is not a signature. The tool is internal and unsigned; publish the ZIP checksum and, where application control is in use, allow the executable by path or hash.
+Integrity: `standards\manifest.json` lists a SHA-256 digest per release file. `StandardsLoader.Load` refuses to load a file that is unlisted or modified. This is an integrity digest; it is not a signature. Release lineage (`standards\lineage\lineage-<target>.json`, INT-051/057) records how each control of an earlier release relates to the target; it pins every catalogue by its manifest digest, is listed in `standards\lineage\manifest.json`, and is used only to explain earlier-release ownership records during assessment. The tool is internal and unsigned; publish the ZIP checksum and, where application control is in use, allow the executable by path or hash.
 
 ## Assessment
 
@@ -106,7 +106,7 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 1. Add the control to the release file with a new ID. For manual controls set `assessment.mode` to `manual` and write `manualInstructions`. For automated controls set `mode` to `settings`, name a collection and supply a `payload` template using only properties Graph accepts on create.
 2. For Conditional Access recipes keep `state: "disabled"` and use `{{emergencyAccountIds}}` (or `{{emergencyAndGuestIds}}`) in `excludeUsers`.
-3. Add controls only to a new, unpublished release file; published releases never change. Run `build\Update-StandardsManifest.ps1`, review and commit the manifest diff, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release). The portable build only verifies the committed manifest (`build\Test-StandardsManifest.ps1`) and fails on any mismatch. Once a release is published, add its digest to `Release20260930Tests.Historical_standard_bytes_match_the_published_baseline_digests`.
+3. Add controls only to a new, unpublished release file; published releases never change. Run `build\Update-StandardsManifest.ps1`, review and commit the manifest diff, then the tests (`StandardsTests.Shipped_standard_release_is_valid` parses every shipped release). The portable build only verifies the committed manifest (`build\Test-StandardsManifest.ps1`) and fails on any mismatch. Once a release is published, add its digest to `Release20260930Tests.Historical_standard_bytes_match_the_published_baseline_digests`. A new release also needs a lineage file from the earlier releases into it: list every control whose ID now means something else, retired controls and cardinality changes, then add its digest to `standards\lineage\manifest.json`. `ReleaseLineageTests` checks the file against every catalogue it names.
 4. Validate the payload against a test tenant before enabling deployment for that control; recipes are not proven by unit tests.
 
 ## Adding a collection
