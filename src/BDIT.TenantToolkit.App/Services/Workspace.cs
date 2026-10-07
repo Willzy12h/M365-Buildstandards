@@ -839,6 +839,19 @@ public sealed class Workspace : ObservableObject
         Profile is not null && Snapshot is not null && string.Equals(Snapshot.TenantId, Profile.TenantId, StringComparison.OrdinalIgnoreCase)
             && Evidence.LoadSnapshot(Profile.TenantId, Snapshot.Id) is not null ? Snapshot : null;
 
+    /// <summary>
+    /// Stored assessments an outcome may cite: of the saved capture in view, under the loaded standard. Empty when no saved capture is in view,
+    /// since a citation pins the capture it assessed.
+    /// </summary>
+    public IReadOnlyList<StoredAssessment> CitableAssessments()
+    {
+        if (Profile is null || Standard is not { } standard || SavedCapture() is not { } capture) return Array.Empty<StoredAssessment>();
+        return Evidence.LoadAssessments(Profile.TenantId)
+            .Where(a => string.Equals(a.Result.SnapshotId, capture.Id, StringComparison.OrdinalIgnoreCase) && a.Result.Release == standard.Release
+                && string.Equals(a.Result.StandardDigest, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
     /// <summary>The stable requirement identity for a new record: the existing line's, else shipped lineage's, else the control ID.</summary>
     public string SemanticIdFor(string controlId, string? existing)
     {

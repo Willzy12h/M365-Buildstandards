@@ -307,6 +307,8 @@ internal static class SubjectReview
                 case EvidenceKind.Run:
                     var run = store.LoadRun(tenantId, reference.Id);
                     return run is not null && EvidenceIntegrity.Verify(run, run.IntegrityDigest) && run.IntegrityDigest == reference.Sha256;
+                case EvidenceKind.Assessment:
+                    return store.LoadAssessment(tenantId, reference.Id)?.Sha256 == reference.Sha256;
                 default:
                     return false;
             }

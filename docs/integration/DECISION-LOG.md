@@ -280,3 +280,13 @@ Choices made where the contract was silent:
 - Prerequisites and functional criteria are typed one per line. A met prerequisite starts with `[x]`. A criterion is `result | description | what was observed`, and the result must be Passed, Failed or NotRun; anything else is refused rather than read as not run.
 - An approval or escalation with every field blank is recorded as none.
 - The CLI keeps showing cases read-only. References to stored assessments remain the next slice.
+
+## INT-065 — Outcomes cite stored assessments (INT-049 assessment references)
+
+An observation may now cite one stored assessment as evidence, alongside the capture it pins. INT-060 left assessment references as a later slice. The reference is `{ kind: "assessment", id, sha256 }`, where the digest is the SHA-256 of the stored assessment file as canonical JSON, because assessments carry no integrity digest of their own. Any later change to that file, or its removal, sends the outcome to review with `EvidenceMissing`, as a changed capture already does. The desktop Jobs page offers the stored assessments of the capture in view under the loaded standard, each labelled with its finding for the selected requirement, and `bdit job` names a cited assessment.
+
+Choices made where the contract was silent:
+- A cited assessment must be of an intact capture (`snapshotIntegrity: intact`), under exactly this standard release and catalogue digest, and must hold a finding for the requirement instance. The capture it assessed is pinned with it. If the request also names a capture, the two must agree.
+- A Pass may cite an assessment only when its finding for that instance is Compliant or RequiresManualReview. A finding of missing, partial, not enforced, unable to assess, licence unavailable, compliant with a deviation or not applicable would contradict the claim, so the citation is refused and nothing is written. Fail, Unknown and Pending may cite any finding. An attestation still cannot turn a failed collection into verified configuration.
+- Dispositions and cutover revisions keep their existing evidence kinds. Citing an assessment changes no completion rule: a Pass still needs stored evidence and acceptance to verify a requirement.
+- Older assessments written before `snapshotIntegrity` existed cannot be cited. Reassess the capture instead.

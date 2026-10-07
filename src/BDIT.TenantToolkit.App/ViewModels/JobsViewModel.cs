@@ -36,6 +36,7 @@ public sealed class JobsViewModel : PageViewModel
     private string _pilotGroupIds = "", _pilotApprovedBy = "", _pilotReference = "", _prerequisites = "", _criteria = "";
     private string _retirement = "", _retirementApprovedBy = "", _retirementReference = "", _residualDeviationIds = "";
     private string _escalationReason = "", _escalationOwner = "", _escalationPath = "";
+    private string _assessmentId = "";
 
     public JobsViewModel(ShellViewModel shell) : base(shell, "Jobs")
     {
@@ -55,6 +56,8 @@ public sealed class JobsViewModel : PageViewModel
     public ObservableCollection<FilterOption> CutoverCases { get; } = new();
     /// <summary>Saved deployment runs of this client, newest first: the evidence a candidate stage pins.</summary>
     public ObservableCollection<FilterOption> Runs { get; } = new();
+    /// <summary>Stored assessments of the capture in view under this standard, each with its finding for the selected requirement.</summary>
+    public ObservableCollection<FilterOption> Assessments { get; } = new();
 
     public IReadOnlyList<FilterOption> Intentions { get; } = JobIntention.All.Select(i => new FilterOption(i, WordsConverter.Words(i))).ToList();
     public IReadOnlyList<FilterOption> RecordKinds { get; } = new[] { new FilterOption(OutcomeKind, "Outcome (observation)"), new FilterOption(DecisionKind, "Decision (legacy disposition)"), new FilterOption(CutoverKind, "Cutover revision") };
@@ -78,6 +81,7 @@ public sealed class JobsViewModel : PageViewModel
             if (!SetProperty(ref _selectedRequirement, value)) return;
             OnPropertyChanged(nameof(RequirementText));
             LoadCases();
+            LoadAssessments();
         }
     }
 
@@ -128,6 +132,8 @@ public sealed class JobsViewModel : PageViewModel
     public string EscalationOwner { get => _escalationOwner; set => SetProperty(ref _escalationOwner, value); }
     public string EscalationPath { get => _escalationPath; set => SetProperty(ref _escalationPath, value); }
     public string Status { get => _status; set => SetProperty(ref _status, value); }
+    /// <summary>The stored assessment an outcome cites, or "" for none. Citing one pins the capture it assessed.</summary>
+    public string AssessmentId { get => _assessmentId; set => SetProperty(ref _assessmentId, value ?? ""); }
     public string Decision { get => _decision; set { if (SetProperty(ref _decision, value)) OnPropertyChanged(nameof(IsDeparture)); } }
     public bool IsDeparture => Decision == DispositionDecision.ApprovedDeparture;
     public string DecisionOwner { get => _decisionOwner; set => SetProperty(ref _decisionOwner, value); }
@@ -162,7 +168,8 @@ public sealed class JobsViewModel : PageViewModel
             if (history is { Count: > 0 })
             {
                 text.Append("\n\nOutcome history");
-                foreach (var o in history) text.Append($"\n{o.RecordedAt}  {o.Status}  {o.Actor}: {o.Reason}");
+                foreach (var o in history)
+                    text.Append($"\n{o.RecordedAt}  {o.Status}  {o.Actor}: {o.Reason}{(o.Evidence.Any(e => e.Kind == EvidenceKind.Assessment) ? " (cites a stored assessment)" : "")}");
             }
             var decisions = _projection?.Dispositions.FirstOrDefault(d => Same(d.InstanceKey, r.InstanceKey))?.History;
             if (decisions is { Count: > 0 })
@@ -207,8 +214,10 @@ public sealed class JobsViewModel : PageViewModel
             {
                 SemanticId = Workspace.SemanticIdFor(requirement.ControlId, subject?.History.FirstOrDefault()?.SemanticId),
                 ControlId = requirement.ControlId, InstanceKey = requirement.InstanceKey, Status = Status, Reason = Reason,
-                ReviewDueAt = reviewDue, SnapshotId = capture?.Id, ObservedObjectIds = objects, SupersedesId = Head(subject?.Current?.Id, subject?.History.Count ?? 0)
+                ReviewDueAt = reviewDue, SnapshotId = capture?.Id, ObservedObjectIds = objects, SupersedesId = Head(subject?.Current?.Id, subject?.History.Count ?? 0),
+                AssessmentId = AssessmentId.Length > 0 ? AssessmentId : null
             });
+            AssessmentId = "";
         }
         else
         {
@@ -329,6 +338,7 @@ public sealed class JobsViewModel : PageViewModel
         _selectedRequirement = instance is null ? null : Requirements.FirstOrDefault(r => Same(r.InstanceKey, instance));
         OnPropertyChanged(nameof(SelectedRequirement));
         LoadCases();
+        LoadAssessments();
         OnPropertyChanged(nameof(RequirementText));
         OnPropertyChanged(nameof(ClaimText));
         OnPropertyChanged(nameof(HasProblems));
@@ -370,6 +380,25 @@ public sealed class JobsViewModel : PageViewModel
         if (problems.Count > 0) { _problems = string.Join("\n", problems.Concat(_problems.Length > 0 ? new[] { _problems } : Array.Empty<string>())); OnPropertyChanged(nameof(HasProblems)); OnPropertyChanged(nameof(ProblemsText)); }
         OnPropertyChanged(nameof(ContextText));
         OnPropertyChanged(nameof(CaptureText));
+    }
+
+    private void LoadAssessments()
+    {
+        var keep = AssessmentId;
+        Assessments.Clear();
+        Assessments.Add(new FilterOption("", "None"));
+        try
+        {
+            foreach (var stored in Workspace.CitableAssessments())
+            {
+                var finding = SelectedRequirement is { } r ? stored.Result.Findings.FirstOrDefault(f => Same(f.ControlId, r.InstanceKey)) : null;
+                Assessments.Add(new FilterOption(stored.Result.Id,
+                    $"{stored.Result.AssessedAt} · {stored.Result.AssessedBy}{(finding is null ? "" : " · " + WordsConverter.Words(finding.Status.ToString()))}"));
+            }
+        }
+        catch (ToolkitException ex) { Shell.ShowError(ex); }
+        _assessmentId = Assessments.Any(a => a.Key == keep) ? keep : "";
+        OnPropertyChanged(nameof(AssessmentId));
     }
 
     private static string DefaultReviewDue() => DateOnly.FromDateTime(DateTime.Today).AddMonths(6).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);

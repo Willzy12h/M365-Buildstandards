@@ -29,7 +29,9 @@ public static class EvidenceKind
     public const string Snapshot = "snapshot";
     /// <summary>A saved deployment run, pinned by its integrity digest. Cutover cases only.</summary>
     public const string Run = "run";
-    public static readonly string[] All = { Snapshot, Run };
+    /// <summary>A stored assessment of the pinned capture, pinned by the SHA-256 of its stored file. Observations only.</summary>
+    public const string Assessment = "assessment";
+    public static readonly string[] All = { Snapshot, Run, Assessment };
 }
 
 /// <summary>A piece of stored evidence a record relies on, by kind, ID and the SHA-256 it had when it was relied on.</summary>

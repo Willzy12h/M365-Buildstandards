@@ -22,6 +22,11 @@ public sealed class ObservationRequest
     public List<string> ObservedObjectIds { get; set; } = new();
     /// <summary>The current observation this one revises. Required when the requirement already has one.</summary>
     public string? SupersedesId { get; set; }
+    /// <summary>
+    /// A stored assessment of the observed capture, under the same standard, cited as evidence. Its capture is pinned with it,
+    /// so it may be given without <see cref="SnapshotId"/>; given both, they must agree.
+    /// </summary>
+    public string? AssessmentId { get; set; }
 }
 
 /// <summary>What an engineer decides about one legacy or missing requirement instance (INT-050).</summary>
@@ -115,7 +120,10 @@ public sealed partial class JobWorkflow
             ObservedObjectIds = request.ObservedObjectIds.Select(id => id.Trim()).ToList(),
             SupersedesId = request.SupersedesId?.ToLowerInvariant()
         };
-        observation.MaterialDigest = PinEvidence(job.TenantId, request.SnapshotId, observation.Evidence, observation.ObservedObjectIds).MaterialDigest;
+        var assessment = string.IsNullOrWhiteSpace(request.AssessmentId) ? default
+            : AssessmentReference(job.TenantId, request.AssessmentId.Trim(), request.SnapshotId, standard, instance, request.Status);
+        observation.MaterialDigest = PinEvidence(job.TenantId, assessment.SnapshotId ?? request.SnapshotId, observation.Evidence, observation.ObservedObjectIds).MaterialDigest;
+        if (assessment.Reference is not null) observation.Evidence.Add(assessment.Reference);
 
         WorkflowRecordRules.ValidateObservation(observation);
         CheckSupersession(Attached(job.ObservationIds, id => _store.LoadObservation(job.TenantId, id)), observation);
@@ -223,6 +231,28 @@ public sealed partial class JobWorkflow
         var material = objectIds.Count == 0 ? ""
             : ObservedMaterial.Digest(snapshot, objectIds) ?? throw new ConfigurationException("An observed object is not in the referenced capture. Record only objects the capture contains.");
         return (reference, snapshot, material);
+    }
+
+    /// <summary>
+    /// A stored assessment an outcome cites: of an intact capture, under this exact standard, with a finding for this instance.
+    /// A pass cannot cite an assessment that found the requirement unmet or could not assess it; the citation would contradict the claim.
+    /// </summary>
+    private (string? SnapshotId, EvidenceReference? Reference) AssessmentReference(string tenantId, string assessmentId, string? snapshotId,
+        StandardCatalogue standard, string instance, string status)
+    {
+        var stored = _store.LoadAssessment(tenantId, assessmentId) ?? throw new ConfigurationException("The referenced assessment is not saved for this tenant.");
+        var assessment = stored.Result;
+        if (assessment.Release != standard.Release || !string.Equals(assessment.StandardDigest, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase))
+            throw new ConfigurationException("The referenced assessment was made under a different standard. Assess the capture again under this one.");
+        if (assessment.SnapshotIntegrity != SnapshotIntegrityState.Intact)
+            throw new IntegrityException("The referenced assessment did not confirm that its capture was intact. Cite an assessment of an intact capture.");
+        if (snapshotId is not null && !string.Equals(snapshotId, assessment.SnapshotId, StringComparison.OrdinalIgnoreCase))
+            throw new ConfigurationException("The referenced assessment is of a different capture from the one this outcome pins.");
+        var finding = assessment.Findings.FirstOrDefault(f => string.Equals(f.ControlId, instance, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ConfigurationException($"The referenced assessment has no finding for {instance}.");
+        if (status == ObservationStatus.Pass && finding.Status is not (FindingStatus.Compliant or FindingStatus.RequiresManualReview))
+            throw new SafetyViolationException($"The referenced assessment found {instance} {finding.Status}. A pass cannot cite it; record what you observed against a capture, or reassess.");
+        return (assessment.SnapshotId, new EvidenceReference { Kind = EvidenceKind.Assessment, Id = assessment.Id.ToLowerInvariant(), Sha256 = stored.Sha256 });
     }
 
     private static List<T> Attached<T>(IEnumerable<string> ids, Func<string, T?> load) where T : class =>
