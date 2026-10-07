@@ -40,10 +40,10 @@ CURRENT STATE (re-fetch and verify; do not trust these references blindly)
   * PR #24 (9617d92): post-merge review fixes for #22 (INT-059): scope digest ignores
     exclusion-account resolvedAt/selectedBy and list order; unreadable lineage is reported,
     not fatal; skipped lineage explained; validator tightened.
-  * PR #25: INT-049 job and observation records, engine only (INT-060): jobs/<id>.json and
+  * PR #25 (19e28fb): INT-049 job and observation records, engine only (INT-060): jobs/<id>.json and
     immutable observations/<id>.json, strict readers, one-line supersession, read-only
     projection reporting NeedsReview; legacy manual checks shown as unbound attestations.
-    Check its merge SHA and the integration CI run on it.
+    Exact-head CI run 37682734080: 985 Engine + 119 App tests, harness clean.
 
 TASK 1 — INDEPENDENT REVIEW OF PR #22–#25
 Review the merged changes against PRODUCT-CONTRACT-DECISIONS-2026.10.06.md and the
