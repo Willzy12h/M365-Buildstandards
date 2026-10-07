@@ -46,7 +46,7 @@ The CHANGELOG's `1.1.0-preview.19` entry lists everything. The feedback register
 **Next, in order:**
 1. Review and merge PR #22.
 2. The upgrade impact report: one capture assessed under the source and target catalogues, shown apart from tenant drift (rest of INT-051).
-3. INT-049 jobs and observations.
+3. INT-049 jobs and observations. The store, validation and read-only projection are in PR #25 (INT-060). Desktop and CLI surfaces, assessment evidence references and the completion claim follow.
 4. INT-050 dispositions and cutover cases, each in its own PR, consuming `ReviewedClientScope.Digest`.
 5. Further usability from real engineer feedback.
 6. Upgrade the GitHub Actions still on Node 20. CI already forces them onto Node 24 with a warning. Do it as one reviewed PR that also checks `publish-preview18.yml`.
