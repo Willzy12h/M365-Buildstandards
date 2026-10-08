@@ -101,6 +101,9 @@ public sealed class JobProjection
             .Select(history =>
             {
                 var (current, reasons) = Review(store, tenantId, history, standard, profile, now, currentCapture);
+                if (observations.Any(o => string.Equals(o.InstanceKey, history[0].InstanceKey, StringComparison.OrdinalIgnoreCase)
+                    && !JobWorkflow.SameSubject(o, history[0])))
+                    reasons = reasons.Append("This requirement instance has conflicting outcome identities. Review all histories.").ToList();
                 return new SubjectProjection
                 {
                     SemanticId = history[0].SemanticId, ControlId = history[0].ControlId, InstanceKey = history[0].InstanceKey,
@@ -112,6 +115,9 @@ public sealed class JobProjection
             .Select(history =>
             {
                 var (current, reasons) = Review(store, tenantId, history, standard, profile, now, currentCapture);
+                if (dispositions.Any(d => string.Equals(d.InstanceKey, history[0].InstanceKey, StringComparison.OrdinalIgnoreCase)
+                    && !JobWorkflow.SameSubject(d, history[0])))
+                    reasons = reasons.Append("This requirement instance has conflicting decision identities. Review all histories.").ToList();
                 return new DispositionProjection
                 {
                     SemanticId = history[0].SemanticId, ControlId = history[0].ControlId, InstanceKey = history[0].InstanceKey,
@@ -125,6 +131,10 @@ public sealed class JobProjection
             {
                 var (current, reasons) = Graph(history);
                 if (current is not null) reasons.AddRange(CutoverReasons(store, tenantId, current, standard, profile, now, currentCapture));
+                // Later stage records rely on the immutable review/candidate/pilot evidence in their predecessors.
+                // Inspect those pinned references too; a new stage cannot make lost or modified stage evidence disappear.
+                if (history.SelectMany(r => r.Evidence).Any(r => !SubjectReview.EvidenceIntact(store, tenantId, r)))
+                    reasons.Add(ReviewReason.EvidenceMissing);
                 return new CutoverProjection
                 {
                     CaseId = history[0].CaseId, SemanticId = history[0].SemanticId, ControlId = history[0].ControlId, InstanceKey = history[0].InstanceKey,
