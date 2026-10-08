@@ -511,7 +511,12 @@ internal static partial class Program
             vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
-        if (key == "scripts") SeedScripts(shell);
+        if (key == "scripts")
+        {
+            SeedScripts(shell);
+            // One kept run, so the Run button, the session's run history, the row preview and its actions are drawn.
+            SeedScriptRun(shell);
+        }
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
         if (key == "history")

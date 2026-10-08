@@ -16,6 +16,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Exchange;
+using BDIT.TenantToolkit.Engine.Scripts;
 
 /// <summary>
 /// Checks that go beyond "the page draws": what an engineer can read, reach with the keyboard, and press.
@@ -391,36 +392,47 @@ internal static partial class Program
     }
 
     /// <summary>
-    /// The confirmation before a library script is copied or saved. Built from the seeded Scripts &amp; Reports form exactly
-    /// as the page builds it, laid out at its default and minimum sizes, and its gate exercised: the confirm button stays
-    /// disabled until the engineer ticks the box, is not the default button, and the tenant and every value are restated.
-    /// Nothing is produced - the dialog is closed without confirming.
+    /// The confirmation before a library script is copied, saved or run. Built from the seeded Scripts &amp; Reports form
+    /// exactly as the page builds it, once for Copy and once for Run, laid out at its default and minimum sizes, and its
+    /// gate exercised: the confirm button stays disabled until the engineer ticks the box, is not the default button, and
+    /// the tenant, the account and every value are restated. Nothing is produced or run - the dialog is closed without
+    /// confirming.
     /// </summary>
     private static void CheckScriptCopyDialog(ShellViewModel shell, string output)
     {
         shell.Navigate("scripts");
         SeedScripts(shell);
-        var review = shell.Page<ScriptsViewModel>().Review(ScriptCopyAction.Clipboard);
+        foreach (var action in new[] { ScriptCopyAction.Clipboard, ScriptCopyAction.Run })
+            CheckScriptDialog(shell.Page<ScriptsViewModel>().Review(action), action == ScriptCopyAction.Run ? "script-run-dialog" : "script-copy-dialog", output);
+    }
+
+    private static void CheckScriptDialog(ScriptCopyReview review, string name, string output)
+    {
         var dialog = new ScriptCopyDialog(review)
         {
             ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000
         };
         try
         {
-            if (dialog.Content is not FrameworkElement root) throw new InvalidOperationException("The script copy dialog has no content.");
+            if (dialog.Content is not FrameworkElement root) throw new InvalidOperationException($"The {name} has no content.");
             var approval = Part<CheckBox>(dialog, "ApprovalBox");
             var confirm = Part<Button>(dialog, "ConfirmButton");
             var values = Part<ListBox>(dialog, "ValueList");
             if (values.Items.Count != review.Values.Count || review.Values.Count == 0)
-                throw new InvalidOperationException($"The script copy dialog lists {values.Items.Count} value(s) for a form with {review.Values.Count}.");
+                throw new InvalidOperationException($"The {name} lists {values.Items.Count} value(s) for a form with {review.Values.Count}.");
             if (!Part<TextBlock>(dialog, "TenantIdText").Text.Contains(Tenant, StringComparison.Ordinal) || Part<TextBlock>(dialog, "TenantNameText").Text != review.TenantName)
-                throw new InvalidOperationException("The script copy dialog does not restate the selected client's tenant.");
+                throw new InvalidOperationException($"The {name} does not restate the selected client's tenant.");
             if (Part<TextBlock>(dialog, "TypeText").Text != ScriptsViewModel.ReadOnlyText)
-                throw new InvalidOperationException("The script copy dialog does not say the item is read only.");
+                throw new InvalidOperationException($"The {name} does not say the item is read only.");
+            if (Part<TextBlock>(dialog, "HeadingText").Text != review.HeadingText || Part<TextBlock>(dialog, "ApprovalText").Text != review.ApprovalText
+                || dialog.Title != review.WindowTitle || (string)confirm.Content != review.ConfirmText)
+                throw new InvalidOperationException($"The {name} does not show the wording for its action.");
+            if (review.IsRun && (review.Account.Length == 0 || !Part<TextBlock>(dialog, "AccountText").Text.Contains(review.Account, StringComparison.Ordinal)))
+                throw new InvalidOperationException($"The {name} does not name the account the run is held to.");
 
             foreach (var size in new[] { new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
             {
-                var where = $"script-copy-dialog {(int)size.Width}x{(int)size.Height}";
+                var where = $"{name} {(int)size.Width}x{(int)size.Height}";
                 dialog.Width = size.Width; dialog.Height = size.Height;
                 dialog.Show(); Pump(); root.UpdateLayout(); Pump();
                 RecordUnnamedControls(root, where);
@@ -428,24 +440,24 @@ internal static partial class Program
                 RecordClipping(root, where);
                 var bounds = VisibleBounds(confirm, root);
                 if (bounds.Width < confirm.ActualWidth - 1 || bounds.Height < confirm.ActualHeight - 1)
-                    throw new InvalidOperationException($"The confirm button is not fully visible in the script copy dialog at {where}.");
-                SaveWindowImage(root, Path.Combine(output, $"script-copy-dialog-{(int)size.Width}x{(int)size.Height}.png"));
+                    throw new InvalidOperationException($"The confirm button is not fully visible in the {where}.");
+                SaveWindowImage(root, Path.Combine(output, $"{name}-{(int)size.Width}x{(int)size.Height}.png"));
                 DialogChecks++;
             }
 
             dialog.Activate(); Pump();
             var focused = Keyboard.FocusedElement as DependencyObject ?? FocusManager.GetFocusedElement(dialog) as DependencyObject;
             if (!ReferenceEquals(focused, approval))
-                KeyboardProblems.Add($"  script-copy-dialog · focus starts on {(focused as Control is { } c ? Describe(c) : focused?.GetType().Name ?? "nothing")}, not the confirmation checkbox");
+                KeyboardProblems.Add($"  {name} · focus starts on {(focused as Control is { } c ? Describe(c) : focused?.GetType().Name ?? "nothing")}, not the confirmation checkbox");
 
             foreach (var enabled in new[] { false, true, false })
             {
                 approval.IsChecked = enabled; Pump();
                 if (confirm.IsEnabled != enabled || dialog.Confirmed)
-                    throw new InvalidOperationException("The script copy confirmation gate failed.");
+                    throw new InvalidOperationException($"The {name} confirmation gate failed.");
                 DialogChecks++;
             }
-            if (confirm.IsDefault) throw new InvalidOperationException("The script copy confirm button is the default button, so Enter would produce the script.");
+            if (confirm.IsDefault) throw new InvalidOperationException($"The {name} confirm button is the default button, so Enter would act.");
         }
         finally
         {
@@ -471,6 +483,66 @@ internal static partial class Program
     {
         SeedScripts(shell);
         shell.Page<ScriptsViewModel>().Prompts = new HarnessScriptPrompts(shell.Workspace.Paths.ReportsDirectory);
+    }
+
+    private static void PrepareScriptRun(ShellViewModel shell)
+    {
+        PrepareScriptCopy(shell);
+        shell.Page<ScriptsViewModel>().Runner = new HarnessScriptRunner();
+    }
+
+    /// <summary>
+    /// One run in this session's history, made through the page's own Run path (confirmation, workspace operation, run
+    /// record in the harness's fixture folder) with the stand-in runner, so the history, row preview and export render.
+    /// </summary>
+    private static void SeedScriptRun(ShellViewModel shell)
+    {
+        var vm = shell.Page<ScriptsViewModel>();
+        if (vm.RunHistory.Count > 0) { vm.SelectedRun ??= vm.RunHistory[0]; return; }
+        var prompts = vm.Prompts;
+        var runner = vm.Runner;
+        vm.Prompts = new HarnessScriptPrompts(shell.Workspace.Paths.ReportsDirectory);
+        vm.Runner = new HarnessScriptRunner();
+        try
+        {
+            var task = vm.RunSelectedAsync();
+            var clock = Stopwatch.StartNew();
+            while (!task.IsCompleted || shell.Workspace.Busy)
+            {
+                if (clock.Elapsed > TimeSpan.FromSeconds(30)) throw new InvalidOperationException("The seeded Scripts & Reports run did not finish.");
+                Pump(); Thread.Sleep(10);
+            }
+            task.GetAwaiter().GetResult();
+        }
+        finally { vm.Prompts = prompts; vm.Runner = runner; }
+        if (vm.SelectedRun is not { HasRows: true } run || run.Record.Status != BDIT.TenantToolkit.Core.Models.ReportReadState.Partial)
+            throw new InvalidOperationException("The seeded Scripts & Reports run was not kept with its rows: " + shell.ErrorMessage);
+    }
+
+    /// <summary>
+    /// Stands in for the real runner. It makes every check the real runner makes before starting a process
+    /// (<see cref="ScriptRunner.Prepare"/>), refuses a run not pinned to the synthetic tenant and account, and returns a
+    /// partial result with an Unknown value under the item's declared columns. Nothing is started or contacted.
+    /// </summary>
+    private sealed class HarnessScriptRunner : IScriptRunner
+    {
+        public Task<ScriptRunResult> RunAsync(ScriptRunRequest request, IProgress<string>? progress, CancellationToken ct)
+        {
+            var wrapper = ScriptRunner.Prepare(request);
+            if (request.Target.TenantId != Tenant || !wrapper.Contains("$expectedTenantId = '" + Tenant + "'", StringComparison.Ordinal)
+                || string.IsNullOrEmpty(request.Target.Account) || !wrapper.Contains("$signInAs = '" + request.Target.Account + "'", StringComparison.Ordinal))
+                throw new InvalidOperationException("The run is not pinned to the synthetic tenant and account.");
+            progress?.Report("Synthetic run for the offline harness. No PowerShell process was started.");
+            var columns = request.Entry.Manifest.OutputSchema.Columns;
+            var rows = Enumerable.Range(1, 12)
+                .Select(i => (IReadOnlyList<string>)columns.Select((c, j) => j == 0 ? $"2026-10-0{1 + i % 8}T09:{i:00}:00Z" : i == 3 && j == 1 ? "Unknown" : $"synthetic-{c.ToLowerInvariant()}-{i}@example.invalid").ToArray())
+                .ToList();
+            var started = DateTimeOffset.UtcNow;
+            return Task.FromResult(new ScriptRunResult("5.1", ScriptCatalogue.Sha256(System.Text.Encoding.UTF8.GetBytes(wrapper)), started, started.AddSeconds(4),
+                ScriptRunEnd.Completed, 0, columns, rows, false, true, true,
+                new[] { "BDIT:PARTIAL Synthetic: the query stopped at its limit.", "BDIT:UNKNOWN Synthetic: one value could not be read." },
+                new[] { "Connected to tenant " + Tenant + " as " + request.Target.Account + "." }, null));
+        }
     }
 
     /// <summary>
@@ -658,6 +730,13 @@ internal static partial class Program
         // dialog is laid out and its approval gate exercised separately in CheckScriptCopyDialog.
         ("ScriptsViewModel.CopyScriptCommand", Press),
         ("ScriptsViewModel.SaveScriptCommand", Press),
+        // Run is pressed with the same harness confirmation and a stand-in runner (HarnessScriptRunner) that checks the
+        // request the way the real runner does and returns synthetic rows: no PowerShell process is started and no
+        // tenant is reached. The real runner's process, limits and cancellation are tested in the engine tests.
+        ("ScriptsViewModel.RunScriptCommand", Press),
+        ("ScriptsViewModel.CancelRunCommand", Disabled),
+        ("ScriptsViewModel.ExportRunCsvCommand", Press),
+        ("ScriptsViewModel.OpenRunFolderCommand", Explorer),
 
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
@@ -837,6 +916,8 @@ internal static partial class Program
         },
         ["ScriptsViewModel.CopyScriptCommand"] = PrepareScriptCopy,
         ["ScriptsViewModel.SaveScriptCommand"] = PrepareScriptCopy,
+        ["ScriptsViewModel.RunScriptCommand"] = PrepareScriptRun,
+        ["ScriptsViewModel.ExportRunCsvCommand"] = shell => { PrepareScriptRun(shell); SeedScriptRun(shell); },
         // Choosing a release is refused while connected, so the success path needs the session set aside too.
         ["StandardViewModel.SelectReleaseCommand"] = Disconnect,
         ["AutomationViewModel.LoadCandidateCommand"] = shell =>

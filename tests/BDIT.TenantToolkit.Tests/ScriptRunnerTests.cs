@@ -430,6 +430,23 @@ public sealed class ScriptRunnerTests : IDisposable
     }
 
     [Fact]
+    public void Every_shipped_read_only_item_fits_the_run_record()
+    {
+        // A shipped item whose id, name, columns or row limit the strict reader would refuse could run but never be kept.
+        foreach (var entry in ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.Mode == ScriptMode.ReadOnly))
+        {
+            var m = entry.Manifest;
+            Assert.True(m.Limits.MaximumRows <= ScriptRunSchema.MaximumRows, m.Id);
+            var row = m.OutputSchema.Columns.Select(_ => "v").ToArray();
+            var binding = ScriptInputs.Bind(m, new Dictionary<string, string?>(), Now);
+            var request = new ScriptRunRequest(entry, binding, new ScriptCopyTarget(Tenant, "Contoso (synthetic)", Account), Now);
+            var result = Completed(row) with { Columns = m.OutputSchema.Columns };
+            var record = ScriptRunSchema.Create(request, result, "1.0.0-test");
+            Assert.Equal(record.Id, ScriptRunSchema.Read(ScriptRunSchema.Serialize(record), Tenant).Id);
+        }
+    }
+
+    [Fact]
     public void The_csv_reader_accepts_what_export_csv_writes_and_refuses_anything_malformed()
     {
         Assert.Equal(new[] { new[] { "A", "B" }, new[] { "1", "x, \"y\"\nz" }, new[] { "", "" } },
