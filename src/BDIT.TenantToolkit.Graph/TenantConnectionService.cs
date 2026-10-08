@@ -24,6 +24,9 @@ public sealed class ConnectedTenant : IAsyncDisposable
 
     public Task ReleaseAsync() => _authenticator?.ReleaseAsync() ?? Task.CompletedTask;
 
+    /// <summary>Reports reuse the existing provider/cache and verified context; no connection or sign-in is created.</summary>
+    public IGraphClient ForReports() => Graph is GraphClient client ? client.ForReports() : Graph;
+
     public async ValueTask DisposeAsync()
     {
         if (_authenticator is not null) await _authenticator.DisconnectAsync();

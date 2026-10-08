@@ -1,12 +1,14 @@
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Core.Reporting;
 
 namespace BDIT.TenantToolkit.Graph;
 
 public sealed record GraphRoute(GraphApi Api, string BasePath, string Scope, string? WriteScope, string CollectionKey)
 {
     public bool PublicIpRangesOnly { get; init; }
+    public bool RegisteredReportOnly { get; init; }
     public bool Writable => !string.IsNullOrWhiteSpace(WriteScope);
 }
 
@@ -57,15 +59,28 @@ public sealed class GraphRouteAllowList
         return list;
     }
 
+    /// <summary>Package-owned report routes only. No catalogue or diagnostic write capability is carried over.</summary>
+    public static GraphRouteAllowList ForReports() => Only(GraphReportRegistry.Definitions.SelectMany(d => d.Routes)
+        .Distinct().Select(r => new GraphRoute(GraphApi.V1, r.Path, r.Scope, null, "report:" + r.Path) { RegisteredReportOnly = true }));
+
     public GraphRoute? MatchRead(GraphApi api, string path)
     {
         var basePath = BasePathOf(path);
         return _routes
             .Where(r => r.Api == api && (string.Equals(basePath, r.BasePath, StringComparison.OrdinalIgnoreCase)
-                                          || r.BasePath != "/deviceManagement" && basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase)))
+                                          || r.BasePath != "/deviceManagement" && basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase))
+                && (!r.RegisteredReportOnly || ReportPathAllowed(r, basePath)))
             .OrderByDescending(r => r.BasePath.Length)
             .ThenByDescending(r => r.Writable)
             .FirstOrDefault();
+    }
+
+    private static bool ReportPathAllowed(GraphRoute route, string path)
+    {
+        if (string.Equals(path, route.BasePath, StringComparison.OrdinalIgnoreCase)) return true;
+        if (route.BasePath != "/users") return false;
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 3 && parts[0] == "users" && ProfileValidator.IsGuid(parts[1]) && parts[2] == "licenseDetails";
     }
 
     /// <summary>Returns the writable route when the path is exactly the collection root or root/{guid}.</summary>

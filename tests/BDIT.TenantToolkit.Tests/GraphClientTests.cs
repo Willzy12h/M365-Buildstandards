@@ -14,6 +14,32 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class GraphClientTests
 {
+    [Fact]
+    public async Task Report_context_reuses_provider_but_cannot_write_even_in_deployment_mode()
+    {
+        var (source, handler, tokens) = Create();
+        var report = source.ForReports();
+        Assert.Equal(source.TenantId, report.TenantId); Assert.Equal(source.Mode, report.Mode);
+        Assert.All(GraphRouteAllowList.ForReports().Routes, r => Assert.False(r.Writable));
+        Assert.Null(GraphRouteAllowList.ForReports().MatchRead(GraphApi.V1, "/users/" + TestData.Operator + "/authentication/methods"));
+        Assert.NotNull(GraphRouteAllowList.ForReports().MatchRead(GraphApi.V1, "/users/" + TestData.Operator + "/licenseDetails"));
+        await Assert.ThrowsAsync<WriteDeniedException>(() => report.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/users", new JsonObject(), CancellationToken.None));
+        Assert.Empty(handler.Requests); Assert.Equal(0, tokens.Calls);
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[]}");
+        Assert.Empty(await report.GetAllAsync(GraphApi.V1, "/reports/authenticationMethods/userRegistrationDetails", CancellationToken.None));
+        Assert.Equal(1, tokens.Calls); Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Report_pagination_failure_cannot_return_a_successful_partial_list()
+    {
+        var (source, handler, _) = Create(); var report = source.ForReports();
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[{\"id\":\"synthetic-event\"}],\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=synthetic-page\"}");
+        handler.Enqueue(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"Authorization_RequestDenied\",\"message\":\"Synthetic page denied\"}}");
+        await Assert.ThrowsAsync<PermissionException>(() => report.GetAllAsync(GraphApi.V1, "/auditLogs/signIns", CancellationToken.None));
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

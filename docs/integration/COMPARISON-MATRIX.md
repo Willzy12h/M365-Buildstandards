@@ -1,3 +1,14 @@
+## Registered report implementation — PR #44
+
+| Feature | Source implementation | Evidence / remaining gate |
+| --- | --- | --- |
+| Users/licences | Added separate report: identity-based assigned SKU/service-plan details, explicit partial reads; existing inventory reused | Synthetic identity/duplicate/malformed/access/cancellation tests; desktop/CLI and live acceptance outstanding |
+| Device/MFA/log reports | Added registered typed read-only Graph adapters, bounded range/output/time, unknown fields, minimal sensitive data | Synthetic failures, pagination, cancellation, context/refusal tests; AuditLog access proposed, not granted; retention/human/live unverified |
+| Report storage/export | Added strict immutable separate store and HTML/CSV/JSON/Excel documents | Strict shape/identity/integrity, overwrite, explicit-null, escaping/formula tests; Reports page not implemented |
+| Mailbox/100 GB and scripts | Not implemented in this PR; existing fixed Exchange capture retained | Dedicated read-only mailbox adapter, verified entitlement rules and manifest library still needed; integrated Exchange mutations remain blocked |
+
+This extends the existing comparison evidence; it does not replace the capability table or close unrun acceptance.
+
 # Preview.18 approved product-completion work — PR #19
 
 | Area | Earlier limit | Implemented result and evidence |

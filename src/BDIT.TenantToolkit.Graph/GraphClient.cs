@@ -63,6 +63,9 @@ public sealed class GraphClient : IGraphClient
 
     public static string Root(GraphApi api) => api == GraphApi.Beta ? Host + "/beta" : Host + "/v1.0";
 
+    /// <summary>Reuse this verified identity/token provider and transport; restrict report requests to read-only routes.</summary>
+    public GraphClient ForReports() => new(_http, _tokens, TenantId, Mode, GraphRouteAllowList.ForReports(), _options, _log);
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
