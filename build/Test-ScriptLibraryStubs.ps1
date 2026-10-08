@@ -487,6 +487,9 @@ function Get-MalwareFilterRule { Write-StubRead 'Get-MalwareFilterRule'; @() }
 function Get-CalendarProcessing {
     param($Identity)
     Write-StubRead 'Get-CalendarProcessing'
+    if ([string]$Identity -eq '12121212-1212-1212-1212-121212121212' -and (Get-Scenario) -eq 'flags') {
+        return [pscustomobject]@{ AutomateProcessing = 'AutoAccept'; AllowConflicts = $false; AllBookInPolicy = $true; ResourceDelegates = @() }
+    }
     if ([string]$Identity -eq '12121212-1212-1212-1212-121212121212') {
         return [pscustomobject]@{
             AutomateProcessing = 'AutoAccept'; AllowConflicts = $false; AllowRecurringMeetings = $true; BookingWindowInDays = 180
@@ -769,8 +772,8 @@ try {
         $row.Count -eq 1 -and (Get-Cell $row[0] 'Status') -eq 'Unknown' -and $groupOwners.Output.Contains('BDIT:UNKNOWN')
     }
     $groupCap = Invoke-Copy (New-Copy 'exo.group-members' 'groups-cap' @('--Group', 'staff@contoso.example', '--IncludeOwners', 'false', '--MaxMembers', '2')) 'groups-cap'
-    Test-Case 'groups: a membership list longer than the limit is marked partial' {
-        $groupCap.Code -eq 0 -and $groupCap.Rows.Count -eq 2 -and $groupCap.Output.Contains('BDIT:PARTIAL')
+    Test-Case 'groups: a membership list longer than the limit is marked partial, and an Unresolved member makes the run warn' {
+        $groupCap.Code -eq 0 -and $groupCap.Rows.Count -eq 2 -and $groupCap.Output.Contains('BDIT:PARTIAL') -and $groupCap.Output.Contains('BDIT:UNKNOWN')
     }
     $groupNotGroup = Invoke-Copy (New-Copy 'exo.group-members' 'groups-mailbox' @('--Group', 'alex@contoso.example')) 'groups-mailbox'
     Test-Case 'groups: a recipient that is not a group is refused, not listed as empty' { $groupNotGroup.Code -ne 0 -and -not $groupNotGroup.CsvWritten }
@@ -790,6 +793,7 @@ try {
         $row.Count -eq 1 -and (Get-Cell $row[0] 'State') -ceq 'Unknown' -and (Get-Cell $row[0] 'RedirectsOrCopies') -ceq 'Unknown' -and
             (Get-Cell $row[0] 'BypassesSpamFiltering') -ceq 'Unknown' -and (Get-Cell $row[0] 'StopRuleProcessing') -ceq 'Unknown'
     }
+    Test-Case 'transport: a rule with values that were not returned makes the run warn BDIT:UNKNOWN' { $transport.Output.Contains('BDIT:UNKNOWN') }
     $transportEnabled = Invoke-Copy (New-Copy 'exo.transport-rules' 'transport-enabled' @('--OnlyEnabled', 'true')) 'transport-enabled'
     Test-Case 'transport: only enabled drops a disabled rule and keeps one whose state is Unknown' {
         @(Find-Row $transportEnabled.Rows 'Name' 'Trust partner').Count -eq 0 -and @(Find-Row $transportEnabled.Rows 'Name' 'Unreadable rule').Count -eq 1
@@ -802,11 +806,13 @@ try {
         $in.Count -eq 1 -and (Get-Cell $in[0] 'TlsRequirement') -eq 'Required' -and (Get-Cell $in[0] 'Enabled') -ceq 'True' -and
             $out.Count -eq 1 -and (Get-Cell $out[0] 'TlsRequirement') -eq 'NotSet' -and (Get-Cell $out[0] 'Enabled') -ceq 'False'
     }
+    Test-Case 'connectors: a run where every value was returned does not warn' { $connectors.Code -eq 0 -and -not $connectors.Output.Contains('BDIT:UNKNOWN') }
     $connectorFlags = Invoke-Copy (New-Copy 'exo.connectors' 'connectors-flags' @('--OnlyEnabled', 'true')) 'connectors-flags' -Scenario 'flags'
     Test-Case 'connectors: values that were not returned are Unknown; only enabled keeps Unknown and drops disabled' {
         $in = @(Find-Row $connectorFlags.Rows 'Direction' 'Inbound')
         $in.Count -eq 1 -and (Get-Cell $in[0] 'Enabled') -ceq 'Unknown' -and (Get-Cell $in[0] 'TlsRequirement') -eq 'Unknown' -and
-            (Get-Cell $in[0] 'ConnectorSource') -eq 'Unknown' -and @(Find-Row $connectorFlags.Rows 'Direction' 'Outbound').Count -eq 0
+            (Get-Cell $in[0] 'ConnectorSource') -eq 'Unknown' -and @(Find-Row $connectorFlags.Rows 'Direction' 'Outbound').Count -eq 0 -and
+            $connectorFlags.Output.Contains('BDIT:UNKNOWN')
     }
 
     Write-Output 'Accepted domains and DKIM, read from Exchange only:'
@@ -918,7 +924,8 @@ try {
     Test-Case 'protection: a preset policy with no rule is Preset, and one not marked custom or preset is Unknown, never NoRule' {
         $preset = @(Find-Row $protection.Rows 'Policy' 'Standard Preset Security Policy1')
         $unmarked = @(Find-Row $protection.Rows 'Policy' 'Unmarked')
-        $preset.Count -eq 1 -and (Get-Cell $preset[0] 'RuleState') -eq 'Preset' -and $unmarked.Count -eq 1 -and (Get-Cell $unmarked[0] 'RuleState') -eq 'Unknown'
+        $preset.Count -eq 1 -and (Get-Cell $preset[0] 'RuleState') -eq 'Preset' -and $unmarked.Count -eq 1 -and (Get-Cell $unmarked[0] 'RuleState') -eq 'Unknown' -and
+            $protection.Output.Contains('BDIT:UNKNOWN')
     }
     Test-Case 'protection: a scoped policy shows its rule, scope, exclusions, counted lists and unreturned settings as Unknown' {
         $row = @(Find-Row $protection.Rows 'Policy' 'Finance strict')
@@ -947,6 +954,10 @@ try {
             (Get-Cell $van[0] 'AllBookInPolicy') -ceq 'Unknown' -and $rooms.Output.Contains('BDIT:UNKNOWN')
     }
     $roomsOnly = Invoke-Copy (New-Copy 'exo.resource-mailboxes' 'rooms-only' @('--ResourceType', 'RoomMailbox')) 'rooms-only'
+    Test-Case 'rooms: only a booking flag that was not returned still makes the run warn' {
+        $roomFlag = Invoke-Copy (New-Copy 'exo.resource-mailboxes' 'rooms-flag' @('--Mailbox', 'room1@contoso.example')) 'rooms-flag' -Scenario 'flags'
+        (Get-Cell $roomFlag.Rows[0] 'AutomateProcessing') -eq 'AutoAccept' -and (Get-Cell $roomFlag.Rows[0] 'AllRequestInPolicy') -ceq 'Unknown' -and $roomFlag.Output.Contains('BDIT:UNKNOWN')
+    }
     Test-Case 'rooms: a resource type filter lists only that type' { $roomsOnly.Rows.Count -eq 1 -and (Get-Cell $roomsOnly.Rows[0] 'RecipientTypeDetails') -eq 'RoomMailbox' }
     $roomUser = Invoke-Copy (New-Copy 'exo.resource-mailboxes' 'rooms-user' @('--Mailbox', 'alex@contoso.example')) 'rooms-user'
     Test-Case 'rooms: a named mailbox that is not a resource is refused' { $roomUser.Code -ne 0 -and -not $roomUser.CsvWritten }

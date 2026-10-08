@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-SendOnBehalfReport.ps1",
-  "scriptSha256": "45d647197ce6d17c3dfc73fda0c1139b19e7086eb344bf097d1408293bc86233",
+  "scriptSha256": "cee6f8d0881b9eeaa792f79179780272f7eb144a1c2aea468d402e75d4b7fab9",
   "supportedRuntimes": [
     "5.1",
     "7"

@@ -12,6 +12,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -61,7 +70,7 @@ foreach ($rule in $rules) {
     }
     $copies = Get-AnySet $rule @('RedirectMessageTo', 'BlindCopyTo', 'AddToRecipients', 'CopyTo')
     if ($copies -eq 'Unknown') { $notes += 'Exchange did not return every redirect and copy action.' }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         Priority = Get-Text (Get-Value $rule 'Priority')
         Name = Get-Text (Get-Value $rule 'Name')
         State = $state
@@ -77,4 +86,9 @@ foreach ($rule in $rules) {
         WhenChanged = Get-Text (Get-Value $rule 'WhenChanged')
         Notes = $notes -join ' '
     }
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

@@ -13,6 +13,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -107,32 +116,41 @@ foreach ($type in $types) {
             }
             if ($isDefault -eq 'True') { $state = 'Default'; $note = 'Default policy: applies to everyone no other policy of this type covers.' }
             if ($isDefault -eq 'Unknown') { $state = 'Unknown'; $note = 'Exchange did not return whether this is the default policy, and no rule names it.' }
-            [pscustomobject]@{
+            $row = [pscustomobject]@{
                 PolicyType = $type.Type; Policy = $name; IsDefault = $isDefault; Rule = ''; RuleState = $state; Priority = ''
                 AppliesTo = ''; Excludes = ''; KeySettings = $settings; Notes = $note
             }
+            if (Test-UnknownValue $row) { $unknownRows++ }
+            $row
             continue
         }
         foreach ($rule in $own) {
             $state = Get-Text (Get-Value $rule 'State')
             $notes = @()
             if (-not $state) { $state = 'Unknown'; $notes += 'Exchange did not return whether this rule is enabled.' }
-            [pscustomobject]@{
+            $row = [pscustomobject]@{
                 PolicyType = $type.Type; Policy = $name; IsDefault = $isDefault; Rule = Get-Text (Get-Value $rule 'Name'); RuleState = $state
                 Priority = Get-Text (Get-Value $rule 'Priority'); AppliesTo = Get-Scope $rule $type.Include; Excludes = Get-Scope $rule $type.Exclude
                 KeySettings = $settings; Notes = $notes -join ' '
             }
+            if (Test-UnknownValue $row) { $unknownRows++ }
+            $row
         }
     }
     foreach ($rule in $rules) {
         if ($matched.ContainsKey([string](Get-Text (Get-Value $rule 'Name')))) { continue }
         $state = Get-Text (Get-Value $rule 'State')
         if (-not $state) { $state = 'Unknown' }
-        [pscustomobject]@{
+        $row = [pscustomobject]@{
             PolicyType = $type.Type; Policy = Get-Text (Get-Value $rule $type.Link); IsDefault = 'Unknown'; Rule = Get-Text (Get-Value $rule 'Name')
             RuleState = $state; Priority = Get-Text (Get-Value $rule 'Priority')
             AppliesTo = Get-Scope $rule $type.Include; Excludes = Get-Scope $rule $type.Exclude; KeySettings = 'Unknown'
             Notes = 'This rule names a policy that was not returned, so its settings are unknown.'
         }
+        if (Test-UnknownValue $row) { $unknownRows++ }
+        $row
     }
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

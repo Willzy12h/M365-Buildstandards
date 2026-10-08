@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-TransportRuleReport.ps1",
-  "scriptSha256": "3847b8ba704c251e5eaa01816f445ff9918ce893e36966ccd6ff7e904172685e",
+  "scriptSha256": "bf627c5ae4ab2f3fb4090fbdd40457ee667be67f3ed995ade5abf327020829b8",
   "supportedRuntimes": [
     "5.1",
     "7"

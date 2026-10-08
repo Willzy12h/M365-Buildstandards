@@ -10,6 +10,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -34,7 +43,6 @@ $accepted = @(Get-AcceptedDomain)
 $signing = @(Get-DkimSigningConfig)
 $wanted = @($Domain | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() })
 
-$unknown = 0
 foreach ($item in $accepted) {
     $name = (Get-Text (Get-Value $item 'DomainName')).ToLowerInvariant()
     if ($wanted.Count -gt 0 -and $wanted -notcontains $name) { continue }
@@ -47,8 +55,8 @@ foreach ($item in $accepted) {
     $enabled = 'NotConfigured'
     if ($null -ne $config) { $enabled = Get-Flag $config 'Enabled' }
     else { $notes += 'Exchange returned no DKIM signing configuration for this domain.' }
-    if ($enabled -eq 'Unknown') { $unknown++; $notes += 'Exchange did not return whether DKIM signing is enabled.' }
-    [pscustomobject]@{
+    if ($enabled -eq 'Unknown') { $notes += 'Exchange did not return whether DKIM signing is enabled.' }
+    $row = [pscustomobject]@{
         Domain = $name
         DomainType = Get-Text (Get-Value $item 'DomainType')
         IsDefault = Get-Flag $item 'Default'
@@ -62,15 +70,19 @@ foreach ($item in $accepted) {
         LastChecked = Get-Text (Get-Value $config 'LastChecked')
         Notes = $notes -join ' '
     }
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
 foreach ($name in $wanted) {
     if (@($accepted | Where-Object { (Get-Text (Get-Value $_ 'DomainName')).ToLowerInvariant() -eq $name }).Count -gt 0) { continue }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         Domain = $name; DomainType = 'NotAccepted'; IsDefault = 'False'; DkimConfigured = 'NotApplicable'; DkimEnabled = 'NotApplicable'; DkimStatus = ''
         Selector1CNAME = ''; Selector2CNAME = ''; Selector1KeySize = ''; RotateOnDate = ''; LastChecked = ''
         Notes = 'This domain is not an accepted domain in this tenant, so its DKIM signing configuration was not read.'
     }
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' domain(s) have a DKIM signing configuration whose enabled state was not returned. They are listed as Unknown.')
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

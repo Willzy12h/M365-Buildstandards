@@ -13,6 +13,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -48,7 +57,6 @@ if ($Mailbox) {
 }
 
 $empty = [guid]::Empty
-$unknown = 0
 foreach ($target in $targets) {
     $notes = @()
     # An archive exists when Exchange returns a non-empty archive GUID; no GUID returned means Unknown.
@@ -61,7 +69,7 @@ foreach ($target in $targets) {
             if ($parsed -ne $empty) { $hasArchive = 'True' }
         }
     }
-    if ($hasArchive -eq 'Unknown') { $unknown++; $notes += 'Exchange did not return an archive GUID, so whether this mailbox has an archive is unknown.' }
+    if ($hasArchive -eq 'Unknown') { $notes += 'Exchange did not return an archive GUID, so whether this mailbox has an archive is unknown.' }
     # ArchiveStatus is shown as returned. When it disagrees with the archive GUID, say so rather than choose one.
     $archiveStatus = Get-Text (Get-Value $target 'ArchiveStatus')
     if (($hasArchive -eq 'True' -and $archiveStatus -ne 'Active') -or ($hasArchive -eq 'False' -and $archiveStatus -eq 'Active')) {
@@ -72,7 +80,7 @@ foreach ($target in $targets) {
     if ($OnlyWithArchive -and $hasArchive -eq 'False') { continue }
     $autoExpanding = Get-Flag $target 'AutoExpandingArchiveEnabled'
     if ($autoExpanding -eq 'Unknown') { $notes += 'Exchange did not return whether auto-expanding archiving is on for this mailbox.' }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         Mailbox = [string]$target.PrimarySmtpAddress
         RecipientTypeDetails = Get-Text (Get-Value $target 'RecipientTypeDetails')
         HasArchive = $hasArchive
@@ -84,10 +92,12 @@ foreach ($target in $targets) {
         OrganisationAutoExpanding = $orgAutoExpanding
         Notes = $notes -join ' '
     }
-}
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' mailbox(es) did not return whether they have an archive. They are listed with HasArchive Unknown.')
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
 if ($orgAutoExpanding -eq 'Unknown') {
     Write-Warning 'BDIT:UNKNOWN Whether auto-expanding archiving is on for the organisation could not be read. OrganisationAutoExpanding is Unknown on every row.'
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

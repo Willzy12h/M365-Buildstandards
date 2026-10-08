@@ -15,6 +15,15 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($StaleDays -gt 0 -and -not $IncludeLastSync) { throw 'Tick Include last sync to filter devices by when they last synchronised.' }
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -47,7 +56,6 @@ if ($Mailbox) {
 
 $now = [DateTime]::UtcNow
 $rows = 0
-$unknown = 0
 $stopped = $false
 foreach ($target in $targets) {
     if ($stopped) { break }
@@ -88,7 +96,6 @@ foreach ($target in $targets) {
                 if ($StaleDays -gt 0 -and $days -ge $StaleDays) { $status = 'Stale' }
                 if ($StaleDays -le 0) { $status = 'Dated' }
             } else {
-                $unknown++
                 $notes += 'Exchange did not return a last successful sync for this device.'
                 if ($failure) { $notes += ('The statistics read failed: ' + $failure) }
             }
@@ -96,7 +103,7 @@ foreach ($target in $targets) {
             if ($StaleDays -gt 0 -and $status -eq 'Recent') { continue }
         }
         $rows++
-        [pscustomobject]@{
+        $row = [pscustomobject]@{
             Mailbox = $address
             FriendlyName = Get-Text (Get-Value $device 'FriendlyName')
             DeviceModel = Get-Text (Get-Value $device 'DeviceModel')
@@ -113,9 +120,11 @@ foreach ($target in $targets) {
             SyncStatus = $status
             Notes = $notes -join ' '
         }
+        if (Test-UnknownValue $row) { $unknownRows++ }
+        $row
     }
 }
 if ($stopped) { Write-Warning ('BDIT:PARTIAL Stopped at ' + $MaxRows + ' devices.') }
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' device(s) have no last successful sync that could be read. They are listed with SyncStatus Unknown.')
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

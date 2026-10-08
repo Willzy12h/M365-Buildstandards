@@ -1,10 +1,11 @@
 <#
 Members and owners of named distribution, mail-enabled security and Microsoft 365 groups.
 Read only. Each member is listed with the exact identities Exchange returned for it (primary SMTP address and object
-ID); a member returned without either is Unresolved. A distribution group's owners may be returned by Exchange as names,
-so each is looked up and is Resolved only when Exchange finds exactly one recipient whose primary SMTP address,
-distinguished name, object ID or GUID is that value. A name, alias or display name, several matches or none is Unresolved. Nested groups are
-listed as members and not expanded. Dynamic distribution groups are calculated at delivery and are not expanded.
+ID); a member returned without either is Unresolved. A distribution group's owners may be returned by Exchange as
+names, so each is looked up and is Resolved only when Exchange finds exactly one recipient whose primary SMTP address,
+distinguished name, object ID or GUID is that value. A name, alias or display name, several matches or none is
+Unresolved. Nested groups are listed as members and not expanded. Dynamic distribution groups are calculated at
+delivery and are not expanded.
 #>
 param(
     [Parameter(Mandatory = $true)][string[]]$Group,
@@ -79,6 +80,7 @@ function Get-Bounded([object[]]$Items, [string]$What) {
 
 $distributionTypes = @('MailUniversalDistributionGroup', 'MailUniversalSecurityGroup', 'MailNonUniversalGroup', 'RoomList')
 $unknown = 0
+$unresolved = 0
 foreach ($identity in $Group) {
     $found = @(Get-EXORecipient -Identity $identity)
     if ($found.Count -ne 1) { throw ($identity + ' matches ' + $found.Count + ' recipients. Name the group by its email address.') }
@@ -91,7 +93,11 @@ foreach ($identity in $Group) {
 
     if ($distributionTypes -contains $type) {
         $members = Get-Bounded @(Get-DistributionGroupMember -Identity $key -ResultSize ($MaxMembers + 1)) ($address + ' membership')
-        foreach ($member in $members) { Get-MemberRow $address $type 'Member' $member }
+        foreach ($member in $members) {
+            $row = Get-MemberRow $address $type 'Member' $member
+            if ($row.Status -eq 'Unresolved') { $unresolved++ }
+            $row
+        }
         if ($IncludeOwners) {
             $details = Get-DistributionGroup -Identity $key
             if ($null -eq $details -or -not $details.PSObject.Properties['ManagedBy'] -or $null -eq $details.ManagedBy) {
@@ -105,6 +111,7 @@ foreach ($identity in $Group) {
             foreach ($owner in @($details.ManagedBy)) {
                 if ($null -eq $owner -or [string]$owner -eq '') { continue }
                 $resolved = Get-HolderIdentity ([string]$owner)
+                if ($resolved.Status -ne 'Resolved') { $unresolved++ }
                 [pscustomobject]@{
                     Group = $address; GroupType = $type; Relationship = 'Owner'; Status = $resolved.Status; MemberName = $resolved.DisplayName
                     MemberAddress = $resolved.Address; MemberObjectId = $resolved.ObjectId; MemberType = $resolved.Type
@@ -114,10 +121,18 @@ foreach ($identity in $Group) {
         }
     } elseif ($type -eq 'GroupMailbox') {
         $members = Get-Bounded @(Get-UnifiedGroupLinks -Identity $key -LinkType Members -ResultSize ($MaxMembers + 1)) ($address + ' membership')
-        foreach ($member in $members) { Get-MemberRow $address $type 'Member' $member }
+        foreach ($member in $members) {
+            $row = Get-MemberRow $address $type 'Member' $member
+            if ($row.Status -eq 'Unresolved') { $unresolved++ }
+            $row
+        }
         if ($IncludeOwners) {
             $owners = Get-Bounded @(Get-UnifiedGroupLinks -Identity $key -LinkType Owners -ResultSize ($MaxMembers + 1)) ($address + ' ownership')
-            foreach ($owner in $owners) { Get-MemberRow $address $type 'Owner' $owner }
+            foreach ($owner in $owners) {
+                $row = Get-MemberRow $address $type 'Owner' $owner
+                if ($row.Status -eq 'Unresolved') { $unresolved++ }
+                $row
+            }
         }
     } elseif ($type -eq 'DynamicDistributionGroup') {
         $unknown++
@@ -132,4 +147,7 @@ foreach ($identity in $Group) {
 }
 if ($unknown -gt 0) {
     Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' group membership or ownership list(s) could not be listed. Each is shown with Status Unknown or NotExpanded and the reason.')
+}
+if ($unresolved -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unresolved + ' member(s) or owner(s) could not be resolved to exactly one recipient. They are listed as Unresolved.')
 }

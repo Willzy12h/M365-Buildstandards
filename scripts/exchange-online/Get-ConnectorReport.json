@@ -17,7 +17,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ConnectorReport.ps1",
-  "scriptSha256": "178def7a06f725ec4b5fdef0fac98ba20172f887d9e8fc853a39835bc7f2e315",
+  "scriptSha256": "e49141e0a1a331ff8d6bccce3ff3a9d8d8e2c4c5a9935c810e25ace0097fb955",
   "supportedRuntimes": [
     "5.1",
     "7"

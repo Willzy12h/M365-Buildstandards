@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ArchiveMailboxReport.ps1",
-  "scriptSha256": "87c0748ee7f8671a44d1eeb81db5a16c98afc9b65cdc2a031f57b5cc2075cdb1",
+  "scriptSha256": "de2097893b032c1a88ac5faf107f866d067acbab626e474c05c2be4e1f3e8d43",
   "supportedRuntimes": [
     "5.1",
     "7"

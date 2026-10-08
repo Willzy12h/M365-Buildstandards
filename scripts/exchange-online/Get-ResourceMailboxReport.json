@@ -15,7 +15,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ResourceMailboxReport.ps1",
-  "scriptSha256": "3fabb03e0d9e538cc7c5c4fb10d99e0d6884d7a7ff8f9f4827d65da5eb18f5b9",
+  "scriptSha256": "de03d1ca79e6556e34a3375463baa8709d0f5e8d9ee4b261d7c203dc2456c3ab",
   "supportedRuntimes": [
     "5.1",
     "7"

@@ -15,7 +15,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxAuditReport.ps1",
-  "scriptSha256": "b6e4d80d0ee42d89c520b57ab11fc3ff32893db6f821cfbbce1a8706c99b8188",
+  "scriptSha256": "db59d25ecfa91d665fcc1b6410eeeb02afbbd1d606d6bfd01bd26a1803e89121",
   "supportedRuntimes": [
     "5.1",
     "7"

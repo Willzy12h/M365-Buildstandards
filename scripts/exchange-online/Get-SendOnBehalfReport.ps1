@@ -1,9 +1,10 @@
 <#
 Send on Behalf delegates across mailboxes, each resolved to an exact identity or marked Unresolved.
-Read only. Exchange may return a delegate as a name, so each is looked up once and is Resolved only when Exchange finds
-exactly one recipient whose primary SMTP address, distinguished name, object ID or GUID is that value. A value that is
-a name, alias or display name, or that matches several recipients or none, is Unresolved, never guessed. A mailbox whose delegate list was not returned (or came
-back null rather than empty) is listed with Status Unknown. This is the delegate list only, not effective access.
+Read only. Exchange may return a delegate as a name, so each is looked up once and is Resolved only when Exchange
+finds exactly one recipient whose primary SMTP address, distinguished name, object ID or GUID is that value. A value
+that is a name, alias or display name, or that matches several recipients or none, is Unresolved, never guessed. A
+mailbox whose delegate list was not returned (or came back null rather than empty) is listed with Status Unknown. This
+is the delegate list only, not effective access.
 #>
 param(
     [string[]]$Mailbox,

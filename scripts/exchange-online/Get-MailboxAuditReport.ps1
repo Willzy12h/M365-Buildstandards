@@ -13,6 +13,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -52,7 +61,6 @@ if ($Mailbox) {
     }
 }
 
-$unknown = 0
 foreach ($target in $targets) {
     $notes = @()
     if ($ingestionNote) { $notes += $ingestionNote }
@@ -70,8 +78,7 @@ foreach ($target in $targets) {
     if ($bypass -eq 'Unknown' -or $orgDisabled -eq 'Unknown') { $finding = 'Unknown' }
     if ($orgDisabled -eq 'True') { $finding = 'OrganisationAuditingOff' }
     if ($bypass -eq 'True') { $finding = 'Bypassed' }
-    if ($finding -eq 'Unknown') { $unknown++ }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         Mailbox = [string]$target.PrimarySmtpAddress
         RecipientTypeDetails = Get-Text (Get-Value $target 'RecipientTypeDetails')
         OrganisationAuditDisabled = $orgDisabled
@@ -86,10 +93,12 @@ foreach ($target in $targets) {
         Finding = $finding
         Notes = $notes -join ' '
     }
-}
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' mailbox(es) could not be checked fully for auditing. They are listed with Finding Unknown and the reason.')
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
 if ($ingestion -eq 'Unknown') {
     Write-Warning 'BDIT:UNKNOWN Whether unified audit log ingestion is on could not be read. UnifiedAuditIngestion is Unknown on every row.'
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxHoldReport.ps1",
-  "scriptSha256": "aabaa11fecdada6964490e444c2875191daad1f1305b02bce0dbe373e1cd2af4",
+  "scriptSha256": "255d7b7dcc6f53b1599e0b578874e22756511847c6a1b62c72791b3131b0913a",
   "supportedRuntimes": [
     "5.1",
     "7"

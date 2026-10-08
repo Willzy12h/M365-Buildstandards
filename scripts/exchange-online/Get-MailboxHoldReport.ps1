@@ -1,11 +1,12 @@
 <#
 Holds and retention on each mailbox: litigation hold, in-place and retention policy holds, delay holds, retention hold
-and the retention policy assigned, with the organisation-wide holds Exchange reports.
-Read only. HoldStatus is MailboxHold when a hold is set on the mailbox itself, NoMailboxHold when every hold value was
-returned and none is set, and Unknown otherwise. An in-place hold entry that starts with a minus sign excludes the
-mailbox from an organisation-wide policy and is not counted as a hold. Organisation-wide holds are listed for reference; whether they cover a
-given mailbox is not worked out here. Hold IDs are not resolved to policy names. A true or false value Exchange did not
-return is shown as Unknown, never as False; with only holds ticked, a mailbox with an Unknown hold value is kept.
+and the retention policy assigned, with the organisation-wide holds Exchange reports. Read only. HoldStatus is
+MailboxHold when a hold is set on the mailbox itself, NoMailboxHold when every hold value was returned and none is
+set, and Unknown otherwise. An in-place hold entry that starts with a minus sign excludes the mailbox from an
+organisation-wide policy and is not counted as a hold. Organisation-wide holds are listed for reference; whether they
+cover a given mailbox is not worked out here. Hold IDs are not resolved to policy names. A true or false value
+Exchange did not return is shown as Unknown, never as False; with only holds ticked, a mailbox with an Unknown hold
+value is kept.
 #>
 param(
     [string[]]$Mailbox,
@@ -14,6 +15,15 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
 
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
@@ -64,7 +74,6 @@ if ($Mailbox) {
     }
 }
 
-$unknown = 0
 foreach ($target in $targets) {
     $notes = @()
     $litigation = Get-Flag $target 'LitigationHoldEnabled'
@@ -83,10 +92,9 @@ foreach ($target in $targets) {
     if ($litigation -eq 'Unknown') { $notes += 'Exchange did not return whether litigation hold is on.' }
     if ($inPlace -eq 'Unknown') { $notes += 'Exchange did not return the in-place and retention policy holds.' }
     if ($tagHold -eq 'Unknown' -or $delay -eq 'Unknown' -or $delayRelease -eq 'Unknown') { $notes += 'Exchange did not return every hold flag.' }
-    if ($status -eq 'Unknown') { $unknown++ }
     # A mailbox whose holds could not be read is always kept: leaving it out would read as "not on hold".
     if ($OnlyOnHold -and $status -eq 'NoMailboxHold') { continue }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         Mailbox = [string]$target.PrimarySmtpAddress
         RecipientTypeDetails = Get-Text (Get-Value $target 'RecipientTypeDetails')
         HoldStatus = $status
@@ -103,10 +111,12 @@ foreach ($target in $targets) {
         OrganisationHolds = $orgHolds
         Notes = $notes -join ' '
     }
-}
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' mailbox(es) have hold values that were not returned. They are listed with HoldStatus Unknown and the reason.')
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
 if ($orgHolds -eq 'Unknown') {
     Write-Warning 'BDIT:UNKNOWN The organisation-wide holds could not be read. OrganisationHolds is Unknown on every row.'
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

@@ -17,7 +17,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MobileDeviceReport.ps1",
-  "scriptSha256": "654d02cbbd8f2c5b54fc9cb4d39c0119b2efdccdac9a0e77c72c561a0e276b37",
+  "scriptSha256": "d55fffb150e0114950a3407e3f2d7e9616ec1375e06ace41a2017ba147429ac7",
   "supportedRuntimes": [
     "5.1",
     "7"

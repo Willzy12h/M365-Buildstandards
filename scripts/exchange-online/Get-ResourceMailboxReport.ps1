@@ -12,6 +12,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -50,16 +59,15 @@ if ($Mailbox) {
     }
 }
 
-$unknown = 0
 foreach ($target in $targets) {
     $processing = Get-CalendarProcessing -Identity $target.ExchangeGuid.ToString()
     $automate = Get-Text (Get-Value $processing 'AutomateProcessing')
     $notes = @()
-    if (-not $automate) { $automate = 'Unknown'; $unknown++; $notes += 'Exchange did not return how booking requests are processed.' }
+    if (-not $automate) { $automate = 'Unknown'; $notes += 'Exchange did not return how booking requests are processed.' }
     $conflicts = Get-Flag $processing 'AllowConflicts'
     $bookIn = Get-Flag $processing 'AllBookInPolicy'
     if ($conflicts -eq 'Unknown' -or $bookIn -eq 'Unknown') { $notes += 'Exchange did not return every booking setting.' }
-    [pscustomobject]@{
+    $row = [pscustomobject]@{
         DisplayName = Get-Text (Get-Value $target 'DisplayName')
         PrimarySmtpAddress = [string]$target.PrimarySmtpAddress
         RecipientTypeDetails = [string]$target.RecipientTypeDetails
@@ -75,7 +83,9 @@ foreach ($target in $targets) {
         ResourceDelegates = Get-Text (Get-Value $processing 'ResourceDelegates')
         Notes = $notes -join ' '
     }
+    if (Test-UnknownValue $row) { $unknownRows++ }
+    $row
 }
-if ($unknown -gt 0) {
-    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' resource mailbox(es) did not return how booking requests are processed. They are listed as Unknown.')
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }

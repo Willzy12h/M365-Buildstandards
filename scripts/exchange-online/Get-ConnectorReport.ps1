@@ -9,6 +9,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# True when any column holds Unknown, alone or as a name=Unknown setting, so the run can say what was not measured.
+function Test-UnknownValue([object]$Row) {
+    foreach ($property in @($Row.PSObject.Properties)) {
+        if ([string]$property.Value -cmatch '(^|=)Unknown(;|$)') { return $true }
+    }
+    return $false
+}
+$unknownRows = 0
+
 function Get-Value([object]$Item, [string]$Name) {
     if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
     return $null
@@ -64,10 +73,17 @@ foreach ($connector in @(Get-InboundConnector)) {
     $require = Get-Flag $connector 'RequireTls'
     if ($require -eq 'True') { $tls = 'Required' }
     if ($require -eq 'False') { $tls = 'NotRequired' }
-    Get-ConnectorRow $connector 'Inbound' (Get-Setting $connector 'SenderDomains') (Get-Setting $connector 'SenderIPAddresses') $tls (Get-Setting $connector 'TlsSenderCertificateName')
+    $row = Get-ConnectorRow $connector 'Inbound' (Get-Setting $connector 'SenderDomains') (Get-Setting $connector 'SenderIPAddresses') $tls (Get-Setting $connector 'TlsSenderCertificateName')
+    if ($null -ne $row -and (Test-UnknownValue $row)) { $unknownRows++ }
+    $row
 }
 foreach ($connector in @(Get-OutboundConnector)) {
     $hosts = Get-Setting $connector 'SmartHosts'
     if ((Get-Flag $connector 'UseMXRecord') -eq 'True') { $hosts = 'MX record' }
-    Get-ConnectorRow $connector 'Outbound' (Get-Setting $connector 'RecipientDomains') $hosts (Get-Setting $connector 'TlsSettings') (Get-Setting $connector 'TlsDomain')
+    $row = Get-ConnectorRow $connector 'Outbound' (Get-Setting $connector 'RecipientDomains') $hosts (Get-Setting $connector 'TlsSettings') (Get-Setting $connector 'TlsDomain')
+    if ($null -ne $row -and (Test-UnknownValue $row)) { $unknownRows++ }
+    $row
+}
+if ($unknownRows -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknownRows + ' row(s) hold a value Exchange did not return or that could not be read. Each is shown as Unknown and Notes says why.')
 }
