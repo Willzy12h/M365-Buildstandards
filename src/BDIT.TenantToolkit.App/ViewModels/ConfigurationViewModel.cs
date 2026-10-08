@@ -59,6 +59,7 @@ public sealed class ConfigurationViewModel : PageViewModel
     {
         CaptureCommand = Command(Workspace.CaptureAsync, () => Workspace.IsConnected && Workspace.Idle);
         LoadStoredCommand = Sync(() => { if (SelectedStored is not null) Workspace.LoadStoredSnapshot(SelectedStored.Id); }, () => SelectedStored is not null && Workspace.Idle);
+        ExportHtmlCommand = Command(() => Export(ExportFormat.Html), () => Workspace.Snapshot is not null);
         ExportJsonCommand = Command(() => Export(ExportFormat.Json), () => Workspace.Snapshot is not null);
         ExportCsvCommand = Command(() => Export(ExportFormat.Csv), () => Workspace.Snapshot is not null);
         ExportXlsxCommand = Command(() => Export(ExportFormat.Xlsx), () => Workspace.Snapshot is not null);
@@ -94,6 +95,7 @@ public sealed class ConfigurationViewModel : PageViewModel
 
     public ICommand CaptureCommand { get; }
     public ICommand LoadStoredCommand { get; }
+    public ICommand ExportHtmlCommand { get; }
     public ICommand ExportJsonCommand { get; }
     public ICommand ExportCsvCommand { get; }
     public ICommand ExportXlsxCommand { get; }
@@ -165,6 +167,21 @@ public sealed class ConfigurationViewModel : PageViewModel
     }
 
     public string SelectedObjectJson => SelectedObject?.Item.ToJsonString(ToolkitJson.Options) ?? "";
+
+    public string SnapshotSummary
+    {
+        get
+        {
+            var capture = Workspace.Snapshot;
+            if (capture is null) return "No capture loaded. Connect and capture, or open saved evidence for offline review.";
+            var origin = Workspace.SnapshotIsLive ? "Live capture" : "Stored capture · offline";
+            var time = Timestamps.TryParse(capture.CapturedAt, out var captured)
+                ? captured.ToUniversalTime().ToString("dd MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))
+                : "capture time unknown";
+            return origin + " · " + (capture.Complete ? "complete" : "INCOMPLETE · review collection status") +
+                " · " + time + " · standard " + capture.StandardRelease;
+        }
+    }
 
     public string SnapshotText
     {
@@ -260,6 +277,7 @@ public sealed class ConfigurationViewModel : PageViewModel
         if (!CollectionFilters.Contains(_filterCollection)) _filterCollection = "All";
         ApplyFilter();
         OnPropertyChanged(nameof(SnapshotText));
+        OnPropertyChanged(nameof(SnapshotSummary));
         OnPropertyChanged(nameof(FilterCollection));
     }
 

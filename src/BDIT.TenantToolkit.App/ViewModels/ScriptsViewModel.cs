@@ -318,6 +318,7 @@ public sealed class ScriptsViewModel : PageViewModel
 
     public bool HasSelection => Selected is not null;
     public string SelectedHeading => Selected is null ? "Select an item" : Selected.Name;
+    public string SelectedPurpose => Selected?.Description ?? "Choose a script to see its purpose and fill in its form.";
     public string SelectedDetail => Selected is null
         ? "Choose a script on the left to see what it needs and fill in its form."
         : Selected.Description + "\n" + Selected.Needs + "\nPowerShell " + string.Join(" or ", Selected.Entry.Manifest.SupportedRuntimes) + ". " + Selected.Entry.Manifest.Prerequisites;
@@ -345,6 +346,7 @@ public sealed class ScriptsViewModel : PageViewModel
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedHeading));
         OnPropertyChanged(nameof(SelectedDetail));
+        OnPropertyChanged(nameof(SelectedPurpose));
         OnPropertyChanged(nameof(Limitations));
     }
 

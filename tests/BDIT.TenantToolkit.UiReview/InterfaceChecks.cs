@@ -607,6 +607,7 @@ internal static partial class Program
         ("ApplicationSetupViewModel.DisconnectCommand", "ends the setup session"),
         ("ApplicationSetupViewModel.OpenEntraCommand", Browser),
 
+        ("ConfigurationViewModel.ExportHtmlCommand", Press),
         ("ConfigurationViewModel.ExportJsonCommand", Press),
         ("ConfigurationViewModel.ExportCsvCommand", Press),
         ("ConfigurationViewModel.ExportXlsxCommand", Press),
