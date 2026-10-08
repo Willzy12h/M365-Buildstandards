@@ -6,7 +6,7 @@ Integration `865e1a1e14d4d857d83f99d184cae2b67cb31e66` contains the requested #4
 
 **Next, under the [current goal](release-readiness/astra-goal-prompt.md):**
 
-1. Verify #46 merge CI at `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; its final exact-head runs 37831467460 / 37831474759 passed at `b9aceae`, after independent review and corrected attribution. AST-05–09 are closed at source/synthetic level. The library is manual, copy-only and live-unverified; integrated execution is separate source work. #47 is ready with Claude's refreshed review record.
+1. Record #46 merge CI `37832476624`, now passed at `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; its final exact-head runs 37831467460 / 37831474759 passed at `b9aceae`, after independent review and corrected attribution. AST-05–09 are closed at source/synthetic level. The library is manual, copy-only and live-unverified; integrated execution is separate source work. #47 is ready with Claude's refreshed review record.
 2. Claude independently reviews Astra #53 (R07 failed/malformed readiness reads) and #54 (Astra-owned tracker reconciliation). Reconcile only the owning agent's rows.
 3. Finish remaining current guidance, module/role preflight, experimental/manual runtime gating and master-scope Reports/navigation/mailbox/script source through claimed, independently reviewed slices. Prepare the next preview and exact-source candidate record; no version has changed yet.
 4. Prepare the approval-ready promotion PR and live/human forms. Keep William's stop points open. Existing publisher #34 is merged and remains Claude's area.
