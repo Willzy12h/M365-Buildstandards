@@ -199,23 +199,33 @@ public sealed class ScriptRunner : IScriptRunner
                     ? "The script stopped: " + failed
                     : $"PowerShell ended with exit code {outcome.ExitCode} without saying why. No rows were kept.");
             if (!markers.Done) return Stopped(ScriptRunEnd.InvalidOutput, "PowerShell ended without reporting that the script finished. No rows were kept.");
+            // The wrapper reports how many rows it exported as its last step. A body that leaves early (an exit statement,
+            // for example) never reaches that line, so a finished launcher alone is not proof the result is complete.
+            if (markers.SavedRows is not { } saved)
+                return Stopped(ScriptRunEnd.InvalidOutput, "The script ended without saving its result, so the run cannot show it is complete. No rows were kept.");
 
             IReadOnlyList<IReadOnlyList<string>> rows;
             var truncated = false;
-            if (!File.Exists(csvFile))
+            string text;
+            try { text = File.Exists(csvFile) ? await ReadBoundedAsync(csvFile, maximumCsv, ct) : ""; }
+            catch (ConfigurationException ex) { return Stopped(ScriptRunEnd.InvalidOutput, ex.Message + " No rows were kept."); }
+            catch (DecoderFallbackException) { return Stopped(ScriptRunEnd.InvalidOutput, "The result is not valid UTF-8 text. No rows were kept."); }
+            if (text.Trim().Length == 0)
             {
-                // Export-Csv writes no file at all for an empty result, so a finished run with no file has no rows.
+                // Export-Csv writes an empty file (PowerShell 7) or none (5.1) for an empty result.
+                if (saved != 0) return Stopped(ScriptRunEnd.InvalidOutput, $"The script reported {saved} row(s) but the result file is empty. No rows were kept.");
                 rows = Array.Empty<IReadOnlyList<string>>();
             }
             else
             {
                 List<string[]> table;
-                try { table = ScriptRunCsv.Parse(await ReadBoundedAsync(csvFile, maximumCsv, ct)); }
+                try { table = ScriptRunCsv.Parse(text); }
                 catch (ConfigurationException ex) { return Stopped(ScriptRunEnd.InvalidOutput, ex.Message + " No rows were kept."); }
-                catch (DecoderFallbackException) { return Stopped(ScriptRunEnd.InvalidOutput, "The result is not valid UTF-8 text. No rows were kept."); }
                 if (table.Count == 0 || !table[0].SequenceEqual(m.OutputSchema.Columns, StringComparer.Ordinal))
                     return Stopped(ScriptRunEnd.InvalidOutput, "The result's columns do not match the item's declared columns. No rows were kept.");
                 var body = table.Skip(1).ToList();
+                if (body.Count != saved)
+                    return Stopped(ScriptRunEnd.InvalidOutput, $"The script reported {saved} row(s) but the result file holds {body.Count}. No rows were kept.");
                 if (body.Count > m.Limits.MaximumRows) { body = body.Take(m.Limits.MaximumRows).ToList(); truncated = true; }
                 rows = body;
             }
@@ -292,6 +302,8 @@ public sealed class ScriptRunner : IScriptRunner
         private readonly List<string> _warnings = new();
         private readonly List<string> _messages = new();
         private long _read;
+        private static readonly System.Text.RegularExpressions.Regex SavedPattern =
+            new("^Saved ([0-9]{1,9}) row\\(s\\) to ", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
         public MarkerReader(long maximum, IProgress<string>? progress) { _maximum = maximum; _progress = progress; }
 
@@ -302,6 +314,8 @@ public sealed class ScriptRunner : IScriptRunner
         public bool Unknown { get; private set; }
         public string? ModuleMissing { get; private set; }
         public string? Failure { get; private set; }
+        /// <summary>The row count from the wrapper's last "Saved N row(s) to" line; the last one wins.</summary>
+        public int? SavedRows { get; private set; }
         public IReadOnlyList<string> Warnings => _warnings;
         public IReadOnlyList<string> Messages => _messages;
 
@@ -355,6 +369,9 @@ public sealed class ScriptRunner : IScriptRunner
                     _progress?.Report("Warning: " + text);
                     break;
                 case "INFO":
+                    var savedLine = SavedPattern.Match(text);
+                    if (savedLine.Success && int.TryParse(savedLine.Groups[1].Value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var savedCount))
+                        SavedRows = savedCount;
                     if (_messages.Count < MaximumMessages) _messages.Add(text);
                     _progress?.Report(text);
                     break;

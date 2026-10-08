@@ -36,6 +36,9 @@ public sealed class ScriptRunnerTests : IDisposable
             switch ($env:BDIT_STUB_SCENARIO) {
                 'sleep' { Start-Sleep -Seconds 120 }
                 'throw' { throw 'Synthetic read failure.' }
+                'empty' { return }
+                'exit' { exit 0 }
+                'hostexit' { [Environment]::Exit(7) }
                 'big' { return @(1..4000 | ForEach-Object { [pscustomobject]@{ Name = 'row' + $_; Value = ('x' * 1000) } }) }
                 'console' { foreach ($i in 1..4000) { [Console]::Out.WriteLine('noise ' + ('y' * 500)) } }
             }
@@ -271,6 +274,42 @@ public sealed class ScriptRunnerTests : IDisposable
         Assert.Contains("Synthetic read failure.", result.Failure);
         Assert.Empty(result.Rows);
         Assert.Contains("disconnect", Log());
+    }
+
+    [Fact]
+    public async Task A_non_zero_exit_without_a_reason_is_a_failed_run_with_its_exit_code()
+    {
+        if (TestHost() is null) return;
+        var result = await new ScriptRunner(Host("hostexit")).RunAsync(Request(Entry()), null, CancellationToken.None);
+        Assert.Equal(ScriptRunEnd.ScriptFailed, result.End);
+        Assert.Equal(ReportReadState.Failed, result.Status);
+        Assert.Equal(7, result.ExitCode);
+        Assert.Contains("exit code 7", result.Failure);
+        Assert.Empty(result.Rows);
+    }
+
+    [Fact]
+    public async Task A_body_that_leaves_before_saving_is_not_a_completed_run()
+    {
+        if (TestHost() is null) return;
+        // An exit statement returns to the launcher with exit code 0, so only the missing "Saved" line shows the result
+        // was never exported. Without that check this run would be recorded as Collected with no rows.
+        var result = await new ScriptRunner(Host("exit")).RunAsync(Request(Entry()), null, CancellationToken.None);
+        Assert.Equal(ScriptRunEnd.InvalidOutput, result.End);
+        Assert.Equal(ReportReadState.Failed, result.Status);
+        Assert.Contains("without saving its result", result.Failure);
+        Assert.Empty(result.Rows);
+    }
+
+    [Fact]
+    public async Task An_empty_result_is_a_completed_run_with_no_rows()
+    {
+        if (TestHost() is null) return;
+        var result = await new ScriptRunner(Host("empty")).RunAsync(Request(Entry()), null, CancellationToken.None);
+        Assert.True(result.End == ScriptRunEnd.Completed, result.Failure);
+        Assert.Equal(ReportReadState.Collected, result.Status);
+        Assert.Empty(result.Rows);
+        Assert.Equal(new[] { "connect", "read", "disconnect" }, Log());
     }
 
     [Fact]
