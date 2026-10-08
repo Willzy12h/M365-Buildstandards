@@ -59,6 +59,28 @@ public sealed class JobsPageTests : IDisposable
     }
 
     [Fact]
+    public void Recording_guidance_explains_the_next_step_until_a_requirement_is_selected()
+    {
+        Assert.False(_page.RecordCommand.CanExecute(null));
+        Assert.Contains("Select a job", _page.RecordGuidance);
+        OpenJob();
+        _page.SelectedRequirement = null;
+        Assert.False(_page.RecordCommand.CanExecute(null));
+        Assert.Contains("Select a requirement", _page.RecordGuidance);
+        Select("CA-001");
+        Assert.True(_page.RecordCommand.CanExecute(null));
+        Assert.Contains("does not perform", _page.RecordGuidance);
+    }
+
+    [Fact]
+    public void Requirement_details_lead_with_the_name_and_preserve_the_exact_reference()
+    {
+        OpenJob(); Select("CA-001");
+        Assert.StartsWith(_page.SelectedRequirement!.Name + "\n", _page.RequirementText);
+        Assert.Contains("Requirement ID: CA-001", _page.RequirementText);
+    }
+
+    [Fact]
     public void A_second_outcome_supersedes_the_first_and_a_pass_without_a_capture_does_not_verify()
     {
         OpenJob();

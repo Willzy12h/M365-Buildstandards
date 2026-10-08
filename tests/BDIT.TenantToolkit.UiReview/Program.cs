@@ -105,6 +105,7 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (size.Height >= 760) RecordUnneededScrolling(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
@@ -292,6 +293,7 @@ internal static partial class Program
             {
                 ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
                 ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
+                ("Jobs requirement viewport at all three sizes", JobRequirementViewportsMeasured == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
@@ -321,6 +323,8 @@ internal static partial class Program
                     + Environment.NewLine + string.Join(Environment.NewLine, ClippedElements.Distinct()));
             if (UnneededScrolling.Count > 0)
                 problems.Add($"{UnneededScrolling.Count} page(s) scroll at a size where they have room not to:" + Environment.NewLine + string.Join(Environment.NewLine, UnneededScrolling.Distinct()));
+            if (CrampedJobRequirements.Count > 0)
+                problems.Add("Jobs requirements are cramped:" + Environment.NewLine + string.Join(Environment.NewLine, CrampedJobRequirements));
             if (KeyboardProblems.Count > 0)
                 problems.Add($"{KeyboardProblems.Count} keyboard problem(s):" + Environment.NewLine + string.Join(Environment.NewLine, KeyboardProblems.Distinct()));
             if (CommandProblems.Count > 0)

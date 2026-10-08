@@ -11,6 +11,10 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 - Explain the actual reason Microsoft interaction is required at explicit connect; cached access checks no longer claim a popup is already opening.
 - Exercise existing known-account silent acquisition and prompt counts through synthetic delegates, with no second cache or mid-operation interactive retry. Ambiguous cached matches explicitly request account choice while retaining the confirmed hint.
 - Document authentication paths, context/resource separation, cache/disconnect behaviour and source-versus-live prompt evidence in AUTHENTICATION-FLOW. No new permissions are requested.
+- Lead with friendly requirement names, retain exact IDs in copyable details and show the next step for disabled job-recording actions.
+- Explain that engineers perform and evidence prerequisite/effectiveness checks; replacement stage records do not activate, assign or retire protection.
+- Bring the short start guide into line with the already implemented Jobs/completion screens. Human newcomer, Narrator and physical-scaling acceptance remain outstanding.
+- Make the Jobs list fit its returned rows, preserving space for requirements on smaller windows; check two fully visible requirement rows in all three native harness sizes.
 
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
 - Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
