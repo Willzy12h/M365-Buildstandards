@@ -84,6 +84,17 @@ What each item decides, and what it leaves Unknown:
 
 The previous agent's work was saved unvalidated in `a247bca`. Reviewing it found, and this branch fixed, four places where it fell short of the rules above. Each has a synthetic case that fails against `a247bca` and passes now: owners and delegates were Resolved on a Name, alias or Identity; an exclusion entry counted as a hold; a preset policy with no rule was reported as applying to no one; and a mobile device read was unsized, so Exchange's default size could cut it short silently. Mail flow rules, connectors and protection policies now also warn `BDIT:UNKNOWN` whenever a row holds an Unknown value, as the other items do.
 
+## Review corrections for the second pack (Astra, 8 October 2026)
+
+Astra's independent review of PR #64 (AST-20261008-11 to -14) was fixed by Claude in `4dc938d`. Each fix has a synthetic Copy case in `build/Test-ScriptLibraryStubs.ps1` that fails against the reviewed head `d5039b0` and passes now, beside cases that keep known values. All items stay Copy and Save only.
+
+| ID | Correction |
+|---|---|
+| AST-20261008-11 | Protection policy settings returned null are Unknown, never NotSet, and a counted list returned null is Unknown, never 0. NotSet is kept for a value returned empty, and 0 for a list returned empty. Known False and zero are shown as they are. |
+| AST-20261008-12 | Archive quotas are shown as Exchange returned them, including Unlimited. A quota, ArchiveStatus or ArchiveName that was not returned is Unknown with the reason in `Notes`, and the run warns. A mailbox with no archive has ArchiveName NotApplicable and still shows its quotas, because Exchange sets them on every mailbox. |
+| AST-20261008-13 | When Exchange returns a DKIM signing configuration without its domain, any accepted domain with no matched configuration is DkimConfigured and DkimEnabled Unknown, with the reason, not False. A signing inventory returned empty still gives False with no warning. |
+| AST-20261008-14 | A distribution group's owner list is bounded by the member limit before any owner is looked up, and a longer list warns `BDIT:PARTIAL` naming the ownership list. |
+
 ## Not implemented in this slice
 
 - Everything here is manual and unverified live: each item is copied and run by an engineer, and none has been run in a tenant.
