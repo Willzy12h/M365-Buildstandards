@@ -1,5 +1,24 @@
 # Handover and priorities
 
+## Astra continuation — 8 October 2026
+
+William authorised merging PRs #36–#41 and continuing the master programme. This authorises the reviewed source/decision work, not live actions, main promotion, version changes, tags or publication. Preserve exact-head checks and safeguards.
+
+PR #36 merged as `d5bbe2453d642a2c096bbfd51355724dfb5dba68` after exact-head Windows push run `37706807976` passed at `0fa23e6`: 1,061 Engine + 126 App tests, 45 native layouts, zero binding issues and extracted-package startup/shutdown. Integration merge CI run `37710467954` passed. AST-20261008-01–04 are implemented, human/live acceptance remains open.
+
+PR #37 merged as `4129135b8e0c6d68007fa257820601051e90d605` after exact-head Windows run `37710529468` at `0efdb18` passed: 1,069 Engine + 126 App tests, 45 layouts, zero binding issues and fresh 299-file startup/shutdown. Its merge-commit CI run `37710948092` passed.
+
+PR #39 merged as `3f946ae97a8e6c75c295b5447a788fb5ace2ab47` after exact-head Windows push run `37711063290` at `47b4a65` passed: 1,069 Engine + 126 App tests, native checks and fresh-package startup/shutdown. INT-070–072/074 now authorise dependent source implementation under the existing boundaries. Merge CI run `37711588742` passed.
+
+PR #38 merged as `1622356b7bd3aa554405e47e792112c7b23c5170` after exact-head Windows push run `37711624221` at `856d9bd` passed: 1,069 Engine + 128 App tests, all 45 native layouts including full blocker text/minimum requirement rows, zero binding issues and fresh 299-file startup/shutdown. Its merge CI run `37712074918` passed.
+
+PR #40 merged as `f6053de172ca25a7d8607f4145d287be51432992` after exact-head Windows push run `37712581187` at `fd0451a` passed: 1,079 Engine + 128 App tests, native checks and fresh 299-file startup/shutdown. Its merge CI run `37713041584` passed. HTML inventory is implemented in the shared engine/developer CLI; desktop export and portable CLI hosting still need source work.
+
+PR #41 merged as `692d2d5aa8ed0f30b882065cfe3a778a4e1478a3` after exact-head Windows push run `37713528749` at `ee3b59c` passed: 1,079 Engine + 128 App tests, 45 layouts and fresh **300-file** startup/shutdown (the run sheet is now shipped). Its merge CI awaits confirmation. All PRs #36–#41 requested by William are merged.
+
+**Next:** complete INT-070 scoped checks in PR #42: dependency-only collection and selected assessment have 13 focused synthetic tests; strict evidence storage, UI/CLI parity and native checks remain unfinished. Then naming audit, capability evidence, reports/navigation, portable CLI hosting and safe scripts. Obtain exact-source Windows/package evidence for each candidate. The current ZIP still excludes the CLI; INT-074's approved hosting contract requires implementation. Claude retains publisher ownership.
+
+
 **Current state, 7 October 2026 (night):** PR #19–#28 are merged into `integration` (latest `7edadb8`, PR #28, exact-head CI run 37687028581: 1029 Engine + 119 App tests, harness 42 layouts / 0 binding issues / 0 tenant calls, fresh 299-file package). PR #29 (`9ca5ebb`) moved CI off Node 20 and is merged. The source is `1.1.0-preview.19`, unpublished. PR #22–#28 merged on William's approval without an Astra/Codex review, so the next agent's first task is an independent post-merge review of them. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 ## Owner delegation of commits and merges — 7 October 2026

@@ -177,6 +177,30 @@ internal static partial class Program
 
     private static readonly List<string> UnneededScrolling = new();
     private static int FillingPagesMeasured;
+    private static int JobRequirementViewportsMeasured;
+    private static readonly List<string> CrampedJobRequirements = new();
+
+    // Count fully visible rows, including clipping by the table and outer page viewport.
+    // Actual native layout is required: IsVisible is false throughout off-screen renders.
+    private static void RecordJobRequirementViewport(FrameworkElement content, string where)
+    {
+        var table = Descendants(content).OfType<DataGrid>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Requirements in the selected job");
+        JobRequirementViewportsMeasured++;
+        var vm = Descendants(content).OfType<JobsView>().Single().DataContext as JobsViewModel
+            ?? throw new InvalidOperationException("Jobs viewport check has no bound view model.");
+        if (vm.HasProblems)
+        {
+            var blockers = Descendants(content).OfType<TextBox>().Single(t =>
+                System.Windows.Automation.AutomationProperties.GetName(t) == "Job review blockers");
+            if (!blockers.IsReadOnly || !IsShown(blockers, content) || blockers.Text != vm.ProblemsText)
+                throw new InvalidOperationException("Jobs blockers must remain visible, complete and copyable.");
+        }
+        var rows = Descendants(table).OfType<DataGridRow>().Where(r => IsShown(r, content)).ToList();
+        var fullyVisible = rows.Count(r => VisibleBounds(r, content).Height >= r.ActualHeight - 1);
+        if (table.Items.Count < 2 || rows.Count == 0 || fullyVisible < 2)
+            CrampedJobRequirements.Add($"  {where} · {fullyVisible} fully visible requirement rows; at least two are required in the populated synthetic job.");
+    }
 
     /// <summary>
     /// The filling pages scroll below PageLayout.MinimumHeight so a short window can still reach everything. Above it
@@ -511,6 +535,7 @@ internal static partial class Program
 
         ("JobsViewModel.OpenJobCommand", Press),
         ("JobsViewModel.RecordCommand", Press),
+        ("JobsViewModel.CopyRequirementCommand", Clipboard),
 
         ("ManualChecksViewModel.SaveCommand", Press),
 

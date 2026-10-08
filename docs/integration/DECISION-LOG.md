@@ -334,3 +334,28 @@ Decision-only PR #39: [MODULE-REPORT-SCRIPT-CONTRACTS-2026.10.08](MODULE-REPORT-
 ## INT-074 — Portable offline CLI hosting (proposed; not settled)
 
 PR #39 proposes dispatching the existing read-only CLI through the single portable application executable, before desktop workspace/session initialisation, with a `bdit.cmd` launcher and no second executable. The current package intentionally excludes the developer/CI CLI; it must not be described as already shipping `bdit`. Preserve no-authentication/no-write boundaries, redirected output and actual exit codes, and fail rather than selecting another host if application control blocks execution. Require native extracted-package tests and fresh candidate proof. This shared packaging/hosting change needs independent review and merge before implementation; publisher ownership and publication authority remain unchanged. Details and acceptance checks: [contract proposal](MODULE-REPORT-SCRIPT-CONTRACTS-2026.10.08.md#int-074--portable-offline-cli-through-the-existing-application-host-proposed).
+
+## INT-069 — Engineer wording without changing workflow authority
+
+PR #38 uses Check result, Decision about existing protection and Replacement stage as display labels for the existing outcome/disposition/cutover keys. Stored enum values, IDs, approval semantics and engine services are unchanged. Requirement names lead the table and copied details retain exact IDs. Disabled recording actions show their selection/busy prerequisites and next step. The page explicitly identifies prerequisite/effectiveness input as engineer-recorded evidence, not automated execution. OPERATOR-START no longer calls the merged Jobs surface future work. No human/live acceptance gate is closed by a render or source test.
+
+
+### INT-069 follow-up — requirement viewport on smaller windows
+
+Visual review of the actual PR #38 native artefacts at `c384947` found that the fixed 150px Jobs list left only one requirement row visible at 1180×640. A populated-job native check now counts fully visible requirement rows, intersecting their bounds with table and page viewports; it must inspect all three sizes and fail below two rows. The Jobs list fits its contents within a 64–100px bounded viewport rather than reserving unused space, and the page introduction is shorter. Requirement names and exact IDs remain accessible; long job lists retain scrolling. OPERATOR-START also explains that unresolved tenant-wide reviewed/LAPS operations or historical control writes can block completion, following Claude's PR #36 review. Native validation is recorded separately from pending newcomer, Narrator and physical-scaling acceptance.
+
+Native regression proof: Windows push run `37709019773` at `cc124ca` failed specifically with “jobs 1180x640 · 0 fully visible requirement rows”; the other two sizes passed that check. The layout fix is being validated against the same unchanged assertion. Do not count the expected failing run as candidate acceptance.
+
+
+### INT-069 follow-up — safeguard warnings must not displace requirements
+
+Combined Windows run `37710984578` at `ab323d3` reproduced another cramped viewport: new unresolved-write blockers displaced requirements at 1180×760 and 1180×640. The same minimum-two-full-rows assertion is retained. Full job blockers now lead the independently scrolling details pane in a bounded, selectable read-only text field; no reason is removed or truncated from the underlying text. The harness verifies that a blocked job exposes exactly the full view-model blocker text, visibly and read-only. This is a layout fix, not a weaker completion or evidence rule.
+
+## INT-073 — Full HTML inventory of existing captured data
+
+PR #40 adds a shared HTML configuration renderer and offline bdit inventory command using the existing TenantSnapshot schema and ReportExporter. It introduces no report-evidence schema or permission/collection route and therefore does not depend on the proposed INT-070–072 wrappers. Friendly names lead; all returned raw properties/assignments, capture provenance and collection limitations remain visible. Domain/user/device fields absent from the current capture are explicitly unknown, not inferred. Existing Exchange schema/tenant validation preserves separate resource/time boundaries; no DNS call occurs. The CLI uses the existing primary integrity reader, rejects a release override and remains offline with unchanged no-authentication/no-write conformance checks. Desktop Reports integration is separate. A source inventory guide records the current developer-only CLI exposure; portable hosting/desktop integration still need their own reviewed work. Claude's publisher is untouched.
+
+
+## INT-075 — Numbered acceptance without expanding execution authority
+
+PR #41 derives docs/LIVE-ACCEPTANCE-RUNSHEET.md from CONTROLLED-ACCEPTANCE. It preserves separately approved setup/read/candidate/pilot/recovery stages and prepares new-client, legacy, repeat-review and handoff journeys. Expected results and a sanitised response template distinguish source/synthetic/native/human/live evidence, service readback and effectiveness. New report/scoped/script/navigation steps remain blocked until present in the exact candidate; all unrun gates stay open. No second capability matrix, source contract, permission grant or publication authority is introduced. Current portable CLI exclusion is explicit. Agent development never performs these live steps.
