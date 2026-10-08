@@ -1,5 +1,9 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
+- Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
+- Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.
+- Locate the historical Engineer Console source in the uploaded reference archive and distinguish its reporting functions from already integrated BuildStandard capabilities.
 - Export the full captured configuration inventory as self-contained HTML, separate from assessment/standard/drift reports. All returned properties and assignments are included; failed/partial reads, missing domains/fields and separate Exchange/Purview provenance remain explicit.
 - Add offline `bdit inventory --snapshot <file>` with HTML/JSON/CSV/Excel support and the existing integrity reader; no authentication, live reads or client profile is required. Desktop Reports integration remains separate.
 
