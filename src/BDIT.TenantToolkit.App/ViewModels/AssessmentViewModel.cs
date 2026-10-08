@@ -93,9 +93,9 @@ public sealed class AssessmentViewModel : PageViewModel
         : Workspace.Session is not { TenantVerified: true } ? "Connect to the selected tenant, or choose stored evidence."
         : "Read-only live check: reads only the selected requirements' dependencies, using the current connection.";
     public string PartialCheckText => _partialCheck is not { } e ? "No partial check yet. Choose an area or requirement, then Check this. Partial checks cannot authorise deployment."
-        : $"PARTIAL CHECK · {e.SourceMode} · captured {e.Capture.CapturedAt}\nNot complete before-evidence; the full assessment and plan are unchanged.\n"
+        : ($"PARTIAL CHECK · {e.SourceMode} · captured {e.Capture.CapturedAt}\nNot complete before-evidence; the full assessment and plan are unchanged.\n"
             + string.Join("\n", e.Assessment.Findings.Select(f => $"{f.Name} [{f.ControlId}]: {StatusLabels.For(f.Status)} — {f.Reason}"))
-            + "\n" + string.Join("\n", e.Assessment.Limitations) + "\nEvidence: " + _partialFile;
+            + "\n" + string.Join("\n", e.Assessment.Limitations) + "\nEvidence: " + _partialFile).ReplaceLineEndings(Environment.NewLine);
 
     private async Task RunCheck(bool control)
     {

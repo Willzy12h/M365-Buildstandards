@@ -494,6 +494,9 @@ internal static partial class Program
         ("AssessmentViewModel.OpenExportCommand", Explorer),
         ("AssessmentViewModel.ExportUpgradeImpactCommand", Press),
         ("AssessmentViewModel.CopyDetailCommand", Clipboard),
+        ("AssessmentViewModel.CheckAreaCommand", Press),
+        ("AssessmentViewModel.CheckControlCommand", Press),
+        ("AssessmentViewModel.CopyPartialCommand", Clipboard),
 
         ("DeviationsViewModel.SaveCommand", Press),
         ("DeviationsViewModel.NewCommand", Press),
@@ -617,6 +620,14 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["AssessmentViewModel.CheckAreaCommand"] = shell =>
+        {
+            var vm = shell.Page<AssessmentViewModel>(); vm.Refresh(); vm.CheckStored = true; vm.CheckArea = "Entra";
+        },
+        ["AssessmentViewModel.CheckControlCommand"] = shell =>
+        {
+            var vm = shell.Page<AssessmentViewModel>(); vm.Refresh(); vm.CheckStored = true; vm.CheckControl = "CA-001";
+        },
         ["AssessmentViewModel.ExportUpgradeImpactCommand"] = shell =>
         {
             var vm = shell.Page<AssessmentViewModel>();
