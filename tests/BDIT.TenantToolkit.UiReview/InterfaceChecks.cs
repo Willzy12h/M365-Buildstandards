@@ -187,6 +187,15 @@ internal static partial class Program
         var table = Descendants(content).OfType<DataGrid>().Single(g =>
             System.Windows.Automation.AutomationProperties.GetName(g) == "Requirements in the selected job");
         JobRequirementViewportsMeasured++;
+        var vm = Descendants(content).OfType<JobsView>().Single().DataContext as JobsViewModel
+            ?? throw new InvalidOperationException("Jobs viewport check has no bound view model.");
+        if (vm.HasProblems)
+        {
+            var blockers = Descendants(content).OfType<TextBox>().Single(t =>
+                System.Windows.Automation.AutomationProperties.GetName(t) == "Job review blockers");
+            if (!blockers.IsReadOnly || !IsShown(blockers, content) || blockers.Text != vm.ProblemsText)
+                throw new InvalidOperationException("Jobs blockers must remain visible, complete and copyable.");
+        }
         var rows = Descendants(table).OfType<DataGridRow>().Where(r => IsShown(r, content)).ToList();
         var fullyVisible = rows.Count(r => VisibleBounds(r, content).Height >= r.ActualHeight - 1);
         if (table.Items.Count < 2 || rows.Count == 0 || fullyVisible < 2)

@@ -19,9 +19,6 @@
                 <TextBlock Text="A complete job is a record of review. It grants no permission to change the tenant." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
               </StackPanel>
             </Border>
-            <Border Grid.Row="1" Style="{StaticResource WarnPanel}" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="{Binding ProblemsText}" TextWrapping="Wrap"/>
-            </Border>
             <DataGrid Grid.Row="2" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" MinHeight="64" MaxHeight="100" Margin="0,0,0,12" AutomationProperties.Name="Jobs">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Opened" Binding="{Binding Opened}" Width="170"/>
@@ -44,6 +41,12 @@
           <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0" Padding="18">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Margin="0,0,6,0">
+                <Border Style="{StaticResource WarnPanel}" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}">
+                  <StackPanel>
+                    <TextBlock Text="JOB NEEDS REVIEW" Style="{StaticResource Eyebrow}"/>
+                    <TextBox Text="{Binding ProblemsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="100" MinHeight="48" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Job review blockers"/>
+                  </StackPanel>
+                </Border>
                 <TextBlock Text="SELECTED REQUIREMENT" Style="{StaticResource Eyebrow}"/>
                 <TextBlock Text="{Binding RequirementText}" TextWrapping="Wrap" Margin="0,0,0,16"/>
                 <Button Content="Copy requirement details" Command="{Binding CopyRequirementCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12"/>
