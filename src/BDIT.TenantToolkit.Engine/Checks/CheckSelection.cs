@@ -49,13 +49,13 @@ public sealed class CheckSelection
     public IReadOnlyList<string> CollectionKeys { get; }
 
     // Area names are the reviewed shared modules. Their controls and routes come from the original catalogue.
-    public static IReadOnlyList<string> Areas { get; } = Array.AsReadOnly(new[] { "Entra", "Intune", "Exchange", "Purview" });
+    public static IReadOnlyList<string> Areas => ControlAreas.Names;
 
     public static CheckSelection ForArea(StandardCatalogue standard, TenantProfile profile, string area)
     {
         var name = Areas.SingleOrDefault(a => string.Equals(a, area, StringComparison.OrdinalIgnoreCase))
             ?? throw new ConfigurationException($"Unknown check area '{area}'. Choose {string.Join(", ", Areas)}.");
-        var controls = ControlInstances.All(standard, profile).Where(c => c.Area == name).ToList();
+        var controls = ControlInstances.All(standard, profile).Where(c => ControlAreas.For(c) == name).ToList();
         if (controls.Count == 0) throw new ConfigurationException($"The loaded standard has no controls in {name}.");
         return new CheckSelection(standard, profile, "area", name, controls);
     }

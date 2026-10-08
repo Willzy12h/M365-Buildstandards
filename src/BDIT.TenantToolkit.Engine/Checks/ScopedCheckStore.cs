@@ -34,8 +34,13 @@ public sealed class ScopedCheckStore(ToolkitPaths paths)
 
     public ScopedCheckEvidence Read(string file, StandardCatalogue catalogue, TenantProfile profile)
     {
-        if (new FileInfo(file).Length > ScopedCheckSchema.MaximumBytes)
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > ScopedCheckSchema.MaximumBytes)
             throw new BDIT.TenantToolkit.Core.ConfigurationException("The scoped evidence exceeds the reader limit.");
-        return ScopedCheckSchema.Read(File.ReadAllText(file), catalogue, profile);
+        using var reader = new BinaryReader(stream);
+        var bytes = reader.ReadBytes(ScopedCheckSchema.MaximumBytes + 1);
+        if (bytes.Length > ScopedCheckSchema.MaximumBytes)
+            throw new BDIT.TenantToolkit.Core.ConfigurationException("The scoped evidence exceeds the reader limit.");
+        return ScopedCheckSchema.Read(new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'), catalogue, profile);
     }
 }

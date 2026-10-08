@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Add shared dependency-only scoped collection and selected assessment with separately validated partial evidence. Historical filtering retains source timing and integrity limitations; scoped wrappers cannot be imported as ordinary snapshots or used as complete before-evidence. UI and CLI wiring follows separately.
+- Add dependency-only scoped collection and selected assessment with separately validated partial evidence. Assessment's partial-check tab checks an area or requirement using the current connection, or explicitly reviews stored evidence. Offline `bdit check --snapshot <file> --area <area>` / `--control <id>` emits the same historical partial wrapper. Original timing and integrity limitations remain explicit; scoped results cannot be imported as ordinary snapshots or used as complete before-evidence.
 - Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
 - Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
 - Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.

@@ -57,7 +57,7 @@ public sealed class ScopedCheckService(IClock clock, string toolkitVersion, IToo
             }, StringComparer.Ordinal);
         // An unrelated Graph control must not acquire or reproduce separate Exchange/Purview evidence.
         var controls = ControlInstances.All(catalogue, profile).Where(c => selection.ControlIds.Contains(c.Id)).ToList();
-        if (!controls.Any(c => c.Area is "Exchange" or "Purview")) capture.ExchangeCapture = null;
+        if (!controls.Any(c => ControlAreas.For(c) is "Exchange" or "Purview")) capture.ExchangeCapture = null;
         capture.IntegrityDigest = EvidenceIntegrity.Compute(capture);
         var assessment = new AssessmentEngine(clock, toolkitVersion).AssessSelected(capture, catalogue, profile, mappings,
             deviations, actor, selection, evidenceTime: sourceMode == "historicalFiltered" ? capturedAt : null);
@@ -69,7 +69,7 @@ public sealed class ScopedCheckService(IClock clock, string toolkitVersion, IToo
             Id = Guid.NewGuid().ToString(), TenantId = profile.TenantId, AccountObjectId = accountId, SourceMode = sourceMode,
             RecordedAt = Timestamps.Format(clock.UtcNow), CatalogueRelease = catalogue.Release, CatalogueDigest = catalogue.IntegrityDigest,
             ProfileId = profile.Id, ClientScopeDigest = ReviewedClientScope.Digest(profile),
-            Areas = controls.Select(c => c.Area).Where(a => !string.IsNullOrEmpty(a)).Select(a => a!)
+            Areas = controls.Select(ControlAreas.For)
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList(),
             ControlIds = selection.ControlIds.ToList(), CollectionKeys = selection.CollectionKeys.ToList(),
             SourceCapture = sourceMode == "historicalFiltered" ? new ScopedSourceCapture { Id = source.Id, Sha256 = EvidenceIntegrity.Compute(source) } : null,

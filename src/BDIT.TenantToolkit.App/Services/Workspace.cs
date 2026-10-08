@@ -12,6 +12,7 @@ using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Checks;
 using BDIT.TenantToolkit.Engine.Drift;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
@@ -547,6 +548,35 @@ public sealed class Workspace : ObservableObject
         AcknowledgedSnapshotId = null;
         RunAssessment();
         Notify();
+    }
+
+    public async Task<(ScopedCheckEvidence Evidence, string File)> RunScopedCheckAsync(CheckSelection selection, bool historical)
+    {
+        ScopedCheckEvidence? result = null;
+        string file = "";
+        await RunExclusiveAsync(historical ? "Reviewing selected stored evidence" : "Reading selected requirements", async progress =>
+        {
+            var profile = Profile ?? throw new ToolkitException("Select a saved client first.");
+            var catalogue = RequireStandard();
+            selection.ValidateFor(catalogue, profile);
+            var service = new ScopedCheckService(SystemClock.Instance, ToolkitVersion.Current, Logger);
+            var mappings = Evidence.LoadMappings(profile.TenantId);
+            var deviations = Evidence.LoadDeviations(profile.TenantId);
+            if (historical)
+            {
+                var source = Snapshot ?? throw new ToolkitException("Open or capture a configuration first. This review will retain its original capture time.");
+                result = service.ReviewHistorical(source, catalogue, profile, selection, mappings, deviations, "stored-evidence review");
+            }
+            else
+            {
+                var connection = RequireConnection();
+                result = await service.CollectAsync(connection.Graph, connection.Session, catalogue, profile, selection, mappings,
+                    deviations, new Progress<CollectionProgress>(p => progress.Report(p.Message)), OperationToken);
+            }
+            file = new ScopedCheckStore(Paths).Save(result, catalogue, profile);
+            // No ordinary snapshot, assessment, plan or acknowledgement is replaced by this partial check.
+        });
+        return (result ?? throw new OperationCanceledException("No scoped result was accepted."), file);
     }
 
     public void RunAssessment()

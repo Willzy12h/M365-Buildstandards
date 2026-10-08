@@ -10,6 +10,18 @@ namespace BDIT.TenantToolkit.Tests;
 public class ScopedAssessmentTests
 {
     [Fact]
+    public void Older_catalogues_use_the_existing_shared_area_mapping_without_changing_bytes()
+    {
+        var standard = TestData.Standard(); var profile = TestData.Profile();
+        var original = ToolkitJson.Serialize(standard);
+        Assert.All(standard.Controls, c => Assert.True(string.IsNullOrEmpty(c.Area)));
+        var selection = CheckSelection.ForArea(standard, profile, "Entra");
+        Assert.Contains("CA-001", selection.ControlIds);
+        Assert.DoesNotContain("CMP-WIN-001", selection.ControlIds);
+        Assert.Equal(original, ToolkitJson.Serialize(standard));
+    }
+
+    [Fact]
     public void One_control_uses_the_existing_assessor_and_remains_partial_without_modifying_source_evidence()
     {
         var standard = TestData.Standard(); var profile = TestData.Profile();

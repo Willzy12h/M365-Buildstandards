@@ -79,7 +79,7 @@ public static class ScopedCheckSchema
         var dependencies = e.ControlIds.SelectMany(id => CheckSelection.ForControl(catalogue, profile, id).CollectionKeys)
             .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
         if (!e.CollectionKeys.SequenceEqual(dependencies)) throw Bad("The recorded dependencies do not match the selected controls.");
-        var areas = controls.Select(c => c.Area).Where(a => !string.IsNullOrEmpty(a)).Select(a => a!)
+        var areas = controls.Select(ControlAreas.For)
             .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
         if (!e.Areas.SequenceEqual(areas)) throw Bad("The recorded areas do not match the selected controls.");
         if (e.Capture is null || e.Assessment is null) throw Bad("Scoped capture/assessment data is missing.");
