@@ -43,6 +43,7 @@ public sealed class AssessmentViewModel : PageViewModel
     private bool _checkStored;
     private ScopedCheckEvidence? _partialCheck;
     private string _partialFile = "";
+    private string? _partialNotSaved;
 
     public AssessmentViewModel(ShellViewModel shell) : base(shell, "Assessment")
     {
@@ -81,21 +82,23 @@ public sealed class AssessmentViewModel : PageViewModel
     public string? CheckControl { get => _checkControl; set => SetProperty(ref _checkControl, value); }
     public bool CheckStored { get => _checkStored; set { if (SetProperty(ref _checkStored, value)) OnPropertyChanged(nameof(CheckGuidance)); } }
     private bool CanCheck => Workspace.Idle && Workspace.Profile is not null && Workspace.Standard is not null
-        && (CheckStored ? Workspace.Snapshot is not null : Workspace.Session is { TenantVerified: true });
+        && (CheckStored ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is not null : Workspace.Session is { TenantVerified: true });
     private bool AreaAvailable => Workspace.Standard is { } standard && Workspace.Profile is { } profile
         && ControlInstances.All(standard, profile).Any(c => ControlAreas.For(c) == CheckArea);
     public string CheckGuidance => !Workspace.Idle ? "Wait for the current operation to finish."
         : Workspace.Profile is null || Workspace.Standard is null ? "Select a saved client and standard first."
         : CheckControls.Count == 0 ? "This standard has no requirements to check. Choose another verified standard."
         : !AreaAvailable ? "This standard has no requirements in that area. Choose another area, or check an individual requirement."
-        : CheckStored ? Workspace.Snapshot is null ? "Open a stored configuration first, or untick stored evidence and connect."
+        : CheckStored ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is null ? "Open a stored configuration or Exchange/Purview evidence first, or untick stored evidence and connect."
             : "Stored evidence only: this filters the original capture; it does not refresh tenant data."
         : Workspace.Session is not { TenantVerified: true } ? "Connect to the selected tenant, or choose stored evidence."
         : "Read-only live check: reads only the selected requirements' dependencies, using the current connection.";
     public string PartialCheckText => _partialCheck is not { } e ? "No partial check yet. Choose an area or requirement, then Check this. Partial checks cannot authorise deployment."
-        : ($"PARTIAL CHECK · {e.SourceMode} · captured {e.Capture.CapturedAt}\nNot complete before-evidence; the full assessment and plan are unchanged.\n"
+        : ((_partialNotSaved is null ? "" : "NOT SAVED: " + _partialNotSaved + "\n")
+            + $"PARTIAL CHECK · {e.SourceMode} · captured {e.Capture.CapturedAt}\nNot complete before-evidence; the full assessment and plan are unchanged.\n"
             + string.Join("\n", e.Assessment.Findings.Select(f => $"{f.Name} [{f.ControlId}]: {StatusLabels.For(f.Status)} — {f.Reason}"))
-            + "\n" + string.Join("\n", e.Assessment.Limitations) + "\nEvidence: " + _partialFile).ReplaceLineEndings(Environment.NewLine);
+            + "\n" + string.Join("\n", e.Assessment.Limitations)
+            + "\nEvidence: " + (_partialFile.Length > 0 ? _partialFile : "not saved")).ReplaceLineEndings(Environment.NewLine);
 
     private async Task RunCheck(bool control)
     {
@@ -104,7 +107,7 @@ public sealed class AssessmentViewModel : PageViewModel
         var selection = control ? CheckSelection.ForControl(catalogue, profile, CheckControl ?? "")
             : CheckSelection.ForArea(catalogue, profile, CheckArea);
         var result = await Workspace.RunScopedCheckAsync(selection, CheckStored);
-        _partialCheck = result.Evidence; _partialFile = result.File;
+        _partialCheck = result.Evidence; _partialFile = result.File; _partialNotSaved = result.NotSavedReason;
         OnPropertyChanged(nameof(PartialCheckText));
     }
 
@@ -262,7 +265,7 @@ public sealed class AssessmentViewModel : PageViewModel
         if (_partialCheck is { } partial && (Workspace.Profile is not { } current || Workspace.Standard is not { } catalogue
             || partial.TenantId != current.TenantId || partial.ClientScopeDigest != ReviewedClientScope.Digest(current)
             || partial.CatalogueDigest != catalogue.IntegrityDigest))
-        { _partialCheck = null; _partialFile = ""; }
+        { _partialCheck = null; _partialFile = ""; _partialNotSaved = null; }
         OnPropertyChanged(nameof(CheckGuidance));
         OnPropertyChanged(nameof(PartialCheckText));
         var keep = CompareRelease;

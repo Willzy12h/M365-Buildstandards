@@ -53,7 +53,7 @@ On **Assessment**, open **Check an area or requirement**. Select an area or a na
 
 Read the separate **Partial check result and evidence** field, including any unable-to-check reasons. **Copy partial result** includes the saved evidence location. Partial results never replace the full assessment or plan and cannot satisfy complete before-evidence for deployment. Missing read permissions, failed reads and unsupported Exchange/Purview evidence remain unknown; this button does not perform separate Exchange authentication or turn Graph access into Exchange access.
 
-For offline automation on a development/CI installation, `bdit check --snapshot <file> --area Entra` (or `--control <id>`) emits a separate historical scoped-check JSON wrapper to stdout, using the installation's saved client and verified standard. It never connects or writes installation evidence. The current portable package still excludes the CLI until INT-074 hosting and native package checks are implemented.
+For offline automation on a development/CI installation, `bdit check --snapshot <file> --area Entra` (or `--control <id>`, optionally with `--exchange-snapshot <file>` as for `report`) emits a separate historical scoped-check JSON wrapper to stdout, using the installation's saved client and verified standard. It never connects or writes installation evidence. The current portable package still excludes the CLI until INT-074 hosting and native package checks are implemented.
 
 ## Handoff checklist
 
