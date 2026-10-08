@@ -62,3 +62,10 @@ For offline automation on a development/CI installation, `bdit check --snapshot 
 ## Handoff checklist
 
 Record tenant/job intention, responsible engineer/reviewer, package and standard/digest, current capture and assessment IDs, applicable controls, retained external protection, approved exceptions and expiry, manual/prerequisite owners, exact plan/run references, uncertain writes, remaining activation/effectiveness checks and the next review date. Include evidence locations through the secure custodian process. Do not transfer caches or assume the next engineer inherits authentication or approval. Use [workspace continuity](WORKSPACE-CONTINUITY.md) and [the operating model](INTERNAL-OPERATING-MODEL.md).
+
+
+## Offline command line in the portable ZIP
+
+Open Command Prompt or PowerShell in the extracted toolkit folder and run `bdit.cmd --help` (PowerShell: `.\bdit.cmd --help`). The launcher uses the same packaged application; no SDK or additional executable is needed. It preserves the current working directory, so quote input paths containing spaces. For example: `bdit.cmd inventory --snapshot "C:\Engineer work\configuration.json" --format html`. `--root` optionally selects an existing toolkit root. Commands consume stored evidence only; they never connect, request consent or deploy.
+
+Help and report paths go to standard output; refusals/errors go to standard error with a non-zero exit code. Redirection is supported (`bdit.cmd --help > help.txt 2> errors.txt`). A blocked application stays blocked: follow your security owner's application-control approval route, using the independently trusted fingerprint. Do not switch hosts or bypass controls. Source implementation and fresh Windows package verification do not establish live Microsoft or human accessibility acceptance.
