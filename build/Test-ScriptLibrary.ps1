@@ -20,6 +20,11 @@ $readCommands = @(
     'Get-EXOMailbox', 'Get-EXOMailboxStatistics', 'Get-EXOMailboxPermission', 'Get-EXORecipientPermission', 'Get-EXORecipient',
     'Get-EXOMailboxFolderStatistics', 'Get-EXOMailboxFolderPermission', 'Get-InboxRule', 'Get-AcceptedDomain', 'Get-User',
     'Get-MessageTraceV2', 'Search-UnifiedAuditLog',
+    'Get-DistributionGroup', 'Get-DistributionGroupMember', 'Get-UnifiedGroupLinks', 'Get-TransportRule', 'Get-InboundConnector',
+    'Get-OutboundConnector', 'Get-DkimSigningConfig', 'Get-MobileDevice', 'Get-MobileDeviceStatistics', 'Get-OrganizationConfig',
+    'Get-AdminAuditLogConfig', 'Get-MailboxAuditBypassAssociation', 'Get-HostedContentFilterPolicy', 'Get-HostedContentFilterRule',
+    'Get-HostedOutboundSpamFilterPolicy', 'Get-HostedOutboundSpamFilterRule', 'Get-AntiPhishPolicy', 'Get-AntiPhishRule',
+    'Get-MalwareFilterPolicy', 'Get-MalwareFilterRule', 'Get-CalendarProcessing',
     'Set-StrictMode', 'Where-Object', 'ForEach-Object', 'Select-Object', 'Sort-Object', 'Measure-Object', 'Group-Object',
     'ConvertFrom-Json', 'Write-Warning'
 )

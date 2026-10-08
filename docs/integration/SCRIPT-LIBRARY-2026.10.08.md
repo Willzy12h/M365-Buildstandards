@@ -54,22 +54,63 @@ Astra's independent review of PR #46 (AST-20261008-05 to -09) was fixed by Claud
 | AST-20261008-08 | "Mailboxes a user can access" matches the user's exact identities (sign-in name, primary SMTP address, distinguished name, object IDs), never a display name. An entry naming the user only by name is `Unresolved`, a deny entry `Denied`, and an entry that does not say whether it allows or denies `Unknown`; only an allow entry on an exact identity is `Granted`. It lists direct entries, not effective access: group and inherited rights are not resolved to the user. |
 | AST-20261008-09 | Unified audit search reads one more page when the row limit falls exactly at the end of a page; if that page holds records the result is marked `BDIT:PARTIAL`. Send As entries are requested one past the 5,000 limit, and a full result is marked partial. |
 
+## Second Exchange Online pack
+
+Eleven more read-only Exchange Online items, on branch `claude/scripts-exo-pack2-2026-10-08`. Each follows the rules from Astra's review of #46: a value Exchange did not return is Unknown and never cast to False; an identity is never joined on a display name or Name; a bounded or truncated read warns `BDIT:PARTIAL`; anything that could not be measured warns `BDIT:UNKNOWN`; scripts are ASCII, Windows PowerShell 5.1 compatible and use only Get- reads; nothing installs a module or changes execution policy. Every manifest lists its roles and limitations and is live-unverified. The roles follow Microsoft's documentation and have not been confirmed in a tenant.
+
+| ID | Name | Reads | Roles |
+|---|---|---|---|
+| `exo.group-members` | Group members and owners | `Get-EXORecipient`, `Get-DistributionGroupMember`, `Get-DistributionGroup`, `Get-UnifiedGroupLinks` | View-Only Recipients, View-Only Organization Management |
+| `exo.transport-rules` | Mail flow rules | `Get-TransportRule` | View-Only Organization Management |
+| `exo.connectors` | Mail connectors | `Get-InboundConnector`, `Get-OutboundConnector` | View-Only Organization Management |
+| `exo.domains-dkim` | Accepted domains and DKIM | `Get-AcceptedDomain`, `Get-DkimSigningConfig` | View-Only Organization Management, Security Reader |
+| `exo.mobile-devices` | Mobile devices per mailbox | `Get-EXOMailbox`, `Get-MobileDevice`, `Get-MobileDeviceStatistics` | View-Only Recipients, View-Only Organization Management |
+| `exo.mailbox-audit` | Mailbox auditing settings | `Get-OrganizationConfig`, `Get-AdminAuditLogConfig`, `Get-EXOMailbox`, `Get-MailboxAuditBypassAssociation` | View-Only Organization Management, View-Only Audit Logs |
+| `exo.mailbox-holds` | Holds and retention per mailbox | `Get-OrganizationConfig`, `Get-EXOMailbox` | View-Only Recipients, View-Only Organization Management |
+| `exo.protection-policies` | Anti-spam, phishing and malware policies | `Get-HostedContentFilterPolicy`/`Rule`, `Get-HostedOutboundSpamFilterPolicy`/`Rule`, `Get-AntiPhishPolicy`/`Rule`, `Get-MalwareFilterPolicy`/`Rule` | Security Reader, View-Only Organization Management |
+| `exo.resource-mailboxes` | Room and equipment booking | `Get-EXOMailbox`, `Get-CalendarProcessing` | View-Only Recipients, View-Only Organization Management |
+| `exo.send-on-behalf` | Send on Behalf delegates | `Get-EXOMailbox`, `Get-EXORecipient` | View-Only Recipients, View-Only Organization Management |
+| `exo.archive-mailboxes` | Archive mailbox status | `Get-OrganizationConfig`, `Get-EXOMailbox` | View-Only Recipients, View-Only Organization Management |
+
+What each item decides, and what it leaves Unknown:
+
+- **Identities.** Group members are listed with the address and object ID Exchange returned; an entry with neither is Unresolved. Distribution group owners and Send on Behalf delegates can come back as names, so each is looked up once and is Resolved only when Exchange finds exactly one recipient whose primary SMTP address, distinguished name, object ID or GUID is that value. A Name, alias or display name, several matches or none is Unresolved with no address, and the run warns. Dynamic distribution groups are NotExpanded. Resource delegates are shown as returned and not resolved.
+- **Holds.** HoldStatus is MailboxHold only when a hold is set on the mailbox. An in-place hold entry starting with a minus sign is an exclusion from an organisation-wide policy, not a hold. Organisation-wide holds are shown on every row but not worked out per mailbox, and hold IDs are not resolved to policy names (that needs Security and Compliance PowerShell).
+- **Protection.** A custom policy with no rule is NoRule. A preset (Standard or Strict) policy is Preset: its preset rule is not read, so who it applies to is not shown. A policy with no rule that Exchange does not mark as custom or preset is Unknown, never NoRule. Safe Links and Safe Attachments are not included.
+- **Mail flow.** BypassesSpamFiltering is True only for the bypass spam filtering action (spam confidence level -1). Connector TLS returned empty is NotSet; Exchange's behaviour without a setting is not inferred. DKIM is read from Exchange only, with no DNS query: the selector CNAMEs are what Exchange expects, not proof they are published.
+- **Mobile devices.** Each mailbox's devices are read up to the row limit plus one, so a longer list is marked partial; Exchange otherwise stops at a default size without saying so. A device whose last sync cannot be read, including when its statistics read fails, is Unknown with the reason and is always kept by the stale filter.
+- **Archive.** Archive size is not read: it needs one statistics read per mailbox, which this item does not make, so the only bound is the mailbox limit (2,000 by default, 10,000 at most), marked partial when reached. HasArchive comes from the archive GUID; when ArchiveStatus disagrees, the row says so. The archive quota is a configured value, not an entitlement.
+- **Auditing.** Finding NoneFound is not proof that events are recorded: with organisation auditing on by default, a mailbox's own AuditEnabled can read False and still be audited. Unified audit ingestion that cannot be read (for example without an audit role) is Unknown on every row.
+
+The previous agent's work was saved unvalidated in `a247bca`. Reviewing it found, and this branch fixed, four places where it fell short of the rules above. Each has a synthetic case that fails against `a247bca` and passes now: owners and delegates were Resolved on a Name, alias or Identity; an exclusion entry counted as a hold; a preset policy with no rule was reported as applying to no one; and a mobile device read was unsized, so Exchange's default size could cut it short silently. Mail flow rules, connectors and protection policies now also warn `BDIT:UNKNOWN` whenever a row holds an Unknown value, as the other items do.
+
+## Review corrections for the second pack (Astra, 8 October 2026)
+
+Astra's independent review of PR #64 (AST-20261008-11 to -14) was fixed by Claude in `4dc938d`. Each fix has a synthetic Copy case in `build/Test-ScriptLibraryStubs.ps1` that fails against the reviewed head `d5039b0` and passes now, beside cases that keep known values. All items stay Copy and Save only.
+
+| ID | Correction |
+|---|---|
+| AST-20261008-11 | Protection policy settings returned null are Unknown, never NotSet, and a counted list returned null is Unknown, never 0. NotSet is kept for a value returned empty, and 0 for a list returned empty. Known False and zero are shown as they are. |
+| AST-20261008-12 | Archive quotas are shown as Exchange returned them, including Unlimited. A quota, ArchiveStatus or ArchiveName that was not returned is Unknown with the reason in `Notes`, and the run warns. A mailbox with no archive has ArchiveName NotApplicable and still shows its quotas, because Exchange sets them on every mailbox. |
+| AST-20261008-13 | When Exchange returns a DKIM signing configuration without its domain, any accepted domain with no matched configuration is DkimConfigured and DkimEnabled Unknown, with the reason, not False. A signing inventory returned empty still gives False with no warning. |
+| AST-20261008-14 | A distribution group's owner list is bounded by the member limit before any owner is looked up, and a longer list warns `BDIT:PARTIAL` naming the ownership list. |
+
 ## Not implemented in this slice
 
 - Everything here is manual and unverified live: each item is copied and run by an engineer, and none has been run in a tenant.
 - No entitlement validation. A configured quota, including 100 GB, is not proof of a licence or archive entitlement.
 - No integrated report execution: there is no Run, no owned PowerShell session and no report evidence store yet.
-- No archive mailbox size or archive quota reporting.
-- The library covers ten Exchange Online items, not the full reporting scope in the design catalogue.
+- No archive mailbox size reporting. Archive status shows the configured archive quota, which is not an entitlement.
+- The library covers twenty-one Exchange Online items (the first ten and the second pack of eleven), not the full reporting scope in the design catalogue.
 - **Timeouts.** `limits.timeoutSeconds` in each manifest is not enforced by the copied script, which runs until it finishes or the engineer stops it. Enforcing it is a limit for the future runner (next slice 2), not a property of the Copy script.
 
 These stay open in the [feedback register](PRODUCT-FEEDBACK-REGISTER.md) and are not closed by the synthetic evidence below.
 
 ## Evidence
 
-- Source and synthetic: engine tests cover strict loading, pins, injected writes, typed inputs and Copy literals with hostile values.
+- Source and synthetic: engine tests cover strict loading, pins, injected writes, typed inputs and Copy literals with hostile values. For each second-pack item they check read-only and unverified status, documented roles and limitations, the absence of PowerShell 7-only operators and write or install commands, the `BDIT:UNKNOWN` and `BDIT:PARTIAL` warnings, default binding and an unchanged body in the Copy script; that owner and delegate lookups accept only exact identities; and each form's typed checks.
 - `build/Test-ScriptLibrary.ps1` parses every body under PowerShell 5.1 with an allow-list and checks generated Copy scripts hold only constant literals and an unchanged body.
-- `build/Test-ScriptLibraryStubs.ps1` runs every Copy script against a synthetic stand-in module: rows match the manifest columns, the session disconnects, and a different tenant or a different account in the same tenant is refused with nothing read (every stand-in read is logged) and nothing written. Further scenarios cover the review corrections above: unmeasurable quotas, true/false/not-returned values in six scripts, same-display-name and deny entries, an audit page ending exactly at the limit and a saturated Send As result.
+- `build/Test-ScriptLibraryStubs.ps1` runs every Copy script against a synthetic stand-in module: rows match the manifest columns, the session disconnects, and a different tenant or a different account in the same tenant is refused with nothing read (every stand-in read is logged) and nothing written. Further scenarios cover the review corrections above: unmeasurable quotas, true/false/not-returned values in six scripts, same-display-name and deny entries, an audit page ending exactly at the limit and a saturated Send As result. The second pack adds scenarios for each new item: exact, Name-only, display-name, ambiguous and missing identities; not-returned flags, settings, owner lists and delegate lists; dynamic groups; a recipient that is not a group or not a resource; hold exclusions; preset and unmarked policies; undated devices and a failed statistics read; and every row or member limit, each with its warning. The fake module answers the new cmdlets, and the wrong-tenant and wrong-account refusals with zero reads run for all twenty-one items.
 - Desktop page: view-model tests in `tests/BDIT.TenantToolkit.App.Tests/ScriptsPageTests.cs` (search and grouping, required-field gating, blank optional fields, multi-select binding, the banner and its colour, confirmation before generation, a stale confirmation refused, the generated tenant and body, Save never overwriting). They target net10.0-windows and are compiled, not run, on Linux. Colour derivation and contrast are tested on Linux in `TenantColourTests`. The offline interface harness renders the page at all three sizes, presses Copy and Save with stand-in prompts, and lays out and exercises the confirmation dialog; it runs in Windows CI.
 - Live: none. Each item stays "not yet tested in a tenant" until William runs it.
 
