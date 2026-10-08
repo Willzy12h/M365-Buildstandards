@@ -278,7 +278,8 @@ public sealed class ScriptsPageTests : IDisposable
         Assert.Contains("# Script hash: " + entry.Manifest.ScriptSha256, script);
         Assert.Contains(entry.Script.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd('\n'), script);
         Assert.Contains("RecipientAddress = @('alex@example.com')", script);
-        Assert.DoesNotContain("Subject = ", script);
+        // The blank optional Subject is left out of the form values; the reviewed body still mentions it.
+        Assert.DoesNotContain("\n        Subject = ", script);
         // No connected session for this tenant, so no account is assumed.
         Assert.Contains("$signInAs = ''", script);
         Assert.Contains("Copied Message trace for Test client", _page.Status);
