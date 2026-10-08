@@ -303,3 +303,7 @@ Choices:
 - Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
+
+## INT-070–072 — Proposed scoped-check, report-evidence and script contracts
+
+Decision-only PR #39: [MODULE-REPORT-SCRIPT-CONTRACTS-2026.10.08](MODULE-REPORT-SCRIPT-CONTRACTS-2026.10.08.md). Pending review/merge; not settled or implemented. INT-070 defines shared registered dependency routing and distinct partial scoped-check evidence that cannot authorise writes. INT-071 separates large strict report evidence from historical configuration/Exchange captures and distinguishes observed quotas from verified entitlement. INT-072 defines reviewed typed script manifests and bounded read-only execution, with Exchange changes unconditionally copy-only. No existing evidence/catalogue bytes, permissions, cache contracts or blocked write boundaries are changed by this document. New report access remains proposed/ungranted. Dependent code starts only after the coordination contract-merge gate.
