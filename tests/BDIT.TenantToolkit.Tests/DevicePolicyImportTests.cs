@@ -37,11 +37,11 @@ public sealed class DevicePolicyImportTests
         var s = Shipped(); var before = ToolkitJson.Serialize(s); var export = (JsonObject)s.FindControl(id)!.Payload!.DeepClone();
         export["id"] = TestData.TenantB; export["assignments"] = new JsonArray(new JsonObject { ["target"] = new JsonObject { ["groupId"] = TestData.Office } });
         export["roleScopeTagIds"] = new JsonArray("9");
-        var result = DevicePolicyImporter.Import(s, id, export.ToJsonString(), "Reviewed candidate");
+        var result = DevicePolicyImporter.Import(s, id, export.ToJsonString(), "CFG - Reviewed candidate - Windows");
         Assert.Equal(before, ToolkitJson.Serialize(s)); Assert.NotEqual(s.Release, result.Standard.Release);
         var payload = result.Standard.FindControl(id)!.Payload!;
         Assert.Null(payload["id"]); Assert.Null(payload["assignments"]); Assert.Null(payload["roleScopeTagIds"]);
-        Assert.Equal("Reviewed candidate", payload["displayName"]!.ToString()); Assert.Contains("assignments", result.RemovedProperties);
+        Assert.Equal("CFG - Reviewed candidate - Windows", payload["displayName"]!.ToString()); Assert.Contains("assignments", result.RemovedProperties);
         Assert.Equal(CanonicalJson.Sha256Hex(export.ToJsonString()), result.SourceDigest);
         Assert.False(payload.ToJsonString().Contains(TestData.TenantB, StringComparison.Ordinal));
     }
@@ -65,7 +65,7 @@ public sealed class DevicePolicyImportTests
             case "new-uri": values[0]!["omaUri"] = "./Device/Vendor/MSFT/Unreviewed/Execute"; break;
             case "template": values[0]!["displayName"] = "{{tenantId}}"; break;
         }
-        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CFG-WIN-002", p.ToJsonString(), "Candidate"));
+        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CFG-WIN-002", p.ToJsonString(), "CFG - Candidate - Windows"));
     }
 
     [Theory]
@@ -73,19 +73,19 @@ public sealed class DevicePolicyImportTests
     [InlineData("[]")]
     [InlineData("{bad json")]
     public void Duplicate_keys_lists_and_invalid_JSON_are_rejected(string json) =>
-        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(Shipped(), "CFG-WIN-002", json, "Candidate"));
+        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(Shipped(), "CFG-WIN-002", json, "CFG - Candidate - Windows"));
 
     [Fact]
     public void Import_is_bounded_and_cannot_accept_arbitrary_controls_or_EDR_blobs()
     {
         var s = Shipped();
-        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CA-001", "{}", "Candidate"));
-        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CFG-WIN-002", new string(' ', 256 * 1024 + 1), "Candidate"));
+        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CA-001", "{}", "CFG - Candidate - Windows"));
+        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(s, "CFG-WIN-002", new string(' ', 256 * 1024 + 1), "CFG - Candidate - Windows"));
         var p = s.FindControl("SEC-WIN-002")!.Payload!; p["advancedThreatProtectionOnboardingBlob"] = "synthetic-source-tenant-data";
         // The transport guard is independent of import; a caller cannot bypass it with an edited catalogue.
         Assert.Throws<SafetyViolationException>(() => WritePayloadGuard.Assert(s.Collections["endpointProtection"], p));
         var clean = Shipped();
-        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(clean, "SEC-WIN-002", p.ToJsonString(), "Candidate"));
+        Assert.Throws<ConfigurationException>(() => DevicePolicyImporter.Import(clean, "SEC-WIN-002", p.ToJsonString(), "CFG - Candidate - Windows"));
     }
 
     [Theory]

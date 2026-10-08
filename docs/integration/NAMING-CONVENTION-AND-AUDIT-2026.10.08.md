@@ -41,3 +41,13 @@ Some collections read the same Graph objects: `configuration` and `endpointProte
 ## Verification and remaining work
 
 Synthetic tests cover internal naming, documented group limits, platform-specific authoring, name-only ownership refusal, accepted creation proof, modified/unknown/later/duplicate evidence, duplicate object IDs, empty/failed/missing reads, input immutability and cross-tenant refusal. Windows and package checks are recorded for the exact source, independently of Microsoft acceptance. Reports/UI exposure, richer object-type/platform limits and automatic authoring-pipeline integration remain open; no broad product feedback gate closes from this engine implementation alone.
+
+## Local candidate imports — PR #57
+
+Both `DevicePolicyImporter.Import` and `PolicyImporter.Import` require the existing authored-name rule for the selected control before building a new local candidate. Use the collection prefix, a meaningful description and the control's platform suffix; for example `CFG - Reviewed LAPS - Windows` for CFG-WIN-002. Leading/trailing spaces are rejected rather than silently repaired. The naming check does not certify configuration correctness, service acceptance or object ownership. Import shape, foreign-reference, assignment removal and transport checks still apply.
+
+Only the supplied name of the changed candidate control is checked. Other controls, the baseline object and historical catalogue files retain their original bytes/meaning; no live object is renamed. This is validation of the existing bounded import workflows, not a general authoring compiler.
+
+Failing-first evidence: 22 dedicated cases on `14e62275` with test-only commit `00a61eb`: 14 invalid-name refusals failed because both importers accepted the names; eight valid-candidate/historical-preservation controls passed. With the two entry-point checks, all 22 dedicated cases and 25 existing importer cases pass locally (47 executed, zero skipped). Existing importer fixtures now use conforming names, including negative shape tests, so those tests continue exercising their original safeguards. Windows and independent review remain pending until recorded.
+
+Final local validation before push: 1,292 engine/CLI tests executed and passed, zero skipped; strict solution cross-build passed with zero warnings/errors. An interrupted first broad run is not counted as passing; the completed replacement run supplies this evidence.
