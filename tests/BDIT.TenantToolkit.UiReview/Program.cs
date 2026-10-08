@@ -107,6 +107,8 @@ internal static partial class Program
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
+                    if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
+                    if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);
                     if (size.Height >= 760) RecordUnneededScrolling(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
@@ -298,6 +300,8 @@ internal static partial class Program
                 ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
                 ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
                 ("Jobs requirement viewport at all three sizes", JobRequirementViewportsMeasured == 3),
+                ("Configuration object viewport at all three sizes", ConfigurationViewportsMeasured == 3),
+                ("First script input at all three sizes", ScriptFormViewportsMeasured == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
@@ -327,6 +331,8 @@ internal static partial class Program
                     + Environment.NewLine + string.Join(Environment.NewLine, ClippedElements.Distinct()));
             if (UnneededScrolling.Count > 0)
                 problems.Add($"{UnneededScrolling.Count} page(s) scroll at a size where they have room not to:" + Environment.NewLine + string.Join(Environment.NewLine, UnneededScrolling.Distinct()));
+            if (CrampedCurrentPages.Count > 0)
+                problems.Add("Current page content is cramped:" + Environment.NewLine + string.Join(Environment.NewLine, CrampedCurrentPages));
             if (CrampedJobRequirements.Count > 0)
                 problems.Add("Jobs requirements are cramped:" + Environment.NewLine + string.Join(Environment.NewLine, CrampedJobRequirements));
             if (KeyboardProblems.Count > 0)

@@ -1,6 +1,6 @@
 # Current guidance and captured-inventory access
 
-Astra usability slice, 8 October 2026. Branched from integration `b755dbb3b8e1b958c12825ec296fee4e319e9ae4` after pre-flight across all three repositories. Claude's library #46 is merged; #47 owns Claude's review register, #53 owns engine readiness, #54 owns Astra status reconciliation and #55 is decision-only experimental gating. This slice changes current app guidance/export presentation, not their implementations or contracts.
+Astra usability slice, 8 October 2026. Branched from freshly fetched integration `14e62275ca212b6f34ecd3b17d676f2445e39845` (#47 review record merged after the b755dbb library baseline) after pre-flight across all three repositories. Claude's library #46 is merged; #47 owns Claude's review register, #53 owns engine readiness, #54 owns Astra status reconciliation and #55 is decision-only experimental gating. This slice changes current app guidance/export presentation, not their implementations or contracts.
 
 ## Scope
 

@@ -218,6 +218,34 @@ internal static partial class Program
         }
     }
 
+    private static readonly List<string> CrampedCurrentPages = new();
+    private static int ConfigurationViewportsMeasured;
+    private static int ScriptFormViewportsMeasured;
+
+    private static void RecordConfigurationViewport(FrameworkElement content, string where)
+    {
+        ConfigurationViewportsMeasured++;
+        var table = Descendants(content).OfType<DataGrid>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Captured objects");
+        var rows = Descendants(table).OfType<DataGridRow>().Where(r => IsShown(r, content)).ToList();
+        var visible = rows.Count(r => VisibleBounds(r, content).Height >= r.ActualHeight - 1);
+        if (table.Items.Count < 2 || visible < 2)
+            CrampedCurrentPages.Add($"  {where} · {visible} fully visible captured-object rows; at least two are required without scrolling the page.");
+    }
+
+    private static void RecordScriptFormViewport(FrameworkElement content, string where)
+    {
+        ScriptFormViewportsMeasured++;
+        var form = Descendants(content).OfType<ItemsControl>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Script form");
+        var first = form.ItemContainerGenerator.ContainerFromIndex(0) as FrameworkElement
+            ?? throw new InvalidOperationException("The populated synthetic script must have a first form field.");
+        var field = Descendants(first).OfType<Control>().First(c => (c is TextBox or ComboBox or CheckBox) &&
+            c.Visibility == Visibility.Visible && c.ActualHeight > 0);
+        if (VisibleBounds(field, content).Height < field.ActualHeight - 1)
+            CrampedCurrentPages.Add($"  {where} · the first script input is below the first viewport; purpose/access details must not hide the form.");
+    }
+
     // ---- keyboard ------------------------------------------------------------------------------------------------
 
     private static readonly List<string> KeyboardProblems = new();
