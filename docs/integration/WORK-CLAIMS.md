@@ -70,3 +70,9 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | pure mailbox quota/assigned-plan evaluation under INT-071; no report schema, collector, runner or live operation; independent review pending | `astra/mailbox-capacity-evaluation-2026-10-08` | #58 | Open |
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | fixed Exchange/Purview capture verifies the confirmed account as well as tenant before reads; no new access; independent review pending | `astra/exchange-read-identity-2026-10-08` | #59 | Open |
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | dedicated conflicting-disposition refusal/completion regressions; production source unchanged; independent review pending | `astra/disposition-identity-regression-2026-10-08` | #60 | Open |
+
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | decision-only versioned read-only execution and separate Exchange report evidence; dependent source awaits reviewed contract merge; independent review pending | `astra/read-only-runner-contract-2026-10-08` (integration `14e62275`) | #61 | Open |
+
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | offline registered Graph report exports through existing strict reader/exporters and actual CLI/fresh-package tests; no live/schema/UI changes; independent review pending | `astra/offline-report-evidence-export-2026-10-08` (integration `14e62275`) | #62 | Open |
+
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | scheduling-only isolated executor tests; every body, deadline and assertion unchanged; no production change; independent review pending | `astra/executor-test-isolation-2026-10-08` (integration `14e62275`) | #63 | Open |

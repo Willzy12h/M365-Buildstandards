@@ -1,0 +1,34 @@
+# Claude independent continuation review — 8 October 2026
+
+William can pass the following prompt to Claude. This is a review request, not an approval, completed review or permission for live/publishing actions. Refresh actual source, claims and check states; the links below may have moved since this record.
+
+> Continue as Claude on Willzy12h/M365-Buildstandards, using UK English and `claude/*` branches. Fetch fresh integration; follow AGENTS, AGENT-COORDINATION pre-flight, HANDOVER's merge delegation and the release-readiness goal. Integration at this checkpoint is `14e62275ca212b6f34ecd3b17d676f2445e39845`, unpublished Preview.19. #42/#44/#43/#45 and fixes #51/#49/#48/#50, your independently re-reviewed #46 and your #47 findings record are merged. Their actual merge runs are green; do not recreate the merged library or publisher.
+>
+> Independently review Astra's exact current heads in this order. Post findings/disposition on each PR; do not approve on William's behalf or push directly to `astra/*`. Propose fixes through your own branch/PR if needed. Read source and actual run evidence; no source/synthetic/native result substitutes for human/live acceptance.
+>
+> 1. **#55**: decision-only default-off, session-bound experimental desktop write gate (INT-082). Confirm every direct App mutation/consent boundary is covered, exact tenant/account/registration/catalogue/profile binding, invalidation and no loss of existing engine safeguards. Its merge is required before dependent source. This does not authorise Exchange writes.
+> 2. **#53, #56, #57, #59**: failed/malformed readiness reads remain Unknown with actionable guidance; current guidance and desktop full HTML inventory reuse the existing exporter; native first-screen guards at all three sizes; naming convention applies only to newly authored imports, leaving historical catalogues intact; fixed configuration Exchange/Purview capture pins confirmed account and tenant before every read. #59's seven PowerShell wrong/missing/changed-account cases failed before the fix and all 17 pass afterwards. No new permission, cache or authentication implementation is introduced.
+> 3. **#58**: pure observed primary quota versus exact assigned-service-plan eligibility. Preserve raw/Unlimited/failed values, byte interpretation, primary/archive distinction, exact ExternalDirectoryObjectId joins and supported current Microsoft rules. It is not a complete mailbox collector/UI. Unknown variants/reads never become NotEligible. Review the official source links/date and 29 synthetic cases.
+> 4. **#60**: dedicated conflicting-disposition refusal/history/completion regressions requested in your #47 R02 note. Production code is unchanged. Check file/attachment preservation, legitimate supersession positive control, conflicting historical lines staying visible/unsettled and Outstanding/Needs review. The historical guard substitution was temporary and is not in the patch. Also close the independent delta review of **#36 after e433513**, through final head `0fa23e67c2b3e7ea01c6776bd15379d11e748e4a`, where your R01/R16 record still says no review is recorded. Retain human/live gates.
+> 5. **#61**: shared decision only for versioned read-only execution, strict child-output acceptance and separate Exchange report evidence. Existing Graph/Exchange configuration schema 1 and manual manifest schema 1 keep their meaning. Review schema 2 admission, per-read identity/resource, typed-data binding, owned process/cancellation/limits, strict whitelisted rows and source citations. No dependent schema/runner implementation starts until this decision merges. The PR's initial Windows push passed but its parallel PR run hit an existing executor outer timeout; #63 proposes test isolation, not a contract bypass.
+> 6. **#62**: offline registered Graph report export via existing strict reader/exporters. Actual CLI processes test bounds/UTF-8/tenant/integrity/refusals and source preservation; fresh portable checks inspect the real Partial HTML and refuse another tenant. No CLI sign-in, collection, script Run or evidence mutation. Do not confuse export success with collection success.
+> 7. **#63**: scheduling-only executor test isolation. Every test body, 50 ms verification budget, three-second outer deadline and safeguard assertion is unchanged. If Windows still fails, investigate rather than widen deadlines or skip/retry. Review after its exact checks.
+> 8. **#54**: Astra-owned tracker reconciliation, exact merge/head/run/ZIP identities and honest feature matrix. Confirm it preserves your feedback/claim rows and all historical records. Update your own stale #46 claim/INT-080 state after verifying its actual merge; reconcile R01/R02/R16 only to the evidence you independently established, leaving human/live gates pending.
+>
+> Check actual PR draft/check/review states before recommending a merge. A green build alone does not grant source approval. Merge commits only under HANDOVER's conditions; conflicts are resolved on the owner's branch, all exact required checks rerun and each merge-commit run recorded. No main promotion, tags/releases/publisher dispatch, permissions/consent or tenant action. Reusable publisher remains your area; later candidates need reviewed exact-source pins.
+
+PR links:
+
+- [#53 — readiness](https://github.com/Willzy12h/M365-Buildstandards/pull/53)
+- [#54 — owned records](https://github.com/Willzy12h/M365-Buildstandards/pull/54)
+- [#55 — experimental gate decision](https://github.com/Willzy12h/M365-Buildstandards/pull/55)
+- [#56 — guidance and desktop HTML](https://github.com/Willzy12h/M365-Buildstandards/pull/56)
+- [#57 — authored import names](https://github.com/Willzy12h/M365-Buildstandards/pull/57)
+- [#58 — mailbox capacity evaluation](https://github.com/Willzy12h/M365-Buildstandards/pull/58)
+- [#59 — fixed Exchange account verification](https://github.com/Willzy12h/M365-Buildstandards/pull/59)
+- [#60 — disposition regression](https://github.com/Willzy12h/M365-Buildstandards/pull/60)
+- [#61 — read-only execution/report contract](https://github.com/Willzy12h/M365-Buildstandards/pull/61)
+- [#62 — offline report export](https://github.com/Willzy12h/M365-Buildstandards/pull/62)
+- [#63 — executor scheduling](https://github.com/Willzy12h/M365-Buildstandards/pull/63)
+
+Source implementation still needed after these reviews/contracts settle: default-off runtime gates, connected Reports/naming/navigation surfaces, strict Exchange report collector/storage/archive/capacity reporting and bounded read-only execution. #46's manual Copy/Save is not that runner. No approved feature is silently deferred. The next-preview candidate record/promotion PR remains preparation work; final main/tag/publication and all human/live/business stop points remain William's.

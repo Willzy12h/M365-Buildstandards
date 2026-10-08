@@ -64,7 +64,10 @@ All rows below are open source/decision PRs. Their push and PR checks were read 
 | #57 | `5a9a27181c78023076b3e4094e41eae991b4fd5b` | 37838335710 / 37838341849 | 1292 / 156 | 48 / 88 | `97b1501810a1bc1e0efa7ce21b74b27b488be1883651c9244bb2df878210f463` |
 | #58 | `7adff06384e7835f089293b2636d83cc67c18585` | 37839811425 / 37839818933 | 1299 / 156 | 48 / 88 | `c8f97eea2fa5245c831a6405998ef2186f23ee1ee57ea753dc2469394452d71b` |
 | #59 | `96632ae3df1a4bdebb12d64037646953f9932eda` | 37840902811 / 37840910436 | 1277 / 156 | 48 / 88 | `dffe6b5597c6c0b45752b056749a13c34b968e76b3a1f08f50a99e73312e626b` |
+| #60 | `60e19e12a4c902abb8f7a1e0c1c4d9f127b2756b` | 37842433877 / 37842441949 | 1273 / 156 | 48 / 88 | `e104bf83c7ca70e81a9c8f2db1c40036a9e6b8a8b3b2aefe1cb4d46911a2d11c` |
 
 Each passed fresh 302-file extraction/startup/context-menu Copy/portable CLI and blank settings/evidence checks. #59 also executed all 17 PowerShell 5.1 account/tenant synthetic refusal/positive checks. #55's decision-only head `6534c4972332a8d2a63fa577abde22b27d4a94ce` passed 37833394549 / 37833401753; its runtime gate is not implemented.
 
 Astra downloaded and visually inspected real WPF Configuration/Scripts renders from #56's exact e74 source at all three sizes. Initial clipping failures and their corrections are retained on the PR. Human readability/Narrator/physical-scaling acceptance remains unrun. These original ZIP hashes must not be reused for a new candidate or changed source.
+
+#60 first failed the strict xUnit2031 analyser at `d0a85a0`; the filtering overload preserves the same assertion, and the exact 60e19e1 runs above passed. #61 head `98e3c2207cc9407eb34fc0fffcfa80e67bc84219` has mixed outcomes: push 37843036623 passed, PR 37843042207 failed the existing ExecutorTests outer WaitAsync deadline (1,269 passed, one failed). #63 proposes isolated scheduling with all deadlines/assertions unchanged. Do not merge #61 while any exact required check is red. #62/#63 final results remain pending at this record.
