@@ -191,6 +191,19 @@ Low-confidence note, not raised as a defect: the UTF-8 console writer may garble
 4. **#45 last:** -14 is a coverage gap rather than a known failure. Merging with -14 recorded as an open native gate is reasonable if the interactive-console run goes on the manual Windows checklist. Take -18 now. The rest are optional.
 5. After each merge: re-fetch `integration`, confirm merge-commit CI, and record the SHAs and run IDs here. Passing standalone checks do not validate combined bytes.
 
+## State at 8 October 2026 (after the fix PRs)
+
+This adds the later state; the reviewed heads, findings and failing-first regressions above remain the record of what was reviewed. At William's request Claude wrote the fixes as single-commit PRs into Astra's branches, and each was merged into the Astra branch it targeted. Merge order followed recommendations 1–4; merge-commit CI below is the integration push run at each merge commit.
+
+| Findings | Fix PR and commit | Merged into Astra's branch | Integrated | Integration push run |
+|---|---|---|---|---|
+| -01 to -04 (#42) | #51 `b3e29a669d0d7e7852dee339bb52990ec0716333` | `7b5f0f0` | #42 at `1c8a0d6c3bd4cdbde07da36fb9186eb65bc180da` | 37826999034, success |
+| -09 to -13 (#44) | #49 `81b3949b29694a2eb757981b3e3ab9982e52fba5` | `27ff140` | #44 at `bd7bcc7064f78ef23b0a9cf7899c7c02e39b82bc` | 37828021628, success |
+| -05 to -08 (#43) | #48 `4b01b25e676893bebe24013def28adebf860003e` | `3d020d6` | #43 at `994c767f3d01b4b1bd87d88a9452dd50631b384d` | 37828940200, success |
+| -14 to -19 (#45) | #50 `765f4e7bd832131201b328c5eaa4e31e5f2df2a5` | `f0eac0b` | **[#45 integration pending]** — #45 open at `0384d1a` | **[#45 integration pending]** |
+
+Astra confirmed both judgement calls in DECISION-LOG ("Astra confirmation of the two review judgement calls"): -03 keeps the 8 MiB cap and shows an oversized result as NOT SAVED; -06 keeps an object mapped under two overlapping collections as ownership unknown. The gates below are unchanged by these merges.
+
 ## Gates that remain open
 
 None of these is closed by this review:
