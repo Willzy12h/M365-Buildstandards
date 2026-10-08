@@ -6,6 +6,7 @@
 - Locate the historical Engineer Console source in the uploaded reference archive and distinguish its reporting functions from already integrated BuildStandard capabilities.
 - Export the full captured configuration inventory as self-contained HTML, separate from assessment/standard/drift reports. All returned properties and assignments are included; failed/partial reads, missing domains/fields and separate Exchange/Purview provenance remain explicit.
 - Add offline `bdit inventory --snapshot <file>` with HTML/JSON/CSV/Excel support and the existing integrity reader; no authentication, live reads or client profile is required. Desktop Reports integration remains separate.
+- Prepare a numbered engineer/live acceptance run sheet with four practical journeys, explicit future-feature gates and a sanitised response template. No human/live gate is closed by this procedure.
 
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
