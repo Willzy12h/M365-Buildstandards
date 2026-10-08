@@ -218,6 +218,45 @@ public sealed class DispositionWorkflowTests : IDisposable
         Assert.Throws<SafetyViolationException>(() => Decide(Request(DispositionDecision.AddMissingCandidate, first.Id)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_conflicting_decision_identity_is_refused_without_changing_the_original_history(bool supersede)
+    {
+        var first = Decide(Request(DispositionDecision.Investigate));
+        var before = Fingerprint();
+        var conflict = Request(DispositionDecision.ManualWork, supersede ? first.Id : null);
+        conflict.SemanticId = "different.requirement.identity";
+        var error = Assert.Throws<SafetyViolationException>(() => Decide(conflict));
+        Assert.Contains("requirement", error.Message);
+        Assert.Equal(before, Fingerprint());
+        Assert.Equal(first.Id, Assert.Single(_store.RequireJob(TestData.TenantA, _job.Id).DispositionIds!));
+        Assert.Equal(first.IntegrityDigest, _store.LoadDisposition(TestData.TenantA, first.Id)!.IntegrityDigest);
+        // A legitimate revision still works; refusing the conflict must not damage the original line.
+        var revised = Decide(Request(DispositionDecision.ManualWork, first.Id));
+        Assert.Equal(first.Id, revised.SupersedesId); Assert.Equal(first.SemanticId, revised.SemanticId);
+    }
+
+    [Fact]
+    public void Saved_conflicting_decision_histories_remain_intact_and_block_completion_without_selecting_one()
+    {
+        var first = Decide(Request());
+        var conflict = ToolkitJson.Deserialize<TenantDisposition>(ToolkitJson.Serialize(first));
+        conflict.Id = Guid.NewGuid().ToString(); conflict.SemanticId = "different.requirement.identity";
+        _store.CreateDisposition(conflict);
+        var job = _store.RequireJob(TestData.TenantA, _job.Id); job.DispositionIds!.Add(conflict.Id); _store.ReplaceJob(job);
+        var before = Fingerprint();
+        var projection = Project();
+        Assert.Equal(2, projection.Dispositions.Count);
+        Assert.All(projection.Dispositions, d => { Assert.False(d.Settled); Assert.Contains(d.ReviewReasons, r => r.Contains("conflicting decision identities", StringComparison.Ordinal)); });
+        var completion = JobCompletion.Build(_store, projection, _standard, _profile, _clock.UtcNow);
+        var requirement = Assert.Single(completion.Requirements.Where(r => r.ControlId == "CA-001"));
+        Assert.Equal(RequirementState.Outstanding, requirement.State); Assert.Equal("Needs review", requirement.Decision);
+        Assert.Contains(requirement.Reasons, r => r.Contains("Conflicting requirement identities", StringComparison.Ordinal));
+        Assert.False(completion.Complete); Assert.Equal(before, Fingerprint());
+        Assert.Equal(first.IntegrityDigest, _store.LoadDisposition(TestData.TenantA, first.Id)!.IntegrityDigest);
+    }
+
     [Fact]
     public void A_fork_in_stored_history_is_never_settled()
     {
