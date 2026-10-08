@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.retention-policies",
+  "name": "Retention policies and tags (MRM)",
+  "category": "exchange-online",
+  "area": "Compliance",
+  "description": "Lists Exchange messaging records management retention policies with each tag they link to, and each tag's type, age limit, retention action and whether retention is enabled.",
+  "keywords": [
+    "retention policy",
+    "retention tag",
+    "MRM",
+    "messaging records management",
+    "archive policy",
+    "Get-RetentionPolicy",
+    "Get-RetentionPolicyTag"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-RetentionPolicyReport.ps1",
+  "scriptSha256": "0a2ce5a2d42a9d508b35461699d48cba265d62566650d23fc6bbe59c8414c5d7",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management",
+    "Compliance Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "IncludeUnlinkedTags",
+      "label": "Include tags no policy links to",
+      "type": "boolean",
+      "help": "Also list retention tags that no returned policy links to. They are NotLinked only when every policy's links were returned and resolved.",
+      "default": "true"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Policy",
+      "PolicyIsDefault",
+      "TagLinkAsReturned",
+      "LinkStatus",
+      "Tag",
+      "TagType",
+      "AgeLimitForRetention",
+      "RetentionAction",
+      "RetentionEnabled",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read retention policies and tags, such as View-Only Organization Management.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A policy's tag link is Resolved only when it is exactly one returned tag's Name, Identity or DistinguishedName as Exchange returns them; anything else is Unresolved and its tag settings are not shown.",
+    "Which mailboxes use each policy is not read here; the holds and retention item shows each mailbox's retention policy.",
+    "An age limit not returned is Unknown, except on a tag whose retention Exchange reports as disabled, where it is NotApplicable.",
+    "Microsoft Purview retention policies and retention labels are not read.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}
