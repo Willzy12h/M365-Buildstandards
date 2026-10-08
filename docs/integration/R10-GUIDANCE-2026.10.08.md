@@ -13,3 +13,7 @@ Astra usability slice, 8 October 2026. Branched from freshly fetched integration
 ## Evidence and gates
 
 Astra inspected actual native synthetic configuration, scripts and Jobs renders from integration run 37832476624 at b755dbb. R10 newcomer/Narrator/physical scaling and second-engineer acceptance remain open. New source changes need meaningful adapter/native checks and independent Claude review. No tenant operation, permission change, module installation, version or publication occurs.
+
+## Native failing-first checkpoint
+
+At `c5f19c4`, Windows push 37835171440 and PR 37835179227 failed the new viewport assertions on the unchanged layout: zero visible configuration rows at 1180×640 and the first script input below the viewport at 1180×760/640. The same run also exposed a fixture limitation: it contained only one captured object, so the two-row assertion failed at larger sizes too. Populate two distinct synthetic captured objects and retain the minimum-two assertion; this corrects the fixture rather than lowering the requirement. The successful 1,270 engine/156 app checks in that deliberately failing run are not candidate acceptance.

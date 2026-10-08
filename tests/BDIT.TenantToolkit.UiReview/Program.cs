@@ -438,6 +438,12 @@ internal static partial class Program
         {
             ca.Items.Add(JsonNode.Parse("""{"id":"aaaaaaaa-aaaa-aaaa-aaaa-000000000100","displayName":"Synthetic Require MFA","state":"disabled","conditions":{"users":{"includeUsers":["All"],"excludeUsers":["aaaaaaaa-aaaa-aaaa-aaaa-000000000005"]}},"grantControls":{"operator":"OR","builtInControls":["mfa"]}}""")!.AsObject()); ca.Count = 1;
         }
+        // The viewport regression needs two actual captured objects; the original fixture contained only one.
+        if (snapshot.Collections.TryGetValue("conditionalAccess", out var visiblePolicies))
+        {
+            visiblePolicies.Items.Add(new JsonObject { ["id"] = Id(101), ["displayName"] = "CA - Synthetic captured object 02", ["state"] = "disabled" });
+            visiblePolicies.Count = visiblePolicies.Items.Count;
+        }
         Set(workspace, nameof(Workspace.Snapshot), snapshot); Set(workspace, nameof(Workspace.SnapshotIsLive), true);
         var assessment = new AssessmentResult { Id = Id(11), TenantId = Tenant, TenantName = profile.Company, PrimaryDomain = profile.Domain, CapturedAt = Stamp, AssessedAt = Stamp, AssessedBy = session.Account,
             Release = standard.Release, StandardDigest = standard.IntegrityDigest, SnapshotId = snapshot.Id, SnapshotComplete = true, Limitations = new() { "Offline UI fixture only. No collection or assessment was performed against a real tenant." } };
