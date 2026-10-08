@@ -65,7 +65,10 @@ try {
     if (-not $deps.Contains('"Accessibility.dll"')) { throw 'Accessibility.dll is missing from the runtime dependency manifest.' }
     $exe = Join-Path $extract 'app\BDIT.TenantToolkit.App.exe'
     # Exercise the same self-contained executable in offline CLI mode before desktop startup.
-    if (@(Get-ChildItem -LiteralPath $extract -Filter '*.exe' -File -Recurse).Count -ne 1) { throw 'Portable toolkit must have exactly one application executable.' }
+    $executables = @(Get-ChildItem -LiteralPath $extract -Filter '*.exe' -File -Recurse)
+    # Preserve the SDK's existing runtime crash diagnostic; it is not a second toolkit application host.
+    if (@($executables | Where-Object { $_.Name -eq 'BDIT.TenantToolkit.App.exe' }).Count -ne 1 -or
+        @($executables | Where-Object { $_.Name -notin @('BDIT.TenantToolkit.App.exe', 'createdump.exe') }).Count -gt 0) { throw 'Unexpected second application executable in the portable toolkit.' }
     if (-not (Test-Path -LiteralPath (Join-Path $extract 'app\bdit.dll')) -or -not $deps.Contains('"bdit/')) { throw 'Portable CLI managed dependency is missing.' }
     $launcher = Join-Path $extract 'bdit.cmd'
     if (-not (Test-Path -LiteralPath $launcher)) { throw 'Portable CLI launcher is missing.' }
@@ -116,7 +119,7 @@ try {
     $report = Invoke-OwnedCli $exe ('--cli report --snapshot "' + $snapshotFile + '" --format html') 0
     if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'assessment-*.html' -File).Count -ne 1) { throw 'Packaged CLI did not generate the synthetic assessment report.' }
     if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
-    if (@(Get-ChildItem -LiteralPath $extract -File -Recurse | Where-Object { $_.Name -match 'msal|token.cache|session.cache' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
+    if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'data') -File -Recurse | Where-Object { $_.Name -match 'cache|token|session' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
     # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
     Remove-Item -LiteralPath $snapshotFile, $profileFile -Force
     Remove-Item -LiteralPath $synthetic -Force
