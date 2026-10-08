@@ -200,7 +200,7 @@ This adds the later state; the reviewed heads, findings and failing-first regres
 | -01 to -04 (#42) | #51 `b3e29a669d0d7e7852dee339bb52990ec0716333` | `7b5f0f0` | #42 at `1c8a0d6c3bd4cdbde07da36fb9186eb65bc180da` | 37826999034, success |
 | -09 to -13 (#44) | #49 `81b3949b29694a2eb757981b3e3ab9982e52fba5` | `27ff140` | #44 at `bd7bcc7064f78ef23b0a9cf7899c7c02e39b82bc` | 37828021628, success |
 | -05 to -08 (#43) | #48 `4b01b25e676893bebe24013def28adebf860003e` | `3d020d6` | #43 at `994c767f3d01b4b1bd87d88a9452dd50631b384d` | 37828940200, success |
-| -14 to -19 (#45) | #50 `765f4e7bd832131201b328c5eaa4e31e5f2df2a5` | `f0eac0b` | #45 at `865e1a1e14d4d857d83f99d184cae2b67cb31e66` (exact-head `0384d1a`: push 37830266874 and PR 37830272919, success) | 37831138250, in progress at 19:22 UTC on 8 October |
+| -14 to -19 (#45) | #50 `765f4e7bd832131201b328c5eaa4e31e5f2df2a5` | `f0eac0b` | #45 at `865e1a1e14d4d857d83f99d184cae2b67cb31e66` (exact-head `0384d1a`: push 37830266874 and PR 37830272919, success) | 37831138250, success |
 
 Astra confirmed both judgement calls in DECISION-LOG ("Astra confirmation of the two review judgement calls"): -03 keeps the 8 MiB cap and shows an oversized result as NOT SAVED; -06 keeps an object mapped under two overlapping collections as ownership unknown. The gates below are unchanged by these merges.
 
