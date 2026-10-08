@@ -64,6 +64,7 @@ public static class Program
         {
             "releases" => Releases(options),
             "report" => Report(options),
+            "inventory" => Inventory(options),
             "document" => Document(options),
             "standard" => StandardDefinition(options),
             "verify-restore" => VerifyRestore(options),
@@ -101,6 +102,11 @@ public static class Program
               bdit document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
                   Write the client-facing build standard document.
                   Formats: html, markdown. Default html.
+
+              bdit inventory --snapshot <file> [--format <f>] [--root <dir>]
+                  Export all captured configuration and collection states; no assessment or live reads.
+                  Formats: html, json, csv, xlsx. Default html. No client record is required.
+                  Uses the capture's recorded release; --release is not an override for observed data.
 
               bdit standard [--release <r>] [--format <f>] [--root <dir>]
                   Export all standard defaults/settings, with no client data.
@@ -310,6 +316,22 @@ public static class Program
     private static string CaptureNote(TenantSnapshot? capture) => capture is null
         ? " · no current capture given, so recorded objects were not checked against one"
         : $" · checked against capture {capture.Id} ({capture.CapturedAt})";
+
+    private static int Inventory(IReadOnlyDictionary<string, string> options)
+    {
+        var file = Require(options, "snapshot");
+        if (!File.Exists(file)) throw new ConfigurationException($"Snapshot file not found: {file}");
+        if (options.ContainsKey("release")) throw new ConfigurationException("Inventory uses the capture's recorded release. Omit --release; use upgrade-impact to compare standards.");
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Configuration inventory exports as html, json, csv or xlsx.");
+        var capture = AssessmentContext.ReadPrimary(file);
+        if (!ProfileValidator.IsGuid(capture.TenantId)) throw new ConfigurationException("The capture has no valid tenant ID; configuration inventory cannot identify its source.");
+        var context = Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportSnapshot(capture, null, format));
+        Console.WriteLine($"Captured configuration · {capture.CapturedAt} · {(capture.Complete ? "Review collection status" : "INCOMPLETE — unknown reads remain explicit")} · no live reads or writes.");
+        return 0;
+    }
 
     private static int VerifyRestore(IReadOnlyDictionary<string, string> options)
     {

@@ -351,6 +351,10 @@ Native regression proof: Windows push run `37709019773` at `cc124ca` failed spec
 
 Combined Windows run `37710984578` at `ab323d3` reproduced another cramped viewport: new unresolved-write blockers displaced requirements at 1180×760 and 1180×640. The same minimum-two-full-rows assertion is retained. Full job blockers now lead the independently scrolling details pane in a bounded, selectable read-only text field; no reason is removed or truncated from the underlying text. The harness verifies that a blocked job exposes exactly the full view-model blocker text, visibly and read-only. This is a layout fix, not a weaker completion or evidence rule.
 
+## INT-073 — Full HTML inventory of existing captured data
+
+PR #40 adds a shared HTML configuration renderer and offline bdit inventory command using the existing TenantSnapshot schema and ReportExporter. It introduces no report-evidence schema or permission/collection route and therefore does not depend on the proposed INT-070–072 wrappers. Friendly names lead; all returned raw properties/assignments, capture provenance and collection limitations remain visible. Domain/user/device fields absent from the current capture are explicitly unknown, not inferred. Existing Exchange schema/tenant validation preserves separate resource/time boundaries; no DNS call occurs. The CLI uses the existing primary integrity reader, rejects a release override and remains offline with unchanged no-authentication/no-write conformance checks. Desktop Reports integration is separate. A source inventory guide records the current developer-only CLI exposure; portable hosting/desktop integration still need their own reviewed work. Claude's publisher is untouched.
+
 
 ## INT-075 — Numbered acceptance without expanding execution authority
 

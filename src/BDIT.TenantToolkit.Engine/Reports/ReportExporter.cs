@@ -110,10 +110,11 @@ public sealed class ReportExporter
         var label = string.IsNullOrWhiteSpace(snapshot.PrimaryDomain) ? snapshot.TenantId : snapshot.PrimaryDomain;
         return format switch
         {
+            ExportFormat.Html => WriteText(Target("configuration", label, snapshot.CapturedAt, "html"), ConfigurationInventoryHtml.Render(snapshot, standard)),
             ExportFormat.Json => WriteText(Target("configuration", label, snapshot.CapturedAt, "json"), ToolkitJson.Serialize(snapshot)),
             ExportFormat.Csv => WriteBytes(Target("configuration", label, snapshot.CapturedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.SnapshotSheets(snapshot, standard))),
             ExportFormat.Xlsx => WriteBytes(Target("configuration", label, snapshot.CapturedAt, "xlsx"), XlsxWriter.Write(TabularReports.SnapshotSheets(snapshot, standard))),
-            _ => throw new ArgumentOutOfRangeException(nameof(format), "Configuration captures export as JSON, CSV or XLSX.")
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Configuration captures export as HTML, JSON, CSV or XLSX.")
         };
     }
 
