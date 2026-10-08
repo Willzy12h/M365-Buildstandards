@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.message-trace",
+  "name": "Message trace",
+  "category": "exchange-online",
+  "area": "Audit and logs",
+  "description": "Traces messages for up to 90 days by sender, recipient, subject or message ID, with optional status and IP filters.",
+  "keywords": [
+    "message trace",
+    "mail flow",
+    "delivery",
+    "NDR",
+    "undelivered",
+    "Get-MessageTraceV2"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MessageTraceReport.ps1",
+  "scriptSha256": "05208908f493960416e31cb5b2442a090059a61f8f418a75ae97cf5afb830612",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "StartDate",
+      "label": "From (UTC)",
+      "type": "date",
+      "help": "First day to search.",
+      "required": true
+    },
+    {
+      "name": "EndDate",
+      "label": "To (UTC)",
+      "type": "date",
+      "help": "Last day to search, included.",
+      "required": true
+    },
+    {
+      "name": "SenderAddress",
+      "label": "Senders",
+      "type": "string",
+      "help": "One or more sender addresses.",
+      "array": true,
+      "maxItems": 20,
+      "format": "smtp"
+    },
+    {
+      "name": "RecipientAddress",
+      "label": "Recipients",
+      "type": "string",
+      "help": "One or more recipient addresses.",
+      "array": true,
+      "maxItems": 20,
+      "format": "smtp"
+    },
+    {
+      "name": "Subject",
+      "label": "Subject",
+      "type": "string",
+      "help": "Text to look for in the subject.",
+      "format": "text",
+      "maxLength": 200
+    },
+    {
+      "name": "SubjectMatch",
+      "label": "Subject match",
+      "type": "enum",
+      "help": "How the subject text is matched.",
+      "allowed": [
+        "Contains",
+        "StartsWith",
+        "EndsWith"
+      ],
+      "default": "Contains"
+    },
+    {
+      "name": "Status",
+      "label": "Delivery status",
+      "type": "enum",
+      "help": "Only messages with these statuses.",
+      "array": true,
+      "maxItems": 7,
+      "allowed": [
+        "Delivered",
+        "Expanded",
+        "Failed",
+        "FilteredAsSpam",
+        "GettingStatus",
+        "Pending",
+        "Quarantined"
+      ]
+    },
+    {
+      "name": "FromIP",
+      "label": "From IP",
+      "type": "string",
+      "help": "The sending IP address.",
+      "format": "ipAddress"
+    },
+    {
+      "name": "ToIP",
+      "label": "To IP",
+      "type": "string",
+      "help": "The receiving IP address.",
+      "format": "ipAddress"
+    },
+    {
+      "name": "MessageId",
+      "label": "Message ID",
+      "type": "string",
+      "help": "The Message-ID header, with or without angle brackets.",
+      "format": "text",
+      "maxLength": 300
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum rows",
+      "type": "integer",
+      "help": "Stops after this many messages and says the result is partial.",
+      "minimum": 1,
+      "maximum": 5000,
+      "default": "1000"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "atLeastOne",
+      "parameters": [
+        "SenderAddress",
+        "RecipientAddress",
+        "Subject",
+        "MessageId"
+      ]
+    },
+    {
+      "kind": "dateRange",
+      "start": "StartDate",
+      "end": "EndDate",
+      "maximumDays": 90,
+      "maximumAgeDays": 90
+    }
+  ],
+  "outputSchema": {
+    "columns": [
+      "Received",
+      "SenderAddress",
+      "RecipientAddress",
+      "Subject",
+      "Status",
+      "FromIP",
+      "ToIP",
+      "Size",
+      "MessageId",
+      "MessageTraceId"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later (for Get-MessageTraceV2) and an Exchange role that can run message trace.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Exchange keeps 90 days of trace data and allows 10 days per query, so longer ranges run as several queries.",
+    "Per-hop detail is not included yet."
+  ]
+}

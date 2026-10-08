@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "scripts": [
+    {
+      "id": "exo.calendar-permissions",
+      "manifest": "exchange-online/Get-CalendarPermissionReport.json",
+      "manifestSha256": "0e2581b840371066d86a7797d769ed44ec6461d38f0f24b8d77c490011124aa7",
+      "scriptSha256": "a0f80fe4ade34bc9df7e55aabffd67df48792e6798e89256843b13a81bc4eed6"
+    },
+    {
+      "id": "exo.external-forwarding",
+      "manifest": "exchange-online/Get-ExternalForwardingReport.json",
+      "manifestSha256": "ccbc03e2a42b2446cc8bc1658b63aef93cc425e9d18954c83c2ff7953fb4bd37",
+      "scriptSha256": "ed00e3767ede57c2854b1af55bbe99d40ec023195a39a06aa19ff79ba78621c0"
+    },
+    {
+      "id": "exo.inbox-rules",
+      "manifest": "exchange-online/Get-InboxRuleReport.json",
+      "manifestSha256": "961fc1e3a8079aa28c111d85e6149ae906599d09668f1fb3875f918e7a08b534",
+      "scriptSha256": "93252888c0a7d27320aaed028b4a5cd6cfa659ecc021954cff6290b09797bb9a"
+    },
+    {
+      "id": "exo.mailbox-inventory",
+      "manifest": "exchange-online/Get-MailboxInventory.json",
+      "manifestSha256": "dcb2a637facf13e5f871120a716d106f38bd0e85c7d01722c7d7d01e4a5d217e",
+      "scriptSha256": "249513a747314b17ac4a9228524763f529252d58b166d8c399a7214f8c89465b"
+    },
+    {
+      "id": "exo.mailbox-permissions",
+      "manifest": "exchange-online/Get-MailboxPermissionReport.json",
+      "manifestSha256": "354e20c29f1702cad68a77cd2509a1cd839e1f273f08f5e95ec937ac0b97bfab",
+      "scriptSha256": "0e1aa877930b2933c44bfd9ea996c254fbddbc00132908e2ed160a9817df871a"
+    },
+    {
+      "id": "exo.quota-audit",
+      "manifest": "exchange-online/Get-MailboxQuotaAudit.json",
+      "manifestSha256": "5134eff7c6744e8797d168ba636694e672f17153ddd01ef474d1741801e8327a",
+      "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb"
+    },
+    {
+      "id": "exo.message-trace",
+      "manifest": "exchange-online/Get-MessageTraceReport.json",
+      "manifestSha256": "e1df997f2137eb465451507637aa86d00b200e9c754866410025551dcda6db89",
+      "scriptSha256": "05208908f493960416e31cb5b2442a090059a61f8f418a75ae97cf5afb830612"
+    },
+    {
+      "id": "exo.shared-mailboxes",
+      "manifest": "exchange-online/Get-SharedMailboxReport.json",
+      "manifestSha256": "47f1991e8ef0b07f4577431aad490ff7c963d46772d2344225c227515f134f91",
+      "scriptSha256": "4b00d2de41b779db192993a3dfcd2713791d5127bbdc4ae9a320ab5cee0ca57d"
+    },
+    {
+      "id": "exo.user-mailbox-access",
+      "manifest": "exchange-online/Get-UserMailboxAccess.json",
+      "manifestSha256": "73baa3f352fe570bcc4b64b7327f52c3b615a288ecf817fdb778298733fad10f",
+      "scriptSha256": "8b368436a7888543aa40aeb825fb7cad0668898cb3553eae7ba0d0d9b3ebac89"
+    },
+    {
+      "id": "exo.unified-audit-search",
+      "manifest": "exchange-online/Search-UnifiedAuditReport.json",
+      "manifestSha256": "fb69544bb094d0e900846ebd49ff664d723784b21717a5d25056553d451a47fb",
+      "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524"
+    }
+  ]
+}

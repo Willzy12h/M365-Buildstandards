@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Exchange\ReadCapture.ps1" LogicalName="Exchange.ReadCapture.ps1" />
+    <!-- The reviewed script library (INT-072). Every file here must be pinned in scripts/registry.json or the library is refused. -->
+    <EmbeddedResource Include="..\..\scripts\**\*.json;..\..\scripts\**\*.ps1" LogicalName="Scripts/%(RecursiveDir)%(Filename)%(Extension)" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
   </ItemGroup>

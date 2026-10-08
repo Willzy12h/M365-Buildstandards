@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mailbox-inventory",
+  "name": "Mailbox inventory",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists mailboxes with size, item count, quotas, archive status and litigation hold.",
+  "keywords": [
+    "mailbox",
+    "size",
+    "quota",
+    "archive",
+    "litigation hold",
+    "Get-EXOMailbox",
+    "Get-EXOMailboxStatistics"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxInventory.ps1",
+  "scriptSha256": "249513a747314b17ac4a9228524763f529252d58b166d8c399a7214f8c89465b",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "RecipientType",
+      "label": "Mailbox types",
+      "type": "enum",
+      "help": "Which mailbox types to list.",
+      "array": true,
+      "maxItems": 4,
+      "allowed": [
+        "UserMailbox",
+        "SharedMailbox",
+        "RoomMailbox",
+        "EquipmentMailbox"
+      ],
+      "default": "UserMailbox, SharedMailbox"
+    },
+    {
+      "name": "SkipSizes",
+      "label": "Skip sizes (faster)",
+      "type": "boolean",
+      "help": "Leave out size and item count, which need one extra read per mailbox."
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "Stops after this many mailboxes and says the result is partial.",
+      "minimum": 1,
+      "maximum": 5000,
+      "default": "500"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "DisplayName",
+      "PrimarySmtpAddress",
+      "RecipientTypeDetails",
+      "TotalItemSizeBytes",
+      "ItemCount",
+      "IssueWarningQuota",
+      "ProhibitSendQuota",
+      "ProhibitSendReceiveQuota",
+      "ArchiveStatus",
+      "LitigationHoldEnabled",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 900
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Size and item count need one statistics read per mailbox, so large tenants take a while.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False. The Notes column says what could not be read.",
+    "Archive mailbox size and archive quota are not reported."
+  ]
+}

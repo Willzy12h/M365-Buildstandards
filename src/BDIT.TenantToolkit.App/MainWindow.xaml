@@ -22,6 +22,7 @@
     <DataTemplate DataType="{x:Type vm:StandardViewModel}"><views:StandardView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:AutomationViewModel}"><views:AutomationView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ScriptsViewModel}"><views:ScriptsView/></DataTemplate>
   </Window.Resources>
   <Grid Background="{StaticResource BgWindow}">
     <Grid.ColumnDefinitions><ColumnDefinition Width="224"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
