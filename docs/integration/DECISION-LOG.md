@@ -313,3 +313,7 @@ A second semantic/control identity for an already recorded instance is refused w
 ### INT-067 follow-up — predecessor cutover evidence
 
 AST-20261008-03 reproduces a closed case retaining its claim after its candidate run is deleted. PR #36 therefore verifies all attached stage references against their original digests while projecting a case. Current-stage freshness/material/due checks remain separate: historical overdue times do not themselves invalidate a newer reviewed stage, but missing/modified stage evidence requires review. No new record schema, migration, write or execution permission is introduced.
+
+### INT-067 follow-up — truthful requirement rows
+
+The projection's duplicate identity groups now explicitly need review. Completion does not choose an authoritative outcome/decision from those groups. Conflicting histories and unresolved tenant write history produce Outstanding rows as well as a blocked job claim; a hidden first group or an old Pass must not leave a misleading Verified row. Existing immutable records and their raw status remain available for review, and no reconciliation is performed by reading. The two additional row assertions were observed failing before correction.

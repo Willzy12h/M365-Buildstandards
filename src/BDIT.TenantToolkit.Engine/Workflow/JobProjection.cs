@@ -101,6 +101,9 @@ public sealed class JobProjection
             .Select(history =>
             {
                 var (current, reasons) = Review(store, tenantId, history, standard, profile, now, currentCapture);
+                if (observations.Any(o => string.Equals(o.InstanceKey, history[0].InstanceKey, StringComparison.OrdinalIgnoreCase)
+                    && !JobWorkflow.SameSubject(o, history[0])))
+                    reasons = reasons.Append("This requirement instance has conflicting outcome identities. Review all histories.").ToList();
                 return new SubjectProjection
                 {
                     SemanticId = history[0].SemanticId, ControlId = history[0].ControlId, InstanceKey = history[0].InstanceKey,
@@ -112,6 +115,9 @@ public sealed class JobProjection
             .Select(history =>
             {
                 var (current, reasons) = Review(store, tenantId, history, standard, profile, now, currentCapture);
+                if (dispositions.Any(d => string.Equals(d.InstanceKey, history[0].InstanceKey, StringComparison.OrdinalIgnoreCase)
+                    && !JobWorkflow.SameSubject(d, history[0])))
+                    reasons = reasons.Append("This requirement instance has conflicting decision identities. Review all histories.").ToList();
                 return new DispositionProjection
                 {
                     SemanticId = history[0].SemanticId, ControlId = history[0].ControlId, InstanceKey = history[0].InstanceKey,

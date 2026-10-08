@@ -70,8 +70,9 @@ public sealed class JobCompletion
         catch (ToolkitException ex) { deviations = Array.Empty<Deviation>(); blockers.Add("The deviation register cannot be read: " + ex.Message); }
 
         var instances = ControlInstances.All(standard, profile);
+        var writeHistoryBlocked = false;
         try { store.AssertCompletionWritesResolved(projection.Job.TenantId, instances.Select(c => c.Id)); }
-        catch (ToolkitException ex) { blockers.Add("Write history needs reconciliation: " + ex.Message); }
+        catch (ToolkitException ex) { writeHistoryBlocked = true; blockers.Add("Write history needs reconciliation: " + ex.Message); }
         foreach (var duplicate in projection.Subjects.Select(s => s.InstanceKey)
                      .GroupBy(k => k, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
             blockers.Add($"{duplicate.Key} has conflicting outcome identities. Review its complete history before claiming completion.");
@@ -91,6 +92,8 @@ public sealed class JobCompletion
             var decided = projection.Dispositions.FirstOrDefault(d => Same(d.InstanceKey, control.Id));
             var cases = projection.Cutovers.Where(c => Same(c.InstanceKey, control.Id)).ToList();
             var reasons = new List<string>();
+            var outcomeConflict = projection.Subjects.Count(s => Same(s.InstanceKey, control.Id)) > 1;
+            var decisionConflict = projection.Dispositions.Count(d => Same(d.InstanceKey, control.Id)) > 1;
 
             var notApplicable = deviations.FirstOrDefault(d => d.Kind == DeviationKind.NotApplicable && Same(d.ControlId, control.Id) && !d.IsReviewOverdue(now))
                 ?? deviations.FirstOrDefault(d => d.Kind == DeviationKind.NotApplicable && Same(d.ControlId, BaseControl(control, standard)) && !d.IsReviewOverdue(now));
@@ -118,7 +121,13 @@ public sealed class JobCompletion
             var openCase = cases.Any(c => !c.Closed);
             var openDecision = decided is not null && !decided.Settled;
             string state;
-            if (notApplicable is not null && subject is null && decided is null && cases.Count == 0)
+            if (outcomeConflict || decisionConflict || writeHistoryBlocked)
+            {
+                state = RequirementState.Outstanding;
+                if (outcomeConflict || decisionConflict) reasons.Add("Conflicting requirement identities need review; no one history is selected as authoritative.");
+                if (writeHistoryBlocked) reasons.Add("Tenant write history must be reconciled before this job's completion can be verified.");
+            }
+            else if (notApplicable is not null && subject is null && decided is null && cases.Count == 0)
             {
                 state = RequirementState.NotApplicable;
                 reasons.Clear();
@@ -147,8 +156,8 @@ public sealed class JobCompletion
                 ControlId = BaseControl(control, standard),
                 Name = control.Name,
                 State = state,
-                Outcome = subject?.Current?.Status ?? (subject is null ? "" : "Needs review"),
-                Decision = decided?.Current?.Decision ?? (decided is null ? "" : "Needs review"),
+                Outcome = outcomeConflict ? "Needs review" : subject?.Current?.Status ?? (subject is null ? "" : "Needs review"),
+                Decision = decisionConflict ? "Needs review" : decided?.Current?.Decision ?? (decided is null ? "" : "Needs review"),
                 Cutover = string.Join(", ", cases.Select(c => c.Current is null ? "Needs review" : Words(c.Current.Stage))),
                 Reasons = reasons.Distinct().ToList()
             };

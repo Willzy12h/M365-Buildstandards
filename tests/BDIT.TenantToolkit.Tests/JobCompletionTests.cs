@@ -111,6 +111,7 @@ public sealed class JobCompletionTests : IDisposable
 
         Assert.False(completion.Complete);
         Assert.Contains(completion.Blockers, reason => reason.Contains(run.Id));
+        Assert.Equal(RequirementState.Outstanding, Requirement(completion, "CA-001").State);
         Assert.StartsWith("Not complete", completion.Claim);
     }
 
@@ -145,6 +146,8 @@ public sealed class JobCompletionTests : IDisposable
 
         Assert.False(completion.Complete);
         Assert.Contains(completion.Blockers, reason => reason.Contains("conflicting outcome identities"));
+        Assert.Equal(RequirementState.Outstanding, Requirement(completion, "CA-001").State);
+        Assert.Equal("Needs review", Requirement(completion, "CA-001").Outcome);
         Assert.Equal(ObservationStatus.Pass, _store.LoadObservation(TestData.TenantA, originalId)!.Status);
         Assert.Equal(ObservationStatus.Fail, _store.LoadObservation(TestData.TenantA, original.Id)!.Status);
     }
