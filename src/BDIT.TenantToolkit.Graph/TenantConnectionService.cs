@@ -82,7 +82,7 @@ public sealed class TenantConnectionService
         Directory.CreateDirectory(tenantDir);
         var cacheFile = Path.Combine(tenantDir, $"msal-{mode.ToString().ToLowerInvariant()}.cache");
 
-        progress?.Report($"Opening Microsoft sign-in for {profile.Company} ({mode}, {client.Label}).");
+        progress?.Report($"Checking sign-in for {profile.Company} ({mode}, {client.Label}). Cached access is tried for a known account; Microsoft may require interaction.");
         var authenticator = await MsalAuthenticator.SignInAsync(new SignInRequest
         {
             TenantId = profile.TenantId,
