@@ -255,17 +255,32 @@ public sealed partial class EvidenceStore
     {
         AssertNoUnresolvedRecovery(plan.TenantId, plan.WriteRows.Select(r => r.ControlId));
         AssertNoUnresolvedReviewedChanges(plan.TenantId);
-        var directory = RunsDirectory(plan.TenantId);
+        AssertRunHistoryResolved(plan.TenantId, plan.WriteRows.Select(r => r.ControlId), plan.Id);
+    }
+
+    /// <summary>Read-only completion check; it never reconciles a write or authorises execution.</summary>
+    public void AssertCompletionWritesResolved(string tenantId, IEnumerable<string> controlIds)
+    {
+        var controls = controlIds.ToArray();
+        AssertNoUnresolvedRecovery(tenantId, controls);
+        AssertNoUnresolvedReviewedChanges(tenantId);
+        AssertNoUnresolvedEntraLaps(tenantId);
+        AssertRunHistoryResolved(tenantId, controls);
+    }
+
+    private void AssertRunHistoryResolved(string tenantId, IEnumerable<string> controlIds, string? planId = null)
+    {
+        var directory = RunsDirectory(tenantId);
         if (!Directory.Exists(directory)) return;
-        var controls = plan.WriteRows.Select(r => r.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var controls = controlIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
         {
             // Do not silently skip unreadable history: it may describe the previous ambiguous attempt.
             var run = ReadJson<DeploymentRun>(file) ?? throw new ConfigurationException("Previous run evidence is empty. Reconcile it before deploying.");
-            AssertTenant(plan.TenantId, run.TenantId, "Previous run");
+            AssertTenant(tenantId, run.TenantId, "Previous run");
             if (!EvidenceIntegrity.Verify(run, run.IntegrityDigest))
                 throw new PlanValidationException("Previous run evidence failed its integrity check. Reconcile it before deploying.");
-            if (string.Equals(run.PlanId, plan.Id, StringComparison.OrdinalIgnoreCase))
+            if (planId is not null && string.Equals(run.PlanId, planId, StringComparison.OrdinalIgnoreCase))
                 throw new PlanValidationException("This plan already has a deployment attempt. Reconcile its results, capture fresh evidence and review a new plan; existing plans are never replayed.");
             foreach (var result in run.Results.Where(r => controls.Contains(r.ControlId)))
             {

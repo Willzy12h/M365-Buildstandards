@@ -1,6 +1,6 @@
 # Scoped checks, report evidence and scripts — proposed contracts
 
-Decision-only PR #39, based on integration `8f0285a`. These contracts need review and merge before dependent runtime implementation. The authorised master programme remains an implementation task; this document is its shared-contract prerequisite. No tenant action, permission grant, release/version change or publication is authorised here.
+Decision-only PR #39, based on integration `8f0285a`. William authorised merging the current PRs on 8 October 2026 ("Merge all of these and continue until it's complete"). These decisions take effect when this PR is merged with passing exact-head checks; no dependent runtime implementation precedes that merge. These contracts need review and merge before dependent runtime implementation. The authorised master programme remains an implementation task; this document is its shared-contract prerequisite. No tenant action, permission grant, release/version change or publication is authorised here.
 
 ## Existing contracts to preserve
 
