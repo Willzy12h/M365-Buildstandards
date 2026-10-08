@@ -19,6 +19,7 @@
     <ProjectReference Include="..\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
+    <ProjectReference Include="..\BDIT.TenantToolkit.Cli\BDIT.TenantToolkit.Cli.csproj" />
   </ItemGroup>
   <Target Name="VerifyPublishedTextEditingDependency" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
     <Error Condition="!Exists('$(PublishDir)Accessibility.dll')" Text="The portable publish is incomplete: Accessibility.dll is required by WPF text-box context menus." />

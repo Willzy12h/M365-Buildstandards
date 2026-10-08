@@ -6,8 +6,9 @@
   Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> verify committed standards manifest ->
   dotnet publish (self-contained win-x64, framework-dependent runtime NOT required on the engineer's PC) ->
   stage standards, config, the operator documents and launchers -> write VERSION.json and SHA256SUMS.txt -> zip.
-  The package carries one executable on purpose: the headless runner (bdit) is a build and CI tool, and a second
-  executable would widen the application-control exception a client has to allow for no field benefit.
+  The package carries one application executable on purpose: a second would widen the application-control exception
+  a client has to allow. The offline CLI (bdit) ships as the App's managed dependency and runs through that same
+  executable via bdit.cmd (INT-074/INT-079); the runtime's createdump.exe diagnostic is the only other .exe.
   Requires the .NET 10 SDK on the build machine only. Engineers never need the SDK.
 .PARAMETER SkipTests
   Skip the test step (not recommended for a release).

@@ -20,6 +20,12 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Dispatch before settings, Workspace, logger, broker or any desktop window exists.
+        if (PortableCliHost.IsRequested(e.Args))
+        {
+            Shutdown(PortableCliHost.Run(e.Args));
+            return;
+        }
         base.OnStartup(e);
         Diagnostics = e.Args.Any(a => string.Equals(a, "--diagnostics", StringComparison.OrdinalIgnoreCase));
         var rootIndex = Array.FindIndex(e.Args, a => string.Equals(a, "--root", StringComparison.OrdinalIgnoreCase));

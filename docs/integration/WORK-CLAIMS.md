@@ -56,4 +56,7 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | read-only naming convention/audit: shared engine, ownership evidence, authored-standard checks and documentation; no live rename or historical catalogue edits; pre-flight found only #42 with no naming source overlap | `astra/naming-audit-2026-10-08` (integration `692d2d5`) | #43 | Open |
 
+
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | INT-074 portable offline CLI hosting through existing WPF executable, launcher, exact exit/output and fresh-package tests; no publisher/version/live work; pre-flight checked #42–#44 and all three repositories | `astra/portable-cli-host-2026-10-08` (from integration `692d2d5`) | #45 | Open |
+
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | R07 read-only readiness status and strict identity/field interpretation; actionable failed-read next steps and synthetic regressions; no permissions/authentication/write/schema changes; pre-flight found #45 packaging, #46 Claude scripts and #47 Claude register, with no readiness-source overlap | `astra/readiness-read-status-2026-10-08` (from integration `ef5d61c`) | #53 | Open |
