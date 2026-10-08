@@ -134,3 +134,13 @@ See [interface decision](INTERFACE-DECISION-2026.09.30.md), [release goal](RELEA
 | Runtime | Preserve WPF/.NET 10 self-contained packaging; load-check Accessibility and exercise fresh-package context-menu Copy | Local publish includes matching dependency; exact Windows CI result will be recorded in completion register |
 
 See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
+
+## Scoped checks — PR #42, INT-070/076
+
+| Surface | Choice | Evidence and remaining gate |
+|---|---|---|
+| Registry | Reuse verified catalogue control instances, registered routes and existing historical area mapping | Dependency/route/scope regression tests; no historical catalogue edits |
+| Collection and assessment | Collect only dependencies; skip unrelated controls before evaluation | Synthetic request/assessment/cancellation/identity tests; Microsoft live behaviour unverified |
+| Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
+| Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
+| CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |

@@ -12,6 +12,7 @@ using BDIT.TenantToolkit.Core.Safety;
 using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Collection;
+using BDIT.TenantToolkit.Engine.Checks;
 using BDIT.TenantToolkit.Engine.Drift;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Execution;
@@ -547,6 +548,46 @@ public sealed class Workspace : ObservableObject
         AcknowledgedSnapshotId = null;
         RunAssessment();
         Notify();
+    }
+
+    /// <summary>
+    /// Runs a partial check and saves it to the scoped store. File is empty, and NotSavedReason says why, when a valid
+    /// completed result is too large to store: the result is still returned so it is not lost, but it must be shown
+    /// as not saved.
+    /// </summary>
+    public async Task<(ScopedCheckEvidence Evidence, string File, string? NotSavedReason)> RunScopedCheckAsync(CheckSelection selection, bool historical)
+    {
+        ScopedCheckEvidence? result = null;
+        string file = "";
+        string? notSaved = null;
+        await RunExclusiveAsync(historical ? "Reviewing selected stored evidence" : "Reading selected requirements", async progress =>
+        {
+            var profile = Profile ?? throw new ToolkitException("Select a saved client first.");
+            var catalogue = RequireStandard();
+            selection.ValidateFor(catalogue, profile);
+            var service = new ScopedCheckService(SystemClock.Instance, ToolkitVersion.Current, Logger, Paths.StandardsDirectory);
+            var mappings = Evidence.LoadMappings(profile.TenantId);
+            var deviations = Evidence.LoadDeviations(profile.TenantId);
+            if (historical)
+            {
+                // The same sources as RunAssessment: the Graph capture, or an Exchange-only capture, with any separately
+                // imported Exchange/Purview evidence used in place of the source's own.
+                var source = Snapshot ?? ExchangeSnapshot ?? throw new ToolkitException("Open or capture a configuration first. This review will retain its original capture time.");
+                var separate = Snapshot is null ? null : ExchangeSnapshot?.ExchangeCapture;
+                result = service.ReviewHistorical(source, catalogue, profile, selection, mappings, deviations, "stored-evidence review", separate);
+            }
+            else
+            {
+                var connection = RequireConnection();
+                result = await service.CollectAsync(connection.Graph, connection.Session, catalogue, profile, selection, mappings,
+                    deviations, new Progress<CollectionProgress>(p => progress.Report(p.Message)), OperationToken);
+            }
+            var (saved, reason) = new ScopedCheckStore(Paths).TrySave(result, catalogue, profile);
+            file = saved ?? ""; notSaved = reason;
+            if (notSaved is not null) Logger.Warn("Scoped check", "Partial check result not saved: " + notSaved, profile.TenantId);
+            // No ordinary snapshot, assessment, plan or acknowledgement is replaced by this partial check.
+        });
+        return (result ?? throw new OperationCanceledException("No scoped result was accepted."), file, notSaved);
     }
 
     public void RunAssessment()
