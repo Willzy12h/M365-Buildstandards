@@ -1,6 +1,7 @@
 <#
 Mail flow (transport) rules in priority order, with their state, mode and the actions that most often need review:
-redirecting or copying mail, routing through a connector and bypassing spam filtering.
+redirecting or copying mail, routing through a connector and bypassing spam filtering. BypassesSpamFiltering is True
+only for the bypass spam filtering action (spam confidence level -1); a bypass made another way is not detected.
 Read only. A true or false value Exchange did not return is shown as Unknown, never as False; with only enabled rules
 ticked, a rule whose state is Unknown is kept.
 #>

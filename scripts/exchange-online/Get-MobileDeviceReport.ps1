@@ -52,7 +52,13 @@ $stopped = $false
 foreach ($target in $targets) {
     if ($stopped) { break }
     $address = [string]$target.PrimarySmtpAddress
-    foreach ($device in @(Get-MobileDevice -Mailbox $target.ExchangeGuid.ToString())) {
+    # Each mailbox's devices are read up to the row limit, plus one to show whether more exist.
+    $devices = @(Get-MobileDevice -Mailbox $target.ExchangeGuid.ToString() -ResultSize ($MaxRows + 1))
+    if ($devices.Count -gt $MaxRows) {
+        $stopped = $true
+        $devices = @($devices | Select-Object -First $MaxRows)
+    }
+    foreach ($device in $devices) {
         if ($rows -ge $MaxRows) { $stopped = $true; break }
         $notes = @()
         $lastSync = ''
@@ -61,7 +67,12 @@ foreach ($target in $targets) {
         if ($IncludeLastSync) {
             $key = Get-Text (Get-Value $device 'Guid')
             if (-not $key) { $key = Get-Text (Get-Value $device 'Identity') }
-            $statistics = Get-MobileDeviceStatistics -Identity $key
+            $statistics = $null
+            $failure = ''
+            if ($key) {
+                try { $statistics = Get-MobileDeviceStatistics -Identity $key }
+                catch { $failure = $_.Exception.Message }
+            } else { $failure = 'Exchange returned no identity for this device.' }
             $value = Get-Value $statistics 'LastSuccessSync'
             if ($null -ne $value -and $value -isnot [datetime]) {
                 $parsed = [datetime]::MinValue
@@ -79,6 +90,7 @@ foreach ($target in $targets) {
             } else {
                 $unknown++
                 $notes += 'Exchange did not return a last successful sync for this device.'
+                if ($failure) { $notes += ('The statistics read failed: ' + $failure) }
             }
             # A device that cannot be dated is kept: leaving it out would read as "synchronised recently".
             if ($StaleDays -gt 0 -and $status -eq 'Recent') { continue }

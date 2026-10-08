@@ -1,9 +1,9 @@
 <#
 Members and owners of named distribution, mail-enabled security and Microsoft 365 groups.
 Read only. Each member is listed with the exact identities Exchange returned for it (primary SMTP address and object
-ID); a member returned without either is Unresolved. A distribution group's owners are returned by Exchange as names,
-so each is looked up and is Resolved only when Exchange finds exactly one recipient whose name, alias, address or ID is
-that value; a value that matches only a display name, several recipients or none is Unresolved. Nested groups are
+ID); a member returned without either is Unresolved. A distribution group's owners may be returned by Exchange as names,
+so each is looked up and is Resolved only when Exchange finds exactly one recipient whose primary SMTP address,
+distinguished name, object ID or GUID is that value. A name, alias or display name, several matches or none is Unresolved. Nested groups are
 listed as members and not expanded. Dynamic distribution groups are calculated at delivery and are not expanded.
 #>
 param(
@@ -20,17 +20,18 @@ function Get-Value([object]$Item, [string]$Name) {
 }
 
 $lookups = @{}
-# Exchange's own identity lookup, accepted only when the value is a unique identity of the one recipient it finds.
+# Exchange's own identity lookup, accepted only when the value is an exact identity (primary SMTP address, distinguished
+# name, object ID or GUID) of the one recipient it finds. A name, alias or display name is never treated as exact.
 function Get-HolderIdentity([string]$Value) {
     if ($lookups.ContainsKey($Value)) { return $lookups[$Value] }
     $found = @()
     $failure = ''
-    try { $found = @(Get-EXORecipient -Identity $Value -Properties Alias, DistinguishedName, Name, DisplayName) }
+    try { $found = @(Get-EXORecipient -Identity $Value -Properties DistinguishedName, DisplayName) }
     catch { $failure = $_.Exception.Message }
     $result = [pscustomobject]@{ Status = 'Unresolved'; Address = ''; ObjectId = ''; Type = ''; DisplayName = ''; Note = '' }
     if ($found.Count -eq 1) {
         $candidate = $found[0]
-        $unique = @('Name', 'Alias', 'PrimarySmtpAddress', 'DistinguishedName', 'ExternalDirectoryObjectId', 'Guid', 'Identity') |
+        $unique = @('PrimarySmtpAddress', 'DistinguishedName', 'ExternalDirectoryObjectId', 'Guid') |
             ForEach-Object { [string](Get-Value $candidate $_) } | Where-Object { $_ }
         $exact = @($unique | Where-Object { [string]::Equals($_, $Value, [StringComparison]::OrdinalIgnoreCase) })
         if ($exact.Count -gt 0) {
@@ -40,7 +41,7 @@ function Get-HolderIdentity([string]$Value) {
             $result.Type = [string](Get-Value $candidate 'RecipientTypeDetails')
             $result.DisplayName = [string](Get-Value $candidate 'DisplayName')
         } else {
-            $result.Note = 'Exchange matched this value only on a display name, which another recipient can share. Confirm who it is before acting.'
+            $result.Note = 'Exchange returned this value as a name, alias or display name, which is not an exact identity and another recipient can share. Confirm who it is before acting.'
         }
     } elseif ($found.Count -gt 1) {
         $result.Note = 'This value matches more than one recipient. Confirm who it is before acting.'
@@ -79,7 +80,9 @@ function Get-Bounded([object[]]$Items, [string]$What) {
 $distributionTypes = @('MailUniversalDistributionGroup', 'MailUniversalSecurityGroup', 'MailNonUniversalGroup', 'RoomList')
 $unknown = 0
 foreach ($identity in $Group) {
-    $target = Get-EXORecipient -Identity $identity
+    $found = @(Get-EXORecipient -Identity $identity)
+    if ($found.Count -ne 1) { throw ($identity + ' matches ' + $found.Count + ' recipients. Name the group by its email address.') }
+    $target = $found[0]
     $type = [string](Get-Value $target 'RecipientTypeDetails')
     $address = [string](Get-Value $target 'PrimarySmtpAddress')
     $key = $address

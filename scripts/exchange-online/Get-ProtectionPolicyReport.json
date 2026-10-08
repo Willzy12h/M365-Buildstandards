@@ -18,7 +18,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ProtectionPolicyReport.ps1",
-  "scriptSha256": "cd0fb534dd497de79adad24125880f0f0ce8c8e715ddc2bf966313c60dc126d6",
+  "scriptSha256": "c476ce2f8b5f9f5d3e78d4d6ff4e9c824af74a736b25e6c3f07340de2bb16414",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -78,7 +78,8 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "Preset security policies (Standard and Strict) and Defender for Office 365 policies such as Safe Links and Safe Attachments are not included.",
+    "A preset security policy (Standard or Strict) is listed as Preset: its preset rule is not read, so who it applies to is not shown. A policy with no rule that Exchange does not mark as custom or preset is Unknown, not NoRule.",
+    "Defender for Office 365 policies such as Safe Links and Safe Attachments are not included.",
     "Only key settings are summarised; allowed sender and domain lists are counted, not listed.",
     "A rule is matched to its policy by the policy identity the rule names. A rule naming a policy that was not returned is listed with its settings Unknown.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",

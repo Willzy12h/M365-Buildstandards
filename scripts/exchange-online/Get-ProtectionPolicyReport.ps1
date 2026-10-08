@@ -2,9 +2,10 @@
 Exchange Online Protection policies: inbound anti-spam, outbound spam, anti-phishing and anti-malware, each with the
 rule that scopes it, its state and priority, who it applies to and its key settings.
 Read only. A default policy applies to everyone no other policy of its type covers. A custom policy with no rule is
-listed as NoRule because it applies to no one. A rule is matched to its policy by the policy identity the rule names.
-A setting Exchange did not return is shown as Unknown. Preset security policies and Defender for Office 365 policies
-(Safe Links, Safe Attachments) are not included.
+listed as NoRule because it applies to no one. A preset security policy (Standard or Strict) is scoped by a separate
+preset rule that this item does not read, so it is listed as Preset, not NoRule; a policy that may be a preset is
+Unknown. A rule is matched to its policy by the policy identity the rule names. A setting Exchange did not return is
+shown as Unknown. Defender for Office 365 policies (Safe Links, Safe Attachments) are not included.
 #>
 param(
     [string[]]$PolicyType = @('AntiSpam', 'OutboundSpam', 'AntiPhish', 'AntiMalware')
@@ -94,8 +95,16 @@ foreach ($type in $types) {
         })
         foreach ($rule in $own) { $matched[[string](Get-Text (Get-Value $rule 'Name'))] = $true }
         if ($own.Count -eq 0) {
-            $state = 'NoRule'
-            $note = 'No rule applies this policy to anyone.'
+            # Only a policy Exchange marks as custom can be said to apply to no one: a preset policy has its own rule type.
+            $recommended = 'Unknown'
+            if ($null -ne $policy -and $policy.PSObject.Properties['RecommendedPolicyType']) { $recommended = Get-Text $policy.RecommendedPolicyType }
+            $state = 'Unknown'
+            $note = 'No rule of this type names this policy, and Exchange did not return whether it is a custom or preset policy.'
+            if ($recommended -eq 'Custom') { $state = 'NoRule'; $note = 'No rule applies this policy to anyone.' }
+            if ($recommended -eq 'Standard' -or $recommended -eq 'Strict') {
+                $state = 'Preset'
+                $note = 'Preset security policy (' + $recommended + '): scoped by a preset rule this item does not read, so who it applies to is not shown.'
+            }
             if ($isDefault -eq 'True') { $state = 'Default'; $note = 'Default policy: applies to everyone no other policy of this type covers.' }
             if ($isDefault -eq 'Unknown') { $state = 'Unknown'; $note = 'Exchange did not return whether this is the default policy, and no rule names it.' }
             [pscustomobject]@{

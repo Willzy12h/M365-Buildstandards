@@ -62,6 +62,13 @@ foreach ($target in $targets) {
         }
     }
     if ($hasArchive -eq 'Unknown') { $unknown++; $notes += 'Exchange did not return an archive GUID, so whether this mailbox has an archive is unknown.' }
+    # ArchiveStatus is shown as returned. When it disagrees with the archive GUID, say so rather than choose one.
+    $archiveStatus = Get-Text (Get-Value $target 'ArchiveStatus')
+    if (($hasArchive -eq 'True' -and $archiveStatus -ne 'Active') -or ($hasArchive -eq 'False' -and $archiveStatus -eq 'Active')) {
+        $shown = $archiveStatus
+        if (-not $shown) { $shown = 'not returned' }
+        $notes += ('ArchiveStatus (' + $shown + ') does not agree with the archive GUID. Check the archive in the admin centre before relying on HasArchive.')
+    }
     if ($OnlyWithArchive -and $hasArchive -eq 'False') { continue }
     $autoExpanding = Get-Flag $target 'AutoExpandingArchiveEnabled'
     if ($autoExpanding -eq 'Unknown') { $notes += 'Exchange did not return whether auto-expanding archiving is on for this mailbox.' }
@@ -69,7 +76,7 @@ foreach ($target in $targets) {
         Mailbox = [string]$target.PrimarySmtpAddress
         RecipientTypeDetails = Get-Text (Get-Value $target 'RecipientTypeDetails')
         HasArchive = $hasArchive
-        ArchiveStatus = Get-Text (Get-Value $target 'ArchiveStatus')
+        ArchiveStatus = $archiveStatus
         ArchiveName = Get-Text (Get-Value $target 'ArchiveName')
         ArchiveQuota = Get-Text (Get-Value $target 'ArchiveQuota')
         ArchiveWarningQuota = Get-Text (Get-Value $target 'ArchiveWarningQuota')

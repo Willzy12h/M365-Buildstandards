@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-TransportRuleReport.ps1",
-  "scriptSha256": "7dd52720c094a09647193e9570966eb834f023c4c57918036527c8bbeb7ff29b",
+  "scriptSha256": "3847b8ba704c251e5eaa01816f445ff9918ce893e36966ccd6ff7e904172685e",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -80,6 +80,7 @@
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "Only the redirect, copy, connector and spam filtering actions are summarised; the Description column holds Exchange's full wording of each rule.",
+    "BypassesSpamFiltering reflects only the bypass spam filtering action (spam confidence level -1). A rule that skips filtering another way, such as by setting a message header, is not detected here.",
     "Rules are read up to the limit; a fuller result is marked partial.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",
     "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."

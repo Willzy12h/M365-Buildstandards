@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxHoldReport.ps1",
-  "scriptSha256": "be38a3dfd94bdce94086175b586a8ee7bdd663d72775af74b039edad13e14d79",
+  "scriptSha256": "aabaa11fecdada6964490e444c2875191daad1f1305b02bce0dbe373e1cd2af4",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -92,6 +92,7 @@
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "Hold IDs are shown as Exchange returns them and are not resolved to policy or case names; that needs Security and Compliance PowerShell, which this library does not connect to.",
     "Organisation-wide holds are listed for reference on every row; whether one covers a given mailbox is not worked out.",
+    "An in-place hold entry starting with a minus sign is an exclusion from an organisation-wide policy and does not count as a hold.",
     "Retention hold pauses retention processing; it is reported but does not by itself make HoldStatus MailboxHold.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",
     "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."

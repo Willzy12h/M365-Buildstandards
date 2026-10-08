@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-SendOnBehalfReport.ps1",
-  "scriptSha256": "ff42780059137fa7286d4d41c6392382d5d3ec3b9fa8302e002390bd7fa97162",
+  "scriptSha256": "45d647197ce6d17c3dfc73fda0c1139b19e7086eb344bf097d1408293bc86233",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -85,7 +85,7 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "A delegate is Resolved only when Exchange finds exactly one recipient whose name, alias, address or ID is the value it returned; a display name match, several matches or none are Unresolved.",
+    "A delegate is Resolved only when Exchange finds exactly one recipient whose primary SMTP address, distinguished name, object ID or GUID is the value it returned. A name, alias or display name, several matches or none are Unresolved; Exchange often returns names, so expect Unresolved rows to confirm by hand.",
     "Each distinct delegate is looked up once per run.",
     "This is the delegate list, not effective access. Full Access and Send As are in the mailbox permissions item.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",

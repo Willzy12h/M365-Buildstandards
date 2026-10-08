@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ArchiveMailboxReport.ps1",
-  "scriptSha256": "2d81901d4d48a42b5d4a343d2982b22e72be2cc810e508a1bbb9671afa40c034",
+  "scriptSha256": "87c0748ee7f8671a44d1eeb81db5a16c98afc9b65cdc2a031f57b5cc2075cdb1",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -85,7 +85,7 @@
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "Archive size is not reported: it needs one archive statistics read per mailbox, which this item does not make.",
     "An archive quota is a configured value, not proof of a licence or archive entitlement.",
-    "HasArchive comes from the archive GUID Exchange returns; if none is returned it is Unknown.",
+    "HasArchive comes from the archive GUID Exchange returns; if none is returned it is Unknown. When ArchiveStatus disagrees with the GUID the row says so in Notes.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",
     "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
   ]

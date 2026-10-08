@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-GroupMembershipReport.ps1",
-  "scriptSha256": "173b0eedf1447f7a138ddd94976c58a902d925b8581e2d6be2a59ba420b5cb8b",
+  "scriptSha256": "e0085ba23dacaaf28e2925d02106818baa659e327ea73f9b83923bb1153e5b1f",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -88,7 +88,7 @@
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "Members are identified by the address and object ID Exchange returned; an entry with neither is Unresolved. Names are shown for reading only and never used to match.",
-    "A distribution group's owners are returned as names. Each is Resolved only when Exchange finds exactly one recipient whose name, alias, address or ID is that value; otherwise it is Unresolved.",
+    "A distribution group's owners may be returned as names. Each is Resolved only when Exchange finds exactly one recipient whose primary SMTP address, distinguished name, object ID or GUID is that value. A name, alias or display name is Unresolved.",
     "Nested groups are listed as members, not expanded. Dynamic distribution groups are not expanded and are marked NotExpanded.",
     "Each group's members and owners are read up to the limit; a fuller list is marked partial.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",

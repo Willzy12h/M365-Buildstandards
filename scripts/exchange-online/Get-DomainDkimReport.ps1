@@ -66,7 +66,7 @@ foreach ($item in $accepted) {
 foreach ($name in $wanted) {
     if (@($accepted | Where-Object { (Get-Text (Get-Value $_ 'DomainName')).ToLowerInvariant() -eq $name }).Count -gt 0) { continue }
     [pscustomobject]@{
-        Domain = $name; DomainType = 'NotAccepted'; IsDefault = 'False'; DkimConfigured = ''; DkimEnabled = ''; DkimStatus = ''
+        Domain = $name; DomainType = 'NotAccepted'; IsDefault = 'False'; DkimConfigured = 'NotApplicable'; DkimEnabled = 'NotApplicable'; DkimStatus = ''
         Selector1CNAME = ''; Selector2CNAME = ''; Selector1KeySize = ''; RotateOnDate = ''; LastChecked = ''
         Notes = 'This domain is not an accepted domain in this tenant, so its DKIM signing configuration was not read.'
     }

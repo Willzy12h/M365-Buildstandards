@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-DomainDkimReport.ps1",
-  "scriptSha256": "53e4ad3ee58de9d766e01b343b3653b333982fe4ffe6ad1defd839e2394d9095",
+  "scriptSha256": "e2498c15c812a7a9fa96a83972416958409e09c999b175653cfab41e4fc7bb8f",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -74,7 +74,7 @@
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "No DNS query is made. The selector CNAME values are what Exchange expects, not proof they are published; SPF and DMARC are not checked.",
     "A domain with no DKIM signing configuration is listed with DkimConfigured False and DkimEnabled NotConfigured.",
-    "A named domain that is not accepted in this tenant is listed as NotAccepted.",
+    "A named domain that is not accepted in this tenant is listed as NotAccepted, with its DKIM columns NotApplicable.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",
     "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
   ]

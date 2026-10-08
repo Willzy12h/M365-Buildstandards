@@ -2,7 +2,8 @@
 Holds and retention on each mailbox: litigation hold, in-place and retention policy holds, delay holds, retention hold
 and the retention policy assigned, with the organisation-wide holds Exchange reports.
 Read only. HoldStatus is MailboxHold when a hold is set on the mailbox itself, NoMailboxHold when every hold value was
-returned and none is set, and Unknown otherwise. Organisation-wide holds are listed for reference; whether they cover a
+returned and none is set, and Unknown otherwise. An in-place hold entry that starts with a minus sign excludes the
+mailbox from an organisation-wide policy and is not counted as a hold. Organisation-wide holds are listed for reference; whether they cover a
 given mailbox is not worked out here. Hold IDs are not resolved to policy names. A true or false value Exchange did not
 return is shown as Unknown, never as False; with only holds ticked, a mailbox with an Unknown hold value is kept.
 #>
@@ -42,6 +43,12 @@ function Get-HoldList([object]$Item) {
     return Get-Text $value
 }
 
+# The hold entries that apply to the mailbox: an entry starting with '-' is an exclusion from an organisation-wide policy.
+function Get-AppliedHolds([object]$Item) {
+    if ($null -eq $Item -or -not $Item.PSObject.Properties['InPlaceHolds'] -or $null -eq $Item.InPlaceHolds) { return @() }
+    return @(@($Item.InPlaceHolds) | Where-Object { $null -ne $_ -and [string]$_ -ne '' -and -not ([string]$_).StartsWith('-') })
+}
+
 $organisation = Get-OrganizationConfig
 $orgHolds = Get-HoldList $organisation
 
@@ -65,10 +72,14 @@ foreach ($target in $targets) {
     $delay = Get-Flag $target 'DelayHoldApplied'
     $delayRelease = Get-Flag $target 'DelayReleaseHoldApplied'
     $inPlace = Get-HoldList $target
+    $applied = @(Get-AppliedHolds $target)
     $values = @($litigation, $tagHold, $delay, $delayRelease)
     $status = 'NoMailboxHold'
     if ($values -contains 'Unknown' -or $inPlace -eq 'Unknown') { $status = 'Unknown' }
-    if ($values -contains 'True' -or ($inPlace -ne 'Unknown' -and $inPlace -ne '')) { $status = 'MailboxHold' }
+    if ($values -contains 'True' -or $applied.Count -gt 0) { $status = 'MailboxHold' }
+    if ($inPlace -ne 'Unknown' -and @(@($target.InPlaceHolds) | Where-Object { ([string]$_).StartsWith('-') }).Count -gt 0) {
+        $notes += 'An in-place hold entry starting with a minus sign excludes this mailbox from an organisation-wide policy; it is not a hold.'
+    }
     if ($litigation -eq 'Unknown') { $notes += 'Exchange did not return whether litigation hold is on.' }
     if ($inPlace -eq 'Unknown') { $notes += 'Exchange did not return the in-place and retention policy holds.' }
     if ($tagHold -eq 'Unknown' -or $delay -eq 'Unknown' -or $delayRelease -eq 'Unknown') { $notes += 'Exchange did not return every hold flag.' }
