@@ -1,5 +1,18 @@
 # Handover and priorities
 
+## Current Astra continuation — reviewed merges, 8 October 2026
+
+Integration `865e1a1e14d4d857d83f99d184cae2b67cb31e66` contains the requested #42 → #44 → #43 → #45 merges and Claude's fix PRs #51/#49/#48/#50. Every exact-head and merge-commit Windows run passed; full SHAs/runs and distinct package identity are in [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md). Latest merge run 37831138250 passed 1,220 engine/CLI and 143 App tests, 45 layouts/85 commands, zero binding issues/tenant calls, fresh extraction/startup and portable CLI checks. Source remains unpublished Preview.19; this is not a release publication.
+
+**Next, under the [current goal](release-readiness/astra-goal-prompt.md):**
+
+1. Claude resolves #46 against fresh integration and corrects review attribution; Astra's AST-05–09 source/synthetic findings are closed, then recheck the final exact head and merge CI. #47 is ready and Claude has refreshed its finding states. Do not rebuild the library.
+2. Claude independently reviews Astra #53 (R07 failed/malformed readiness reads) and #54 (Astra-owned tracker reconciliation). Reconcile only the owning agent's rows.
+3. Finish remaining current guidance, module/role preflight, experimental/manual runtime gating and master-scope Reports/navigation/mailbox/script source through claimed, independently reviewed slices. Prepare the next preview and exact-source candidate record; no version has changed yet.
+4. Prepare the approval-ready promotion PR and live/human forms. Keep William's stop points open. Existing publisher #34 is merged and remains Claude's area.
+
+The continuation below records earlier 8 October checkpoints; its pending claims/CLI exclusion are historical where this current section differs. All historical source, tests and publication identities remain valid only for their original bytes.
+
 ## Astra continuation — 8 October 2026
 
 PR #42 is ready for independent review at `6a511cf07f1f615fdeee0138147d2fcc9c7a53ce`, not merged. Exact-head Windows push `37717009564` and PR `37717013690` passed: 1,117 Engine + 130 App tests, 45 layouts / 113 synthetic images, zero binding issues, verified standards manifest and fresh 300-file extracted startup/shutdown. It implements actual dependency-only desktop checks and the same evaluator for offline CLI historical filtering, with separate strict partial evidence. Initial harness-integration failures are recorded in INT-076 on that branch; corrected runs do not close human/live gates. Portable CLI hosting is still unimplemented.
@@ -208,3 +221,11 @@ One-time connection means the profile is not saved; local audit evidence is reta
 ## Status vocabulary
 
 Implemented and verified names the actual check. Implemented but unverified identifies missing verification. Planned is agreed work; Candidate is a proposal; Deprecated is superseded behaviour; Known issue is an observed defect. Passing tests do not verify sign-in, consent, live Graph or recovery.
+
+## Waiting on William
+
+- Run the prepared Stage A/Stage B live journeys and new report-query acceptance; provide sanitised results. No agent tenant action is authorised.
+- Perform one interactive Windows `bdit.cmd` run, human accessibility/physical scaling and second-engineer journeys.
+- Choose client banner colours and name product/release/security/support/evidence owners; set evidence/deferral and servicing policies.
+- Confirm candidate signing/distribution and security-owner application-control approval; configure repository/protected release settings.
+- Approve promotion to main, tags/releases/publishing and final 1.1.0 separately after reviewing the finished candidate record.

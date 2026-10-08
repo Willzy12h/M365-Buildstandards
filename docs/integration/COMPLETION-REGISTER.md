@@ -1,3 +1,15 @@
+# Current source completion record — 8 October 2026
+
+Source baseline: integration `865e1a1e14d4d857d83f99d184cae2b67cb31e66`, unpublished `1.1.0-preview.19`, immutable standard `2026.09.30`. This Astra update supersedes earlier pending source/PR status; historical acceptance and publication identities below remain unchanged. [Exact reviewed merges and CI](MERGE-EVIDENCE-2026.10.08.md) record #48–#51 and #42/#44/#43/#45. All exact-head and merge-commit checks passed in the requested order. Latest merge CI [37831138250](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37831138250) passed 1,220 engine/CLI and 143 Windows app tests, native/portable checks and zero tenant calls.
+
+Already implemented: version-aware jobs/observations/dispositions/cutover and lineage/upgrade reporting; post-merge safeguards (#36); measured existing authentication (#37); Jobs guidance (#38); full configuration HTML engine/CLI export (#40); live run sheet (#41); scoped desktop/offline CLI checks (#42); separate strict report store and registered Graph core (#44); read-only naming audit (#43); portable offline `bdit.cmd` (#45). Naming/Graph Reports desktop exposure and the broader mailbox/script scope remain source work; do not treat core APIs as finished interface workflows.
+
+Independent review: Claude's 19 #42–#45 findings are fixed/integrated. Astra's #46 findings AST-20261008-05–09 are closed at source/synthetic level at `d9a24aa`; Claude still owns integration conflicts and final exact-head CI. #47 contains Claude's review/status record. #53 is Astra's reviewable R07 read-status correction, independently reviewed merge pending.
+
+Open release gates: runtime experimental/manual gating for unaccepted changes, remaining R07/R10 source work, fresh next-preview source/package/hash record, promotion PR preparation, applicable human/live acceptance and William's owners/policies/distribution/settings decisions. Earlier tenant tests reported by William do not establish every new service capability; no agent tenant calls were made. The [current goal](release-readiness/astra-goal-prompt.md) authorises the next preview version/preparation, while final publication and live steps remain separately approved. No final 1.1.0 completion is claimed.
+
+---
+
 # Preview.18 product completion in progress — 6 October 2026
 
 The user approved A–G and R17 integrated default/settings exports, preserving safeguards/historical standards and keeping live tenant actions/publication separately approved. Current source work is in PR #19; decision PR #20 defines the cross-cutting workflow/evidence/lineage contracts and requires human merge before dependent implementation. This is not a finished-product or GA claim.
