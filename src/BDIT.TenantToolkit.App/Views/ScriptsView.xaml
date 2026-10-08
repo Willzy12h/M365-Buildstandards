@@ -11,7 +11,7 @@
         <StackPanel>
           <TextBlock Text="REVIEWED LIBRARY" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Scripts &amp; Reports" Style="{StaticResource H1}"/>
-          <TextBlock Text="Fill in a form, confirm the tenant, then copy or save the script to run yourself. Nothing runs from this page." Style="{StaticResource Lead}" Margin="0,0,0,14"/>
+          <TextBlock Text="Fill in a form and confirm the tenant. Run a read-only item here against the connected client, or copy or save the script to run yourself. Nothing runs without your confirmation, and nothing runs by itself." Style="{StaticResource Lead}" Margin="0,0,0,14"/>
         </StackPanel>
 
         <!-- Which tenant a copied script is for, always in view. The colour is a recognition cue beside the name and ID. -->
@@ -50,6 +50,7 @@
                       </Border>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                     </DockPanel>
+                    <TextBlock Text="{Binding Actions}" Style="{StaticResource Muted}" FontWeight="SemiBold" Margin="0,3,0,0"/>
                     <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" Margin="0,3,0,0"/>
                     <TextBlock Text="{Binding Needs}" Style="{StaticResource Muted}" Margin="0,3,0,0"/>
                     <TextBlock Text="{Binding LiveStatus}" Style="{StaticResource Muted}" FontStyle="Italic" Margin="0,3,0,0"/>
@@ -64,9 +65,15 @@
               <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                 <WrapPanel>
                   <Button Content="Copy script…" Command="{Binding CopyScriptCommand}" Style="{StaticResource PrimaryButton}" ToolTip="Confirm the tenant and values, then put the script on the clipboard"/>
+                  <!-- Run is shown only for read-only items (INT-072 keeps changes copy only) and always asks for the same confirmation. -->
+                  <Button Content="Run…" Command="{Binding RunScriptCommand}" Style="{StaticResource SecondaryButton}" Visibility="{Binding ShowsRun, Converter={StaticResource BoolToVis}}"
+                          ToolTip="Confirm the tenant, account and values, then run this read-only item against the connected client"/>
+                  <Button Content="Cancel run" Command="{Binding CancelRunCommand}" Style="{StaticResource SecondaryButton}" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"
+                          ToolTip="Stop the PowerShell process. Nothing is kept from a stopped run."/>
                   <Button Content="Save as .ps1…" Command="{Binding SaveScriptCommand}" Style="{StaticResource SecondaryButton}" ToolTip="Confirm the tenant and values, then save the script as a new file"/>
                 </WrapPanel>
                 <TextBlock Text="{Binding CopyBlockedText}" Style="{StaticResource Muted}"/>
+                <TextBlock Text="{Binding RunBlockedText}" Style="{StaticResource Muted}" Visibility="{Binding ShowsRun, Converter={StaticResource BoolToVis}}"/>
                 <TextBlock Text="{Binding Status}" Foreground="{StaticResource Good}" FontWeight="SemiBold" Margin="0,4,0,0"/>
               </StackPanel>
               <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -110,6 +117,33 @@
                   <TextBlock Text="COMMAND PREVIEW" Style="{StaticResource Eyebrow}" Margin="0,6,0,6" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}"/>
                   <TextBox Text="{Binding Preview, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="12" MinHeight="90"
                            AutomationProperties.Name="Command preview" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}"/>
+
+                  <!-- This session's runs. Each is also kept in the client's run history folder; a stopped run keeps no rows. -->
+                  <StackPanel Margin="0,16,0,0" Visibility="{Binding HasRunHistory, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="RUNS THIS SESSION" Style="{StaticResource Eyebrow}" Margin="0,0,0,6"/>
+                    <TextBlock Text="{Binding RunStatus}" Style="{StaticResource Muted}" Margin="0,0,0,6"/>
+                    <ListBox ItemsSource="{Binding RunHistory}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}" MaxHeight="140" AutomationProperties.Name="Runs this session">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel>
+                            <TextBlock FontWeight="SemiBold"><Run Text="{Binding When, Mode=OneWay}"/>  <Run Text="{Binding ItemName, Mode=OneWay}"/></TextBlock>
+                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Margin="0,10,0,0" Visibility="{Binding HasSelectedRun, Converter={StaticResource BoolToVis}}">
+                      <TextBlock Text="{Binding SelectedRun.Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                      <TextBlock Text="{Binding SelectedRun.Detail}" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding SelectedRun.PreviewText}" Style="{StaticResource Muted}" Margin="0,4,0,6"/>
+                      <DataGrid ItemsSource="{Binding SelectedRun.Preview}" AutoGenerateColumns="True" MaxHeight="320" AutomationProperties.Name="Run results preview"
+                                Visibility="{Binding SelectedRun.HasRows, Converter={StaticResource BoolToVis}}"/>
+                      <WrapPanel Margin="0,8,0,0">
+                        <Button Content="Export CSV" Command="{Binding ExportRunCsvCommand}" Style="{StaticResource SecondaryButton}" ToolTip="Write every kept row to a new CSV in the reports folder"/>
+                        <Button Content="Open folder" Command="{Binding OpenRunFolderCommand}" Style="{StaticResource SecondaryButton}" ToolTip="Show this run's record in the client's run history folder"/>
+                      </WrapPanel>
+                    </StackPanel>
+                  </StackPanel>
                 </StackPanel>
               </ScrollViewer>
             </DockPanel>

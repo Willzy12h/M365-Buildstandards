@@ -6,9 +6,10 @@ using Microsoft.Win32;
 namespace BDIT.TenantToolkit.App.Views;
 
 /// <summary>
-/// The confirmation before a library script is copied or saved: it restates the tenant with its colour band, the item,
-/// that it is read only, and every value, and produces nothing until the engineer ticks the box and confirms. Generation
-/// stays in <see cref="ScriptsViewModel"/>; this window only collects the decision.
+/// The confirmation before a library script is copied, saved or run: it restates the tenant with its colour band, the
+/// account, the item, that it is read only, and every value, and does nothing until the engineer ticks the box and
+/// confirms. Copy and Run share this one dialog and its gate; only the wording follows the action. Generation and
+/// running stay in <see cref="ScriptsViewModel"/>; this window only collects the decision.
 /// </summary>
 public partial class ScriptCopyDialog : Window
 {
@@ -29,6 +30,11 @@ public partial class ScriptCopyDialog : Window
         foreach (var value in review.Values) ValueList.Items.Add(value.Label + ": " + value.Value);
         if (review.Values.Count == 0) ValueList.Items.Add("No values: the script runs with its own defaults.");
         ConfirmButton.Content = review.ConfirmText;
+        Title = review.WindowTitle;
+        HeadingText.Text = review.HeadingText;
+        LeadText.Text = review.LeadText;
+        ApprovalText.Text = review.ApprovalText;
+        FootnoteText.Text = review.FootnoteText;
         ApprovalBox.Focus();
     }
 
@@ -59,7 +65,7 @@ public partial class ScriptCopyDialog : Window
     }
 }
 
-/// <summary>The desktop's confirmation dialog, Save As picker and clipboard for the Scripts &amp; Reports page.</summary>
+/// <summary>The desktop's confirmation dialog (for Copy, Save and Run), Save As picker and clipboard for the Scripts &amp; Reports page.</summary>
 public sealed class ScriptCopyPrompts : IScriptCopyPrompts
 {
     private readonly ShellViewModel _shell;

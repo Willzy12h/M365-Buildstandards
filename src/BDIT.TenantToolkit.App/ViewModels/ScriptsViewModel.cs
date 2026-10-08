@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -10,7 +11,9 @@ using BDIT.TenantToolkit.App.Infrastructure;
 using BDIT.TenantToolkit.App.Views;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Scripts;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
@@ -34,6 +37,8 @@ public sealed class ScriptLibraryItem
     public string Needs { get; }
     public bool IsReadOnly => Entry.Manifest.Mode == ScriptMode.ReadOnly;
     public string Badge => IsReadOnly ? "Read only" : "Change · copy only";
+    /// <summary>INT-072: only read-only items can be run here; a change item is copy only and never shows Run.</summary>
+    public string Actions => IsReadOnly ? "Run or copy" : "Copy only";
     public string LiveStatus => Entry.Manifest.LiveStatus == ScriptLiveStatus.Verified
         ? "Live status: recorded as tested in a tenant"
         : "Live status: not yet tested in a tenant";
@@ -178,8 +183,8 @@ public sealed class ScriptFormField : ObservableObject
         || problem.StartsWith(Label + " takes at most", StringComparison.Ordinal);
 }
 
-/// <summary>What the confirmation is for: putting the script on the clipboard, or saving it as a file.</summary>
-public enum ScriptCopyAction { Clipboard, SaveAs }
+/// <summary>What the confirmation is for: putting the script on the clipboard, saving it as a file, or running it here.</summary>
+public enum ScriptCopyAction { Clipboard, SaveAs, Run }
 
 /// <summary>A filled value as the confirmation restates it.</summary>
 public sealed record ScriptReviewValue(string Label, string Value);
@@ -201,10 +206,78 @@ public sealed record ScriptCopyReview(
     IReadOnlyList<ScriptReviewValue> Values,
     string Fingerprint)
 {
-    public string ConfirmText => Action == ScriptCopyAction.Clipboard ? "Copy script to clipboard" : "Choose where to save";
+    public bool IsRun => Action == ScriptCopyAction.Run;
+    public string ConfirmText => Action switch
+    {
+        ScriptCopyAction.Clipboard => "Copy script to clipboard",
+        ScriptCopyAction.SaveAs => "Choose where to save",
+        _ => "Run now (read only)"
+    };
+    public string WindowTitle => IsRun ? "Confirm the tenant before running" : "Confirm the tenant before copying";
+    public string HeadingText => IsRun ? "Check before you run" : "Check before you copy";
+    public string LeadText => IsRun
+        ? "This runs the item now in a separate PowerShell window. It signs in to the tenant below only, refuses any other tenant or account, and reads without changing anything."
+        : "Nothing runs from here. The script signs in to the tenant below only, and refuses any other.";
+    public string ApprovalText => IsRun
+        ? "I have checked the tenant, the account, the item and every value. Run this read-only script against this tenant only."
+        : "I have checked the tenant, the item and every value. Produce this script for this tenant only.";
+    public string FootnoteText => IsRun
+        ? "Blank optional fields are left out. The run stops at the item's time limit or when you cancel, and the result is kept in this client's run history."
+        : "Blank optional fields are left out. Review the script before you run it; it is not run by this tool.";
     public string AccountText => Account.Length > 0
-        ? "Signs in as " + Account + ". If another account signs in, the script stops before reading anything."
+        ? (IsRun ? "Runs as " : "Signs in as ") + Account + ". If another account signs in, the script stops before reading anything."
         : "Signs in with the account chosen at the Microsoft prompt";
+}
+
+/// <summary>One run in this session's history, as the page lists it, with a preview of its first rows.</summary>
+public sealed class ScriptRunEntry
+{
+    public const int PreviewRows = 200;
+    private DataView? _preview;
+
+    public ScriptRunEntry(ScriptRunRecord record, string file)
+    {
+        Record = record;
+        File = file;
+    }
+
+    public ScriptRunRecord Record { get; }
+    /// <summary>The run record in this client's run history folder.</summary>
+    public string File { get; }
+    public string ItemName => Record.ItemName;
+    public string When => DateTimeOffset.TryParse(Record.StartedAt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at)
+        ? at.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture) : "";
+    public bool HasRows => Record.Rows.Count > 0;
+
+    /// <summary>The outcome in words. A partial, cancelled or failed run always says so.</summary>
+    public string StatusText => Record.Status switch
+    {
+        ReportReadState.Collected => $"Complete · {Rows(Record.Rows.Count)}" + (Record.UnknownValues ? " · some values Unknown" : ""),
+        ReportReadState.Partial => $"Partial · {Rows(Record.Rows.Count)} · not every row was read" + (Record.UnknownValues ? " · some values Unknown" : ""),
+        ReportReadState.Cancelled => "Cancelled · no rows kept",
+        _ => "Failed · no rows kept"
+    };
+
+    public string Summary => $"{ItemName} at {When} for {Record.TenantName} ({Record.TenantId}) as {Record.Account}: {StatusText}.";
+    public string Detail => string.Join("\n", new[] { Record.Failure ?? "" }.Concat(Record.Warnings).Concat(Record.Limitations).Where(t => t.Length > 0));
+
+    public string PreviewText => !HasRows ? (Record.Failure ?? "No rows were returned.")
+        : Record.Rows.Count > PreviewRows ? $"Showing the first {PreviewRows} of {Record.Rows.Count} rows. Export CSV for all of them."
+        : $"Showing all {Rows(Record.Rows.Count)}.";
+
+    /// <summary>The first <see cref="PreviewRows"/> rows under the item's declared columns, built when first shown.</summary>
+    public DataView Preview => _preview ??= BuildPreview();
+
+    private DataView BuildPreview()
+    {
+        var table = new DataTable("Results") { Locale = CultureInfo.InvariantCulture };
+        foreach (var column in Record.Columns) table.Columns.Add(column, typeof(string));
+        foreach (var row in Record.Rows.Take(PreviewRows)) table.Rows.Add(row.Cast<object>().ToArray());
+        return table.DefaultView;
+    }
+
+    private static string Rows(int count) => count == 1 ? "1 row" : $"{count} rows";
+    public override string ToString() => Summary;
 }
 
 /// <summary>The parts of copying that need a person or the desktop: confirming, choosing a file and the clipboard.</summary>
@@ -216,14 +289,16 @@ public interface IScriptCopyPrompts
 }
 
 /// <summary>
-/// The Scripts &amp; Reports page (INT-072/INT-080, first desktop slice). It lists the reviewed library, builds each item's
-/// form from its manifest, checks it live with the engine and produces the Copy script only after an explicit
-/// confirmation that restates the tenant. Nothing is run: there is no Run here, by design, until the owned PowerShell
-/// session in the next slice exists.
+/// The Scripts &amp; Reports page (INT-072/INT-080; Run proposed in INT-081). It lists the reviewed library, builds each
+/// item's form from its manifest, checks it live with the engine and produces the Copy script only after an explicit
+/// confirmation that restates the tenant. A read-only item can also be Run here after the same confirmation: the engine
+/// runs the same generated wrapper in an owned, bounded PowerShell process pinned to the selected client's tenant and the
+/// connected account, and keeps the result in the client's run history. Change items are copy only and never show Run.
+/// Nothing runs automatically and nothing is scheduled.
 /// </summary>
 public sealed class ScriptsViewModel : PageViewModel
 {
-    public const string BannerNoteText = "Online scripts — copied scripts sign in to this tenant only";
+    public const string BannerNoteText = "Online scripts — Run and copied scripts sign in to this tenant only";
     public const string ReadOnlyText = "Read only. Makes no changes.";
 
     private static readonly Brush NeutralLine = Frozen("#DAE3ED");
@@ -235,6 +310,9 @@ public sealed class ScriptsViewModel : PageViewModel
     private string _status = "";
     private bool _building;
     private bool _searching;
+    private bool _running;
+    private string _runStatus = "";
+    private ScriptRunEntry? _selectedRun;
 
     public ScriptsViewModel(ShellViewModel shell) : base(shell, "Scripts & Reports")
     {
@@ -250,11 +328,22 @@ public sealed class ScriptsViewModel : PageViewModel
         Prompts = new ScriptCopyPrompts(shell);
         CopyScriptCommand = Sync(() => Produce(ScriptCopyAction.Clipboard), () => CanCopy);
         SaveScriptCommand = Sync(() => Produce(ScriptCopyAction.SaveAs), () => CanCopy);
+        RunScriptCommand = Command(RunSelectedAsync, () => CanRun);
+        CancelRunCommand = Sync(Workspace.CancelOperation, () => IsRunning);
+        ExportRunCsvCommand = Sync(ExportSelectedRun, () => SelectedRun is { HasRows: true });
+        OpenRunFolderCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(SelectedRun?.File ?? ""), () => SelectedRun is not null);
         ApplySearch();
     }
 
     public ICommand CopyScriptCommand { get; }
     public ICommand SaveScriptCommand { get; }
+    public ICommand RunScriptCommand { get; }
+    public ICommand CancelRunCommand { get; }
+    public ICommand ExportRunCsvCommand { get; }
+    public ICommand OpenRunFolderCommand { get; }
+
+    /// <summary>Runs a confirmed read-only item. Replaced in tests and the offline harness so no process is started.</summary>
+    public IScriptRunner Runner { get; set; } = new ScriptRunner();
 
     /// <summary>Confirmation, file choice and clipboard. Replaced in tests and the offline harness.</summary>
     public IScriptCopyPrompts Prompts { get; set; }
@@ -343,6 +432,7 @@ public sealed class ScriptsViewModel : PageViewModel
         Status = "";
         Revalidate();
         OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(ShowsRun));
         OnPropertyChanged(nameof(SelectedHeading));
         OnPropertyChanged(nameof(SelectedDetail));
         OnPropertyChanged(nameof(Limitations));
@@ -366,6 +456,8 @@ public sealed class ScriptsViewModel : PageViewModel
         OnPropertyChanged(nameof(Preview));
         OnPropertyChanged(nameof(CanCopy));
         OnPropertyChanged(nameof(CopyBlockedText));
+        OnPropertyChanged(nameof(CanRun));
+        OnPropertyChanged(nameof(RunBlockedText));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -407,9 +499,131 @@ public sealed class ScriptsViewModel : PageViewModel
     public string CopyBlockedText => !HasTenant ? "Select a client on the Connect page to copy a script for its tenant."
         : Selected is null ? "Select an item first."
         : !IsValid ? "Complete the form; each problem is listed above."
-        : "Copy and Save ask you to confirm the tenant and values first. Nothing runs from here.";
+        : "Copy and Save ask you to confirm the tenant and values first.";
 
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
+
+    // ---- run ----------------------------------------------------------------------------------------------------
+
+    /// <summary>Run is offered only for read-only items. A change item is copy only (INT-072), so the button is not shown at all.</summary>
+    public bool ShowsRun => Selected?.IsReadOnly == true;
+
+    /// <summary>A connected session for the selected client, with a sign-in name the wrapper can hold the run to.</summary>
+    public bool HasRunSession => Account.Length > 0;
+
+    public bool IsRunning { get => _running; private set { if (SetProperty(ref _running, value)) { OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(RunBlockedText)); } } }
+
+    public bool CanRun => CanCopy && ShowsRun && HasRunSession && !IsRunning && Workspace.Idle;
+
+    public string RunBlockedText => !ShowsRun ? ""
+        : !HasTenant ? "Select a client on the Connect page to run an item against its tenant."
+        : !IsValid ? "Complete the form to run it."
+        : !HasRunSession ? "Connect to this client first. Run signs in to Exchange Online as the connected account and refuses any other."
+        : IsRunning ? "Running. Cancel stops the PowerShell process; nothing is kept from a stopped run."
+        : !Workspace.Idle ? "Wait for the current operation to finish."
+        : "Run asks you to confirm the tenant, account and values first. It reads only and never runs by itself.";
+
+    /// <summary>What the current or last run is doing, in words.</summary>
+    public string RunStatus { get => _runStatus; private set => SetProperty(ref _runStatus, value); }
+
+    /// <summary>This session's runs, newest first. Each is also kept in the client's run history folder.</summary>
+    public ObservableCollection<ScriptRunEntry> RunHistory { get; } = new();
+    public bool HasRunHistory => RunHistory.Count > 0;
+
+    public ScriptRunEntry? SelectedRun
+    {
+        get => _selectedRun;
+        set
+        {
+            if (!SetProperty(ref _selectedRun, value)) return;
+            OnPropertyChanged(nameof(HasSelectedRun));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool HasSelectedRun => SelectedRun is not null;
+
+    /// <summary>
+    /// Builds the run after a confirmed review. Refuses without the confirmation, and refuses when the tenant, account or
+    /// any value changed after the review was shown, exactly as Copy does.
+    /// </summary>
+    public ScriptRunRequest PrepareRun(ScriptCopyReview review, bool confirmed)
+    {
+        if (review.Action != ScriptCopyAction.Run) throw new ToolkitException("Confirm a run before running.");
+        if (!confirmed) throw new ToolkitException("Confirm the tenant, account and values before running. Nothing was run.");
+        var current = Review(ScriptCopyAction.Run);
+        if (current.Fingerprint != review.Fingerprint)
+            throw new ToolkitException("The tenant, account or form changed after it was confirmed. Review it again; nothing was run.");
+        return new ScriptRunRequest(Selected!.Entry, _binding!, new ScriptCopyTarget(current.TenantId, current.TenantName, current.Account), Now());
+    }
+
+    /// <summary>
+    /// Confirm, then run the selected read-only item through <see cref="Runner"/> as the workspace's one exclusive
+    /// operation (so the shell's Cancel stops it), and keep the result in the client's run history.
+    /// </summary>
+    public async Task RunSelectedAsync()
+    {
+        var review = Review(ScriptCopyAction.Run);
+        if (!Prompts.Confirm(review)) { Status = "Not run. Nothing was started."; return; }
+        var request = PrepareRun(review, confirmed: true);
+        ScriptRunEntry? kept = null;
+        IsRunning = true;
+        RunStatus = $"Starting {review.ItemName} for {review.TenantName}…";
+        try
+        {
+            await Workspace.RunExclusiveAsync($"Running {review.ItemName} (read only) for {review.TenantName}", async progress =>
+            {
+                // Reported synchronously from the runner's reader, so every message lands before the final status below.
+                var live = new RunProgress(text => { RunStatus = text; progress.Report(text); });
+                var result = await Runner.RunAsync(request, live, Workspace.OperationToken);
+                var record = ScriptRunSchema.Create(request, result, ToolkitVersion.Current);
+                kept = new ScriptRunEntry(record, Workspace.Evidence.SaveScriptRun(record));
+            });
+        }
+        finally { IsRunning = false; }
+
+        if (kept is null)
+        {
+            RunStatus = "Stopped before PowerShell started. Nothing was run or kept.";
+            Status = RunStatus;
+            return;
+        }
+        RunHistory.Insert(0, kept);
+        OnPropertyChanged(nameof(HasRunHistory));
+        SelectedRun = kept;
+        RunStatus = kept.Summary;
+        Status = kept.Summary;
+        Workspace.Logger.Info("Scripts", $"Ran library item {kept.Record.ItemId} for tenant {kept.Record.TenantId}: {kept.Record.Status} ({kept.Record.End}), {kept.Record.Rows.Count} row(s). Run record {kept.Record.Id}.", kept.Record.TenantId);
+    }
+
+    /// <summary>Writes the selected run's rows to a new CSV in the reports folder. An existing file is never replaced.</summary>
+    public string ExportSelectedRunCsv()
+    {
+        var run = SelectedRun ?? throw new ToolkitException("Select a run first.");
+        if (!run.HasRows) throw new ToolkitException("This run kept no rows to export.");
+        Directory.CreateDirectory(Workspace.Paths.ReportsDirectory);
+        var started = DateTimeOffset.Parse(run.Record.StartedAt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+        var name = $"BDIT-run-{run.Record.ItemId}-{run.Record.TenantId[..8]}-{started.UtcDateTime:yyyyMMdd-HHmmss}-{run.Record.Id[..8]}.csv";
+        var path = Path.Combine(Workspace.Paths.ReportsDirectory, name);
+        try
+        {
+            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            writer.Write(ScriptRunSchema.ToCsv(run.Record));
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            throw new ToolkitException($"{name} already exists in the reports folder; nothing was overwritten.");
+        }
+        return path;
+    }
+
+    private void ExportSelectedRun()
+    {
+        var path = ExportSelectedRunCsv();
+        Status = $"Exported {SelectedRun!.Record.Rows.Count} row(s) to {path}.";
+        Workspace.Logger.Info("Scripts", $"Exported run {SelectedRun.Record.Id} to CSV.", SelectedRun.Record.TenantId);
+    }
 
     // ---- confirmation and generation --------------------------------------------------------------------------
 
@@ -418,6 +632,9 @@ public sealed class ScriptsViewModel : PageViewModel
     {
         var item = Selected ?? throw new ToolkitException("Select a library item first.");
         if (!HasTenant) throw new ToolkitException("Select a client on the Connect page first. A copied script is always for one tenant.");
+        if (action == ScriptCopyAction.Run && !item.IsReadOnly) throw new ToolkitException("Change items are copy only. They are never run by this tool.");
+        if (action == ScriptCopyAction.Run && Account.Length == 0)
+            throw new ToolkitException("Connect to this client first. Run signs in to Exchange Online as the connected account and refuses any other.");
         if (_binding is not { IsValid: true } binding) throw new ToolkitException("Complete the form first: " + string.Join(" ", _binding?.Problems ?? Array.Empty<string>()));
         var profile = Workspace.Profile!;
         var tenantId = Guid.Parse(profile.TenantId).ToString("D");
@@ -426,7 +643,7 @@ public sealed class ScriptsViewModel : PageViewModel
         var account = Account;
         return new ScriptCopyReview(action, profile.Company, tenantId, TenantColours.For(tenantId), account, item.Id, item.Name,
             item.IsReadOnly ? ReadOnlyText : "CHANGE. Review every line before running.", values,
-            Fingerprint(tenantId, profile.Company, account, item, binding));
+            Fingerprint(action, tenantId, profile.Company, account, item, binding));
     }
 
     /// <summary>
@@ -436,6 +653,7 @@ public sealed class ScriptsViewModel : PageViewModel
     public string Generate(ScriptCopyReview review, bool confirmed)
     {
         if (!confirmed) throw new ToolkitException("Confirm the tenant and values before the script is produced. Nothing was copied.");
+        if (review.Action == ScriptCopyAction.Run) throw new ToolkitException("A run review cannot produce a copied script. Confirm Copy or Save instead.");
         var current = Review(review.Action);
         if (current.Fingerprint != review.Fingerprint)
             throw new ToolkitException("The tenant or the form changed after it was confirmed. Review it again; nothing was copied.");
@@ -485,6 +703,13 @@ public sealed class ScriptsViewModel : PageViewModel
         }
     }
 
+    private sealed class RunProgress : IProgress<string>
+    {
+        private readonly Action<string> _report;
+        public RunProgress(Action<string> report) => _report = report;
+        public void Report(string value) => _report(value);
+    }
+
     private static string Display(ScriptValue value) => value switch
     {
         ScriptText t => t.Value,
@@ -494,8 +719,8 @@ public sealed class ScriptsViewModel : PageViewModel
         _ => ""
     };
 
-    private static string Fingerprint(string tenantId, string tenantName, string account, ScriptLibraryItem item, ScriptBinding binding) =>
-        string.Join("\n", new[] { tenantId, tenantName, account, item.Id, item.Entry.ManifestSha256, item.Entry.Manifest.ScriptSha256 }
+    private static string Fingerprint(ScriptCopyAction action, string tenantId, string tenantName, string account, ScriptLibraryItem item, ScriptBinding binding) =>
+        string.Join("\n", new[] { action.ToString(), tenantId, tenantName, account, item.Id, item.Entry.ManifestSha256, item.Entry.Manifest.ScriptSha256 }
             .Concat(binding.Arguments.Select(a => a.Name + "=" + ScriptCopy.Literal(a.Value))));
 
     private static Brush Frozen(string colour)
@@ -517,6 +742,7 @@ public sealed class ScriptsViewModel : PageViewModel
         OnPropertyChanged(nameof(BannerTextBrush));
         OnPropertyChanged(nameof(BannerLineBrush));
         OnPropertyChanged(nameof(Account));
+        OnPropertyChanged(nameof(HasRunSession));
         Revalidate();
     }
 }

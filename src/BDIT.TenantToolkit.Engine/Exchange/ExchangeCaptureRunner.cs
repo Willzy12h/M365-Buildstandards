@@ -21,7 +21,7 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Integrated Exchange capture requires Windows.");
         // Generate and validate before creating files or starting a process. User values never become shell code.
         var script = ExchangeCaptureScripts.ReadOnlyCapture(tenantId, referenceDomain);
-        var executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
+        var executable = OwnedPowerShellProcess.WindowsPowerShellPath();
         if (!File.Exists(executable)) throw new ConfigurationException("Windows PowerShell 5.1 is unavailable. " + DependencyGuidance);
         var directory = Path.Combine(Path.GetTempPath(), "BDIT-Exchange-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -32,25 +32,13 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
             await File.WriteAllTextAsync(scriptFile, script, new UTF8Encoding(false), ct);
             var start = CreateStartInfo(executable, scriptFile, resultFile, account, includePurview);
             progress?.Report("Checking the installed Exchange module, then opening Microsoft sign-in in a separate PowerShell process. No tenant writes.");
-            using var process = new Process { StartInfo = start };
-            ct.ThrowIfCancellationRequested();
-            if (!process.Start()) throw new ConfigurationException("The Exchange read process could not start.");
             // Drain both pipes without retaining arbitrary authentication/module output or writing it to logs.
-            var output = ReadProgressAsync(process.StandardOutput, progress);
-            var errors = DrainAsync(process.StandardError);
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromMinutes(15));
-            try { await process.WaitForExitAsync(timeout.Token); }
-            catch (OperationCanceledException)
-            {
-                if (!process.HasExited) process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync(CancellationToken.None);
-                await Task.WhenAll(output, errors);
-                ct.ThrowIfCancellationRequested();
+            var outcome = await OwnedPowerShellProcess.RunAsync(start, reader => ReadProgressAsync(reader, progress),
+                OwnedPowerShellProcess.DrainAsync, TimeSpan.FromMinutes(15), limitExceeded: null, ct);
+            if (outcome.End == OwnedProcessEnd.Cancelled) ct.ThrowIfCancellationRequested();
+            if (outcome.End != OwnedProcessEnd.Exited)
                 throw new AuthenticationRequiredException("Exchange/Purview capture exceeded fifteen minutes. Nothing was imported; retry deliberately after checking Microsoft sign-in.");
-            }
-            await Task.WhenAll(output, errors);
-            if (process.ExitCode != 0 || !File.Exists(resultFile))
+            if (outcome.ExitCode != 0 || !File.Exists(resultFile))
                 throw new ConfigurationException("Exchange capture did not produce verified evidence. Check module availability, script policy, Microsoft sign-in and read-only RBAC. " + DependencyGuidance);
             return await ReadBoundedResultAsync(resultFile, ct);
         }
@@ -89,9 +77,6 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
         if (length > ExchangeCaptureSchema.MaximumBytes) throw new ConfigurationException("Exchange capture exceeds the 2 MiB limit.");
         return new UTF8Encoding(false, true).GetString(bytes, 0, length);
     }
-
-    private static async Task DrainAsync(StreamReader reader)
-    { var buffer = new char[4096]; while (await reader.ReadAsync(buffer) != 0) { } }
 
     private static async Task ReadProgressAsync(StreamReader reader, IProgress<string>? progress)
     {
