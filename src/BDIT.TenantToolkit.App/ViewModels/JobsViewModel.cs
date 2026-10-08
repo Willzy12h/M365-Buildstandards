@@ -148,7 +148,7 @@ public sealed class JobsViewModel : PageViewModel
 
     public string ContextText => Workspace.Profile is null
         ? "Select a client on the Connect page to see its jobs."
-        : $"Jobs for {Workspace.Profile.Company}. Keep check results, decisions and replacement stages together for this client. Recording evidence here makes no tenant changes.";
+        : $"Jobs for {Workspace.Profile.Company}. Record checks and handover evidence here; this page makes no tenant changes.";
 
     public string RecordGuidance => !Workspace.Idle ? "Wait for the current operation to finish, or stop it safely."
         : SelectedJob is null ? "Select a job above, or open one below, before recording a check result."

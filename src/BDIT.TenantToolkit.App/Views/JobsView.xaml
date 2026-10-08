@@ -22,7 +22,7 @@
             <Border Grid.Row="1" Style="{StaticResource WarnPanel}" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="{Binding ProblemsText}" TextWrapping="Wrap"/>
             </Border>
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" Height="150" Margin="0,0,0,12" AutomationProperties.Name="Jobs">
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" MinHeight="64" MaxHeight="100" Margin="0,0,0,12" AutomationProperties.Name="Jobs">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Opened" Binding="{Binding Opened}" Width="170"/>
                 <DataGridTextColumn Header="Intention" Binding="{Binding Intention}" Width="120"/>

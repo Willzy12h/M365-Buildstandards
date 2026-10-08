@@ -307,3 +307,10 @@ Choices:
 ## INT-069 — Engineer wording without changing workflow authority
 
 PR #38 uses Check result, Decision about existing protection and Replacement stage as display labels for the existing outcome/disposition/cutover keys. Stored enum values, IDs, approval semantics and engine services are unchanged. Requirement names lead the table and copied details retain exact IDs. Disabled recording actions show their selection/busy prerequisites and next step. The page explicitly identifies prerequisite/effectiveness input as engineer-recorded evidence, not automated execution. OPERATOR-START no longer calls the merged Jobs surface future work. No human/live acceptance gate is closed by a render or source test.
+
+
+### INT-069 follow-up — requirement viewport on smaller windows
+
+Visual review of the actual PR #38 native artefacts at `c384947` found that the fixed 150px Jobs list left only one requirement row visible at 1180×640. A populated-job native check now counts fully visible requirement rows, intersecting their bounds with table and page viewports; it must inspect all three sizes and fail below two rows. The Jobs list fits its contents within a 64–100px bounded viewport rather than reserving unused space, and the page introduction is shorter. Requirement names and exact IDs remain accessible; long job lists retain scrolling. OPERATOR-START also explains that unresolved tenant-wide reviewed/LAPS operations or historical control writes can block completion, following Claude's PR #36 review. Native validation is recorded separately from pending newcomer, Narrator and physical-scaling acceptance.
+
+Native regression proof: Windows push run `37709019773` at `cc124ca` failed specifically with “jobs 1180x640 · 0 fully visible requirement rows”; the other two sizes passed that check. The layout fix is being validated against the same unchanged assertion. Do not count the expected failing run as candidate acceptance.

@@ -43,6 +43,10 @@ On **Build Standard**, select a manifest-verified release and choose **Export fu
 
 The export distinguishes fixed settings, reviewable defaults and unresolved client inputs, and keeps candidate state separate from intended production state. JSON is a reusable catalogue definition with templates; it is not observed configuration, a deployment plan or authority to write. Review its provenance before importing into another tool or a reviewed catalogue release. **Load local candidate** is for separately saved policy-import candidates; this export does not install or overwrite a published standard. See [engineer documents](ENGINEER-DOCUMENTS.md).
 
+## When write history blocks completion
+
+An uncertain reviewed change or LAPS operation blocks completion of every job for that tenant. An unresolved write on a job's control also blocks it, including a historical run against an older standard. A new job, capture or plan does not clear that uncertainty. Read the blocker and [unresolved-write guidance](UNRESOLVED-WRITES.md); retain the original evidence and arrange the documented reconciliation or recovery review. Do not repeat the write to make the job appear complete.
+
 ## Handoff checklist
 
 Record tenant/job intention, responsible engineer/reviewer, package and standard/digest, current capture and assessment IDs, applicable controls, retained external protection, approved exceptions and expiry, manual/prerequisite owners, exact plan/run references, uncertain writes, remaining activation/effectiveness checks and the next review date. Include evidence locations through the secure custodian process. Do not transfer caches or assume the next engineer inherits authentication or approval. Use [workspace continuity](WORKSPACE-CONTINUITY.md) and [the operating model](INTERNAL-OPERATING-MODEL.md).

@@ -1,12 +1,11 @@
-# Unreleased — engineer Jobs guidance
+# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
 - Lead with friendly requirement names, retain exact IDs in copyable details and show the next step for disabled job-recording actions.
 - Explain that engineers perform and evidence prerequisite/effectiveness checks; replacement stage records do not activate, assign or retire protection.
 - Bring the short start guide into line with the already implemented Jobs/completion screens. Human newcomer, Narrator and physical-scaling acceptance remain outstanding.
-
-# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
-
-Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
+- Make the Jobs list fit its returned rows, preserving space for requirements on smaller windows; check two fully visible requirement rows in all three native harness sizes.
 
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
 - Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
