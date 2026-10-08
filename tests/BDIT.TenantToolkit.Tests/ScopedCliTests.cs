@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Checks;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Standards;
@@ -65,5 +66,60 @@ public class ScopedCliTests
         Assert.Equal(bytes, await File.ReadAllBytesAsync(input));
         Assert.False(Directory.Exists(Path.Combine(root.Paths.TenantDirectory(profile.TenantId), "scoped-checks")));
         Assert.Empty(store.ListSnapshots(profile.TenantId));
+    }
+
+    [Theory]
+    [InlineData("area")]
+    [InlineData("other-tenant")]
+    [InlineData("missing-file")]
+    public async Task Offline_check_uses_separate_exchange_evidence_as_report_does(string scenario)
+    {
+        using var root = new TempRoot();
+        var source = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards", "2026.09.12.json"));
+        root.WriteStandard("2026.09.12.json", await File.ReadAllTextAsync(source)); root.WriteManifest();
+        var catalogue = new StandardsLoader(root.Paths, NullLog.Instance).Load("2026.09.12.json");
+        var profile = TestData.Profile();
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        store.SaveProfiles([profile]); store.SaveMappings(TestData.Mappings());
+        var graph = TestData.Snapshot(catalogue, capturedAt: ExchangeTestData.Now);
+        graph.IntegrityDigest = EvidenceIntegrity.Compute(graph);
+        var graphFile = Path.Combine(root.Root, "synthetic-graph.json");
+        await File.WriteAllTextAsync(graphFile, ToolkitJson.Serialize(graph));
+        var exchange = ExchangeTestData.Capture();
+        if (scenario == "other-tenant") { exchange.TenantId = TestData.TenantB; exchange.ExchangeTenantId = TestData.TenantB; exchange.PurviewTenantId = TestData.TenantB; }
+        var exchangeFile = Path.Combine(root.Root, scenario == "missing-file" ? "absent-exchange.json" : "synthetic-exchange.json");
+        if (scenario != "missing-file") await File.WriteAllTextAsync(exchangeFile, ToolkitJson.Serialize(exchange));
+        var before = Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories).ToDictionary(f => f, File.ReadAllBytes);
+
+        var config = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
+        var dll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "BDIT.TenantToolkit.Cli", "bin", config, "net10.0", "bdit.dll"));
+        var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var arg in new[] { dll, "check", "--snapshot", graphFile, "--exchange-snapshot", exchangeFile, "--area", "Exchange", "--root", root.Root, "--release", "2026.09.12.json" })
+            start.ArgumentList.Add(arg);
+        using var process = Process.Start(start)!;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var error = process.StandardError.ReadToEndAsync(timeout.Token);
+        try { await process.WaitForExitAsync(timeout.Token); }
+        catch { if (!process.HasExited) process.Kill(entireProcessTree: true); throw; }
+
+        if (scenario == "area")
+        {
+            Assert.True(process.ExitCode == 0, await error);
+            var actual = ScopedCheckSchema.Read(await output, catalogue, profile);
+            var expected = new ScopedCheckService(new FixedClock { UtcNow = ExchangeTestData.Now.AddMinutes(1) }, "test", NullLog.Instance)
+                .ReviewHistorical(graph, catalogue, profile, CheckSelection.ForArea(catalogue, profile, "Exchange"), TestData.Mappings(), [], "synthetic reviewer", exchange);
+            Assert.Equal(expected.Assessment.Findings.Select(f => (f.ControlId, f.Status)), actual.Assessment.Findings.Select(f => (f.ControlId, f.Status)));
+            Assert.Contains(actual.Assessment.Findings, f => f.ControlId == "EX-004" && f.Status == FindingStatus.RequiresManualReview);
+            Assert.Equal(exchange.Id, actual.SeparateExchange!.Id);
+            Assert.Equal(SnapshotIntegrityState.Intact, actual.Assessment.SnapshotIntegrity);
+        }
+        else
+        {
+            Assert.Equal(2, process.ExitCode);
+            Assert.Empty(await output); Assert.Contains("Refused:", await error);
+        }
+        Assert.Equal(before.Keys.Order(), Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories).Order());
+        foreach (var (file, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(file));
     }
 }

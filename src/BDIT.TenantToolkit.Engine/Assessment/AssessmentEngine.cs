@@ -37,6 +37,9 @@ public sealed class AssessmentEngine
     }
 
     /// <summary>Checks the snapshot against the digest recorded when it was saved. Shared with the headless runner.</summary>
+    /// <summary>The limitation every assessment of evidence without a recorded digest carries, including a scoped review of it.</summary>
+    public const string IntegrityNotRecordedLimitation = "Evidence integrity not recorded: this snapshot carries no integrity digest, so its contents could not be checked against the original capture.";
+
     public static string IntegrityOf(TenantSnapshot snapshot) =>
         string.IsNullOrEmpty(snapshot.IntegrityDigest) ? SnapshotIntegrityState.NotRecorded
         : EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest) ? SnapshotIntegrityState.Intact
@@ -109,7 +112,7 @@ public sealed class AssessmentEngine
         if (result.SnapshotIntegrity == SnapshotIntegrityState.Modified)
             result.Limitations.Add("EVIDENCE MODIFIED: this snapshot no longer matches the integrity digest recorded when it was captured. Treat every finding as unverified; capture fresh evidence before relying on it. Deployment refuses modified evidence.");
         else if (result.SnapshotIntegrity == SnapshotIntegrityState.NotRecorded)
-            result.Limitations.Add("Evidence integrity not recorded: this snapshot carries no integrity digest, so its contents could not be checked against the original capture.");
+            result.Limitations.Add(IntegrityNotRecordedLimitation);
 
         if (selection is not null)
             result.Limitations.Add($"PARTIAL CHECK: {selection.SelectorKind} {selection.Selector}; only {selection.ControlIds.Count} selected control instance(s) were assessed. This result cannot satisfy complete deployment before-evidence.");

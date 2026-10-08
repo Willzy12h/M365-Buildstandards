@@ -109,6 +109,19 @@ public static class ScopedCheckSchema
             if (c.Status == CaptureStatus.Collected && !string.IsNullOrEmpty(c.Error) && !c.DetailIncomplete)
                 throw Bad("Collection errors cannot be labelled complete reads.");
         }
+        // A live read is new evidence; a historical review reports its source's state, never better than recorded.
+        if (e.SourceMode == "liveScoped" ? e.Assessment.SnapshotIntegrity != SnapshotIntegrityState.Intact
+            : e.Assessment.SnapshotIntegrity is not (SnapshotIntegrityState.Intact or SnapshotIntegrityState.NotRecorded))
+            throw Bad("The scoped assessment's integrity state is not valid for its source mode.");
+        if (e.SeparateExchange is { } separate)
+        {
+            if (e.SourceMode != "historicalFiltered") throw Bad("Only a historical review can record separate Exchange/Purview evidence.");
+            if (!Guid.TryParse(separate.Id, out var exchangeId) || exchangeId == Guid.Empty) throw Bad("Invalid separate Exchange/Purview capture ID.");
+            Digest(separate.Sha256, "separate Exchange/Purview capture digest");
+            if (!e.Areas.Any(a => a is "Exchange" or "Purview") || e.Capture.ExchangeCapture is not { } carried
+                || carried.Id != separate.Id || !EvidenceIntegrity.Verify(carried, separate.Sha256))
+                throw Bad("The recorded separate Exchange/Purview evidence does not match the selection or the carried capture.");
+        }
         if (!EvidenceIntegrity.Verify(e.Capture, e.Capture.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
             throw Bad("Scoped evidence failed its integrity check.");
     }

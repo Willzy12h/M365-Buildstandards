@@ -20,6 +20,11 @@ public sealed class ScopedCheckEvidence
     [JsonRequired] public List<string> ControlIds { get; set; } = new();
     [JsonRequired] public List<string> CollectionKeys { get; set; } = new();
     public ScopedSourceCapture? SourceCapture { get; set; }
+    /// <summary>
+    /// Historical review only: the separately captured or imported Exchange/Purview evidence that the derived capture
+    /// carries in place of the source's own, as the full assessment uses it. Absent when none was used.
+    /// </summary>
+    public ScopedSourceCapture? SeparateExchange { get; set; }
     [JsonRequired] public TenantSnapshot Capture { get; set; } = new();
     [JsonRequired] public AssessmentResult Assessment { get; set; } = new();
     [JsonRequired] public string IntegrityDigest { get; set; } = "";
