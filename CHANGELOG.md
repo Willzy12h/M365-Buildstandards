@@ -1,5 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Integrated read-only Exchange/Purview capture verifies the returned confirmed account as well as tenant/resource before every collection; unpinned, unknown or mismatched accounts refuse rather than yielding empty-success evidence. Manual unpinned exports retain their historical meaning.
+
+
 - Add a shared registered read-only report core for users/assigned licence details, Intune devices, MFA registration, sign-ins and directory audit, with separate strict immutable evidence and HTML/CSV/JSON/Excel exports. Preserve failed/partial/cancelled reads, exact identities and unknown values; reuse existing Graph authentication and authorised scopes. Reports UI/CLI and live acceptance remain pending; new AuditLog access is proposed only.
 - Registered reports keep malformed, zero or duplicate identities and empty required licence text as explicit partial rows instead of discarding the report; read at most 5,000 rows per section (keeping returned rows when a later page fails, is cancelled or times out); query logs with the documented `ge`/`le` operators without `$select`; and refuse report access through a Graph client that cannot be restricted to report routes.
 
