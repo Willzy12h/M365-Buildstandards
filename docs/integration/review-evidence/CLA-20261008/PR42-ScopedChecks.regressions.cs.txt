@@ -1,0 +1,135 @@
+using System.Text.Json.Nodes;
+using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Diagnostics;
+using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Engine.Assessment;
+using BDIT.TenantToolkit.Engine.Checks;
+using BDIT.TenantToolkit.Engine.Evidence;
+using BDIT.TenantToolkit.Engine.Standards;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace BDIT.TenantToolkit.Tests;
+
+// Scratch review tests for PR #42. Not for commit.
+public class ZzReviewScopedTests(ITestOutputHelper output)
+{
+    public static IEnumerable<object[]> Releases() => Directory.GetFiles(StandardsDir(), "2026.*.json")
+        .Select(f => new object[] { Path.GetFileName(f) });
+
+    private static string StandardsDir() => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards"));
+
+    private static (StandardCatalogue, TenantProfile) Real(string file)
+    {
+        var standard = StandardsLoader.Parse(File.ReadAllText(Path.Combine(StandardsDir(), file)), file);
+        standard.IntegrityDigest = new string('b', 64);
+        var profile = TestData.Profile();
+        profile.Parameters.OfficeLocations = OfficeLocationValidator.ParseLines("HQ | Head office | 8.8.8.0/24");
+        return (standard, profile);
+    }
+
+    private static TenantSnapshot Seeded(StandardCatalogue standard)
+    {
+        var s = TestData.Snapshot(standard);
+        if (s.Collections.TryGetValue("authenticationMethods", out var am))
+        { am.Items.Add(new JsonObject { ["id"] = "FIDO2", ["state"] = "enabled" }); am.Count = am.Items.Count; }
+        return s;
+    }
+
+    [Theory, MemberData(nameof(Releases))]
+    public void Every_area_and_control_builds_a_selection(string file)
+    {
+        var (standard, profile) = Real(file);
+        foreach (var area in CheckSelection.Areas)
+            if (ControlInstances.All(standard, profile).Any(c => ControlAreas.For(c) == area))
+                CheckSelection.ForArea(standard, profile, area);
+        foreach (var c in ControlInstances.All(standard, profile)) CheckSelection.ForControl(standard, profile, c.Id);
+    }
+
+    // Undeclared dependency hunt: make every collection outside a control's declared dependencies unusable and
+    // compare the full assessor's finding for that control against the finding over complete evidence.
+    [Theory, MemberData(nameof(Releases))]
+    public void Declared_dependencies_are_sufficient_for_the_existing_assessor(string file)
+    {
+        var (standard, profile) = Real(file);
+        var engine = new AssessmentEngine(new FixedClock(), "test");
+        var complete = Seeded(standard);
+        var baseline = engine.Assess(complete, standard, profile, TestData.Mappings(), [], "r").Findings.ToDictionary(f => f.ControlId);
+        var failures = new List<string>();
+        foreach (var control in ControlInstances.All(standard, profile))
+        {
+            var deps = CheckSelection.ForControl(standard, profile, control.Id).CollectionKeys;
+            var degraded = Seeded(standard);
+            foreach (var key in degraded.Collections.Keys.ToList())
+                if (!deps.Contains(key)) degraded.Collections[key] = new CollectionCapture { Status = CaptureStatus.Error, Error = "x", Items = new() };
+            degraded.Complete = false;
+            var f = engine.Assess(degraded, standard, profile, TestData.Mappings(), [], "r").Findings.Single(x => x.ControlId == control.Id);
+            var b = baseline[control.Id];
+            if (f.Status != b.Status) failures.Add($"{control.Id}: {b.Status} -> {f.Status} ({f.Reason})");
+        }
+        output.WriteLine(string.Join("\n", failures));
+        Assert.Empty(failures);
+    }
+
+    [Theory, MemberData(nameof(Releases))]
+    public void Selected_assessment_matches_full_assessment_over_complete_evidence(string file)
+    {
+        var (standard, profile) = Real(file);
+        var engine = new AssessmentEngine(new FixedClock(), "test");
+        var snap = Seeded(standard);
+        var full = engine.Assess(snap, standard, profile, TestData.Mappings(), [], "r").Findings.ToDictionary(f => f.ControlId);
+        var failures = new List<string>();
+        foreach (var area in CheckSelection.Areas.Where(a => ControlInstances.All(standard, profile).Any(c => ControlAreas.For(c) == a)))
+            foreach (var f in engine.AssessSelected(snap, standard, profile, TestData.Mappings(), [], "r", CheckSelection.ForArea(standard, profile, area)).Findings)
+                if (f.Status != full[f.ControlId].Status || f.Reason != full[f.ControlId].Reason) failures.Add($"{f.ControlId}: {full[f.ControlId].Status} vs {f.Status}");
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void Historical_review_of_unhashed_source_reports_derived_integrity_as_verified()
+    {
+        var catalogue = TestData.Standard(); catalogue.IntegrityDigest = new string('a', 64);
+        var profile = TestData.Profile(); var source = TestData.Snapshot(catalogue); // no integrity digest recorded
+        Assert.Equal(SnapshotIntegrityState.NotRecorded, AssessmentEngine.IntegrityOf(source));
+        var record = new ScopedCheckService(new FixedClock(), "test", NullLog.Instance).ReviewHistorical(source, catalogue, profile,
+            CheckSelection.ForControl(catalogue, profile, "CA-001"), TestData.Mappings(), [], "r");
+        // The structured integrity state should not upgrade an unrecorded source to Verified.
+        Assert.Equal(SnapshotIntegrityState.NotRecorded, record.Assessment.SnapshotIntegrity);
+    }
+
+    [Fact]
+    public void Large_selected_dependency_cannot_be_stored()
+    {
+        using var root = new TempRoot();
+        var catalogue = TestData.Standard(); catalogue.IntegrityDigest = new string('a', 64);
+        var profile = TestData.Profile(); var source = TestData.Snapshot(catalogue);
+        var ca = source.Collections["conditionalAccess"];
+        var pad = new string('x', 1000);
+        for (var i = 0; i < 9000; i++) ca.Items.Add(new JsonObject { ["id"] = Guid.NewGuid().ToString(), ["displayName"] = "P" + i, ["pad"] = pad });
+        ca.Count = ca.Items.Count;
+        var record = new ScopedCheckService(new FixedClock(), "test", NullLog.Instance).ReviewHistorical(source, catalogue, profile,
+            CheckSelection.ForControl(catalogue, profile, "CA-001"), TestData.Mappings(), [], "r");
+        var ex = Record.Exception(() => new ScopedCheckStore(root.Paths).Save(record, catalogue, profile));
+        output.WriteLine(ex?.Message ?? "saved");
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void Scoped_review_omits_release_lineage_warning_that_full_assessment_shows()
+    {
+        using var root = new TempRoot();
+        var catalogue = TestData.Standard(); catalogue.IntegrityDigest = new string('a', 64);
+        var profile = TestData.Profile(); var source = TestData.Snapshot(catalogue);
+        var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var mappings = TestData.Mappings();
+        mappings.ByControl["CA-001"] = new ManagedObjectMapping { ControlId = "CA-001", ObjectId = "aaaaaaaa-0000-4000-8000-000000000001", Collection = "conditionalAccess", Release = "2026.09.3" };
+        store.SaveMappings(mappings);
+        var full = AssessmentContext.Assess(new AssessmentEngine(new FixedClock(), "test"), store, source, catalogue, profile, "r");
+        Assert.StartsWith("Release lineage:", full.Findings.Single(f => f.ControlId == "CA-001").Reason);
+        var scoped = new ScopedCheckService(new FixedClock(), "test", NullLog.Instance).ReviewHistorical(source, catalogue, profile,
+            CheckSelection.ForControl(catalogue, profile, "CA-001"), store.LoadMappings(profile.TenantId), [], "r");
+        Assert.StartsWith("Release lineage:", scoped.Assessment.Findings.Single().Reason);
+    }
+}

@@ -39,6 +39,8 @@ Launch the application and go straight to these two pages.
 
 **Policy automation → Policy inputs and imports.** This is the generated input form. Each field shows what it accepts and its current status: supplied, needed, or which default applies. Type a deliberately wrong value, for example `abc` in a field asking for object identifiers, and confirm the problem appears beside that field rather than as a dialogue.
 
+**Scripts & Reports.** Search for "trace", open *Message trace* and leave it empty: each required field and the "at least one of" rule are listed, and Copy stays off. Fill the dates and one recipient; the command preview shows only what you filled plus the defaults the form names. With no client selected the banner is grey and says to select one; with a client selected it shows the client's name, tenant ID and colour. **Copy script…** asks you to confirm the tenant and every value first. Do not run the copied script during an offline review.
+
 ### Checks only a person can make (about 15 minutes)
 
 The build is checked automatically on every change: every page is drawn at three window sizes, every button and
