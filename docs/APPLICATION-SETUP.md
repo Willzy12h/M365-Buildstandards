@@ -92,3 +92,21 @@ Stop finishes the current registration sequence (five-minute action budget) and 
 - [Engineer app assignment](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-approleassignedto?view=graph-rest-1.0).
 
 Source and synthetic tests do not establish live WAM, bootstrap consent, the two-approval sequence, the local approval port's reuse between approvals, GDAP, grant propagation or portal branding acceptance. Test the complete flow in the authorised disposable tenant first.
+
+## Registered report access — source implementation, live-unverified (PR #44)
+
+Reports reuse the verified account, tenant, permission mode, Graph audience and existing token provider. They do not create another registration, acquire interactive consent, add application permissions or retry interactively. The assessment registration remains read-only; the deployment registration does not gain writes from a report. Existing consent and role restrictions still apply.
+
+| Report | Delegated access checked | Impact and limits |
+| --- | --- | --- |
+| Users and assigned licences | Existing `User.Read.All` and `Organization.Read.All`, or documented higher `Directory.Read.All` | Reuses current inventory access, then reads `/users/{id}/licenseDetails` by exact identity. Microsoft lists `LicenseAssignment.Read.All` as least privilege for licence details/subscriptions; no new grant is introduced to replace the already authorised scopes. Supported directory/licence-read roles may be required. |
+| Intune devices | Existing `DeviceManagementManagedDevices.Read.All` | Managed-device inventory only; tenant Intune licensing and account access are required. No device actions. |
+| MFA registration | Proposed `AuditLog.Read.All` | A genuinely new delegated report scope if absent. Microsoft documents Reports Reader, Security Reader, Security Administrator or Global Reader. Registration does not establish enforcement or successful use; contact values and recovery codes are excluded. |
+| Sign-in logs | Proposed `AuditLog.Read.All` | Supported reader/security roles and applicable Entra licensing/retention are required. The adapter does not collect Conditional Access policy details, which can require further permissions. No additional policy permission is requested. |
+| Directory audit | Existing `Directory.Read.All` when present; otherwise proposed `AuditLog.Read.All` | Microsoft's endpoint documents Directory.Read.All as a higher permission. Supported report/security reader roles remain required. Directory audit is separate from Exchange unified audit. |
+
+`AuditLog.Read.All` is **proposed access, not granted**. Before enabling it live, William must review the report purpose, delegated scope, affected assessment/deployment app name and application ID, current grants and consent change. The registration/setup scope declarations are unchanged by PR #44. Missing access produces **Not attempted** with a next step; existing authorised contexts are reused. No source development performs consent or live calls.
+
+Log queries accept an explicit UTC range of no more than 31 days; this is a local read bound, not a retention guarantee. Each section is bounded to 5,000 rows and each run to five minutes. Missing, failed, cancelled, truncated and malformed reads retain their status; a successful empty response is distinct. Available retention remains unknown even after successful pagination. Licensing, roles, retention and Microsoft behaviour need William's separately approved live acceptance. These reports are separate evidence and cannot satisfy deployment before-evidence.
+
+Official references inspected on 8 October 2026: [licence details](https://learn.microsoft.com/en-us/graph/api/user-list-licensedetails?view=graph-rest-1.0), [subscriptions](https://learn.microsoft.com/en-us/graph/api/subscribedsku-list?view=graph-rest-1.0), [managed devices](https://learn.microsoft.com/en-us/graph/api/intune-devices-manageddevice-list?view=graph-rest-1.0), [registration](https://learn.microsoft.com/en-us/graph/api/authenticationmethodsroot-list-userregistrationdetails?view=graph-rest-1.0), [sign-ins](https://learn.microsoft.com/en-us/graph/api/signin-list?view=graph-rest-1.0) and [directory audit](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list?view=graph-rest-1.0).

@@ -47,6 +47,14 @@ The export distinguishes fixed settings, reviewable defaults and unresolved clie
 
 An uncertain reviewed change or LAPS operation blocks completion of every job for that tenant. An unresolved write on a job's control also blocks it, including a historical run against an older standard. A new job, capture or plan does not clear that uncertainty. Read the blocker and [unresolved-write guidance](UNRESOLVED-WRITES.md); retain the original evidence and arrange the documented reconciliation or recovery review. Do not repeat the write to make the job appear complete.
 
+## Check one area or requirement
+
+On **Assessment**, open **Check an area or requirement**. Select an area or a named requirement and click **Check this area** or **Check this requirement**. A verified current connection reads only its required collections; it does not require a full capture first or change anything in the tenant. To review an existing capture instead, tick **Review stored evidence instead of reading live**. That review retains the original capture time and cannot establish a fresh sign-in.
+
+Read the separate **Partial check result and evidence** field, including any unable-to-check reasons. **Copy partial result** includes the saved evidence location. Partial results never replace the full assessment or plan and cannot satisfy complete before-evidence for deployment. Missing read permissions, failed reads and unsupported Exchange/Purview evidence remain unknown; this button does not perform separate Exchange authentication or turn Graph access into Exchange access.
+
+For offline automation on a development/CI installation, `bdit check --snapshot <file> --area Entra` (or `--control <id>`, optionally with `--exchange-snapshot <file>` as for `report`) emits a separate historical scoped-check JSON wrapper to stdout, using the installation's saved client and verified standard. It never connects or writes installation evidence. The current portable package still excludes the CLI until INT-074 hosting and native package checks are implemented.
+
 ## Handoff checklist
 
 Record tenant/job intention, responsible engineer/reviewer, package and standard/digest, current capture and assessment IDs, applicable controls, retained external protection, approved exceptions and expiry, manual/prerequisite owners, exact plan/run references, uncertain writes, remaining activation/effectiveness checks and the next review date. Include evidence locations through the secure custodian process. Do not transfer caches or assume the next engineer inherits authentication or approval. Use [workspace continuity](WORKSPACE-CONTINUITY.md) and [the operating model](INTERNAL-OPERATING-MODEL.md).

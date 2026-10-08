@@ -14,6 +14,83 @@ namespace BDIT.TenantToolkit.Tests;
 
 public class GraphClientTests
 {
+    [Fact]
+    public async Task Report_context_reuses_provider_but_cannot_write_even_in_deployment_mode()
+    {
+        var (source, handler, tokens) = Create();
+        var report = source.ForReports();
+        Assert.Equal(source.TenantId, report.TenantId); Assert.Equal(source.Mode, report.Mode);
+        Assert.All(GraphRouteAllowList.ForReports().Routes, r => Assert.False(r.Writable));
+        Assert.Null(GraphRouteAllowList.ForReports().MatchRead(GraphApi.V1, "/users/" + TestData.Operator + "/authentication/methods"));
+        Assert.NotNull(GraphRouteAllowList.ForReports().MatchRead(GraphApi.V1, "/users/" + TestData.Operator + "/licenseDetails"));
+        await Assert.ThrowsAsync<WriteDeniedException>(() => report.WriteAsync(GraphApi.V1, GraphWriteMethod.Post, "/users", new JsonObject(), CancellationToken.None));
+        Assert.Empty(handler.Requests); Assert.Equal(0, tokens.Calls);
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[]}");
+        Assert.Empty(await report.GetAllAsync(GraphApi.V1, "/reports/authenticationMethods/userRegistrationDetails", CancellationToken.None));
+        Assert.Equal(1, tokens.Calls); Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Report_pagination_failure_cannot_return_a_successful_partial_list()
+    {
+        var (source, handler, _) = Create(); var report = source.ForReports();
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[{\"id\":\"synthetic-event\"}],\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=synthetic-page\"}");
+        handler.Enqueue(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"Authorization_RequestDenied\",\"message\":\"Synthetic page denied\"}}");
+        await Assert.ThrowsAsync<PermissionException>(() => report.GetAllAsync(GraphApi.V1, "/auditLogs/signIns", CancellationToken.None));
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task Bounded_report_read_stops_requesting_pages_once_the_bound_is_reached()
+    {
+        var (source, handler, _) = Create(); var report = source.ForReports();
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[{\"id\":\"synthetic-1\"},{\"id\":\"synthetic-2\"}],\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=synthetic-page\"}");
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[{\"id\":\"synthetic-3\"}]}");
+        var items = new List<JsonObject>();
+        await foreach (var item in report.GetBoundedAsync(GraphApi.V1, "/auditLogs/signIns", 2, CancellationToken.None)) items.Add(item);
+        Assert.Equal(["synthetic-1", "synthetic-2"], items.Select(i => i["id"]!.GetValue<string>()));
+        Assert.Single(handler.Requests);
+        items.Clear();
+        await foreach (var item in report.GetBoundedAsync(GraphApi.V1, "/auditLogs/signIns", 5, CancellationToken.None)) items.Add(item);
+        Assert.Single(items); Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Theory]
+    [InlineData("https://graph.example.invalid/v1.0/auditLogs/signIns?$skiptoken=synthetic-page")]
+    [InlineData("https://graph.microsoft.com/beta/auditLogs/signIns?$skiptoken=synthetic-page")]
+    [InlineData("https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$skiptoken=synthetic-page")]
+    public async Task Bounded_report_read_keeps_route_and_next_link_checks(string nextLink)
+    {
+        var (source, handler, _) = Create(); var report = source.ForReports();
+        await Assert.ThrowsAsync<WriteDeniedException>(async () => { await foreach (var _ in report.GetBoundedAsync(GraphApi.V1, "/groups", 10, CancellationToken.None)) { } });
+        Assert.Empty(handler.Requests);
+        handler.Enqueue(HttpStatusCode.OK, "{\"value\":[{\"id\":\"synthetic-1\"}],\"@odata.nextLink\":\"" + nextLink + "\"}");
+        var items = new List<JsonObject>();
+        await Assert.ThrowsAsync<GraphRequestException>(async () => { await foreach (var item in report.GetBoundedAsync(GraphApi.V1, "/auditLogs/signIns", 10, CancellationToken.None)) items.Add(item); });
+        Assert.Single(items); Assert.Single(handler.Requests);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => { await foreach (var _ in report.GetBoundedAsync(GraphApi.V1, "/auditLogs/signIns", 50_001, CancellationToken.None)) { } });
+    }
+
+    [Fact]
+    public async Task Connected_tenant_reports_refuse_a_graph_client_that_cannot_be_restricted()
+    {
+        var (client, handler, _) = Create();
+        var restricted = new ConnectedTenant(TestData.Session(), client, null).ForReports();
+        await Assert.ThrowsAsync<WriteDeniedException>(() => restricted.GetAllAsync(GraphApi.V1, "/identity/conditionalAccess/policies", CancellationToken.None));
+        Assert.Empty(handler.Requests);
+        var unrestricted = new ConnectedTenant(TestData.Session(), new UnrestrictedGraph(), null);
+        Assert.Throws<ConfigurationException>(() => unrestricted.ForReports());
+    }
+
+    private sealed class UnrestrictedGraph : IGraphClient
+    {
+        public string TenantId => TestData.TenantA;
+        public SessionMode Mode => SessionMode.Assessment;
+        public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
+        public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
+        public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
