@@ -2,6 +2,10 @@
 
 ## Astra continuation — 8 October 2026
 
+PR #42 is ready for independent review at `6a511cf07f1f615fdeee0138147d2fcc9c7a53ce`, not merged. Exact-head Windows push `37717009564` and PR `37717013690` passed: 1,117 Engine + 130 App tests, 45 layouts / 113 synthetic images, zero binding issues, verified standards manifest and fresh 300-file extracted startup/shutdown. It implements actual dependency-only desktop checks and the same evaluator for offline CLI historical filtering, with separate strict partial evidence. Initial harness-integration failures are recorded in INT-076 on that branch; corrected runs do not close human/live gates. Portable CLI hosting is still unimplemented.
+
+PR #43 continues read-only naming policy/audit in the engine. Local full suite at `330d1eb` passed 1,098 tests; exact-head Windows checks are running. Reports/UI exposure, authoring-pipeline integration and Microsoft limits not stated by the inspected resource pages remain explicitly open. No historical names or catalogue bytes were changed. Core naming documentation: NAMING-CONVENTION-AND-AUDIT-2026.10.08.md. Claude review is needed before merging newly implemented work under the delegation; William's previous specific merge approval applied to #36–#41.
+
 William authorised merging PRs #36–#41 and continuing the master programme. This authorises the reviewed source/decision work, not live actions, main promotion, version changes, tags or publication. Preserve exact-head checks and safeguards.
 
 PR #36 merged as `d5bbe2453d642a2c096bbfd51355724dfb5dba68` after exact-head Windows push run `37706807976` passed at `0fa23e6`: 1,061 Engine + 126 App tests, 45 native layouts, zero binding issues and extracted-package startup/shutdown. Integration merge CI run `37710467954` passed. AST-20261008-01–04 are implemented, human/live acceptance remains open.
