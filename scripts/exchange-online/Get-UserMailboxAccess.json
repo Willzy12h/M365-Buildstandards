@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.user-mailbox-access",
+  "name": "Mailboxes a user can access",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists the mailboxes one user has Full Access, Send As or Send on Behalf on.",
+  "keywords": [
+    "user access",
+    "full access",
+    "send as",
+    "leaver",
+    "Get-EXOMailboxPermission"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-UserMailboxAccess.ps1",
+  "scriptSha256": "31ad114d6e261dd12b10b738b5784efb99dddfc3eb379ba9687c9560b9f2c2c3",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "User",
+      "label": "User",
+      "type": "string",
+      "help": "The user's sign-in name.",
+      "required": true,
+      "format": "upn"
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes to check",
+      "type": "integer",
+      "help": "Stops after this many mailboxes and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "MailboxType",
+      "Permission",
+      "IsInherited"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Full Access granted through a group is shown against the group, not the user."
+  ]
+}

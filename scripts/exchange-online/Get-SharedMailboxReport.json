@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.shared-mailboxes",
+  "name": "Shared mailbox report",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists shared mailboxes and whether direct sign-in is blocked, with address list visibility, hold, archive and quota.",
+  "keywords": [
+    "shared mailbox",
+    "sign-in",
+    "blocked",
+    "Get-User"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-SharedMailboxReport.ps1",
+  "scriptSha256": "98d8d68fe7fdb31c5a878038a21ea5748cb0d13fe6c3b0b3a5e54b9fde2fda5e",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "MaxRows",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "Stops after this many shared mailboxes and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "DisplayName",
+      "PrimarySmtpAddress",
+      "SignInBlocked",
+      "HiddenFromAddressLists",
+      "LitigationHoldEnabled",
+      "ArchiveStatus",
+      "ProhibitSendReceiveQuota"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Sign-in blocked comes from Exchange's view of the account; confirm in Entra before acting."
+  ]
+}

@@ -7,6 +7,7 @@ using BDIT.TenantToolkit.Engine;
 using BDIT.TenantToolkit.Engine.Assessment;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Scripts;
 using BDIT.TenantToolkit.Engine.Standards;
 using BDIT.TenantToolkit.Engine.Workflow;
 
@@ -71,6 +72,8 @@ public static class Program
             "upgrade-impact" => UpgradeImpact(options),
             "jobs" => Jobs(options),
             "job" => Job(options),
+            "scripts" => Scripts(options),
+            "script" => Script(options),
             "help" or "--help" or "-h" => Help(),
             _ => Unknown(command)
         };
@@ -127,6 +130,17 @@ public static class Program
                   unattached or unreadable records. A complete job grants no authority to change a tenant.
                   --snapshot names the current capture the recorded objects are checked against;
                   without it that check is skipped and the output says so.
+
+              bdit scripts [--search "<words>"]
+                  List the reviewed script library by area, or the items matching every word.
+
+              bdit script --id <id> [--copy] [--tenant <id>] [--tenant-name "<name>"] [--account <upn>]
+                          [--out <file>] [--<Field> <value> ...]
+                  Without --copy, show the item's purpose, needs and form fields.
+                  With --copy, check the fields and print the standalone Copy script, or save it with --out
+                  (never over an existing file). Blank optional fields are ignored; separate several values
+                  with commas. The script signs in to Exchange Online itself and refuses another tenant.
+                  Nothing is run here.
 
               bdit verify-restore --folder <dir>
                   Re-check a separately restored evidence folder against its recorded checksums.
@@ -405,6 +419,82 @@ public static class Program
     }
 
     // ---- argument handling ----------------------------------------------------------------------------------------
+
+    private static int Scripts(IReadOnlyDictionary<string, string> options)
+    {
+        var catalogue = ScriptCatalogue.Shipped;
+        var entries = options.TryGetValue("search", out var search) ? catalogue.Search(search) : catalogue.Entries;
+        Console.WriteLine($"{entries.Count} of {catalogue.Entries.Count} library item(s). None has been tested in a tenant yet.");
+        foreach (var area in entries.GroupBy(e => e.Manifest.Area))
+        {
+            Console.WriteLine();
+            Console.WriteLine(area.Key);
+            foreach (var entry in area)
+                Console.WriteLine($"  {entry.Manifest.Id,-28} {(entry.Manifest.Mode == ScriptMode.ReadOnly ? "Read  " : "Change")} {entry.Manifest.Name}");
+        }
+        return 0;
+    }
+
+    private static readonly HashSet<string> ScriptOptions = new(StringComparer.OrdinalIgnoreCase) { "id", "copy", "tenant", "tenant-name", "account", "out", "root" };
+
+    private static int Script(IReadOnlyDictionary<string, string> options)
+    {
+        var entry = ScriptCatalogue.Shipped.Find(Require(options, "id"));
+        var m = entry.Manifest;
+        if (!options.ContainsKey("copy"))
+        {
+            Console.WriteLine($"{m.Name} ({m.Id}) · {(m.Mode == ScriptMode.ReadOnly ? "read only" : "change, copy only")} · {m.Area}");
+            Console.WriteLine(m.Description);
+            Console.WriteLine("Needs: " + m.Prerequisites);
+            if (m.Roles.Count > 0) Console.WriteLine("Roles: " + string.Join(" or ", m.Roles));
+            Console.WriteLine("PowerShell: " + string.Join(" or ", m.SupportedRuntimes) + " · live status: not yet tested in a tenant");
+            Console.WriteLine();
+            foreach (var p in m.Parameters)
+            {
+                var kind = p.Type switch
+                {
+                    ScriptParameterType.Boolean => "tick box",
+                    ScriptParameterType.Enum => "one of " + string.Join(", ", p.Allowed!),
+                    ScriptParameterType.Integer => $"number {p.Minimum}-{p.Maximum}",
+                    ScriptParameterType.Date => "date YYYY-MM-DD",
+                    _ => (p.Format ?? ScriptValueFormat.Text).ToString().ToLowerInvariant()
+                };
+                var many = p.Array ? $", up to {p.MaxItems} values" : "";
+                var fallback = p.Default is null ? "" : $" [default {p.Default}]";
+                Console.WriteLine($"  --{p.Name}{(p.Required ? " *" : "")}  {p.Label}: {kind}{many}{fallback}");
+                Console.WriteLine($"      {p.Help}");
+            }
+            foreach (var rule in m.Rules)
+                Console.WriteLine(rule.Kind == ScriptRuleKind.AtLeastOne
+                    ? "  Rule: enter at least one of " + string.Join(", ", rule.Parameters!.Select(n => "--" + n))
+                    : $"  Rule: --{rule.Start} to --{rule.End} covers at most {rule.MaximumDays} days" + (rule.MaximumAgeDays is { } age ? $", starting no more than {age} days ago" : ""));
+            foreach (var limitation in m.Limitations) Console.WriteLine("  Limitation: " + limitation);
+            return 0;
+        }
+
+        var fields = options.Where(o => !ScriptOptions.Contains(o.Key)).ToDictionary(o => o.Key, o => (string?)o.Value, StringComparer.OrdinalIgnoreCase);
+        var binding = ScriptInputs.Bind(m, fields, DateTimeOffset.UtcNow);
+        if (!binding.IsValid)
+        {
+            foreach (var problem in binding.Problems) Console.Error.WriteLine("  " + problem);
+            throw new ConfigurationException($"The fields for {m.Id} are not complete; nothing was produced.");
+        }
+        options.TryGetValue("tenant", out var tenant);
+        options.TryGetValue("tenant-name", out var tenantName);
+        options.TryGetValue("account", out var account);
+        var script = ScriptCopy.Generate(entry, binding, new ScriptCopyTarget(tenant, tenantName, account), DateTimeOffset.UtcNow);
+        if (!options.TryGetValue("out", out var file) || file.Length == 0)
+        {
+            Console.Write(script);
+            return 0;
+        }
+        // A byte order mark keeps Windows PowerShell 5.1 reading any non-ASCII value correctly; an existing file is never replaced.
+        using (var stream = new FileStream(file, FileMode.CreateNew, FileAccess.Write))
+        using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(true)))
+            writer.Write(script);
+        Console.WriteLine("Copy script: " + Path.GetFullPath(file));
+        return 0;
+    }
 
     private static IReadOnlyDictionary<string, string> ParseOptions(IEnumerable<string> args)
     {

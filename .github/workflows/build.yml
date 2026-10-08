@@ -85,6 +85,21 @@ jobs:
             Write-Output '::notice title=Exchange read template::PowerShell 5.1 parse passed; injected write refused; no module loaded or tenant command executed.'
           } finally { Remove-Item -LiteralPath $mutation -ErrorAction SilentlyContinue }
 
+      # Parse only, then a synthetic run: a stand-in module answers every read, so no Microsoft module or tenant is used.
+      - name: Script library parse, Copy literals and synthetic run (PowerShell 5.1)
+        shell: powershell
+        run: |
+          ./build/Test-ScriptLibraryStubs.ps1 -Bdit src/BDIT.TenantToolkit.Cli/bin/Release/net10.0/bdit.dll -Library scripts
+          $copy = Join-Path $env:RUNNER_TEMP ('library-' + [guid]::NewGuid().ToString('N'))
+          Copy-Item -Recurse scripts $copy
+          try {
+            Add-Content -LiteralPath (Join-Path $copy 'exchange-online/Get-InboxRuleReport.ps1') -Value "`nSet-Mailbox -Identity x -ForwardingSmtpAddress y"
+            $refused = $false
+            try { ./build/Test-ScriptLibrary.ps1 -Library $copy } catch { $refused = $_.Exception.Message -like '*unsupported command*Set-Mailbox*' }
+            if (-not $refused) { throw 'The script library guard did not reject an injected write.' }
+            Write-Output '::notice title=Script library::PowerShell 5.1 parse and synthetic Copy runs passed; injected write refused; no Microsoft module or tenant used.'
+          } finally { Remove-Item -LiteralPath $copy -Recurse -Force -ErrorAction SilentlyContinue }
+
       - name: Verify fresh extraction and actual packaged first launch
         shell: powershell
         run: |
@@ -229,6 +244,9 @@ jobs:
             git ls-files --error-unmatch "src/BDIT.TenantToolkit.Engine/Reports/$file.cs" || exit 1
           done
           git ls-files --error-unmatch src/BDIT.TenantToolkit.Engine/Evidence/EvidenceStore.cs
+
+      - name: Script library pins are current
+        run: python3 build/Update-ScriptRegistry.py --check
 
       - name: Release pins and publisher checks
         shell: bash
