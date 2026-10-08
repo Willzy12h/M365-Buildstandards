@@ -118,6 +118,20 @@ A proposal must name exact mailbox/object, observed current values/permissions, 
 
 Required tests: strict manifests/contained paths/content pins, typed defaults/validation, hostile/injection-negative inputs and Copy output, PowerShell parser/runtime claims, cancellation/timeouts/bounds, wrong identity/schema, partial output and unconditional refusal to Run copy-only changes. No test requires live tenant access.
 
+## INT-074 — Portable offline CLI through the existing application host (proposed)
+
+Inspection of `build/Build-Portable.ps1` establishes that the ZIP deliberately ships one executable and excludes the developer/CI CLI. The master programme's portable `bdit` requirement is therefore not yet implemented. Do not advertise the current ZIP as providing it or ask field engineers to install the SDK.
+
+Proposed hosting contract:
+
+- Keep one application executable. Add a `bdit.cmd` launcher that invokes that same executable with an explicit `--cli` discriminator, passing the remaining arguments unchanged. Include the existing CLI assembly as a managed dependency, with no second apphost executable. Preserve its existing offline/read-only conformance tests and forbidden types.
+- Dispatch before creating the desktop `Workspace`, loading any connection/session or initialising broker/cache services. CLI mode must not open a window or initialise a desktop authentication context. It returns the existing CLI's actual exit code; exceptions must not fall back to desktop startup or a different process host.
+- Support console invocation and redirected stdout/stderr with a bounded Windows console bridge. Preserve already redirected handles; attach to the parent console only when needed. Do not allocate an unexpected interactive window or silently discard output. Test pipes, file redirection, argument paths containing spaces, unsuccessful commands and help against the extracted self-contained package.
+- This is a convenience wrapper for offline commands, not a new authentication or write route. A blocked executable remains blocked. The launcher must never select another host, change execution policy or bypass application control. Documentation retains the security-owner approval and independently trusted fingerprint route.
+- Extend package validation to assert exactly one executable, presence of the launcher/CLI dependency, real synthetic inventory/job/report command results, truthful failures and absence of desktop session/cache initialisation. Existing desktop startup/shutdown checks remain required.
+
+This changes the package/hosting contract and requires review and merge before implementation. It does not authorise a version bump, publishing, a second executable or live CLI authentication. The reusable publisher remains Claude's area; coordinate changed file counts and fresh candidate evidence rather than editing old pins.
+
 ## Delivery and review gates
 
 These are shared contracts, not implementation or acceptance evidence. Merge after independent review/exact checks under HANDOVER's delegation; then implement on successive claimed branches and extend the existing capability matrix, architecture and live run sheet. Workstreams retain the master's order and candidate milestones. Source implementations must not imply new live access has been granted. New candidate version authority, main promotion, tags, releases and publication remain separate. Keep Claude's reusable publisher and tracker ownership intact.
