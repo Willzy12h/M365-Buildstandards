@@ -1,3 +1,4 @@
+using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
@@ -90,6 +91,105 @@ public sealed class JobCompletionTests : IDisposable
         Assert.True(completion.Complete);
         Assert.Equal(4, completion.Verified);
         Assert.Equal("Complete: all 4 requirement(s) verified.", completion.Claim);
+    }
+
+    [Fact]
+    public void Accepted_passes_do_not_complete_a_job_with_an_unresolved_tenant_write()
+    {
+        foreach (var control in Controls) Observe(control);
+        var run = new DeploymentRun
+        {
+            Id = Guid.NewGuid().ToString(), PlanId = Guid.NewGuid().ToString(), TenantId = TestData.TenantA,
+            StartedAt = Timestamps.Format(_clock.UtcNow), Status = RunStatus.ReviewRequired,
+            Results = [new RunResult { ControlId = "CA-001", PlannedAction = nameof(PlanAction.Create),
+                Status = ResultStatus.Error, WriteAcceptance = WriteAcceptance.Unknown,
+                Configuration = ConfigurationVerification.Unknown }]
+        };
+        _store.SaveRun(run);
+
+        var completion = Completion();
+
+        Assert.False(completion.Complete);
+        Assert.Contains(completion.Blockers, reason => reason.Contains(run.Id));
+        Assert.Equal(RequirementState.Outstanding, Requirement(completion, "CA-001").State);
+        Assert.StartsWith("Not complete", completion.Claim);
+    }
+
+    [Fact]
+    public void A_second_semantic_identity_cannot_hide_a_failed_outcome_for_the_same_requirement()
+    {
+        foreach (var control in Controls) Observe(control);
+        Assert.Throws<BDIT.TenantToolkit.Core.SafetyViolationException>(() => _workflow.Record(
+            TestData.TenantA, _job.Id, _profile, _standard, new ObservationRequest
+            {
+                SemanticId = "different.requirement", ControlId = "CA-001", Status = ObservationStatus.Fail,
+                Reason = "The current requirement failed.", ReviewDueAt = _clock.UtcNow.AddDays(30),
+                SnapshotId = _capture.Id
+            }, Actor));
+    }
+
+    [Fact]
+    public void An_exclusively_locked_run_keeps_completion_readable_and_outstanding()
+    {
+        foreach (var control in Controls) Observe(control);
+        var run = new DeploymentRun
+        {
+            Id = Guid.NewGuid().ToString(), PlanId = Guid.NewGuid().ToString(), TenantId = TestData.TenantA,
+            StartedAt = Timestamps.Format(_clock.UtcNow), Status = RunStatus.Completed,
+            Results = [new RunResult { ControlId = "CA-001", PlannedAction = nameof(PlanAction.Create),
+                Status = ResultStatus.NotRun, WriteAcceptance = WriteAcceptance.NotAttempted }]
+        };
+        _store.SaveRun(run);
+        Assert.True(Completion().Complete);
+        using (var locked = new FileStream(_store.RunFile(run), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            var completion = Completion();
+            Assert.False(completion.Complete);
+            Assert.Contains(completion.Blockers, reason => reason.Contains("could not be read"));
+            Assert.All(completion.Requirements, r => Assert.True(r.Outstanding));
+        }
+        Assert.True(Completion().Complete);
+    }
+
+    [Fact]
+    public void Previously_stored_conflicting_identities_block_completion_without_rewriting_history()
+    {
+        foreach (var control in Controls) Observe(control);
+        var job = _store.RequireJob(TestData.TenantA, _job.Id);
+        var original = _store.LoadObservation(TestData.TenantA, job.ObservationIds[0])!;
+        var originalId = original.Id;
+        original.Id = Guid.NewGuid().ToString();
+        original.SemanticId = "different.requirement";
+        original.Status = ObservationStatus.Fail;
+        _store.CreateObservation(original);
+        job.ObservationIds.Add(original.Id);
+        _store.ReplaceJob(job);
+
+        var completion = Completion();
+
+        Assert.False(completion.Complete);
+        Assert.Contains(completion.Blockers, reason => reason.Contains("conflicting outcome identities"));
+        Assert.Equal(RequirementState.Outstanding, Requirement(completion, "CA-001").State);
+        Assert.Equal("Needs review", Requirement(completion, "CA-001").Outcome);
+        Assert.Equal(ObservationStatus.Pass, _store.LoadObservation(TestData.TenantA, originalId)!.Status);
+        Assert.Equal(ObservationStatus.Fail, _store.LoadObservation(TestData.TenantA, original.Id)!.Status);
+    }
+
+    [Theory]
+    [InlineData(WriteAcceptance.NotAttempted, ResultStatus.Error, true)]
+    [InlineData(WriteAcceptance.Unknown, ResultStatus.NotRun, true)]
+    [InlineData(WriteAcceptance.Unknown, ResultStatus.Error, false)]
+    public void Completion_distinguishes_unattempted_reads_from_uncertain_writes(string acceptance, string status, bool complete)
+    {
+        foreach (var control in Controls) Observe(control);
+        _store.SaveRun(new DeploymentRun
+        {
+            Id = Guid.NewGuid().ToString(), PlanId = Guid.NewGuid().ToString(), TenantId = TestData.TenantA,
+            StartedAt = Timestamps.Format(_clock.UtcNow), Status = RunStatus.ReviewRequired,
+            Results = [new RunResult { ControlId = "CA-001", PlannedAction = nameof(PlanAction.Create),
+                Status = status, WriteAcceptance = acceptance, Configuration = ConfigurationVerification.Unknown }]
+        });
+        Assert.Equal(complete, Completion().Complete);
     }
 
     [Theory]

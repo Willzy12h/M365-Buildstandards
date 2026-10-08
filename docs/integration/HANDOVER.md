@@ -1,5 +1,14 @@
 # Handover and priorities
 
+## Astra continuation — 8 October 2026
+
+William authorised merging PRs #36–#41 and continuing the master programme. This authorises the reviewed source/decision work, not live actions, main promotion, version changes, tags or publication. Preserve exact-head checks and safeguards.
+
+PR #36 merged as `d5bbe2453d642a2c096bbfd51355724dfb5dba68` after exact-head Windows push run `37706807976` passed at `0fa23e6`: 1,061 Engine + 126 App tests, 45 native layouts, zero binding issues and extracted-package startup/shutdown. Integration merge CI run `37710467954` is pending at the time this entry was prepared; read its actual outcome before claiming merge validation. AST-20261008-01–04 are implemented, human/live acceptance remains open.
+
+**Next:** merge and revalidate authentication/guidance/shared contracts/inventory/acceptance PRs #37–#41 without losing their append-only records; then implement scoped dependency-only checks and naming audit, extend the existing capability evidence, deliver reports/navigation and the safe script library. Obtain exact-source Windows/package evidence for each candidate. The current ZIP still excludes the CLI; INT-074's approved hosting contract requires implementation. Claude retains publisher ownership.
+
+
 **Current state, 7 October 2026 (night):** PR #19–#28 are merged into `integration` (latest `7edadb8`, PR #28, exact-head CI run 37687028581: 1029 Engine + 119 App tests, harness 42 layouts / 0 binding issues / 0 tenant calls, fresh 299-file package). PR #29 (`9ca5ebb`) moved CI off Node 20 and is merged. The source is `1.1.0-preview.19`, unpublished. PR #22–#28 merged on William's approval without an Astra/Codex review, so the next agent's first task is an independent post-merge review of them. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md). Read [PRODUCT-FEEDBACK-REGISTER.md](PRODUCT-FEEDBACK-REGISTER.md) and [PRODUCT-AGENT-HANDOFF.md](PRODUCT-AGENT-HANDOFF.md). Live tenant actions, promotion to `main` and publication still need William's explicit approval. Older Preview.15–18 evidence below is historical; current checks bind the exact source commit. Do not copy private client exports into source or tests.
 
 ## Owner delegation of commits and merges — 7 October 2026

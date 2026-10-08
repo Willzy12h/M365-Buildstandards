@@ -103,6 +103,18 @@ The engineer-experience and legacy-migration reviewers independently read all fo
 
 No remaining blocking finding in the independently reviewed export/transfer/package source scope. This does not close live, native or contract-merge gates. Claude has not performed a review in this session. A later reviewer appends new findings without rewriting these observations.
 
+## Astra post-merge review — 8 October 2026 (in progress)
+
+Baseline: integration `8f0285a48bdd719914037b0ab2d9eeb6e7f6cc2b`; draft PR #36. These are confirmed projection/recording defects, not a demonstrated bypass of deployment execution guards. No human/live acceptance or broad feedback item is closed.
+
+| ID | Reviewer / scope | Confirmed defect | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261008-01 | Astra / completion | `JobCompletion.Build` could claim completion with an intact unresolved deployment write for a requirement | Reuse strict existing run, recovery, reviewed-change and LAPS history checks as read-only completion blockers | `Accepted_passes_do_not_complete_a_job_with_an_unresolved_tenant_write` failed on baseline; 1,058 engine/CLI tests passed; full solution cross-build passed with zero warnings/errors. Windows/native and independent review pending |
+| AST-20261008-02 | Astra / requirement identity | `JobWorkflow.CheckSupersession` allowed a second semantic identity for the same instance; completion selected the first outcome | Reject divergent identities during recording; block completion for already persisted conflicting outcome/decision groups without changing historical bytes | `A_second_semantic_identity_cannot_hide_a_failed_outcome_for_the_same_requirement` failed on baseline; persisted-history regression passed with 1,058 engine/CLI tests; strict cross-build passed. Windows/native and independent review pending |
+| AST-20261008-03 | Astra / cutover evidence | `JobProjection` checked only the current revision's evidence, so deleting the candidate run left a later closed case accepted | Re-verify predecessor stage references by their original pinned digests; do not change any historical record or grant execution rights | Missing-run regression observed failing before the fix; deletion and modification regressions pass in the 1,060-test engine/CLI suite. Exact-head Windows and independent review pending |
+
+Historical toolkit inspection: [source inventory and reuse limitations](HISTORICAL-TOOLKIT-REVIEW-2026.10.08.md).
+
 ## Claude Preview.18 review — 6–7 October 2026
 
 Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.
@@ -130,3 +142,7 @@ Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808d
 ### Usability pass — 7 October 2026 (PR #21)
 
 At William's request Claude also made the tool easier to use, without changing any safeguard: a guided hand-off/receive flow on Settings with a copyable fingerprint, pasted checksum lines and `.sha256` loading (with a warning when the file sits beside the backup); task-specific progress titles; results that say what happened and what to do next, with **Open folder**; a Quick Connect notice saying the header still describes the session already open; more room for the change detail in plan review at 1180×640; a short first-assessment path in OPERATOR-START and on Overview; consistent "SHA-256 fingerprint" wording. Native renders and App tests cover these; human newcomer and Narrator acceptance remain open.
+
+PR #36 bounded review detail and baseline file/line references: [ASTRA-POST-MERGE-REVIEW-2026.10.08](ASTRA-POST-MERGE-REVIEW-2026.10.08.md). Final local engine/CLI suite passes 1,060 tests; conflicting histories and unresolved writes also show Outstanding completion rows. Earlier Windows evidence at 4724b66 is recorded separately; final-head Windows and independent review remain required.
+
+| AST-20261008-04 | Claude independent review of e433513 / completion readability | IOException or denied access while reading write evidence escaped the completion projection | Astra reproduced an exclusive-file lock, added IOException/UnauthorizedAccessException completion blockers, and kept all rows Outstanding until evidence becomes readable; no retry or write reconciliation | `An_exclusively_locked_run_keeps_completion_readable_and_outstanding` observed failing before fix; recovery after unlock included. Final validation/Claude delta review remain required |
