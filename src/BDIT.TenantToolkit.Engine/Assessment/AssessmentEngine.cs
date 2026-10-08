@@ -7,6 +7,7 @@ using BDIT.TenantToolkit.Engine.Collection;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Engine.Planning;
+using BDIT.TenantToolkit.Engine.Checks;
 
 namespace BDIT.TenantToolkit.Engine.Assessment;
 
@@ -36,6 +37,9 @@ public sealed class AssessmentEngine
     }
 
     /// <summary>Checks the snapshot against the digest recorded when it was saved. Shared with the headless runner.</summary>
+    /// <summary>The limitation every assessment of evidence without a recorded digest carries, including a scoped review of it.</summary>
+    public const string IntegrityNotRecordedLimitation = "Evidence integrity not recorded: this snapshot carries no integrity digest, so its contents could not be checked against the original capture.";
+
     public static string IntegrityOf(TenantSnapshot snapshot) =>
         string.IsNullOrEmpty(snapshot.IntegrityDigest) ? SnapshotIntegrityState.NotRecorded
         : EvidenceIntegrity.Verify(snapshot, snapshot.IntegrityDigest) ? SnapshotIntegrityState.Intact
@@ -48,6 +52,20 @@ public sealed class AssessmentEngine
     /// re-assessed (CLA-20261006-06). Null, for live work, judges them against the current time.
     /// </param>
     public AssessmentResult Assess(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile, ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange = null, DateTimeOffset? evidenceTime = null)
+        => AssessCore(snapshot, standard, profile, mappings, deviations, assessedBy, separateExchange, evidenceTime, null);
+
+    /// <summary>Evaluates only the registered selection; its result is always partial, including over a full source capture.</summary>
+    public AssessmentResult AssessSelected(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile,
+        ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, CheckSelection selection,
+        ExchangeCapture? separateExchange = null, DateTimeOffset? evidenceTime = null)
+    {
+        selection.ValidateFor(standard, profile);
+        return AssessCore(snapshot, standard, profile, mappings, deviations, assessedBy, separateExchange, evidenceTime, selection);
+    }
+
+    private AssessmentResult AssessCore(TenantSnapshot snapshot, StandardCatalogue standard, TenantProfile profile,
+        ManagedObjectMappings mappings, IReadOnlyList<Deviation> deviations, string assessedBy, ExchangeCapture? separateExchange,
+        DateTimeOffset? evidenceTime, CheckSelection? selection)
     {
         if (!string.Equals(snapshot.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The snapshot and the selected client profile belong to different tenants.");
@@ -87,16 +105,18 @@ public sealed class AssessmentEngine
             Release = standard.Release,
             StandardDigest = standard.IntegrityDigest,
             ToolkitVersion = _toolkitVersion,
-            SnapshotComplete = snapshot.Complete,
+            SnapshotComplete = selection is null && snapshot.Complete,
             SnapshotIntegrity = IntegrityOf(snapshot)
         };
         // Reported first, because every finding below is only as good as the evidence it was read from.
         if (result.SnapshotIntegrity == SnapshotIntegrityState.Modified)
             result.Limitations.Add("EVIDENCE MODIFIED: this snapshot no longer matches the integrity digest recorded when it was captured. Treat every finding as unverified; capture fresh evidence before relying on it. Deployment refuses modified evidence.");
         else if (result.SnapshotIntegrity == SnapshotIntegrityState.NotRecorded)
-            result.Limitations.Add("Evidence integrity not recorded: this snapshot carries no integrity digest, so its contents could not be checked against the original capture.");
+            result.Limitations.Add(IntegrityNotRecordedLimitation);
 
-        foreach (var (key, def) in standard.Collections)
+        if (selection is not null)
+            result.Limitations.Add($"PARTIAL CHECK: {selection.SelectorKind} {selection.Selector}; only {selection.ControlIds.Count} selected control instance(s) were assessed. This result cannot satisfy complete deployment before-evidence.");
+        foreach (var (key, def) in standard.Collections.Where(c => selection is null || selection.CollectionKeys.Contains(c.Key)))
         {
             var status = snapshot.Collections.TryGetValue(key, out var capture)
                 ? capture.Status != CaptureStatus.Collected ? "Not collected: " + (capture.Error ?? "unknown error")
@@ -107,8 +127,9 @@ public sealed class AssessmentEngine
             if (!snapshot.Collections.TryGetValue(key, out var c) || !c.Usable)
                 result.Limitations.Add($"{def.Label}: {status}. Controls depending on it are reported as unable to assess.");
         }
-        if (snapshot.BetaCollections.Any())
-            result.Limitations.Add("Beta Graph endpoints were used for: " + string.Join(", ", snapshot.BetaCollections.Select(k => standard.FindCollection(k)?.Label ?? k)) + ". Beta APIs can change without notice.");
+        var beta = snapshot.BetaCollections.Where(k => selection is null || selection.CollectionKeys.Contains(k)).ToList();
+        if (beta.Count > 0)
+            result.Limitations.Add("Beta Graph endpoints were used for: " + string.Join(", ", beta.Select(k => standard.FindCollection(k)?.Label ?? k)) + ". Beta APIs can change without notice.");
         if (exchangeEvidence is { } external)
         {
             result.Limitations.Add($"Separate Exchange/Purview evidence {external.Id}, captured {external.CapturedAt}, selected domain {external.Domain}. Read-only observations cannot authorise toolkit writes; exported source claims are not signed.");
@@ -124,12 +145,24 @@ public sealed class AssessmentEngine
             result.Limitations.Add($"The snapshot was captured under standard release {snapshot.StandardRelease}; it is being assessed against {standard.Release}. Collections added in the newer release may be absent.");
 
         var licence = LicenceEvaluator.FromSnapshot(snapshot);
-        if (!licence.Available) result.Limitations.Add("Subscribed licences could not be read; licence requirements are not verified.");
+        if (!licence.Available && (selection is null || selection.CollectionKeys.Contains(LicenceCollectionKey)))
+            result.Limitations.Add("Subscribed licences could not be read; licence requirements are not verified.");
 
         foreach (var control in ControlInstances.All(standard, profile))
         {
+            if (selection is not null && !selection.ControlIds.Contains(control.Id)) continue;
             var deviation = deviations.FirstOrDefault(d => string.Equals(d.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
             var finding = AssessControl(control, standard, snapshot, mappings, deviation, names, parameters, licence, _clock.UtcNow, exchangeEvidence, exchangeReference);
+            if (selection is not null && finding.Status != FindingStatus.NotApplicable)
+            {
+                var missing = CheckSelection.ForControl(standard, profile, control.Id).CollectionKeys
+                    .Where(k => !snapshot.Collections.TryGetValue(k, out var captured) || !captured.Usable).ToList();
+                if (missing.Count > 0)
+                {
+                    finding.Status = FindingStatus.UnableToAssess;
+                    finding.Reason = "Required check dependencies are unavailable or incomplete: " + string.Join(", ", missing) + ". Absence cannot be inferred.";
+                }
+            }
             result.Findings.Add(finding);
         }
 

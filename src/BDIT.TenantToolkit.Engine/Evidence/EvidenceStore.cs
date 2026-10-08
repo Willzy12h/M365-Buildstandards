@@ -96,7 +96,9 @@ public sealed partial class EvidenceStore
         if (!File.Exists(file)) return null;
         try
         {
-            return ToolkitJson.Deserialize<T>(File.ReadAllText(file));
+            var json = File.ReadAllText(file);
+            if (typeof(T) == typeof(TenantSnapshot)) Assessment.AssessmentContext.RefuseEnvelope(json);
+            return ToolkitJson.Deserialize<T>(json);
         }
         catch (Exception ex) when (ex is System.Text.Json.JsonException or ConfigurationException)
         {

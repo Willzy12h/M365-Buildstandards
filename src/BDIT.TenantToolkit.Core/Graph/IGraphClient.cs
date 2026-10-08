@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core.Models;
 
@@ -19,6 +20,18 @@ public interface IGraphClient
 
     /// <summary>Follows @odata.nextLink pages. Throws if a page cannot be read; never returns a partial list silently.</summary>
     Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct);
+
+    /// <summary>
+    /// Bounded read: follows @odata.nextLink pages but stops requesting pages once <paramref name="maxItems"/> items have
+    /// been yielded. Items are yielded as pages arrive, so a caller keeps what it has received when a later page fails or
+    /// is cancelled; an early stop or exception is always an incomplete read. Implementations that cannot page
+    /// incrementally fall back to the complete <see cref="GetAllAsync"/> read and its limits.
+    /// </summary>
+    async IAsyncEnumerable<JsonObject> GetBoundedAsync(GraphApi api, string path, int maxItems, [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems), "A bounded read needs a positive item limit.");
+        foreach (var item in (await GetAllAsync(api, path, ct)).Take(maxItems)) yield return item;
+    }
 
     /// <summary>Creates or updates an object. Never retried. Only WriteNotSentException confirms no request was sent; arbitrary exceptions remain uncertain.</summary>
     Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct);

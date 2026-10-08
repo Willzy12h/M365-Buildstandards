@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Checks;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -37,6 +38,12 @@ public sealed class AssessmentViewModel : PageViewModel
     private CandidateMatch? _selectedCandidate;
     private string _lastExport = "";
     private string _lastExportFile = "";
+    private string _checkArea = "Entra";
+    private string? _checkControl;
+    private bool _checkStored;
+    private ScopedCheckEvidence? _partialCheck;
+    private string _partialFile = "";
+    private string? _partialNotSaved;
 
     public AssessmentViewModel(ShellViewModel shell) : base(shell, "Assessment")
     {
@@ -49,6 +56,9 @@ public sealed class AssessmentViewModel : PageViewModel
         ExportClientCommand = Command(() => Export(ExportFormat.ClientHtml), () => Workspace.Assessment is not null);
         CopyDetailCommand = CopyText(() => SelectedDetail + Environment.NewLine + string.Join(Environment.NewLine, Notes));
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
+        CheckAreaCommand = Command(() => RunCheck(false), () => CanCheck && AreaAvailable);
+        CheckControlCommand = Command(() => RunCheck(true), () => CanCheck && CheckControls.Any(c => c.Key == CheckControl));
+        CopyPartialCommand = CopyText(() => PartialCheckText);
         ExportUpgradeImpactCommand = Command(ExportUpgradeImpact,
             () => Workspace.Idle && Workspace.Snapshot is not null && Workspace.Profile is not null && Workspace.Standard is not null && CompareRelease is not null);
         Refresh();
@@ -63,6 +73,43 @@ public sealed class AssessmentViewModel : PageViewModel
     public ICommand ExportClientCommand { get; }
     public ICommand CopyDetailCommand { get; }
     public ICommand OpenExportCommand { get; }
+    public ICommand CheckAreaCommand { get; }
+    public ICommand CheckControlCommand { get; }
+    public ICommand CopyPartialCommand { get; }
+    public IReadOnlyList<string> CheckAreas => CheckSelection.Areas;
+    public ObservableCollection<FilterOption> CheckControls { get; } = new();
+    public string CheckArea { get => _checkArea; set { if (SetProperty(ref _checkArea, value)) OnPropertyChanged(nameof(CheckGuidance)); } }
+    public string? CheckControl { get => _checkControl; set => SetProperty(ref _checkControl, value); }
+    public bool CheckStored { get => _checkStored; set { if (SetProperty(ref _checkStored, value)) OnPropertyChanged(nameof(CheckGuidance)); } }
+    private bool CanCheck => Workspace.Idle && Workspace.Profile is not null && Workspace.Standard is not null
+        && (CheckStored ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is not null : Workspace.Session is { TenantVerified: true });
+    private bool AreaAvailable => Workspace.Standard is { } standard && Workspace.Profile is { } profile
+        && ControlInstances.All(standard, profile).Any(c => ControlAreas.For(c) == CheckArea);
+    public string CheckGuidance => !Workspace.Idle ? "Wait for the current operation to finish."
+        : Workspace.Profile is null || Workspace.Standard is null ? "Select a saved client and standard first."
+        : CheckControls.Count == 0 ? "This standard has no requirements to check. Choose another verified standard."
+        : !AreaAvailable ? "This standard has no requirements in that area. Choose another area, or check an individual requirement."
+        : CheckStored ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is null ? "Open a stored configuration or Exchange/Purview evidence first, or untick stored evidence and connect."
+            : "Stored evidence only: this filters the original capture; it does not refresh tenant data."
+        : Workspace.Session is not { TenantVerified: true } ? "Connect to the selected tenant, or choose stored evidence."
+        : "Read-only live check: reads only the selected requirements' dependencies, using the current connection.";
+    public string PartialCheckText => _partialCheck is not { } e ? "No partial check yet. Choose an area or requirement, then Check this. Partial checks cannot authorise deployment."
+        : ((_partialNotSaved is null ? "" : "NOT SAVED: " + _partialNotSaved + "\n")
+            + $"PARTIAL CHECK · {e.SourceMode} · captured {e.Capture.CapturedAt}\nNot complete before-evidence; the full assessment and plan are unchanged.\n"
+            + string.Join("\n", e.Assessment.Findings.Select(f => $"{f.Name} [{f.ControlId}]: {StatusLabels.For(f.Status)} — {f.Reason}"))
+            + "\n" + string.Join("\n", e.Assessment.Limitations)
+            + "\nEvidence: " + (_partialFile.Length > 0 ? _partialFile : "not saved")).ReplaceLineEndings(Environment.NewLine);
+
+    private async Task RunCheck(bool control)
+    {
+        var catalogue = Workspace.RequireStandard();
+        var profile = Workspace.Profile ?? throw new ToolkitException("Select a client first.");
+        var selection = control ? CheckSelection.ForControl(catalogue, profile, CheckControl ?? "")
+            : CheckSelection.ForArea(catalogue, profile, CheckArea);
+        var result = await Workspace.RunScopedCheckAsync(selection, CheckStored);
+        _partialCheck = result.Evidence; _partialFile = result.File; _partialNotSaved = result.NotSavedReason;
+        OnPropertyChanged(nameof(PartialCheckText));
+    }
 
     public ObservableCollection<FindingRow> Findings { get; } = new();
     /// <summary>
@@ -209,6 +256,18 @@ public sealed class AssessmentViewModel : PageViewModel
 
     public override void Refresh()
     {
+        var selectedCheck = CheckControl;
+        CheckControls.Clear();
+        if (Workspace.Standard is { } checkStandard && Workspace.Profile is { } checkProfile)
+            foreach (var c in ControlInstances.All(checkStandard, checkProfile).OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
+                CheckControls.Add(new(c.Id, c.Name + " [" + c.Id + "]"));
+        CheckControl = CheckControls.Any(c => c.Key == selectedCheck) ? selectedCheck : CheckControls.FirstOrDefault()?.Key;
+        if (_partialCheck is { } partial && (Workspace.Profile is not { } current || Workspace.Standard is not { } catalogue
+            || partial.TenantId != current.TenantId || partial.ClientScopeDigest != ReviewedClientScope.Digest(current)
+            || partial.CatalogueDigest != catalogue.IntegrityDigest))
+        { _partialCheck = null; _partialFile = ""; _partialNotSaved = null; }
+        OnPropertyChanged(nameof(CheckGuidance));
+        OnPropertyChanged(nameof(PartialCheckText));
         var keep = CompareRelease;
         CompareReleases.Clear();
         foreach (var r in Workspace.Releases.Where(r => !string.Equals(r.Release, Workspace.Standard?.Release, StringComparison.OrdinalIgnoreCase))) CompareReleases.Add(r.Release);

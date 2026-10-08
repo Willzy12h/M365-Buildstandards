@@ -18,8 +18,28 @@ public static class AssessmentContext
         var mappings = store.LoadMappings(profile.TenantId);
         var deviations = store.LoadDeviations(profile.TenantId);
         var result = engine.Assess(snapshot, standard, profile, mappings, deviations, actor, supplementalExchange, evidenceTime);
-        LineageReview.Annotate(result, LineageReview.Review(mappings, standard, LoadLineage(store.Paths.StandardsDirectory, standard, result)));
+        AnnotateLineage(result, mappings, standard, store.Paths.StandardsDirectory);
         return result;
+    }
+
+    /// <summary>
+    /// Adds the release-lineage review (INT-051) to an assessment. The full assessment and a scoped check both call
+    /// this, so a selected control carries the same explanation in either. A scoped check passes its selected control
+    /// IDs: it then explains only the records for, or now attributed to, those controls, and does not report on
+    /// ownership records outside its selection. With no standards directory no lineage is verified, so every
+    /// earlier-release record is flagged for review.
+    /// </summary>
+    public static void AnnotateLineage(AssessmentResult result, ManagedObjectMappings mappings, StandardCatalogue standard,
+        string? standardsDirectory, IReadOnlyCollection<string>? selectedControls = null)
+    {
+        var lineage = standardsDirectory is null ? null : LoadLineage(standardsDirectory, standard, result);
+        var notes = LineageReview.Review(mappings, standard, lineage);
+        if (selectedControls is not null)
+        {
+            var selected = new HashSet<string>(selectedControls, StringComparer.OrdinalIgnoreCase);
+            notes = notes.Where(n => selected.Contains(n.MappedControlId) || n.CurrentControls.Any(selected.Contains)).ToList();
+        }
+        LineageReview.Annotate(result, notes);
     }
 
     /// <summary>
@@ -53,11 +73,21 @@ public static class AssessmentContext
     /// </summary>
     public static TenantSnapshot ReadPrimary(string file)
     {
-        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(File.ReadAllText(file))
+        var json = File.ReadAllText(file);
+        RefuseEnvelope(json);
+        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(json)
             ?? throw new ConfigurationException("The snapshot file did not contain a capture.");
         if (AssessmentEngine.IntegrityOf(snapshot) == SnapshotIntegrityState.Modified)
             throw new IntegrityException("The snapshot no longer matches its recorded integrity digest; it was modified after capture. Capture fresh evidence rather than reporting on it.");
         return snapshot;
+    }
+
+    internal static void RefuseEnvelope(string json)
+    {
+        using var document = JsonDocument.Parse(json, ToolkitJson.DocumentOptions);
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || document.RootElement.EnumerateObject().Any(p => string.Equals(p.Name, "kind", StringComparison.OrdinalIgnoreCase)))
+            throw new ConfigurationException("A scoped/report wrapper is not an ordinary configuration snapshot. Open it in its own read-only workflow.");
     }
 
     /// <summary>Accepts the existing raw capture or exported snapshot format; no new persisted schema is introduced.</summary>
