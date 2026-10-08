@@ -10,7 +10,7 @@ William asked on 2026-10-08 for an organised library of cloud and on-premises sc
 | Registry | `scripts/registry.json` | Pins each manifest and script SHA-256. `build/Update-ScriptRegistry.py` re-pins after a reviewed change; CI runs it with `--check`. |
 | Catalogue | `Engine/Scripts/ScriptCatalogue.cs` | Loads only registered, contained, pinned files from the engine assembly. Any problem refuses the whole library. Read-only bodies may only use read verbs (Get, Search, Select, Where, ForEach, Sort, Group, Measure, Write, ConvertTo, ConvertFrom, Test, Format) plus `Set-StrictMode`, and no dynamic code. |
 | Inputs | `Engine/Scripts/ScriptInputs.cs` | Typed binding. Blank optional fields are left out; defaults are visible in the manifest; several values split on new lines, commas or semicolons; control and hidden formatting characters are refused; rules check "at least one of" and date ranges. |
-| Copy | `Engine/Scripts/ScriptCopy.cs` | Header with purpose, needs and script hash; `#requires` for PowerShell and the module; Exchange Online sign-in; refusal of an ambiguous connection or another tenant; every value as a single-quoted literal (typographic quotes doubled too); the body unchanged; CSV of the declared columns; disconnect in `finally`. No credentials, installation or policy change. |
+| Copy | `Engine/Scripts/ScriptCopy.cs` | Header with purpose, needs and script hash; `#requires` for PowerShell and the module; Exchange Online sign-in; refusal of an ambiguous connection, another tenant or, when an account was confirmed, another signed-in account (case-insensitive, checked before any value or body is read); every value as a single-quoted literal (typographic quotes doubled too); the body unchanged; CSV of the declared columns; disconnect in `finally`. No credentials, installation or policy change. |
 | CLI | `bdit scripts`, `bdit script --id <id> [--copy]` | Offline. Lists items, shows a form's fields and rules, and prints or saves (never overwriting) the Copy script. |
 | Desktop page | `App/ViewModels/ScriptsViewModel.cs`, `Views/ScriptsView.xaml`, `Views/ScriptCopyDialog.xaml` | **Scripts & Reports**: the library grouped by area, search, the tenant banner, the generated form with live checks and a command preview, and Copy or Save as .ps1 after a confirmation. No Run. |
 
@@ -42,11 +42,34 @@ All read-only, all Exchange Online, all unverified: mailbox inventory, quota and
 
 William has not yet chosen how a client's colour is set (chosen per client, imported, or derived). Until he does, `Core/Safety/TenantColour.cs` derives a stable colour from the tenant ID alone: SHA-256 of the canonical GUID picks one of eight dark colours, each carrying white text at 4.5:1 or more and standing at 3:1 or more against the page (tested). Red and amber are excluded because they already mean danger and warning. Nothing is stored and the client profile schema is unchanged. The colour is only a recognition cue beside the tenant's name and ID. `TenantColours.For` is the single place it is chosen, so a profile colour can replace it later without touching the pages; that change needs its own decision because it alters the profile schema.
 
+## Review corrections (Astra, 8 October 2026)
+
+Astra's independent review of PR #46 (AST-20261008-05 to -09) was fixed by Claude in `27c40b0`. Each fix has a synthetic case in `build/Test-ScriptLibraryStubs.ps1` that failed against the reviewed head `3d993c9` and passes now.
+
+| ID | Correction |
+|---|---|
+| AST-20261008-05 | The quota audit never drops a mailbox it cannot measure. An Unlimited or unreadable quota, or an unreadable size, is listed with `Status` Unknown and a `Reason`, with default inputs as well as IncludeAll, and the run warns `BDIT:UNKNOWN`. Measured mailboxes are `AtOrAboveThreshold` or `BelowThreshold`. |
+| AST-20261008-06 | Every true/false column in the ten scripts is written as True, False or Unknown; a value Exchange did not return is no longer cast to False. Mailbox inventory and shared mailbox rows say what was not returned in `Notes`. An inbox rule whose delete or mark-as-read action is Unknown stays in an "only risky rules" list, and an entry whose inheritance is Unknown is never filtered out as inherited. |
+| AST-20261008-07 | The Copy script compares the signed-in account with the account the engineer confirmed, case-insensitively, after the tenant check and before any value or body is read. A mismatch is refused with the two accounts named; nothing is read or written and the session is disconnected. With no confirmed account, the account chosen at the Microsoft prompt is used. The desktop Copy action still makes no tenant call. |
+| AST-20261008-08 | "Mailboxes a user can access" matches the user's exact identities (sign-in name, primary SMTP address, distinguished name, object IDs), never a display name. An entry naming the user only by name is `Unresolved`, a deny entry `Denied`, and an entry that does not say whether it allows or denies `Unknown`; only an allow entry on an exact identity is `Granted`. It lists direct entries, not effective access: group and inherited rights are not resolved to the user. |
+| AST-20261008-09 | Unified audit search reads one more page when the row limit falls exactly at the end of a page; if that page holds records the result is marked `BDIT:PARTIAL`. Send As entries are requested one past the 5,000 limit, and a full result is marked partial. |
+
+## Not implemented in this slice
+
+- Everything here is manual and unverified live: each item is copied and run by an engineer, and none has been run in a tenant.
+- No entitlement validation. A configured quota, including 100 GB, is not proof of a licence or archive entitlement.
+- No integrated report execution: there is no Run, no owned PowerShell session and no report evidence store yet.
+- No archive mailbox size or archive quota reporting.
+- The library covers ten Exchange Online items, not the full reporting scope in the design catalogue.
+- **Timeouts.** `limits.timeoutSeconds` in each manifest is not enforced by the copied script, which runs until it finishes or the engineer stops it. Enforcing it is a limit for the future runner (next slice 2), not a property of the Copy script.
+
+These stay open in the [feedback register](PRODUCT-FEEDBACK-REGISTER.md) and are not closed by the synthetic evidence below.
+
 ## Evidence
 
 - Source and synthetic: engine tests cover strict loading, pins, injected writes, typed inputs and Copy literals with hostile values.
 - `build/Test-ScriptLibrary.ps1` parses every body under PowerShell 5.1 with an allow-list and checks generated Copy scripts hold only constant literals and an unchanged body.
-- `build/Test-ScriptLibraryStubs.ps1` runs every Copy script against a synthetic stand-in module: rows match the manifest columns, the session disconnects, and a different tenant is refused with nothing written.
+- `build/Test-ScriptLibraryStubs.ps1` runs every Copy script against a synthetic stand-in module: rows match the manifest columns, the session disconnects, and a different tenant or a different account in the same tenant is refused with nothing read (every stand-in read is logged) and nothing written. Further scenarios cover the review corrections above: unmeasurable quotas, true/false/not-returned values in six scripts, same-display-name and deny entries, an audit page ending exactly at the limit and a saturated Send As result.
 - Desktop page: view-model tests in `tests/BDIT.TenantToolkit.App.Tests/ScriptsPageTests.cs` (search and grouping, required-field gating, blank optional fields, multi-select binding, the banner and its colour, confirmation before generation, a stale confirmation refused, the generated tenant and body, Save never overwriting). They target net10.0-windows and are compiled, not run, on Linux. Colour derivation and contrast are tested on Linux in `TenantColourTests`. The offline interface harness renders the page at all three sizes, presses Copy and Save with stand-in prompts, and lays out and exercises the confirmation dialog; it runs in Windows CI.
 - Live: none. Each item stays "not yet tested in a tenant" until William runs it.
 
