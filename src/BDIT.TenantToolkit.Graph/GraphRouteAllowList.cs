@@ -80,7 +80,7 @@ public sealed class GraphRouteAllowList
         if (string.Equals(path, route.BasePath, StringComparison.OrdinalIgnoreCase)) return true;
         if (route.BasePath != "/users") return false;
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 3 && parts[0] == "users" && ProfileValidator.IsGuid(parts[1]) && parts[2] == "licenseDetails";
+        return parts.Length == 3 && parts[0] == "users" && ReportValues.IsCanonicalGuid(parts[1]) && parts[2] == "licenseDetails";
     }
 
     /// <summary>Returns the writable route when the path is exactly the collection root or root/{guid}.</summary>

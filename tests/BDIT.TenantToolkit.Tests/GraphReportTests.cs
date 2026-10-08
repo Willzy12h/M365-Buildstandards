@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Graph;
@@ -227,7 +228,217 @@ public sealed class GraphReportTests
         Assert.Equal(ReportReadState.NotAttempted, signin.Status); Assert.Empty(graph.Paths);
     }
 
+    [Fact]
+    public async Task Duplicate_subscription_identities_become_a_partial_section_not_a_refused_report()
+    {
+        var graph = new Reads();
+        var sku = ToolkitJson.ParseObject($$"""{"id":"pool_{{TestData.ClientId}}","skuId":"{{TestData.ClientId}}","skuPartNumber":"SYNTHETIC_PRODUCT","consumedUnits":1,"prepaidUnits":{"enabled":1,"warning":0,"suspended":0} }""");
+        graph.Responses["/subscribedSkus"] = [sku, (JsonObject)sku.DeepClone()];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[0].Status);
+        var row = Assert.Single(report.Sections[0].Rows);
+        Assert.Equal(ReportReadState.Partial, row["readStatus"]!.GetValue<string>()); Assert.Contains("duplicated", row["error"]!.GetValue<string>());
+        Assert.Equal(report.Id, ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(report), TestData.TenantA).Id);
+    }
+
+    [Theory]
+    [InlineData("sign-ins", "")]
+    [InlineData("sign-ins", " synthetic-event")]
+    [InlineData("directory-audit", " ")]
+    public async Task Empty_or_blank_log_identities_count_as_missing_and_stay_partial(string reportId, string id)
+    {
+        var graph = new Reads();
+        var item = ToolkitJson.ParseObject("""{"createdDateTime":"2026-09-10T01:00:00Z","activityDateTime":"2026-09-10T01:00:00Z","result":"success","targetResources":[],"status":{"errorCode":0}}"""); item["id"] = id;
+        graph.Responses[reportId == "sign-ins" ? "/auditLogs/signIns" : "/auditLogs/directoryAudits"] = [item];
+        var report = await Service().CaptureAsync(graph, Session(), reportId, Dates(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Status);
+        var row = Assert.Single(report.Sections[0].Rows);
+        Assert.Null(row["id"]); Assert.Contains("identity", row["error"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("servicePlanName")]
+    [InlineData("provisioningStatus")]
+    [InlineData("skuPartNumber")]
+    public async Task Empty_required_licence_text_is_partial_evidence_not_a_refused_report(string field)
+    {
+        var graph = new Reads(); graph.Responses["/users"] = [User(TestData.Operator)];
+        var details = ToolkitJson.ParseObject($$"""{"skuId":"{{TestData.ClientId}}","skuPartNumber":"SYNTHETIC_PRODUCT","servicePlans":[{"servicePlanId":"efb87545-963c-4e0d-99df-69c6916d9eb0","servicePlanName":"SYNTHETIC_PLAN","provisioningStatus":"Success","appliesTo":"User"}] }""");
+        if (field == "skuPartNumber") details[field] = ""; else details["servicePlans"]![0]![field] = "";
+        graph.Responses["/users/" + TestData.Operator + "/licenseDetails"] = [details];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Status);
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Rows[0]["productsReadStatus"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Zero_guid_user_identity_is_partial_without_a_licence_query()
+    {
+        var graph = new Reads(); graph.Responses["/users"] = [User(Guid.Empty.ToString())];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Status); Assert.Null(report.Sections[1].Rows[0]["id"]);
+        Assert.DoesNotContain(graph.Paths, p => p.Contains("/licenseDetails", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Whitespace_padded_user_identity_is_malformed_not_a_second_licensed_user()
+    {
+        var graph = new Reads(); graph.Responses["/users"] = [User(TestData.Operator), User(TestData.Operator + "\n")];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        var rows = report.Sections[1].Rows;
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Status);
+        Assert.Single(rows, r => r["id"]?.GetValue<string>() == TestData.Operator);
+        Assert.Single(rows, r => r["id"] is null && r["readStatus"]!.GetValue<string>() == ReportReadState.Partial);
+        Assert.Single(graph.Paths, p => p.Contains("/licenseDetails", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task User_identities_are_normalised_before_duplicates_are_detected()
+    {
+        const string id = "efb87545-963c-4e0d-99df-69c6916d9eb0";
+        var graph = new Reads(); graph.Responses["/users"] = [User(id), User(id.ToUpperInvariant())];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        var row = Assert.Single(report.Sections[1].Rows);
+        Assert.Equal(id, row["id"]!.GetValue<string>()); Assert.Equal(ReportReadState.Partial, row["readStatus"]!.GetValue<string>());
+        Assert.DoesNotContain(graph.Paths, p => p.Contains("/licenseDetails", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("blank-text-id")]
+    [InlineData("padded-text-id")]
+    [InlineData("zero-guid")]
+    [InlineData("non-canonical-guid")]
+    [InlineData("empty-service-plan-name")]
+    [InlineData("empty-sku-part-number")]
+    [InlineData("subscription-without-sku")]
+    public async Task Strict_reader_still_refuses_malformed_identity_or_empty_text_presented_as_collected(string defect)
+    {
+        var graph = new Reads();
+        graph.Responses["/subscribedSkus"] = [ToolkitJson.ParseObject($$"""{"id":"pool_{{TestData.ClientId}}","skuId":"{{TestData.ClientId}}","skuPartNumber":"SYNTHETIC_PRODUCT","capabilityStatus":"Enabled","consumedUnits":1,"prepaidUnits":{"enabled":1,"warning":0,"suspended":0} }""")];
+        graph.Responses["/users"] = [User(TestData.Operator)];
+        graph.Responses["/users/" + TestData.Operator + "/licenseDetails"] = [ToolkitJson.ParseObject($$"""{"skuId":"{{TestData.ClientId}}","skuPartNumber":"SYNTHETIC_PRODUCT","servicePlans":[{"servicePlanId":"{{TestData.Office}}","servicePlanName":"SYNTHETIC_PLAN","provisioningStatus":"Success","appliesTo":"User"}]}""")];
+        var report = await Service().CaptureAsync(graph, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Collected, report.Status);
+        var node = JsonNode.Parse(ReportEvidenceSchema.Serialize(report))!.AsObject();
+        var subscription = node["sections"]![0]!["rows"]![0]!.AsObject(); var user = node["sections"]![1]!["rows"]![0]!.AsObject();
+        switch (defect)
+        {
+            case "blank-text-id": subscription["id"] = " "; break;
+            case "padded-text-id": subscription["id"] = "pool_synthetic\n"; break;
+            case "zero-guid": user["id"] = Guid.Empty.ToString(); break;
+            case "non-canonical-guid": user["id"] = "EFB87545-963C-4E0D-99DF-69C6916D9EB0"; break;
+            case "empty-service-plan-name": user["products"]![0]!["servicePlans"]![0]!["servicePlanName"] = ""; break;
+            case "empty-sku-part-number": user["products"]![0]!["skuPartNumber"] = ""; break;
+            case "subscription-without-sku": subscription["skuId"] = null; break;
+        }
+        node["integrityDigest"] = EvidenceIntegrity.Compute(node);
+        Assert.Throws<ConfigurationException>(() => ReportEvidenceSchema.Read(node.ToJsonString(), TestData.TenantA));
+    }
+
+    [Fact]
+    public async Task Row_cap_stops_the_read_and_keeps_capped_rows_as_partial_with_a_truncation_note()
+    {
+        var graph = new PagedReads { Rows = 60_000 };
+        var report = await Service().CaptureAsync(graph, Session(), "intune-devices", new(), CancellationToken.None);
+        Assert.Equal(GraphReportRegistry.MaximumRows + 1, graph.Yielded);
+        Assert.Equal(GraphReportRegistry.MaximumRows, report.Sections[0].Rows.Count);
+        Assert.All(report.Sections[0].Rows, r => Assert.Equal(ReportReadState.Collected, r["readStatus"]!.GetValue<string>()));
+        Assert.Equal(ReportReadState.Partial, report.Status); Assert.Contains("row cap", report.Sections[0].Error);
+        Assert.Equal(report.Id, ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(report), TestData.TenantA).Id);
+        var exact = await Service().CaptureAsync(new PagedReads { Rows = GraphReportRegistry.MaximumRows }, Session(), "intune-devices", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Collected, exact.Status); Assert.Equal(GraphReportRegistry.MaximumRows, exact.Sections[0].Rows.Count);
+    }
+
+    [Fact]
+    public async Task Read_timeout_mid_read_keeps_returned_rows_and_says_so()
+    {
+        var graph = new PagedReads { Rows = 3, ThenWaitForCancellation = true };
+        var report = await new GraphReportService(new FixedClock(), TimeSpan.FromMilliseconds(50)).CaptureAsync(graph, Session(), "intune-devices", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Cancelled, report.Status); Assert.Equal(3, report.Sections[0].Rows.Count);
+        Assert.Contains("after 3 returned rows", report.Sections[0].Error);
+        Assert.Equal(report.Id, ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(report), TestData.TenantA).Id);
+    }
+
+    [Fact]
+    public async Task Cancellation_before_any_row_never_claims_retained_rows()
+    {
+        var report = await new GraphReportService(new FixedClock(), TimeSpan.FromMilliseconds(20)).CaptureAsync(new PagedReads { ThenWaitForCancellation = true }, Session(), "intune-devices", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Cancelled, report.Status); Assert.Empty(report.Sections[0].Rows);
+        Assert.Contains("no rows are retained", report.Sections[0].Error); Assert.DoesNotContain("retained rows are partial", report.Sections[0].Error);
+    }
+
+    [Fact]
+    public async Task Failed_later_page_keeps_returned_rows_as_partial_not_failed()
+    {
+        var graph = new PagedReads { Rows = 2, ThenThrow = new GraphRequestException(403, "GET", "/synthetic", "denied", "Synthetic denied page") };
+        var report = await Service().CaptureAsync(graph, Session(), "intune-devices", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Status); Assert.Equal(2, report.Sections[0].Rows.Count);
+        Assert.Contains("after 2 returned rows", report.Sections[0].Error);
+    }
+
+    [Theory]
+    [InlineData("sign-ins", "/auditLogs/signIns", "createdDateTime")]
+    [InlineData("directory-audit", "/auditLogs/directoryAudits", "activityDateTime")]
+    public async Task Log_queries_use_documented_inclusive_operators_without_select(string reportId, string route, string field)
+    {
+        var graph = new Reads();
+        await Service().CaptureAsync(graph, Session(), reportId, Dates(), CancellationToken.None);
+        var path = Assert.Single(graph.Paths);
+        Assert.Equal(route + "?$filter=" + field + "%20ge%202026-09-10T00%3A00%3A00Z%20and%20" + field + "%20le%202026-09-10T23%3A59%3A59.9999999Z", path);
+        Assert.DoesNotContain("%20lt%20", path); Assert.DoesNotContain("$select", path);
+        graph.Responses[route] = [ToolkitJson.ParseObject("""{"id":"synthetic-event","createdDateTime":"2026-09-11T00:00:00Z","activityDateTime":"2026-09-11T00:00:00Z","result":"success","targetResources":[],"status":{"errorCode":0}}""")];
+        var boundary = await Service().CaptureAsync(graph, Session(), reportId, Dates(), CancellationToken.None);
+        Assert.Contains("outside the requested interval", boundary.Sections[0].Rows[0]["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Other_reports_keep_their_select_projection()
+    {
+        var graph = new Reads();
+        await Service().CaptureAsync(graph, Session(), "intune-devices", new(), CancellationToken.None);
+        await Service().CaptureAsync(graph, Session(), "mfa-registration", new(), CancellationToken.None);
+        Assert.All(graph.Paths, p => Assert.Contains("?$select=id,", p));
+    }
+
+    [Fact]
+    public async Task Exports_neutralise_every_formula_prefix_and_write_no_spreadsheet_formulas()
+    {
+        var graph = new Reads();
+        graph.Responses["/deviceManagement/managedDevices"] = [new JsonObject { ["id"] = TestData.Operator, ["deviceName"] = "=HYPERLINK(\"x\")", ["operatingSystem"] = "\t=1+1", ["managedDeviceOwnerType"] = "@SUM(1)", ["complianceState"] = "<script>alert(1)</script>", ["lastSyncDateTime"] = "2026-09-10T00:00:00Z", ["osVersion"] = "-1+2", ["userId"] = "+1" }];
+        var report = await Service().CaptureAsync(graph, Session(), "intune-devices", new(), CancellationToken.None);
+        var csv = CsvWriter.Write(RegisteredReportDocuments.Sheets(report)[1].Rows);
+        Assert.DoesNotContain(",\"=", csv); Assert.DoesNotContain(",\"\t", csv); Assert.DoesNotContain(",\"@", csv); Assert.DoesNotContain(",\"-", csv);
+        var html = RegisteredReportDocuments.Html(report, "<b>company</b>");
+        Assert.DoesNotContain("<script>", html); Assert.DoesNotContain("<b>company", html);
+        using var zip = new ZipArchive(new MemoryStream(XlsxWriter.Write(RegisteredReportDocuments.Sheets(report))));
+        foreach (var entry in zip.Entries) { using var reader = new StreamReader(entry.Open()); Assert.DoesNotContain("<f>", reader.ReadToEnd()); }
+    }
+
     private static JsonObject User(string? id) => new() { ["id"] = id, ["displayName"] = "Same synthetic name", ["userPrincipalName"] = "user@example.invalid", ["accountEnabled"] = true, ["userType"] = "Member", ["assignedLicenses"] = new JsonArray(), ["assignedPlans"] = new JsonArray() };
+    /// <summary>Streams synthetic complete device rows through the bounded read, then optionally fails or waits for cancellation.</summary>
+    private sealed class PagedReads : IGraphClient
+    {
+        public string TenantId => TestData.TenantA;
+        public SessionMode Mode => SessionMode.Deployment;
+        public int Rows { get; init; }
+        public bool ThenWaitForCancellation { get; init; }
+        public Exception? ThenThrow { get; init; }
+        public int Yielded { get; private set; }
+        public async IAsyncEnumerable<JsonObject> GetBoundedAsync(GraphApi api, string path, int maxItems, [EnumeratorCancellation] CancellationToken ct)
+        {
+            for (var i = 0; i < Rows && Yielded < maxItems; i++)
+            {
+                ct.ThrowIfCancellationRequested(); Yielded++;
+                yield return new JsonObject { ["id"] = new Guid(i + 1, 0, 0, new byte[8]).ToString(), ["deviceName"] = "Synthetic device", ["managedDeviceOwnerType"] = "company", ["operatingSystem"] = "Windows", ["complianceState"] = "compliant", ["lastSyncDateTime"] = "2026-09-10T00:00:00Z" };
+            }
+            if (ThenThrow is not null) throw ThenThrow;
+            if (ThenWaitForCancellation) await Task.Delay(Timeout.Infinite, ct);
+        }
+        public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Reports must use the bounded read.");
+        public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No singleton report requests expected.");
+        public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("Reports cannot write.");
+    }
+
     private sealed class Reads : IGraphClient
     {
         public string TenantId => TestData.TenantA;

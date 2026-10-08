@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -112,6 +113,48 @@ public sealed class GraphClient : IGraphClient
             url = ValidateNextLink(api, next, route);
         }
         return items;
+    }
+
+    /// <summary>Same route allow-list, page-loop and nextLink checks as <see cref="GetAllAsync"/>, but no further page is requested once the bound is reached.</summary>
+    public async IAsyncEnumerable<JsonObject> GetBoundedAsync(GraphApi api, string path, int maxItems, [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (maxItems <= 0 || maxItems > _options.MaxItems)
+            throw new ArgumentOutOfRangeException(nameof(maxItems), "A bounded read must be positive and within the collection safety limit.");
+        GraphRouteAllowList.ValidatePathSyntax(path);
+        var route = _routes.MatchRead(api, path)
+            ?? throw new WriteDeniedException($"Graph route is outside the allow-list for this standard: {api} {GraphRouteAllowList.BasePathOf(path)}");
+
+        var expanded = await ExpandedGraphCollections.TryReadAsync(this, api, path, _options.MaxItems, ct);
+        if (expanded is not null)
+        {
+            foreach (var item in expanded.Take(maxItems)) yield return item;
+            yield break;
+        }
+        var url = Root(api) + path;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var pages = 0;
+        var yielded = 0;
+        while (true)
+        {
+            if (!seen.Add(url) || ++pages > _options.MaxPages)
+                throw new GraphRequestException(0, "GET", path, "pagination", "Pagination did not complete (loop or page limit). Collection marked incomplete.");
+            var page = await SendReadAsync(api, url, route, ct) as JsonObject
+                ?? throw new GraphRequestException(200, "GET", path, null, "Graph returned a non-object page.");
+            if (page["value"] is not JsonArray value)
+                throw new GraphRequestException(200, "GET", path, null, "Expected a Graph collection ('value' array) but none was returned.");
+            foreach (var item in value)
+            {
+                if (yielded == maxItems) yield break;
+                if (item is not JsonObject obj)
+                    throw new GraphRequestException(200, "GET", path, "shape", "Collection contains a non-object item; collection is incomplete.");
+                yielded++;
+                yield return (JsonObject)obj.DeepClone();
+            }
+            if (yielded == maxItems) yield break;
+            var next = page["@odata.nextLink"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(next)) yield break;
+            url = ValidateNextLink(api, next, route);
+        }
     }
 
     public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
