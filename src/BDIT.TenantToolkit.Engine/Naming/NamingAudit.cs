@@ -59,11 +59,22 @@ public static class NamingAudit
                 else
                 {
                     var mapped = mappings.ByControl.Values.Where(m => m.Collection == key && string.Equals(m.ObjectId, id, StringComparison.OrdinalIgnoreCase)).ToList();
+                    // Overlapping collections read the same Graph objects, so a mapping recorded under one of them names this object too.
+                    var overlapping = NamingConvention.OverlappingCollections(key);
+                    var mappedElsewhere = mappings.ByControl.Values.Where(m => m.Collection is not null && overlapping.Contains(m.Collection)
+                        && string.Equals(m.ObjectId, id, StringComparison.OrdinalIgnoreCase)).Select(m => m.Collection!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
                     if (mapped.Count > 0)
                     {
                         ownership = OwnershipUnknown; reason = "Mapping alone is insufficient: valid original creation/run/readback evidence at or before this capture is required.";
-                        if (mapped.Count == 1 && integrity == SnapshotIntegrityState.Intact && Corroborates(mapped[0], runs, captureTime))
+                        if (mappedElsewhere.Count > 0)
+                            reason = "This object ID is also mapped under the overlapping collection " + string.Join(", ", mappedElsewhere) + ", which reads the same Graph objects; the mapping history is ambiguous.";
+                        else if (mapped.Count == 1 && integrity == SnapshotIntegrityState.Intact && Corroborates(mapped[0], runs, captureTime))
                         { ownership = Managed; reason = "Verified recorded creation, matching payload/readback and exact captured collection/object identity; no claim of current live ownership or effective policy."; }
+                    }
+                    else if (mappedElsewhere.Count > 0)
+                    {
+                        ownership = OwnershipUnknown;
+                        reason = "Mapped under " + string.Join(", ", mappedElsewhere) + ", an overlapping collection that reads the same Graph objects; ownership is assessed there, not under " + key + ".";
                     }
                 }
                 objects.Add(new(key, id ?? "", name ?? "", ownership, reason, naming));

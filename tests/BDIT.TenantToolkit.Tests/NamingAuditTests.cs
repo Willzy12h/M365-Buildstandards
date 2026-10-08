@@ -4,6 +4,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Naming;
+using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -104,6 +105,132 @@ public sealed class NamingAuditTests
         Assert.Throws<IntegrityException>(() => NamingAudit.Review(source, mappings, [run]));
     }
 
+    [Fact]
+    public void Published_apps_collection_has_an_application_rule_for_authoring()
+    {
+        var rule = NamingConvention.ForCollection("apps");
+        Assert.NotNull(rule);
+        Assert.Equal("APP", rule.Prefix); Assert.Null(rule.MicrosoftMaximum);
+        Assert.Equal("https://learn.microsoft.com/en-us/graph/api/resources/intune-apps-mobileapp?view=graph-rest-1.0", rule.MicrosoftReference);
+        var control = new ControlDefinition { Id = "APP-IOS-001", Collection = "apps" };
+        Assert.Equal(NamingConvention.Conforming, NamingConvention.CheckAuthored(control, "APP - Company portal - iOS").State);
+        Assert.Equal(NamingConvention.NonConforming, NamingConvention.CheckAuthored(control, "APP - Company portal").State);
+        NamingConvention.RequireAuthored(control, "APP - Company portal - iOS");
+    }
+
+    [Fact]
+    public void Apps_only_capture_from_older_releases_is_audited()
+    {
+        var item = new JsonObject { ["id"] = TestData.Mam, ["displayName"] = "Company portal" };
+        var source = Capture(("apps", item));
+        var result = NamingAudit.Review(source, new ManagedObjectMappings { TenantId = source.TenantId }, []);
+        Assert.Equal(CaptureStatus.Collected, result.Collections.Single(c => c.Collection == "apps").ReadState);
+        var row = Assert.Single(result.Objects);
+        Assert.Equal("apps", row.Collection); Assert.Equal(NamingAudit.Unmapped, row.Ownership);
+        Assert.Equal(NamingConvention.NonConforming, row.Naming.State);
+    }
+
+    [Theory]
+    [InlineData("endpointProtection", "configuration", "CFG - Endpoint protection - Windows")]
+    [InlineData("configuration", "endpointProtection", "CFG - Device restrictions - Windows")]
+    [InlineData("extendedCompliance", "compliance", "CMP - Core compliance - Windows")]
+    [InlineData("apps", "applications", "APP - Company portal - iOS")]
+    [InlineData("iosProtection", "appProtection", "MAM - Managed applications - iOS")]
+    [InlineData("appProtection", "androidProtection", "MAM - Managed applications - Android")]
+    public void Overlapping_collection_reports_object_mapped_elsewhere_as_unknown_not_unmapped(string mappedCollection, string otherCollection, string name)
+    {
+        var (_, run, mappings) = CreationEvidence(mappedCollection, name);
+        var readback = run.Results[0].AfterObject!;
+        var rows = NamingAudit.Review(Capture((mappedCollection, readback), (otherCollection, readback)), mappings, [run]).Objects;
+        Assert.Equal(NamingAudit.Managed, rows.Single(o => o.Collection == mappedCollection).Ownership);
+        var other = rows.Single(o => o.Collection == otherCollection);
+        Assert.Equal(NamingAudit.OwnershipUnknown, other.Ownership);
+        Assert.Contains("Mapped under " + mappedCollection, other.OwnershipReason);
+        Assert.Equal(NamingConvention.Conforming, other.Naming.State);
+    }
+
+    [Fact]
+    public void Mapping_under_overlapping_collection_cannot_establish_management_of_another_capture()
+    {
+        var (_, run, mappings) = CreationEvidence("endpointProtection", "CFG - Endpoint protection - Windows");
+        var row = Assert.Single(NamingAudit.Review(Capture(("configuration", run.Results[0].AfterObject!)), mappings, [run]).Objects);
+        Assert.Equal(NamingAudit.OwnershipUnknown, row.Ownership);
+        Assert.Contains("endpointProtection", row.OwnershipReason);
+    }
+
+    [Fact]
+    public void Same_object_mapped_under_two_overlapping_collections_is_not_managed()
+    {
+        var (payload, run, mappings) = CreationEvidence("endpointProtection", "CFG - Endpoint protection - Windows");
+        mappings.ByControl["CFG-WIN-010"] = new ManagedObjectMapping { ControlId = "CFG-WIN-010", Collection = "configuration", ObjectId = TestData.Mam,
+            RunId = run.Id, LastApplied = payload, LastAppliedDigest = CanonicalJson.Sha256(payload) };
+        var readback = run.Results[0].AfterObject!;
+        var rows = NamingAudit.Review(Capture(("endpointProtection", readback), ("configuration", readback)), mappings, [run]).Objects;
+        Assert.Equal(2, rows.Count);
+        Assert.All(rows, o => { Assert.Equal(NamingAudit.OwnershipUnknown, o.Ownership); Assert.Contains("ambiguous", o.OwnershipReason); });
+    }
+
+    [Fact]
+    public void Graph_families_match_the_published_catalogue_routes()
+    {
+        var standards = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "standards"));
+        Assert.True(Directory.Exists(standards), "Shipped standards folder not found at " + standards);
+        var checkedCollections = 0;
+        foreach (var file in Directory.EnumerateFiles(standards, "*.json").Where(f => !f.EndsWith("manifest.json", StringComparison.OrdinalIgnoreCase)))
+        {
+            var catalogue = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+            var ruled = catalogue.Collections.Where(c => NamingConvention.ForCollection(c.Key) is not null).ToList();
+            foreach (var (key, definition) in ruled)
+            {
+                var family = NamingConvention.ForCollection(key)!.GraphFamily;
+                // iOS and Android protections are managedAppPolicy subtypes, also returned by the appProtection read.
+                var expected = key is "iosProtection" or "androidProtection" ? catalogue.Collections["appProtection"].BasePath : definition.BasePath;
+                Assert.True(family == expected, Path.GetFileName(file) + ": " + key + " reads " + definition.BasePath + " but its naming family is " + family);
+                foreach (var (otherKey, otherDefinition) in ruled.Where(o => o.Key != key && o.Value.BasePath == definition.BasePath))
+                    Assert.Contains(otherKey, NamingConvention.OverlappingCollections(key));
+                checkedCollections++;
+            }
+        }
+        Assert.True(checkedCollections > 0);
+    }
+
+    [Fact]
+    public void Endpoint_protection_cites_the_device_configuration_resource_it_reads()
+    {
+        var rule = NamingConvention.ForCollection("endpointProtection")!;
+        Assert.Equal("https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-deviceconfiguration?view=graph-rest-1.0", rule.MicrosoftReference);
+        Assert.Equal(NamingConvention.ForCollection("configuration")!.MicrosoftReference, rule.MicrosoftReference);
+    }
+
+    [Fact]
+    public void Character_rule_reads_unicode_scalars_and_attached_marks()
+    {
+        // Built in code: xUnit theory data cannot carry an unpaired surrogate reliably.
+        (string Name, string State)[] cases =
+        [
+            ("GRP - Cafe\u0301 team", NamingConvention.Conforming),
+            ("GRP - Caf\u00e9 team", NamingConvention.Conforming),
+            ("GRP - \U0001D400lpha team", NamingConvention.Conforming),
+            ("GRP - \U00010437 team", NamingConvention.Conforming),
+            ("GRP - \u0301Pilot", NamingConvention.NonConforming),
+            ("GRP - Pilot \u0301devices", NamingConvention.NonConforming),
+            ("GRP - Pilot\uD800 devices", NamingConvention.NonConforming),
+            ("GRP - Pilot \U0001F600", NamingConvention.NonConforming)
+        ];
+        foreach (var (name, state) in cases)
+            Assert.True(state == NamingConvention.CheckName(name, "groups").State, "Unexpected result for " + string.Join(" ", name.Select(c => ((int)c).ToString("X4"))));
+    }
+
+    [Fact]
+    public void Group_limit_still_counts_utf16_units_before_normalisation()
+    {
+        var composed = "GRP - " + new string('\u00e9', 250);
+        Assert.Equal(NamingConvention.Conforming, NamingConvention.CheckName(composed, "groups").State);
+        var decomposed = composed.Normalize(System.Text.NormalizationForm.FormD);
+        Assert.Equal(NamingConvention.NonConforming, NamingConvention.CheckName(decomposed, "groups").State);
+        Assert.Contains("256", NamingConvention.CheckName(decomposed, "groups").Reason);
+    }
+
     private static (TenantSnapshot, ManagedObjectMappings, DeploymentRun) Inputs()
     {
         var payload = new JsonObject { ["displayName"] = "GRP - Pilot devices" };
@@ -121,5 +248,29 @@ public sealed class NamingAuditTests
         var mappings = new ManagedObjectMappings { TenantId = source.TenantId, ByControl = new() { ["PRE-001"] = new ManagedObjectMapping
         { ControlId = "PRE-001", Collection = "groups", ObjectId = TestData.Mam, RunId = run.Id, LastApplied = payload, LastAppliedDigest = CanonicalJson.Sha256(payload) } } };
         return (source, mappings, run);
+    }
+
+    private static TenantSnapshot Capture(params (string Collection, JsonObject Item)[] items)
+    {
+        var source = new TenantSnapshot { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA, CapturedAt = "2026-09-11T10:00:00Z",
+            Collections = items.ToDictionary(i => i.Collection, i => new CollectionCapture { Status = CaptureStatus.Collected, Count = 1, Items = [(JsonObject)i.Item.DeepClone()] }) };
+        source.IntegrityDigest = EvidenceIntegrity.Compute(source);
+        return source;
+    }
+
+    private static (JsonObject Payload, DeploymentRun Run, ManagedObjectMappings Mappings) CreationEvidence(string collection, string name)
+    {
+        var payload = new JsonObject { ["displayName"] = name };
+        var readback = (JsonObject)payload.DeepClone(); readback["id"] = TestData.Mam;
+        var run = new DeploymentRun { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA, Results = [new RunResult
+        {
+            ControlId = "CTL-001", Collection = collection, ObjectId = TestData.Mam, PlannedAction = "Create", WriteAcceptance = WriteAcceptance.Accepted,
+            Configuration = ConfigurationVerification.Pass, WrittenPayload = payload, AfterObject = readback,
+            PayloadDigest = CanonicalJson.Sha256(payload), ReadbackDigest = CanonicalJson.Sha256(readback), WrittenAt = "2026-09-11T09:00:00Z"
+        }] };
+        run.IntegrityDigest = EvidenceIntegrity.Compute(run);
+        var mappings = new ManagedObjectMappings { TenantId = TestData.TenantA, ByControl = new() { ["CTL-001"] = new ManagedObjectMapping
+        { ControlId = "CTL-001", Collection = collection, ObjectId = TestData.Mam, RunId = run.Id, LastApplied = payload, LastAppliedDigest = CanonicalJson.Sha256(payload) } } };
+        return (payload, run, mappings);
     }
 }
