@@ -4,6 +4,8 @@ First prepared for Preview.15; it applies unchanged to later previews. Record th
 
 This is a prepared test scope, not authorisation. No tenant, operator, pilot device or live credentials have been supplied for this development task. Use the exact final package commit/checksum and standard 2026.09.30; record each outcome and its evidence. Keep tenant identifiers and exports outside the source repository.
 
+Use the [numbered engineer/live run sheet](LIVE-ACCEPTANCE-RUNSHEET.md) for new-client, legacy/backfill, repeat-review and second-engineer handoff checks and the sanitised response template. It preserves the approval stages below; future report/script checks remain blocked until present in the exact candidate.
+
 ## Information required before a live session
 
 Identify a disposable tenant by ID and primary domain; a named consenting administrator and engineer; two distinct emergency accounts; licensed pilot users; an enrolled disposable Windows device; and existing assessment/deployment registration IDs if available. Record Business Premium service eligibility, Windows edition and any separate ESET entitlement. Identify one pilot group and the approved office CIDRs only if the selected tests need them. Supply identifiers locally in the toolkit, never secrets in chat.

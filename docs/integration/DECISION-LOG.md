@@ -303,3 +303,8 @@ Choices:
 - Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
+
+
+## INT-075 — Numbered acceptance without expanding execution authority
+
+PR #41 derives docs/LIVE-ACCEPTANCE-RUNSHEET.md from CONTROLLED-ACCEPTANCE. It preserves separately approved setup/read/candidate/pilot/recovery stages and prepares new-client, legacy, repeat-review and handoff journeys. Expected results and a sanitised response template distinguish source/synthetic/native/human/live evidence, service readback and effectiveness. New report/scoped/script/navigation steps remain blocked until present in the exact candidate; all unrun gates stay open. No second capability matrix, source contract, permission grant or publication authority is introduced. Current portable CLI exclusion is explicit. Agent development never performs these live steps.

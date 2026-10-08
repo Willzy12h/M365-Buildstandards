@@ -44,4 +44,4 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 | 2026-10-06 | Astra/Codex | M365-Buildstandards | dedicated decision-only contracts for persistent job/observation, legacy disposition/cutover and read-only release lineage; no runtime implementation | `astra/product-contracts-2026-10-06` | #20 | Open |
 
-| 2026-10-08 | Astra/Codex | M365-Buildstandards | documentation: numbered human/live acceptance journeys and sanitised response template; no source/runtime/schema/permission changes, no gate closure | `astra/live-acceptance-runsheet-2026-10-08` (from integration `8f0285a`) | draft PR pending | Open |
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | documentation: numbered human/live acceptance journeys and sanitised response template; no source/runtime/schema/permission changes, no gate closure | `astra/live-acceptance-runsheet-2026-10-08` (from integration `8f0285a`) | #41 | Open |
