@@ -7,6 +7,10 @@
 
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
+- Explain the actual reason Microsoft interaction is required at explicit connect; cached access checks no longer claim a popup is already opening.
+- Exercise existing known-account silent acquisition and prompt counts through synthetic delegates, with no second cache or mid-operation interactive retry. Ambiguous cached matches explicitly request account choice while retaining the confirmed hint.
+- Document authentication paths, context/resource separation, cache/disconnect behaviour and source-versus-live prompt evidence in AUTHENTICATION-FLOW. No new permissions are requested.
+
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
 - Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
 - Verify, rather than regenerate, the committed standards manifest in the portable build; pin 2026.09.30 by publication digest; write the package ZIP with '/' entry names (CLA-20261006-03, -14).

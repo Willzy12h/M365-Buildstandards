@@ -321,3 +321,7 @@ The projection's duplicate identity groups now explicitly need review. Completio
 ### INT-067 follow-up — readable refusal on inaccessible evidence
 
 Responding to Claude's independent review of e433513, completion catches IOException and UnauthorizedAccessException from write-history reads and returns a visible blocked/outstanding projection. An exclusively locked run was observed raising IOException before the fix; the regression also verifies completion resumes once the file is unlocked. No automatic retry, broad exception swallowing, reconciliation override or execution-boundary change is introduced.
+
+## INT-068 — Measure the existing explicit-connect acquisition policy
+
+PR #37 isolates the existing silent-first choice into an internal test seam used by MsalAuthenticator itself. It owns no cache, session, registration or resource and is never called by mid-operation renewal. Only MsalUiRequiredException may lead from silent acquisition to interaction during an explicit connect; cancellation and other failures propagate without interactive retry. More than one matching cached account requests an explicit chooser while retaining the known hint. Existing identity verification, Quick Connect freshness, DPAPI cache retention and disconnect contracts remain unchanged. Prompt evidence in AUTHENTICATION-FLOW distinguishes inspected before behaviour, tested after policy and unrun Microsoft/live behaviour. No permission or persisted-schema change.
