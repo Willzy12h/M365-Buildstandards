@@ -1,11 +1,9 @@
-# Unreleased — independent workflow review
+# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
 - Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
 - Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
 - Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.
 - Locate the historical Engineer Console source in the uploaded reference archive and distinguish its reporting functions from already integrated BuildStandard capabilities.
-
-# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 

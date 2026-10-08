@@ -72,7 +72,16 @@ public sealed class JobCompletion
         var instances = ControlInstances.All(standard, profile);
         var writeHistoryBlocked = false;
         try { store.AssertCompletionWritesResolved(projection.Job.TenantId, instances.Select(c => c.Id)); }
-        catch (ToolkitException ex) { writeHistoryBlocked = true; blockers.Add("Write history needs reconciliation: " + ex.Message); }
+        catch (ToolkitException ex)
+        {
+            writeHistoryBlocked = true;
+            blockers.Add("Write history needs reconciliation: " + ex.Message + " See docs/UNRESOLVED-WRITES.md for the next step.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            writeHistoryBlocked = true;
+            blockers.Add("Write history could not be read. Resolve file access, preserve the original evidence and review completion again. See docs/UNRESOLVED-WRITES.md.");
+        }
         foreach (var duplicate in projection.Subjects.Select(s => s.InstanceKey)
                      .GroupBy(k => k, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
             blockers.Add($"{duplicate.Key} has conflicting outcome identities. Review its complete history before claiming completion.");

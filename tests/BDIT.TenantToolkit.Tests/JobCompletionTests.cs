@@ -129,6 +129,29 @@ public sealed class JobCompletionTests : IDisposable
     }
 
     [Fact]
+    public void An_exclusively_locked_run_keeps_completion_readable_and_outstanding()
+    {
+        foreach (var control in Controls) Observe(control);
+        var run = new DeploymentRun
+        {
+            Id = Guid.NewGuid().ToString(), PlanId = Guid.NewGuid().ToString(), TenantId = TestData.TenantA,
+            StartedAt = Timestamps.Format(_clock.UtcNow), Status = RunStatus.Completed,
+            Results = [new RunResult { ControlId = "CA-001", PlannedAction = nameof(PlanAction.Create),
+                Status = ResultStatus.NotRun, WriteAcceptance = WriteAcceptance.NotAttempted }]
+        };
+        _store.SaveRun(run);
+        Assert.True(Completion().Complete);
+        using (var locked = new FileStream(_store.RunFile(run), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            var completion = Completion();
+            Assert.False(completion.Complete);
+            Assert.Contains(completion.Blockers, reason => reason.Contains("could not be read"));
+            Assert.All(completion.Requirements, r => Assert.True(r.Outstanding));
+        }
+        Assert.True(Completion().Complete);
+    }
+
+    [Fact]
     public void Previously_stored_conflicting_identities_block_completion_without_rewriting_history()
     {
         foreach (var control in Controls) Observe(control);

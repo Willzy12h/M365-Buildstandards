@@ -317,3 +317,7 @@ AST-20261008-03 reproduces a closed case retaining its claim after its candidate
 ### INT-067 follow-up — truthful requirement rows
 
 The projection's duplicate identity groups now explicitly need review. Completion does not choose an authoritative outcome/decision from those groups. Conflicting histories and unresolved tenant write history produce Outstanding rows as well as a blocked job claim; a hidden first group or an old Pass must not leave a misleading Verified row. Existing immutable records and their raw status remain available for review, and no reconciliation is performed by reading. The two additional row assertions were observed failing before correction.
+
+### INT-067 follow-up — readable refusal on inaccessible evidence
+
+Responding to Claude's independent review of e433513, completion catches IOException and UnauthorizedAccessException from write-history reads and returns a visible blocked/outstanding projection. An exclusively locked run was observed raising IOException before the fix; the regression also verifies completion resumes once the file is unlocked. No automatic retry, broad exception swallowing, reconciliation override or execution-boundary change is introduced.
