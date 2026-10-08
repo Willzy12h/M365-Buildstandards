@@ -304,6 +304,24 @@ Choices:
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
 
+## INT-067 — Completion must account for unresolved writes and conflicting requirement identities
+
+PR #36 enforces INT-049 completion and stable requirement-history rules after reproducing AST-20261008-01/02 against integration `8f0285a`. It does not introduce a persisted schema, execution authority or reconciliation override. Completion reuses the existing strict evidence guards for the job's requirement controls, plus the existing tenant-wide reviewed-change/LAPS uncertainty guards. Existing deployment plan replay checks retain their ordering and scope. An unreadable or modified run remains a blocker, not empty success.
+
+A second semantic/control identity for an already recorded instance is refused within its outcome or decision history. Previously persisted conflicting groups block completion without rewriting originals. The claim remains separate from deployment authority. Cross-record-kind identity and cutover evidence review remain in the ongoing post-merge review; these two fixes do not claim that the complete review or human/live gates are finished.
+
+### INT-067 follow-up — predecessor cutover evidence
+
+AST-20261008-03 reproduces a closed case retaining its claim after its candidate run is deleted. PR #36 therefore verifies all attached stage references against their original digests while projecting a case. Current-stage freshness/material/due checks remain separate: historical overdue times do not themselves invalidate a newer reviewed stage, but missing/modified stage evidence requires review. No new record schema, migration, write or execution permission is introduced.
+
+### INT-067 follow-up — truthful requirement rows
+
+The projection's duplicate identity groups now explicitly need review. Completion does not choose an authoritative outcome/decision from those groups. Conflicting histories and unresolved tenant write history produce Outstanding rows as well as a blocked job claim; a hidden first group or an old Pass must not leave a misleading Verified row. Existing immutable records and their raw status remain available for review, and no reconciliation is performed by reading. The two additional row assertions were observed failing before correction.
+
+### INT-067 follow-up — readable refusal on inaccessible evidence
+
+Responding to Claude's independent review of e433513, completion catches IOException and UnauthorizedAccessException from write-history reads and returns a visible blocked/outstanding projection. An exclusively locked run was observed raising IOException before the fix; the regression also verifies completion resumes once the file is unlocked. No automatic retry, broad exception swallowing, reconciliation override or execution-boundary change is introduced.
+
 ## INT-068 — Measure the existing explicit-connect acquisition policy
 
 PR #37 isolates the existing silent-first choice into an internal test seam used by MsalAuthenticator itself. It owns no cache, session, registration or resource and is never called by mid-operation renewal. Only MsalUiRequiredException may lead from silent acquisition to interaction during an explicit connect; cancellation and other failures propagate without interactive retry. More than one matching cached account requests an explicit chooser while retaining the known hint. Existing identity verification, Quick Connect freshness, DPAPI cache retention and disconnect contracts remain unchanged. Prompt evidence in AUTHENTICATION-FLOW distinguishes inspected before behaviour, tested after policy and unrun Microsoft/live behaviour. No permission or persisted-schema change.

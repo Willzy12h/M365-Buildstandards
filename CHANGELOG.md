@@ -1,12 +1,15 @@
-# Unreleased — authentication measurement
+# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+- Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
+- Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
+- Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.
+- Locate the historical Engineer Console source in the uploaded reference archive and distinguish its reporting functions from already integrated BuildStandard capabilities.
+
+Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
 - Explain the actual reason Microsoft interaction is required at explicit connect; cached access checks no longer claim a popup is already opening.
 - Exercise existing known-account silent acquisition and prompt counts through synthetic delegates, with no second cache or mid-operation interactive retry. Ambiguous cached matches explicitly request account choice while retaining the confirmed hint.
 - Document authentication paths, context/resource separation, cache/disconnect behaviour and source-versus-live prompt evidence in AUTHENTICATION-FLOW. No new permissions are requested.
-
-# 1.1.0-preview.19 — unreleased: Claude review corrections and usability
-
-Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
 - Report the engine's real read route in the capability matrix (settings, equivalence evidence, observed evidence, Exchange/Purview capture, manual only), with the evidence read and licence per control. 20 evidence-assessed controls had been labelled Manual (CLA-20261006-02).
