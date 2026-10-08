@@ -303,3 +303,7 @@ Choices:
 - Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
+
+## INT-073 — Full HTML inventory of existing captured data
+
+PR #40 adds a shared HTML configuration renderer and offline bdit inventory command using the existing TenantSnapshot schema and ReportExporter. It introduces no report-evidence schema or permission/collection route and therefore does not depend on the proposed INT-070–072 wrappers. Friendly names lead; all returned raw properties/assignments, capture provenance and collection limitations remain visible. Domain/user/device fields absent from the current capture are explicitly unknown, not inferred. Existing Exchange schema/tenant validation preserves separate resource/time boundaries; no DNS call occurs. The CLI uses the existing primary integrity reader, rejects a release override and remains offline with unchanged no-authentication/no-write conformance checks. Desktop Reports integration is separate. A source inventory guide records the current developer-only CLI exposure; portable hosting/desktop integration still need their own reviewed work. Claude's publisher is untouched.

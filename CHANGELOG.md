@@ -1,5 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Export the full captured configuration inventory as self-contained HTML, separate from assessment/standard/drift reports. All returned properties and assignments are included; failed/partial reads, missing domains/fields and separate Exchange/Purview provenance remain explicit.
+- Add offline `bdit inventory --snapshot <file>` with HTML/JSON/CSV/Excel support and the existing integrity reader; no authentication, live reads or client profile is required. Desktop Reports integration remains separate.
+
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.
 
 - Report evidence integrity. Assessments record whether the Graph snapshot still matches its recorded digest; modified evidence leads the limitations and is bannered in engineer and client reports ("Not for issue"), and the headless runner refuses it (CLA-20261006-01).
