@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Ship the existing offline `bdit` CLI through the single portable application executable, with `bdit.cmd`, redirected output and actual exit codes. CLI dispatch precedes desktop workspace/authentication; no SDK, second executable, live connection or write route is added. Fresh Windows package tests exercise synthetic reports and truthful failures.
+
 - Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
 - Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
 - Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.

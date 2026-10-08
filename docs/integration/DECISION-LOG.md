@@ -359,3 +359,8 @@ PR #40 adds a shared HTML configuration renderer and offline bdit inventory comm
 ## INT-075 — Numbered acceptance without expanding execution authority
 
 PR #41 derives docs/LIVE-ACCEPTANCE-RUNSHEET.md from CONTROLLED-ACCEPTANCE. It preserves separately approved setup/read/candidate/pilot/recovery stages and prepares new-client, legacy, repeat-review and handoff journeys. Expected results and a sanitised response template distinguish source/synthetic/native/human/live evidence, service readback and effectiveness. New report/scoped/script/navigation steps remain blocked until present in the exact candidate; all unrun gates stay open. No second capability matrix, source contract, permission grant or publication authority is introduced. Current portable CLI exclusion is explicit. Agent development never performs these live steps.
+
+
+## INT-079 — Portable CLI implementation under merged INT-074
+
+PR #45 implements the approved single-executable hosting contract: managed CLI dependency with no apphost, early --cli dispatch before desktop context, inherited output-handle preservation and bounded parent-console attachment. No console allocation, alternate host, authentication or writes. The launcher retains the caller's current directory and exit code. Existing CLI logic and conformance tests are reused, not reimplemented. Fresh extracted-package verification requires actual help, pipe/file output, spaced synthetic inventory/report/job inputs, failure codes, and no desktop startup/cache side effects. The unchanged desktop first-launch tests remain required. Packaging changes need fresh exact-source proof; existing publisher pins are immutable. No version bump or publication is authorised by this source work.

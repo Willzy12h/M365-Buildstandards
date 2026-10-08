@@ -122,3 +122,10 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 ## Packaging
 
 `build\Build-Portable.ps1` restores, builds, tests, verifies the committed standards manifest (failing on any mismatch), publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.
+
+
+## Portable offline CLI host (INT-074 / PR #45)
+
+The App references the existing CLI assembly (`bdit.dll`, `UseAppHost=false`), so the self-contained ZIP keeps one application executable. `App.OnStartup` recognises `--cli` only as the first argument and returns through the existing CLI before Workspace/settings/logger/broker/cache initialisation. `PortableCliHost` preserves inherited standard handles, attaches to an existing parent console only when necessary, writes UTF-8 and returns the CLI exit code. It creates no new console or alternate process host. `bdit.cmd` forwards arguments without changing the working directory. Developer `dotnet bdit.dll` usage and offline conformance safeguards remain unchanged.
+
+`Test-Portable.ps1` verifies the extracted dependency, sole executable, help, pipe/file redirection, launcher failures, exact codes, spaced evidence paths and actual synthetic inventory/jobs/assessment reports, before existing desktop startup/shutdown checks. It refuses desktop startup-log/auth-cache side effects in CLI mode. These native package tests run on Windows; Linux cross-build is not runtime proof. The protected publisher and reviewed historical pins remain unchanged.

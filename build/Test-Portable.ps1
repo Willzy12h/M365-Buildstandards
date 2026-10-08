@@ -64,6 +64,64 @@ try {
     $deps = Get-Content -LiteralPath (Join-Path $extract 'app\BDIT.TenantToolkit.App.deps.json') -Raw
     if (-not $deps.Contains('"Accessibility.dll"')) { throw 'Accessibility.dll is missing from the runtime dependency manifest.' }
     $exe = Join-Path $extract 'app\BDIT.TenantToolkit.App.exe'
+    # Exercise the same self-contained executable in offline CLI mode before desktop startup.
+    if (@(Get-ChildItem -LiteralPath $extract -Filter '*.exe' -File -Recurse).Count -ne 1) { throw 'Portable toolkit must have exactly one application executable.' }
+    if (-not (Test-Path -LiteralPath (Join-Path $extract 'app\bdit.dll')) -or -not $deps.Contains('"bdit/')) { throw 'Portable CLI managed dependency is missing.' }
+    $launcher = Join-Path $extract 'bdit.cmd'
+    if (-not (Test-Path -LiteralPath $launcher)) { throw 'Portable CLI launcher is missing.' }
+    function Invoke-OwnedCli([string]$FileName, [string]$Arguments, [int]$ExpectedExit) {
+        $info = [Diagnostics.ProcessStartInfo]::new()
+        $info.FileName = $FileName; $info.Arguments = $Arguments; $info.WorkingDirectory = $extract
+        $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+        $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+        $owned = [Diagnostics.Process]::new(); $owned.StartInfo = $info
+        try {
+            if (-not $owned.Start()) { throw 'Packaged CLI did not start.' }
+            $outTask = $owned.StandardOutput.ReadToEndAsync(); $errTask = $owned.StandardError.ReadToEndAsync()
+            if (-not $owned.WaitForExit(30000)) { $owned.Kill(); $owned.WaitForExit(5000) | Out-Null; throw 'Packaged CLI exceeded its offline test budget.' }
+            $text = $outTask.GetAwaiter().GetResult(); $errorText = $errTask.GetAwaiter().GetResult()
+            if ($owned.ExitCode -ne $ExpectedExit) { throw "Packaged CLI exit $($owned.ExitCode), expected $ExpectedExit. $errorText" }
+            return [pscustomobject]@{ Text=$text; Error=$errorText }
+        } finally { if (-not $owned.HasExited) { $owned.Kill() }; $owned.Dispose() }
+    }
+    $help = Invoke-OwnedCli $exe '--cli --help' 0
+    if ($help.Text -notmatch 'bdit inventory' -or $help.Error) { throw 'CLI help did not preserve redirected stdout/stderr.' }
+    $failure = Invoke-OwnedCli $exe '--cli inventory --snapshot "synthetic missing file.json"' 2
+    if ($failure.Error -notmatch 'Refused:' -or $failure.Text) { throw 'CLI refusal did not preserve stderr or exit code.' }
+    $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
+    if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
+    $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
+    if ($viaLauncher.Text -notmatch 'bdit inventory' -or $viaLauncher.Error) { throw 'bdit.cmd did not forward help and stdout.' }
+    $launcherFailure = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" inventory --snapshot "synthetic missing file.json""') 2
+    if ($launcherFailure.Error -notmatch 'Refused:') { throw 'bdit.cmd lost the refusal or real exit code.' }
+    $synthetic = Join-Path $extract 'synthetic CLI evidence'
+    New-Item -ItemType Directory -Path $synthetic | Out-Null
+    $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
+    $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
+    if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'bdit inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
+    Remove-Item -LiteralPath $outFile, $errFile -Force
+    $snapshotFile = Join-Path $synthetic 'synthetic configuration.json'
+    $snapshot = [ordered]@{ id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; tenantId='11111111-1111-4111-8111-111111111111';
+        tenantName='Synthetic portable tenant'; primaryDomain='synthetic.example.invalid'; clientLabel='Synthetic CLI';
+        capturedAt='2026-10-08T00:00:00Z'; capturedBy='engineer@example.invalid'; sessionMode='Assessment'; standardRelease=$settings.defaultStandardRelease;
+        toolkitVersion=$metadata.version; identitySource='Synthetic offline test'; collections=@{}; complete=$false; integrityDigest='' }
+    [IO.File]::WriteAllText($snapshotFile, ($snapshot | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+    $inventory = Invoke-OwnedCli $exe ('--cli inventory --snapshot "' + $snapshotFile + '" --format html') 0
+    $inventoryFiles = @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'configuration-*.html' -File)
+    if ($inventoryFiles.Count -ne 1 -or (Get-Content -LiteralPath $inventoryFiles[0].FullName -Raw) -notmatch 'Synthetic portable tenant|INCOMPLETE|Incomplete') { throw 'Packaged CLI did not render actual synthetic inventory.' }
+    $profileFile = Join-Path $extract 'data\profiles.json'
+    [IO.File]::WriteAllText($profileFile, '[{"tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
+    $jobs = Invoke-OwnedCli $exe '--cli jobs --tenant 11111111-1111-4111-8111-111111111111' 0
+    if ($jobs.Text -notmatch 'Synthetic CLI client.*0 job\(s\)') { throw 'Packaged CLI did not project stored synthetic client jobs.' }
+    $report = Invoke-OwnedCli $exe ('--cli report --snapshot "' + $snapshotFile + '" --format html') 0
+    if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'assessment-*.html' -File).Count -ne 1) { throw 'Packaged CLI did not generate the synthetic assessment report.' }
+    if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
+    if (@(Get-ChildItem -LiteralPath $extract -File -Recurse | Where-Object { $_.Name -match 'msal|token.cache|session.cache' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
+    # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
+    Remove-Item -LiteralPath $snapshotFile, $profileFile -Force
+    Remove-Item -LiteralPath $synthetic -Force
+    Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File | Remove-Item -Force
+
     $process = Start-Process -FilePath $exe -WorkingDirectory $extract -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     do {
@@ -161,6 +219,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
+        portableCliHelp=$true; portableCliLauncher=$true; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; noCliDesktopOrAuthInitialisation=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
