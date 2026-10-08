@@ -10,4 +10,12 @@ No new permission, registration, live call, authentication flow or write route i
 
 ## Validation
 
-Pending implementation and exact-source checks. All fixtures will be synthetic. Microsoft responses, roles, consent, modules and human/live acceptance remain unverified.
+Implemented source corrections in `ServiceReadinessService`. The first 25 synthetic regression cases produced 19 failures against the pre-fix source and all 25 passed after the correction. Additional known-unsuitable-account cases retain Action required. Full Linux engine/CLI suite: 1,248 passed, zero failed/skipped. Strict solution cross-build: zero warnings/errors. Exact-head Windows CI and independent review remain pending. Microsoft responses, roles, consent, modules and human/live acceptance remain unverified.
+
+## Engineer meaning
+
+- **Configuration observed**: required returned fields were interpretable and matched this narrow check. It is not a functional or operational pass.
+- **Action required / Review required**: a completed, interpretable read found a concrete condition to review.
+- **Unknown**: the read failed, identity did not match, or necessary fields could not be interpreted. Follow the row's Next step; do not deploy on an assumption that configuration is absent.
+
+Use the existing assessment application and reviewed read permissions. A 403 asks the engineer to validate the registration/grants and their service role; it does not request a new scope or grant consent automatically. A 404 needs the object/service/access checked before setup changes are proposed. The live module, RBAC, WAM and consent journeys in R07 remain acceptance gates.
