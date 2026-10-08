@@ -6,14 +6,14 @@
        would otherwise squeeze the tables and guidance below it out of reach. See PageLayout.MinimumHeight. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
-      <Grid Margin="28,24">
+      <Grid Margin="28,12">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel>
           <TextBlock Text="02 / CAPTURE &amp; INSPECT" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Tenant configuration" Style="{StaticResource H1}"/>
-          <TextBlock Text="Read-only: capture and inspect existing tenant settings. This process sends read requests and saves evidence locally; it does not create, update, enable or assign tenant objects, even in a deployment session." Style="{StaticResource Lead}"/>
+          <TextBlock Text="Read-only: inspect existing tenant settings and save evidence locally. This never changes tenant objects, even with deployment access." Style="{StaticResource Lead}" Margin="0,0,0,8"/>
         </StackPanel>
-        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12" Margin="0,12,0,12">
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12" Margin="0,8,0,8">
           <StackPanel>
             <DockPanel>
               <Button DockPanel.Dock="Right" Content="Capture configuration (read-only)" Command="{Binding CaptureCommand}" Margin="20,0,0,0" VerticalAlignment="Top"/>
@@ -41,7 +41,7 @@
         </Border>
         <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0">
           <TabItem Header="Objects &amp; settings">
-            <Grid Margin="0,16,0,0">
+            <Grid Margin="0,8,0,0">
               <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
               <DockPanel>
                 <WrapPanel DockPanel.Dock="Top">
