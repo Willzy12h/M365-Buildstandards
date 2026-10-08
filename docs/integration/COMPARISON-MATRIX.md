@@ -9,6 +9,12 @@
 
 This extends the existing comparison evidence; it does not replace the capability table or close unrun acceptance.
 
+## Portable CLI implementation — PR #45
+
+| Feature | Earlier limit | Source result / validation gate |
+| --- | --- | --- |
+| Portable offline CLI | Developer/CI CLI omitted from ZIP | Existing managed CLI hosted by the sole packaged application; early dispatch, bdit.cmd and stdout/stderr/exit-code bridge. Existing offline conformance tests retained. Native fresh-package checks exercise reports/jobs/spacing/redirection and refusal; exact Windows evidence required, no live capability implied. |
+
 # Preview.18 approved product-completion work — PR #19
 
 | Area | Earlier limit | Implemented result and evidence |
