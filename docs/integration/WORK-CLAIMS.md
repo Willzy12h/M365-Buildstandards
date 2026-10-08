@@ -61,3 +61,5 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | R07 read-only readiness status, exact identity and malformed-field interpretation; independent review pending, no permissions/authentication/write changes | `astra/readiness-read-status-2026-10-08` (from integration `ef5d61c`, refreshed through `865e1a1`) | #53 | Open |
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | Astra-owned claim/decision/completion reconciliation and exact reviewed merge evidence; historical publication records and Claude findings preserved | `astra/merge-records-2026-10-08` (from integration `865e1a1`) | #54 | Open |
+
+| 2026-10-08 | Claude | M365-Buildstandards | evidence and reporting, interface: Scripts & Reports library first slice under INT-072 (strict manifests, pinned registry, typed inputs, Copy script, offline `bdit scripts`, Exchange Online read scripts); no Run, no tenant access. Assigned by William on 2026-10-08 pending Astra's response | `claude/project-thread-fjnhfz` (from integration `692d2d5`) | #46 | Open |

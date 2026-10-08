@@ -82,7 +82,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -260,6 +260,7 @@ internal static partial class Program
             if (!GridsInspected.Contains("Controls to include in the plan") || !GridsInspected.Contains("Planned actions"))
                 throw new InvalidOperationException("The Plan page tables were not measured: " + string.Join(", ", GridsInspected));
             CheckConfirmationDialog(workspace, output);
+            CheckScriptCopyDialog(shell, output);
 
             // Keyboard and command checks need a real window: focus only moves inside one that has been shown.
             window.ShowInTaskbar = false; window.ShowActivated = true;
@@ -510,6 +511,7 @@ internal static partial class Program
             vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
+        if (key == "scripts") SeedScripts(shell);
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
         if (key == "history")

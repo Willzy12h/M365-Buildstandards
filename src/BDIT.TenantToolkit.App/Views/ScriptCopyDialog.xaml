@@ -1,0 +1,25 @@
+<Window x:Class="BDIT.TenantToolkit.App.Views.ScriptCopyDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Confirm the tenant before copying" Width="720" Height="700" MinHeight="620" MinWidth="620" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False" Background="{StaticResource BgWindow}">
+  <Grid Margin="28">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel><TextBlock Text="CONFIRM TENANT AND SCRIPT" Style="{StaticResource Eyebrow}"/><TextBlock Text="Check before you copy" Style="{StaticResource H1}"/><TextBlock Text="Nothing runs from here. The script signs in to the tenant below only, and refuses any other." Style="{StaticResource Lead}"/></StackPanel>
+    <Border Grid.Row="1" x:Name="Band" CornerRadius="6" Padding="16,12" Margin="0,0,0,14" BorderThickness="1">
+      <StackPanel>
+        <TextBlock x:Name="TenantNameText" FontSize="16" FontWeight="SemiBold"/>
+        <TextBlock x:Name="TenantIdText" FontFamily="Consolas" FontSize="13" Margin="0,4,0,0"/>
+        <TextBlock x:Name="AccountText" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Border>
+    <StackPanel Grid.Row="2" Margin="0,0,0,10">
+      <TextBlock x:Name="ItemText" FontWeight="SemiBold"/>
+      <TextBlock x:Name="TypeText" Foreground="{StaticResource Good}" FontWeight="SemiBold" Margin="0,4,0,0"/>
+      <TextBlock Text="Values the script will use" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+    </StackPanel>
+    <ListBox Grid.Row="3" x:Name="ValueList" AutomationProperties.Name="Values the script will use"/>
+    <StackPanel Grid.Row="4" Margin="0,16,0,0">
+      <CheckBox x:Name="ApprovalBox" Checked="OnApprovalChanged" Unchecked="OnApprovalChanged" AutomationProperties.Name="Confirm this tenant, item and values"><TextBlock Text="I have checked the tenant, the item and every value. Produce this script for this tenant only." TextWrapping="Wrap"/></CheckBox>
+      <TextBlock Text="Blank optional fields are left out. Review the script before you run it; it is not run by this tool." Style="{StaticResource Muted}"/>
+    </StackPanel>
+    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0"><Button Content="Cancel" Click="OnCancel" Style="{StaticResource SecondaryButton}" IsCancel="True"/><Button x:Name="ConfirmButton" Click="OnConfirm" IsEnabled="False" Margin="0"/></StackPanel>
+  </Grid>
+</Window>

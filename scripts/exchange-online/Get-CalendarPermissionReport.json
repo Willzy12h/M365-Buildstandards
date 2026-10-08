@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.calendar-permissions",
+  "name": "Calendar permissions",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Shows who can see or edit each chosen mailbox's calendar, using the mailbox's own calendar folder name.",
+  "keywords": [
+    "calendar",
+    "delegate",
+    "sharing",
+    "Get-EXOMailboxFolderPermission"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-CalendarPermissionReport.ps1",
+  "scriptSha256": "a0f80fe4ade34bc9df7e55aabffd67df48792e6798e89256843b13a81bc4eed6",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases of the calendars to check.",
+      "required": true,
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "Folder",
+      "User",
+      "AccessRights",
+      "SharingPermissionFlags"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 900
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant."
+  ]
+}

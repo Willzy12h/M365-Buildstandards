@@ -13,3 +13,4 @@ public partial class ManualChecksView : UserControl { public ManualChecksView() 
 public partial class JobsView : UserControl { public JobsView() => InitializeComponent(); }
 public partial class StandardView : UserControl { public StandardView() => InitializeComponent(); }
 public partial class SettingsView : UserControl { public SettingsView() => InitializeComponent(); }
+public partial class ScriptsView : UserControl { public ScriptsView() => InitializeComponent(); }
