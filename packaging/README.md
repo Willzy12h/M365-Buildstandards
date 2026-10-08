@@ -79,3 +79,8 @@ The source, its full history and the internal review records are at
 release.
 
 Use `docs\WORKSPACE-CONTINUITY.md` for sensitive local backup and separate restore, `docs\INTERNAL-OPERATING-MODEL.md` for responsibilities/incidents, and `docs\RELEASE-AND-SERVICING.md` for the approval and support record. `DEPENDENCIES.json` and `licenses/` contain resolved package/runtime inventory and supplied notices.
+
+
+## Offline command line
+
+`bdit.cmd --help` runs the same application executable in offline CLI mode before desktop startup. In PowerShell use `.\bdit.cmd --help`. No .NET SDK or second executable is required. It reads stored evidence, produces local reports and never signs in or deploys. Quote paths with spaces; stdout/stderr redirection and actual exit codes are preserved. If application control blocks the host, use the security-owner approval route above; there is no alternate host or bypass.
