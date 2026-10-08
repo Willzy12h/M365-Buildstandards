@@ -7,6 +7,8 @@
 - Scoped checks match the full assessment for the selected controls: the same release-lineage review, separately imported Exchange/Purview evidence in stored-evidence checks (`bdit check --exchange-snapshot <file>`), and the source's own integrity state. A result too large to store is shown as not saved, with the reason, rather than lost (CLA-20261008-01 to -04).
 
 - Add an engine-only read-only naming audit and explicit new-authoring validator under the TYPE - description convention. Exact IDs and creation/readback proof separate corroborated toolkit objects from unmapped/unconfirmed ownership. Empty, failed and missing reads stay distinct. Historical names are reported, never rewritten; Reports/UI and authoring-pipeline exposure remain separate.
+
+- Ship the existing offline `bdit` CLI through the single portable application executable, with `bdit.cmd`, redirected output and actual exit codes. CLI dispatch precedes desktop workspace/authentication; no SDK, second executable, live connection or write route is added. Fresh Windows package tests exercise synthetic reports and truthful failures.
 - Completion refuses unresolved write history using the existing evidence guards; reading a job never reconciles or authorises a write.
 - Reject conflicting identities for one requirement instance when recording outcomes or decisions. Previously stored conflicting outcome/decision histories block completion and remain intact for review.
 - Recheck the pinned evidence of predecessor cutover stages: a later closed stage cannot conceal a deleted or modified candidate run.
