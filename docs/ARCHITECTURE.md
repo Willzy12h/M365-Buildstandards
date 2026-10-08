@@ -77,6 +77,16 @@ Integrity: `standards\manifest.json` lists a SHA-256 digest per release file. `S
 3. `FindCandidates` compares the resolved recipe with every object in the collection: identity and metadata keys are ignored, `@odata.type` and `grantControls` act as prefilters, every remaining leaf is compared with `CanonicalJson.IsSubset`. Objects that match fully, match at least the partial threshold, or share the standard name are returned with property-level differences and enforcement state.
 4. Status: `Compliant` (settings match and enabled or assigned), `SettingsMatchNotEnforced`, `PartialMatch`, `Missing`, `UnableToAssess`, `RequiresManualReview`, `LicenceUnavailable`, `NotApplicable`, `CompliantWithDeviation`. A deviation never overrides `UnableToAssess`.
 
+## Registered partial checks
+
+`CheckSelection.ForArea` and `ForControl` resolve the verified catalogue's existing control instances and required collections, including equivalence/licence dependencies and schema-specific assessor dependencies. Selection pins the catalogue, reviewed client scope and actual registered definitions; unknown selectors or changed routes are refused before collection. New modules belong in a new catalogue release, with their dependency routing covered by collector and assessor tests; arbitrary URLs are not modules.
+
+`TenantCollector.CollectScopedAsync` reads only those dependencies. `AssessmentEngine.AssessSelected` evaluates only the chosen controls. Both always mark results partial, including an area containing every control or a filter over complete historical evidence. Missing, interrupted and failed reads stay explicit and cannot be reported as empty successes.
+
+`ScopedCheckService` binds live results to the verified tenant/account, or derives historical reviews without inventing an account or refreshing capture time. The INT-070 `scopedCheck` wrapper is stored immutably under `data/tenants/<tenantId>/scoped-checks/<id>.json`, outside the snapshot/assessment/plan stores. Its strict bounded reader validates identity, registered dependencies, partial flags and digests. Digests detect changes, not authenticity. Ordinary snapshot readers reject wrappers; deployment still requires complete ordinary before-evidence. Desktop and offline CLI hosts must use this service rather than filtering a completed live capture and calling it scoped collection.
+
+The Assessment page exposes live scoped reads and explicitly selected historical filtering without replacing the full workspace assessment, snapshot or plan. Its requirement picker uses the shared control-instance registry; older releases reuse `ControlAreas.For` without changing catalogue bytes. Offline `bdit check --snapshot <file> --area <area>` (or `--control <id>`, with optional `--exchange-snapshot <file>` as for `report`) writes the strict historical wrapper to standard output; it does not write installation evidence, authenticate or acquire live data. The portable CLI host remains a separate INT-074 implementation gate.
+
 ## Planning and execution
 
 `DeploymentPlanner.Build` produces rows with actions Create, Update, NoChange, Blocked, Conflict, Drift, Manual, Deviation. Conditional Access payloads are forced to `disabled`, the emergency accounts, optional exclusion group and the verified operator are injected exactly once, and any earlier operator exclusion recorded in the mapping is preserved. Existing objects are matched by ownership mapping and live readback only; same-name or overlapping unmanaged objects are conflicts.
@@ -122,3 +132,14 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 ## Packaging
 
 `build\Build-Portable.ps1` restores, builds, tests, verifies the committed standards manifest (failing on any mismatch), publishes the App self-contained, stages `standards`, `config`, `docs`, launchers, `README.md` and `CHANGELOG.md`, writes `VERSION.json` (versions, runtime, NuGet packages) and `SHA256SUMS.txt`, and zips the result with a `.sha256` file alongside. Only the build machine needs the .NET 10 SDK.
+
+
+## Registered read-only reports (INT-071 / PR #44)
+
+`Core/Reporting/GraphReportRegistry` owns stable report IDs, typed row schemas, fixed Graph routes, required access and limitations. `GraphClient.ForReports()` shares the existing verified connection's HTTP/token context while replacing the route allowlist with read-only report routes. Only registered collection reads and exact `/users/{guid}/licenseDetails` are accepted. This is not a general Graph query or script executor and does not authenticate.
+
+`Engine/Reports/GraphReportService` reuses `LicenceInventoryService` for subscription/user inventory and collects actual per-user licence details by identity. It produces independent strict `reportEvidence`, with explicit partial/failed/cancelled/not-attempted sections. Five-minute/5,000-row/31-day-query bounds are read limits, not retention or entitlement claims. Unknown fields are null; failed reads never become successful empty results.
+
+`ReportEvidenceSchema` rejects missing/unknown/wrongly typed fields, unregistered rows, duplicate keys/IDs, inconsistent status, invalid identity/ranges and changed digests. `EvidenceStore.SaveReport/LoadReport` uses a dedicated immutable folder and the existing atomic create writer, preserving required null fields. Ordinary snapshot readers reject wrappers. Reports cannot authorise a write. `RegisteredReportDocuments` and `ReportExporter.ExportReport` share HTML/JSON/CSV/Excel generation with the existing safe writers; desktop/CLI navigation remains pending.
+
+To add a report, review any new shared contract/access first, register its stable ID, typed row and exact read routes, then implement an engine adapter with dependency/access checks, bounded reads, context continuity and truthful failures. Add synthetic failure/empty/unknown/cancellation/import/export tests. Document permissions and limitations in APPLICATION-SETUP before live consent; do not change historical captures or conceal new access behind a report button.

@@ -1,5 +1,6 @@
 using BDIT.TenantToolkit.App.Services;
 using BDIT.TenantToolkit.App.ViewModels;
+using BDIT.TenantToolkit.Engine.Checks;
 using BDIT.TenantToolkit.Engine.Exchange;
 using BDIT.TenantToolkit.Graph;
 using BDIT.TenantToolkit.Core;
@@ -211,6 +212,38 @@ public sealed class ExchangeWorkspaceTests : IDisposable
         Assert.Contains("REVIEW PROPOSAL: PUR-001", content);
         Assert.DoesNotContain("REVIEW PROPOSAL: EX-001", content);
         Assert.False(_workspace.SnapshotIsLive); Assert.Null(_workspace.Plan); Assert.Null(_workspace.AcknowledgedSnapshotId);
+    }
+    [Fact]
+    public async Task Stored_partial_check_uses_separately_imported_exchange_evidence_like_the_full_assessment()
+    {
+        // CLA-20261008-02: the Graph capture plus a separate Exchange import, as RunAssessment combines them.
+        var graph = TestData.Snapshot(_workspace.RequireStandard(), capturedAt: DateTimeOffset.UtcNow);
+        _workspace.Evidence.SaveSnapshot(graph);
+        _workspace.LoadStoredSnapshot(graph.Id);
+        _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);
+        var full = _workspace.Assessment!;
+        var result = await _workspace.RunScopedCheckAsync(CheckSelection.ForArea(_workspace.RequireStandard(), _workspace.Profile!, "Exchange"), historical: true);
+        Assert.Equal(graph.Id, result.Evidence.SourceCapture!.Id);
+        Assert.Equal(_workspace.ExchangeSnapshot!.ExchangeCapture!.Id, result.Evidence.SeparateExchange!.Id);
+        foreach (var finding in result.Evidence.Assessment.Findings)
+            Assert.Equal(full.Findings.Single(f => f.ControlId == finding.ControlId).Status, finding.Status);
+        Assert.Contains(result.Evidence.Assessment.Findings, f => f.ControlId == "EX-004" && f.Status == FindingStatus.RequiresManualReview);
+        Assert.Null(result.NotSavedReason);
+        Assert.Same(full, _workspace.Assessment);
+    }
+
+    [Fact]
+    public async Task Exchange_only_evidence_can_be_checked_from_stored_evidence()
+    {
+        _workspace.ImportExchangeCapture(_file, ExchangeTestData.Domain);
+        Assert.Null(_workspace.Snapshot);
+        var page = new ShellViewModel(_workspace).Page<AssessmentViewModel>();
+        page.CheckStored = true; page.CheckArea = "Exchange";
+        Assert.True(page.CheckAreaCommand.CanExecute(null));
+        var result = await _workspace.RunScopedCheckAsync(CheckSelection.ForArea(_workspace.RequireStandard(), _workspace.Profile!, "Exchange"), historical: true);
+        Assert.Equal(_workspace.ExchangeSnapshot!.Id, result.Evidence.SourceCapture!.Id);
+        Assert.Null(result.Evidence.SeparateExchange);
+        Assert.Contains(result.Evidence.Assessment.Findings, f => f.ControlId == "EX-004" && f.Status == FindingStatus.RequiresManualReview);
     }
     public void Dispose() { _logger.Dispose(); _root.Dispose(); }
 }

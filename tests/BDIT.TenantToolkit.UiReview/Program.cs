@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Input;
 using System.Windows.Threading;
 using BDIT.TenantToolkit.App.Services;
 using BDIT.TenantToolkit.App.ViewModels;
@@ -122,6 +123,8 @@ internal static partial class Program
                         CapturePrerequisites(content, size, output, nav.Key);
                     if (nav.Key == "automation")
                         CaptureAssignmentPopulations(shell, content, size, output);
+                    if (nav.Key == "assessment")
+                        CaptureScopedChecks(shell, content, size, output);
                     if (nav.Key == "setup")
                     {
                         var results = Descendants(content).OfType<ItemsControl>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Application setup results");
@@ -768,6 +771,30 @@ internal static partial class Program
         vm.ExcludedGroups = "";
         tabs.SelectedIndex = 0;
         content.UpdateLayout(); Pump();
+    }
+
+    private static void CaptureScopedChecks(ShellViewModel shell, FrameworkElement content, Size size, string output)
+    {
+        var tabs = Descendants(content).OfType<TabControl>().First();
+        var previous = tabs.SelectedIndex;
+        tabs.SelectedIndex = 0; Pump(); content.UpdateLayout();
+        var page = shell.Page<AssessmentViewModel>();
+        page.CheckStored = true;
+        page.CheckControl = "CA-001";
+        if (!page.CheckControlCommand.CanExecute(null)) throw new InvalidOperationException("Synthetic stored requirement check is unavailable.");
+        page.CheckControlCommand.Execute(null); Pump(); content.UpdateLayout();
+        var result = Descendants(content).OfType<TextBox>().Single(t => System.Windows.Automation.AutomationProperties.GetName(t) == "Partial check result and evidence");
+        if (!result.IsReadOnly || !IsShown(result, content) || result.Text != page.PartialCheckText
+            || !result.Text.Contains("historicalFiltered", StringComparison.Ordinal))
+            throw new InvalidOperationException("Partial check result is not visible, complete and read-only.");
+        foreach (var name in new[] { "Area to check", "Requirement to check", "Review stored evidence instead of reading live" })
+        {
+            var control = Descendants(content).OfType<Control>().Single(c => System.Windows.Automation.AutomationProperties.GetName(c) == name);
+            if (!IsShown(control, content) || !control.Focusable || !KeyboardNavigation.GetIsTabStop(control))
+                throw new InvalidOperationException("Partial check selector is not available to keyboard navigation: " + name);
+        }
+        SaveImage(content, size, Path.Combine(output, $"scoped-checks-{(int)size.Width}x{(int)size.Height}.png"));
+        tabs.SelectedIndex = previous; Pump(); content.UpdateLayout();
     }
 
     private static ApplicationSetupService SyntheticSetup() => new(new HttpClient(new NoNetworkHandler()), new NoTokens(),

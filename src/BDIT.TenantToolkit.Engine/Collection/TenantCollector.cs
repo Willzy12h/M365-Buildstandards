@@ -3,6 +3,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Graph;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Checks;
 
 namespace BDIT.TenantToolkit.Engine.Collection;
 
@@ -32,6 +33,21 @@ public sealed class TenantCollector
     }
 
     public async Task<TenantSnapshot> CollectAsync(IGraphClient graph, TenantSession session, TenantProfile profile, StandardCatalogue standard, IProgress<CollectionProgress>? progress, CancellationToken ct, bool preservePartialOnCancellation = false)
+        => await CollectCoreAsync(graph, session, profile, standard, progress, ct, preservePartialOnCancellation, null);
+
+    /// <summary>Only registered dependencies are read. Even successful scoped reads are incomplete before-evidence.</summary>
+    public async Task<TenantSnapshot> CollectScopedAsync(IGraphClient graph, TenantSession session, TenantProfile profile,
+        StandardCatalogue standard, CheckSelection selection, IProgress<CollectionProgress>? progress, CancellationToken ct,
+        bool preservePartialOnCancellation = false)
+    {
+        selection.ValidateFor(standard, profile);
+        return await CollectCoreAsync(graph, session, profile, standard, progress, ct, preservePartialOnCancellation,
+            selection.CollectionKeys.ToHashSet(StringComparer.Ordinal));
+    }
+
+    private async Task<TenantSnapshot> CollectCoreAsync(IGraphClient graph, TenantSession session, TenantProfile profile,
+        StandardCatalogue standard, IProgress<CollectionProgress>? progress, CancellationToken ct,
+        bool preservePartialOnCancellation, IReadOnlySet<string>? selectedCollections)
     {
         if (!string.Equals(graph.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase) || !string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The connected tenant does not match the selected profile.");
@@ -51,10 +67,11 @@ public sealed class TenantCollector
             IdentitySource = session.TenantVerified ? "Authenticated Microsoft Graph organisation (verified)" : "Not verified"
         };
 
-        var total = standard.Collections.Count;
+        var collections = standard.Collections.Where(c => selectedCollections is null || selectedCollections.Contains(c.Key)).ToList();
+        var total = collections.Count;
         var completed = 0;
         var cancelled = false;
-        foreach (var (key, def) in standard.Collections)
+        foreach (var (key, def) in collections)
         {
             if (!preservePartialOnCancellation) ct.ThrowIfCancellationRequested();
             if (cancelled)
@@ -145,7 +162,7 @@ public sealed class TenantCollector
                 $"{def.Label}: {(capture.Status == CaptureStatus.Collected ? capture.Count + " object(s)" : "not collected")}{(capture.DetailIncomplete ? " (details incomplete)" : "")}"));
         }
 
-        snapshot.Complete = snapshot.Collections.Values.All(c => c.Usable);
+        snapshot.Complete = selectedCollections is null && snapshot.Collections.Values.All(c => c.Usable);
         _log.Info("Collect", $"Snapshot {snapshot.Id} captured: {snapshot.Collections.Count(c => c.Value.Status == CaptureStatus.Collected)}/{snapshot.Collections.Count} collections, complete={snapshot.Complete}.", profile.TenantId);
         return snapshot;
     }

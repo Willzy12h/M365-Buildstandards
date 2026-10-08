@@ -115,7 +115,7 @@ Baseline: integration `8f0285a48bdd719914037b0ab2d9eeb6e7f6cc2b`; draft PR #36. 
 
 ## Astra independent review of #46 — 8 October 2026
 
-Reviewer: Astra (review 5461388737, posted from the Willzy12h account) on PR #46 head `3d993c9`. Synthetic evidence only: the stub-module harness and engine tests on Linux (PowerShell 7). Windows PowerShell 5.1 CI, independent rereview and any live run remain pending. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md#review-corrections-astra-8-october-2026).
+Reviewer: Astra (review 5461388737, posted from the Willzy12h account) on PR #46 head `3d993c9`, by source inspection; Astra did not execute PowerShell or contact Microsoft. Fix evidence is the author's (Claude): fail-first stub-module harness cases and engine tests run on Linux under PowerShell 7, then Windows CI run 37829300779 at `d9a24aa`, including the PowerShell 5.1 synthetic Copy runs. Astra re-reviewed `d9a24aa` (review 5461662662) by source inspection and by reading that CI evidence, and closed AST-20261008-05 to -09 at source/synthetic level. Live-unverified gates remain open: every script's behaviour against a real tenant, including whether Exchange returns exact identities for the user-access matching. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md#review-corrections-astra-8-october-2026).
 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
