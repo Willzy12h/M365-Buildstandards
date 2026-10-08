@@ -108,8 +108,9 @@ foreach ($identity in $Group) {
                 }
                 continue
             }
-            foreach ($owner in @($details.ManagedBy)) {
-                if ($null -eq $owner -or [string]$owner -eq '') { continue }
+            # Bounded before any lookup, so a long owner list cannot make one recipient read per entry past the limit.
+            $owners = Get-Bounded @(@($details.ManagedBy) | Where-Object { $null -ne $_ -and [string]$_ -ne '' }) ($address + ' ownership')
+            foreach ($owner in $owners) {
                 $resolved = Get-HolderIdentity ([string]$owner)
                 if ($resolved.Status -ne 'Resolved') { $unresolved++ }
                 [pscustomobject]@{

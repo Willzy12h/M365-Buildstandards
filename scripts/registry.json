@@ -4,8 +4,8 @@
     {
       "id": "exo.archive-mailboxes",
       "manifest": "exchange-online/Get-ArchiveMailboxReport.json",
-      "manifestSha256": "7c549ac53bffa639df3ebd9960d95c935512f28f4a7cdd872bca1f138db37b87",
-      "scriptSha256": "de2097893b032c1a88ac5faf107f866d067acbab626e474c05c2be4e1f3e8d43"
+      "manifestSha256": "b5ecbff0d17aed2672127b2e5be6c534481e396bcde0f5002c91c6af223bc38c",
+      "scriptSha256": "9bd2b586dfc97bfbf026de2d4d44e184bc46ef70449475e7d5880b389e2afdab"
     },
     {
       "id": "exo.calendar-permissions",
@@ -22,8 +22,8 @@
     {
       "id": "exo.domains-dkim",
       "manifest": "exchange-online/Get-DomainDkimReport.json",
-      "manifestSha256": "67a5640951b68b60b61f5fc43719b24ddc426886d14b7a3072331846c3bb5f6a",
-      "scriptSha256": "fac54ef6683d218d8449e087f30593d36fd7f9953dcb0f2a20631035ae73eac9"
+      "manifestSha256": "ce7c1f330772e8596619ba55ae41fce93d479e3fd3aae6d211e0fb81b615515d",
+      "scriptSha256": "1371c0140ef84bed299780373b7c0d3a818d4b94de554345f54008fcbb1940ef"
     },
     {
       "id": "exo.external-forwarding",
@@ -34,8 +34,8 @@
     {
       "id": "exo.group-members",
       "manifest": "exchange-online/Get-GroupMembershipReport.json",
-      "manifestSha256": "09ffec159f29a990c401cb0e6347665e8197ec542c48b12a694fa1e4ba0c08fc",
-      "scriptSha256": "94b8bd54eae0cde37bb7c5c0b1890b06b2a6e4496748d17e54a21120e8fc27d2"
+      "manifestSha256": "b88f2b0c4c0b560069b14b9c766493ccd77134c3c2c6ce236843791ff727ce15",
+      "scriptSha256": "218585070d3afe0add734e0eedde850aac0a39645e02afd89ef60549c657a063"
     },
     {
       "id": "exo.inbox-rules",
@@ -88,8 +88,8 @@
     {
       "id": "exo.protection-policies",
       "manifest": "exchange-online/Get-ProtectionPolicyReport.json",
-      "manifestSha256": "521bce9c812e9e2dcdfe051115438af4f2951efb280579ed0f1787bec78f5718",
-      "scriptSha256": "5b41629031d517b402b8e2889e0b38c1dfb002a44d72f768c903f14505f5317e"
+      "manifestSha256": "0517b72314f76169bc19810393eede11964b229afb3a310691f12ce053ece7a6",
+      "scriptSha256": "2e44c9b0efe827362e3d645e163e8a23c5476b634208537a5fbfae0428358912"
     },
     {
       "id": "exo.resource-mailboxes",

@@ -103,6 +103,17 @@ function Get-Mailboxes {
                 (New-StubMailbox 'Flags null' 'null@contoso.example' 'SharedMailbox' '99999999-9999-9999-9999-999999999999' $hundred $null $null $null @())
             )
         }
+        'nulls' {
+            # Archive quotas returned null, not returned at all, Unlimited and known, and a mailbox with no archive.
+            $nullQuota = New-StubMailbox 'Null quota' 'nullquota@contoso.example' 'UserMailbox' '0a0a0a0a-0a0a-0a0a-0a0a-0a0a0a0a0a0a' $hundred $true $false $false @()
+            $nullQuota.ArchiveQuota = $null; $nullQuota.ArchiveStatus = 'Active'
+            $nullQuota.PSObject.Properties.Remove('ArchiveWarningQuota')
+            $unlimited = New-StubMailbox 'Unlimited archive' 'unlimitedarchive@contoso.example' 'UserMailbox' '0b0b0b0b-0b0b-0b0b-0b0b-0b0b0b0b0b0b' $hundred $true $false $false @()
+            $unlimited.ArchiveQuota = 'Unlimited'; $unlimited.ArchiveWarningQuota = 'Unlimited'; $unlimited.ArchiveStatus = 'Active'
+            $none = New-StubMailbox 'No archive' 'noarchive@contoso.example' 'UserMailbox' '0c0c0c0c-0c0c-0c0c-0c0c-0c0c0c0c0c0c' $hundred $false $false $false @()
+            $none.ArchiveName = ''
+            return @($nullQuota, $unlimited, $none)
+        }
         'delegates' {
             return @(
                 (New-StubMailbox 'Delegated' 'delegated@contoso.example' 'SharedMailbox' 'dddddddd-dddd-dddd-dddd-dddddddddddd' $hundred $false $false $false @('megan@contoso.example', 'megan', 'Megan Bowen', 'Shared Name', 'ghost')),
@@ -334,6 +345,7 @@ function Search-UnifiedAuditLog {
 function Get-DistributionGroupMember {
     param($Identity, $ResultSize)
     Write-StubRead 'Get-DistributionGroupMember'
+    if ((Get-Scenario) -eq 'owners') { return @() }
     $members = @(
         (New-StubRecipient 'alex' 'Alex Wilber' 'alex@contoso.example' 'obj-alex' 'UserMailbox'),
         [pscustomobject]@{ Name = 'Orphan entry'; DisplayName = 'Orphan entry'; PrimarySmtpAddress = ''; ExternalDirectoryObjectId = $null; RecipientTypeDetails = 'MailContact' },
@@ -395,6 +407,15 @@ function Get-OutboundConnector {
 }
 function Get-DkimSigningConfig {
     Write-StubRead 'Get-DkimSigningConfig'
+    if ((Get-Scenario) -eq 'empty') { return @() }
+    if ((Get-Scenario) -eq 'nulls') {
+        # One configuration returned with its domain null and one without the property: neither can be matched.
+        return @(
+            [pscustomobject]@{ Domain = 'contoso.example'; Enabled = $true; Status = 'Valid' },
+            [pscustomobject]@{ Domain = $null; Enabled = $true; Status = 'Valid' },
+            [pscustomobject]@{ Enabled = $false; Status = 'Valid' }
+        )
+    }
     @(
         [pscustomobject]@{
             Domain = 'contoso.example'; Enabled = $true; Status = 'Valid'; Selector1CNAME = 'selector1-contoso-example._domainkey.contoso.onmicrosoft.com'
@@ -452,6 +473,10 @@ function Get-MailboxAuditBypassAssociation {
 }
 function Get-HostedContentFilterPolicy {
     Write-StubRead 'Get-HostedContentFilterPolicy'
+    if ((Get-Scenario) -eq 'nulls') {
+        # Null list, null setting and an empty string, beside a list returned empty and a known zero.
+        return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = $null; HighConfidenceSpamAction = ''; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 0; QuarantineRetentionPeriod = 30; AllowedSenders = $null; AllowedSenderDomains = @() }
+    }
     @(
         [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = 'MoveToJmf'; HighConfidenceSpamAction = 'Quarantine'; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 7; QuarantineRetentionPeriod = 30; AllowedSenders = @(); AllowedSenderDomains = @() },
         [pscustomobject]@{ Name = 'Finance strict'; Identity = 'Finance strict'; IsDefault = $false; SpamAction = 'Quarantine'; HighConfidenceSpamAction = 'Quarantine'; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; QuarantineRetentionPeriod = 30; AllowedSenders = @(); AllowedSenderDomains = @('partner.example', 'supplier.example') },
@@ -476,6 +501,9 @@ function Get-AntiPhishPolicy {
     Write-StubRead 'Get-AntiPhishPolicy'
     $default = $true
     if ((Get-Scenario) -eq 'flags') { $default = $null }
+    if ((Get-Scenario) -eq 'nulls') {
+        return [pscustomobject]@{ Name = 'Office365 AntiPhish Default'; Identity = 'Office365 AntiPhish Default'; IsDefault = $true; Enabled = $true; PhishThresholdLevel = 1; EnableSpoofIntelligence = $null; EnableMailboxIntelligence = $true; EnableTargetedUserProtection = $false; EnableOrganizationDomainsProtection = $false; HonorDmarcPolicy = $true }
+    }
     [pscustomobject]@{ Name = 'Office365 AntiPhish Default'; Identity = 'Office365 AntiPhish Default'; IsDefault = $default; Enabled = $true; PhishThresholdLevel = 1; EnableSpoofIntelligence = $true; EnableMailboxIntelligence = $true; EnableTargetedUserProtection = $false; EnableOrganizationDomainsProtection = $false; HonorDmarcPolicy = $true }
 }
 function Get-AntiPhishRule { Write-StubRead 'Get-AntiPhishRule'; @() }
@@ -775,6 +803,13 @@ try {
     Test-Case 'groups: a membership list longer than the limit is marked partial, and an Unresolved member makes the run warn' {
         $groupCap.Code -eq 0 -and $groupCap.Rows.Count -eq 2 -and $groupCap.Output.Contains('BDIT:PARTIAL') -and $groupCap.Output.Contains('BDIT:UNKNOWN')
     }
+    $groupOwnerCap = Invoke-Copy (New-Copy 'exo.group-members' 'groups-owner-cap' @('--Group', 'staff@contoso.example', '--MaxMembers', '2')) 'groups-owner-cap' -Scenario 'owners'
+    Test-Case 'groups: an owner list longer than the limit is marked partial and only the listed owners are looked up' {
+        $owners = @(Find-Row $groupOwnerCap.Rows 'Relationship' 'Owner')
+        $groupOwnerCap.Code -eq 0 -and $owners.Count -eq 2 -and $groupOwnerCap.Output.Contains('BDIT:PARTIAL') -and
+            $groupOwnerCap.Output.Contains('ownership') -and @($groupOwnerCap.Reads | Where-Object { $_ -eq 'Get-EXORecipient' }).Count -eq 3
+    }
+    Test-Case 'groups: owner and member lists within the limit are not marked partial' { -not $groups.Output.Contains('BDIT:PARTIAL') }
     $groupNotGroup = Invoke-Copy (New-Copy 'exo.group-members' 'groups-mailbox' @('--Group', 'alex@contoso.example')) 'groups-mailbox'
     Test-Case 'groups: a recipient that is not a group is refused, not listed as empty' { $groupNotGroup.Code -ne 0 -and -not $groupNotGroup.CsvWritten }
 
@@ -828,6 +863,21 @@ try {
     Test-Case 'dkim: a domain with no configuration is NotConfigured, and an unreturned default flag is Unknown' {
         $row = @(Find-Row $dkim.Rows 'Domain' 'nodkim.example')
         $row.Count -eq 1 -and (Get-Cell $row[0] 'DkimConfigured') -ceq 'False' -and (Get-Cell $row[0] 'DkimEnabled') -eq 'NotConfigured' -and (Get-Cell $row[0] 'IsDefault') -ceq 'Unknown'
+    }
+    $dkimNulls = Invoke-Copy $copyById['exo.domains-dkim'] 'dkim-nulls' -Scenario 'nulls'
+    Test-Case 'dkim: a signing configuration returned without its domain makes an unmatched domain Unknown, not False, and the run warns' {
+        $row = @(Find-Row $dkimNulls.Rows 'Domain' 'contoso.onmicrosoft.com')
+        $row.Count -eq 1 -and (Get-Cell $row[0] 'DkimConfigured') -ceq 'Unknown' -and (Get-Cell $row[0] 'DkimEnabled') -ceq 'Unknown' -and
+            (Get-Cell $row[0] 'Notes') -like '*without a domain*' -and @($dkimNulls.Rows | Where-Object { (Get-Cell $_ 'DkimConfigured') -ceq 'False' }).Count -eq 0 -and
+            $dkimNulls.Output.Contains('BDIT:UNKNOWN')
+    }
+    Test-Case 'dkim: a domain that is matched is still True beside an unidentified configuration' {
+        (Get-Cell @(Find-Row $dkimNulls.Rows 'Domain' 'contoso.example')[0] 'DkimConfigured') -ceq 'True'
+    }
+    $dkimEmpty = Invoke-Copy (New-Copy 'exo.domains-dkim' 'dkim-empty' @('--Domain', 'contoso.example')) 'dkim-empty' -Scenario 'empty'
+    Test-Case 'dkim: a signing inventory returned empty is DkimConfigured False with no warning' {
+        $dkimEmpty.Rows.Count -eq 1 -and (Get-Cell $dkimEmpty.Rows[0] 'DkimConfigured') -ceq 'False' -and (Get-Cell $dkimEmpty.Rows[0] 'DkimEnabled') -eq 'NotConfigured' -and
+            -not $dkimEmpty.Output.Contains('BDIT:UNKNOWN')
     }
     $dkimNamed = Invoke-Copy (New-Copy 'exo.domains-dkim' 'dkim-named' @('--Domain', 'Contoso.example, other.example')) 'dkim-named'
     Test-Case 'dkim: named domains are filtered, and one that is not accepted is listed as NotAccepted' {
@@ -913,6 +963,24 @@ try {
         $row = @(Find-Row $archiveDefault.Rows 'Mailbox' 'reception@contoso.example')
         $row.Count -eq 1 -and (Get-Cell $row[0] 'HasArchive') -ceq 'False' -and (Get-Cell $row[0] 'OrganisationAutoExpanding') -ceq 'True' -and -not $archiveDefault.Output.Contains('BDIT:UNKNOWN')
     }
+    $archiveNulls = Invoke-Copy $copyById['exo.archive-mailboxes'] 'archive-nulls' -Scenario 'nulls'
+    Test-Case 'archive: a quota returned null or not at all is Unknown with a reason, and the run warns' {
+        $row = @(Find-Row $archiveNulls.Rows 'Mailbox' 'nullquota@contoso.example')
+        $row.Count -eq 1 -and (Get-Cell $row[0] 'ArchiveQuota') -ceq 'Unknown' -and (Get-Cell $row[0] 'ArchiveWarningQuota') -ceq 'Unknown' -and
+            (Get-Cell $row[0] 'Notes') -like '*did not return ArchiveQuota*' -and (Get-Cell $row[0] 'Notes') -like '*did not return ArchiveWarningQuota*' -and
+            $archiveNulls.Output.Contains('BDIT:UNKNOWN')
+    }
+    Test-Case 'archive: an Unlimited quota and a known quota are shown as returned' {
+        $unlimited = @(Find-Row $archiveNulls.Rows 'Mailbox' 'unlimitedarchive@contoso.example')
+        $known = @(Find-Row $archiveDefault.Rows 'Mailbox' 'alex@contoso.example')
+        (Get-Cell $unlimited[0] 'ArchiveQuota') -eq 'Unlimited' -and (Get-Cell $unlimited[0] 'ArchiveWarningQuota') -eq 'Unlimited' -and
+            (Get-Cell $known[0] 'ArchiveQuota') -eq '110 GB (118,111,600,640 bytes)' -and (Get-Cell $known[0] 'ArchiveWarningQuota') -eq '100 GB (107,374,182,400 bytes)'
+    }
+    Test-Case 'archive: a mailbox with no archive has ArchiveName NotApplicable and keeps its quotas, with no Unknown' {
+        $row = @(Find-Row $archiveNulls.Rows 'Mailbox' 'noarchive@contoso.example')
+        $row.Count -eq 1 -and (Get-Cell $row[0] 'HasArchive') -ceq 'False' -and (Get-Cell $row[0] 'ArchiveName') -eq 'NotApplicable' -and
+            (Get-Cell $row[0] 'ArchiveQuota') -eq '110 GB (118,111,600,640 bytes)' -and (Get-Cell $row[0] 'Notes') -eq ''
+    }
 
     Write-Output 'Protection policies and resource mailboxes:'
     $protection = Invoke-Copy $copyById['exo.protection-policies'] 'protection'
@@ -941,6 +1009,18 @@ try {
     Test-Case 'protection: one type only, and an unreturned default flag on a policy with no rule is Unknown, not NoRule' {
         $protectionFlags.Rows.Count -eq 1 -and (Get-Cell $protectionFlags.Rows[0] 'RuleState') -eq 'Unknown' -and (Get-Cell $protectionFlags.Rows[0] 'IsDefault') -ceq 'Unknown' -and
             @($protectionFlags.Reads | Where-Object { $_ -like 'Get-Hosted*' -or $_ -like 'Get-Malware*' }).Count -eq 0
+    }
+    $protectionNulls = Invoke-Copy (New-Copy 'exo.protection-policies' 'protection-nulls' @('--PolicyType', 'AntiSpam, AntiPhish')) 'protection-nulls' -Scenario 'nulls'
+    Test-Case 'protection: a setting or counted list returned null is Unknown, never NotSet or 0, and the run warns' {
+        $spam = @(Find-Row $protectionNulls.Rows 'PolicyType' 'AntiSpam' | Where-Object { (Get-Cell $_ 'Policy') -eq 'Default' }); $phish = @(Find-Row $protectionNulls.Rows 'PolicyType' 'AntiPhish')
+        $spam.Count -eq 1 -and $phish.Count -eq 1 -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenders=Unknown*' -and
+            (Get-Cell $spam[0] 'KeySettings') -like '*SpamAction=Unknown*' -and (Get-Cell $phish[0] 'KeySettings') -like '*EnableSpoofIntelligence=Unknown*' -and
+            $protectionNulls.Output.Contains('BDIT:UNKNOWN')
+    }
+    Test-Case 'protection: a list returned empty is 0, an empty value NotSet, and known False and zero are kept' {
+        $spam = @(Find-Row $protectionNulls.Rows 'PolicyType' 'AntiSpam' | Where-Object { (Get-Cell $_ 'Policy') -eq 'Default' }); $phish = @(Find-Row $protectionNulls.Rows 'PolicyType' 'AntiPhish')
+        (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenderDomains=0*' -and (Get-Cell $spam[0] 'KeySettings') -like '*HighConfidenceSpamAction=NotSet*' -and
+            (Get-Cell $spam[0] 'KeySettings') -like '*BulkThreshold=0;*' -and (Get-Cell $phish[0] 'KeySettings') -like '*EnableTargetedUserProtection=False*'
     }
     $rooms = Invoke-Copy $copyById['exo.resource-mailboxes'] 'rooms'
     Test-Case 'rooms: only room and equipment mailboxes are listed, with booking settings' {

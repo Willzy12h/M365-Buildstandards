@@ -4,6 +4,8 @@ archiving is on for the mailbox and for the organisation.
 Read only. Archive size is not reported: it needs one archive statistics read per mailbox, which this item does not
 make. A quota is a configured value, not proof of a licence entitlement. A true or false value Exchange did not return
 is shown as Unknown, never as False; with only archives ticked, a mailbox whose archive state is Unknown is kept.
+A status, name or quota Exchange did not return is Unknown, never blank. A mailbox with no archive has ArchiveName
+NotApplicable; its quotas are still shown, because Exchange sets them on every mailbox.
 #>
 param(
     [string[]]$Mailbox,
@@ -77,6 +79,18 @@ foreach ($target in $targets) {
         if (-not $shown) { $shown = 'not returned' }
         $notes += ('ArchiveStatus (' + $shown + ') does not agree with the archive GUID. Check the archive in the admin centre before relying on HasArchive.')
     }
+    if (-not $archiveStatus) { $archiveStatus = 'Unknown'; $notes += 'Exchange did not return ArchiveStatus.' }
+    # A mailbox with no archive has no archive name. Otherwise a name that was not returned is Unknown.
+    $archiveName = Get-Text (Get-Value $target 'ArchiveName')
+    if ($hasArchive -eq 'False' -and -not $archiveName) { $archiveName = 'NotApplicable' }
+    elseif (-not $archiveName) { $archiveName = 'Unknown'; $notes += 'Exchange did not return the archive name.' }
+    # Quotas are configured on every mailbox, with or without an archive, so they are shown as returned (including
+    # Unlimited). A quota that was not returned is Unknown, never blank.
+    $quotas = @{}
+    foreach ($quota in @('ArchiveQuota', 'ArchiveWarningQuota')) {
+        $quotas[$quota] = Get-Text (Get-Value $target $quota)
+        if (-not $quotas[$quota]) { $quotas[$quota] = 'Unknown'; $notes += ('Exchange did not return ' + $quota + '.') }
+    }
     if ($OnlyWithArchive -and $hasArchive -eq 'False') { continue }
     $autoExpanding = Get-Flag $target 'AutoExpandingArchiveEnabled'
     if ($autoExpanding -eq 'Unknown') { $notes += 'Exchange did not return whether auto-expanding archiving is on for this mailbox.' }
@@ -85,9 +99,9 @@ foreach ($target in $targets) {
         RecipientTypeDetails = Get-Text (Get-Value $target 'RecipientTypeDetails')
         HasArchive = $hasArchive
         ArchiveStatus = $archiveStatus
-        ArchiveName = Get-Text (Get-Value $target 'ArchiveName')
-        ArchiveQuota = Get-Text (Get-Value $target 'ArchiveQuota')
-        ArchiveWarningQuota = Get-Text (Get-Value $target 'ArchiveWarningQuota')
+        ArchiveName = $archiveName
+        ArchiveQuota = $quotas['ArchiveQuota']
+        ArchiveWarningQuota = $quotas['ArchiveWarningQuota']
         AutoExpandingArchive = $autoExpanding
         OrganisationAutoExpanding = $orgAutoExpanding
         Notes = $notes -join ' '

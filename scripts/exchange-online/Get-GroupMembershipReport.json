@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-GroupMembershipReport.ps1",
-  "scriptSha256": "94b8bd54eae0cde37bb7c5c0b1890b06b2a6e4496748d17e54a21120e8fc27d2",
+  "scriptSha256": "218585070d3afe0add734e0eedde850aac0a39645e02afd89ef60549c657a063",
   "supportedRuntimes": [
     "5.1",
     "7"

@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-DomainDkimReport.ps1",
-  "scriptSha256": "fac54ef6683d218d8449e087f30593d36fd7f9953dcb0f2a20631035ae73eac9",
+  "scriptSha256": "1371c0140ef84bed299780373b7c0d3a818d4b94de554345f54008fcbb1940ef",
   "supportedRuntimes": [
     "5.1",
     "7"

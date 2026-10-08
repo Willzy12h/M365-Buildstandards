@@ -2,7 +2,8 @@
 Accepted domains with their DKIM signing configuration as Exchange Online holds it.
 Read only. No DNS query is made: the selector CNAME values are what Exchange expects to be published, not proof that
 they are. A domain with no DKIM signing configuration is listed with DkimConfigured False and DkimEnabled
-NotConfigured. A true or false value Exchange did not return is shown as Unknown, never as False.
+NotConfigured. A true or false value Exchange did not return is shown as Unknown, never as False. When Exchange
+returns a signing configuration without its domain, a domain with no matched configuration is Unknown, not False.
 #>
 param(
     [string[]]$Domain
@@ -42,6 +43,8 @@ function Get-Flag([object]$Item, [string]$Name) {
 $accepted = @(Get-AcceptedDomain)
 $signing = @(Get-DkimSigningConfig)
 $wanted = @($Domain | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() })
+# A signing configuration returned without its domain cannot be matched, so no domain can be said to have none.
+$unidentified = @($signing | Where-Object { -not (Get-Text (Get-Value $_ 'Domain')) }).Count
 
 foreach ($item in $accepted) {
     $name = (Get-Text (Get-Value $item 'DomainName')).ToLowerInvariant()
@@ -54,6 +57,10 @@ foreach ($item in $accepted) {
     if ($configs.Count -gt 1) { $notes += 'Exchange returned more than one DKIM signing configuration for this domain; the first is shown.' }
     $enabled = 'NotConfigured'
     if ($null -ne $config) { $enabled = Get-Flag $config 'Enabled' }
+    elseif ($unidentified -gt 0) {
+        $configured = 'Unknown'; $enabled = 'Unknown'
+        $notes += ('Exchange returned ' + $unidentified + ' DKIM signing configuration(s) without a domain, so whether one of them is for this domain is unknown.')
+    }
     else { $notes += 'Exchange returned no DKIM signing configuration for this domain.' }
     if ($enabled -eq 'Unknown') { $notes += 'Exchange did not return whether DKIM signing is enabled.' }
     $row = [pscustomobject]@{

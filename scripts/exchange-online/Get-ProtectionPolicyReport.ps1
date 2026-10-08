@@ -5,7 +5,7 @@ Read only. A default policy applies to everyone no other policy of its type cove
 listed as NoRule because it applies to no one. A preset security policy (Standard or Strict) is scoped by a separate
 preset rule that this item does not read, so it is listed as Preset, not NoRule; a policy that may be a preset is
 Unknown. A rule is matched to its policy by the policy identity the rule names. A setting Exchange did not return is
-shown as Unknown. Defender for Office 365 policies (Safe Links, Safe Attachments) are not included.
+shown as Unknown, and so is one returned null; a list returned empty is counted as 0. Defender for Office 365 policies (Safe Links, Safe Attachments) are not included.
 #>
 param(
     [string[]]$PolicyType = @('AntiSpam', 'OutboundSpam', 'AntiPhish', 'AntiMalware')
@@ -42,12 +42,13 @@ function Get-Flag([object]$Item, [string]$Name) {
     return 'Unknown'
 }
 
-# Name=value pairs; a setting that was not returned is Unknown, one returned empty is NotSet. Lists are counted.
+# Name=value pairs; a setting that was not returned, or was returned null, is Unknown. One returned as an empty value is
+# NotSet. Lists are counted, and only a list returned empty counts as 0.
 function Get-Settings([object]$Item, [string[]]$Names, [string[]]$Counted) {
     $pairs = @()
     foreach ($name in $Names) {
         $value = 'Unknown'
-        if ($null -ne $Item -and $Item.PSObject.Properties[$name]) {
+        if ($null -ne $Item -and $Item.PSObject.Properties[$name] -and $null -ne $Item.$name) {
             $raw = $Item.$name
             if ($Counted -contains $name) { $value = [string]@($raw | Where-Object { $null -ne $_ -and [string]$_ -ne '' }).Count }
             elseif ($raw -is [bool]) { if ($raw) { $value = 'True' } else { $value = 'False' } }
