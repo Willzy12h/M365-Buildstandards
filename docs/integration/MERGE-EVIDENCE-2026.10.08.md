@@ -47,3 +47,24 @@ The #45 integration run's actual check annotations record 1,220 engine/CLI and 1
 Astra reviewed original `3d993c9`, then code/doc fixes `27c40b0`/`d9a24aa`, and finally `b9aceaed6222a7697a39d6015363b79c4105d19b` after both integration merges. AST-20261008-05–09 are closed at source/synthetic level; read limits/unknowns/nullable flags/exact account and denied/ambiguous permissions now retain truthful results. Attribution correctly separates Astra's source inspection/CI reading from Claude's local fail-first PowerShell 7 runs. Final Windows push/PR runs **37831467460 / 37831474759** passed (1,270 engine/CLI + 156 App, 48 layouts/88 commands, no bindings/tenant calls, PowerShell 5.1 synthetic Copy checks, fresh desktop/CLI package checks). Original exact-head ZIP hash: `2bf063c5e8b891c21cde34dee4d87a480b61e0cf142e4810655478c96ac9fd80`.
 
 #46 merged as `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; its merge Windows run `37832476624` passed after separate readback. The actual merge annotations record 1,270 engine/CLI and 156 app tests, 48 page/size renders, 88 commands, zero binding issues/tenant calls and fresh 302-file desktop/CLI startup checks. Its distinct original ZIP SHA-256 is `c02fd686160fb66c91090f1e2d7b8b6b003b81a344756ed5eb10517ed2bc3ef8`. No Run button or Exchange mutation route was added. Entitlement, archive reporting and broader report/runner scope remain unimplemented; Microsoft behaviour is live-unverified. Claude's #46 claim/INT-080 row remains its owner's row and needs reconciliation by Claude, not Astra.
+
+
+## Claude findings record #47 — actual merged state
+
+Claude's final record head `2dc3ca533d768cff0ba04229c0a3fd85919fc06c` passed push/PR runs 37832182434 / 37832189410. It merged as integration `14e62275ca212b6f34ecd3b17d676f2445e39845`; actual merge Windows run **37833184420**, build check **113503487129**, passed. Annotations record 1,270 engine/CLI and 156 App tests, 48 layouts/88 commands, zero binding issues/tenant calls, PowerShell 5.1 synthetic Copy and fresh 302-file desktop/CLI startup checks. Original ZIP SHA-256: `ed63e94754666c657075248febef69f7df5028defb2ec97a3323c394c7e9dc18`. This is an unpublished Preview.19 CI artifact, not a release or proof of later source. Claude owns the record and its feedback rows.
+
+## Exact-source pending review evidence
+
+All rows below are open source/decision PRs. Their push and PR checks were read successful; no review has been supplied or merge performed. Tests are synthetic/offline, not live Microsoft acceptance.
+
+| PR | Exact source | Passing push / PR Windows runs | Engine / App tests | Native layouts / commands | Original push ZIP SHA-256 |
+|---|---|---|---|---|---|
+| #53 | `293f1ea2bf8ca611eb671116250da0874f86d605` | 37837717580 / 37837724041 | 1298 / 156 | 48 / 88 | `0f9047d58d91a1443bcb34371232130bf696ed269359bc79e29511708638c1cb` |
+| #56 | `e74d44386e0bc3f00ed973e26ce7124d81134035` | 37838495956 / 37838503127 | 1270 / 157 | 48 / 89 | `5362e97a955a5bd61b4bae2cdde10f68844f8a5e9b62bf288b28f309710653af` |
+| #57 | `5a9a27181c78023076b3e4094e41eae991b4fd5b` | 37838335710 / 37838341849 | 1292 / 156 | 48 / 88 | `97b1501810a1bc1e0efa7ce21b74b27b488be1883651c9244bb2df878210f463` |
+| #58 | `7adff06384e7835f089293b2636d83cc67c18585` | 37839811425 / 37839818933 | 1299 / 156 | 48 / 88 | `c8f97eea2fa5245c831a6405998ef2186f23ee1ee57ea753dc2469394452d71b` |
+| #59 | `96632ae3df1a4bdebb12d64037646953f9932eda` | 37840902811 / 37840910436 | 1277 / 156 | 48 / 88 | `dffe6b5597c6c0b45752b056749a13c34b968e76b3a1f08f50a99e73312e626b` |
+
+Each passed fresh 302-file extraction/startup/context-menu Copy/portable CLI and blank settings/evidence checks. #59 also executed all 17 PowerShell 5.1 account/tenant synthetic refusal/positive checks. #55's decision-only head `6534c4972332a8d2a63fa577abde22b27d4a94ce` passed 37833394549 / 37833401753; its runtime gate is not implemented.
+
+Astra downloaded and visually inspected real WPF Configuration/Scripts renders from #56's exact e74 source at all three sizes. Initial clipping failures and their corrections are retained on the PR. Human readability/Narrator/physical-scaling acceptance remains unrun. These original ZIP hashes must not be reused for a new candidate or changed source.

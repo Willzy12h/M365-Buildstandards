@@ -1,17 +1,19 @@
 # Handover and priorities
 
-## Current Astra continuation — reviewed merges, 8 October 2026
+## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 
-Integration `865e1a1e14d4d857d83f99d184cae2b67cb31e66` contains the requested #42 → #44 → #43 → #45 merges and Claude's fix PRs #51/#49/#48/#50. Every exact-head and merge-commit Windows run passed; full SHAs/runs and distinct package identity are in [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md). Latest merge run 37831138250 passed 1,220 engine/CLI and 143 App tests, 45 layouts/85 commands, zero binding issues/tenant calls, fresh extraction/startup and portable CLI checks. Source remains unpublished Preview.19; this is not a release publication.
+Integration `14e62275ca212b6f34ecd3b17d676f2445e39845` contains #42 → #44 → #43 → #45, Claude's fix PRs #51/#49/#48/#50, the independently re-reviewed copy-only library #46, and Claude's findings record #47. Every merge has a separately read passing Windows run. Latest integration run [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 layouts/88 commands, zero binding issues/tenant calls and fresh 302-file desktop/portable CLI checks. Source remains unpublished Preview.19; this is not a release candidate publication. Exact records: [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md).
 
 **Next, under the [current goal](release-readiness/astra-goal-prompt.md):**
 
-1. Record #46 merge CI `37832476624`, now passed at `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; its final exact-head runs 37831467460 / 37831474759 passed at `b9aceae`, after independent review and corrected attribution. AST-05–09 are closed at source/synthetic level. The library is manual, copy-only and live-unverified; integrated execution is separate source work. #47 is ready with Claude's refreshed review record.
-2. Claude independently reviews Astra #53 (R07 failed/malformed readiness reads) and #54 (Astra-owned tracker reconciliation). Reconcile only the owning agent's rows.
-3. Finish remaining current guidance, module/role preflight, experimental/manual runtime gating and master-scope Reports/navigation/mailbox/script source through claimed, independently reviewed slices. Prepare the next preview and exact-source candidate record; no version has changed yet.
-4. Prepare the approval-ready promotion PR and live/human forms. Keep William's stop points open. Existing publisher #34 is merged and remains Claude's area.
+1. Independent review of Astra #53–#60: readiness status, tracker reconciliation, experimental-gate decision, guidance/desktop HTML export, new-import naming, pure mailbox-capacity evaluation, fixed Exchange account verification and dedicated disposition tests. #53/#55–#59 have passing exact-head Windows evidence; #54 is being refreshed and #60's corrected strict assertion needs its fresh Windows result. These are owned open claims, not integrated or live-accepted capabilities. Claude retains its own #46/INT-080 tracker rows; do not rewrite them.
+2. Merge the reviewed default-off experimental-gate contract #55 before implementing dependent runtime gates. Re-review exact refreshed heads, merge commits only, then read each merge run. Green CI alone does not supply independent review.
+3. Finish the dedicated Reports/navigation surfaces, versioned Exchange report adapter/envelope and bounded read-only script execution. #58 only evaluates supplied mailbox observations against exact assigned-plan evidence; it does not yet collect or display a complete mailbox report. #46 has Copy/Save and no Run. Exchange changes remain copy-only. Shared schema amendments require a merged decision before dependent source. UI work continues after the existing #56 interface claim settles.
+4. Prepare the next-preview source/version/package/hash record, promotion PR and live/human forms after the milestone's source and gates integrate. No version has changed yet. Existing publisher #34 remains Claude's area; final 1.1.0, main promotion, tags and publication remain William's approvals.
 
-The continuation below records earlier 8 October checkpoints; its pending claims/CLI exclusion are historical where this current section differs. All historical source, tests and publication identities remain valid only for their original bytes.
+Astra inspected real .NET 10 native renders from #46's merge and #56's exact source `e74d443`, including Configuration and Scripts at 1480×940, 1180×760 and 1180×640. #56's strengthened harness preserves two visible configuration rows and the first script field at all three sizes; all 48 layouts/89 commands passed after the initial clipping failures were fixed. This does not close newcomer, Narrator, physical scaling or second-engineer acceptance.
+
+The continuation below records historical checkpoints. Its pending claims/CLI exclusion are historical where this section differs; historical package evidence remains bound to its original bytes.
 
 ## Astra continuation — 8 October 2026
 
