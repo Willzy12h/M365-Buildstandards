@@ -48,7 +48,9 @@ public static partial class MailboxCapacity
         var archiveSize = Measure(mailbox.ArchiveSizeRaw, mailbox.ArchiveReadStatus);
         var archiveQuota = Measure(mailbox.ArchiveQuotaRaw, mailbox.ArchiveReadStatus);
         bool? configured = receive.Bytes is { } bytes ? bytes == HundredGiB : null;
-        var (eligibility, reason) = Entitlement(mailbox.ExternalDirectoryObjectId, licences);
+        var (eligibility, reason) = mailbox.MailboxType is "UserMailbox" or "SharedMailbox" or "RoomMailbox" or "EquipmentMailbox"
+            ? Entitlement(mailbox.ExternalDirectoryObjectId, licences)
+            : (UnableToCheck, "Mailbox type is missing or outside the reviewed primary-mailbox rules; archive and group capacity are separate.");
         var finding = (configured, eligibility) switch
         {
             (true, Eligible) => "Configured100GBAndEligible",
@@ -69,6 +71,7 @@ public static partial class MailboxCapacity
         if (readStatus != ReportReadState.Collected)
             return new(raw, null, UnableToCheck, "The size or quota read was incomplete, failed or not attempted.");
         if (string.IsNullOrWhiteSpace(raw)) return new(raw, null, UnableToCheck, "No size or quota value was returned.");
+        if (raw.Length > 4096) return new(raw, null, UnableToCheck, "The returned size or quota text exceeds the supported interpretation bound.");
         if (raw.Trim().Equals("Unlimited", StringComparison.OrdinalIgnoreCase))
             return new(raw, null, "Unlimited", "Unlimited is not an observed 100 GB primary quota.");
         // Do not guess units from a rounded GB display, decimal commas, localised text or an overflow.
@@ -91,7 +94,8 @@ public static partial class MailboxCapacity
         if (user.ReadStatus != ReportReadState.Collected || user.ProductsReadStatus != ReportReadState.Collected)
             return (UnableToCheck, "Assigned products or service-plan reads for this exact user are incomplete.");
         var plans = user.Products.SelectMany(p => p.ServicePlans).ToList();
-        var exchange = plans.Where(p => p.ServicePlanName?.StartsWith("EXCHANGE_", StringComparison.Ordinal) == true).ToList();
+        var exchange = plans.Where(p => p.ServicePlanName?.StartsWith("EXCHANGE_", StringComparison.Ordinal) == true
+            || p.ServicePlanId == Plan1Id || p.ServicePlanId == Plan2Id).ToList();
         if (exchange.Any(p => p.ServicePlanId == Plan2Id && p.ServicePlanName == "EXCHANGE_S_ENTERPRISE"
             && p.ProvisioningStatus == "Success" && p.AppliesTo == "User"))
             return (Eligible, "The exact user has a successfully provisioned commercial Exchange Online Plan 2 service plan. This does not prove its configured quota or current Microsoft behaviour.");

@@ -85,7 +85,8 @@ public sealed class MailboxCapacityTests
         var user = ToolkitJson.Deserialize<UserLicenceReportRow>(report.Sections[1].Rows[0].ToJsonString());
         user.ReadStatus = state; user.ProductsReadStatus = state; user.Error = "Synthetic unavailable read";
         report.Sections[1].Rows[0] = ReportEvidenceSchema.Row(user);
-        report.Sections[1].Status = state; report.Sections[1].Error = user.Error;
+        report.Sections[1].Status = state == ReportReadState.Failed ? ReportReadState.Partial : state;
+        report.Sections[1].Error = user.Error;
         report.Status = ReportEvidenceSchema.Overall(report.Sections.Select(s => s.Status)); ReportEvidenceSchema.Seal(report);
         Assert.Equal(MailboxCapacity.UnableToCheck, MailboxCapacity.Review(Mailbox(), report).Eligibility);
     }
@@ -111,6 +112,25 @@ public sealed class MailboxCapacityTests
             Assert.Null(result.Configured100GB); Assert.Null(result.SendReceiveQuota.Bytes);
             Assert.Equal(MailboxCapacity.Eligible, result.Eligibility); Assert.Equal(MailboxCapacity.UnableToCheck, result.Finding);
         }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("GroupMailbox")]
+    [InlineData("ArchiveMailbox")]
+    public void Missing_or_unreviewed_mailbox_type_cannot_confer_primary_entitlement(string? type)
+    {
+        var result = MailboxCapacity.Review(Mailbox() with { MailboxType = type }, Evidence(Plan(MailboxCapacity.Plan2Id, "EXCHANGE_S_ENTERPRISE", "Success")));
+        Assert.Equal(MailboxCapacity.UnableToCheck, result.Eligibility);
+        Assert.Equal("Configured100GBEntitlementUnconfirmed", result.Finding);
+    }
+
+    [Fact]
+    public void Overlong_quota_text_keeps_raw_value_without_unbounded_interpretation()
+    {
+        var raw = new string('x', 5000) + " (107374182400 bytes)";
+        var result = MailboxCapacity.Measure(raw, ReportReadState.Collected);
+        Assert.Equal(raw, result.Raw); Assert.Null(result.Bytes); Assert.Equal(MailboxCapacity.UnableToCheck, result.State);
     }
 
     private static MailboxCapacity.Observation Mailbox() => new(TestData.TenantA, TestData.Office, TestData.Operator,
