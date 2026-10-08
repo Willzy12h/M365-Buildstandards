@@ -46,4 +46,5 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | independent post-merge review of #21–#33 and confirmed workflow/lineage/CLI regressions; no publisher replacement | `astra/post-merge-review-2026-10-08` (from integration `8f0285a`) | #36 | Merged |
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | authentication path/prompt measurement and interaction reasons; existing broker/cache/session contracts retained; no new access | `astra/authentication-flow-2026-10-08` (from integration `8f0285a`) | #37 | Merged |
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | decision-only scoped-check, separate report-evidence and script-manifest contracts; no runtime/permission/publication action | `astra/module-report-script-contracts-2026-10-08` (from integration `8f0285a`) | #39 | Merged |
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | existing Jobs page readability, disabled-action guidance, copyable details and current start guide; native/human acceptance kept separate | `astra/engineer-guidance-2026-10-08` (from integration `8f0285a`) | #38 | Open |
