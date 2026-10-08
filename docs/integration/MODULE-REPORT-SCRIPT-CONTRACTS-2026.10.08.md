@@ -118,11 +118,13 @@ A proposal must name exact mailbox/object, observed current values/permissions, 
 
 Required tests: strict manifests/contained paths/content pins, typed defaults/validation, hostile/injection-negative inputs and Copy output, PowerShell parser/runtime claims, cancellation/timeouts/bounds, wrong identity/schema, partial output and unconditional refusal to Run copy-only changes. No test requires live tenant access.
 
-## INT-074 — Portable offline CLI through the existing application host (proposed)
+## INT-074 — Portable offline CLI through the existing application host (settled by PR #39)
+
+Settled when PR #39 merged; the implementation is recorded as INT-079 in the [decision log](DECISION-LOG.md). The rest of this section is the contract as approved, so its present tense describes the package at that time.
 
 Inspection of `build/Build-Portable.ps1` establishes that the ZIP deliberately ships one executable and excludes the developer/CI CLI. The master programme's portable `bdit` requirement is therefore not yet implemented. Do not advertise the current ZIP as providing it or ask field engineers to install the SDK.
 
-Proposed hosting contract:
+Hosting contract:
 
 - Keep one application executable. Add a `bdit.cmd` launcher that invokes that same executable with an explicit `--cli` discriminator, passing the remaining arguments unchanged. Include the existing CLI assembly as a managed dependency, with no second apphost executable. Preserve its existing offline/read-only conformance tests and forbidden types.
 - Dispatch before creating the desktop `Workspace`, loading any connection/session or initialising broker/cache services. CLI mode must not open a window or initialise a desktop authentication context. It returns the existing CLI's actual exit code; exceptions must not fall back to desktop startup or a different process host.

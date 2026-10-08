@@ -17,4 +17,10 @@
   <ItemGroup>
     <ProjectReference Include="..\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
   </ItemGroup>
+  <!-- A referenced project is built, never published, inside the App's self-contained publish, so this target runs
+       only when this project itself is published self-contained. That would otherwise silently produce a library
+       with no entry point or host. The portable CLI ships only through the App (INT-074/INT-079). -->
+  <Target Name="RefuseStandaloneSelfContainedPublish" BeforeTargets="PrepareForPublish" Condition="'$(SelfContained)' == 'true'">
+    <Error Text="bdit cannot be published self-contained on its own: it would be a library with no entry point. Publish BDIT.TenantToolkit.App, which hosts it through bdit.cmd, or publish this project framework-dependent for dotnet bdit.dll." />
+  </Target>
 </Project>
