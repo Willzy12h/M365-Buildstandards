@@ -1,12 +1,15 @@
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Assessment;
+using BDIT.TenantToolkit.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace BDIT.TenantToolkit.Engine.Checks;
 
 /// <summary>A package/catalogue-owned dependency selection, never an engineer-supplied Graph route.</summary>
 public sealed class CheckSelection
 {
+    private readonly string _definitionDigest;
     private CheckSelection(StandardCatalogue standard, TenantProfile profile, string selectorKind, string selector,
         IReadOnlyList<ControlDefinition> controls)
     {
@@ -30,6 +33,11 @@ public sealed class CheckSelection
             if (!standard.Collections.ContainsKey(key))
                 throw new ConfigurationException($"The check requires an unregistered collection: {key}.");
         CollectionKeys = Array.AsReadOnly(dependencies.Order(StringComparer.Ordinal).ToArray());
+        _definitionDigest = CanonicalJson.Sha256(new JsonObject
+        {
+            ["controls"] = ToolkitJson.ToNode(controls.OrderBy(c => c.Id, StringComparer.Ordinal).ToList()),
+            ["collections"] = ToolkitJson.ToNode(CollectionKeys.ToDictionary(k => k, k => standard.Collections[k]))
+        });
     }
 
     public string SelectorKind { get; }
@@ -68,7 +76,7 @@ public sealed class CheckSelection
         var current = SelectorKind == "area" ? ForArea(standard, profile, Selector) : ForControl(standard, profile, Selector);
         if (StandardRelease != current.StandardRelease || StandardDigest != current.StandardDigest
             || ClientScopeDigest != current.ClientScopeDigest || !ControlIds.SequenceEqual(current.ControlIds)
-            || !CollectionKeys.SequenceEqual(current.CollectionKeys))
+            || !CollectionKeys.SequenceEqual(current.CollectionKeys) || _definitionDigest != current._definitionDigest)
             throw new ConfigurationException("The standard or reviewed client scope changed. Choose the check again.");
     }
 }

@@ -52,6 +52,17 @@ public class ScopedCollectionTests
     }
 
     [Fact]
+    public async Task Changed_registered_route_is_refused_before_any_request()
+    {
+        var standard = TestData.Standard(); var profile = TestData.Profile();
+        var selection = CheckSelection.ForControl(standard, profile, "CA-001");
+        var graph = new FakeGraphClient(standard);
+        standard.Collections["conditionalAccess"].Path = "/unreviewed-route";
+        await Assert.ThrowsAsync<ConfigurationException>(() => Collector().CollectScopedAsync(graph, TestData.Session(), profile, standard, selection, null, CancellationToken.None));
+        Assert.Empty(graph.Reads);
+    }
+
+    [Fact]
     public async Task Cancelled_scoped_reads_preserve_existing_cancellation_states_only_for_selected_dependencies()
     {
         var standard = TestData.Standard();
