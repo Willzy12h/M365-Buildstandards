@@ -146,3 +146,29 @@ At William's request Claude also made the tool easier to use, without changing a
 PR #36 bounded review detail and baseline file/line references: [ASTRA-POST-MERGE-REVIEW-2026.10.08](ASTRA-POST-MERGE-REVIEW-2026.10.08.md). Final local engine/CLI suite passes 1,060 tests; conflicting histories and unresolved writes also show Outstanding completion rows. Earlier Windows evidence at 4724b66 is recorded separately; final-head Windows and independent review remain required.
 
 | AST-20261008-04 | Claude independent review of e433513 / completion readability | IOException or denied access while reading write evidence escaped the completion projection | Astra reproduced an exclusive-file lock, added IOException/UnauthorizedAccessException completion blockers, and kept all rows Outstanding until evidence becomes readable; no retry or write reconciliation | `An_exclusively_locked_run_keeps_completion_readable_and_outstanding` observed failing before fix; recovery after unlock included. Final validation/Claude delta review remain required |
+
+## Claude independent review of #42–#45 — 8 October 2026
+
+Requested by William on 8 October 2026. Heads: #42 `6a511cf`, #43 `f72bba0`, #44 `bcd8488` (diff from `6a511cf`), #45 `37d9d56`; base `692d2d5`. Detail, file/line, scenarios and fixes: [CLAUDE-REVIEW-PR42-45-2026.10.08](CLAUDE-REVIEW-PR42-45-2026.10.08.md); failing regressions in [review-evidence/CLA-20261008](review-evidence/CLA-20261008/). Source and Linux engine-test evidence only; not approval, human or live acceptance. Astra owns responses and fixes.
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| CLA-20261008-01 | Claude / #42 scoped checks | P2 confirmed: scoped results omit release-lineage review warning (ScopedCheckService.cs:62 bypasses AssessmentContext.Assess) | Open: Astra to respond | Review doc |
+| CLA-20261008-02 | Claude / #42 | P2 confirmed: stored-evidence check ignores separate Exchange/Purview capture (Workspace.cs:567); CLI `check` lacks `--exchange-snapshot` | Open: Astra to respond | Review doc |
+| CLA-20261008-03 | Claude / #42 | P2 mechanism confirmed, likelihood hypothesis: 8 MiB wrapper cap discards completed live reads (ScopedCheckSchema.cs:14, ScopedCheckStore.cs:16) | Open: Astra to respond | Review doc |
+| CLA-20261008-04 | Claude / #42 | P3 confirmed: historical review of NotRecorded source reports derived assessment Intact (ScopedCheckService.cs:61) | Open: Astra to respond | Review doc |
+| CLA-20261008-05 | Claude / #43 naming audit | P2 confirmed: no rule for published `apps` collection; APP-IOS authoring refused, .3–.5 captures reported missing (NamingConvention.cs:27) | Open: Astra to respond | Review doc |
+| CLA-20261008-06 | Claude / #43 | P2 confirmed: overlapping collections report one mapped object as managed and unmapped (NamingAudit.cs:53/61) | Open: Astra to respond | Review doc |
+| CLA-20261008-07 | Claude / #43 | P3 confirmed: endpointProtection cites settings-catalogue resource (NamingConvention.cs:23) | Open: Astra to respond | Review doc |
+| CLA-20261008-08 | Claude / #43 | P3 confirmed: decomposed accents fail internal character rule (NamingConvention.cs:42) | Open: Astra to respond | Review doc |
+| CLA-20261008-09 | Claude / #44 separate reports | P2 confirmed: one malformed/duplicate identity throws at Seal and discards the whole report (service vs ReportEvidenceSchema.Validate rules differ) | Open: Astra to respond | Review doc |
+| CLA-20261008-10 | Claude / #44 | P2 confirmed by trace: GetAllAsync reads up to 50,000 before the 5,000 cap; large sets fail with zero rows (GraphReportService.cs:136/140) | Open: Astra to respond | Review doc |
+| CLA-20261008-11 | Claude / #44 | P2 hypothesis (Microsoft Learn): log filters use `lt` and `$select`, not listed as supported (GraphReportService.cs:132–133, 187–188) | Open: Astra to respond | Review doc |
+| CLA-20261008-12 | Claude / #44 | P3 confirmed: GUID with trailing newline counted as a second user (GraphReportService.cs:86–95) | Open: Astra to respond | Review doc |
+| CLA-20261008-13 | Claude / #44 | P3 hypothesis/hardening: ForReports() falls back to unrestricted client (TenantConnectionService.cs:28) | Open: Astra to respond | Review doc |
+| CLA-20261008-14 | Claude / #45 portable CLI | P2 confirmed coverage gap: console-attach branch never exercised in CI (PortableCliHost.cs:21–27) | Open: Astra to respond | Review doc |
+| CLA-20261008-15 | Claude / #45 | P3 confirmed: NULL stderr refuses the command silently (PortableCliHost.cs:22–25) | Open: Astra to respond | Review doc |
+| CLA-20261008-16 | Claude / #45 | P3 confirmed: package assertions weaker than messages (Test-Portable.ps1:114/118/120/121) | Open: Astra to respond | Review doc |
+| CLA-20261008-17 | Claude / #45 | P3 hardening: createdump.exe exemption matches anywhere in tree (Test-Portable.ps1:71) | Open: Astra to respond | Review doc |
+| CLA-20261008-18 | Claude / #45 | P3 confirmed: INT-074 still 'proposed' in DECISION-LOG/contracts; Build-Portable.ps1 header stale | Open: Astra to respond | Review doc |
+| CLA-20261008-19 | Claude / #45 | P3 confirmed by reasoning: standalone self-contained CLI publish silently builds a library (Cli.csproj:8) | Open: Astra to respond | Review doc |
