@@ -250,7 +250,7 @@ public sealed class DispositionWorkflowTests : IDisposable
         Assert.Equal(2, projection.Dispositions.Count);
         Assert.All(projection.Dispositions, d => { Assert.False(d.Settled); Assert.Contains(d.ReviewReasons, r => r.Contains("conflicting decision identities", StringComparison.Ordinal)); });
         var completion = JobCompletion.Build(_store, projection, _standard, _profile, _clock.UtcNow);
-        var requirement = Assert.Single(completion.Requirements.Where(r => r.ControlId == "CA-001"));
+        var requirement = Assert.Single(completion.Requirements, r => r.ControlId == "CA-001");
         Assert.Equal(RequirementState.Outstanding, requirement.State); Assert.Equal("Needs review", requirement.Decision);
         Assert.Contains(requirement.Reasons, r => r.Contains("Conflicting requirement identities", StringComparison.Ordinal));
         Assert.False(completion.Complete); Assert.Equal(before, Fingerprint());

@@ -11,3 +11,5 @@ Failing-first method: on the same current source, temporarily substitute only `C
 Final targeted/Windows results are recorded on the PR. Human/live completion and independent delta review of #36 remain open; this closes a test gap only and does not complete the master programme.
 
 Final local targeted run: all 26 disposition workflow cases executed and passed, zero skipped, including the three new cases. No production source diff remains. Windows exact-head validation is pending at this push.
+
+The first Windows build at `d0a85a0` refused the new assertion under xUnit2031 because strict CI treats analyser diagnostics as errors. Use the filtering overload of `Assert.Single` instead; the same single matching requirement and all safeguard assertions are preserved. This is a test-style correction, not a relaxed test or production change. Fresh exact-head Windows validation is required.
