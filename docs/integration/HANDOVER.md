@@ -14,7 +14,7 @@ PR #38 merged as `1622356b7bd3aa554405e47e792112c7b23c5170` after exact-head Win
 
 PR #40 merged as `f6053de172ca25a7d8607f4145d287be51432992` after exact-head Windows push run `37712581187` at `fd0451a` passed: 1,079 Engine + 128 App tests, native checks and fresh 299-file startup/shutdown. Its merge CI run `37713041584` passed. HTML inventory is implemented in the shared engine/developer CLI; desktop export and portable CLI hosting still need source work.
 
-PR #41 merged as `692d2d5aa8ed0f30b882065cfe3a778a4e1478a3` after exact-head Windows push run `37713528749` at `ee3b59c` passed: 1,079 Engine + 128 App tests, 45 layouts and fresh **300-file** startup/shutdown (the run sheet is now shipped). Its merge CI awaits confirmation. All PRs #36–#41 requested by William are merged.
+PR #41 merged as `692d2d5aa8ed0f30b882065cfe3a778a4e1478a3` after exact-head Windows push run `37713528749` at `ee3b59c` passed: 1,079 Engine + 128 App tests, 45 layouts and fresh **300-file** startup/shutdown (the run sheet is now shipped). Its merge CI run `37713916834` passed. All PRs #36–#41 requested by William are merged.
 
 **Next:** complete INT-070 scoped checks in PR #42: dependency-only collection and selected assessment have 13 focused synthetic tests; strict evidence storage, UI/CLI parity and native checks remain unfinished. Then naming audit, capability evidence, reports/navigation, portable CLI hosting and safe scripts. Obtain exact-source Windows/package evidence for each candidate. The current ZIP still excludes the CLI; INT-074's approved hosting contract requires implementation. Claude retains publisher ownership.
 

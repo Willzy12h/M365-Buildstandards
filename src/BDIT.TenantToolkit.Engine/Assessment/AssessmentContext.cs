@@ -53,11 +53,21 @@ public static class AssessmentContext
     /// </summary>
     public static TenantSnapshot ReadPrimary(string file)
     {
-        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(File.ReadAllText(file))
+        var json = File.ReadAllText(file);
+        RefuseEnvelope(json);
+        var snapshot = ToolkitJson.Deserialize<TenantSnapshot>(json)
             ?? throw new ConfigurationException("The snapshot file did not contain a capture.");
         if (AssessmentEngine.IntegrityOf(snapshot) == SnapshotIntegrityState.Modified)
             throw new IntegrityException("The snapshot no longer matches its recorded integrity digest; it was modified after capture. Capture fresh evidence rather than reporting on it.");
         return snapshot;
+    }
+
+    internal static void RefuseEnvelope(string json)
+    {
+        using var document = JsonDocument.Parse(json, ToolkitJson.DocumentOptions);
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || document.RootElement.EnumerateObject().Any(p => string.Equals(p.Name, "kind", StringComparison.OrdinalIgnoreCase)))
+            throw new ConfigurationException("A scoped/report wrapper is not an ordinary configuration snapshot. Open it in its own read-only workflow.");
     }
 
     /// <summary>Accepts the existing raw capture or exported snapshot format; no new persisted schema is introduced.</summary>
