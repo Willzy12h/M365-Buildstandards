@@ -19,10 +19,7 @@
                 <TextBlock Text="A complete job is a record of review. It grants no permission to change the tenant." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
               </StackPanel>
             </Border>
-            <Border Grid.Row="1" Style="{StaticResource WarnPanel}" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="{Binding ProblemsText}" TextWrapping="Wrap"/>
-            </Border>
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" Height="150" Margin="0,0,0,12" AutomationProperties.Name="Jobs">
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Jobs}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" MinHeight="64" MaxHeight="100" Margin="0,0,0,12" AutomationProperties.Name="Jobs">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Opened" Binding="{Binding Opened}" Width="170"/>
                 <DataGridTextColumn Header="Intention" Binding="{Binding Intention}" Width="120"/>
@@ -32,8 +29,8 @@
             </DataGrid>
             <DataGrid Grid.Row="3" ItemsSource="{Binding Requirements}" SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}" AutomationProperties.Name="Requirements in the selected job">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Requirement" Binding="{Binding InstanceKey}" Width="130"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="Requirement" Binding="{Binding Name}" Width="*" MinWidth="220"/>
+                <DataGridTextColumn Header="Reference" Binding="{Binding InstanceKey}" Width="130"/>
                 <DataGridTemplateColumn Header="State" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Background="{Binding State, Converter={StaticResource StatusToBrush}}" CornerRadius="4" Padding="7,4"><TextBlock Text="{Binding State, Converter={StaticResource Words}}" FontSize="11" FontWeight="SemiBold"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                 <DataGridTextColumn Header="Outcome" Binding="{Binding Outcome}" Width="100"/>
                 <DataGridTextColumn Header="Decision" Binding="{Binding Decision, Converter={StaticResource Words}}" Width="170"/>
@@ -44,9 +41,17 @@
           <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0" Padding="18">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel Margin="0,0,6,0">
+                <Border Style="{StaticResource WarnPanel}" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}">
+                  <StackPanel>
+                    <TextBlock Text="JOB NEEDS REVIEW" Style="{StaticResource Eyebrow}"/>
+                    <TextBox Text="{Binding ProblemsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="100" MinHeight="48" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Job review blockers"/>
+                  </StackPanel>
+                </Border>
                 <TextBlock Text="SELECTED REQUIREMENT" Style="{StaticResource Eyebrow}"/>
                 <TextBlock Text="{Binding RequirementText}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                <Button Content="Copy requirement details" Command="{Binding CopyRequirementCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12"/>
                 <TextBlock Text="RECORD FOR THIS REQUIREMENT" Style="{StaticResource Eyebrow}"/>
+                <TextBlock Text="{Binding RecordGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 <TextBlock Text="{Binding CaptureText}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 <TextBlock Text="Record *" Style="{StaticResource FieldLabel}"/>
                 <ComboBox ItemsSource="{Binding RecordKinds}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding RecordKind, Mode=TwoWay}" AutomationProperties.Name="What to record"/>
@@ -70,7 +75,7 @@
                   <ComboBox ItemsSource="{Binding CutoverCases}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding SelectedCase, Mode=TwoWay}" AutomationProperties.Name="Cutover case"/>
                   <TextBlock Text="Stage *" Style="{StaticResource FieldLabel}"/>
                   <ComboBox ItemsSource="{Binding Stages}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding Stage, Mode=TwoWay}" AutomationProperties.Name="Cutover stage"/>
-                  <TextBlock Text="A case moves one stage at a time, each with its own evidence. Recording a stage performs, approves or retires nothing." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+                  <TextBlock Text="Replacement moves one stage at a time. Record the separate approval and evidence from the actual work; this form does not activate, assign or retire protection." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                 </StackPanel>
                 <StackPanel Visibility="{Binding HasOwner, Converter={StaticResource BoolToVis}}">
                   <TextBlock Text="Owner *" Style="{StaticResource FieldLabel}"/>
@@ -96,6 +101,7 @@
                   <TextBlock Text="Pilot approval reference" Style="{StaticResource FieldLabel}"/>
                   <TextBox Text="{Binding PilotReference, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pilot approval reference"/>
                   <TextBlock Text="Prerequisites (one per line, [x] when met)" Style="{StaticResource FieldLabel}"/>
+                  <TextBlock Text="The engineer checks these dependencies. Start each confirmed item with [x]; an unticked item remains outstanding." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                   <TextBox Text="{Binding Prerequisites, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Prerequisites"/>
                   <TextBlock Text="Criteria (result | description | what was observed)" Style="{StaticResource FieldLabel}"/>
                   <TextBox Text="{Binding Criteria, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Functional criteria"/>
@@ -117,9 +123,10 @@
                 </StackPanel>
                 <TextBlock Text="Review by (yyyy-MM-dd) *" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding ReviewDue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Review by"/>
-                <Button Content="Record" Command="{Binding RecordCommand}" HorizontalAlignment="Left"/>
+                <Button Content="Record" Command="{Binding RecordCommand}" HorizontalAlignment="Left" ToolTip="{Binding RecordGuidance}" ToolTipService.ShowOnDisabled="True"/>
 
                 <TextBlock Text="OPEN A JOB" Style="{StaticResource Eyebrow}" Margin="0,20,0,0"/>
+                <TextBlock Text="{Binding OpenJobGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                 <TextBlock Text="A job binds the loaded standard and this client's inputs. Changing either later sends it to review." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                 <TextBlock Text="Intention *" Style="{StaticResource FieldLabel}"/>
                 <ComboBox ItemsSource="{Binding Intentions}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding NewIntention, Mode=TwoWay}" AutomationProperties.Name="Job intention"/>
@@ -127,7 +134,7 @@
                 <TextBox Text="{Binding NewOwner, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Job owner"/>
                 <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
                 <TextBox Text="{Binding NewNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="54" TextWrapping="Wrap" VerticalContentAlignment="Top" AutomationProperties.Name="Job notes"/>
-                <Button Content="Open job" Command="{Binding OpenJobCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <Button Content="Open job" Command="{Binding OpenJobCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" ToolTip="{Binding OpenJobGuidance}" ToolTipService.ShowOnDisabled="True"/>
               </StackPanel>
             </ScrollViewer>
           </Border>
