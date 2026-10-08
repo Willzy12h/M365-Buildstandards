@@ -113,6 +113,7 @@ try {
     $inventoryFiles = @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'configuration-*.html' -File)
     if ($inventoryFiles.Count -ne 1 -or (Get-Content -LiteralPath $inventoryFiles[0].FullName -Raw) -notmatch 'Synthetic portable tenant|INCOMPLETE|Incomplete') { throw 'Packaged CLI did not render actual synthetic inventory.' }
     $profileFile = Join-Path $extract 'data\profiles.json'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $profileFile) | Out-Null
     [IO.File]::WriteAllText($profileFile, '[{"tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
     $jobs = Invoke-OwnedCli $exe '--cli jobs --tenant 11111111-1111-4111-8111-111111111111' 0
     if ($jobs.Text -notmatch 'Synthetic CLI client.*0 job\(s\)') { throw 'Packaged CLI did not project stored synthetic client jobs.' }
