@@ -8,7 +8,7 @@ Record actual exact-head and merge-commit Windows run identities for #48–#51 a
 
 ## Validation
 
-GitHub PR states and actual checks will be read before recording each result. Windows/native results are CI evidence read by Astra, not locally executed Windows checks or live Microsoft acceptance. #45 merge-commit CI was running at claim time and subsequently passed. #46 needs Claude's fresh conflict resolution; #53 readiness source is independently reviewable on its own branch.
+GitHub PR states and actual checks will be read before recording each result. Windows/native results are CI evidence read by Astra, not locally executed Windows checks or live Microsoft acceptance. #45 merge-commit CI was running at claim time and subsequently passed. #46's conflicts and attribution were corrected by Claude; it merged after final exact-head checks, with merge CI running; #53 readiness source is independently reviewable on its own branch.
 
 ## Fix merges into Astra branches
 
@@ -41,3 +41,9 @@ The #45 integration run's actual check annotations record 1,220 engine/CLI and 1
 - Astra claims #19/#20/#36–#45 are merged. Claude owns #46 and #47; Astra owns the reviewable readiness source #53 and this reconciliation #54. Claude was asked to update only its own stale rows in #47.
 - Remaining source: R07 module/role/access polish, R10 current guidance, runtime experimental/manual gating, Reports/navigation/authoring exposure, extended mailbox/entitlement reporting and controlled script/report execution. #53 addresses a confirmed R07 read-status gap. No broad feedback item is marked finished while required human/live gates remain.
 - Next preview preparation is authorised by the current goal; final 1.1.0 version/promotion/publication requires William. Owners/evidence/deferral policy, signing/distribution, repository settings and servicing ownership remain business decisions.
+
+## Claude library #46 — independently re-reviewed
+
+Astra reviewed original `3d993c9`, then code/doc fixes `27c40b0`/`d9a24aa`, and finally `b9aceaed6222a7697a39d6015363b79c4105d19b` after both integration merges. AST-20261008-05–09 are closed at source/synthetic level; read limits/unknowns/nullable flags/exact account and denied/ambiguous permissions now retain truthful results. Attribution correctly separates Astra's source inspection/CI reading from Claude's local fail-first PowerShell 7 runs. Final Windows push/PR runs **37831467460 / 37831474759** passed (1,270 engine/CLI + 156 App, 48 layouts/88 commands, no bindings/tenant calls, PowerShell 5.1 synthetic Copy checks, fresh desktop/CLI package checks). Original exact-head ZIP hash: `2bf063c5e8b891c21cde34dee4d87a480b61e0cf142e4810655478c96ac9fd80`.
+
+#46 merged as `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; its merge CI is running and needs separate readback. No Run button or Exchange mutation route was added. Entitlement, archive reporting and broader report/runner scope remain unimplemented; Microsoft behaviour is live-unverified. Claude's #46 claim/INT-080 row remains its owner's row and needs reconciliation by Claude, not Astra.
