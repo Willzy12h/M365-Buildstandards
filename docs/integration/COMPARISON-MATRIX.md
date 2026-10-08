@@ -1,3 +1,14 @@
+## Registered report implementation — PR #44
+
+| Feature | Source implementation | Evidence / remaining gate |
+| --- | --- | --- |
+| Users/licences | Added separate report: identity-based assigned SKU/service-plan details, explicit partial reads; existing inventory reused | Synthetic identity/duplicate/malformed/access/cancellation tests; desktop/CLI and live acceptance outstanding |
+| Device/MFA/log reports | Added registered typed read-only Graph adapters, bounded range/output/time, unknown fields, minimal sensitive data | Synthetic failures, pagination, cancellation, context/refusal tests; AuditLog access proposed, not granted; retention/human/live unverified |
+| Report storage/export | Added strict immutable separate store and HTML/CSV/JSON/Excel documents | Strict shape/identity/integrity, overwrite, explicit-null, escaping/formula tests; Reports page not implemented |
+| Mailbox/100 GB and scripts | Not implemented in this PR; existing fixed Exchange capture retained | Dedicated read-only mailbox adapter, verified entitlement rules and manifest library still needed; integrated Exchange mutations remain blocked |
+
+This extends the existing comparison evidence; it does not replace the capability table or close unrun acceptance.
+
 ## Portable CLI implementation — PR #45
 
 | Feature | Earlier limit | Source result / validation gate |
@@ -140,3 +151,13 @@ See [interface decision](INTERFACE-DECISION-2026.09.30.md), [release goal](RELEA
 | Runtime | Preserve WPF/.NET 10 self-contained packaging; load-check Accessibility and exercise fresh-package context-menu Copy | Local publish includes matching dependency; exact Windows CI result will be recorded in completion register |
 
 See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
+
+## Scoped checks — PR #42, INT-070/076
+
+| Surface | Choice | Evidence and remaining gate |
+|---|---|---|
+| Registry | Reuse verified catalogue control instances, registered routes and existing historical area mapping | Dependency/route/scope regression tests; no historical catalogue edits |
+| Collection and assessment | Collect only dependencies; skip unrelated controls before evaluation | Synthetic request/assessment/cancellation/identity tests; Microsoft live behaviour unverified |
+| Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
+| Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
+| CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |

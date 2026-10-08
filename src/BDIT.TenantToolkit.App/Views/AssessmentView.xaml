@@ -62,7 +62,21 @@
             </DataGrid>
           </DockPanel>
           <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16" Margin="0">
-            <TabControl>
+            <TabControl SelectedIndex="1">
+              <TabItem Header="Check an area or requirement"><ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0"><StackPanel>
+                <TextBlock Text="Check only what you need" FontWeight="SemiBold"/>
+                <TextBlock Text="Partial results are separate from the full assessment and cannot authorise deployment." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,8"/>
+                <CheckBox Content="Review stored evidence instead of reading live" IsChecked="{Binding CheckStored}" AutomationProperties.Name="Review stored evidence instead of reading live"/>
+                <TextBlock Text="{Binding CheckGuidance}" TextWrapping="Wrap" Margin="0,8,0,8"/>
+                <TextBlock Text="Area" Style="{StaticResource FieldLabel}"/>
+                <ComboBox ItemsSource="{Binding CheckAreas}" SelectedItem="{Binding CheckArea}" AutomationProperties.Name="Area to check"/>
+                <Button Content="Check this area" Command="{Binding CheckAreaCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBlock Text="Requirement" Style="{StaticResource FieldLabel}"/>
+                <ComboBox ItemsSource="{Binding CheckControls}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding CheckControl}" AutomationProperties.Name="Requirement to check"/>
+                <Button Content="Check this requirement" Command="{Binding CheckControlCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding PartialCheckText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="100" MaxHeight="220" AutomationProperties.Name="Partial check result and evidence"/>
+                <Button Content="Copy partial result" Command="{Binding CopyPartialCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+              </StackPanel></ScrollViewer></TabItem>
               <TabItem Header="Finding evidence"><ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0"><StackPanel>
                 <TextBox AutomationProperties.Name="Selected finding detail" Text="{Binding SelectedDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,0,0,4"/>
                 <Button Content="Copy finding detail" Command="{Binding CopyDetailCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
