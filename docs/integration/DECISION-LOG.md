@@ -322,6 +322,10 @@ The projection's duplicate identity groups now explicitly need review. Completio
 
 Responding to Claude's independent review of e433513, completion catches IOException and UnauthorizedAccessException from write-history reads and returns a visible blocked/outstanding projection. An exclusively locked run was observed raising IOException before the fix; the regression also verifies completion resumes once the file is unlocked. No automatic retry, broad exception swallowing, reconciliation override or execution-boundary change is introduced.
 
+## INT-068 — Measure the existing explicit-connect acquisition policy
+
+PR #37 isolates the existing silent-first choice into an internal test seam used by MsalAuthenticator itself. It owns no cache, session, registration or resource and is never called by mid-operation renewal. Only MsalUiRequiredException may lead from silent acquisition to interaction during an explicit connect; cancellation and other failures propagate without interactive retry. More than one matching cached account requests an explicit chooser while retaining the known hint. Existing identity verification, Quick Connect freshness, DPAPI cache retention and disconnect contracts remain unchanged. Prompt evidence in AUTHENTICATION-FLOW distinguishes inspected before behaviour, tested after policy and unrun Microsoft/live behaviour. No permission or persisted-schema change.
+
 ## INT-069 — Engineer wording without changing workflow authority
 
 PR #38 uses Check result, Decision about existing protection and Replacement stage as display labels for the existing outcome/disposition/cutover keys. Stored enum values, IDs, approval semantics and engine services are unchanged. Requirement names lead the table and copied details retain exact IDs. Disabled recording actions show their selection/busy prerequisites and next step. The page explicitly identifies prerequisite/effectiveness input as engineer-recorded evidence, not automated execution. OPERATOR-START no longer calls the merged Jobs surface future work. No human/live acceptance gate is closed by a render or source test.

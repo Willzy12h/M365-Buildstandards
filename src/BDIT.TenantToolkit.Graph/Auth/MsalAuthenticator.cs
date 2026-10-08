@@ -137,36 +137,31 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         AuthenticationResult result;
         try
         {
-            AuthenticationResult? cached = null;
             // Only explicit reconnects with a known tenant/account may reuse a cache entry. Discovery and the
             // partner account chooser intentionally remain interactive. This never adds an interactive retry mid-run.
-            if (!discoverTenant && !string.IsNullOrWhiteSpace(request.LoginHint))
+            var knownContext = !discoverTenant && !string.IsNullOrWhiteSpace(request.LoginHint);
+            var accounts = knownContext
+                ? (await pca.GetAccountsAsync()).Where(a => string.Equals(a.Username, request.LoginHint, StringComparison.OrdinalIgnoreCase)).ToList()
+                : new List<IAccount>();
+            result = await ExplicitConnectAcquisition.AcquireAsync(knownContext, accounts, async account =>
             {
-                var accounts = (await pca.GetAccountsAsync()).Where(a => string.Equals(a.Username, request.LoginHint, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (accounts.Count == 1)
-                {
-                    try { cached = await pca.AcquireTokenSilent(scopes, accounts[0]).WithTenantId(request.TenantId).ExecuteAsync(timeout.Token); }
-                    catch (MsalUiRequiredException) { /* This explicit connect may now ask Microsoft for interaction. */ }
-                }
-            }
-            if (cached is not null)
-            {
+                var cached = await pca.AcquireTokenSilent(scopes, account).WithTenantId(request.TenantId).ExecuteAsync(timeout.Token);
                 log.Info("Auth", "Reused cached sign-in for the requested tenant and application.", request.TenantId);
-                result = cached;
-            }
-            else
+                return cached;
+            }, async reason =>
             {
-            log.Info("Auth", $"Microsoft interaction is required: opening {(broker ? "Windows sign-in" : "the system browser")} for tenant {authorityTenant} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
-            var interactive = pca.AcquireTokenInteractive(scopes);
-            if (string.IsNullOrWhiteSpace(request.LoginHint)) interactive.WithPrompt(Prompt.SelectAccount);
-            else interactive.WithLoginHint(request.LoginHint);
-            if (!broker) interactive.WithUseEmbeddedWebView(false).WithSystemWebViewOptions(new SystemWebViewOptions
-                {
-                    HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to M365 BuildStandard Tool. This temporary sign-in page can now be closed.</p></body></html>",
-                    HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
-                });
-            result = await interactive.ExecuteAsync(timeout.Token);
-            }
+                log.Info("Auth", $"{ExplicitConnectAcquisition.Explain(reason)} Opening {(broker ? "Windows sign-in" : "the system browser")} for tenant {authorityTenant} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
+                var interactive = pca.AcquireTokenInteractive(scopes);
+                if (string.IsNullOrWhiteSpace(request.LoginHint) || reason == ConnectInteractionReason.AmbiguousAccount)
+                    interactive.WithPrompt(Prompt.SelectAccount);
+                if (!string.IsNullOrWhiteSpace(request.LoginHint)) interactive.WithLoginHint(request.LoginHint);
+                if (!broker) interactive.WithUseEmbeddedWebView(false).WithSystemWebViewOptions(new SystemWebViewOptions
+                    {
+                        HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to M365 BuildStandard Tool. This temporary sign-in page can now be closed.</p></body></html>",
+                        HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
+                    });
+                return await interactive.ExecuteAsync(timeout.Token);
+            }, timeout.Token);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
