@@ -1,3 +1,9 @@
+# Unreleased — authentication measurement
+
+- Explain the actual reason Microsoft interaction is required at explicit connect; cached access checks no longer claim a popup is already opening.
+- Exercise existing known-account silent acquisition and prompt counts through synthetic delegates, with no second cache or mid-operation interactive retry. Ambiguous cached matches explicitly request account choice while retaining the confirmed hint.
+- Document authentication paths, context/resource separation, cache/disconnect behaviour and source-versus-live prompt evidence in AUTHENTICATION-FLOW. No new permissions are requested.
+
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.

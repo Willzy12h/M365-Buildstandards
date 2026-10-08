@@ -303,3 +303,7 @@ Choices:
 - Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
+
+## INT-068 — Measure the existing explicit-connect acquisition policy
+
+PR #37 isolates the existing silent-first choice into an internal test seam used by MsalAuthenticator itself. It owns no cache, session, registration or resource and is never called by mid-operation renewal. Only MsalUiRequiredException may lead from silent acquisition to interaction during an explicit connect; cancellation and other failures propagate without interactive retry. More than one matching cached account requests an explicit chooser while retaining the known hint. Existing identity verification, Quick Connect freshness, DPAPI cache retention and disconnect contracts remain unchanged. Prompt evidence in AUTHENTICATION-FLOW distinguishes inspected before behaviour, tested after policy and unrun Microsoft/live behaviour. No permission or persisted-schema change.
