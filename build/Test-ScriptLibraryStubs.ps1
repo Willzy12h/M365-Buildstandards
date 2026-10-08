@@ -141,7 +141,8 @@ try {
         $csv = Join-Path $work ($manifest.id + '.csv')
         $env:BDIT_STUB_TENANT = $tenant
         $env:BDIT_STUB_DISCONNECT = Join-Path $work ($manifest.id + '.disconnected')
-        & $PowerShell -NoLogo -NoProfile -NonInteractive -File $copy -OutputCsv $csv | Out-Null
+        # Windows PowerShell 5.1 turns a child's stderr into a terminating error under 'Stop'; the exit code is what is checked.
+        & { $ErrorActionPreference = 'Continue'; & $PowerShell -NoLogo -NoProfile -NonInteractive -File $copy -OutputCsv $csv 2>&1 | Out-Null }
         if ($LASTEXITCODE -ne 0) { throw ($manifest.id + ': the Copy script failed against the synthetic module.') }
         if (-not (Test-Path -LiteralPath $env:BDIT_STUB_DISCONNECT)) { throw ($manifest.id + ': the Copy script did not disconnect.') }
         $header = ((Get-Content -LiteralPath $csv -TotalCount 1) -replace '"', '') -split ','
@@ -156,7 +157,7 @@ try {
         $wrongCsv = Join-Path $work ($manifest.id + '-wrong.csv')
         $env:BDIT_STUB_TENANT = '9b2c1d4e-0000-4000-8000-000000000000'
         $env:BDIT_STUB_DISCONNECT = Join-Path $work ($manifest.id + '-wrong.disconnected')
-        & $PowerShell -NoLogo -NoProfile -NonInteractive -File $copy -OutputCsv $wrongCsv 2>&1 | Out-Null
+        & { $ErrorActionPreference = 'Continue'; & $PowerShell -NoLogo -NoProfile -NonInteractive -File $copy -OutputCsv $wrongCsv 2>&1 | Out-Null }
         if ($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath $wrongCsv)) { throw ($manifest.id + ': a different tenant was not refused.') }
         if (-not (Test-Path -LiteralPath $env:BDIT_STUB_DISCONNECT)) { throw ($manifest.id + ': the refused run did not disconnect.') }
     }
