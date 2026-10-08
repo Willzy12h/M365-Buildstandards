@@ -90,8 +90,9 @@ public static class Program
         Console.WriteLine("""
             bdit — headless reporting over captured tenant evidence. Never connects to a tenant.
 
-              bdit check --snapshot <file> (--area <area> | --control <id>) [--release <r>] [--root <dir>]
+              bdit check --snapshot <file> (--area <area> | --control <id>) [--exchange-snapshot <file>] [--release <r>] [--root <dir>]
                   Review selected controls from stored evidence, using the saved client inputs.
+                  --exchange-snapshot adds separate Exchange/Purview evidence, as report does.
                   Writes a separate partial scoped-check JSON wrapper to standard output.
                   Historical filtering only: no new collection, sign-in or complete before-evidence.
 
@@ -161,9 +162,9 @@ public static class Program
 
     private static int Check(IReadOnlyDictionary<string, string> options)
     {
-        var allowed = new[] { "snapshot", "area", "control", "release", "root" };
+        var allowed = new[] { "snapshot", "area", "control", "exchange-snapshot", "release", "root" };
         if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.OrdinalIgnoreCase)))
-            throw new ConfigurationException("Check accepts --snapshot, exactly one --area or --control, and optional --release/--root. It never connects to a tenant.");
+            throw new ConfigurationException("Check accepts --snapshot, exactly one --area or --control, and optional --exchange-snapshot/--release/--root. It never connects to a tenant.");
         if (options.ContainsKey("area") == options.ContainsKey("control"))
             throw new ConfigurationException("Choose exactly one --area or --control for this partial check.");
         var file = Require(options, "snapshot");
@@ -176,9 +177,17 @@ public static class Program
         var selection = options.ContainsKey("area")
             ? CheckSelection.ForArea(catalogue, profile, Require(options, "area"))
             : CheckSelection.ForControl(catalogue, profile, Require(options, "control"));
-        var result = new ScopedCheckService(SystemClock.Instance, ToolkitVersion.Current, NullLog.Instance)
+        // The same separate Exchange/Purview evidence, read the same way, as report uses.
+        ExchangeCapture? supplemental = null;
+        if (options.TryGetValue("exchange-snapshot", out var exchangeFile))
+        {
+            if (string.IsNullOrWhiteSpace(exchangeFile) || !File.Exists(exchangeFile))
+                throw new ConfigurationException("Supplemental Exchange evidence file not found.");
+            supplemental = AssessmentContext.ReadSupplement(exchangeFile, profile.TenantId, DateTimeOffset.UtcNow);
+        }
+        var result = new ScopedCheckService(SystemClock.Instance, ToolkitVersion.Current, NullLog.Instance, context.Paths.StandardsDirectory)
             .ReviewHistorical(source, catalogue, profile, selection, context.Evidence.LoadMappings(profile.TenantId),
-                context.Evidence.LoadDeviations(profile.TenantId), "offline scoped review");
+                context.Evidence.LoadDeviations(profile.TenantId), "offline scoped review", supplemental);
         Console.WriteLine(ToolkitJson.Serialize(result));
         return 0;
     }
