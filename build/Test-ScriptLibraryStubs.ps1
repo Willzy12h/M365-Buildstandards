@@ -163,6 +163,8 @@ try {
     }
     $check = Join-Path $PSScriptRoot 'Test-ScriptLibrary.ps1'
     & $check -Library $Library -CopyScript $copies
+    # The last child run was the expected refusal; do not leave its exit code for the calling step to report.
+    $global:LASTEXITCODE = 0
     Write-Output ('Synthetic run passed for ' + $manifests.Count + ' item(s); a different tenant was refused each time. No Microsoft module or tenant was used.')
 }
 finally {
