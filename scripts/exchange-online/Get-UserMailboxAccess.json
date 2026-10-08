@@ -4,7 +4,7 @@
   "name": "Mailboxes a user can access",
   "category": "exchange-online",
   "area": "Mailboxes and calendars",
-  "description": "Lists the mailboxes one user has Full Access, Send As or Send on Behalf on.",
+  "description": "Lists the mailboxes on which one user has a direct Full Access, Send As or Send on Behalf entry, with each entry's status (Granted, Denied, Unresolved or Unknown). It is not a statement of effective access: rights held through groups or inherited from elsewhere are not resolved to the user.",
   "keywords": [
     "user access",
     "full access",
@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-UserMailboxAccess.ps1",
-  "scriptSha256": "31ad114d6e261dd12b10b738b5784efb99dddfc3eb379ba9687c9560b9f2c2c3",
+  "scriptSha256": "8b368436a7888543aa40aeb825fb7cad0668898cb3553eae7ba0d0d9b3ebac89",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -58,7 +58,10 @@
       "Mailbox",
       "MailboxType",
       "Permission",
-      "IsInherited"
+      "Status",
+      "Holder",
+      "IsInherited",
+      "Notes"
     ]
   },
   "outputSchemaVersion": 1,
@@ -70,6 +73,9 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "Full Access granted through a group is shown against the group, not the user."
+    "Entries are matched on the user's exact identities, never a display name. An entry naming the user only by name is listed as Unresolved.",
+    "Deny entries are listed as Denied, not as access. An entry that does not say whether it allows or denies is Unknown.",
+    "Full Access granted through a group is shown against the group, not the user, and is not listed here. Effective access is not calculated.",
+    "Send As entries are read up to 5,000; a fuller result is marked partial."
   ]
 }

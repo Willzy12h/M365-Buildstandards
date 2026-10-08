@@ -202,7 +202,9 @@ public sealed record ScriptCopyReview(
     string Fingerprint)
 {
     public string ConfirmText => Action == ScriptCopyAction.Clipboard ? "Copy script to clipboard" : "Choose where to save";
-    public string AccountText => Account.Length > 0 ? "Signs in as " + Account : "Signs in with the account chosen at the Microsoft prompt";
+    public string AccountText => Account.Length > 0
+        ? "Signs in as " + Account + ". If another account signs in, the script stops before reading anything."
+        : "Signs in with the account chosen at the Microsoft prompt";
 }
 
 /// <summary>The parts of copying that need a person or the desktop: confirming, choosing a file and the clipboard.</summary>

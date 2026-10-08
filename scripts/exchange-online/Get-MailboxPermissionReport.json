@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxPermissionReport.ps1",
-  "scriptSha256": "6bb9627c0cba18bd507de2d24b25f9ae616e4c9140f6ed2460d1d3c2160a9739",
+  "scriptSha256": "0e1aa877930b2933c44bfd9ea996c254fbddbc00132908e2ed160a9817df871a",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -110,6 +110,7 @@
   "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
   "liveStatus": "unverified",
   "limitations": [
-    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant."
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
   ]
 }

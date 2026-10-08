@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxInventory.ps1",
-  "scriptSha256": "39b523532271c2368c8b8a376697d5ef3d110ca2773e9ba523badd7dcc32d2dc",
+  "scriptSha256": "249513a747314b17ac4a9228524763f529252d58b166d8c399a7214f8c89465b",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -79,7 +79,8 @@
       "ProhibitSendQuota",
       "ProhibitSendReceiveQuota",
       "ArchiveStatus",
-      "LitigationHoldEnabled"
+      "LitigationHoldEnabled",
+      "Notes"
     ]
   },
   "outputSchemaVersion": 1,
@@ -91,6 +92,8 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "Size and item count need one statistics read per mailbox, so large tenants take a while."
+    "Size and item count need one statistics read per mailbox, so large tenants take a while.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False. The Notes column says what could not be read.",
+    "Archive mailbox size and archive quota are not reported."
   ]
 }

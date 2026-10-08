@@ -9,7 +9,8 @@ public sealed record ScriptCopyTarget(string? TenantId = null, string? TenantNam
 
 /// <summary>
 /// Produces the standalone Copy script (INT-072): the reviewed body unchanged, the engineer's values as quoted literals,
-/// module requirements, an Exchange Online sign-in with a tenant check, and a CSV of the declared columns. It contains no
+/// module requirements, an Exchange Online sign-in with a tenant check (and, when one was confirmed, an account check), and
+/// a CSV of the declared columns. The manifest timeout is not enforced by the copied script; that is a future runner limit. It contains no
 /// credentials, installation, policy change or upload, and nothing the engineer typed can become code.
 /// </summary>
 public static class ScriptCopy
@@ -39,6 +40,7 @@ public static class ScriptCopy
         Line("# Type:        " + (m.Mode == ScriptMode.ReadOnly ? "Read only. Makes no changes." : "CHANGE. Review every line before running."));
         Line("# Purpose:     " + Comment(m.Description));
         if (tenant.Length > 0) Line("# Tenant:      " + Comment(target.TenantName ?? "") + " (" + tenant + ")");
+        Line("# Account:     " + (account.Length > 0 ? account + " (any other account is refused before anything is read)" : "chosen at the Microsoft sign-in prompt"));
         Line("# Needs:       " + string.Join("; ", m.Modules.Select(x => x.Name + " " + x.MinimumVersion + " or later")) + (m.Roles.Count > 0 ? "; role " + string.Join(" or ", m.Roles) : ""));
         Line("# PowerShell:  " + string.Join(" or ", m.SupportedRuntimes));
         Line("# Script hash: " + m.ScriptSha256 + " (SHA-256 of the reviewed body below)");
@@ -65,7 +67,13 @@ public static class ScriptCopy
         Line("    if ($expectedTenantId -and ([guid]$connections[0].TenantID -ne [guid]$expectedTenantId)) {");
         Line("        throw ('Signed in to tenant ' + $connections[0].TenantID + ', not ' + $expectedTenantId + '. Nothing was read.')");
         Line("    }");
-        Line("    Write-Host ('Connected to tenant ' + $connections[0].TenantID + ' as ' + $connections[0].UserPrincipalName + '.')");
+        // AST-20261008-07: the account the engineer confirmed is checked too, case-insensitively, before any read.
+        Line("    $signedInAs = ([string]$connections[0].UserPrincipalName).Trim()");
+        Line("    if ($signInAs -and -not [string]::Equals($signedInAs, $signInAs, [StringComparison]::OrdinalIgnoreCase)) {");
+        Line("        if (-not $signedInAs) { $signedInAs = 'an account Exchange Online did not name' }");
+        Line("        throw ('Signed in as ' + $signedInAs + ', not ' + $signInAs + ', the account confirmed when this script was copied. Nothing was read.')");
+        Line("    }");
+        Line("    Write-Host ('Connected to tenant ' + $connections[0].TenantID + ' as ' + $signedInAs + '.')");
         Line();
         Line("    $arguments = @{");
         foreach (var argument in binding.Arguments) Line("        " + argument.Name + " = " + Literal(argument.Value));

@@ -243,6 +243,39 @@ public sealed class ScriptLibraryTests
         Assert.Contains("$expectedTenantId = ''\n", ScriptCopy.Generate(entry, valid, new ScriptCopyTarget(), Now), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_copied_script_checks_the_reviewed_account_after_sign_in_and_before_any_read()
+    {
+        // AST-20261008-07: the confirmation names the account, so the script must refuse any other one in the same tenant.
+        var entry = Item("exo.mailbox-inventory");
+        var script = ScriptCopy.Generate(entry, Bind("exo.mailbox-inventory"), new ScriptCopyTarget("3f2504e0-4f89-11d3-9a0c-0305e82c3301", "Contoso", "Admin@Contoso.example"), Now);
+
+        Assert.Contains("$signInAs = 'Admin@Contoso.example'\n", script, StringComparison.Ordinal);
+        Assert.Contains("# Account:     Admin@Contoso.example (any other account is refused before anything is read)", script, StringComparison.Ordinal);
+        var connect = script.IndexOf("Connect-ExchangeOnline @connect", StringComparison.Ordinal);
+        var guard = script.IndexOf("try {", connect, StringComparison.Ordinal);
+        var tenant = script.IndexOf("if ($expectedTenantId -and", StringComparison.Ordinal);
+        var account = script.IndexOf("if ($signInAs -and -not [string]::Equals($signedInAs, $signInAs, [StringComparison]::OrdinalIgnoreCase)) {", StringComparison.Ordinal);
+        var refusal = script.IndexOf("', the account confirmed when this script was copied. Nothing was read.')", StringComparison.Ordinal);
+        var values = script.IndexOf("$arguments = @{", StringComparison.Ordinal);
+        var body = script.IndexOf("$library = {", StringComparison.Ordinal);
+        var disconnect = script.IndexOf("finally {\n    Disconnect-ExchangeOnline -Confirm:$false", StringComparison.Ordinal);
+        Assert.True(connect >= 0 && guard > connect && tenant > guard && account > tenant && refusal > account && values > refusal && body > values && disconnect > body,
+            "The account check must follow sign-in and the tenant check, inside the block that always disconnects, and precede the values and the body.");
+        Assert.Contains("$signedInAs = ([string]$connections[0].UserPrincipalName).Trim()", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_a_reviewed_account_the_copied_script_uses_the_account_chosen_at_the_prompt()
+    {
+        var entry = Item("exo.mailbox-inventory");
+        var script = ScriptCopy.Generate(entry, Bind("exo.mailbox-inventory"), new ScriptCopyTarget("3f2504e0-4f89-11d3-9a0c-0305e82c3301", "Contoso"), Now);
+        Assert.Contains("$signInAs = ''\n", script, StringComparison.Ordinal);
+        Assert.Contains("# Account:     chosen at the Microsoft sign-in prompt", script, StringComparison.Ordinal);
+        // The check is present but guarded, so an empty reviewed account never refuses.
+        Assert.Contains("if ($signInAs -and -not [string]::Equals(", script, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("plain", "'plain'")]
     [InlineData("o'brien", "'o''brien'")]

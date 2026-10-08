@@ -1,7 +1,8 @@
 <#
 Quota audit: mailboxes using at least the chosen percentage of their prohibit send and receive quota.
-Read only. An Unlimited or unreadable quota is reported as unknown, never guessed. A 100 GB quota observed
-here is a configured value, not proof of a licence entitlement.
+Read only. A mailbox whose size or quota cannot be measured (an Unlimited or unreadable quota, or an unreadable size) is
+always listed with Status Unknown and the reason, never guessed and never left out. A 100 GB quota observed here is a
+configured value, not proof of a licence entitlement.
 #>
 param(
     [int]$ThresholdPercent = 90,
@@ -18,6 +19,11 @@ function Get-Bytes([object]$Size) {
     return $null
 }
 
+function Get-Property([object]$Item, [string]$Name) {
+    if ($null -ne $Item -and $Item.PSObject.Properties[$Name]) { return $Item.$Name }
+    return $null
+}
+
 $query = @{
     ResultSize = $MaxMailboxes + 1
     RecipientTypeDetails = $RecipientType
@@ -30,24 +36,44 @@ if ($mailboxes.Count -gt $MaxMailboxes) {
 }
 
 $hundredGb = [int64]100 * 1024 * 1024 * 1024
+$unknown = 0
 foreach ($mailbox in $mailboxes) {
     $statistics = Get-EXOMailboxStatistics -Identity $mailbox.ExchangeGuid.ToString()
-    $used = Get-Bytes $statistics.TotalItemSize
-    $quota = Get-Bytes $mailbox.ProhibitSendReceiveQuota
+    $used = Get-Bytes (Get-Property $statistics 'TotalItemSize')
+    $quotaText = [string](Get-Property $mailbox 'ProhibitSendReceiveQuota')
+    $quota = Get-Bytes $quotaText
+    $reasons = @()
+    if ($null -eq $used) { $reasons += 'The mailbox size could not be read.' }
+    if ($quotaText.Trim() -eq 'Unlimited') { $reasons += 'The prohibit send and receive quota is Unlimited, so no percentage applies.' }
+    elseif ($null -eq $quota) { $reasons += 'The prohibit send and receive quota could not be read.' }
+    elseif ($quota -le 0) { $reasons += 'The prohibit send and receive quota is zero.' }
     $percent = $null
-    if ($null -ne $used -and $null -ne $quota -and $quota -gt 0) { $percent = [math]::Round(100 * $used / $quota, 1) }
+    $status = 'Unknown'
+    if ($reasons.Count -eq 0) {
+        $percent = [math]::Round(100 * $used / $quota, 1)
+        $status = 'BelowThreshold'
+        if ($percent -ge $ThresholdPercent) { $status = 'AtOrAboveThreshold' }
+    } else {
+        $unknown++
+    }
     $quotaIs100Gb = 'Unknown'
     if ($null -ne $quota) { $quotaIs100Gb = [string]($quota -eq $hundredGb) }
-    if (-not $IncludeAll -and ($null -eq $percent -or $percent -lt $ThresholdPercent)) { continue }
+    # A mailbox that could not be measured is always kept: leaving it out would read as "under the threshold".
+    if (-not $IncludeAll -and $status -eq 'BelowThreshold') { continue }
     [pscustomobject]@{
         DisplayName = $mailbox.DisplayName
         PrimarySmtpAddress = [string]$mailbox.PrimarySmtpAddress
         RecipientTypeDetails = [string]$mailbox.RecipientTypeDetails
         TotalItemSizeBytes = $used
-        ProhibitSendReceiveQuota = [string]$mailbox.ProhibitSendReceiveQuota
-        ProhibitSendQuota = [string]$mailbox.ProhibitSendQuota
-        IssueWarningQuota = [string]$mailbox.IssueWarningQuota
+        ProhibitSendReceiveQuota = $quotaText
+        ProhibitSendQuota = [string](Get-Property $mailbox 'ProhibitSendQuota')
+        IssueWarningQuota = [string](Get-Property $mailbox 'IssueWarningQuota')
         PercentOfQuota = $percent
         QuotaIs100GB = $quotaIs100Gb
+        Status = $status
+        Reason = $reasons -join ' '
     }
+}
+if ($unknown -gt 0) {
+    Write-Warning ('BDIT:UNKNOWN ' + $unknown + ' mailbox(es) could not be measured against their quota. They are listed with Status Unknown and the reason; they were not checked.')
 }

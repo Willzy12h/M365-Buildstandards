@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ExternalForwardingReport.ps1",
-  "scriptSha256": "ad094bf8bf21d701ea3ef12c048a3f76517102be8ffad97984855908f88a108e",
+  "scriptSha256": "ed00e3767ede57c2854b1af55bbe99d40ec023195a39a06aa19ff79ba78621c0",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -79,6 +79,7 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "A forwarding target that is a recipient object rather than an address is marked Unknown."
+    "A forwarding target that is a recipient object rather than an address is marked Unknown.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
   ]
 }

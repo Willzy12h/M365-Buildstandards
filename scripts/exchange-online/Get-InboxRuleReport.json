@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-InboxRuleReport.ps1",
-  "scriptSha256": "55b1a4812a5a0e92d559b82fa1eb14b7acbfbff21f5192cbf914cda891f57995",
+  "scriptSha256": "93252888c0a7d27320aaed028b4a5cd6cfa659ecc021954cff6290b09797bb9a",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -78,6 +78,7 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "Hidden rules created outside Outlook are not included."
+    "Hidden rules created outside Outlook are not included.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
   ]
 }

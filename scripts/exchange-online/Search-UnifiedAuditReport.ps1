@@ -1,6 +1,7 @@
 <#
 Unified audit log search by user, operation, record type, object or free text.
-Read only. Dates are UTC days and both are included. Results are fetched in pages of up to 5,000.
+Read only. Dates are UTC days and both are included. Results are fetched in pages of up to 5,000. When the
+limit is reached exactly at the end of a page, one more page is read to prove whether anything is left.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$StartDate,
@@ -35,15 +36,16 @@ function Get-Field([object]$Data, [string]$Name) {
     return ''
 }
 
+# Pages are read until an empty page proves the session is finished. Reaching the limit inside a page, or finding a
+# further page after the limit, marks the result partial; it is never presented as complete without that proof.
 $count = 0
-while ($count -lt $MaxRows) {
+$partial = $false
+while ($true) {
     $page = @(Search-UnifiedAuditLog @search)
     if ($page.Count -eq 0) { break }
+    if ($count -ge $MaxRows) { $partial = $true; break }
     foreach ($record in $page) {
-        if ($count -ge $MaxRows) {
-            Write-Warning ('BDIT:PARTIAL Stopped at ' + $MaxRows + ' rows. Narrow the dates or filters to see everything.')
-            break
-        }
+        if ($count -ge $MaxRows) { $partial = $true; break }
         $count++
         $raw = [string]$record.AuditData
         $data = $null
@@ -60,4 +62,8 @@ while ($count -lt $MaxRows) {
             AuditData = $raw
         }
     }
+    if ($partial) { break }
+}
+if ($partial) {
+    Write-Warning ('BDIT:PARTIAL Stopped at ' + $MaxRows + ' rows and more records exist. Narrow the dates or filters to see everything.')
 }

@@ -13,7 +13,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-SharedMailboxReport.ps1",
-  "scriptSha256": "98d8d68fe7fdb31c5a878038a21ea5748cb0d13fe6c3b0b3a5e54b9fde2fda5e",
+  "scriptSha256": "4b00d2de41b779db192993a3dfcd2713791d5127bbdc4ae9a320ab5cee0ca57d",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -52,7 +52,8 @@
       "HiddenFromAddressLists",
       "LitigationHoldEnabled",
       "ArchiveStatus",
-      "ProhibitSendReceiveQuota"
+      "ProhibitSendReceiveQuota",
+      "Notes"
     ]
   },
   "outputSchemaVersion": 1,
@@ -64,6 +65,7 @@
   "liveStatus": "unverified",
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
-    "Sign-in blocked comes from Exchange's view of the account; confirm in Entra before acting."
+    "Sign-in blocked comes from Exchange's view of the account; confirm in Entra before acting.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False. The Notes column says what could not be read."
   ]
 }

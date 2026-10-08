@@ -7,7 +7,7 @@
       <StackPanel>
         <TextBlock x:Name="TenantNameText" FontSize="16" FontWeight="SemiBold"/>
         <TextBlock x:Name="TenantIdText" FontFamily="Consolas" FontSize="13" Margin="0,4,0,0"/>
-        <TextBlock x:Name="AccountText" FontSize="12" Margin="0,4,0,0"/>
+        <TextBlock x:Name="AccountText" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
       </StackPanel>
     </Border>
     <StackPanel Grid.Row="2" Margin="0,0,0,10">

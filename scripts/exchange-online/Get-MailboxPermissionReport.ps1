@@ -1,6 +1,7 @@
 <#
 Delegated access on mailboxes: Full Access, Send As and Send on Behalf.
-Read only. Leave Mailbox blank to check every mailbox up to the limit.
+Read only. Leave Mailbox blank to check every mailbox up to the limit. IsInherited and Deny are Unknown, never False,
+when Exchange did not return them; an entry with unknown inheritance is always listed.
 #>
 param(
     [string[]]$Mailbox,
@@ -26,8 +27,18 @@ if ($Mailbox) {
     }
 }
 
+function Get-Flag([object]$Item, [string]$Name) {
+    if ($null -eq $Item -or -not $Item.PSObject.Properties[$Name]) { return 'Unknown' }
+    $value = $Item.$Name
+    if ($value -is [bool]) { if ($value) { return 'True' } else { return 'False' } }
+    $text = [string]$value
+    if ($text -eq 'True') { return 'True' }
+    if ($text -eq 'False') { return 'False' }
+    return 'Unknown'
+}
+
 $rows = [System.Collections.Generic.List[object]]::new()
-function Get-Row([string]$Target, [string]$Kind, [string]$User, [string]$Rights, [bool]$Inherited, [bool]$Deny) {
+function Get-Row([string]$Target, [string]$Kind, [string]$User, [string]$Rights, [string]$Inherited, [string]$Deny) {
     [pscustomobject]@{ Mailbox = $Target; Permission = $Kind; User = $User; AccessRights = $Rights; IsInherited = $Inherited; Deny = $Deny }
 }
 
@@ -39,24 +50,31 @@ foreach ($target in $targets) {
         foreach ($entry in @(Get-EXOMailboxPermission -Identity $identity)) {
             $user = [string]$entry.User
             if ($user -eq 'NT AUTHORITY\SELF' -or $user -like 'S-1-5-*') { continue }
-            if ($entry.IsInherited -and -not $IncludeInherited) { continue }
+            $inherited = Get-Flag $entry 'IsInherited'
+            if ($inherited -eq 'True' -and -not $IncludeInherited) { continue }
             if (@($entry.AccessRights) -notcontains 'FullAccess') { continue }
-            $rows.Add((Get-Row $address 'FullAccess' $user ((@($entry.AccessRights) | ForEach-Object { [string]$_ }) -join ', ') ([bool]$entry.IsInherited) ([bool]$entry.Deny)))
+            $rows.Add((Get-Row $address 'FullAccess' $user ((@($entry.AccessRights) | ForEach-Object { [string]$_ }) -join ', ') $inherited (Get-Flag $entry 'Deny')))
         }
     }
     if ($SendAs) {
         foreach ($entry in @(Get-EXORecipientPermission -Identity $identity)) {
             $user = [string]$entry.Trustee
             if ($user -eq 'NT AUTHORITY\SELF' -or $user -like 'S-1-5-*') { continue }
-            if ($entry.IsInherited -and -not $IncludeInherited) { continue }
+            $inherited = Get-Flag $entry 'IsInherited'
+            if ($inherited -eq 'True' -and -not $IncludeInherited) { continue }
             if (@($entry.AccessRights) -notcontains 'SendAs') { continue }
-            $rows.Add((Get-Row $address 'SendAs' $user 'SendAs' ([bool]$entry.IsInherited) ([string]$entry.AccessControlType -eq 'Deny')))
+            $deny = 'Unknown'
+            if ($entry.PSObject.Properties['AccessControlType']) {
+                if ([string]$entry.AccessControlType -eq 'Deny') { $deny = 'True' }
+                if ([string]$entry.AccessControlType -eq 'Allow') { $deny = 'False' }
+            }
+            $rows.Add((Get-Row $address 'SendAs' $user 'SendAs' $inherited $deny))
         }
     }
     if ($SendOnBehalf) {
         foreach ($delegate in @($target.GrantSendOnBehalfTo)) {
             if ($null -eq $delegate -or [string]$delegate -eq '') { continue }
-            $rows.Add((Get-Row $address 'SendOnBehalf' ([string]$delegate) 'SendOnBehalf' $false $false))
+            $rows.Add((Get-Row $address 'SendOnBehalf' ([string]$delegate) 'SendOnBehalf' 'False' 'False'))
         }
     }
 }

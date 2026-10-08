@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Search-UnifiedAuditReport.ps1",
-  "scriptSha256": "7e2058e4f43172bc47b008c1d2d25880d1c5a208825a60a5497f12774e96af30",
+  "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -143,6 +143,7 @@
   "limitations": [
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "Audit retention depends on licence; older records may not exist.",
-    "AuditData longer than 8,000 characters is truncated and marked."
+    "AuditData longer than 8,000 characters is truncated and marked.",
+    "When the row limit is reached exactly at the end of a page, one further page is read; if it holds records, the result is marked partial."
   ]
 }

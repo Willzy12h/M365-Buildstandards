@@ -1,7 +1,8 @@
 <#
 Mail forwarding: mailbox-level forwarding and, if ticked, forwarding or redirect inbox rules.
 Read only. A target is External when its domain is not one of the tenant's accepted domains, and
-Unknown when it is a recipient object rather than an address.
+Unknown when it is a recipient object rather than an address. KeepsCopy is Unknown, never False or True, when
+Exchange did not return the setting it depends on.
 #>
 param(
     [string[]]$Mailbox,
@@ -16,6 +17,16 @@ function Get-Scope([string]$Address) {
     if ($Address -notmatch '@([^@\s>\]]+)$') { return 'Unknown' }
     if ($accepted -contains $Matches[1].ToLowerInvariant()) { return 'Internal' }
     return 'External'
+}
+
+function Get-Flag([object]$Item, [string]$Name) {
+    if ($null -eq $Item -or -not $Item.PSObject.Properties[$Name]) { return 'Unknown' }
+    $value = $Item.$Name
+    if ($value -is [bool]) { if ($value) { return 'True' } else { return 'False' } }
+    $text = [string]$value
+    if ($text -eq 'True') { return 'True' }
+    if ($text -eq 'False') { return 'False' }
+    return 'Unknown'
 }
 
 $properties = @('ForwardingSmtpAddress', 'ForwardingAddress', 'DeliverToMailboxAndForward')
@@ -36,18 +47,23 @@ foreach ($target in $targets) {
         $plain = $smtp -replace '^smtp:', ''
         [pscustomobject]@{
             Mailbox = $address; Source = 'MailboxForwarding'; RuleName = ''; Target = $plain
-            Scope = Get-Scope $plain; KeepsCopy = [bool]$target.DeliverToMailboxAndForward
+            Scope = Get-Scope $plain; KeepsCopy = Get-Flag $target 'DeliverToMailboxAndForward'
         }
     }
     $recipient = [string]$target.ForwardingAddress
     if ($recipient) {
         [pscustomobject]@{
             Mailbox = $address; Source = 'MailboxForwarding'; RuleName = ''; Target = $recipient
-            Scope = 'Unknown'; KeepsCopy = [bool]$target.DeliverToMailboxAndForward
+            Scope = 'Unknown'; KeepsCopy = Get-Flag $target 'DeliverToMailboxAndForward'
         }
     }
     if ($IncludeInboxRules) {
         foreach ($rule in @(Get-InboxRule -Mailbox $target.ExchangeGuid.ToString())) {
+            # A rule that deletes the message keeps no copy; one whose delete action was not returned is Unknown.
+            $keepsCopy = 'Unknown'
+            $delete = Get-Flag $rule 'DeleteMessage'
+            if ($delete -eq 'True') { $keepsCopy = 'False' }
+            if ($delete -eq 'False') { $keepsCopy = 'True' }
             $entries = @($rule.ForwardTo) + @($rule.ForwardAsAttachmentTo) + @($rule.RedirectTo) | Where-Object { $null -ne $_ }
             foreach ($entry in $entries) {
                 $text = [string]$entry
@@ -55,7 +71,7 @@ foreach ($target in $targets) {
                 if ($text -match 'SMTP:([^\]\s]+)') { $plain = $Matches[1] }
                 [pscustomobject]@{
                     Mailbox = $address; Source = 'InboxRule'; RuleName = [string]$rule.Name; Target = $plain
-                    Scope = Get-Scope $plain; KeepsCopy = -not [bool]$rule.DeleteMessage
+                    Scope = Get-Scope $plain; KeepsCopy = $keepsCopy
                 }
             }
         }
