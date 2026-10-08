@@ -177,6 +177,21 @@ internal static partial class Program
 
     private static readonly List<string> UnneededScrolling = new();
     private static int FillingPagesMeasured;
+    private static int JobRequirementViewportsMeasured;
+    private static readonly List<string> CrampedJobRequirements = new();
+
+    // Count fully visible rows, including clipping by the table and outer page viewport.
+    // Actual native layout is required: IsVisible is false throughout off-screen renders.
+    private static void RecordJobRequirementViewport(FrameworkElement content, string where)
+    {
+        var table = Descendants(content).OfType<DataGrid>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Requirements in the selected job");
+        JobRequirementViewportsMeasured++;
+        var rows = Descendants(table).OfType<DataGridRow>().Where(r => IsShown(r, content)).ToList();
+        var fullyVisible = rows.Count(r => VisibleBounds(r, content).Height >= r.ActualHeight - 1);
+        if (table.Items.Count < 2 || rows.Count == 0 || fullyVisible < 2)
+            CrampedJobRequirements.Add($"  {where} · {fullyVisible} fully visible requirement rows; at least two are required in the populated synthetic job.");
+    }
 
     /// <summary>
     /// The filling pages scroll below PageLayout.MinimumHeight so a short window can still reach everything. Above it
