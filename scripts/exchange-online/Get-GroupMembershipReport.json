@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.group-members",
+  "name": "Group members and owners",
+  "category": "exchange-online",
+  "area": "Groups",
+  "description": "Lists the members and owners of named distribution, mail-enabled security and Microsoft 365 groups, each with the exact address and object ID Exchange returned.",
+  "keywords": [
+    "group",
+    "distribution list",
+    "members",
+    "owners",
+    "Microsoft 365 group",
+    "Get-DistributionGroupMember",
+    "Get-UnifiedGroupLinks"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-GroupMembershipReport.ps1",
+  "scriptSha256": "173b0eedf1447f7a138ddd94976c58a902d925b8581e2d6be2a59ba420b5cb8b",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Group",
+      "label": "Groups",
+      "type": "string",
+      "help": "Email addresses or aliases of the groups to list.",
+      "required": true,
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "IncludeOwners",
+      "label": "Include owners",
+      "type": "boolean",
+      "help": "Also list each group's owners.",
+      "default": "true"
+    },
+    {
+      "name": "MaxMembers",
+      "label": "Maximum entries per group",
+      "type": "integer",
+      "help": "Stops after this many members (or owners) of one group and says the result is partial.",
+      "minimum": 1,
+      "maximum": 20000,
+      "default": "5000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Group",
+      "GroupType",
+      "Relationship",
+      "Status",
+      "MemberName",
+      "MemberAddress",
+      "MemberObjectId",
+      "MemberType",
+      "AsReturned",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 50000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Members are identified by the address and object ID Exchange returned; an entry with neither is Unresolved. Names are shown for reading only and never used to match.",
+    "A distribution group's owners are returned as names. Each is Resolved only when Exchange finds exactly one recipient whose name, alias, address or ID is that value; otherwise it is Unresolved.",
+    "Nested groups are listed as members, not expanded. Dynamic distribution groups are not expanded and are marked NotExpanded.",
+    "Each group's members and owners are read up to the limit; a fuller list is marked partial.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

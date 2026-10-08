@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.connectors",
+  "name": "Mail connectors",
+  "category": "exchange-online",
+  "area": "Mail flow",
+  "description": "Lists inbound and outbound connectors with the domains, smart hosts or IP addresses they cover and their TLS settings.",
+  "keywords": [
+    "connector",
+    "inbound",
+    "outbound",
+    "TLS",
+    "smart host",
+    "relay",
+    "Get-InboundConnector",
+    "Get-OutboundConnector"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-ConnectorReport.ps1",
+  "scriptSha256": "178def7a06f725ec4b5fdef0fac98ba20172f887d9e8fc853a39835bc7f2e315",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "OnlyEnabled",
+      "label": "Only enabled connectors",
+      "type": "boolean",
+      "help": "Leave out connectors Exchange reports as disabled. A connector whose state is unknown is kept."
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Direction",
+      "Name",
+      "Enabled",
+      "ConnectorType",
+      "ConnectorSource",
+      "Domains",
+      "SmartHostsOrIPs",
+      "TlsRequirement",
+      "TlsCertificateName",
+      "TransportRuleScoped",
+      "Comment",
+      "WhenChanged",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 1000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Every connector is read; a tenant normally has only a few.",
+    "A TLS setting returned empty is shown as NotSet. What Exchange does when none is set is not inferred.",
+    "Connector validation and certificate checks are not run.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

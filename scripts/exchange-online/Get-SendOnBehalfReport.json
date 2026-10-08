@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.send-on-behalf",
+  "name": "Send on Behalf delegates",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists Send on Behalf delegates across mailboxes, each resolved to an exact address and object ID or marked Unresolved.",
+  "keywords": [
+    "send on behalf",
+    "delegate",
+    "delegation",
+    "GrantSendOnBehalfTo",
+    "Get-EXORecipient"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-SendOnBehalfReport.ps1",
+  "scriptSha256": "ff42780059137fa7286d4d41c6392382d5d3ec3b9fa8302e002390bd7fa97162",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum rows",
+      "type": "integer",
+      "help": "Stops after this many rows and says the result is partial.",
+      "minimum": 1,
+      "maximum": 20000,
+      "default": "5000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "MailboxType",
+      "DelegateAsReturned",
+      "Status",
+      "DelegateName",
+      "DelegateAddress",
+      "DelegateObjectId",
+      "DelegateType",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 20000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A delegate is Resolved only when Exchange finds exactly one recipient whose name, alias, address or ID is the value it returned; a display name match, several matches or none are Unresolved.",
+    "Each distinct delegate is looked up once per run.",
+    "This is the delegate list, not effective access. Full Access and Send As are in the mailbox permissions item.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}
