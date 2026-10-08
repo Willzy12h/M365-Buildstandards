@@ -103,11 +103,14 @@ public static class ReportEvidenceSchema
                 try { row = (GraphReportRow)(JsonSerializer.Deserialize(node.ToJsonString(), schema.RowType, Strict) ?? throw Bad("Empty report row.")); }
                 catch (JsonException ex) { throw Bad("Invalid registered report row: " + ex.Message); }
                 State(row.ReadStatus);
-                if (row.Id is not null && (!identities.Add(row.Id) || string.IsNullOrWhiteSpace(row.Id))) throw Bad("Duplicate/empty report identity.");
-                if (schema.GuidIdentity && row.Id is not null) GuidValue(row.Id);
+                if (row.Id is not null && (!identities.Add(row.Id) || !(schema.GuidIdentity ? ReportValues.IsCanonicalGuid(row.Id) : ReportValues.IsTextIdentity(row.Id))))
+                    throw Bad("Duplicate, malformed or empty report identity.");
                 if (row.ReadStatus == ReportReadState.Collected && (row.Id is null || row.Error is not null)) throw Bad("A successful row needs exact identity and no hidden error.");
                 if (row.ReadStatus != ReportReadState.Collected && string.IsNullOrWhiteSpace(row.Error)) throw Bad("An unsuccessful/partial row needs a reason.");
                 if (section.Status == ReportReadState.Collected && row.ReadStatus != ReportReadState.Collected) throw Bad("Incomplete rows cannot become a successful section.");
+                if (row is SubscriptionReportRow subscription && (subscription.SkuId is not null && !ReportValues.IsCanonicalGuid(subscription.SkuId)
+                    || subscription.SkuId is null && subscription.ReadStatus == ReportReadState.Collected))
+                    throw Bad("Subscription rows need an exact SKU identity before they can be successful.");
                 if (row is UserLicenceReportRow user)
                 {
                     State(user.ProductsReadStatus);
@@ -119,13 +122,13 @@ public static class ReportEvidenceSchema
                         throw Bad("Collected products cannot contain duplicate SKU identities.");
                     foreach (var product in user.Products)
                     {
-                        if (product.SkuId is not null) GuidValue(product.SkuId);
+                        if (product.SkuId is not null) CanonicalGuid(product.SkuId);
                         if (user.ProductsReadStatus == ReportReadState.Collected && product.SkuId is null) throw Bad("Collected products require exact SKU identity.");
-                        if (user.ProductsReadStatus == ReportReadState.Collected && (string.IsNullOrEmpty(product.SkuPartNumber)
-                            || product.ServicePlans.Any(s => s.ServicePlanId is null || string.IsNullOrEmpty(s.ServicePlanName) || string.IsNullOrEmpty(s.ProvisioningStatus))
+                        if (user.ProductsReadStatus == ReportReadState.Collected && (!ReportValues.HasText(product.SkuPartNumber)
+                            || product.ServicePlans.Any(s => s.ServicePlanId is null || !ReportValues.HasText(s.ServicePlanName) || !ReportValues.HasText(s.ProvisioningStatus))
                             || product.ServicePlans.Select(s => s.ServicePlanId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != product.ServicePlans.Count))
                             throw Bad("Collected product/service-plan details need complete, unique reported identities and states.");
-                        foreach (var plan in product.ServicePlans) if (plan.ServicePlanId is not null) GuidValue(plan.ServicePlanId);
+                        foreach (var plan in product.ServicePlans) if (plan.ServicePlanId is not null) CanonicalGuid(plan.ServicePlanId);
                     }
                 }
             }
@@ -147,7 +150,8 @@ public static class ReportEvidenceSchema
         else if (parameters.Start is not null || parameters.End is not null) throw Bad("This report has no date-range parameters.");
     }
     private static bool Utc(string? value, out DateTimeOffset at) => Timestamps.TryParse(value, out at) && value!.EndsWith('Z');
-    private static void GuidValue(string? value) { if (!Guid.TryParseExact(value, "D", out var id) || id == Guid.Empty) throw Bad("Invalid report identity."); }
+    private static void GuidValue(string? value) { if (!ReportValues.TryGuid(value, out _)) throw Bad("Invalid report identity."); }
+    private static void CanonicalGuid(string value) { if (!ReportValues.IsCanonicalGuid(value)) throw Bad("Invalid report identity."); }
     private static void State(string state) { if (!ReportReadState.All.Contains(state, StringComparer.Ordinal)) throw Bad("Unknown report read state."); }
     private static void Strings(List<string>? values) { if (values is null || values.Count > 64 || values.Any(s => s is null || s.Length > 4096)) throw Bad("Invalid report limitations."); }
     private static ConfigurationException Bad(string message) => new(message);
