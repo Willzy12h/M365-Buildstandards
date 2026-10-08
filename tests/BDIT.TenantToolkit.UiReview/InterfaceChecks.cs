@@ -511,6 +511,7 @@ internal static partial class Program
 
         ("JobsViewModel.OpenJobCommand", Press),
         ("JobsViewModel.RecordCommand", Press),
+        ("JobsViewModel.CopyRequirementCommand", Clipboard),
 
         ("ManualChecksViewModel.SaveCommand", Press),
 

@@ -43,3 +43,5 @@ Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
 
 | 2026-10-06 | Astra/Codex | M365-Buildstandards | dedicated decision-only contracts for persistent job/observation, legacy disposition/cutover and read-only release lineage; no runtime implementation | `astra/product-contracts-2026-10-06` | #20 | Open |
+
+| 2026-10-08 | Astra/Codex | M365-Buildstandards | existing Jobs page readability, disabled-action guidance, copyable details and current start guide; native/human acceptance kept separate | `astra/engineer-guidance-2026-10-08` (from integration `8f0285a`) | #38 | Open |

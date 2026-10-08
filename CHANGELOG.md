@@ -1,3 +1,9 @@
+# Unreleased — engineer Jobs guidance
+
+- Lead with friendly requirement names, retain exact IDs in copyable details and show the next step for disabled job-recording actions.
+- Explain that engineers perform and evidence prerequisite/effectiveness checks; replacement stage records do not activate, assign or retire protection.
+- Bring the short start guide into line with the already implemented Jobs/completion screens. Human newcomer, Narrator and physical-scaling acceptance remain outstanding.
+
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
 Source changes on top of the published Preview.18 source (`10808de`). Not published; a package built from them needs its own provenance and Windows checks, and publication needs William's approval. IDs refer to `docs/integration/CLAUDE-PREVIEW18-REVIEW.md`.

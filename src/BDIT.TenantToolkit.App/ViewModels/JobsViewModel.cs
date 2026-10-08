@@ -42,12 +42,14 @@ public sealed class JobsViewModel : PageViewModel
     {
         OpenJobCommand = Sync(OpenJob, () => Workspace.Profile is not null && Workspace.Standard is not null && Workspace.Idle);
         RecordCommand = Sync(Record, () => SelectedJob is not null && SelectedRequirement is not null && Workspace.Idle);
+        CopyRequirementCommand = CopyText(() => RequirementText);
         ReviewDue = DefaultReviewDue();
         Refresh();
     }
 
     public ICommand OpenJobCommand { get; }
     public ICommand RecordCommand { get; }
+    public ICommand CopyRequirementCommand { get; }
 
     public ObservableCollection<JobRow> Jobs { get; } = new();
     public ObservableCollection<RequirementCompletion> Requirements { get; } = new();
@@ -60,7 +62,7 @@ public sealed class JobsViewModel : PageViewModel
     public ObservableCollection<FilterOption> Assessments { get; } = new();
 
     public IReadOnlyList<FilterOption> Intentions { get; } = JobIntention.All.Select(i => new FilterOption(i, WordsConverter.Words(i))).ToList();
-    public IReadOnlyList<FilterOption> RecordKinds { get; } = new[] { new FilterOption(OutcomeKind, "Outcome (observation)"), new FilterOption(DecisionKind, "Decision (legacy disposition)"), new FilterOption(CutoverKind, "Cutover revision") };
+    public IReadOnlyList<FilterOption> RecordKinds { get; } = new[] { new FilterOption(OutcomeKind, "Check result"), new FilterOption(DecisionKind, "Decision about existing protection"), new FilterOption(CutoverKind, "Replacement stage") };
     public IReadOnlyList<FilterOption> Stages { get; } = CutoverStage.Order.Select(s => new FilterOption(s, WordsConverter.Words(s))).ToList();
     public IReadOnlyList<FilterOption> Retirements { get; } = new[] { new FilterOption("", "Not yet decided") }
         .Concat(RetirementDecision.All.Select(r => new FilterOption(r, WordsConverter.Words(r)))).ToList();
@@ -70,7 +72,7 @@ public sealed class JobsViewModel : PageViewModel
     public JobRow? SelectedJob
     {
         get => _selectedJob;
-        set { if (SetProperty(ref _selectedJob, value)) Project(); }
+        set { if (SetProperty(ref _selectedJob, value)) { Project(); OnPropertyChanged(nameof(RecordGuidance)); } }
     }
 
     public RequirementCompletion? SelectedRequirement
@@ -80,6 +82,7 @@ public sealed class JobsViewModel : PageViewModel
         {
             if (!SetProperty(ref _selectedRequirement, value)) return;
             OnPropertyChanged(nameof(RequirementText));
+            OnPropertyChanged(nameof(RecordGuidance));
             LoadCases();
             LoadAssessments();
         }
@@ -145,7 +148,17 @@ public sealed class JobsViewModel : PageViewModel
 
     public string ContextText => Workspace.Profile is null
         ? "Select a client on the Connect page to see its jobs."
-        : $"Jobs for {Workspace.Profile.Company}. A job records outcomes and decisions against the standard and client inputs; it never changes the tenant and grants no permission to.";
+        : $"Jobs for {Workspace.Profile.Company}. Keep check results, decisions and replacement stages together for this client. Recording evidence here makes no tenant changes.";
+
+    public string RecordGuidance => !Workspace.Idle ? "Wait for the current operation to finish, or stop it safely."
+        : SelectedJob is null ? "Select a job above, or open one below, before recording a check result."
+        : SelectedRequirement is null ? "Select a requirement in the table, then record its result or decision."
+        : "Record what you actually checked. The tool stores your evidence; it does not perform these manual checks.";
+
+    public string OpenJobGuidance => !Workspace.Idle ? "Wait for the current operation to finish, or stop it safely."
+        : Workspace.Profile is null ? "Choose a client on Connect first. You can review saved evidence without signing in."
+        : Workspace.Standard is null ? "Load a verified release on Build Standard before opening a job."
+        : "Choose the purpose and name the responsible engineer, then open the job. No live connection is required.";
 
     public string CaptureText => Workspace.SavedCapture() is { } capture
         ? $"Records pin the capture in view: {capture.CapturedAt}{(capture.Complete ? "" : " (INCOMPLETE)")}. Named objects must be in it."
@@ -162,7 +175,7 @@ public sealed class JobsViewModel : PageViewModel
         {
             var r = SelectedRequirement;
             if (r is null) return "Select a requirement to see why it stands or not, and to record an outcome or decision for it.";
-            var text = new StringBuilder($"{r.InstanceKey} · {r.Name}\n{WordsConverter.Words(r.State)}");
+            var text = new StringBuilder($"{r.Name}\nRequirement ID: {r.InstanceKey}\n{WordsConverter.Words(r.State)}");
             foreach (var reason in r.Reasons) text.Append("\n• ").Append(reason);
             var history = _projection?.Subjects.FirstOrDefault(s => Same(s.InstanceKey, r.InstanceKey))?.History;
             if (history is { Count: > 0 })
@@ -380,6 +393,8 @@ public sealed class JobsViewModel : PageViewModel
         if (problems.Count > 0) { _problems = string.Join("\n", problems.Concat(_problems.Length > 0 ? new[] { _problems } : Array.Empty<string>())); OnPropertyChanged(nameof(HasProblems)); OnPropertyChanged(nameof(ProblemsText)); }
         OnPropertyChanged(nameof(ContextText));
         OnPropertyChanged(nameof(CaptureText));
+        OnPropertyChanged(nameof(RecordGuidance));
+        OnPropertyChanged(nameof(OpenJobGuidance));
     }
 
     private void LoadAssessments()

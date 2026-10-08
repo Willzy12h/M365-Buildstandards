@@ -303,3 +303,7 @@ Choices:
 - Generated notes always end with the ZIP SHA-256, source, standard and run, and with the unsigned internal distribution route William chose on 7 October: compare the separately published fingerprint, and have the security owner allow the build by policy (normally a file-hash rule). No application-control bypass.
 - Preview.18's pin is kept as a record. The publisher refuses to touch a published release, so it cannot republish it.
 
+
+## INT-069 — Engineer wording without changing workflow authority
+
+PR #38 uses Check result, Decision about existing protection and Replacement stage as display labels for the existing outcome/disposition/cutover keys. Stored enum values, IDs, approval semantics and engine services are unchanged. Requirement names lead the table and copied details retain exact IDs. Disabled recording actions show their selection/busy prerequisites and next step. The page explicitly identifies prerequisite/effectiveness input as engineer-recorded evidence, not automated execution. OPERATOR-START no longer calls the merged Jobs surface future work. No human/live acceptance gate is closed by a render or source test.
