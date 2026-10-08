@@ -390,6 +390,118 @@ internal static partial class Program
         }
     }
 
+    /// <summary>
+    /// The confirmation before a library script is copied or saved. Built from the seeded Scripts &amp; Reports form exactly
+    /// as the page builds it, laid out at its default and minimum sizes, and its gate exercised: the confirm button stays
+    /// disabled until the engineer ticks the box, is not the default button, and the tenant and every value are restated.
+    /// Nothing is produced - the dialog is closed without confirming.
+    /// </summary>
+    private static void CheckScriptCopyDialog(ShellViewModel shell, string output)
+    {
+        shell.Navigate("scripts");
+        SeedScripts(shell);
+        var review = shell.Page<ScriptsViewModel>().Review(ScriptCopyAction.Clipboard);
+        var dialog = new ScriptCopyDialog(review)
+        {
+            ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000
+        };
+        try
+        {
+            if (dialog.Content is not FrameworkElement root) throw new InvalidOperationException("The script copy dialog has no content.");
+            var approval = Part<CheckBox>(dialog, "ApprovalBox");
+            var confirm = Part<Button>(dialog, "ConfirmButton");
+            var values = Part<ListBox>(dialog, "ValueList");
+            if (values.Items.Count != review.Values.Count || review.Values.Count == 0)
+                throw new InvalidOperationException($"The script copy dialog lists {values.Items.Count} value(s) for a form with {review.Values.Count}.");
+            if (!Part<TextBlock>(dialog, "TenantIdText").Text.Contains(Tenant, StringComparison.Ordinal) || Part<TextBlock>(dialog, "TenantNameText").Text != review.TenantName)
+                throw new InvalidOperationException("The script copy dialog does not restate the selected client's tenant.");
+            if (Part<TextBlock>(dialog, "TypeText").Text != ScriptsViewModel.ReadOnlyText)
+                throw new InvalidOperationException("The script copy dialog does not say the item is read only.");
+
+            foreach (var size in new[] { new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
+            {
+                var where = $"script-copy-dialog {(int)size.Width}x{(int)size.Height}";
+                dialog.Width = size.Width; dialog.Height = size.Height;
+                dialog.Show(); Pump(); root.UpdateLayout(); Pump();
+                RecordUnnamedControls(root, where);
+                RecordLowContrast(root, where);
+                RecordClipping(root, where);
+                var bounds = VisibleBounds(confirm, root);
+                if (bounds.Width < confirm.ActualWidth - 1 || bounds.Height < confirm.ActualHeight - 1)
+                    throw new InvalidOperationException($"The confirm button is not fully visible in the script copy dialog at {where}.");
+                SaveWindowImage(root, Path.Combine(output, $"script-copy-dialog-{(int)size.Width}x{(int)size.Height}.png"));
+                DialogChecks++;
+            }
+
+            dialog.Activate(); Pump();
+            var focused = Keyboard.FocusedElement as DependencyObject ?? FocusManager.GetFocusedElement(dialog) as DependencyObject;
+            if (!ReferenceEquals(focused, approval))
+                KeyboardProblems.Add($"  script-copy-dialog · focus starts on {(focused as Control is { } c ? Describe(c) : focused?.GetType().Name ?? "nothing")}, not the confirmation checkbox");
+
+            foreach (var enabled in new[] { false, true, false })
+            {
+                approval.IsChecked = enabled; Pump();
+                if (confirm.IsEnabled != enabled || dialog.Confirmed)
+                    throw new InvalidOperationException("The script copy confirmation gate failed.");
+                DialogChecks++;
+            }
+            if (confirm.IsDefault) throw new InvalidOperationException("The script copy confirm button is the default button, so Enter would produce the script.");
+        }
+        finally
+        {
+            dialog.Close(); Pump();
+        }
+    }
+
+    /// <summary>A complete, valid message trace form: two dates, a recipient and two delivery statuses.</summary>
+    private static void SeedScripts(ShellViewModel shell)
+    {
+        var vm = shell.Page<ScriptsViewModel>();
+        vm.SearchText = "";
+        vm.Selected = vm.Items.First(i => i.Id == "exo.message-trace");
+        var today = DateTimeOffset.UtcNow.UtcDateTime.Date;
+        vm.Field("StartDate").Value = today.AddDays(-2).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        vm.Field("EndDate").Value = today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        vm.Field("RecipientAddress").Value = "alex@example.invalid\nsam@example.invalid";
+        foreach (var choice in vm.Field("Status").Choices) choice.IsSelected = choice.Value is "Delivered" or "Failed";
+        if (!vm.IsValid) throw new InvalidOperationException("The seeded Scripts & Reports form is not valid: " + string.Join(" ", vm.Problems));
+    }
+
+    private static void PrepareScriptCopy(ShellViewModel shell)
+    {
+        SeedScripts(shell);
+        shell.Page<ScriptsViewModel>().Prompts = new HarnessScriptPrompts(shell.Workspace.Paths.ReportsDirectory);
+    }
+
+    /// <summary>
+    /// Stands in for the confirmation dialog, the Save As picker and the clipboard while commands are pressed. It
+    /// confirms, saves to a new file in the harness's own fixture folder, and checks what it was handed: a script for
+    /// the synthetic tenant that still refuses any other tenant. A failure here is reported as a command defect.
+    /// </summary>
+    private sealed class HarnessScriptPrompts : IScriptCopyPrompts
+    {
+        private readonly string _folder;
+        public HarnessScriptPrompts(string folder) => _folder = folder;
+
+        public bool Confirm(ScriptCopyReview review)
+        {
+            if (review.TenantId != Tenant || review.Values.Count == 0) throw new InvalidOperationException("The script copy review does not restate the synthetic tenant and values.");
+            return true;
+        }
+
+        public string? ChooseSavePath(string suggestedName)
+        {
+            Directory.CreateDirectory(_folder);
+            return Path.Combine(_folder, Path.GetFileNameWithoutExtension(suggestedName) + "-" + Guid.NewGuid().ToString("N")[..8] + ".ps1");
+        }
+
+        public void PutOnClipboard(string text)
+        {
+            if (!text.Contains("$expectedTenantId = '" + Tenant + "'", StringComparison.Ordinal) || !text.Contains("Nothing was read.", StringComparison.Ordinal))
+                throw new InvalidOperationException("The copied script is not bound to the synthetic tenant.");
+        }
+    }
+
     private static T Part<T>(FrameworkElement owner, string name) where T : class =>
         owner.FindName(name) as T ?? throw new InvalidOperationException($"The confirmation dialog has no {typeof(T).Name} named {name}.");
 
@@ -538,6 +650,11 @@ internal static partial class Program
         ("JobsViewModel.CopyRequirementCommand", Clipboard),
 
         ("ManualChecksViewModel.SaveCommand", Press),
+
+        // Pressed with the harness's own confirmation, file choice and clipboard (HarnessScriptPrompts): the real
+        // dialog is laid out and its approval gate exercised separately in CheckScriptCopyDialog.
+        ("ScriptsViewModel.CopyScriptCommand", Press),
+        ("ScriptsViewModel.SaveScriptCommand", Press),
 
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
@@ -707,6 +824,8 @@ internal static partial class Program
             vm.SelectedControl ??= vm.Controls.FirstOrDefault();
             vm.ImportFile = SyntheticImportPath();
         },
+        ["ScriptsViewModel.CopyScriptCommand"] = PrepareScriptCopy,
+        ["ScriptsViewModel.SaveScriptCommand"] = PrepareScriptCopy,
         // Choosing a release is refused while connected, so the success path needs the session set aside too.
         ["StandardViewModel.SelectReleaseCommand"] = Disconnect,
         ["AutomationViewModel.LoadCandidateCommand"] = shell =>

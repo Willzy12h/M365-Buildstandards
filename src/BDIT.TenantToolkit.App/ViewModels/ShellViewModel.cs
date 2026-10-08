@@ -77,6 +77,8 @@ public sealed class ShellViewModel : ObservableObject
         NavItems.Add(new NavItem { Key = "history", Step = "", Title = "Evidence and drift" });
         NavItems.Add(new NavItem { Key = "jobs", Step = "", Title = "Jobs and completion" });
         NavItems.Add(new NavItem { Key = "checks", Step = "", Title = "Manual checks" });
+        // Reviewed library scripts are copied to run outside the tool; nothing on the page reads or writes the tenant.
+        NavItems.Add(new NavItem { Key = "scripts", Step = "", Title = "Scripts & Reports" });
         NavItems.Add(new NavItem { Key = "standard", Step = "", Title = "Build Standard" });
         NavItems.Add(new NavItem { Key = "settings", Step = "", Title = "Settings and diagnostics" });
 
@@ -93,6 +95,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["history"] = new HistoryViewModel(this);
         _pages["jobs"] = new JobsViewModel(this);
         _pages["checks"] = new ManualChecksViewModel(this);
+        _pages["scripts"] = new ScriptsViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);
 

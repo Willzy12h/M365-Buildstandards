@@ -28,9 +28,7 @@ public static class ScriptCopy
         if (!string.IsNullOrWhiteSpace(target.Account))
         {
             var problems = new List<string>();
-            var upn = new ScriptParameter("Account", "Sign-in account", ScriptParameterType.String, "Account", Format: ScriptValueFormat.Upn);
-            if (ScriptInputs.Convert(upn, target.Account, problems) is not ScriptText valid) throw new ConfigurationException(string.Join(" ", problems));
-            account = valid.Value;
+            account = CheckAccount(target.Account, problems) ?? throw new ConfigurationException(string.Join(" ", problems));
         }
 
         var b = new StringBuilder();
@@ -93,6 +91,19 @@ public static class ScriptCopy
         return b.ToString();
     }
 
+    /// <summary>
+    /// True when <paramref name="account"/> would be accepted as the copied script's sign-in name. The desktop page uses
+    /// it to offer the connected account only when it is one, rather than refusing the whole copy.
+    /// </summary>
+    public static bool IsAcceptableAccount(string? account) =>
+        !string.IsNullOrWhiteSpace(account) && CheckAccount(account, new List<string>()) is not null;
+
+    private static string? CheckAccount(string account, List<string> problems)
+    {
+        var upn = new ScriptParameter("Account", "Sign-in account", ScriptParameterType.String, "Account", Format: ScriptValueFormat.Upn);
+        return ScriptInputs.Convert(upn, account, problems) is ScriptText valid ? valid.Value : null;
+    }
+
     /// <summary>A PowerShell single-quoted literal. Inside one, only a quote character is special, and doubling it escapes it.</summary>
     public static string Quote(string value)
     {
@@ -105,7 +116,8 @@ public static class ScriptCopy
         return b.Append('\'').ToString();
     }
 
-    private static string Literal(ScriptValue value) => value switch
+    /// <summary>A bound value exactly as the copied script writes it; the desktop command preview shows the same text.</summary>
+    public static string Literal(ScriptValue value) => value switch
     {
         ScriptText t => Quote(t.Value),
         ScriptTextList l => "@(" + string.Join(", ", l.Values.Select(Quote)) + ")",
