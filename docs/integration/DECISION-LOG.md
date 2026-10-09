@@ -418,3 +418,7 @@ Expose the merged strict Graph ReportEvidenceSchema and existing HTML/CSV/JSON/E
 ## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
 
 After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
+
+### INT-089 review corrections — PR #62
+
+Add explicit supplied-file provenance to formatted report exports without changing/resealing their evidence; recorded account IDs are not presented as authenticated by the export. The report-evidence route rejects duplicate options; other routes are unchanged. Strengthen strict decoding, size and kind fixtures to isolate the intended guard rather than incidental invalid JSON/digest refusals (CLA-20261008-78–80).

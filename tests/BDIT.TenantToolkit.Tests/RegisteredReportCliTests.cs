@@ -4,7 +4,9 @@ using System.Text;
 using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Reporting;
+using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Evidence;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -71,13 +73,19 @@ public sealed class RegisteredReportCliTests
         var file = Assert.Single(Directory.GetFiles(root.Paths.ReportsDirectory));
         Assert.Contains(file, result.Output); Assert.NotEmpty(File.ReadAllBytes(file));
         if (format == "json") Assert.Equal(report.Id, ReportEvidenceSchema.Read(File.ReadAllText(file), TestData.TenantA).Id);
-        if (format == "html") { var html = File.ReadAllText(file); Assert.Contains("&lt;script&gt;", html); Assert.DoesNotContain("<script>", html); Assert.Contains("Partial", html); }
+        if (format == "html") { var html = File.ReadAllText(file); Assert.Contains("&lt;script&gt;", html); Assert.DoesNotContain("<script>", html); Assert.Contains("Partial", html); Assert.Contains(RegisteredReportDocuments.SuppliedFileNotice, html); }
         if (format == "csv")
         {
             using var zip = ZipFile.OpenRead(file); using var reader = new StreamReader(Assert.Single(zip.Entries, e => e.Name == "02_devices.csv").Open());
             Assert.Contains("'=HYPERLINK", reader.ReadToEnd());
         }
-        if (format == "xlsx") { using var zip = ZipFile.OpenRead(file); Assert.Contains(zip.Entries, e => e.FullName == "xl/workbook.xml"); }
+        if (format is "xlsx" or "csv")
+        {
+            using var zip = ZipFile.OpenRead(file);
+            var text = string.Join("\n", zip.Entries.Where(e => !e.FullName.EndsWith('/')).Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); }));
+            Assert.Contains(RegisteredReportDocuments.SuppliedFileNotice, text);
+            Assert.DoesNotContain("Verified account object ID", text);
+        }
         Assert.Equal(bytes, File.ReadAllBytes(input)); Assert.Equal(evidence, Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories));
     }
 
@@ -111,15 +119,39 @@ public sealed class RegisteredReportCliTests
         using var root = new TempRoot(); var input = Path.Combine(root.Root, "synthetic.json"); var report = Report();
         var json = ReportEvidenceSchema.Serialize(report);
         if (scenario == "digest") json = json.Replace("synthetic", "changed", StringComparison.Ordinal);
-        if (scenario == "kind") json = json.Replace("reportEvidence", "tenantSnapshot", StringComparison.Ordinal);
+        if (scenario == "kind")
+        {
+            report.Kind = "tenantSnapshot";
+            report.IntegrityDigest = EvidenceIntegrity.Compute(report);
+            json = ToolkitJson.Serialize(report);
+        }
         if (scenario == "field") { var node = JsonNode.Parse(json)!.AsObject(); node["arbitraryScript"] = "refuse"; json = node.ToJsonString(); }
         if (scenario == "duplicate") json = "{\"kind\":\"reportEvidence\"," + json[1..];
+        if (scenario == "utf8")
+        {
+            // Seal the replacement character a permissive decoder would produce, then inject an invalid byte.
+            // Without strict decoding this is valid, digest-consistent evidence, not incidental JSON/tamper refusal.
+            report.ToolkitVersion = "\uFFFDynthetic";
+            report.IntegrityDigest = EvidenceIntegrity.Compute(report);
+            json = ToolkitJson.Serialize(report).Replace("\\uFFFDynthetic", "synthetic", StringComparison.OrdinalIgnoreCase)
+                .Replace("\uFFFDynthetic", "synthetic", StringComparison.Ordinal);
+        }
         File.WriteAllText(input, json);
-        if (scenario == "utf8") File.WriteAllBytes(input, [0xff, 0xfe, 0xff]);
-        if (scenario == "oversize") { using var file = File.OpenWrite(input); file.SetLength(ReportEvidenceSchema.MaximumBytes + 1L); }
+        if (scenario == "utf8")
+        {
+            // JSON remains syntactically valid under a permissive UTF-8 decoder. Isolate strict decoding.
+            var invalid = Encoding.UTF8.GetBytes(json); var at = json.IndexOf("synthetic", StringComparison.Ordinal);
+            Assert.True(at >= 0); invalid[at] = 0xff;
+            Assert.Equal(report.Id, ReportEvidenceSchema.Read(Encoding.UTF8.GetString(invalid), TestData.TenantA).Id);
+            File.WriteAllBytes(input, invalid);
+        }
+        if (scenario == "oversize") File.AppendAllText(input, new string(' ', ReportEvidenceSchema.MaximumBytes + 1));
         var bytes = File.ReadAllBytes(input);
         var result = await Run("report-evidence", "--input", input, "--tenant", scenario == "tenant" ? TestData.TenantB : TestData.TenantA, "--root", root.Root);
         Assert.Equal(2, result.Exit); Assert.Empty(result.Output); Assert.Contains("Refused:", result.Error);
+        if (scenario == "utf8") Assert.Contains("not valid UTF-8", result.Error);
+        if (scenario == "oversize") Assert.Contains("exceeds the 32 MiB reader limit", result.Error);
+        if (scenario == "kind") Assert.Contains("Unsupported report evidence kind", result.Error);
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory)); Assert.Equal(bytes, File.ReadAllBytes(input));
         Assert.Empty(Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories));
     }
@@ -137,6 +169,19 @@ public sealed class RegisteredReportCliTests
         if (option != "tenant") args.AddRange(["--tenant", TestData.TenantA]);
         args.AddRange(["--" + option, value]); var result = await Run(args.ToArray());
         Assert.Equal(2, result.Exit); Assert.Empty(result.Output); Assert.Contains("Refused:", result.Error);
+        Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
+    }
+
+    [Theory]
+    [InlineData("tenant")]
+    [InlineData("input")]
+    public async Task Duplicate_identity_or_input_option_refuses_before_export(string option)
+    {
+        using var root = new TempRoot(); var input = Path.Combine(root.Root, "synthetic.json");
+        File.WriteAllText(input, ReportEvidenceSchema.Serialize(Report()));
+        var result = await Run("report-evidence", "--input", input, "--tenant", TestData.TenantA,
+            "--" + option.ToUpperInvariant(), option == "tenant" ? TestData.TenantA : input, "--root", root.Root);
+        Assert.Equal(2, result.Exit); Assert.Contains("Duplicate --" + option, result.Error);
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
     }
 }

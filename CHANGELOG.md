@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
+
 - Add offline `bdit report-evidence` HTML/JSON/CSV/Excel exports for validated registered Graph report evidence. Exact tenant, bounded UTF-8, schema and integrity checks refuse untrusted input; failed/partial/cancelled reads remain explicit. No sign-in, new collection, evidence mutation or script execution.
 
 - Add a shared registered read-only report core for users/assigned licence details, Intune devices, MFA registration, sign-ins and directory audit, with separate strict immutable evidence and HTML/CSV/JSON/Excel exports. Preserve failed/partial/cancelled reads, exact identities and unknown values; reuse existing Graph authentication and authorised scopes. Reports UI/CLI and live acceptance remain pending; new AuditLog access is proposed only.

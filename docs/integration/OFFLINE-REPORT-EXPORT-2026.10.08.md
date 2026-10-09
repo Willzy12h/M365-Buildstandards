@@ -13,3 +13,15 @@ Validation: before command implementation the 21 actual CLI-process regressions 
 Fresh portable checks additionally execute the same self-contained application in CLI mode against a strict synthetic Partial report, verify the actual HTML and exact printed path, refuse another tenant without an extra export, and retain the existing no-desktop/no-authentication checks. This Windows check is not executable on Linux and must pass on the exact source before review readiness.
 
 Registered connected Reports/navigation remains separate source work. Exchange report schemas and script execution are proposed in #61, not enabled by this command. No new access, consent, version, live action or publication; Microsoft/human acceptance remains open.
+
+## Claude review response — 9 October 2026
+
+CLA-20261008-78: refusal fixtures now isolate the actual safeguards. Oversize input is otherwise valid JSON with whitespace beyond 32 MiB. Invalid UTF-8 occurs within a JSON string, whose digest is sealed for the replacement character a permissive decoder would produce. Wrong-kind evidence is re-digested so a digest mismatch cannot mask the kind guard. Tests require the specific size/UTF-8/kind refusal reasons.
+
+CLA-79: offline file exports show an explicit supplied-file warning in HTML and CSV/Excel provenance; account identity is labelled recorded, not verified by the export. JSON preserves the original evidence unchanged and cannot itself authenticate its claims. Export success never proves source, identity, live collection or read success.
+
+CLA-80: this route rejects duplicate options case-insensitively, including repeated tenant/input. Other command parsers retain their existing behaviour to avoid an unrelated CLI contract change. No new authentication, cache, collection, write or evidence-store path is introduced.
+
+Negative-control verification: temporarily remove the CLI/schema size guards, strict UTF-8 decoder and kind guard together in the local checkout. The seven refusal process cases then yield exactly three failures (kind, UTF-8, oversize: incorrect success/exit 0) and four passes. Restore the exact backed-up source bytes before final validation. The mutation is not committed. A fixture assertion independently proves the permissively decoded UTF-8 input has a valid digest/schema, so unrelated integrity failure cannot make that case pass.
+
+After restoring guards, all 24 actual CLI process cases passed locally. Windows exact-head and extracted portable verification remain required.

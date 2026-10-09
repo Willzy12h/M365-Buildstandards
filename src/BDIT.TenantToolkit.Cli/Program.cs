@@ -60,7 +60,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1));
+        var options = ParseOptions(args.Skip(1), command == "report-evidence");
 
         return command switch
         {
@@ -422,7 +422,7 @@ public static class Program
         catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
         var report = ReportEvidenceSchema.Read(json, tenant);
         var context = Context.Open(options);
-        Console.WriteLine(context.Exporter.ExportReport(report, format));
+        Console.WriteLine(context.Exporter.ExportReport(report, format, suppliedFile: true));
         Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
         return 0;
     }
@@ -576,16 +576,18 @@ public static class Program
         return 0;
     }
 
-    private static IReadOnlyDictionary<string, string> ParseOptions(IEnumerable<string> args)
+    private static IReadOnlyDictionary<string, string> ParseOptions(IEnumerable<string> args, bool rejectDuplicates = false)
     {
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string? pending = null;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var arg in args)
         {
             if (arg.StartsWith("--", StringComparison.Ordinal))
             {
                 if (pending is not null) options[pending] = "";
                 pending = arg[2..];
+                if (rejectDuplicates && !seen.Add(pending)) throw new ConfigurationException($"Duplicate --{pending.ToLowerInvariant()} option; supply each option once.");
                 continue;
             }
             if (pending is null) throw new ConfigurationException($"Unexpected value '{arg}'. Options are given as --name value.");
