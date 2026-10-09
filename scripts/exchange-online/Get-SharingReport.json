@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.sharing",
+  "name": "Sharing policies and organisation relationships",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists sharing policies with each domain and the calendar and contact sharing they allow, and organisation relationships with their domains, state and free/busy level.",
+  "keywords": [
+    "sharing policy",
+    "calendar sharing",
+    "free/busy",
+    "organisation relationship",
+    "organization relationship",
+    "federation",
+    "Get-SharingPolicy",
+    "Get-OrganizationRelationship"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-SharingReport.ps1",
+  "scriptSha256": "2e6806855e4e1820337d7d074bcad4586022aeb5772604cb54cee97b73db2d22",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Kind",
+      "label": "What to list",
+      "type": "enum",
+      "help": "Sharing policies, organisation relationships or both.",
+      "array": true,
+      "maxItems": 2,
+      "allowed": [
+        "SharingPolicy",
+        "OrganizationRelationship"
+      ],
+      "default": "SharingPolicy, OrganizationRelationship"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Kind",
+      "Name",
+      "Enabled",
+      "IsDefault",
+      "Domain",
+      "Access",
+      "FreeBusyAccessEnabled",
+      "FreeBusyAccessLevel",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 2000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Each sharing policy domain entry is split at its first colon into the domain and the sharing actions; an entry not in that form is shown as returned with Access Unknown.",
+    "Which mailboxes use each sharing policy is not read here, and individual calendar folder permissions are a separate item.",
+    "No organisation relationships, or none of a kind chosen, is a valid result with no rows for that kind.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}
