@@ -18,7 +18,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-ProtectionPolicyReport.ps1",
-  "scriptSha256": "2e44c9b0efe827362e3d645e163e8a23c5476b634208537a5fbfae0428358912",
+  "scriptSha256": "f43c59092db0679d02197d1d889a0745de918ef8d6a343449eba08399c5b9b95",
   "supportedRuntimes": [
     "5.1",
     "7"
