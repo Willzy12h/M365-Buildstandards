@@ -26,6 +26,7 @@ public partial class ScriptCopyDialog : Window
         TenantNameText.Foreground = TenantIdText.Foreground = AccountText.Foreground = text;
         ItemText.Text = review.ItemName + " (" + review.ItemId + ")";
         TypeText.Text = review.TypeText;
+        RequirementsText.Text = review.Requirements;
         foreach (var value in review.Values) ValueList.Items.Add(value.Label + ": " + value.Value);
         if (review.Values.Count == 0) ValueList.Items.Add("No values: the script runs with its own defaults.");
         ConfirmButton.Content = review.ConfirmText;

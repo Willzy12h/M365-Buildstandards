@@ -58,6 +58,8 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | INT-074 portable offline CLI hosting through existing WPF executable, launcher, exact exit/output and fresh-package tests; no publisher/version/live work; pre-flight checked #42–#44 and all three repositories | `astra/portable-cli-host-2026-10-08` (from integration `692d2d5`) | #45 | Open |
 | 2026-10-08 | Claude | M365-Buildstandards | evidence and reporting, interface: Scripts & Reports library first slice under INT-072 (strict manifests, pinned registry, typed inputs, Copy script, offline `bdit scripts`, Exchange Online read scripts); no Run, no tenant access. Assigned by William on 2026-10-08 pending Astra's response | `claude/project-thread-fjnhfz` (from integration `692d2d5`) | #46 | Open |
 
+| Date | Agent | Repository | Scope | Branch / base | PR | State |
+|---|---|---|---|---|---|---|
 | 2026-10-08 | Astra/Codex | M365-Buildstandards | R10 current guides, desktop captured-configuration HTML export and native first-screen configuration/form readability; existing export/library contracts only; no tenant, permission, write or publication action | `astra/current-guidance-exports-2026-10-08` (from integration `14e6227`) | #56 | Open |
 
 | 2026-10-08 | Claude | M365-Buildstandards | evidence and reporting: second Exchange Online read-only pack under INT-072/INT-080 (eleven Copy-only items: groups, mail flow, connectors, domains and DKIM, mobile devices, auditing, holds, protection policies, resources, Send on Behalf, archives); no Run, no tenant access, no new contract | `claude/scripts-exo-pack2-2026-10-08` (from #46 head, integration merged at `14e6227`) | #64 | Open |

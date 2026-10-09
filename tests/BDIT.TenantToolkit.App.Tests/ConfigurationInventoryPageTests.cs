@@ -30,6 +30,7 @@ public sealed class ConfigurationInventoryPageTests
         var before = ToolkitJson.Serialize(workspace.Snapshot);
         Assert.True(page.ExportHtmlCommand.CanExecute(null));
         Assert.Contains("offline", page.SnapshotSummary);
+        Assert.Contains("not eligible for deployment", page.SnapshotSummary);
         Assert.Contains("INCOMPLETE", page.SnapshotSummary);
         Assert.Contains(capture.Id, page.SnapshotText);
         Assert.DoesNotContain(capture.Id, page.SnapshotSummary);

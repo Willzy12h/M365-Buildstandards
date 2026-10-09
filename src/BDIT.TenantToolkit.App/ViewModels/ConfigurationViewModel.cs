@@ -174,7 +174,7 @@ public sealed class ConfigurationViewModel : PageViewModel
         {
             var capture = Workspace.Snapshot;
             if (capture is null) return "No capture loaded. Connect and capture, or open saved evidence for offline review.";
-            var origin = Workspace.SnapshotIsLive ? "Live capture" : "Stored capture · offline";
+            var origin = Workspace.SnapshotIsLive ? "Live capture" : "Stored capture · offline · not eligible for deployment";
             var time = Timestamps.TryParse(capture.CapturedAt, out var captured)
                 ? captured.ToUniversalTime().ToString("dd MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))
                 : "capture time unknown";

@@ -418,3 +418,7 @@ PR #56 exposes #40's shared raw-configuration HTML exporter through the existing
 ## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
 
 After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
+
+### INT-083 review corrections — PR #56
+
+Show script requirements and limitations in the actual Copy/Save confirmation as well as the page expander, with scrollable text and existing pinned-manifest confirmation identity. Keep stored-capture deployment ineligibility in its compact summary. CLA-20261008-32/33; native dialog text/three-size and app regressions accompany the change. No execution or evidence contract changes.

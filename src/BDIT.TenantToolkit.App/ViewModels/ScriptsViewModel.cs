@@ -201,6 +201,7 @@ public sealed record ScriptCopyReview(
     IReadOnlyList<ScriptReviewValue> Values,
     string Fingerprint)
 {
+    public string Requirements { get; init; } = "";
     public string ConfirmText => Action == ScriptCopyAction.Clipboard ? "Copy script to clipboard" : "Choose where to save";
     public string AccountText => Account.Length > 0
         ? "Signs in as " + Account + ". If another account signs in, the script stops before reading anything."
@@ -428,7 +429,8 @@ public sealed class ScriptsViewModel : PageViewModel
         var account = Account;
         return new ScriptCopyReview(action, profile.Company, tenantId, TenantColours.For(tenantId), account, item.Id, item.Name,
             item.IsReadOnly ? ReadOnlyText : "CHANGE. Review every line before running.", values,
-            Fingerprint(tenantId, profile.Company, account, item, binding));
+            Fingerprint(tenantId, profile.Company, account, item, binding))
+        { Requirements = SelectedDetail + "\n" + item.LiveStatus + "\n" + Limitations };
     }
 
     /// <summary>

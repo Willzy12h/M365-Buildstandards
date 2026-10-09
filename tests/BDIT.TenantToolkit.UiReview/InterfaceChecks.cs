@@ -445,8 +445,11 @@ internal static partial class Program
                 throw new InvalidOperationException("The script copy dialog does not restate the selected client's tenant.");
             if (Part<TextBlock>(dialog, "TypeText").Text != ScriptsViewModel.ReadOnlyText)
                 throw new InvalidOperationException("The script copy dialog does not say the item is read only.");
+            var requirements = Part<TextBlock>(dialog, "RequirementsText");
+            if (string.IsNullOrWhiteSpace(review.Requirements) || requirements.Text != review.Requirements)
+                throw new InvalidOperationException("The script copy dialog omits the reviewed requirements and limitations.");
 
-            foreach (var size in new[] { new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
+            foreach (var size in new[] { new Size(960, 760), new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
             {
                 var where = $"script-copy-dialog {(int)size.Width}x{(int)size.Height}";
                 dialog.Width = size.Width; dialog.Height = size.Height;
