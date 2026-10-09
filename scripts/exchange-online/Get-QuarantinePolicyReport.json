@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.quarantine-policies",
+  "name": "Quarantine policies",
+  "category": "exchange-online",
+  "area": "Mail protection",
+  "description": "Lists quarantine policies with what end users may do with quarantined messages, whether quarantine notifications are sent and, optionally, the global notification settings.",
+  "keywords": [
+    "quarantine",
+    "quarantine policy",
+    "end-user notifications",
+    "release",
+    "Get-QuarantinePolicy"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-QuarantinePolicyReport.ps1",
+  "scriptSha256": "5b88aabb4e4dfbb2bcf5b9e7fd26fe88a3e3609cda5091bf59e36ce853a2b92d",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "Security Reader",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "IncludeGlobalSettings",
+      "label": "Include global notification settings",
+      "type": "boolean",
+      "help": "Also read the organisation's global quarantine notification settings, such as how often notifications are sent.",
+      "default": "true"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "PolicyKind",
+      "Name",
+      "EndUserPermissionsValue",
+      "AccessPreset",
+      "EndUserPermissions",
+      "NotificationsEnabled",
+      "GlobalSettings",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 1000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange or Microsoft Defender role that can read threat policies, such as Security Reader.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "End-user permissions are decoded from the returned value using the bit order Microsoft documents; the decoding has not been confirmed in a tenant. A value not returned, or not a number from 0 to 255, is not decoded.",
+    "AccessPreset names a preset only when the value equals it (NoAccess 0, LimitedAccess 27, FullAccess 23); any other value is Custom.",
+    "Which protection policies use each quarantine policy is not read here; the protection policies item does not list them either.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

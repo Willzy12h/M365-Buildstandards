@@ -25,6 +25,9 @@ $readCommands = @(
     'Get-AdminAuditLogConfig', 'Get-MailboxAuditBypassAssociation', 'Get-HostedContentFilterPolicy', 'Get-HostedContentFilterRule',
     'Get-HostedOutboundSpamFilterPolicy', 'Get-HostedOutboundSpamFilterRule', 'Get-AntiPhishPolicy', 'Get-AntiPhishRule',
     'Get-MalwareFilterPolicy', 'Get-MalwareFilterRule', 'Get-CalendarProcessing',
+    'Get-EXOCASMailbox', 'Get-TransportConfig', 'Get-RemoteDomain', 'Get-RetentionPolicy', 'Get-RetentionPolicyTag', 'Get-OwaMailboxPolicy',
+    'Get-MobileDeviceMailboxPolicy', 'Get-SharingPolicy', 'Get-OrganizationRelationship', 'Get-JournalRule', 'Get-QuarantinePolicy',
+    'Get-MailContact', 'Get-MailUser',
     'Set-StrictMode', 'Where-Object', 'ForEach-Object', 'Select-Object', 'Sort-Object', 'Measure-Object', 'Group-Object',
     'ConvertFrom-Json', 'Write-Warning'
 )
