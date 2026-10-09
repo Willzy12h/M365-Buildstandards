@@ -129,6 +129,29 @@ Non-blocking notes recorded, not closed: the slice is manual and live-unverified
 
 Historical toolkit inspection: [source inventory and reuse limitations](HISTORICAL-TOOLKIT-REVIEW-2026.10.08.md).
 
+## Astra independent review of #64 — 8 October 2026
+
+Reviewer: Astra (review 5463492749, posted from the Willzy12h account) on PR #64 head `d5039b0`, by source inspection; Astra did not execute PowerShell or contact Microsoft. Disposition: hold for corrections. Fix evidence is the author's (Claude): stub-module harness Copy cases that fail on `d5039b0` and pass at `4dc938d`, run on Linux under PowerShell 7, then exact-head Windows CI including the PowerShell 5.1 synthetic Copy runs. Live-unverified gates remain open. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md#review-corrections-for-the-second-pack-astra-8-october-2026).
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261008-11 | Astra / protection policies (P2) | A setting returned null was NotSet, and a counted list returned null was 0 | Fixed by Claude in #64 (`4dc938d`): null or not returned is Unknown and warns `BDIT:UNKNOWN`; NotSet only for a returned empty value, 0 only for a returned empty list | Null spoof intelligence, null allowed senders and null spam action failed on `d5039b0` and pass; empty list 0, empty value NotSet, known False and zero kept. Live run pending |
+| AST-20261008-12 | Astra / archive mailboxes (P2) | Missing ArchiveQuota and ArchiveWarningQuota gave blank cells with no warning | Fixed by Claude in #64 (`4dc938d`): quotas shown as returned, including Unlimited; null or not returned is Unknown with a reason and a warning. ArchiveStatus and ArchiveName likewise; ArchiveName is NotApplicable when the mailbox has no archive | Null and missing quota cases failed on `d5039b0` and pass; Unlimited and known quotas shown as returned; a mailbox with no archive has no Unknown. Live run pending |
+| AST-20261008-13 | Astra / DKIM (P2) | A signing configuration without a Domain was dropped, so its domain read DkimConfigured False | Fixed by Claude in #64 (`4dc938d`): when any configuration lacks a domain, an unmatched domain is Unknown with the reason and the run warns | Null-domain and missing-domain configurations failed on `d5039b0` and pass; a matched domain stays True; an empty signing inventory is False with no warning. Live run pending |
+| AST-20261008-14 | Astra / group membership (P3) | Distribution group owners bypassed the limit, so every owner was looked up | Fixed by Claude in #64 (`4dc938d`): owners bounded before any recipient lookup, with `BDIT:PARTIAL` naming the ownership list | Owner-only case (no members, five owners, limit 2) failed on `d5039b0` and passes, with three recipient reads; lists within the limit are not marked partial. Live run pending |
+
+## Astra post-merge review of #66 — 9 October 2026
+
+Reviewer: Astra (issue comment on PR #66, posted from the Willzy12h account) on merge `59f1d02`, by source inspection; Astra did not execute PowerShell or contact Microsoft. Fix evidence is the author's (Claude): stub-module harness Copy cases that fail on `59f1d02` and pass on `claude/scripts-pack3-fixes-2026-10-09`, run on Linux under PowerShell 7, then exact-head Windows CI including the PowerShell 5.1 synthetic Copy runs. Live-unverified gates remain open. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md#review-corrections-for-the-third-pack-astra-9-october-2026).
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261009-01 | Astra / retention policies (P2) | Tag link keys collapsed whitespace, so a link could resolve a tag it does not name exactly | Fixed by Claude: raw keys compared byte for byte (case-sensitive) | Single-space link against a double-space tag failed on `59f1d02` and passes as Unresolved; the byte-exact link resolves. Live run pending |
+| AST-20261009-02 | Astra / retention policies (P2) | A tag sharing an alias with a linked tag was dropped from the unlinked list | Fixed by Claude: linked tags tracked by tag, not by key | Two tags sharing a value failed on `59f1d02` and pass, with the unlinked tag NotLinked and no warning. Live run pending |
+| AST-20261009-03 | Astra / retention, sharing, quarantine; same pattern in mailbox and protection policies (P2) | A list holding a null entry became NoTags, NotSet, a shorter count or a shorter list | Fixed by Claude: such a list is Unknown with a warning; readable entries kept where rows are listed; 0 only for a list returned empty | Five null-entry cases failed on `59f1d02` and pass. Live run pending |
+| AST-20261009-04 | Astra / sharing (P3) | `partner.example:` gave a blank Access | Fixed by Claude: an empty domain or action part is Access Unknown, entry shown as returned | Empty and spaces-only action cases failed on `59f1d02` and pass. Live run pending |
+| AST-20261009 (notes) | Astra / quarantine, protocols, roles | Quarantine preset values conflict in Microsoft's documentation (27/23 against 43/39); decoded bits are configured, not effective; SMTP AUTH `-Properties` support and roles unconfirmed | Recorded in the quarantine item's limitations and the script library note; no behaviour change | Live run pending for presets, `SmtpClientAuthenticationDisabled` and roles |
+
 ## Claude Preview.18 review — 6–7 October 2026
 
 Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.

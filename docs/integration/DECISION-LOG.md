@@ -414,3 +414,7 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 ## INT-087 — Dedicated proof of settled disposition identity safeguards
 
 PR #60 adds the conflicting-disposition regression missing from Claude's R02 review evidence, without changing the settled engine contract. Refused decisions must leave existing history/attachments/files intact; legitimate revision remains available. Intact but conflicting historical decisions remain unsettled and keep completion outstanding with no authoritative selection. The isolated historical CheckSupersession comparison fails on the original acceptance gap and current production source is restored unchanged. Human/live gates and Claude-owned register states remain open.
+
+## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
+
+After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
