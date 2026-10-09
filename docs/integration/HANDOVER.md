@@ -21,10 +21,10 @@ The continuation below records historical checkpoints. Its pending claims/CLI ex
 
 Current integration is `59f1d02`, after #64/#66, merge Windows 37993442839 passed (1,334 engine/CLI, 156 App, native/package checks, zero tenant calls). Opening `14e6227` evidence remains the earlier checkpoint. Astra re-reviewed #64 (original findings closed at source/synthetic level) and posted AST-20261009-01–04 on #66; Claude owns fixes. #65/#67/#68/#69 are green, unmerged additions awaiting independent review.
 
-Follow [ASTRA-EXECUTION-PLAN-2026.10.09](release-readiness/ASTRA-EXECUTION-PLAN-2026.10.09.md). #63 exact-head checks at `2a25438` passed and it merged as `4727264`; merge CI is pending. #61's revision `ac1dd29` strengthens proposed mechanism/policy/type rules and awaits fresh checks/re-review before Claude's Run slice depends on it. These are revision checkpoints, not completed merge claims.
+Follow [ASTRA-EXECUTION-PLAN-2026.10.09](release-readiness/ASTRA-EXECUTION-PLAN-2026.10.09.md). #63 exact-head checks at `2a25438` passed and it merged as `4727264`; merge CI passed in 38000774756. #61's revision `ac1dd29` strengthens proposed mechanism/policy/type rules and awaits fresh checks/re-review before Claude's Run slice depends on it. These are revision checkpoints, not completed merge claims.
 
 
-Latest merge checkpoint: #63 merged as `472726463dd963adf94b7e3e74c6d691f7297fb0` after exact-head `2a254381d419563f5d22b9dc336eaa3dea158f76` Windows push/PR runs 38000139510 / 38000143708 passed. Claude reviewed the unchanged isolation source, with no substantive finding. Production source/test bodies/deadlines are unchanged by the refreshed head. Integration merge CI is pending and must be read before a dependent merge; do not treat the earlier `59f1d02` proof as proof of this merge.
+Latest merge checkpoint: #63 merged as `472726463dd963adf94b7e3e74c6d691f7297fb0` after exact-head `2a254381d419563f5d22b9dc336eaa3dea158f76` Windows push/PR runs 38000139510 / 38000143708 passed. Claude reviewed the unchanged isolation source, with no substantive finding. Production source/test bodies/deadlines are unchanged by the refreshed head. Actual integration merge Windows run [38000774756](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38000774756), build 114058019832, passed all required checks: 1,334 engine/CLI and 156 App tests, 48 layouts/88 command presses, zero bindings/tenant calls, PowerShell 5.1 stub/parser checks and fresh 302-file package startup/CLI checks. Its original ZIP SHA-256 is `162e126ea7bceb34f6436ebd4168174ee22f52ecea6c87b9a41d63c30f9fb165`. This verifies this exact merge, independently of the earlier `59f1d02` proof.
 
 ## Astra continuation — 8 October 2026
 
@@ -242,3 +242,9 @@ Implemented and verified names the actual check. Implemented but unverified iden
 - Choose client banner colours and name product/release/security/support/evidence owners; set evidence/deferral and servicing policies.
 - Confirm candidate signing/distribution and security-owner application-control approval; configure repository/protected release settings.
 - Approve promotion to main, tags/releases/publishing and final 1.1.0 separately after reviewing the finished candidate record.
+
+## Review-response checkpoint — 9 October 2026
+
+Integration now includes Claude #70 as `f718f20c84d1f1839a27fdb416dc88ab38b0c1bf`; actual merge run 38001143404 completed successfully. Original AST-20261009-01/02/04 reproductions pass; AST-03 still has a reproduced whitespace-only counted-list gap, posted on #70 as comment 6090658122. Claude owns that correction and its feedback rows. Independent PowerShell 7 Copy harness passed 178 cases across all 29 items, including wrong-tenant/account refusal with zero reads; this is synthetic, not live acceptance.
+
+#55 `0e0b4d5` and #61 `ac1dd29` review responses passed both exact-head Windows runs and await independent re-review of their revised shared contracts. #58 `cb9c2e4`, #56 `e4a27d4` and #62 `290f7a0` contain review responses; read actual latest CI before merge, never reuse their older review evidence. #57's confirmed ENR-002 naming gap requires proposed INT-091/#71 to merge before dependent source. #65/#67/#68/#69 remain unmerged awaiting Claude review. #53/#59/#60 review responses remain in progress. No live, release or broad completion gate closes here.

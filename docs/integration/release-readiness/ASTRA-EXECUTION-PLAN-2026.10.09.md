@@ -45,3 +45,12 @@ Update HANDOVER and own claim/completion rows after each merge. Do not alter Cla
 Source work finishes when confirmed review defects are fixed or explicitly dispositioned under the existing authority, all required source slices are independently reviewed/integrated with green merge CI, navigation and acceptance labels match the actual capability matrix, and a concrete candidate/record/promotion PR/run sheet is ready for William. Pending Claude findings and reviews remain named dependencies, not fabricated completion.
 
 Waiting on William only at the recorded stop points: live read/write acceptance, interactive Windows console, human accessibility/newcomer/handoff, owners/evidence/deferral policies, client colour decision, signing/distribution/security allowlisting, repository protections, promotion/tags/releases/publisher and final 1.1.0 approval. Prepare the concrete result before asking for its final approval. Earlier tenant tests do not validate every new feature.
+
+## Actioned checkpoint
+
+- #63 merged; exact merge run 38000774756 passed.
+- #55/#61 shared contracts revised for Claude findings and exact-head Windows green; independent re-review is the source dependency gate.
+- #58 mailbox, #56 usability and #62 offline-export corrections implemented/tested/pushed; Windows checks and finding closure are separate merge gates.
+- #57 cannot bypass the missing enrolment naming rule: decision-only INT-091/#71 is green and ready for review; dependent source waits for merge.
+- Claude #70 merged; 178 independent Copy stub cases pass. The original AST-03 still covers a whitespace-only list gap, reproduced and posted to Claude. Do not overwrite Claude's register rows.
+- #54 refreshes actual source/merge/review status and preserves historic hashes and Claude attribution. #53/#59/#60 are next eligible review responses; #65/#67/#68/#69 await independent review.
