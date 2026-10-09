@@ -415,6 +415,10 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 
 PR #60 adds the conflicting-disposition regression missing from Claude's R02 review evidence, without changing the settled engine contract. Refused decisions must leave existing history/attachments/files intact; legitimate revision remains available. Intact but conflicting historical decisions remain unsettled and keep completion outstanding with no authoritative selection. The isolated historical CheckSupersession comparison fails on the original acceptance gap and current production source is restored unchanged. Human/live gates and Claude-owned register states remain open.
 
+## INT-086 — Verify supplied account in the existing fixed Exchange read boundary
+
+PR #59 reuses the existing script-library UPN validator for integrated capture and checks the returned Exchange/Purview account alongside the existing tenant/resource check. A login hint alone is insufficient identity proof. Integrated capture refuses an unusable confirmed name before launch; manual capture without a supplied name keeps its historical tenant-only contract. Every collection rechecks identity, with failed/unknown results rather than guessed absence and no mid-operation authentication retry. No new cache, permission, schema, module installer, policy bypass or Exchange write route is introduced. Offline PS5.1 stub checks exercise the owned helper only; live acceptance remains open.
+
 ## Astra source/merge status — 8 October 2026
 
 PR #54 reconciles status only: INT-070–072/074 settled through #39; INT-073 implemented through #40; scoped, Graph report core, naming audit and portable CLI source integrated through #42/#44/#43/#45 after Claude's #51/#49/#48/#50 corrections. The two conservative review choices retain ownership Unknown for overlapping collections and NOT SAVED above the scoped 8 MiB limit. See [exact merge evidence](MERGE-EVIDENCE-2026.10.08.md). William's latest [goal prompt](release-readiness/astra-goal-prompt.md) authorises preparing the next preview version and promotion PR, while main promotion, publishing and live actions remain his stop points. No version or release action is performed by this reconciliation.
@@ -426,3 +430,7 @@ After the same decision-only head passed one Windows run and hit an existing out
 ### INT-087 review verification — PR #60
 
 Pin both conflicting-disposition cases to the actual identity guard message and correct the historical negative-control description. The legitimate revision remains the positive control; no production guard changes (CLA-20261008-55/56).
+
+### INT-086 review verification — PR #59
+
+Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).

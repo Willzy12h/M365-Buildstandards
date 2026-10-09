@@ -248,3 +248,17 @@ Implemented and verified names the actual check. Implemented but unverified iden
 Integration now includes Claude #70 as `f718f20c84d1f1839a27fdb416dc88ab38b0c1bf`; actual merge run 38001143404 completed successfully. Original AST-20261009-01/02/04 reproductions pass; AST-03 still has a reproduced whitespace-only counted-list gap, posted on #70 as comment 6090658122. Claude owns that correction and its feedback rows. Independent PowerShell 7 Copy harness passed 178 cases across all 29 items, including wrong-tenant/account refusal with zero reads; this is synthetic, not live acceptance.
 
 #55 `0e0b4d5` and #61 `ac1dd29` review responses passed both exact-head Windows runs and await independent re-review of their revised shared contracts. #58 `cb9c2e4`, #56 `e4a27d4` and #62 `290f7a0` contain review responses; read actual latest CI before merge, never reuse their older review evidence. #57's confirmed ENR-002 naming gap requires proposed INT-091/#71 to merge before dependent source. #65/#67/#68/#69 remain unmerged awaiting Claude review. #53/#59/#60 review responses remain in progress. No live, release or broad completion gate closes here.
+
+## Astra records merge — 9 October 2026
+
+#54 merged as `c6f1521505ee55fcfc65e6784d7ab2303cb6bbb7` from reviewed head `c9b78318b7c970f4e9830c5ac8dd875903c9036f`. Actual exact-head Windows push/PR 38002228762 / 38002235059 both passed build/standard/secrets. Actual merge run 38002955167 is pending; read it before dependent integration merges. Claude's records branch is now unblocked. #59 is refreshed against this merge, retaining its reviewed production identity checks and the new full-template refusal proof; fresh exact-head CI is required.
+
+## Verified records merge and identity integration — 9 October 2026
+
+#54 actual merge `c6f1521505ee55fcfc65e6784d7ab2303cb6bbb7` passed Windows run 38002955167/build 114065121961: 1,334 engine/CLI, 156 App, 48 layouts/88 presses, zero tenant calls/bindings, PS5.1 and fresh 302-file startup/CLI. Original ZIP SHA-256 `610fe48f789a99d79bccfc29a2e844127a9d06a07bea7eaea56303906d2505f7`.
+
+#59 merged as `80f8eefe6759fdb5741671ab1f9b0e781b03a8cc`, from reviewed production source refreshed to head `c057944ff92329f5e7a9cf0311b0054d91f2994a`. Actual exact-head Windows 38003045109/38003049898 both passed. The production template/runner was byte-unchanged by the CLA-35 response; all 20 identity checks passed, including the full entry point before module/connection/output. Actual merge run 38003657066 is pending at this checkpoint; read it before the dependent #60 merge. #60 refresh retains all new tests/assertions and unchanged production workflow source.
+
+Next: finish #60 exact-head/merge verification; obtain Claude delta review for #53/#56/#58/#62 and revised shared contracts #55/#61/#71; integrate Claude's remaining script-list correction, records and reviewed runner; review #65/#67/#68/#69. The 1.1.0 candidate, promotion PR and final acceptance are not complete.
+
+Waiting on William: live read/write acceptance, interactive Windows CLI, newcomer/Narrator/physical-scaling/second-engineer checks, client colours, named owners and evidence/deferral policies, signing/distribution/security approval, repository protections, promotion/tags/releases/publishing and final 1.1.0 approval. Continue other source work when its review/contract dependencies permit it.
