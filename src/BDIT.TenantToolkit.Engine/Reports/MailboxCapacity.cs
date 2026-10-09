@@ -16,6 +16,8 @@ public static partial class MailboxCapacity
     public const string UnableToCheck = "UnableToCheck";
     public const string Plan2Id = "efb87545-963c-4e0d-99df-69c6916d9eb0";
     public const string Plan1Id = "9aaf7827-d63c-4b61-89c3-182f06f82e5c";
+    public const string ArchiveAddonId = "176a09a6-7ec5-4039-ac02-b2791c6ba793";
+    public const string FoundationId = "113feb6c-3fe4-4440-bddc-54d774bf0318";
     public const string LimitsReference = "https://learn.microsoft.com/en-us/office365/servicedescriptions/exchange-online-service-description/exchange-online-limits";
     public const string PlansReference = "https://learn.microsoft.com/en-us/entra/identity/users/licensing-service-plan-reference";
 
@@ -24,7 +26,8 @@ public static partial class MailboxCapacity
         string? Name, string? PrimarySmtpAddress, string? MailboxType, string CapturedAt,
         string PrimaryReadStatus, string? PrimarySizeRaw, string? WarningQuotaRaw,
         string? SendQuotaRaw, string? SendReceiveQuotaRaw,
-        string ArchiveReadStatus, string? ArchiveSizeRaw, string? ArchiveQuotaRaw);
+        string ArchiveReadStatus, string? ArchiveSizeRaw, string? ArchiveQuotaRaw,
+        string? PrimarySizeReadStatus = null, string? ArchiveSizeReadStatus = null);
     public sealed record Measurement(string? Raw, long? Bytes, string State, string Reason);
     public sealed record Result(Observation Observed, Measurement PrimarySize, Measurement WarningQuota,
         Measurement SendQuota, Measurement SendReceiveQuota, Measurement ArchiveSize, Measurement ArchiveQuota,
@@ -39,18 +42,24 @@ public static partial class MailboxCapacity
             || !Timestamps.TryParse(mailbox.CapturedAt, out _) || !mailbox.CapturedAt.EndsWith('Z'))
             throw new ConfigurationException("Mailbox observation needs an exact identity and UTC capture time.");
         if (!ReportReadState.All.Contains(mailbox.PrimaryReadStatus, StringComparer.Ordinal)
-            || !ReportReadState.All.Contains(mailbox.ArchiveReadStatus, StringComparer.Ordinal))
+            || !ReportReadState.All.Contains(mailbox.ArchiveReadStatus, StringComparer.Ordinal)
+            || mailbox.PrimarySizeReadStatus is { } ps && !ReportReadState.All.Contains(ps, StringComparer.Ordinal)
+            || mailbox.ArchiveSizeReadStatus is { } ars && !ReportReadState.All.Contains(ars, StringComparer.Ordinal))
             throw new ConfigurationException("Unknown mailbox read status.");
-        var size = Measure(mailbox.PrimarySizeRaw, mailbox.PrimaryReadStatus);
+        var size = Measure(mailbox.PrimarySizeRaw, mailbox.PrimarySizeReadStatus ?? mailbox.PrimaryReadStatus);
         var warning = Measure(mailbox.WarningQuotaRaw, mailbox.PrimaryReadStatus);
         var send = Measure(mailbox.SendQuotaRaw, mailbox.PrimaryReadStatus);
         var receive = Measure(mailbox.SendReceiveQuotaRaw, mailbox.PrimaryReadStatus);
-        var archiveSize = Measure(mailbox.ArchiveSizeRaw, mailbox.ArchiveReadStatus);
+        var archiveSize = Measure(mailbox.ArchiveSizeRaw, mailbox.ArchiveSizeReadStatus ?? mailbox.ArchiveReadStatus);
         var archiveQuota = Measure(mailbox.ArchiveQuotaRaw, mailbox.ArchiveReadStatus);
         bool? configured = receive.Bytes is { } bytes ? bytes == HundredGiB : null;
         var (eligibility, reason) = mailbox.MailboxType is "UserMailbox" or "SharedMailbox" or "RoomMailbox" or "EquipmentMailbox"
             ? Entitlement(mailbox.ExternalDirectoryObjectId, licences)
             : (UnableToCheck, "Mailbox type is missing or outside the reviewed primary-mailbox rules; archive and group capacity are separate.");
+        // Creation time is not established by this observation. Microsoft documents a pre-July-2018
+        // unlicensed shared-mailbox exception: an observed 100 GB quota alone cannot disprove entitlement.
+        if (configured == true && eligibility == NotEligible && mailbox.MailboxType == "SharedMailbox")
+            (eligibility, reason) = (UnableToCheck, "The observed 100 GB shared-mailbox quota may reflect the documented pre-July 2018 unlicensed exception; creation and legacy entitlement have not been verified.");
         var finding = (configured, eligibility) switch
         {
             (true, Eligible) => "Configured100GBAndEligible",
@@ -95,19 +104,23 @@ public static partial class MailboxCapacity
             return (UnableToCheck, "Assigned products or service-plan reads for this exact user are incomplete.");
         var plans = user.Products.SelectMany(p => p.ServicePlans).ToList();
         var exchange = plans.Where(p => p.ServicePlanName?.StartsWith("EXCHANGE_", StringComparison.Ordinal) == true
-            || p.ServicePlanId == Plan1Id || p.ServicePlanId == Plan2Id).ToList();
+            || p.ServicePlanId is Plan1Id or Plan2Id or ArchiveAddonId or FoundationId).ToList();
         if (exchange.Any(p => p.ServicePlanId == Plan2Id && p.ServicePlanName == "EXCHANGE_S_ENTERPRISE"
             && p.ProvisioningStatus == "Success" && p.AppliesTo == "User"))
             return (Eligible, "The exact user has a successfully provisioned commercial Exchange Online Plan 2 service plan. This does not prove its configured quota or current Microsoft behaviour.");
-        // Only the reviewed commercial plans establish a negative. Government/education/future variants remain unknown.
-        if (exchange.Any(p => p.ServicePlanId != Plan1Id && p.ServicePlanId != Plan2Id
-            || p.ServicePlanId == Plan1Id && p.ServicePlanName != "EXCHANGE_S_STANDARD"
-            || p.ServicePlanId == Plan2Id && p.ServicePlanName != "EXCHANGE_S_ENTERPRISE"
+        // Exact pairs reviewed against Microsoft's licensing CSV on 8 October 2026.
+        // Archive add-on/Foundation do not confer primary capacity. Unknown variants remain unknown.
+        if (exchange.Any(p => !ReviewedCommercialPlan(p.ServicePlanId, p.ServicePlanName)
             || p.AppliesTo != "User" || p.ProvisioningStatus is not ("Success" or "Disabled")))
             return (UnableToCheck, "An Exchange plan identity, applicability or provisioning state is outside the reviewed commercial rules.");
         return (NotEligible, "Complete assigned-plan evidence does not contain an enabled reviewed Exchange Online Plan 2 plan. Plan 1, archive add-ons and product display names do not confer 100 GB primary capacity.");
     }
 
-    [GeneratedRegex(@"\(([0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+) bytes\)$", RegexOptions.CultureInvariant, 1000)]
+    private static bool ReviewedCommercialPlan(string? id, string? name) => (id, name) is
+        (Plan1Id, "EXCHANGE_S_STANDARD") or (Plan2Id, "EXCHANGE_S_ENTERPRISE")
+        or (ArchiveAddonId, "EXCHANGE_S_ARCHIVE_ADDON")
+        or (FoundationId, "EXCHANGE_S_FOUNDATION");
+
+    [GeneratedRegex(@"\A[0-9]+(?:\.[0-9]+)? (?:B|KB|MB|GB|TB) \(([0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+) bytes\)\z", RegexOptions.CultureInvariant, 1000)]
     private static partial Regex ByteCount();
 }

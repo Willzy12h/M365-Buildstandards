@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Correct mailbox-capacity interpretation for legacy shared mailboxes, the actual reviewed Business Premium service-plan set and malformed byte displays; retain separate statistics/quotas read failures.
+
 - Add pure read-only mailbox capacity evaluation using strict assigned-licence evidence: keep observed primary quotas, 100 GB configuration, commercial Plan 2 eligibility and archive limits separate. Exchange collection/report integration and live acceptance remain pending.
 
 

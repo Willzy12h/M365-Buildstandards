@@ -20,6 +20,8 @@ public sealed class MailboxCapacityTests
     [InlineData("100 GB (107,37,418,2400 bytes)", null, MailboxCapacity.UnableToCheck)]
     [InlineData("100 GB (107.374.182.400 bytes)", null, MailboxCapacity.UnableToCheck)]
     [InlineData("999 GB (999999999999999999999999999 bytes)", null, MailboxCapacity.UnableToCheck)]
+    [InlineData("abc (5 bytes)", null, MailboxCapacity.UnableToCheck)]
+    [InlineData("5 B (5 bytes)\n", null, MailboxCapacity.UnableToCheck)]
     public void Quotas_preserve_raw_values_without_unit_guesses_or_unknown_zero(string? raw, long? expected, string state)
     {
         var value = MailboxCapacity.Measure(raw, ReportReadState.Collected);
@@ -35,6 +37,8 @@ public sealed class MailboxCapacityTests
     [InlineData(MailboxCapacity.Plan1Id, "EXCHANGE_S_STANDARD", "Success", MailboxCapacity.NotEligible)]
     [InlineData(MailboxCapacity.Plan2Id, "OTHER_SERVICE", "Success", MailboxCapacity.UnableToCheck)]
     [InlineData(MailboxCapacity.Plan1Id, "OTHER_SERVICE", "Success", MailboxCapacity.UnableToCheck)]
+    [InlineData(MailboxCapacity.ArchiveAddonId, "OTHER_SERVICE", "Success", MailboxCapacity.UnableToCheck)]
+    [InlineData(MailboxCapacity.FoundationId, "OTHER_SERVICE", "Success", MailboxCapacity.UnableToCheck)]
     [InlineData("11111111-1111-4111-8111-111111111111", "EXCHANGE_S_ENTERPRISE", "Success", MailboxCapacity.UnableToCheck)]
     public void Eligibility_uses_actual_assigned_service_plan_identity_name_and_state(string id, string name, string provisioning, string expected)
     {
@@ -44,7 +48,7 @@ public sealed class MailboxCapacityTests
     }
 
     [Fact]
-    public void Business_Premium_display_name_and_archive_capacity_do_not_prove_primary_100GB()
+    public void Plan1_product_display_name_and_archive_capacity_do_not_prove_primary_100GB()
     {
         var mailbox = Mailbox() with { SendReceiveQuotaRaw = "50 GB (53,687,091,200 bytes)", ArchiveQuotaRaw = "100 GB (107,374,182,400 bytes)" };
         var result = MailboxCapacity.Review(mailbox, Evidence(Plan(MailboxCapacity.Plan1Id, "EXCHANGE_S_STANDARD", "Success")));
@@ -133,8 +137,41 @@ public sealed class MailboxCapacityTests
         Assert.Equal(raw, result.Raw); Assert.Null(result.Bytes); Assert.Equal(MailboxCapacity.UnableToCheck, result.State);
     }
 
+    [Fact]
+    public void Unlicensed_100GB_shared_mailbox_cannot_be_labelled_ineligible_without_legacy_evidence()
+    {
+        var result = MailboxCapacity.Review(Mailbox() with { MailboxType = "SharedMailbox" }, Evidence(null));
+        Assert.True(result.Configured100GB);
+        Assert.Equal(MailboxCapacity.UnableToCheck, result.Eligibility);
+        Assert.Equal("Configured100GBEntitlementUnconfirmed", result.Finding);
+        Assert.Contains("July 2018", result.EligibilityReason);
+    }
+
+    [Fact]
+    public void Actual_Business_Premium_plan_set_does_not_confer_100GB_primary_capacity()
+    {
+        var report = Evidence(Plan(MailboxCapacity.Plan1Id, "EXCHANGE_S_STANDARD", "Success"));
+        var user = ToolkitJson.Deserialize<UserLicenceReportRow>(report.Sections[1].Rows[0].ToJsonString());
+        user.Products[0].ServicePlans.Add(Plan("176a09a6-7ec5-4039-ac02-b2791c6ba793", "EXCHANGE_S_ARCHIVE_ADDON", "Success"));
+        user.Products[0].ServicePlans.Add(Plan("113feb6c-3fe4-4440-bddc-54d774bf0318", "EXCHANGE_S_FOUNDATION", "Success"));
+        report.Sections[1].Rows[0] = ReportEvidenceSchema.Row(user); ReportEvidenceSchema.Seal(report);
+        Assert.Equal(MailboxCapacity.NotEligible, MailboxCapacity.Review(Mailbox(), report).Eligibility);
+    }
+
+    [Fact]
+    public void Failed_statistics_do_not_hide_observed_quotas_or_claim_a_zero_size()
+    {
+        var result = MailboxCapacity.Review(Mailbox() with {
+            PrimarySizeReadStatus = ReportReadState.Failed, ArchiveSizeReadStatus = ReportReadState.Cancelled
+        }, Evidence(Plan(MailboxCapacity.Plan2Id, "EXCHANGE_S_ENTERPRISE", "Success")));
+        Assert.True(result.Configured100GB); Assert.Equal(MailboxCapacity.HundredGiB, result.SendReceiveQuota.Bytes);
+        Assert.Equal(MailboxCapacity.UnableToCheck, result.PrimarySize.State); Assert.Null(result.PrimarySize.Bytes);
+        Assert.Equal(MailboxCapacity.UnableToCheck, result.ArchiveSize.State); Assert.Null(result.ArchiveSize.Bytes);
+        Assert.Equal("Unlimited", result.ArchiveQuota.State);
+    }
+
     private static MailboxCapacity.Observation Mailbox() => new(TestData.TenantA, TestData.Office, TestData.Operator,
-        "Same synthetic name", "engineer@example.invalid", "SharedMailbox", At, ReportReadState.Collected,
+        "Same synthetic name", "engineer@example.invalid", "UserMailbox", At, ReportReadState.Collected,
         "0 B (0 bytes)", "98 GB (105,226,698,752 bytes)", "99 GB (106,300,440,576 bytes)",
         "100 GB (107,374,182,400 bytes)", ReportReadState.Collected, "0 B (0 bytes)", "Unlimited");
 

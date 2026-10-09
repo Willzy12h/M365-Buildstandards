@@ -25,3 +25,17 @@ The input assigned-licence report must pass the existing strict schema/digest/te
 The first implementation checkpoint `bad860b` ran 25 dedicated tests: 22 passed, two failed because a known Exchange service-plan ID with an unrelated name was incorrectly treated as not eligible, and one failed because its test fixture put a failed row in a wholly failed section (the existing strict reader correctly refuses rows in failed sections). The source now treats known IDs with mismatched names as unknown; the fixture represents retained user rows in a partial section. All 25 then passed. Four further bounded-input/type cases were added. A completed broad local run before those final four additions passed all 1,295 engine/CLI tests. Final targeted/strict-build and exact Windows outcomes are recorded on the PR; human and live acceptance remain open.
 
 Final local checks: all 29 dedicated cases passed after the bounded/type additions, and the strict solution cross-build passed with zero warnings/errors. The earlier completed broad run (1,295 cases) predates those four added cases; it is not described as the final Windows run.
+
+## Independent review corrections — 9 October 2026
+
+CLA-20261008-50: a 100 GB shared mailbox without verified Plan 2 now remains entitlement-unconfirmed. The observation has no verified creation time, so it cannot disprove the documented pre-July-2018 exception. No quota is changed.
+
+CLA-51: exact reviewed ID/name pairs for `EXCHANGE_S_ARCHIVE_ADDON` (176a09a6-7ec5-4039-ac02-b2791c6ba793) and `EXCHANGE_S_FOUNDATION` (113feb6c-3fe4-4440-bddc-54d774bf0318) do not confer primary capacity. The actual SPB plan set is tested. Microsoft's licensing CSV/service-plan identities were checked by Claude on 8 October 2026; this is a dated rule, not future entitlement discovery. Unknown Exchange variants remain unknown. CLA-54's prefix assumption remains a documented limitation: today's reviewed mailbox plans use EXCHANGE_; future renamed/non-prefixed capacity plans require a rule revision.
+
+CLA-52: byte parsing matches the entire invariant Exchange display shape and uses an absolute end anchor. Arbitrary prefixes and trailing newlines stay unknown, with raw text retained.
+
+CLA-53: optional explicit primary/archive statistics read states are independent of the existing quota read states. When omitted, the supplied aggregate state remains the compatibility interpretation; future collectors must supply separate states for separately executed reads. Failed statistics cannot claim a zero size or hide a successfully observed quota. This adapter input is not a persisted evidence schema.
+
+Four new regression cases failed against the pre-fix implementation (29 passed, four failed), then the source was corrected. The additional separate-statistics case exercises the new optional input. Exact final validation is recorded on the PR; no collector, UI or Microsoft live verification is established.
+
+Final local review-response verification: 36 mailbox cases passed; a broad engine/CLI run passed 1,368 cases before the last two known-ID/mismatched-name negative cases were added. Those two passed in the final targeted run. Windows exact-head results remain required.
