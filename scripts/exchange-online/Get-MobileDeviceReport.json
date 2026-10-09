@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mobile-devices",
+  "name": "Mobile devices per mailbox",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists the mobile devices that have synchronised with each mailbox, with access state and, if ticked, the last successful sync; can list only devices not synchronised for a number of days.",
+  "keywords": [
+    "mobile",
+    "device",
+    "ActiveSync",
+    "phone",
+    "stale",
+    "last sync",
+    "Get-MobileDevice",
+    "Get-MobileDeviceStatistics"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MobileDeviceReport.ps1",
+  "scriptSha256": "d55fffb150e0114950a3407e3f2d7e9616ec1375e06ace41a2017ba147429ac7",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "IncludeLastSync",
+      "label": "Include last sync",
+      "type": "boolean",
+      "help": "Read each device's last successful sync, which needs one extra read per device.",
+      "default": "true"
+    },
+    {
+      "name": "StaleDays",
+      "label": "Not synchronised for (days)",
+      "type": "integer",
+      "help": "Only devices whose last successful sync is at least this many days ago. Devices whose last sync is unknown are kept.",
+      "minimum": 1,
+      "maximum": 3650
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "500"
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum devices",
+      "type": "integer",
+      "help": "Stops after this many devices and says the result is partial.",
+      "minimum": 1,
+      "maximum": 20000,
+      "default": "5000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "FriendlyName",
+      "DeviceModel",
+      "DeviceOS",
+      "DeviceType",
+      "ClientType",
+      "DeviceId",
+      "DeviceAccessState",
+      "IsManaged",
+      "IsCompliant",
+      "FirstSyncTime",
+      "LastSuccessSync",
+      "DaysSinceLastSync",
+      "SyncStatus",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 20000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients and mobile devices.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Devices are read once per mailbox, and the last sync once per device, so large tenants take a while.",
+    "A device whose last successful sync was not returned is SyncStatus Unknown and is kept by the stale filter.",
+    "Intune enrolment and compliance are not read here; IsManaged and IsCompliant are as Exchange reports them.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

@@ -48,7 +48,7 @@ public sealed class ScriptLibraryTests
     public void The_shipped_library_loads_and_every_item_is_read_only_and_unverified()
     {
         var entries = ScriptCatalogue.Shipped.Entries;
-        Assert.Equal(10, entries.Count);
+        Assert.Equal(29, entries.Count);
         Assert.All(entries, e =>
         {
             Assert.Equal(ScriptMode.ReadOnly, e.Manifest.Mode);
@@ -74,6 +74,205 @@ public sealed class ScriptLibraryTests
         Assert.Empty(ScriptCatalogue.Shipped.Search("no such thing"));
     }
 
+    /// <summary>The second Exchange Online pack (eleven read-only items) on top of the first ten.</summary>
+    public static TheoryData<string> SecondPack => new()
+    {
+        "exo.group-members", "exo.transport-rules", "exo.connectors", "exo.domains-dkim", "exo.mobile-devices", "exo.mailbox-audit",
+        "exo.mailbox-holds", "exo.protection-policies", "exo.resource-mailboxes", "exo.send-on-behalf", "exo.archive-mailboxes"
+    };
+
+    [Theory]
+    [MemberData(nameof(SecondPack))]
+    public void Each_second_pack_item_is_read_only_documents_roles_and_limits_and_says_it_is_unverified(string id)
+    {
+        var entry = Item(id);
+        var m = entry.Manifest;
+        Assert.Equal(ScriptMode.ReadOnly, m.Mode);
+        Assert.Equal(ScriptLiveStatus.Unverified, m.LiveStatus);
+        Assert.NotEmpty(m.Roles);
+        Assert.Contains(m.Limitations, l => l.Contains("not yet tested in a tenant", StringComparison.Ordinal));
+        Assert.Contains(m.Limitations, l => l.Contains("roles listed", StringComparison.Ordinal) && l.Contains("not been confirmed", StringComparison.Ordinal));
+        Assert.Contains(m.Limitations, l => l.Contains("shown as Unknown, never as False", StringComparison.Ordinal));
+        Assert.Equal("Notes", m.OutputSchema.Columns[^1]);
+
+        // Windows PowerShell 5.1 has no null-coalescing, null-conditional or ternary operators.
+        foreach (var token in new[] { "??", "?.", "?[" }) Assert.DoesNotContain(token, entry.Script, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"\)\s*\?\s*[^\s]+\s*:\s", entry.Script);
+        // Every tenant command is a Get- read; nothing installs a module, changes policy or bypasses execution policy.
+        foreach (var token in new[] { "Install-Module", "Import-Module", "ExecutionPolicy", "Set-", "New-", "Remove-", "Enable-", "Disable-", "Add-", "Update-" })
+            Assert.DoesNotContain(token, entry.Script.Replace("Set-StrictMode", "", StringComparison.Ordinal), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(SecondPack))]
+    public void Each_second_pack_item_says_when_a_value_was_not_measured_and_when_a_read_was_bounded(string id)
+    {
+        var entry = Item(id);
+        Assert.Contains("BDIT:UNKNOWN", entry.Script, StringComparison.Ordinal);
+        // A limit on what is read, by mailbox, member or row, is always reported when it is reached.
+        if (entry.Manifest.Parameters.Any(p => p.Name.StartsWith("Max", StringComparison.Ordinal)))
+            Assert.Contains("BDIT:PARTIAL", entry.Script, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(SecondPack))]
+    public void Each_second_pack_item_binds_its_defaults_and_produces_a_copy_with_its_body_unchanged(string id)
+    {
+        var entry = Item(id);
+        var fields = id == "exo.group-members" ? new[] { ("Group", (string?)"staff@contoso.example") } : Array.Empty<(string, string?)>();
+        var binding = Bind(id, fields);
+        Assert.True(binding.IsValid, string.Join(" ", binding.Problems));
+        foreach (var p in entry.Manifest.Parameters.Where(p => p.Default is not null && p.Type != ScriptParameterType.Boolean))
+            Assert.Contains(binding.Arguments, a => a.Name == p.Name);
+        var script = ScriptCopy.Generate(entry, binding, new ScriptCopyTarget("3f2504e0-4f89-11d3-9a0c-0305e82c3301", "Contoso"), Now);
+        Assert.Contains(entry.Script.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd(), script.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Second_pack_forms_check_their_values()
+    {
+        Assert.Contains("Groups is required.", Bind("exo.group-members").Problems);
+        Assert.Contains(Bind("exo.group-members", ("Group", "staff@contoso.example"), ("MaxMembers", "0")).Problems, p => p.Contains("from 1 to 20000", StringComparison.Ordinal));
+        Assert.Contains(Bind("exo.domains-dkim", ("Domain", "not a domain")).Problems, p => p.Contains("domain such as example.com", StringComparison.Ordinal));
+        Assert.Equal(new[] { "contoso.example" }, ((ScriptTextList)Bind("exo.domains-dkim", ("Domain", "Contoso.example")).Arguments.Single(a => a.Name == "Domain").Value).Values);
+        Assert.Contains(Bind("exo.protection-policies", ("PolicyType", "AntiSpam, SafeLinks")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
+        Assert.Equal(new[] { "AntiSpam", "OutboundSpam", "AntiPhish", "AntiMalware" },
+            ((ScriptTextList)Bind("exo.protection-policies").Arguments.Single(a => a.Name == "PolicyType").Value).Values);
+        Assert.Contains(Bind("exo.resource-mailboxes", ("ResourceType", "Desk")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
+        Assert.Contains(Bind("exo.mobile-devices", ("StaleDays", "0")).Problems, p => p.Contains("from 1 to 3650", StringComparison.Ordinal));
+        // A stale filter is optional and has no default, so leaving it blank lists every device.
+        Assert.DoesNotContain(Bind("exo.mobile-devices").Arguments, a => a.Name == "StaleDays");
+        // Unticking a filter that defaults to off leaves it out; mailbox lists are bounded.
+        Assert.DoesNotContain(Bind("exo.archive-mailboxes").Arguments, a => a.Name == "OnlyWithArchive");
+        var tooMany = string.Join(",", Enumerable.Range(1, 51).Select(i => $"m{i}@contoso.example"));
+        Assert.Contains(Bind("exo.send-on-behalf", ("Mailbox", tooMany)).Problems, p => p.Contains("at most 50 values", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Second_pack_identity_items_never_treat_a_name_or_alias_as_an_exact_identity()
+    {
+        // Astra's #46 review: an identity is joined only on an exact identity, never on a Name or display name.
+        foreach (var id in new[] { "exo.group-members", "exo.send-on-behalf" })
+        {
+            var script = Item(id).Script;
+            var exact = System.Text.RegularExpressions.Regex.Match(script, @"\$unique = @\(([^)]*)\)").Groups[1].Value;
+            Assert.Equal("'PrimarySmtpAddress', 'DistinguishedName', 'ExternalDirectoryObjectId', 'Guid'", exact);
+            Assert.Contains("'Unresolved'", script, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Search_finds_the_second_pack_by_its_terms()
+    {
+        Assert.Contains(ScriptCatalogue.Shipped.Search("DKIM"), e => e.Manifest.Id == "exo.domains-dkim");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("litigation hold"), e => e.Manifest.Id == "exo.mailbox-holds");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("room booking"), e => e.Manifest.Id == "exo.resource-mailboxes");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("anti-phishing"), e => e.Manifest.Id == "exo.protection-policies");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("ActiveSync"), e => e.Manifest.Id == "exo.mobile-devices");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("transport rule"), e => e.Manifest.Id == "exo.transport-rules");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("smart host"), e => e.Manifest.Id == "exo.connectors");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("distribution list owners"), e => e.Manifest.Id == "exo.group-members");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("audit bypass"), e => e.Manifest.Id == "exo.mailbox-audit");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("online archive"), e => e.Manifest.Id == "exo.archive-mailboxes");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("GrantSendOnBehalfTo"), e => e.Manifest.Id == "exo.send-on-behalf");
+    }
+
+    /// <summary>The third Exchange Online pack (eight read-only items), held to the same rules as the second.</summary>
+    public static TheoryData<string> ThirdPack => new()
+    {
+        "exo.mailbox-protocols", "exo.remote-domains", "exo.retention-policies", "exo.mailbox-policies", "exo.sharing", "exo.journal-rules",
+        "exo.quarantine-policies", "exo.mail-contacts"
+    };
+
+    [Theory]
+    [MemberData(nameof(ThirdPack))]
+    public void Each_third_pack_item_is_read_only_documents_roles_and_limits_and_says_it_is_unverified(string id) =>
+        Each_second_pack_item_is_read_only_documents_roles_and_limits_and_says_it_is_unverified(id);
+
+    [Theory]
+    [MemberData(nameof(ThirdPack))]
+    public void Each_third_pack_item_says_when_a_value_was_not_measured_and_when_a_read_was_bounded(string id)
+    {
+        Each_second_pack_item_says_when_a_value_was_not_measured_and_when_a_read_was_bounded(id);
+        // A bounded read asks for one more than its limit, so reaching the limit can be told apart from a complete list.
+        var entry = Item(id);
+        foreach (var max in entry.Manifest.Parameters.Where(p => p.Name.StartsWith("Max", StringComparison.Ordinal)))
+            Assert.Contains("-ResultSize ($" + max.Name + " + 1)", entry.Script, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"-ResultSize\s+(Unlimited|\$Max\w+\))", entry.Script);
+    }
+
+    [Theory]
+    [MemberData(nameof(ThirdPack))]
+    public void Each_third_pack_item_binds_its_defaults_and_produces_a_copy_with_its_body_unchanged(string id) =>
+        Each_second_pack_item_binds_its_defaults_and_produces_a_copy_with_its_body_unchanged(id);
+
+    [Fact]
+    public void Third_pack_forms_check_their_values()
+    {
+        Assert.Contains(Bind("exo.mailbox-protocols", ("MaxMailboxes", "0")).Problems, p => p.Contains("from 1 to 10000", StringComparison.Ordinal));
+        Assert.Contains(Bind("exo.mailbox-protocols", ("Mailbox", "not an address!")).Problems, p => p.Contains("email address or alias", StringComparison.Ordinal));
+        Assert.Equal(new ScriptNumber(2000), Bind("exo.mailbox-protocols").Arguments.Single(a => a.Name == "MaxMailboxes").Value);
+        Assert.Contains(Bind("exo.mailbox-policies", ("PolicyType", "OwaMailbox, Teams")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
+        Assert.Equal(new[] { "OwaMailbox", "MobileDeviceMailbox" }, ((ScriptTextList)Bind("exo.mailbox-policies").Arguments.Single(a => a.Name == "PolicyType").Value).Values);
+        Assert.Contains(Bind("exo.sharing", ("Kind", "Federation")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
+        Assert.Contains(Bind("exo.mail-contacts", ("RecipientType", "Mailbox")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
+        Assert.Contains(Bind("exo.mail-contacts", ("MaxRecipients", "10001")).Problems, p => p.Contains("from 1 to 10000", StringComparison.Ordinal));
+        // Tick boxes that default to ticked are passed; ones that default to off are left out until ticked.
+        Assert.Contains(Bind("exo.retention-policies").Arguments, a => a.Name == "IncludeUnlinkedTags");
+        Assert.Contains(Bind("exo.quarantine-policies").Arguments, a => a.Name == "IncludeGlobalSettings");
+        Assert.DoesNotContain(Bind("exo.journal-rules").Arguments, a => a.Name == "OnlyEnabled");
+        Assert.DoesNotContain(Bind("exo.remote-domains").Arguments, a => a.Name == "OnlyAutoForwardAllowed");
+    }
+
+    [Fact]
+    public void Third_pack_keeps_unreturned_values_unknown_and_joins_retention_tags_only_on_exact_identities()
+    {
+        // SMTP AUTH: an empty mailbox setting follows the organisation; a property that was not returned is Unknown.
+        var protocols = Item("exo.mailbox-protocols").Script;
+        Assert.Contains("'FollowsOrganisation'", protocols, StringComparison.Ordinal);
+        Assert.Contains("$target.PSObject.Properties['SmtpClientAuthenticationDisabled']", protocols, StringComparison.Ordinal);
+        Assert.Contains("Get-TransportConfig", protocols, StringComparison.Ordinal);
+        // Retention tag links: matched only on the tag's exact Name, Identity or DistinguishedName, case-sensitively.
+        var retention = Item("exo.retention-policies").Script;
+        Assert.Contains("@('Name', 'Identity', 'DistinguishedName')", retention, StringComparison.Ordinal);
+        Assert.Contains("-ccontains $link", retention, StringComparison.Ordinal);
+        Assert.Contains("'Unresolved'", retention, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayName", retention, StringComparison.Ordinal);
+        // Policy settings use the protection policy rules: null is Unknown, empty is NotSet, only an empty list is 0.
+        foreach (var id in new[] { "exo.mailbox-policies", "exo.quarantine-policies" })
+        {
+            var script = Item(id).Script;
+            Assert.Contains("$Item.PSObject.Properties[$name] -and $null -ne $Item.$name", script, StringComparison.Ordinal);
+            Assert.Contains("$value = 'NotSet'", script, StringComparison.Ordinal);
+        }
+        // No item joins on a display name.
+        foreach (var id in new[] { "exo.mailbox-protocols", "exo.remote-domains", "exo.retention-policies", "exo.mailbox-policies", "exo.sharing", "exo.journal-rules", "exo.quarantine-policies", "exo.mail-contacts" })
+            Assert.DoesNotMatch(@"DisplayName'\)\s*-(c)?eq", Item(id).Script);
+    }
+
+    [Fact]
+    public void Search_finds_the_third_pack_by_its_terms()
+    {
+        Assert.Contains(ScriptCatalogue.Shipped.Search("SMTP AUTH"), e => e.Manifest.Id == "exo.mailbox-protocols");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("POP IMAP"), e => e.Manifest.Id == "exo.mailbox-protocols");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("auto forward"), e => e.Manifest.Id == "exo.remote-domains");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("retention tag"), e => e.Manifest.Id == "exo.retention-policies");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("OWA policy"), e => e.Manifest.Id == "exo.mailbox-policies");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("free/busy"), e => e.Manifest.Id == "exo.sharing");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("journal"), e => e.Manifest.Id == "exo.journal-rules");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("quarantine"), e => e.Manifest.Id == "exo.quarantine-policies");
+        Assert.Contains(ScriptCatalogue.Shipped.Search("mail contact"), e => e.Manifest.Id == "exo.mail-contacts");
+    }
+
+    [Fact]
+    public void Archive_status_reads_no_archive_size()
+    {
+        // The brief: no unbounded size calls. Archive size needs one statistics read per mailbox, so it is not made.
+        var entry = Item("exo.archive-mailboxes");
+        Assert.DoesNotContain("Get-EXOMailboxStatistics", entry.Script, StringComparison.Ordinal);
+        Assert.Contains(entry.Manifest.Limitations, l => l.Contains("Archive size is not reported", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_changed_script_is_refused_until_it_is_pinned_again()
     {
@@ -85,7 +284,7 @@ public sealed class ScriptLibraryTests
         Assert.Contains("does not match the SHA-256", ex.Message, StringComparison.Ordinal);
 
         Repin(files, "exchange-online/Get-InboxRuleReport.json");
-        Assert.Equal(10, ScriptCatalogue.Load(files).Entries.Count);
+        Assert.Equal(29, ScriptCatalogue.Load(files).Entries.Count);
     }
 
     [Theory]
