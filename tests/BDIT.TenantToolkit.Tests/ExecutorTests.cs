@@ -12,6 +12,7 @@ using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
 
+[Collection("Executor deadlines")]
 public class ExecutorTests
 {
     private sealed class Harness : IDisposable
