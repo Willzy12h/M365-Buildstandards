@@ -136,8 +136,8 @@
     {
       "id": "exo.retention-policies",
       "manifest": "exchange-online/Get-RetentionPolicyReport.json",
-      "manifestSha256": "8bc61823bff450fa9030438abb4857516c2716218ebb533324e158d203122705",
-      "scriptSha256": "0a2ce5a2d42a9d508b35461699d48cba265d62566650d23fc6bbe59c8414c5d7"
+      "manifestSha256": "5de026586f8072e2cf089c49ceaeeecad14408f7bfc6f94764f0ee189cdad055",
+      "scriptSha256": "d236b5f049f0a243e92897a618d72db31a3070f37c41128066a94830ffe294a2"
     },
     {
       "id": "exo.send-on-behalf",

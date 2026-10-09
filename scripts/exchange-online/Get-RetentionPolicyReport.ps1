@@ -90,7 +90,7 @@ function Get-TagRow([string]$Policy, [string]$PolicyIsDefault, [string]$LinkAsRe
     }
 }
 
-$linkedTags = @{}
+$linkedTags = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 # A tag can be called NotLinked only when every policy's links were returned and every link resolved to one tag.
 $linksUncertain = $false
 foreach ($policy in $policies) {
