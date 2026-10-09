@@ -228,7 +228,7 @@ public sealed class DispositionWorkflowTests : IDisposable
         var conflict = Request(DispositionDecision.ManualWork, supersede ? first.Id : null);
         conflict.SemanticId = "different.requirement.identity";
         var error = Assert.Throws<SafetyViolationException>(() => Decide(conflict));
-        Assert.Contains("requirement", error.Message);
+        Assert.Contains("already has a different identity", error.Message);
         Assert.Equal(before, Fingerprint());
         Assert.Equal(first.Id, Assert.Single(_store.RequireJob(TestData.TenantA, _job.Id).DispositionIds!));
         Assert.Equal(first.IntegrityDigest, _store.LoadDisposition(TestData.TenantA, first.Id)!.IntegrityDigest);
