@@ -481,6 +481,10 @@ function Get-MailboxAuditBypassAssociation {
 }
 function Get-HostedContentFilterPolicy {
     Write-StubRead 'Get-HostedContentFilterPolicy'
+    if ((Get-Scenario) -eq 'malformed') {
+        # Counted lists holding an entry that could not be read; the setting lists are otherwise known.
+        return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = 'MoveToJmf'; HighConfidenceSpamAction = 'Quarantine'; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 7; QuarantineRetentionPeriod = 30; AllowedSenders = @('a@partner.example', $null); AllowedSenderDomains = @('') }
+    }
     if ((Get-Scenario) -eq 'nulls') {
         # Null list, null setting and an empty string, beside a list returned empty and a known zero.
         return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = $null; HighConfidenceSpamAction = ''; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 0; QuarantineRetentionPeriod = 30; AllowedSenders = $null; AllowedSenderDomains = @() }
@@ -603,6 +607,12 @@ function New-StubTag([string]$Name, [string]$Type, [object]$Age, [string]$Action
 function Get-RetentionPolicy {
     Write-StubRead 'Get-RetentionPolicy'
     switch (Get-Scenario) {
+        # A link with single spaces where the tag has two, beside a byte-exact link to the same tag.
+        'spaces' { return @([pscustomobject]@{ Name = 'Spaces'; IsDefault = $false; RetentionPolicyTagLinks = @('Keep 7 years') }, [pscustomobject]@{ Name = 'Byte exact'; IsDefault = $false; RetentionPolicyTagLinks = @('Keep  7 years') }) }
+        # One link to tag A by its Identity; tag B's Identity equals tag A's Name.
+        'aliases' { return [pscustomobject]@{ Name = 'Aliased'; IsDefault = $false; RetentionPolicyTagLinks = @('object-a') } }
+        # Link lists holding an entry that could not be read: alone, and beside a readable link.
+        'nulllinks' { return @([pscustomobject]@{ Name = 'Null entry'; IsDefault = $false; RetentionPolicyTagLinks = @($null) }, [pscustomobject]@{ Name = 'Mixed'; IsDefault = $true; RetentionPolicyTagLinks = @('Never Delete', $null, '') }) }
         'links' {
             # An exact distinguished name, a Name in another letter case, a name no tag has, and a value two tags share.
             return [pscustomobject]@{ Name = 'Finance'; IsDefault = $false; RetentionPolicyTagLinks = @('CN=Finance 7 years,CN=Retention Policy Tag Container,DC=contoso', 'finance 7 years', 'Ghost tag', 'Dup') }
@@ -620,6 +630,14 @@ function Get-RetentionPolicy {
 function Get-RetentionPolicyTag {
     Write-StubRead 'Get-RetentionPolicyTag'
     switch (Get-Scenario) {
+        'spaces' { return New-StubTag 'Keep  7 years' 'Personal' '2555.00:00:00' 'DeleteAndAllowRecovery' $true }
+        'aliases' {
+            $a = New-StubTag 'Alias' 'Personal' '30.00:00:00' 'DeleteAndAllowRecovery' $true
+            $a.Identity = 'object-a'; $a.DistinguishedName = 'CN=A,DC=synthetic'
+            $b = New-StubTag 'Other tag' 'Personal' '60.00:00:00' 'DeleteAndAllowRecovery' $true
+            $b.Identity = 'Alias'; $b.DistinguishedName = 'CN=B,DC=synthetic'
+            return @($a, $b)
+        }
         'links' {
             $dupName = New-StubTag 'Dup' 'Personal' '10.00:00:00' 'DeleteAndAllowRecovery' $true
             $dupIdentity = New-StubTag 'Dup B' 'Personal' '20.00:00:00' 'DeleteAndAllowRecovery' $true
@@ -641,6 +659,10 @@ function Get-RetentionPolicyTag {
 }
 function Get-OwaMailboxPolicy {
     Write-StubRead 'Get-OwaMailboxPolicy'
+    if ((Get-Scenario) -eq 'malformed') {
+        # File type lists holding an entry that could not be read: a null beside a known entry, and a blank alone.
+        return [pscustomobject]@{ Name = 'OwaMailboxPolicy-Default'; IsDefault = $true; ConditionalAccessPolicy = 'Off'; DirectFileAccessOnPublicComputersEnabled = $true; DirectFileAccessOnPrivateComputersEnabled = $true; WacViewingOnPublicComputersEnabled = $true; AdditionalStorageProvidersAvailable = $true; ActiveSyncIntegrationEnabled = $true; AllowOfflineOn = 'AllComputers'; PersonalAccountCalendarsEnabled = $true; BlockedFileTypes = @('.exe', $null); AllowedFileTypes = @('') }
+    }
     if ((Get-Scenario) -eq 'nulls') {
         # A null flag and a null list, beside an empty value, a list returned empty and a known False; the default flag not returned.
         return [pscustomobject]@{ Name = 'OwaMailboxPolicy-Default'; ConditionalAccessPolicy = ''; DirectFileAccessOnPublicComputersEnabled = $false; DirectFileAccessOnPrivateComputersEnabled = $null; WacViewingOnPublicComputersEnabled = $true; AdditionalStorageProvidersAvailable = $false; ActiveSyncIntegrationEnabled = $true; AllowOfflineOn = 'AllComputers'; PersonalAccountCalendarsEnabled = $false; BlockedFileTypes = $null; AllowedFileTypes = @() }
@@ -659,6 +681,14 @@ function Get-MobileDeviceMailboxPolicy {
 }
 function Get-SharingPolicy {
     Write-StubRead 'Get-SharingPolicy'
+    if ((Get-Scenario) -eq 'malformed') {
+        return @(
+            [pscustomobject]@{ Name = 'Null entry'; Default = $false; Enabled = $true; Domains = @($null) },
+            [pscustomobject]@{ Name = 'Mixed'; Default = $false; Enabled = $true; Domains = @('good.example:CalendarSharingFreeBusySimple', $null, '') },
+            [pscustomobject]@{ Name = 'No actions'; Default = $false; Enabled = $true; Domains = @('partner.example:') },
+            [pscustomobject]@{ Name = 'Blank actions'; Default = $false; Enabled = $true; Domains = @('partner2.example:   ') }
+        )
+    }
     if ((Get-Scenario) -eq 'nulls') {
         $noState = [pscustomobject]@{ Name = 'No state'; Default = $false; Domains = @('nocolon.example') }
         return @(
@@ -697,6 +727,7 @@ function Get-QuarantinePolicy {
     if ([string]$QuarantinePolicyType -eq 'GlobalQuarantinePolicy') {
         switch (Get-Scenario) {
             'empty' { return @() }
+            'malformed' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @('English', $null) } }
             'nulls' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = $null; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = $null } }
         }
         return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @() }
@@ -1243,6 +1274,12 @@ try {
         (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenderDomains=0*' -and (Get-Cell $spam[0] 'KeySettings') -like '*HighConfidenceSpamAction=NotSet*' -and
             (Get-Cell $spam[0] 'KeySettings') -like '*BulkThreshold=0;*' -and (Get-Cell $phish[0] 'KeySettings') -like '*EnableTargetedUserProtection=False*'
     }
+    $protectionMalformed = Invoke-Copy (New-Copy 'exo.protection-policies' 'protection-malformed' @('--PolicyType', 'AntiSpam')) 'protection-malformed' -Scenario 'malformed'
+    Test-Case 'protection: a counted list holding a null or blank entry is Unknown, never a shorter count, and the run warns' {
+        $spam = @(Find-Row $protectionMalformed.Rows 'Policy' 'Default')
+        $spam.Count -eq 1 -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenders=Unknown*' -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenderDomains=Unknown*' -and
+            (Get-Cell $spam[0] 'KeySettings') -like '*BulkThreshold=7*' -and $protectionMalformed.Output.Contains('BDIT:UNKNOWN')
+    }
     $rooms = Invoke-Copy $copyById['exo.resource-mailboxes'] 'rooms'
     Test-Case 'rooms: only room and equipment mailboxes are listed, with booking settings' {
         $room = @(Find-Row $rooms.Rows 'PrimarySmtpAddress' 'room1@contoso.example')
@@ -1394,6 +1431,28 @@ try {
             (Get-Cell @(Find-Row $retentionNulls.Rows 'Tag' 'No enabled flag')[0] 'AgeLimitForRetention') -ceq 'Unknown' -and
             (Get-Cell @(Find-Row $retentionNulls.Rows 'Tag' 'No enabled flag')[0] 'RetentionEnabled') -ceq 'Unknown'
     }
+    $retentionSpaces = Invoke-Copy $copyById['exo.retention-policies'] 'retention-spaces' -Scenario 'spaces'
+    Test-Case 'retention: a link is matched byte for byte, so single spaces do not resolve a tag with two, and the byte-exact link does' {
+        $spaced = @(Find-Row $retentionSpaces.Rows 'Policy' 'Spaces'); $exact = @(Find-Row $retentionSpaces.Rows 'Policy' 'Byte exact')
+        $spaced.Count -eq 1 -and (Get-Cell $spaced[0] 'LinkStatus') -eq 'Unresolved' -and (Get-Cell $spaced[0] 'AgeLimitForRetention') -eq '' -and
+            $exact.Count -eq 1 -and (Get-Cell $exact[0] 'LinkStatus') -eq 'Resolved' -and (Get-Cell $exact[0] 'AgeLimitForRetention') -eq '2555.00:00:00' -and
+            $retentionSpaces.Output.Contains('BDIT:UNKNOWN')
+    }
+    $retentionAliases = Invoke-Copy $copyById['exo.retention-policies'] 'retention-aliases' -Scenario 'aliases'
+    Test-Case 'retention: a tag that only shares a value with a linked tag is still listed as NotLinked, not dropped' {
+        $linked = @(Find-Row $retentionAliases.Rows 'Policy' 'Aliased'); $other = @(Find-Row $retentionAliases.Rows 'Tag' 'Other tag')
+        $linked.Count -eq 1 -and (Get-Cell $linked[0] 'LinkStatus') -eq 'Resolved' -and (Get-Cell $linked[0] 'Tag') -eq 'Alias' -and
+            $other.Count -eq 1 -and (Get-Cell $other[0] 'LinkStatus') -eq 'NotLinked' -and -not $retentionAliases.Output.Contains('BDIT:UNKNOWN')
+    }
+    $retentionNullLinks = Invoke-Copy $copyById['exo.retention-policies'] 'retention-nulllinks' -Scenario 'nulllinks'
+    Test-Case 'retention: a link list holding an unreadable entry is Unknown, never NoTags, keeps its readable links, and no tag is NotLinked' {
+        $nullEntry = @(Find-Row $retentionNullLinks.Rows 'Policy' 'Null entry'); $mixed = @(Find-Row $retentionNullLinks.Rows 'Policy' 'Mixed')
+        $nullEntry.Count -eq 1 -and (Get-Cell $nullEntry[0] 'LinkStatus') -ceq 'Unknown' -and
+            @($mixed | Where-Object { (Get-Cell $_ 'LinkStatus') -eq 'Resolved' -and (Get-Cell $_ 'Tag') -eq 'Never Delete' }).Count -eq 1 -and
+            @($mixed | Where-Object { (Get-Cell $_ 'LinkStatus') -ceq 'Unknown' }).Count -eq 1 -and
+            @(Find-Row $retentionNullLinks.Rows 'LinkStatus' 'NoTags').Count -eq 0 -and @(Find-Row $retentionNullLinks.Rows 'LinkStatus' 'NotLinked').Count -eq 0 -and
+            $retentionNullLinks.Output.Contains('BDIT:UNKNOWN')
+    }
     $retentionNoTags = Invoke-Copy (New-Copy 'exo.retention-policies' 'retention-linked-only' @('--IncludeUnlinkedTags', 'false')) 'retention-linked-only'
     Test-Case 'retention: unticking unlinked tags leaves them out' { @(Find-Row $retentionNoTags.Rows 'Tag' 'Unused tag').Count -eq 0 -and $retentionNoTags.Rows.Count -eq 4 }
 
@@ -1417,6 +1476,12 @@ try {
         $owa = @(Find-Row $policyNulls.Rows 'PolicyType' 'OwaMailbox'); $mobile = @(Find-Row $policyNulls.Rows 'PolicyType' 'MobileDeviceMailbox')
         (Get-Cell $owa[0] 'KeySettings') -like '*ConditionalAccessPolicy=NotSet*' -and (Get-Cell $owa[0] 'KeySettings') -like '*AllowedFileTypes=0*' -and
             (Get-Cell $owa[0] 'KeySettings') -like '*DirectFileAccessOnPublicComputersEnabled=False*' -and (Get-Cell $mobile[0] 'KeySettings') -like '*PasswordEnabled=False*'
+    }
+    $policyMalformed = Invoke-Copy (New-Copy 'exo.mailbox-policies' 'mailbox-policies-malformed' @('--PolicyType', 'OwaMailbox')) 'mailbox-policies-malformed' -Scenario 'malformed'
+    Test-Case 'mailbox policies: a list holding a null or blank entry is Unknown, never a shorter count, and the run warns' {
+        $owa = @($policyMalformed.Rows)
+        $owa.Count -eq 1 -and (Get-Cell $owa[0] 'KeySettings') -like '*BlockedFileTypes=Unknown*' -and (Get-Cell $owa[0] 'KeySettings') -like '*AllowedFileTypes=Unknown*' -and
+            $policyMalformed.Output.Contains('BDIT:UNKNOWN')
     }
     $owaOnly = Invoke-Copy (New-Copy 'exo.mailbox-policies' 'mailbox-policies-owa' @('--PolicyType', 'OwaMailbox')) 'mailbox-policies-owa'
     Test-Case 'mailbox policies: one type only reads only that type' {
@@ -1442,6 +1507,18 @@ try {
             (Get-Cell @(Find-Row $sharingNulls.Rows 'Name' 'Empty domains')[0] 'Domain') -eq 'NotSet' -and
             (Get-Cell @(Find-Row $sharingNulls.Rows 'Name' 'No state')[0] 'Access') -ceq 'Unknown' -and
             (Get-Cell @(Find-Row $sharingNulls.Rows 'Name' 'No state')[0] 'Enabled') -ceq 'Unknown' -and $sharingNulls.Output.Contains('BDIT:UNKNOWN')
+    }
+    $sharingMalformed = Invoke-Copy (New-Copy 'exo.sharing' 'sharing-malformed' @('--Kind', 'SharingPolicy')) 'sharing-malformed' -Scenario 'malformed'
+    Test-Case 'sharing: a domain list holding an unreadable entry is Unknown, never NotSet, and keeps its readable entries' {
+        $nullEntry = @(Find-Row $sharingMalformed.Rows 'Name' 'Null entry'); $mixed = @(Find-Row $sharingMalformed.Rows 'Name' 'Mixed')
+        $nullEntry.Count -eq 1 -and (Get-Cell $nullEntry[0] 'Domain') -ceq 'Unknown' -and @(Find-Row $sharingMalformed.Rows 'Domain' 'NotSet').Count -eq 0 -and
+            @($mixed | Where-Object { (Get-Cell $_ 'Domain') -eq 'good.example' -and (Get-Cell $_ 'Access') -eq 'CalendarSharingFreeBusySimple' }).Count -eq 1 -and
+            @($mixed | Where-Object { (Get-Cell $_ 'Domain') -ceq 'Unknown' }).Count -eq 1 -and $sharingMalformed.Output.Contains('BDIT:UNKNOWN')
+    }
+    Test-Case 'sharing: an entry with nothing, or only spaces, after the colon has Access Unknown and is shown as returned' {
+        $none = @(Find-Row $sharingMalformed.Rows 'Name' 'No actions'); $blank = @(Find-Row $sharingMalformed.Rows 'Name' 'Blank actions')
+        $none.Count -eq 1 -and (Get-Cell $none[0] 'Access') -ceq 'Unknown' -and (Get-Cell $none[0] 'Domain') -eq 'partner.example:' -and (Get-Cell $none[0] 'Notes') -ne '' -and
+            $blank.Count -eq 1 -and (Get-Cell $blank[0] 'Access') -ceq 'Unknown' -and (Get-Cell $blank[0] 'Notes') -ne ''
     }
     Test-Case 'sharing: a relationship whose domains, free/busy flag and level were not returned is Unknown, never False or None' {
         $org = @(Find-Row $sharingNulls.Rows 'Kind' 'OrganizationRelationship')
@@ -1501,6 +1578,11 @@ try {
         $global = @(Find-Row $quarantineNulls.Rows 'PolicyKind' 'GlobalQuarantinePolicy')
         (Get-Cell $global[0] 'GlobalSettings') -like '*EndUserSpamNotificationFrequency=Unknown*' -and (Get-Cell $global[0] 'GlobalSettings') -like '*MultiLanguageSetting=Unknown*' -and
             (Get-Cell $global[0] 'GlobalSettings') -like '*EndUserSpamNotificationCustomFromAddress=NotSet*'
+    }
+    $quarantineMalformed = Invoke-Copy $copyById['exo.quarantine-policies'] 'quarantine-malformed' -Scenario 'malformed'
+    Test-Case 'quarantine: a global list holding a null entry is Unknown, never a shorter count, and the run warns' {
+        $global = @(Find-Row $quarantineMalformed.Rows 'PolicyKind' 'GlobalQuarantinePolicy')
+        $global.Count -eq 1 -and (Get-Cell $global[0] 'GlobalSettings') -like '*MultiLanguageSetting=Unknown*' -and $quarantineMalformed.Output.Contains('BDIT:UNKNOWN')
     }
     $quarantineEmpty = Invoke-Copy $copyById['exo.quarantine-policies'] 'quarantine-empty' -Scenario 'empty'
     Test-Case 'quarantine: global settings that were not returned make the run warn' { $quarantineEmpty.Code -eq 0 -and $quarantineEmpty.Output.Contains('BDIT:UNKNOWN') }
