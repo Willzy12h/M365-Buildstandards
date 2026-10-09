@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailContactReport.ps1",
-  "scriptSha256": "5f06af87e793337a7a82066b926044e82982a5fab6c84afe7669a60fabf40474",
+  "scriptSha256": "42c9b241c0e39fd4286e2e65bcab5ac9f8f2573510c77b58d610d9602bc9773a",
   "supportedRuntimes": [
     "5.1",
     "7"

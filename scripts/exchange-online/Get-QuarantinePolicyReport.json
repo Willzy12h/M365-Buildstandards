@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-QuarantinePolicyReport.ps1",
-  "scriptSha256": "5b88aabb4e4dfbb2bcf5b9e7fd26fe88a3e3609cda5091bf59e36ce853a2b92d",
+  "scriptSha256": "9c7d622c435900055c200f0ca80a2e0faa94b82798a86e2267cdd3d282b4e8e1",
   "supportedRuntimes": [
     "5.1",
     "7"

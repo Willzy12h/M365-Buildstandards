@@ -58,7 +58,7 @@ foreach ($type in @('MailContact', 'MailUser')) {
         $address = Get-Text (Get-Value $recipient 'PrimarySmtpAddress')
         if (-not $address) { $address = 'Unknown'; $notes += 'Exchange did not return a primary SMTP address.' }
         $external = Get-Text (Get-Value $recipient 'ExternalEmailAddress')
-        if (-not $external) { $external = 'Unknown'; $notes += 'Exchange did not return an external email address.' }
+        if (-not $external) { $external = ''; $notes += 'Exchange did not return an external email address.' }
         $objectId = Get-Text (Get-Value $recipient 'ExternalDirectoryObjectId')
         if (-not $objectId) { $objectId = 'Unknown'; $notes += 'Exchange did not return a directory object ID.' }
         $hidden = Get-Flag $recipient 'HiddenFromAddressListsEnabled'

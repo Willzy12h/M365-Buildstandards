@@ -17,7 +17,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-SharingReport.ps1",
-  "scriptSha256": "2e6806855e4e1820337d7d074bcad4586022aeb5772604cb54cee97b73db2d22",
+  "scriptSha256": "efb7b72773271a166553aa9931ebd42e994527082f3573575256dcbcb8efaf9c",
   "supportedRuntimes": [
     "5.1",
     "7"

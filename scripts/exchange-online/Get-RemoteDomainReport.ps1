@@ -64,7 +64,7 @@ foreach ($domain in @(Get-RemoteDomain)) {
         if ($flags[$flag] -eq 'Unknown') { $missing += $flag }
     }
     if ($missing.Count -gt 0) { $notes += ('Exchange did not return ' + ($missing -join ', ') + '.') }
-    $tnef = 'Unknown'
+    $tnef = 'FollowsClient'
     if ($null -ne $domain -and $domain.PSObject.Properties['TNEFEnabled']) {
         $raw = $domain.TNEFEnabled
         if ($null -eq $raw -or [string]$raw -eq '') { $tnef = 'FollowsClient' } else { $tnef = Get-Flag $domain 'TNEFEnabled' }

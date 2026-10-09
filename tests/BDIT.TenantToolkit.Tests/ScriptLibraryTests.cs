@@ -211,7 +211,7 @@ public sealed class ScriptLibraryTests
     {
         Assert.Contains(Bind("exo.mailbox-protocols", ("MaxMailboxes", "0")).Problems, p => p.Contains("from 1 to 10000", StringComparison.Ordinal));
         Assert.Contains(Bind("exo.mailbox-protocols", ("Mailbox", "not an address!")).Problems, p => p.Contains("email address or alias", StringComparison.Ordinal));
-        Assert.Equal("2000", Bind("exo.mailbox-protocols").Arguments.Single(a => a.Name == "MaxMailboxes").Value.ToString());
+        Assert.Equal(new ScriptNumber(2000), Bind("exo.mailbox-protocols").Arguments.Single(a => a.Name == "MaxMailboxes").Value);
         Assert.Contains(Bind("exo.mailbox-policies", ("PolicyType", "OwaMailbox, Teams")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));
         Assert.Equal(new[] { "OwaMailbox", "MobileDeviceMailbox" }, ((ScriptTextList)Bind("exo.mailbox-policies").Arguments.Single(a => a.Name == "PolicyType").Value).Values);
         Assert.Contains(Bind("exo.sharing", ("Kind", "Federation")).Problems, p => p.Contains("choose one of", StringComparison.Ordinal));

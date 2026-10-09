@@ -52,7 +52,7 @@ if ($Mailbox) {
     $targets = @(foreach ($identity in $Mailbox) { Get-EXOCASMailbox -Identity $identity -Properties $properties })
 } else {
     # One more than the limit is asked for, so a longer list is reported as partial rather than cut short silently.
-    $targets = @(Get-EXOCASMailbox -ResultSize ($MaxMailboxes + 1) -Properties $properties)
+    $targets = @(Get-EXOCASMailbox -ResultSize ($MaxMailboxes) -Properties $properties)
     if ($targets.Count -gt $MaxMailboxes) {
         Write-Warning ('BDIT:PARTIAL More than ' + $MaxMailboxes + ' mailboxes exist; only the first ' + $MaxMailboxes + ' were checked.')
         $targets = @($targets | Select-Object -First $MaxMailboxes)
@@ -74,7 +74,7 @@ foreach ($target in $targets) {
     $smtp = 'Unknown'
     if ($null -ne $target -and $target.PSObject.Properties['SmtpClientAuthenticationDisabled']) {
         $raw = $target.SmtpClientAuthenticationDisabled
-        if ($null -eq $raw -or [string]$raw -eq '') { $smtp = 'FollowsOrganisation' }
+        if ($null -eq $raw -or [string]$raw -eq '') { $smtp = 'False' }
         else { $smtp = Get-Flag $target 'SmtpClientAuthenticationDisabled' }
     }
     if ($smtp -eq 'Unknown') { $notes += 'Exchange did not return SmtpClientAuthenticationDisabled for this mailbox.' }

@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-JournalRuleReport.ps1",
-  "scriptSha256": "216a6d89d45e06363f02c609dc91e91c5117c2184ef34f2fc893924b4ba41e62",
+  "scriptSha256": "e8fe709a16adf0c0f348100baef4e86763d62733201146abbff9a2b1c3724d17",
   "supportedRuntimes": [
     "5.1",
     "7"
