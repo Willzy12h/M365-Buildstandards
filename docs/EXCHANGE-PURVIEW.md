@@ -35,3 +35,11 @@ The bypass proposal creates only a disabled audit candidate, with exact From-dom
 - [Resolve-DnsName](https://learn.microsoft.com/en-us/powershell/module/dnsclient/resolve-dnsname?view=windowsserver2025-ps) and [Windows DNS error codes](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--9000-11999-): the fixed Windows adapter uses DNS-only CNAME/TXT questions, excludes the hosts file, and distinguishes explicit absence from errors.
 
 Implementation and tests use synthetic fixtures only. Actual Exchange/Purview responses, module/runtime compatibility, DNS resolver behaviour, service effects and licences remain **unverified**. The interface harness never presses the DNS action and never executes an exported script.
+
+## Confirmed account during integrated capture — PR #59
+
+Integrated capture uses the verified Graph session's sign-in name as a hint, then independently checks the account returned by Exchange/Purview alongside its tenant and resource. It does not treat the hint as proof that Microsoft selected that account. An empty/display-only name refuses before temporary files or a process are created; reconnect and verify the account. An unknown/different account or ambiguous tenant/resource refuses the initial read. The same identity check runs before every collection, so an account/session change makes that collection unknown/error rather than an empty success. Prior observations retain their original read status; there is no interactive retry or silent account switch mid-capture.
+
+This does not share Graph tokens/caches with PowerShell or promise zero Microsoft prompts. Separate Exchange/Purview consent, CA/MFA and read-only RBAC still apply; the supported installed module is required and is not installed by the toolkit. If module, runtime or application control blocks execution, use the organisation's approved provisioning/security-owner route; no policy change or alternate host bypass is provided.
+
+A manually exported script without a supplied sign-in name retains its historical tenant-only boundary. Supply `-UserPrincipalName` to pin that manual run too; absent account metadata cannot establish account proof in a historical schema-1 export. This change does not add actor fields, alter historical evidence or confer deployment authority.
