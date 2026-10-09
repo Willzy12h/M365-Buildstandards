@@ -20,7 +20,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxProtocolReport.ps1",
-  "scriptSha256": "0c1c4ace4874b36d1475de2110075dc420d69023f629288a3082531bb455f172",
+  "scriptSha256": "4ba7998ba2abbfc20fa39b8290ed3e67c6d117aff7222a7110a7002472f0bea6",
   "supportedRuntimes": [
     "5.1",
     "7"

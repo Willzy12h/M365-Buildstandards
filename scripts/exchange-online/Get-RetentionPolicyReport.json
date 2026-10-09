@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-RetentionPolicyReport.ps1",
-  "scriptSha256": "e1b80ae8d1c7290249d25a3f6b3407e642dc4b118fef0e5c1ce2b00fc4049529",
+  "scriptSha256": "0a2ce5a2d42a9d508b35461699d48cba265d62566650d23fc6bbe59c8414c5d7",
   "supportedRuntimes": [
     "5.1",
     "7"

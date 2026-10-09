@@ -59,7 +59,7 @@ foreach ($rule in @(Get-JournalRule)) {
     $scope = Get-Setting $rule 'Scope'
     if ($scope -eq 'Unknown') { $notes += 'Exchange did not return the rule scope.' }
     # Null is a returned value with a documented meaning here: the rule is not limited to one recipient.
-    $recipient = 'AllRecipients'
+    $recipient = 'Unknown'
     if ($null -ne $rule -and $rule.PSObject.Properties['Recipient']) {
         $recipient = Get-Text $rule.Recipient
         if (-not $recipient) { $recipient = 'AllRecipients' }

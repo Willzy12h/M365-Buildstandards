@@ -76,7 +76,7 @@ if ($Kind -contains 'SharingPolicy') {
         $list = @()
         if ($null -ne $entries) { $list = @(@($entries) | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ } | Where-Object { $_ -ne '' }) }
         $rows = @()
-        if ($false) {
+        if ($null -eq $entries) {
             $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault 'Unknown' 'Unknown' 'NotApplicable' 'NotApplicable' @('Exchange did not return the domains this policy shares with.')
         } elseif ($list.Count -eq 0) {
             $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault 'NotSet' 'NotSet' 'NotApplicable' 'NotApplicable' @('Exchange returned no domains for this policy.')

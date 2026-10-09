@@ -70,7 +70,6 @@ foreach ($policy in @(Get-QuarantinePolicy)) {
     if (-not $name) { $name = 'Unknown'; $notes += 'Exchange did not return the policy name.' }
     $value = 'Unknown'; $preset = 'Unknown'; $permissions = 'Unknown'
     $raw = Get-Value $policy 'EndUserQuarantinePermissionsValue'
-    if ($null -eq $raw) { $raw = 0 }
     $number = 0
     if ($null -ne $raw -and [int]::TryParse([string]$raw, [ref]$number) -and $number -ge 0 -and $number -le 255) {
         $value = [string]$number

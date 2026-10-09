@@ -17,7 +17,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-RemoteDomainReport.ps1",
-  "scriptSha256": "627347a3ae2912262ffcc11dfaa6cce514de223f7ee657a907de2cb26dbc1830",
+  "scriptSha256": "04824f1633bc966eabc52f8bbc7b042b6906d615d03db3e13a2b48b3a8b45002",
   "supportedRuntimes": [
     "5.1",
     "7"

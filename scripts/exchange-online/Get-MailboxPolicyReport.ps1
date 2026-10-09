@@ -47,7 +47,7 @@ function Get-Settings([object]$Item, [string[]]$Names, [string[]]$Counted) {
     $pairs = @()
     foreach ($name in $Names) {
         $value = 'Unknown'
-        if ($null -ne $Item -and $Item.PSObject.Properties[$name]) {
+        if ($null -ne $Item -and $Item.PSObject.Properties[$name] -and $null -ne $Item.$name) {
             $raw = $Item.$name
             if ($Counted -contains $name) { $value = [string]@($raw | Where-Object { $null -ne $_ -and [string]$_ -ne '' }).Count }
             elseif ($raw -is [bool]) { if ($raw) { $value = 'True' } else { $value = 'False' } }

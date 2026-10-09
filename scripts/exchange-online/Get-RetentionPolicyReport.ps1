@@ -114,13 +114,14 @@ foreach ($policy in $policies) {
         continue
     }
     foreach ($link in $linkList) {
-        $found = @($tags | Where-Object { (Get-TagKeys $_) -contains $link })
+        $found = @($tags | Where-Object { (Get-TagKeys $_) -ccontains $link })
         if ($found.Count -eq 1) {
             foreach ($key in (Get-TagKeys $found[0])) { $linkedTags[$key] = $true }
             $row = Get-TagRow $policyName $isDefault $link 'Resolved' $found[0] @()
         } else {
             $why = 'No returned tag has this exact Name, Identity or DistinguishedName, so the tag settings are not shown.'
             if ($found.Count -gt 1) { $why = 'More than one returned tag has this exact value, so the tag settings are not shown.' }
+            $linksUncertain = $true
             $row = Get-TagRow $policyName $isDefault $link 'Unresolved' $null @($why)
         }
         if ((Test-UnknownValue $row) -or $row.LinkStatus -eq 'Unresolved') { $unknownRows++ }
