@@ -52,4 +52,21 @@ $UserPrincipalName = ''
 $script:connections = @(Connection '')
 $null = Assert-CaptureConnection -Purview $false; $checks++
 if ($failures.Count -gt 0) { throw ('Account-check regressions: ' + ($failures -join '; ')) }
+# Exercise the full template entry point, not only the extracted connection helper.
+# Module lookup is an inert sentinel: any attempt to cross that boundary makes the case fail.
+$script:entryModuleCalls = 0
+function Get-Module { $script:entryModuleCalls++; throw 'Unexpected module lookup in empty-account test.' }
+$template = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $ScriptPath).Path).Replace('__TENANT__', $expectedTenant.ToString())
+foreach ($emptyAccount in @('', ' ', "`t")) {
+    $output = Join-Path ([IO.Path]::GetTempPath()) ('bdit-identity-refusal-' + [guid]::NewGuid().ToString() + '.json')
+    $beforeCalls = $script:stubCalls
+    $message = ''
+    try { & ([scriptblock]::Create($template)) -Integrated -UserPrincipalName $emptyAccount -OutputFile $output }
+    catch { $message = $_.Exception.Message }
+    if ($message -notlike 'Integrated capture requires the confirmed sign-in account.*' -or
+        $script:entryModuleCalls -ne 0 -or $script:stubCalls -ne $beforeCalls -or (Test-Path -LiteralPath $output)) {
+        throw ('The integrated empty-account entry point crossed a module/connection/output boundary: ' + $message)
+    }
+    $checks++
+}
 Write-Output ('::notice title=Exchange read identity::' + $checks + ' synthetic connection checks passed; local stub calls=' + $script:stubCalls + '; no Microsoft module, sign-in or tenant read.')

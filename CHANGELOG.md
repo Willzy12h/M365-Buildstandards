@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Verify the integrated Exchange capture refuses empty accounts before module lookup, authentication, collection or output creation.
+
 - Integrated read-only Exchange/Purview capture verifies the returned confirmed account as well as tenant/resource before every collection; unpinned, unknown or mismatched accounts refuse rather than yielding empty-success evidence. Manual unpinned exports retain their historical meaning.
 
 

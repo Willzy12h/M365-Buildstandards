@@ -418,3 +418,7 @@ PR #59 reuses the existing script-library UPN validator for integrated capture a
 ## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
 
 After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
+
+### INT-086 review verification — PR #59
+
+Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
