@@ -84,6 +84,32 @@ public sealed class ReadinessReadStatusTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_known_disabled_account_remains_actionable_when_the_other_identity_cannot_be_checked(bool failedRead)
+    {
+        var graph = new ReadGraph { UserErrorId = failedRead ? Second : null, ChangeUser = user => {
+            if (user["id"]!.GetValue<string>() == TestData.Emergency) user["accountEnabled"] = false;
+            else user.Remove("accountEnabled");
+        } };
+        var row = (await Check(graph)).Single(r => r.ControlId == "ID-001");
+        Assert.Equal("Action required", row.Status);
+        Assert.Contains("disabled", row.Detail);
+        Assert.Contains("unable to check", row.Detail);
+        Assert.DoesNotContain("secret-service-response", row.Detail + row.NextStep);
+        Assert.Empty(graph.Writes);
+    }
+
+    [Fact]
+    public async Task An_unbinding_enterprise_explains_in_progress_without_proposing_another_bind()
+    {
+        var row = (await Check(new ReadGraph { Binding = new() { ["bindStatus"] = "unbinding" } })).Single(r => r.ControlId == "ENR-006");
+        Assert.Equal("Review required", row.Status);
+        Assert.Contains("in progress", row.NextStep);
+        Assert.Contains("Do not start another", row.NextStep);
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("{}")]
     [InlineData("true")]
@@ -138,6 +164,7 @@ public sealed class ReadinessReadStatusTests
         public string TenantId => TestData.TenantA;
         public SessionMode Mode => SessionMode.Assessment;
         public Exception? Error { get; init; }
+        public string? UserErrorId { get; init; }
         public Action<JsonObject>? ChangeUser { get; init; }
         public JsonObject Binding { get; init; } = new() { ["bindStatus"] = "boundAndValidated" };
         public IReadOnlyList<JsonObject> Roles { get; init; } = new List<JsonObject>();
@@ -150,6 +177,7 @@ public sealed class ReadinessReadStatusTests
             if (path.StartsWith("/users/", StringComparison.Ordinal))
             {
                 var id = path.Split('?')[0]["/users/".Length..];
+                if (id == UserErrorId) throw new GraphRequestException(403, "GET", "/synthetic", "Synthetic", "secret-service-response");
                 var user = new JsonObject { ["id"] = id, ["displayName"] = "Synthetic emergency account", ["userPrincipalName"] = "emergency@synthetic.onmicrosoft.com", ["accountEnabled"] = true, ["userType"] = "Member", ["onPremisesSyncEnabled"] = null };
                 ChangeUser?.Invoke(user); return Task.FromResult(user);
             }

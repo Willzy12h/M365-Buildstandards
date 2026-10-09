@@ -19,3 +19,11 @@ Implemented source corrections in `ServiceReadinessService`. The first 25 synthe
 - **Unknown**: the read failed, identity did not match, or necessary fields could not be interpreted. Follow the row's Next step; do not deploy on an assumption that configuration is absent.
 
 Use the existing assessment application and reviewed read permissions. A 403 asks the engineer to validate the registration/grants and their service role; it does not request a new scope or grant consent automatically. A 404 needs the object/service/access checked before setup changes are proposed. The live module, RBAC, WAM and consent journeys in R07 remain acceptance gates.
+
+## CLA-20261008-30/31 response — 9 October 2026
+
+A concrete unsuitable emergency account remains Action required when another identity is malformed or its read fails. The row retains the unknown identity/read and its safe next step; it is not a complete successful check. Disabled accounts are labelled explicitly. No service error payloads are displayed, and caller cancellation still propagates. Per-account read failure no longer discards a previously observed problem.
+
+The official [androidManagedStoreAccountBindStatus beta reference](https://learn.microsoft.com/en-us/graph/api/resources/intune-androidforwork-androidmanagedstoreaccountbindstatus?view=graph-rest-beta) was retrieved over verified HTTPS on 9 October 2026 and lists unbinding (3), alongside notBound, bound and boundAndValidated. This returned state now says Review required with in-progress guidance, without suggesting another bind/consent while unresolved. Unknown/unreturned states retain Unknown. This enum reference is not proof of live timing or successful unbinding.
+
+Three new regression cases failed against the previous source (28 passed, three failed). Final local and Windows results are recorded on the PR. Microsoft, RBAC, consent, operational recovery and human/live acceptance remain open.
