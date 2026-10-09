@@ -95,13 +95,39 @@ Astra's independent review of PR #64 (AST-20261008-11 to -14) was fixed by Claud
 | AST-20261008-13 | When Exchange returns a DKIM signing configuration without its domain, any accepted domain with no matched configuration is DkimConfigured and DkimEnabled Unknown, with the reason, not False. A signing inventory returned empty still gives False with no warning. |
 | AST-20261008-14 | A distribution group's owner list is bounded by the member limit before any owner is looked up, and a longer list warns `BDIT:PARTIAL` naming the ownership list. |
 
+## Third Exchange Online pack
+
+Eight more read-only Exchange Online items, on branch `claude/scripts-exo-pack3-2026-10-08`, built to the same rules as the second pack and its review corrections: a value returned null or not returned is Unknown, never False, NotSet, 0 or blank; NotSet only for a value returned empty and 0 only for a list returned empty; no join on a display name; every bounded read asks for one more than the limit and warns `BDIT:PARTIAL`; anything not measured warns `BDIT:UNKNOWN`. All are Copy and Save only, ASCII, Windows PowerShell 5.1 compatible and live-unverified. Roles follow Microsoft's documentation and have not been confirmed in a tenant.
+
+| ID | Name | Reads | Roles |
+|---|---|---|---|
+| `exo.mailbox-protocols` | Client access protocols per mailbox | `Get-TransportConfig`, `Get-EXOCASMailbox` | View-Only Recipients, View-Only Organization Management |
+| `exo.remote-domains` | Remote domain settings | `Get-RemoteDomain` | View-Only Organization Management |
+| `exo.retention-policies` | Retention policies and tags (MRM) | `Get-RetentionPolicy`, `Get-RetentionPolicyTag` | View-Only Organization Management, Compliance Management |
+| `exo.mailbox-policies` | OWA and mobile device mailbox policies | `Get-OwaMailboxPolicy`, `Get-MobileDeviceMailboxPolicy` | View-Only Organization Management |
+| `exo.sharing` | Sharing policies and organisation relationships | `Get-SharingPolicy`, `Get-OrganizationRelationship` | View-Only Organization Management |
+| `exo.journal-rules` | Journal rules | `Get-JournalRule` | View-Only Organization Management, Compliance Management |
+| `exo.quarantine-policies` | Quarantine policies | `Get-QuarantinePolicy` | Security Reader, View-Only Organization Management |
+| `exo.mail-contacts` | Mail contacts and mail users | `Get-MailContact`, `Get-MailUser` | View-Only Recipients, View-Only Organization Management |
+
+What each item decides, and what it leaves Unknown:
+
+- **Protocols.** Each protocol flag is True, False or Unknown. A mailbox SMTP AUTH setting returned empty means the mailbox has no setting of its own, so it is FollowsOrganisation; one not returned at all is Unknown. The effective SMTP AUTH state is worked out only from returned values. Authentication policies and Conditional Access, which can also block a protocol, are not read.
+- **Retention.** A policy's tag links resolve only when a link is exactly one returned tag's Name, Identity or DistinguishedName (case-sensitive); anything else is Unresolved with no tag settings shown. With unlinked tags ticked, a tag is NotLinked only when every policy's links were returned and resolved; otherwise Unknown. Microsoft Purview retention is not read.
+- **Quarantine.** End-user permissions are decoded from the documented eight-bit value, with the NoAccess (0), LimitedAccess (27) and FullAccess (23) presets named; a value that is missing or not a number from 0 to 255 is Unknown and not decoded. Global quarantine settings are read only when asked for.
+- **Policies, sharing and remote domains.** Settings use the same Unknown, NotSet and count rules as the protection policy item. A sharing entry that does not have the documented domain:access form has Access Unknown.
+- **Journal rules.** No journal rules is a valid empty result with no warning. A rule whose recipient was not returned is Unknown, never all recipients.
+- **Contacts.** External and primary addresses not returned are Unknown, never blank; the read is bounded and marked partial when the limit is reached.
+
+Every finding has a synthetic Copy case in `build/Test-ScriptLibraryStubs.ps1`. Each was checked failing-first by mutating the script back to the wrong behaviour (for example, null as False, an unsized read, a case-insensitive tag match), which made all twelve new negative cases fail, and then restoring it.
+
 ## Not implemented in this slice
 
 - Everything here is manual and unverified live: each item is copied and run by an engineer, and none has been run in a tenant.
 - No entitlement validation. A configured quota, including 100 GB, is not proof of a licence or archive entitlement.
 - No integrated report execution: there is no Run, no owned PowerShell session and no report evidence store yet.
 - No archive mailbox size reporting. Archive status shows the configured archive quota, which is not an entitlement.
-- The library covers twenty-one Exchange Online items (the first ten and the second pack of eleven), not the full reporting scope in the design catalogue.
+- The library covers twenty-nine Exchange Online items (the first ten, the second pack of eleven and the third pack of eight), not the full reporting scope in the design catalogue.
 - **Timeouts.** `limits.timeoutSeconds` in each manifest is not enforced by the copied script, which runs until it finishes or the engineer stops it. Enforcing it is a limit for the future runner (next slice 2), not a property of the Copy script.
 
 These stay open in the [feedback register](PRODUCT-FEEDBACK-REGISTER.md) and are not closed by the synthetic evidence below.
