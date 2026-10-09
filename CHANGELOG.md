@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
+
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
 
 - Verify the integrated Exchange capture refuses empty accounts before module lookup, authentication, collection or output creation.
@@ -232,6 +234,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 # Changelog
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
+
+- Readiness reads now keep failed or malformed results Unknown, preserve exact emergency-account identity and give practical access/service next steps; no configuration is inferred from a failed request.
 
 - Distinguish confirmed pre-request failures from uncertain write outcomes. Auth/guard failures before transport no longer permanently lock a control; original plans remain single-use.
 - Add read-only deployment/recovery re-verification with separate integrity-checked evidence and safe local mapping finalisation. Unknown modern writes remain blocked; completed 1.0.0 records require explicit acknowledgement and fresh exact-ID, ownership and settings checks.
