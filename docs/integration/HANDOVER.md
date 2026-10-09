@@ -1,5 +1,31 @@
 # Handover and priorities
 
+## Current Astra continuation — reviewed merges and pending source, 8 October 2026
+
+Integration `14e62275ca212b6f34ecd3b17d676f2445e39845` contains #42 → #44 → #43 → #45, Claude's fix PRs #51/#49/#48/#50, the independently re-reviewed copy-only library #46, and Claude's findings record #47. Every merge has a separately read passing Windows run. Latest integration run [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 layouts/88 command presses, zero binding issues/tenant calls and fresh 302-file desktop/portable CLI checks. Source remains unpublished Preview.19; this is not a release candidate publication. Exact records: [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md).
+
+**Next, under the [current goal](release-readiness/astra-goal-prompt.md):**
+
+1. Resolve Claude's already posted reviews of #53–#63. #54 corrects tracker wording/layout; #61 refines read-only execution; #55 refines experimental gating. #57's ENR-002 import, #58's legacy shared capacity and #62's refusal-test precision need confirmed fixes before merge. #53/#59/#60/#63 have no blocking safeguard finding; retain follow-ups, refresh and verify exact-head/merge checks. Claude keeps its #46/INT-080/#64/#66 rows and wording. These are open source PRs, not integrated or live-accepted capabilities.
+2. Merge the reviewed default-off experimental-gate contract #55 before implementing dependent runtime gates. Re-review exact refreshed heads, merge commits only, then read each merge run. Green CI alone does not supply independent review.
+3. Finish the dedicated Reports/navigation surfaces, versioned Exchange report adapter/envelope and bounded read-only script execution. #58 only evaluates supplied mailbox observations against exact assigned-plan evidence; it does not yet collect or display a complete mailbox report. #46 has Copy/Save and no Run. Exchange changes remain copy-only. Shared schema amendments require a merged decision before dependent source. UI work continues after the existing #56 interface claim settles.
+4. Prepare the next-preview source/version/package/hash record, promotion PR and live/human forms after the milestone's source and gates integrate. No version has changed yet. Existing publisher #34 remains Claude's area; final 1.1.0, main promotion, tags and publication remain William's approvals.
+
+The concrete [Claude review prompt](CLAUDE-CONTINUATION-REVIEW-2026.10.08.md) lists exact scopes, remaining source and review priorities. #61's initial PR run hit an existing executor outer timeout; its one diagnostic retry (attempt 2) passed with no source/assertion change. All current #61 checks and both #63 scheduling-mitigation runs are green. The first failed run remains recorded; retry success does not establish timing reliability. Claude reviewed both on 8 October. #61 has a contract revision for re-review; #63 has no substantive finding. Merge commits need fresh checks. No independent review is fabricated.
+
+Astra inspected real .NET 10 native renders from #46's merge and #56's exact source `e74d443`, including Configuration and Scripts at 1480×940, 1180×760 and 1180×640. #56's strengthened harness preserves two visible configuration rows and the first script field at all three sizes; all 48 layouts/89 command presses passed after the initial clipping failures were fixed. This does not close newcomer, Narrator, physical scaling or second-engineer acceptance.
+
+The continuation below records historical checkpoints. Its pending claims/CLI exclusion are historical where this section differs; historical package evidence remains bound to its original bytes.
+
+## Execution checkpoint — 9 October 2026
+
+Current integration is `59f1d02`, after #64/#66, merge Windows 37993442839 passed (1,334 engine/CLI, 156 App, native/package checks, zero tenant calls). Opening `14e6227` evidence remains the earlier checkpoint. Astra re-reviewed #64 (original findings closed at source/synthetic level) and posted AST-20261009-01–04 on #66; Claude owns fixes. #65/#67/#68/#69 are green, unmerged additions awaiting independent review.
+
+Follow [ASTRA-EXECUTION-PLAN-2026.10.09](release-readiness/ASTRA-EXECUTION-PLAN-2026.10.09.md). #63 exact-head checks at `2a25438` passed and it merged as `4727264`; merge CI passed in 38000774756. #61's revision `ac1dd29` strengthens proposed mechanism/policy/type rules and awaits fresh checks/re-review before Claude's Run slice depends on it. These are revision checkpoints, not completed merge claims.
+
+
+Latest merge checkpoint: #63 merged as `472726463dd963adf94b7e3e74c6d691f7297fb0` after exact-head `2a254381d419563f5d22b9dc336eaa3dea158f76` Windows push/PR runs 38000139510 / 38000143708 passed. Claude reviewed the unchanged isolation source, with no substantive finding. Production source/test bodies/deadlines are unchanged by the refreshed head. Actual integration merge Windows run [38000774756](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38000774756), build 114058019832, passed all required checks: 1,334 engine/CLI and 156 App tests, 48 layouts/88 command presses, zero bindings/tenant calls, PowerShell 5.1 stub/parser checks and fresh 302-file package startup/CLI checks. Its original ZIP SHA-256 is `162e126ea7bceb34f6436ebd4168174ee22f52ecea6c87b9a41d63c30f9fb165`. This verifies this exact merge, independently of the earlier `59f1d02` proof.
+
 ## Astra continuation — 8 October 2026
 
 PR #42 is ready for independent review at `6a511cf07f1f615fdeee0138147d2fcc9c7a53ce`, not merged. Exact-head Windows push `37717009564` and PR `37717013690` passed: 1,117 Engine + 130 App tests, 45 layouts / 113 synthetic images, zero binding issues, verified standards manifest and fresh 300-file extracted startup/shutdown. It implements actual dependency-only desktop checks and the same evaluator for offline CLI historical filtering, with separate strict partial evidence. Initial harness-integration failures are recorded in INT-076 on that branch; corrected runs do not close human/live gates. Portable CLI hosting is still unimplemented.
@@ -208,3 +234,17 @@ One-time connection means the profile is not saved; local audit evidence is reta
 ## Status vocabulary
 
 Implemented and verified names the actual check. Implemented but unverified identifies missing verification. Planned is agreed work; Candidate is a proposal; Deprecated is superseded behaviour; Known issue is an observed defect. Passing tests do not verify sign-in, consent, live Graph or recovery.
+
+## Waiting on William
+
+- Run the prepared Stage A/Stage B live journeys and new report-query acceptance; provide sanitised results. No agent tenant action is authorised.
+- Perform one interactive Windows `bdit.cmd` run, human accessibility/physical scaling and second-engineer journeys.
+- Choose client banner colours and name product/release/security/support/evidence owners; set evidence/deferral and servicing policies.
+- Confirm candidate signing/distribution and security-owner application-control approval; configure repository/protected release settings.
+- Approve promotion to main, tags/releases/publishing and final 1.1.0 separately after reviewing the finished candidate record.
+
+## Review-response checkpoint — 9 October 2026
+
+Integration now includes Claude #70 as `f718f20c84d1f1839a27fdb416dc88ab38b0c1bf`; actual merge run 38001143404 completed successfully. Original AST-20261009-01/02/04 reproductions pass; AST-03 still has a reproduced whitespace-only counted-list gap, posted on #70 as comment 6090658122. Claude owns that correction and its feedback rows. Independent PowerShell 7 Copy harness passed 178 cases across all 29 items, including wrong-tenant/account refusal with zero reads; this is synthetic, not live acceptance.
+
+#55 `0e0b4d5` and #61 `ac1dd29` review responses passed both exact-head Windows runs and await independent re-review of their revised shared contracts. #58 `cb9c2e4`, #56 `e4a27d4` and #62 `290f7a0` contain review responses; read actual latest CI before merge, never reuse their older review evidence. #57's confirmed ENR-002 naming gap requires proposed INT-091/#71 to merge before dependent source. #65/#67/#68/#69 remain unmerged awaiting Claude review. #53/#59/#60 review responses remain in progress. No live, release or broad completion gate closes here.
