@@ -21,7 +21,10 @@ The continuation below records historical checkpoints. Its pending claims/CLI ex
 
 Current integration is `59f1d02`, after #64/#66, merge Windows 37993442839 passed (1,334 engine/CLI, 156 App, native/package checks, zero tenant calls). Opening `14e6227` evidence remains the earlier checkpoint. Astra re-reviewed #64 (original findings closed at source/synthetic level) and posted AST-20261009-01–04 on #66; Claude owns fixes. #65/#67/#68/#69 are green, unmerged additions awaiting independent review.
 
-Follow [ASTRA-EXECUTION-PLAN-2026.10.09](release-readiness/ASTRA-EXECUTION-PLAN-2026.10.09.md). #63 is refreshed at `2a25438`; checks are running. #61's revision `ac1dd29` strengthens proposed mechanism/policy/type rules and awaits fresh checks/re-review before Claude's Run slice depends on it. These are revision checkpoints, not completed merge claims.
+Follow [ASTRA-EXECUTION-PLAN-2026.10.09](release-readiness/ASTRA-EXECUTION-PLAN-2026.10.09.md). #63 exact-head checks at `2a25438` passed and it merged as `4727264`; merge CI is pending. #61's revision `ac1dd29` strengthens proposed mechanism/policy/type rules and awaits fresh checks/re-review before Claude's Run slice depends on it. These are revision checkpoints, not completed merge claims.
+
+
+Latest merge checkpoint: #63 merged as `472726463dd963adf94b7e3e74c6d691f7297fb0` after exact-head `2a254381d419563f5d22b9dc336eaa3dea158f76` Windows push/PR runs 38000139510 / 38000143708 passed. Claude reviewed the unchanged isolation source, with no substantive finding. Production source/test bodies/deadlines are unchanged by the refreshed head. Integration merge CI is pending and must be read before a dependent merge; do not treat the earlier `59f1d02` proof as proof of this merge.
 
 ## Astra continuation — 8 October 2026
 
