@@ -1,0 +1,64 @@
+using System.Text.Json.Nodes;
+using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Evidence;
+using BDIT.TenantToolkit.Engine.Naming;
+using Xunit;
+
+namespace BDIT.TenantToolkit.Tests;
+
+public sealed class ZzReviewNaming43Tests
+{
+    // R1: published catalogues use collection "apps" (APP-IOS-*) for /deviceAppManagement/mobileApps.
+    [Fact]
+    public void R1_apps_collection_controls_can_be_authored()
+    {
+        var c = new ControlDefinition { Id = "APP-IOS-001", Collection = "apps" };
+        Assert.Equal(NamingConvention.Conforming, NamingConvention.CheckAuthored(c, "APP - Company portal - iOS").State);
+    }
+
+    [Fact]
+    public void R1b_apps_only_capture_is_audited()
+    {
+        var item = new JsonObject { ["id"] = TestData.Mam, ["displayName"] = "Company portal" };
+        var s = new TenantSnapshot { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA, CapturedAt = "2026-09-11T10:00:00Z",
+            Collections = new() { ["apps"] = new CollectionCapture { Status = CaptureStatus.Collected, Count = 1, Items = [item] } } };
+        s.IntegrityDigest = EvidenceIntegrity.Compute(s);
+        var r = NamingAudit.Review(s, new ManagedObjectMappings { TenantId = s.TenantId }, []);
+        Assert.NotEmpty(r.Objects); // the app's non-conforming name should be reported
+    }
+
+    // R2: configuration and endpointProtection read the same /deviceConfigurations path.
+    [Fact]
+    public void R2_overlapping_collections_do_not_report_mapped_object_as_unmapped()
+    {
+        var payload = new JsonObject { ["displayName"] = "CFG - Endpoint protection - Windows" };
+        var readback = (JsonObject)payload.DeepClone(); readback["id"] = TestData.Mam;
+        var run = new DeploymentRun { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA, Results = [new RunResult
+        {
+            ControlId = "CFG-WIN-009", Collection = "endpointProtection", ObjectId = TestData.Mam, PlannedAction = "Create", WriteAcceptance = WriteAcceptance.Accepted,
+            Configuration = ConfigurationVerification.Pass, WrittenPayload = payload, AfterObject = readback,
+            PayloadDigest = CanonicalJson.Sha256(payload), ReadbackDigest = CanonicalJson.Sha256(readback), WrittenAt = "2026-09-11T09:00:00Z"
+        }] };
+        run.IntegrityDigest = EvidenceIntegrity.Compute(run);
+        var s = new TenantSnapshot { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA, CapturedAt = "2026-09-11T10:00:00Z",
+            Collections = new() {
+                ["configuration"] = new CollectionCapture { Status = CaptureStatus.Collected, Count = 1, Items = [(JsonObject)readback.DeepClone()] },
+                ["endpointProtection"] = new CollectionCapture { Status = CaptureStatus.Collected, Count = 1, Items = [(JsonObject)readback.DeepClone()] } } };
+        s.IntegrityDigest = EvidenceIntegrity.Compute(s);
+        var m = new ManagedObjectMappings { TenantId = s.TenantId, ByControl = new() { ["CFG-WIN-009"] = new ManagedObjectMapping
+        { ControlId = "CFG-WIN-009", Collection = "endpointProtection", ObjectId = TestData.Mam, RunId = run.Id, LastApplied = payload, LastAppliedDigest = CanonicalJson.Sha256(payload) } } };
+        var rows = NamingAudit.Review(s, m, [run]).Objects;
+        foreach (var o in rows) Console.WriteLine($"R2 {o.Collection} {o.ObjectId} -> {o.Ownership}");
+        Assert.DoesNotContain(rows, o => o.ObjectId == TestData.Mam && o.Ownership == NamingAudit.Unmapped);
+    }
+
+    // R3: NFD-decomposed accented letters (combining marks) are rejected as disallowed characters.
+    [Fact]
+    public void R3_decomposed_accents_are_letters()
+    {
+        var nfd = "GRP - Caf" + "é" + " team";
+        Assert.Equal(NamingConvention.Conforming, NamingConvention.CheckName(nfd, "groups").State);
+    }
+}

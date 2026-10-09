@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.remote-domains",
+  "name": "Remote domain settings",
+  "category": "exchange-online",
+  "area": "Mail flow",
+  "description": "Lists remote domains with whether automatic forwarding, automatic replies, delivery reports and non-delivery reports are allowed, their out-of-office type, TNEF setting and character sets.",
+  "keywords": [
+    "remote domain",
+    "auto forward",
+    "automatic forwarding",
+    "auto reply",
+    "out of office",
+    "NDR",
+    "TNEF",
+    "Get-RemoteDomain"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-RemoteDomainReport.ps1",
+  "scriptSha256": "04824f1633bc966eabc52f8bbc7b042b6906d615d03db3e13a2b48b3a8b45002",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "OnlyAutoForwardAllowed",
+      "label": "Only domains that allow auto forwarding",
+      "type": "boolean",
+      "help": "Leave out remote domains Exchange reports as blocking automatic forwarding. A domain whose setting is unknown is kept."
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Name",
+      "DomainName",
+      "AutoForwardEnabled",
+      "AutoReplyEnabled",
+      "AllowedOOFType",
+      "DeliveryReportEnabled",
+      "NDREnabled",
+      "TNEFEnabled",
+      "CharacterSet",
+      "NonMimeCharacterSet",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 2000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "The Default remote domain (*) applies to every domain no other remote domain names; precedence between overlapping entries is not worked out here.",
+    "Outbound spam policies and mail flow rules can also block automatic forwarding; they are not read, so AutoForwardEnabled True is not proof that forwarding leaves the tenant.",
+    "TNEFEnabled returned empty means Exchange leaves TNEF to the sender's Outlook settings and is shown as FollowsClient; one not returned at all is Unknown. A setting returned empty is NotSet.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}
