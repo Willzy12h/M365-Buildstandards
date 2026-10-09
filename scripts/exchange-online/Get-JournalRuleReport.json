@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.journal-rules",
+  "name": "Journal rules",
+  "category": "exchange-online",
+  "area": "Compliance",
+  "description": "Lists journal rules with their scope, the recipient they journal, the journal address that receives reports and whether each is enabled.",
+  "keywords": [
+    "journal",
+    "journaling",
+    "journal rule",
+    "compliance",
+    "Get-JournalRule"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-JournalRuleReport.ps1",
+  "scriptSha256": "216a6d89d45e06363f02c609dc91e91c5117c2184ef34f2fc893924b4ba41e62",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management",
+    "Compliance Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "OnlyEnabled",
+      "label": "Only enabled rules",
+      "type": "boolean",
+      "help": "Leave out rules Exchange reports as disabled. A rule whose state is unknown is kept."
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Name",
+      "Enabled",
+      "Scope",
+      "Recipient",
+      "JournalEmailAddress",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 1000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read journal rules, such as View-Only Organization Management or Compliance Management.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "No journal rules is a valid result: the run returns no rows and no warning.",
+    "A rule whose recipient is returned empty journals every recipient and is shown as AllRecipients; a recipient not returned at all is Unknown.",
+    "The journal address is shown as returned; whether that mailbox exists or accepts journal reports is not checked.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

@@ -414,3 +414,7 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 ## INT-084 — Enforce existing authored naming at local import boundaries
 
 PR #57 calls the existing reviewed `NamingConvention.RequireAuthored` from both local candidate importers. It checks only the new resolved candidate name and preserves baseline/historical controls. No global loader rule, schema, new compiler, live rename, permission or execution change is introduced. Names with leading/trailing whitespace refuse instead of being silently trimmed into compliance. Import shape and write-payload safeguards remain independent. Meaningful fixtures use compliant names so negative settings/metadata tests retain their original purpose.
+
+## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
+
+After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
