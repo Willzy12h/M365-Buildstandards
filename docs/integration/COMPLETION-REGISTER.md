@@ -1,3 +1,22 @@
+# Current continuation — 10 October 2026
+
+Integration `5ef5470e1d6d28653261d88f40e854ebe9d09d02` remains unpublished Preview.19; actual integration push [38057154787](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38057154787) passed. [CURRENT-STATE](CURRENT-STATE.md) and [exact merge evidence](MERGE-EVIDENCE-2026.10.10.md) supersede older pending source status below. Preserve historical proof; it does not validate changed bytes.
+
+| Product surface | Already present / added / fixed | Remaining implementation or validation |
+|---|---|---|
+| Readiness, guidance, configuration HTML | #53/#56 fixes merged; assessment remains read-only | Human/newcomer/Narrator/scaling and Microsoft acceptance remain open |
+| Naming/import | Existing audit; #57 ENR/import correction merged as 5ef5470 after resolved Claude review and fresh exact-head checks | Actual merge CI green; naming desktop surface and live acceptance |
+| Offline reports | #62 added CLI exports; #65/#68 merged; #65 open truncation gap and #68 fidelity checks corrected on unmerged #78 | Connected Reports/navigation integration not implemented; tests claim no optimisation |
+| Mailbox capacity | #58 pure evaluator added | Real bounded inventory/adapters and integrated entitlement/report UI not implemented |
+| Scripts | 29 Copy/Save-only items; #61 execution contract and #74/#75 engine merged | AST-20261010-05 stop-callback failure still leaves its owned child running; Claude fix plus adapters/Run UI remain. Exchange changes stay copy-only |
+| Authentication/experimental safeguard | Existing broker/cache/session; #73 guard/previews and production-path corrections implemented | Latest `dc2f5de` fixes preview timing/modal cancellation (66 focused local checks and strict cross-build); fresh Windows push/PR 38064417447 / 38064420362 passed (1,774 engine/CLI +170 App); independent review and live Microsoft behaviour remain unverified |
+| Application metadata reports | #69 decision drafted; William acknowledged existing Application.Read.All reuse | Contract merge and source implementation not completed; no Directory.Read.All or live consent added |
+| Offline prerequisite diagnostics | Concrete command/result/exit proposal on #69 `e0611bf` | Contract review/merge and source implementation pending; no local health or Microsoft readiness claim |
+| Startup/workflow integrity | Existing jobs/legacy/completion workflows; AST-20261010-07 fixed in #79 | Five original-source negatives fail; restored 138 related local checks pass; source `816567e` full Windows green, latest `4a57ac1` push/PR 38064755065 / 38064759648 passed; independent review required |
+| Release candidate | #77 draft promotion placeholder; [candidate record/blank form](release-readiness/RELEASE-CANDIDATE-DRAFT-2026.10.10.md) and exact baseline proof prepared | Next-version candidate and approved publisher pin still required; no main promotion, tags or publication |
+
+No broad feedback item or human/live gate is closed. Claude’s rows/findings are preserved; stale Claude-owned claim states remain for Claude’s reconciliation. The rest of this register is historical, including its former “Current” headings.
+
 # Current source completion record — 8 October 2026
 
 Source baseline: integration `14e62275ca212b6f34ecd3b17d676f2445e39845`, unpublished `1.1.0-preview.19`, immutable standard `2026.09.30`. This Astra update supersedes earlier pending source/PR status; historical acceptance and publication identities below remain unchanged. [Exact reviewed merges and CI](MERGE-EVIDENCE-2026.10.08.md) records #48–#51, #42/#44/#43/#45 and #46/#47. Latest integration Windows [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 native layouts/88 command presses, zero bindings/tenant calls and fresh 302-file desktop/CLI package checks.
@@ -189,3 +208,9 @@ Integration now includes Claude #70 as `f718f20c84d1f1839a27fdb416dc88ab38b0c1bf
 #54 and #63 are merged with their recorded actual Windows merge proof. #59 is merged as `80f8eefe`; actual run 38003657066 passed (1,341 engine/CLI, 156 App, 48 layouts/88 command presses, zero bindings/tenant calls, PS5.1, 20 identity cases, fresh 302-file package). #60 is merged as `d8d2106` after both exact-head Windows runs passed; actual run 38004394313 passed (1,344 engine/CLI, 156 App, native/PS5.1/fresh-package checks, zero tenant calls). Neither closes human/live workflow acceptance.
 
 #53/#56/#58/#62 implement their review responses and await source-delta review. #55/#61/#71 are revised/proposed shared decisions awaiting independent review before dependent source. #57 awaits the missing enrolment naming decision. #65/#67/#68/#69 await first review. Claude retains ownership of its script corrections, records, runner and publisher. Mailbox capacity evaluation is not yet integrated mailbox collection/reporting; scripts remain Copy/Save only. No broad feedback or live gate is closed.
+
+## Delegated follow-up — 10 October 2026
+
+Integration remains unpublished Preview.19 at `5ef5470`. No PR merged during this follow-up. A pinned read-only queue check found no current-head independent clearance for #67/#69/#73/#76/#78/#79; green jobs alone do not waive HANDOVER. #77 stays draft. Claude retains AST-20261010-05/process-owner repair and its adapters/Run UI/mailbox/own tracker work.
+
+Astra repairs the independently reproduced AST-20261010-08 at #73 `6d70d1d`: monotonic elapsed time rejects delayed-timer late success. Six deterministic cases fail on exact original bytes; all 77 focused cases pass repaired. Strict solution/harness cross-builds pass; fresh Windows push/PR 38072248311 / 38072252418 passed (1,785 engine/CLI +170 App, native/PS5.1/fresh package). Claude delta review remains required. The full local attempt retains 1,659 passing and 22 runtime-discovery empty-theory failures; it is not a passing full-suite claim. [Delegation evidence](release-readiness/DELEGATION-2026.10.10.md) preserves these limits. No source gap, broad feedback item, human/live gate or release authority is marked complete by delegation.

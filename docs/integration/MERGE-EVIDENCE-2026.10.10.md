@@ -1,0 +1,68 @@
+# Reviewed integration merges — 10 October 2026
+
+Source remains **1.1.0-preview.19, unpublished**. These are source/Windows checks, not live acceptance or release approval. Historical catalogues and earlier release evidence remain unchanged.
+
+| PR | Exact reviewed/refreshed head | Integration merge | Actual integration push run |
+|---|---|---|---|
+| [#58](https://github.com/Willzy12h/M365-Buildstandards/pull/58) | `6b20bbf549fd0f121666fb1365e1de15c9c81125` | `f679d3da6beb7265fa8c0637d2cfa867b98c8e61` | [38041551599](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38041551599) |
+| [#62](https://github.com/Willzy12h/M365-Buildstandards/pull/62) | `c691baeac4094cca41d21d9544f0b31d510f10ff` | `ee9ca60436ee85fe6447bf281e9d72cb72c4db94` | [38042386974](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38042386974) |
+| [#65](https://github.com/Willzy12h/M365-Buildstandards/pull/65) | `08fd92f0f9db2273ee73a6acfe84e6b51060cd62` | `a55659defff56bd714fee604eeb82363cc7ee603` | [38043570359](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38043570359) |
+| [#68](https://github.com/Willzy12h/M365-Buildstandards/pull/68) | `831b5bc6451d6f3631116709da4be2f751a7b292` | `463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8` | [38044346614](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38044346614) |
+| [#74](https://github.com/Willzy12h/M365-Buildstandards/pull/74) | `620c200985480922f1935b37538dca01f25ae83f` | `fa62b6d2c89170073c104e55f3ffe54e9ec27cd9` | [38054642020](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38054642020) |
+| [#75](https://github.com/Willzy12h/M365-Buildstandards/pull/75) | `635d0ebc4814605334b494a7df5bffefd7029fad` | `7573887329100be2dfb6d998f55310c1d34dd71a` | [38055150098](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38055150098) |
+| [#57](https://github.com/Willzy12h/M365-Buildstandards/pull/57) | `b8b2537811a827aceaa31d8d329138754708fb17` | `5ef5470e1d6d28653261d88f40e854ebe9d09d02` | [38057154787](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38057154787) |
+
+Astra #58/#62/#65/#68 retain Claude’s independent source review; Claude #74/#75 retain Astra’s corrected-head re-review. **#65 merged while CLA-20261009-01 was still open:** an earlier conflicting ready comment was wrongly treated as resolving it. Preserve that review; #78 adds the missing truncation/retained-reason regression and requires independent review/merge. This table records source/CI, not a claim that every review finding was closed at each merge. Refreshed heads passed build/standard/secrets checks before merge; merge commits use actual successful integration push runs. Required jobs and package source identities were independently read. Append-only log conflicts preserve both histories and Claude claim rows. No production conflict was resolved by taking one side wholesale.
+
+The final integration push verified 48 native page/size renders, 89 commands, zero binding issues/tenant calls, the fresh 302-file package, stage bytes/checksums, first launch/shutdown, Accessibility/context-menu Copy and portable CLI output/exit/inventory/jobs/report routes. Original ZIP SHA-256: `4238d9f70af4315175ac2f7ee8f83d3c4eb596caa1178b3667380fec2418911f`. This Preview.19 CI package is not the final candidate, a release pin or publication.
+
+CI-record correction: the private merge observer initially chose the newest matching head-SHA run for #65/#68, which was the new main-promotion PR check. Those checks also passed; the canonical records above instead verify the actual integration **push** runs, with package source SHA matched. PR comments were corrected; future selection filters by event as well as branch/source. Do not reuse a prospective main-merge check as integration merge proof.
+
+## Corrected Claude evidence and runner verification
+
+#74 exact push/PR Windows runs 38047845689 / 38047848692 passed. Local strict evidence-reader tests: 45 passed. Original-reader negative control: 13 intended blank/whitespace refusals failed and one valid control passed; restored 14/14 passed. Actual merge push 38054642020 verified its exact package source; original ZIP SHA-256 `8208073714dc5aa22798b07971ba3cdf3b408d26bf375a2c264df5f55a983e67`.
+
+#75 actual exact push run 38048843073 **attempt 2** and PR run 38048846471 attempt 1 passed (handoff event labels were reversed). Push attempt 1 failed the PowerShell 5.1 cooperative-stop grace test; no evidence was saved. Keep that failure visible. Local real-wrapper/synthetic-PS7-module checks: 116 passed. Original explicit-null reader: 8 intended failures/17 positive passes, restored 25 passed. Original token wrapper: 13 intended failures/5 valid controls, restored 18 passed. Product bytes were restored exactly after these external scratch comparisons.
+
+The actual #75 integration push 38055150098 passed 1,687 engine/CLI and 157 App tests without failures/skips, 48 native renders/89 commands, zero bindings/tenant calls, PowerShell 5.1 checks and fresh 302-file package startup/CLI. Package source matches `7573887329100be2dfb6d998f55310c1d34dd71a`; original ZIP SHA-256 `796d5539fd5bba7608f5947323994484c9bdb76498fc09bf6c7cf4962bd35b2d`. Engine only: no shipped runnable adapter, Run UI or live module/token verification. Cooperative-stop timing and a dedicated final-close-only negative control remain follow-ups; neither becomes live acceptance.
+
+## Pending Astra review responses
+
+#57's core ENR finding is independently resolved; its compatibility clarification and refreshed head b8b2537 passed exact Windows push/PR 38056546038 / 38056548278. It merged as 5ef5470; actual integration push 38057154787 passed 1,716 engine/CLI and 157 App tests, 48 layouts/89 commands, zero bindings/tenant calls, PS5.1 and fresh 302-file startup/CLI checks. Package source matches the actual merge; original ZIP SHA-256 `cf4a15b9c570007b8f5dc52c8ac3e57675451f0af9221b6329ff154912bf16ca`. #67 `5ee67b3` adds successful page-two retry, actual report-service retained-row cancellation and explicit renewal-count tests; narrow re-review is requested. #69 `2cd5289` records ownership, strict schema dispatch and replication limits; permission purpose was already acknowledged. #73 implements those production silent-renewal/setup/consent boundary regressions at 28a30a0: operator/scope/event mutations cause 1/4/8 intended failures and restored 11/11 pass. Actual Windows push 38057034112 passed 1,737 engine/CLI and 170 App tests, 48 layouts/89 commands, zero bindings/tenant calls, PS5.1 and fresh 302-file checks. Original ZIP SHA-256 e54f932e6aa4b7b637c8baad8282cc803d2d83ee42e50637ae4207cc4e503174; PR run 38057036961 also passed; independent delta review remains. #78 `ea17fa7` closes #65/#68 test gaps on its branch and passed exact Windows push/PR 38055393043 / 38055397201; independent review/merge remains. These branch proofs do not certify integration bytes.
+
+#77 is now an accurately labelled draft placeholder, not a release candidate approval. No live gate, broad feedback item, new consent, version bump or publication is complete.
+
+## Refreshed response heads — not merged
+
+#67/#69/#73/#78 now contain integration 5ef5470. Their response source/test/build files and incoming #57 source/tests are byte-identical to their respective previous heads. Resolve only append-only log insertion conflicts; preserve both histories and all incoming Claude rows. Every exact-head Windows push and PR run below passed all required jobs, with zero failed/skipped tests, 48 native layouts/89 commands, zero bindings/tenant calls, PowerShell 5.1 checks and fresh 302-file package startup/CLI. Push package source identities match the heads below; prospective PR merge packages have separate source/hash identities. All runs are attempt 1. Independent delta review remains before merge; this is not integration or release proof.
+
+| PR | Exact response head | Windows push / PR run | Engine/CLI / App passed | Original push ZIP SHA-256 |
+|---|---|---|---|---|
+| #67 | `3401980482fe95f57f0d297d242ff4d434c0bc7f` | 38060710948 / 38060713489 | 1723 / 157 | `3c11ec7f019bc59f4c7ad26e0a047287e4f9c3b19df7c6624be85fc3c8948c59` |
+| #69 | `ef434aa4d23dc4e4fa86a6680cd06e262c2d2d60` | 38060734610 / 38060738159 | 1716 / 157 | `53497be321992485ac939da771b711a86c91b79f7b56530688578779e19b2f41` |
+| #73 | `1996c0dff23a4ad5010f6914aff25cb27832a7fb` | 38060747543 / 38060752044 | 1766 / 170 | `c134680f70f590905a48ba98ac692d0baf86b474785cb3837d27bff243fb986d` |
+| #78 | `b272edfc5fa9f6765283a7b5d06fbfd6ee2abbd9` | 38060763307 / 38060766622 | 1717 / 157 | `5a0fd01f7f40933d4b147587eec8fa99573112c090e9bcfe4b689dfd6e92295d` |
+
+#76's preceding records head d705a6b passed push/PR 38057815413 / 38057819081 (1,716 engine/CLI, 157 App, native/PS5.1/fresh portable); push package source d705a6b, original ZIP SHA-256 99434549d9bca93aa20c8d87e66591d703493df65fafba0ffd309f7bd756ae95. Later records edits require their own checks. No review disposition, human/live gate or publication is inferred from these green runs.
+
+## Focused xhigh follow-up heads — not merged
+
+Integration remains `5ef5470`. All push/PR runs below passed on the listed current heads; no independent review or actual integration merge is inferred. #79 initially used finding ID AST-20261010-04; its canonical ID is -07, preserving the older #77 record.
+
+| PR | Exact head | Windows push / PR runs | Engine+CLI / App passed | Original PUSH ZIP SHA-256 |
+|---|---|---|---|---|
+| #69 | `e0611bf79c3a0c24a04df56ff62bb3db79a78b30` | 38064527697 / 38064532488 | 1716 / 157 | `b0ba63618022ba20deebf19e113bf5eeb5bc34112ace5e525399670b7b2bd787` |
+| #73 | `dc2f5de9504d73004051d89f431479c67808f740` | 38064417447 / 38064420362 | 1774 / 170 | `699088951fe99527c12073fcce843530a850c36d3bc1c9a1c10b4263e3ed8e11` |
+| #79 | `4a57ac1172004c0c87b2ce564b8f20eaf025ee52` | 38064755065 / 38064759648 | 1722 / 157 | `cfcf010d2c1a684ca1e8fa0a1e1d804721d7277d12814a0a4be72383d638191e` |
+
+Each run: zero failed/skipped tests, 48 native page/size renders, 89 commands, zero binding issues/tenant calls; PowerShell 5.1 parser/synthetic checks; fresh 302-file desktop/CLI extraction/startup, Accessibility and context-menu Copy. #73’s native harness includes both new permission-review cancellation cases. All packages are unpublished Preview.19 / standard 2026.09.30, and the push package source equals the branch head. PR artifacts are prospective merges, not actual integration pushes.
+
+Initial #79 source `816567e79c33f9ea93fdb9270d513f58c404f907` also passed push/PR 38063960007 / 38063963771 (1,722 +157); original push ZIP `eb2dad852aacbd1f43e108786e0263b3fdff939a20c809cff4eec6bf8da327a6`. The final ID-only documentation correction preserves source/test bytes, with fresh checks above. Local ZIP download was refused by the environment’s artifact-storage destination; no local independent rehash is claimed. Original artifacts and check annotations remain on GitHub.
+
+## Delegated authentication deadline repair — not merged
+
+AST-20261010-08 is implemented on #73 at `6d70d1d28547632d404bc185c500a717c392854d`. The bounded Sol 6.1 xhigh comparison found the delayed-timer case; Astra independently reproduced it against original `dc2f5de`. Six deterministic negatives fail on exact original production bytes, with 71 controls passing; repaired source passes all 77 focused cases. Strict solution and native-harness cross-builds pass without warnings. Full local attempt retains 1,659 passes and 22 empty-theory failures because PowerShell is outside the fixed system discovery paths; it is not full-suite success.
+
+Actual exact-head Windows push [38072248311](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38072248311), build `114271891248`, and PR [38072252418](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38072252418) both passed build/standard/secrets at attempt 1. Push annotations verify 1,785 engine/CLI and 170 App tests, zero failed/skipped; 48 native page/size renders, 89 commands, zero bindings/tenant calls; PS5.1 parser/synthetic script/identity checks; fresh 302-file package with matching staged bytes and checksums, blank connection settings/empty evidence, actual desktop first launch/shutdown, Accessibility.dll, right-click Copy and portable CLI routes. The two permission-dialog cancellation checks remain in the native harness.
+
+Original push ZIP SHA-256: `57f3948e48b93c3712e1394d1159369681c59f24a49ec59de7bb525f667c783c`. The package reports source `6d70d1d28547632d404bc185c500a717c392854d`, unpublished `1.1.0-preview.19`, standard `2026.09.30`. Historical standard/manifest hashes remain `124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f` / `1531eaa86f707bb4506983f8a190b0d4af1d5879d3463b3f32a0c27473da68b3`. This is verified CI evidence, not local possession/rehash of the ZIP, the next-preview candidate, actual integration merge proof, independent review or live acceptance. Required Claude delta review remains open. No merge, version bump, tenant action or publication occurred.

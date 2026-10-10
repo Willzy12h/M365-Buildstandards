@@ -498,6 +498,18 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
+### Continuation hygiene — 10 October 2026, PR #76
+
+William authorised cleanup to reduce repeated historical checking. Remove only merged Astra branch references whose heads remain reachable from integration and have no open PR; retain active work, Claude remote branches, tags, releases and historical evidence. The audit records original heads. CURRENT-STATE is a dated orientation index, not a substitute for fresh all-three-repository pre-flight, affected contract review or exact-head/merge verification. No safeguard or publication authority changes. William also acknowledged the existing Application.Read.All metadata inventory purpose; #69 retains its separate decision/implementation boundary and grants no live action or new Directory.Read.All consent.
+
+### Continuation record refinement — 10 October 2026, PR #76
+
+Keep a compact current index and commit-bound merge table while retaining historical records. Actual integration push CI is distinct from a prospective main-promotion PR check, even when both advertise the same head SHA; source/package identities must match the recorded merge. #65/#68 records are corrected to verified push runs without ignoring failures or granting release approval. Source review AST-20261010-01–03 remains with Claude for fixes; #77 is a draft promotion placeholder with accuracy finding -04. No safeguard, schema, permission, publication or human/live gate is weakened.
+
+### Continuation second independent review response — 10 October 2026, PR #76
+
+CLA-20261010-50–53: acknowledge #65's still-open truncation-test gap at merge (corrected on #78, not silently closed); label cleanup JSON as a historical snapshot and every Claude ref as outside Astra cleanup authority; expose the two paused PR-less Claude branches; refresh actual #74/#75 merge/source/push proof and retain one #73 claim row. Keep CLA-owned rows untouched. The duplicate historical INT-091 allocation is disambiguated as INT-091/#65 (scale) versus INT-091/#71 (enrolment); do not reassign or erase either decision's history. This index and the green suite do not close remaining production-wiring, human/live or release gates.
+
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
 After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
@@ -505,3 +517,22 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 ### INT-084 compatibility clarification — 10 October 2026, PR #57
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
+
+### Own tracker reconciliation follow-up — 10 October 2026, PR #76
+
+Record reviewed #57 as merged 5ef5470 with its fresh source checks and actual merge run still pending; record #73 production-path response without claiming full Windows/native/live proof. Consolidate only Astra's redundant #56 response row, retaining scope and immutable Git history. Preserve every Claude row and one #73 row. This is status accuracy, not human/live or release acceptance.
+
+### Reviewed naming branch cleanup — 10 October 2026, PR #76
+
+After #57 merged, freshly verify b8b2537 is its remote/local head, has no open PR and is reachable from retained integration 5ef5470. Delete only that merged Astra ref; audit totals become 29 remote and 26 local removals. Preserve all Claude refs, active Astra work, tags and evidence. No history or catalogue is deleted.
+
+### Naming merge and production-authentication check identities — 10 October 2026, PR #76
+
+#57 exact head b8b2537 passed push/PR 38056546038 / 38056548278 and the independently reviewed source delta was unchanged by refresh/compatibility wording. Merge 5ef5470 passed actual integration push 38057154787, with package source matched and no tenant calls. #73 production response 28a30a0 passed exact push/PR 38057034112 / 38057036961 and still requires independent delta review; no unmerged branch proof becomes integration or live acceptance. Source remains unpublished Preview.19.
+
+### Astra response-base refresh — 10 October 2026, PR #76
+
+Refresh #67/#69/#73/#78 to actual integration 5ef5470 before their pending delta reviews. All source/test/build response files and incoming #57 source/tests retain exact prior bytes. Resolve only insertion conflicts in CHANGELOG/DECISION-LOG, preserving both histories; #78 keeps the precise unsealed-edit refusal wording. New heads are 3401980/ef434aa/1996c0d/b272edf. Re-run exact Windows checks rather than reusing previous-source proof. Do not merge before the independent response review; no other-agent row, version, permission, tenant action or release gate changes.
+### Focused review and candidate-record accuracy — 10 October 2026, PR #76
+
+Record the xhigh continuation against actual integration `5ef5470`, preserving branch-only fixes and the unresolved independent-review gates. AST-20261010-05 stays with Claude's owned runner; -06 belongs to #73's Claude-attributed preview correction; -07 identifies #79 startup integrity, superseding its accidental reuse of -04 without erasing #77's earlier record. The candidate draft cites the tested baseline separately from unfilled future candidate fields and blank human approvals. It is not a publisher pin, live acceptance, version bump or authority to promote. Current source gaps remain explicit rather than reclassified as completed/deferred.
