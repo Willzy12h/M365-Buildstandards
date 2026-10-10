@@ -4,16 +4,16 @@
 
 Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot and next work. Refresh integration and open PR heads before using it. The dated sections below are historical checkpoints; their old pending states and package proofs apply to their recorded revisions. Preserve them, but do not infer current capabilities from an older section. Required coordination, safeguards and exact-source verification remain unchanged.
 
-## Next — 10 October 2026
+## Next — 10 October 2026, current continuation
 
-Integration is `5ef5470`, actual push run 38057154787 green (1,716 engine/CLI, 157 App, native/PS5.1/fresh package). [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68 and corrected Claude #74/#75, including the retained #65 review gap and #75 failed first attempt.
+Integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e` contains reviewed #67 and #69; actual integration pushes 38089490338 / 38091061845 passed. Source remains unpublished Preview.19 / standard 2026.09.30. CURRENT-STATE identifies the active source/review queue; MERGE-EVIDENCE binds exact sources, checks and package identities.
 
-1. Claude #74/#75 fixes are independently re-reviewed and merged. The engine is implemented, live-unverified; runnable report adapters/Run UI still belong to Claude and are not present. Use the [compact delta-review packet](release-readiness/CLAUDE-DELTA-REVIEW-2026.10.10.md). Keep Exchange changes copy-only.
-2. Corrected Astra #67/#69/#73/#78 now all include integration 5ef5470 and are mergeable at 3401980/ef434aa/1996c0d/b272edf. Response source/tests and incoming #57 source/tests are unchanged byte for byte; only log insertion conflicts required resolution. Every fresh exact-head Windows push/PR check passed, including native/PS5.1/fresh portable checks; [exact response proof](MERGE-EVIDENCE-2026.10.10.md#refreshed-response-heads--not-merged) records runs, counts and original push-package fingerprints. #57 remains merged and its actual integration push green. Independent delta review still precedes each merge under the delegation below; the earlier conflicting ready comments do not close findings. No repeated permission-purpose acknowledgement is needed.
-3. Finish dependent report/adapters/navigation, agreed application reports and offline prerequisite diagnostics, then prepare the next-version exact-source candidate and truthful release record. No unimplemented surface is complete.
-4. When the required source slices and corrected reviews integrate, provide William with the requested paste-ready Astra xhigh final-review prompt pinned to the green source SHA. Follow [REVIEW-STRATEGY](release-readiness/REVIEW-STRATEGY-2026.10.10.md). Keep #77 a draft promotion placeholder; its accuracy wording is corrected. No main merge or publisher invocation without William's separate approval.
+1. Close Claude's current-delta reviews of #73/#78–#82/#84 and refreshed #76; merge eligible source with merge commits, preserving runtime/evidence/authentication safeguards through parent updates. Verify actual integration push CI after each merge.
+2. Claude corrects #85's stop-file fixture and #86's missing ExchangeGuid/cap-disclosure findings, then finishes owned Exchange adapters, Run UI and mailbox integration. Runner source alone does not establish runnable adapters or complete reporting.
+3. Astra finishes application metadata engine #87 and offline diagnostics #88 under merged INT-094, then desktop/CLI wiring in sequence with existing claims. No duplicate Application.Read.All acknowledgement or new Directory.Read.All consent.
+4. Inspect final native renders/engineer flows; prepare the authorised next-preview exact-source ZIP/hash/capability/candidate record and compact final-review packet pinned to the tested SHA. #77 remains a draft main-promotion placeholder. Green tests do not finish source or acceptance.
 
-Waiting on William: live tenant/Microsoft acceptance; interactive Windows console and human accessibility/handoff checks; client colours, named owners/evidence/deferral policies and security-owner signing/distribution decisions; protection/settings changes, main promotion, tags/releases/publication and final 1.1.0 approval. Current source work requires no duplicate permission-purpose acknowledgement.
+Waiting on William: live Microsoft/tenant acceptance; interactive Windows console/newcomer/Narrator/physical-scaling/second-engineer checks; named owners/evidence/deferral/client-colour policies; security/distribution, repository settings, main promotion/tags/releases/publication and final 1.1.0 approval. Unfinished source and reviews remain separate dependencies.
 
 ## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 
@@ -313,3 +313,23 @@ Use [CURRENT-STATE](CURRENT-STATE.md), [the narrow review packet](release-readin
 Next: obtain independent delta dispositions and merge eligible changes with actual integration-push proof; continue the remaining owned source and candidate work when their dependencies settle.
 
 Waiting on William: separately approved live tests, interactive Windows CLI, newcomer/second-engineer/Narrator/physical-scaling acceptance, client colours, named owners/evidence policies, security/distribution and repository settings, promotion/tags/publication and final 1.1.0 acceptance. Current independent-agent reviews and unfinished source are separate dependencies; this is not a claim that only William's stop points remain.
+
+
+## Verified Graph interruption merge — 10 October 2026
+
+#67 merged as `c021b2a0561d1305667aca3732485f4333a09d45` from independently reviewed `3401980482fe95f57f0d297d242ff4d434c0bc7f`. Exact-head push/PR 38060710948/38060713489 passed; Claude's current-head ready comment is 6102529472. Actual integration push run [38089490338](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38089490338), build 114322807757, passed all required jobs: 1,723 Engine/CLI and 157 App tests; 48 native layouts/89 command presses; zero bindings/tenant calls; PS5.1 script/identity checks and fresh 302-file portable startup/context-menu/CLI checks. CI's original ZIP SHA-256 is `f0808939e6feb9fbf9b0a370d4a377e601b25f2d4667cc4e2534bff5f5c57056`; this is the CI-bound package identity, not a newly published candidate.
+
+Next: refresh/recheck the ready UI stack and #69's document corrections, close #78's read-status test gap and #79's connect/history fixes, and re-review Claude's #85 correction. #84 Home remains draft while its native fixes validate. Application reports/offline doctor still wait for #69's reviewed decision merge. Claude owns Exchange adapters/Run UI/mailbox integration. Human/live/release/promotion gates remain blank and source remains unpublished Preview.19.
+
+
+## Earlier Next checkpoint — 10 October 2026
+
+
+Integration is `5ef5470`, actual push run 38057154787 green (1,716 engine/CLI, 157 App, native/PS5.1/fresh package). [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68 and corrected Claude #74/#75, including the retained #65 review gap and #75 failed first attempt.
+
+1. Claude #74/#75 fixes are independently re-reviewed and merged. The engine is implemented, live-unverified; runnable report adapters/Run UI still belong to Claude and are not present. Use the [compact delta-review packet](release-readiness/CLAUDE-DELTA-REVIEW-2026.10.10.md). Keep Exchange changes copy-only.
+2. Corrected Astra #67/#69/#73/#78 now all include integration 5ef5470 and are mergeable at 3401980/ef434aa/1996c0d/b272edf. Response source/tests and incoming #57 source/tests are unchanged byte for byte; only log insertion conflicts required resolution. Every fresh exact-head Windows push/PR check passed, including native/PS5.1/fresh portable checks; [exact response proof](MERGE-EVIDENCE-2026.10.10.md#refreshed-response-heads--not-merged) records runs, counts and original push-package fingerprints. #57 remains merged and its actual integration push green. Independent delta review still precedes each merge under the delegation below; the earlier conflicting ready comments do not close findings. No repeated permission-purpose acknowledgement is needed.
+3. Finish dependent report/adapters/navigation, agreed application reports and offline prerequisite diagnostics, then prepare the next-version exact-source candidate and truthful release record. No unimplemented surface is complete.
+4. When the required source slices and corrected reviews integrate, provide William with the requested paste-ready Astra xhigh final-review prompt pinned to the green source SHA. Follow [REVIEW-STRATEGY](release-readiness/REVIEW-STRATEGY-2026.10.10.md). Keep #77 a draft promotion placeholder; its accuracy wording is corrected. No main merge or publisher invocation without William's separate approval.
+
+Waiting on William: live tenant/Microsoft acceptance; interactive Windows console and human accessibility/handoff checks; client colours, named owners/evidence/deferral policies and security-owner signing/distribution decisions; protection/settings changes, main promotion, tags/releases/publication and final 1.1.0 approval. Current source work requires no duplicate permission-purpose acknowledgement.

@@ -410,9 +410,18 @@ Responding to Claude's review of `37d9d56`. The console bridge now decides handl
 ## INT-081 — Failed or malformed readiness reads remain Unknown
 
 PR #53 corrects the existing read-only `ServiceReadinessService`: HTTP 404 no longer establishes missing configuration. Failed reads retain an Unknown status and a sanitised HTTP/type reason, with a next step tailored to authentication, denied access, unavailable object/service or throttling. No service response text, new permission, automatic consent or retry is introduced. Emergency-account observation requires exact returned identity, typed account/origin fields and two distinct references; explicit Graph null sync remains distinct from a missing/malformed property. Uninterpretable role rows make the count incomplete; unknown Google binding states remain Unknown. These observations cannot prove emergency recovery, organisation ownership or effective behaviour. Existing deployment prerequisites and exact approvals are unchanged. Human/live R07 gates remain open.
+
 ## INT-080 — Script library first slice and additive manifest fields (proposed in PR #46)
 
 PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` manifests and bodies, `scripts/registry.json` pinning every manifest and script SHA-256, strict loading (unknown, duplicate or missing members, uncontained paths, unregistered files, non-ASCII scripts and write verbs in read-only bodies all refuse the whole library), typed form binding and the Copy script. It proposes four additive schema 1 fields for Astra's review: `area` and `keywords` for finding items, `rules` (`atLeastOne`, `dateRange` with maximum days and age) and a string `format` (text, upn, smtp, mailbox, domain, ipAddress). Blank optional fields are not passed; a default applies only where the manifest shows it. Only `exchangeOnline` is an accepted resource until another connection has a reviewed tenant check. Live status is fixed at unverified; only William records acceptance. Not changed: INT-072's copy-only rule for changes, Exchange integrated writes (still blocked), permissions, evidence schemas and the publisher. The desktop **Scripts & Reports** page (Copy only, no Run) follows on the same PR: a tenant banner for the selected client, the manifest-generated form checked by the engine, and a confirmation that restates tenant and values before anything is produced. Pending William's decision on how client colours are set, the banner colour is derived from the tenant ID in one place (`TenantColours.For`); no setting is stored and the profile schema is unchanged. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md). After Astra's review (AST-20261008-05 to -09, fixed in `27c40b0`), a confirmed account is part of the copied script's refusal check alongside the tenant, output columns may say Unknown rather than guess, and the manifest timeout is recorded as a future runner limit rather than something the copied script enforces.
+
+## INT-094 — Additional application reports and integration order (9 October 2026, proposed)
+
+Decision PR #69 proposes new application-expiry and application-consent registrations with typed metadata-only rows, exact application/service-principal/role identities, fixed-time expiry derivation and independent access states. Existing Application.Read.All is reused where authorised; delegated grants require Directory.Read.All in the actual report context, otherwise NotAttempted and separately previewed consent. Historical report contracts, bounds and no-write rules remain. The shared registration/parameter/row amendments must merge before implementation. #65/#67/#68 are independent offline validation slices; doctor work follows #53/#62 and script maintenance remains coordinated with Claude. Details: ADDITIONAL-REPORT-CONTRACTS-2026.10.09.md.
+
+## INT-092 — Test actual retry interruptions without timing assertions (9 October 2026)
+
+PR #67 extends existing transport tests through a synthetic HTTP handler using the actual cancellable back-off path. It checks operator cancellation before a read retry, cancellation on a throttled second page, the single silent-renewal rule across an interposed transient failure, and uncertain write dispatch without replay. No production retry, token, permission or evidence behaviour changes. Generous outer test timeouts detect a stuck cancellation; elapsed time is not a pass/fail performance metric.
 
 ## INT-084 — Enforce existing authored naming at local import boundaries
 
@@ -510,6 +519,22 @@ Keep a compact current index and commit-bound merge table while retaining histor
 
 CLA-20261010-50–53: acknowledge #65's still-open truncation-test gap at merge (corrected on #78, not silently closed); label cleanup JSON as a historical snapshot and every Claude ref as outside Astra cleanup authority; expose the two paused PR-less Claude branches; refresh actual #74/#75 merge/source/push proof and retain one #73 claim row. Keep CLA-owned rows untouched. The duplicate historical INT-091 allocation is disambiguated as INT-091/#65 (scale) versus INT-091/#71 (enrolment); do not reassign or erase either decision's history. This index and the green suite do not close remaining production-wiring, human/live or release gates.
 
+### INT-094 owner acknowledgement — 10 October 2026, PR #69
+
+William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
+
+### INT-094 second review corrections — 10 October 2026, PR #69
+
+Name Claude as library/Exchange runner-adapter owner and Astra as Graph application-report/offline-doctor implementer. Require an explicit schema dispatcher with unchanged schema 1 refusals and negative export tests, UK English for new identifiers, and factual grant-replication limits. Refresh dependencies to actual merged states while preserving #65's open regression in #78. CLA-20261009-46/48/50/51 and CLA-20261010-04; no additional permission, live consent, write route or release action.
+
+### INT-092 review refinement — 10 October 2026, PR #67
+
+Deliberately asynchronous synthetic token acquisition reproduces the independent reviewer's dispatch scheduling concern. Await observable back-off/dispatch boundaries before cancellation; preserve all counts, real delay and stuck-operation ceilings. No production retry, token, HTTP, write or uncertainty behaviour changes. Removing back-off cancellation still fails all three intended regressions.
+
+### INT-092 second review corrections — 10 October 2026, PR #67
+
+CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.
+
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
 After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
@@ -536,3 +561,16 @@ Refresh #67/#69/#73/#78 to actual integration 5ef5470 before their pending delta
 ### Focused review and candidate-record accuracy — 10 October 2026, PR #76
 
 Record the xhigh continuation against actual integration `5ef5470`, preserving branch-only fixes and the unresolved independent-review gates. AST-20261010-05 stays with Claude's owned runner; -06 belongs to #73's Claude-attributed preview correction; -07 identifies #79 startup integrity, superseding its accidental reuse of -04 without erasing #77's earlier record. The candidate draft cites the tested baseline separately from unfilled future candidate fields and blank human approvals. It is not a publisher pin, live acceptance, version bump or authority to promote. Current source gaps remain explicit rather than reclassified as completed/deferred.
+
+### INT-094 offline diagnostics completion — 10 October 2026, PR #69
+
+Complete the already proposed `bdit doctor` contract before dependent implementation: shared offline checks, safe bounded package-path admission, distinct configurable settings, owned non-overwriting write probes, host presence without execution, private-data exclusions and diagnostic-only JSON. Required Fail/Unknown yields 1, completed required passes 0, invocation refusal 2, unexpected failure 3 and cancellation 130; existing unknown command 64 stays. Optional Exchange gaps remain visible without blocking Graph-only local readiness. Local checks never establish Microsoft access, policy approval, trusted publisher identity or complete deployment evidence. This is a proposed decision refinement for Claude review, with no runtime change or new access.
+
+### INT-094 current-head wording corrections — 10 October 2026, PR #69
+
+Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
+
+
+### Continuation queue and own-record reconciliation — 10 October 2026, PR #76
+
+Reconcile Astra #67/#69 with actual merges and append owned claims without altering Claude rows. Compact source/review indices supersede stale navigation snapshots; the earlier packet remains linked at its immutable commit and canonical history stays intact. Record actual integration source/push/package proof. Remove only #67's exact verified merged Astra local/remote ref after ancestry, no open head/base dependency and recovery-bundle verification; retained integration/PR history supplies durable recovery. No active/local-only/Claude/tag/release/evidence deletion, new authority or broad acceptance closure.
