@@ -2,15 +2,15 @@
 
 William requested a central GitHub location for handoffs on 10 October 2026. **The working inbox is [repository issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83), accessible from any branch.** Agents leave messages there without a PR per message. The issue does not depend on this folder merging.
 
-This permanent top-level `agent-comms/` folder holds reusable instructions, templates and optional durable handoff summaries. Once #82 merges, it is on the shared product `integration` branch. GitHub folders always belong to a branch; there is no repository file tree above all branches. PR #82 installs the folder through review; it is not a PR directory or a second source-of-truth branch.
+This permanent top-level `agent-comms/` folder holds reusable instructions, templates and optional durable handoff summaries. #82 merged as `0c963e2e649d219a026f62fb8bc5f2a97b77fb3b`; it is on the shared product `integration` branch. GitHub folders always belong to a branch; there is no repository file tree above all branches. PR #82 installs the folder through review; it is not a PR directory or a second source-of-truth branch.
 
 Explicit William instructions prevail. [AGENTS.md](../AGENTS.md), [AGENT-COORDINATION](../docs/integration/AGENT-COORDINATION.md), [WORK-CLAIMS](../docs/integration/WORK-CLAIMS.md) and [HANDOVER](../docs/integration/HANDOVER.md) remain authoritative. No polling service, scheduled workflow, credential or new permission is added. Neither the issue nor this folder starts an inactive external chat. William starts Claude once with the prompt below.
 
 ## Start Claude
 
-> Continue Willzy12h/M365-Buildstandards. Read the compact current summary at https://github.com/Willzy12h/M365-Buildstandards/issues/83 and only its active/new messages. Fetch integration and actual PR heads; follow AGENTS.md, AGENT-COORDINATION and HANDOVER. Acknowledge ASTRA-20261010-002 in the inbox, review PR #82's coordination proposal, then continue your authorised review and implementation queue. Check for new messages between work slices and leave replies/progress in the same inbox. Keep current branch ownership, safeguards, validation and all William's approval gates. No live actions or publication.
+> Continue Willzy12h/M365-Buildstandards. Read the compact current summary at https://github.com/Willzy12h/M365-Buildstandards/issues/83 and only its active/new messages. Fetch integration and actual PR heads; follow AGENTS.md, AGENT-COORDINATION and HANDOVER. Read current addressed requests and their replies, acknowledge only new action-bearing requests, then continue your authorised review and implementation queue. Check for new messages between work slices and leave replies/progress in the same inbox. Keep current branch ownership, safeguards, validation and all William's approval gates. No live actions or publication.
 
-Until this folder is merged, read its rules from [#82](https://github.com/Willzy12h/M365-Buildstandards/pull/82)'s freshly fetched head. The central inbox is already usable for ordinary handoff requests under the existing rules; the new shared folder convention remains a review proposal until merged. No dependent product implementation uses the proposal.
+The folder is shared on `integration`; issue #83 remains branch-independent operational transport. Historical messages retain their dated source/PR references. Do not repeat resolved initial acknowledgements or use old handoffs as the current task list.
 
 ## Before carrying out work
 
@@ -39,6 +39,17 @@ gh api --method GET repos/Willzy12h/M365-Buildstandards/issues/83/comments --pag
 The curator publishes an index coverage watermark captured before a successful paginated comment fetch, linking every unresolved/action-bearing thread observed through that point. New sessions fetch updates from one second before that coverage watermark, including comments not yet in the index. If coverage is absent, invalid or inaccessible, enumerate all comment metadata and read unresolved/new bodies; do not assume the current time is a safe starting bookmark.
 
 Record a UTC watermark before fetching; advance the session bookmark only after the requested pages are successfully retrieved and processed. Use a one-second overlap and deduplicate by comment ID plus updated_at so same-second arrivals and compacted comments are not skipped. If a fetch is partial, cancelled or fails, keep the previous bookmark. Record the failure and continue unrelated authorised work; failure is not an empty inbox or approval. Checking the inbox alone does not replace the full pre-flight before a branch.
+
+## Development and review cadence
+
+[William's 10 October instruction](https://github.com/Willzy12h/M365-Buildstandards/issues/83#issuecomment-6103224356) asks both agents to focus on building and concise change updates, avoiding repeated reviews of working code/features and small UI composition changes.
+
+- Review the delta and affected behaviour/safeguards once. Start from the last independently reviewed source; inspect unchanged dependencies only when the change, a conflict, a new failure or a relevant finding gives a reason.
+- Reuse source-pinned evidence for unchanged bytes. Changed source still needs applicable checks; historical successful runs never certify changed packages.
+- Batch related wording/layout refinements into a coherent slice. Use a targeted presentation/accessibility check and concise summary instead of restarting a whole-product review for each small edit.
+- Verify repairs against their regression and adjacent affected paths. Preserve earlier findings/dispositions; do not reopen resolved findings without new evidence.
+- Use broader partial/full reviews for material shared contracts, architecture/safeguard changes, coherent integration milestones and the final exact-source candidate.
+- Required CI, branch pre-flight, independent merge review and unresolved-safeguard rules remain. Do not duplicate mandatory full CI locally without a relevant failure or gap. No new live/release authority is granted.
 
 ## Send and reply in the central inbox
 
