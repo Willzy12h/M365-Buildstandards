@@ -7,6 +7,7 @@ Status: source implementation in PR #43; report/desktop integration and Microsof
 | Groups | GRP | GRP - Pilot devices |
 | Named locations | LOC | LOC - London office |
 | Conditional Access | CA | CA - Require MFA |
+| Enrolment restrictions (`deviceEnrollmentConfigurations`) | ENR | ENR - Reviewed enrolment restrictions |
 | Compliance policies | CMP | CMP - Core compliance - Windows |
 | Device configuration and endpoint protection profiles (`deviceConfigurations`); settings catalogue policies | CFG | CFG - Endpoint protection - Windows |
 | Mobile application protection | MAM | MAM - Managed applications - iOS |
@@ -51,3 +52,9 @@ Only the supplied name of the changed candidate control is checked. Other contro
 Failing-first evidence: 22 dedicated cases on `14e62275` with test-only commit `00a61eb`: 14 invalid-name refusals failed because both importers accepted the names; eight valid-candidate/historical-preservation controls passed. With the two entry-point checks, all 22 dedicated cases and 25 existing importer cases pass locally (47 executed, zero skipped). Existing importer fixtures now use conforming names, including negative shape tests, so those tests continue exercising their original safeguards. Windows and independent review remain pending until recorded.
 
 Final local validation before push: 1,292 engine/CLI tests executed and passed, zero skipped; strict solution cross-build passed with zero warnings/errors. An interrupted first broad run is not counted as passing; the completed replacement run supplies this evidence.
+
+### Enrolment authoring correction — 10 October 2026, PR #57
+
+Merged INT-091 (#71) adds the reviewed ENR prefix for `enrolment` and `/deviceManagement/deviceEnrollmentConfigurations`. The beta [platform restrictions reference](https://learn.microsoft.com/en-us/graph/api/resources/intune-onboarding-deviceenrollmentplatformrestrictionsconfiguration?view=graph-rest-beta) establishes the existing family, without a verified numeric name limit. The maximum stays unknown; ENR-002 has no inferred platform suffix. Both import entry points retain their existing supported-control, payload and assignment safeguards. General import of current 2026.09.30 ENR-002 is covered directly; the device-only importer retains its narrower control set.
+
+Current-catalogue regressions fail before the rule is added, then allow a conforming local candidate while preserving the baseline and every other control. Wrong prefix/casing/whitespace refuse, and the existing route test checks this family against all published catalogues. Historical standards are unchanged. Source/synthetic conformance does not establish beta API acceptance or permit a live rename.

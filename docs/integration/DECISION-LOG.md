@@ -489,3 +489,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### INT-084 / INT-091 source correction — 10 October 2026, PR #57
+
+After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.

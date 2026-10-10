@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix, without changing historical standards or live object names.
+- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule; historical standards and live names stay unchanged.
 
 - Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
 
