@@ -36,8 +36,10 @@ def main() -> int:
             "manifest": relative,
             "manifestSha256": sha256(manifest_path),
             "scriptSha256": script_sha,
+            # Registry schema 2 (INT-088) names each manifest's own schema, so version dispatch is explicit.
+            "manifestSchemaVersion": manifest["schemaVersion"],
         })
-    registry = json.dumps({"schemaVersion": 1, "scripts": entries}, indent=2) + "\n"
+    registry = json.dumps({"schemaVersion": 2, "scripts": entries}, indent=2) + "\n"
     registry_path = ROOT / "registry.json"
     if not registry_path.exists() or registry_path.read_text(encoding="utf-8") != registry:
         stale.append("registry.json")
