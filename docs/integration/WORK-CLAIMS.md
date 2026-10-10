@@ -77,5 +77,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-10 | Claude | M365-Buildstandards | evidence and reporting: INT-088 slice 3, the shipped read-only mailbox size/quota/archive adapter run only through the owned runner; registry schema 2; Copy page and CLI unchanged apart from a label; no Run UI, permission or tenant access; synthetic module regressions only | `claude/exo-mailbox-adapter-2026-10-10` (from integration `5ef5470`) | #86 | Open |
 
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Reduce duplicate Actions triggers, preserve required Windows/standards/secrets checks and merge-run evidence; three-repository pre-flight at `0c963e2`; no publisher/protection/product change | `astra/actions-budget-2026-10-10` | #91 | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
