@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Engine.Naming;
 
 namespace BDIT.TenantToolkit.Engine.Standards;
 
@@ -32,6 +33,7 @@ public static class DevicePolicyImporter
         }
         catch (JsonException) { throw new ConfigurationException("Policy import is not valid JSON (maximum depth 32)."); }
         var control = baseline.FindControl(controlId) ?? throw new ConfigurationException("Control is missing from the loaded standard.");
+        NamingConvention.RequireAuthored(control, candidateName);
         var template = control.Payload ?? throw new ConfigurationException("The loaded standard has no supported recipe for this control.");
         var definition = baseline.FindCollection(control.Collection) ?? throw new ConfigurationException("The control collection is missing.");
         if (definition.BasePath != "/deviceManagement/deviceConfigurations" || !definition.Assignments || !definition.Writable)

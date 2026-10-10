@@ -31,6 +31,7 @@ public static class NamingConvention
         ["groups"] = new("GRP", 256, "https://learn.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0", "/groups"),
         ["namedLocations"] = new("LOC", null, "https://learn.microsoft.com/en-us/graph/api/resources/namedlocation?view=graph-rest-1.0", "/identity/conditionalAccess/namedLocations"),
         ["conditionalAccess"] = new("CA", null, "https://learn.microsoft.com/en-us/graph/api/resources/conditionalaccesspolicy?view=graph-rest-1.0", "/identity/conditionalAccess/policies"),
+        ["enrolment"] = new("ENR", null, "https://learn.microsoft.com/en-us/graph/api/resources/intune-onboarding-deviceenrollmentplatformrestrictionsconfiguration?view=graph-rest-beta", "/deviceManagement/deviceEnrollmentConfigurations"),
         ["compliance"] = new("CMP", null, "https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-devicecompliancepolicy?view=graph-rest-1.0", CompliancePolicies),
         ["extendedCompliance"] = new("CMP", null, "https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-devicecompliancepolicy?view=graph-rest-beta", CompliancePolicies),
         ["configuration"] = new("CFG", null, DeviceConfigurationReference, DeviceConfigurations),
