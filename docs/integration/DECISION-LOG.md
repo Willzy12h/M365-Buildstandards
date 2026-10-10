@@ -418,6 +418,14 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 
 PR #57 calls the existing reviewed `NamingConvention.RequireAuthored` from both local candidate importers. It checks only the new resolved candidate name and preserves baseline/historical controls. No global loader rule, schema, new compiler, live rename, permission or execution change is introduced. Names with leading/trailing whitespace refuse instead of being silently trimmed into compliance. Import shape and write-payload safeguards remain independent. Meaningful fixtures use compliant names so negative settings/metadata tests retain their original purpose.
 
+## INT-093 — Verify export fidelity through the existing boundary (9 October 2026)
+
+PR #68 adds end-to-end offline exporter regressions for partial registered evidence, multilingual/multiline text, spreadsheet guarding and explicit Excel truncation, preservation of previous exports and modified-evidence refusal before any output. It preserves JSON/HTML/CSV full values while recognising the existing XLSX cell limit. No production export, schema, cap, permission or evidence semantics change.
+
+## INT-091 — Measure report scale before optimisation (9 October 2026)
+
+PR #65 adds a synthetic offline benchmark using existing strict registered-report readers and export implementations at 100, 1,000 and 5,000 rows. It checks correctness and over-cap refusal before retaining timings. Timing and allocation samples are observations, never pass/fail thresholds or live service speed claims; allocations are synchronous current-thread totals, not peak working set. This changes no shared schema, permission, safety boundary or production behaviour. Performance changes require a separately reviewed slice backed by the measured bottleneck and unchanged evidence semantics.
+
 ## INT-089 — Offline CLI visibility for already captured registered Graph reports (PR #62)
 
 Expose the merged strict Graph ReportEvidenceSchema and existing HTML/CSV/JSON/Excel exporters with `bdit report-evidence --input <file> --tenant <expected-id>`. Unlike `bdit report`, this exports registered report evidence without reassessment, client/standard lookup, authentication or new reads. Bounded UTF-8/schema/tenant/integrity validation precedes exports; unknown options/formats refuse. Export success explicitly does not mean collection success, and inaccessible/partial empty reads remain distinct from genuine empty success. No new persisted schema, live CLI boundary, evidence mutator, permission or script execution. Actual process and extracted-package checks protect the route; details: [OFFLINE-REPORT-EXPORT-2026.10.08](OFFLINE-REPORT-EXPORT-2026.10.08.md). Independent review/merge and human/live acceptance remain outstanding.
