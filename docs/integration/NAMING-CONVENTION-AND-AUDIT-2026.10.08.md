@@ -7,6 +7,7 @@ Status: source implementation in PR #43; report/desktop integration and Microsof
 | Groups | GRP | GRP - Pilot devices |
 | Named locations | LOC | LOC - London office |
 | Conditional Access | CA | CA - Require MFA |
+| Enrolment restrictions (`deviceEnrollmentConfigurations`) | ENR | ENR - Reviewed enrolment restrictions |
 | Compliance policies | CMP | CMP - Core compliance - Windows |
 | Device configuration and endpoint protection profiles (`deviceConfigurations`); settings catalogue policies | CFG | CFG - Endpoint protection - Windows |
 | Mobile application protection | MAM | MAM - Managed applications - iOS |
@@ -41,3 +42,25 @@ Some collections read the same Graph objects: `configuration` and `endpointProte
 ## Verification and remaining work
 
 Synthetic tests cover internal naming, documented group limits, platform-specific authoring, name-only ownership refusal, accepted creation proof, modified/unknown/later/duplicate evidence, duplicate object IDs, empty/failed/missing reads, input immutability and cross-tenant refusal. Windows and package checks are recorded for the exact source, independently of Microsoft acceptance. Reports/UI exposure, richer object-type/platform limits and automatic authoring-pipeline integration remain open; no broad product feedback gate closes from this engine implementation alone.
+
+## Local candidate imports — PR #57
+
+Both `DevicePolicyImporter.Import` and `PolicyImporter.Import` require the existing authored-name rule for the selected control before building a new local candidate. Use the collection prefix, a meaningful description and the control's platform suffix; for example `CFG - Reviewed LAPS - Windows` for CFG-WIN-002. Leading/trailing spaces are rejected rather than silently repaired. The naming check does not certify configuration correctness, service acceptance or object ownership. Import shape, foreign-reference, assignment removal and transport checks still apply.
+
+Only the supplied name of the changed candidate control is checked. Other controls, the baseline object and historical catalogue files retain their original bytes/meaning; no live object is renamed. This is validation of the existing bounded import workflows, not a general authoring compiler.
+
+Failing-first evidence: 22 dedicated cases on `14e62275` with test-only commit `00a61eb`: 14 invalid-name refusals failed because both importers accepted the names; eight valid-candidate/historical-preservation controls passed. With the two entry-point checks, all 22 dedicated cases and 25 existing importer cases pass locally (47 executed, zero skipped). Existing importer fixtures now use conforming names, including negative shape tests, so those tests continue exercising their original safeguards. Windows and independent review remain pending until recorded.
+
+Final local validation before push: 1,292 engine/CLI tests executed and passed, zero skipped; strict solution cross-build passed with zero warnings/errors. An interrupted first broad run is not counted as passing; the completed replacement run supplies this evidence.
+
+### Enrolment authoring correction — 10 October 2026, PR #57
+
+Merged INT-091 (#71) adds the reviewed ENR prefix for `enrolment` and `/deviceManagement/deviceEnrollmentConfigurations`. The beta [platform restrictions reference](https://learn.microsoft.com/en-us/graph/api/resources/intune-onboarding-deviceenrollmentplatformrestrictionsconfiguration?view=graph-rest-beta) establishes the existing family, without a verified numeric name limit. The maximum stays unknown; ENR-002 has no inferred platform suffix. Both import entry points retain their existing supported-control, payload and assignment safeguards. General import of current 2026.09.30 ENR-002 is covered directly; the device-only importer retains its narrower control set.
+
+Current-catalogue regressions fail before the rule is added, then allow a conforming local candidate while preserving the baseline and every other control. Wrong prefix/casing/whitespace refuse, and the existing route test checks this family against all published catalogues. Historical standards are unchanged. Source/synthetic conformance does not establish beta API acceptance or permit a live rename.
+
+### Historical import compatibility and Microsoft defaults — 10 October 2026
+
+CLA-20261010-01: the authored-name gate intentionally refuses new candidate imports of historical ENR-003 Windows Autopilot controls in standards 2026.09.6–2026.09.11. INT-091/#71 reviewed only the `enrolment` family; it did not register the `autopilot` family or remove supported-control/payload safeguards. This is a compatibility change to creating new local candidates, not a change to loading, assessing or exporting historical catalogues. A future Autopilot authoring rule needs its own reviewed family/limits decision; do not skip the naming gate. Current 2026.09.30 ENR-002 enrolment imports remain covered.
+
+CLA-20261010-02 is a usability hypothesis: a Microsoft-created default enrolment object may have a name outside this internal convention. The read-only audit still reports observed naming conformance with exact IDs and the separate ownership/evidence result. A name alone cannot establish Microsoft/default ownership, authorise a rename or justify silently excluding an object. Until verified default-object identity is modelled, review such rows manually; no default is renamed or ignored automatically.

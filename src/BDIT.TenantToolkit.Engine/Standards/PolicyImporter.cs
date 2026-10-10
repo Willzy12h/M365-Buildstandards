@@ -6,6 +6,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Safety;
+using BDIT.TenantToolkit.Engine.Naming;
 
 namespace BDIT.TenantToolkit.Engine.Standards;
 
@@ -25,6 +26,7 @@ public static class PolicyImporter
         Unique(document.RootElement);
         var obj = JsonNode.Parse(json) as JsonObject ?? throw new ConfigurationException("Import one policy object.");
         var control = baseline.FindControl(controlId) ?? throw new ConfigurationException("Unknown control.");
+        NamingConvention.RequireAuthored(control, name);
         var def = baseline.FindCollection(control.Collection) ?? throw new ConfigurationException("No collection for this control.");
         var template = control.Payload ?? throw new ConfigurationException("This control needs a dedicated setup or package workflow.");
         // Some products are unavailable through Intune's Store source. Keep the same control

@@ -4,6 +4,8 @@
 
 - Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; unsealed edits refuse every format before writing. Production export behaviour is unchanged.
 
+- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
+
 - Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
 
 - Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
