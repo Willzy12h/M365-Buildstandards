@@ -26,6 +26,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $expectedTenant = [guid]'__TENANT__'
 $domain = '__DOMAIN__'
+if ($Integrated -and [string]::IsNullOrWhiteSpace($UserPrincipalName)) {
+    throw 'Integrated capture requires the confirmed sign-in account. Reconnect and verify the account before retrying.'
+}
 if (Test-Path -LiteralPath $OutputFile) { throw 'Use a new output filename; existing evidence is never overwritten.' }
 $minimumVersion = if ($Integrated) { [version]'3.7.0' } else { [version]'3.2.0' }
 $module = @(Get-Module -ListAvailable ExchangeOnlineManagement | Where-Object { $_.Version -ge $minimumVersion } | Sort-Object Version -Descending | Select-Object -First 1)
@@ -51,6 +54,13 @@ function Assert-CaptureConnection {
     $connections = @(Get-ConnectionInformation | Where-Object { $_.State -eq 'Connected' -and $_.IsEopSession -eq $Purview })
     if ($connections.Count -ne 1 -or [guid]$connections[0].TenantID -ne $expectedTenant) {
         throw 'The current connection is ambiguous or belongs to another tenant. Nothing will be captured.'
+    }
+    if ($UserPrincipalName) {
+        $account = $connections[0].PSObject.Properties['UserPrincipalName']
+        if ($null -eq $account -or [string]::IsNullOrWhiteSpace([string]$account.Value) -or
+            -not [string]::Equals(([string]$account.Value).Trim(), $UserPrincipalName.Trim(), [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The connected account is unknown or differs from the confirmed sign-in account. Nothing will be captured.'
+        }
     }
     return $connections[0].TenantID.ToString()
 }
