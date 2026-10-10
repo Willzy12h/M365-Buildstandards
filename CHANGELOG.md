@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
+
 - Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
 
 - Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.

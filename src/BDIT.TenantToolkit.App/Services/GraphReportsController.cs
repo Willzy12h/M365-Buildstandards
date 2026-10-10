@@ -33,10 +33,10 @@ public sealed class GraphReportsController(Workspace workspace)
     {
         var connection = workspace.RequireConnection();
         var s = connection.Session;
-        if (!s.TenantVerified || !ProfileValidator.IsGuid(s.AccountObjectId)
+        if (!s.TenantVerified || !s.OperatorVerified || !ProfileValidator.IsGuid(s.AccountObjectId)
             || !string.Equals(connection.Graph.TenantId, s.TenantId, StringComparison.OrdinalIgnoreCase)
             || connection.Graph.Mode != s.Mode)
-            throw new TenantMismatchException("Connect with a verified tenant and account before reading reports.");
+            throw new TenantMismatchException("Reconnect deliberately with a verified tenant and account before reading reports.");
         if (!Timestamps.TryParse(s.TokenExpiresAt, out var expiry) || expiry <= DateTimeOffset.UtcNow)
             throw new ToolkitException("The current session has expired or its expiry is unknown. Use Connect deliberately; Reports never signs in.");
         if (connection.Graph is not GraphClient)

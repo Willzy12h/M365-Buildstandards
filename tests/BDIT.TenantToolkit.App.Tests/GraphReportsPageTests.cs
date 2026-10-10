@@ -152,6 +152,7 @@ public sealed class GraphReportsPageTests
     [InlineData("missing")]
     [InlineData("expired")]
     [InlineData("unverified")]
+    [InlineData("operatorUnverified")]
     [InlineData("wrongTenant")]
     [InlineData("wrongAccount")]
     [InlineData("fakeGraph")]
@@ -161,6 +162,7 @@ public sealed class GraphReportsPageTests
         using var f = new ConnectedReportsFixture(connect: fault != "missing");
         if (fault == "expired") f.Workspace.Session!.TokenExpiresAt = "2020-01-01T00:00:00Z";
         if (fault == "unverified") f.Workspace.Session!.TenantVerified = false;
+        if (fault == "operatorUnverified") f.Workspace.Session!.OperatorVerified = false;
         if (fault == "wrongTenant") f.Workspace.Session!.TenantId = TestData.TenantB;
         if (fault == "wrongAccount") f.Workspace.Session!.AccountObjectId = "invalid";
         if (fault == "fakeGraph") f.Set(nameof(Workspace.Connection), new ConnectedTenant(f.Workspace.Session!, new FakeGraphClient(TestData.Standard()), null));
