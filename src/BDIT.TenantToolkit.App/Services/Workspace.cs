@@ -138,7 +138,7 @@ public sealed class Workspace : ObservableObject
             throw new SafetyViolationException("An exact application ID and non-empty permission list are required before an access request can be approved.");
         var app = System.Windows.Application.Current;
         if (app is null) throw new SafetyViolationException("This Microsoft access request requires visible, deliberate desktop approval. No request was sent.");
-        var details = $"Purpose: {purpose}\nTarget tenant: {tenant} (target of this exact request)\nApplication (client) ID: {clientId}\nResource: Microsoft Graph — https://graph.microsoft.com\nAccount context: {knownAccount ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "Not known; Microsoft will ask you to choose"}\nInteractive identity is verified after sign-in. Consent grants are checked separately; browser success is not verification.\n\nExact requested permissions:\n" + string.Join("\n", scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        var details = PermissionRequestDetails(tenant, clientId, scopes, purpose, knownAccount);
         var confirmed = await app.Dispatcher.InvokeAsync(() =>
         {
             var dialog = new BDIT.TenantToolkit.App.Views.PermissionRequestDialog(details) { Owner = app.MainWindow };
@@ -148,6 +148,9 @@ public sealed class Workspace : ObservableObject
         if (!confirmed)
         { CancelOperation(); throw new OperationCanceledException("The displayed Microsoft access request was not approved. No request was sent.", ct); }
     }
+
+    private static string PermissionRequestDetails(string tenant, string clientId, IReadOnlyList<string> scopes, string purpose, string? knownAccount) =>
+        $"Purpose: {purpose}\nTarget tenant: {tenant} (target of this exact request)\nApplication (client) ID: {clientId}\nResource: Microsoft Graph — https://graph.microsoft.com\nAccount context: {(string.IsNullOrWhiteSpace(knownAccount) ? "Not known; Microsoft will ask you to choose" : knownAccount)}\nInteractive identity is verified after sign-in. Consent grants are checked separately; browser success is not verification.\nMSAL also uses the standard sign-in protocol scopes openid, profile and offline_access; these are separate from Graph API permissions.\n\nExact requested permissions:\n" + string.Join("\n", scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
 
     private void OnAuthorisationInvalidated()
     {
@@ -475,11 +478,12 @@ public sealed class Workspace : ObservableObject
             ExperimentalGuard.Invalidate();
             var requestedClient = Settings.ResolveClient(mode, profile) ?? throw new ConfigurationException("No application is configured for this access mode.");
             var requestedScopes = Connections.ScopesFor(mode, standard).ToArray();
+            var requestedAccount = Connections.LoginHint;
             var approvedUntil = DateTimeOffset.MinValue;
             if (mode == SessionMode.Deployment)
             {
                 await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
-                    "Request deployment access — experimental tenant changes stay off until separately approved", OperationToken);
+                    "Request deployment access — experimental tenant changes stay off until separately approved", OperationToken, requestedAccount);
                 approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
             }
             async Task BeforeInteractive(CancellationToken ct)
@@ -493,7 +497,7 @@ public sealed class Workspace : ObservableObject
                     ct.ThrowIfCancellationRequested();
                 }
                 else await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
-                    "Read-only assessment access; possible Microsoft consent", ct);
+                    "Read-only assessment access; possible Microsoft consent", ct, requestedAccount);
             }
             Plan = null; AcknowledgedSnapshotId = null;
             ConnectedTenant nextConnection;
@@ -582,7 +586,7 @@ public sealed class Workspace : ObservableObject
             return;
         ExperimentalGuard.Invalidate();
         await ReviewPermissionRequestAsync(tenantId.Trim(), ApplicationSetupService.BootstrapClientId, ApplicationSetupService.SetupScopes,
-            "Temporary administrator setup access — experimental application registration/configuration and grant inspection", OperationToken);
+            "Temporary administrator setup access — experimental application registration/configuration and grant inspection", OperationToken, Session?.Account);
         var approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
         Task BeforeSetupInteractive(CancellationToken ct)
         {

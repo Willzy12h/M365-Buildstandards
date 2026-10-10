@@ -57,6 +57,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     private readonly string _tenantId;
     private readonly string _cacheFile;
     private readonly IToolkitLog _log;
+    private readonly Func<bool, CancellationToken, Task<AuthenticationResult>> _acquireSilent;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IAccount? _account;
     private string? _accountIdentifier;
@@ -68,7 +69,8 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     public SignInOutcome Outcome { get; }
     public string ClientId { get; }
 
-    private MsalAuthenticator(IPublicClientApplication pca, string[] scopes, string tenantId, string cacheFile, IToolkitLog log, AuthenticationResult result, string clientId)
+    internal MsalAuthenticator(IPublicClientApplication pca, string[] scopes, string tenantId, string cacheFile, IToolkitLog log,
+        AuthenticationResult result, string clientId, Func<bool, CancellationToken, Task<AuthenticationResult>>? acquireSilent = null)
     {
         _pca = pca;
         _scopes = scopes;
@@ -79,6 +81,10 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         _accountIdentifier = result.Account?.HomeAccountId?.Identifier;
         _accessToken = result.AccessToken;
         _expiresOn = result.ExpiresOn;
+        // The internal seam replaces only MSAL transport in offline tests. The production state machine,
+        // identity/scope checks, token replacement and invalidation event remain on the exercised path.
+        _acquireSilent = acquireSilent ?? ((forceRefresh, ct) => _pca.AcquireTokenSilent(_scopes, _account)
+            .WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct));
         ClientId = clientId;
         Outcome = new SignInOutcome
         {
@@ -200,7 +206,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             try
             {
                 var result = await SilentRenewalAcquisition.AcquireAsync(
-                    () => _pca.AcquireTokenSilent(_scopes, _account).WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct),
+                    () => _acquireSilent(forceRefresh, ct),
                     result => string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
                         && string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal)
                         && string.Equals(result.UniqueId, Outcome.AccountObjectId, StringComparison.OrdinalIgnoreCase),

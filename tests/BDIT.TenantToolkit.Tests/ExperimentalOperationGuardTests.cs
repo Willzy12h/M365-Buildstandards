@@ -67,10 +67,9 @@ public sealed class ExperimentalOperationGuardTests
     }
 
     [Fact]
-    public void Setup_cannot_borrow_a_deployment_opt_in()
+    public void Manual_setup_requires_its_own_approval_and_exact_verified_tenant_and_operator()
     {
-        var c = Context(); var g = new ExperimentalOperationGuard(() => Now);
-        g.Enable(c.Connection, c.Session, c.Standard, c.Profile, true);
+        var c = Context();
         Assert.Throws<SafetyViolationException>(() => ExperimentalOperationGuard.RequireManualSetup(false, Tenant, Tenant, c.Session.AccountObjectId));
         Assert.Throws<SafetyViolationException>(() => ExperimentalOperationGuard.RequireManualSetup(true, "dddddddd-dddd-dddd-dddd-dddddddddddd", Tenant, c.Session.AccountObjectId));
         ExperimentalOperationGuard.RequireManualSetup(true, Tenant, Tenant, c.Session.AccountObjectId);
