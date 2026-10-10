@@ -861,6 +861,8 @@ try {
     $copyById = @{}
     foreach ($manifestFile in $manifests) {
         $manifest = Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json
+        # Schema 2 items have no Copy form; the engine's runner regressions run them against their own stand-in module.
+        if ($manifest.schemaVersion -eq 2) { continue }
         if (-not $samples.ContainsKey($manifest.id)) { throw ($manifest.id + ' has no sample form in this test.') }
         $copy = New-Copy $manifest.id $manifest.id @($samples[$manifest.id])
         $copies += $copy
@@ -1648,7 +1650,7 @@ try {
     # The last child run may have been an expected refusal; do not leave its exit code for the calling step to report.
     $global:LASTEXITCODE = 0
     if ($failures.Count -ne 0) { throw ($failures.Count.ToString() + ' synthetic regression case(s) failed: ' + ($failures -join '; ')) }
-    Write-Output ('Synthetic run passed for ' + $manifests.Count + ' item(s); a different tenant and a different account were refused each time with nothing read. No Microsoft module or tenant was used.')
+    Write-Output ('Synthetic run passed for ' + $copyById.Count + ' Copy item(s); a different tenant and a different account were refused each time with nothing read. No Microsoft module or tenant was used.')
 }
 finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
