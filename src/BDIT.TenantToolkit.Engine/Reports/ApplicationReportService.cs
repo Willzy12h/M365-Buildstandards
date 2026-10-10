@@ -140,7 +140,8 @@ public sealed class ApplicationReportService(IClock clock, TimeSpan? readBudget 
                     { source.Status = ReportReadState.Partial; source.Error = "Section row cap reached; omitted objects were not read or checked."; break; }
                     var row = project(item);
                     if (!Add(section, row)) { source.Status = ReportReadState.Partial; source.Error = "Duplicate identity or metadata byte limit encountered; omitted data remains unknown."; }
-                    if (_bytes >= MetadataBudget) break;
+                    if (_bytes >= MetadataBudget)
+                    { source.Status = ReportReadState.Partial; source.Error = "Metadata byte cap reached; remaining objects/pages were not checked."; break; }
                 }
             }
             catch (OperationCanceledException) { source.Status = ReportReadState.Cancelled; source.Error = "Read cancelled; retained rows are partial and remaining objects/pages were not checked."; }

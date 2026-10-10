@@ -105,6 +105,7 @@ public static class ApplicationReportEvidenceSchema
                 }
             }
         }
+        ValidateSourceAccounting(e);
         if (e is ApplicationConsentEvidence) ValidateResolutions(e);
         State(e.Status);
         if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("Report state does not match its sections.");
@@ -113,6 +114,39 @@ public static class ApplicationReportEvidenceSchema
         if (e.IntegrityDigest is not { Length: 64 } || !e.IntegrityDigest.All(Uri.IsHexDigit) || !EvidenceIntegrity.Verify<object>(e, e.IntegrityDigest))
             throw Bad("Application report integrity check failed; unsigned digests do not authenticate source claims.");
         if (Encoding.UTF8.GetByteCount(Serialise(e)) > MaximumBytes) throw Bad("Application evidence exceeds the 32 MiB limit.");
+    }
+    private static void ValidateSourceAccounting(ApplicationReportEvidence e)
+    {
+        // The validated paired registration fixes the source/section order. Expiry has two extra owner sources.
+        for (var i = 0; i < e.Sections.Count; i++)
+        {
+            var section = e.Sections[i]; var source = e.Sources[i];
+            if (source.Rows != section.Rows.Count)
+                throw Bad("Retained section rows do not match their registered source count.");
+            // A complete source may be refined to Partial by returned metadata or an incomplete parent catalog.
+            if (section.Status != source.Status && !(source.Status == ReportReadState.Collected && section.Status == ReportReadState.Partial))
+                throw Bad("Section read state contradicts its registered source outcome.");
+        }
+        if (e.Sources.Where(s => s.RegisteredRoute.Contains("{id}", StringComparison.Ordinal)).Sum(s => s.ObjectsAttempted) > ApplicationReportRegistry.MaximumChildObjects)
+            throw Bad("Combined child-object attempts exceed the report fan-out bound.");
+        if (e is not ApplicationExpiryEvidence) return;
+        for (var i = 0; i < 2; i++)
+        {
+            var parents = e.Sections[i].Rows.Select(ReadRow<ApplicationExpiryRow>).ToList();
+            var eligible = parents.Where(r => r.IdentityStatus == "Exact").ToList(); var source = e.Sources[i + 2];
+            if (source.Rows != parents.Sum(r => r.Owners.Count))
+                throw Bad("Retained owners do not match their registered source count.");
+            var requiredAttempts = eligible.Count(r => r.OwnersReadStatus is ReportReadState.Collected or ReportReadState.Partial or ReportReadState.Failed);
+            var possibleAttempts = requiredAttempts + eligible.Count(r => r.OwnersReadStatus == ReportReadState.Cancelled);
+            // Cancellation can occur before a query or during it; preserve either truthful attempt count.
+            if (source.ObjectsAttempted < requiredAttempts || source.ObjectsAttempted > possibleAttempts)
+                throw Bad("Owner query attempts do not match the exact parent read states.");
+            if (source.Status == ReportReadState.Collected && (eligible.Any(r => r.OwnersReadStatus != ReportReadState.Collected)
+                || eligible.Count == 0 && e.Sources[i].Status != ReportReadState.Collected)
+                || source.Status == ReportReadState.NotAttempted && eligible.Any(r => r.OwnersReadStatus != ReportReadState.NotAttempted)
+                || source.Status == ReportReadState.Failed && eligible.Any(r => r.OwnersReadStatus != ReportReadState.Failed))
+                throw Bad("Owner read states contradict their registered source outcome.");
+        }
     }
     public static void ValidateParameters(ApplicationExpiryParameters? p)
     {
