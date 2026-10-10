@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add the initial desktop Graph Reports and naming-audit presentation over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Shell/native journey integration is still in progress; no new permissions or tenant access.
+
 - Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
 
 - Let engineers read the permission preview without consuming the Microsoft sign-in timeout. Keep a shared acquisition budget, close cancelled previews, and preserve cancellation without reporting it as successful sign-in.

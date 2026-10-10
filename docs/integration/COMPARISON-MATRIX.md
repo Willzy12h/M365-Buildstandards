@@ -1,3 +1,12 @@
+## Desktop Graph Reports and naming presentation — PR #80
+
+| Feature | Preserved engine/source | Added desktop slice and remaining proof |
+|---|---|---|
+| Registered Graph reports | Existing five typed collectors, guarded report routes, strict immutable records and HTML/JSON/CSV ZIP/Excel exports | Dedicated controller/page, current-access review, structured results and filters; exact source/synthetic/native proof recorded separately, live unverified |
+| Saved/supplied reports | Existing strict tenant/schema/identity/digest readers and supplied-file export notice | Bounded offline browser/open with explicit damaged/inaccessible/not-saved outcomes; report evidence never supplies deployment before-evidence |
+| Naming audit | Existing convention, exact corroborated ownership and historical names | Supplied-capture review with friendly names, exact IDs and unknown/partial explanations; no rename or new read |
+| Reachable engineer flow | Existing shell/auth/guard remains #73's own claim | Initial new-files slice needs explicitly sequential shell registration and three-size native journeys before the desktop capability is complete |
+
 ## Registered report implementation — PR #44
 
 | Feature | Source implementation | Evidence / remaining gate |
