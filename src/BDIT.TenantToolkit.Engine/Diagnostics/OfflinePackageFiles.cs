@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Engine.Standards;
 
 namespace BDIT.TenantToolkit.Engine.Diagnostics;
 
@@ -37,6 +38,7 @@ internal sealed class OfflineDiagnosticIo
 }
 
 internal sealed class UnsafeOfflinePathException : Exception;
+internal sealed class OfflinePackageScopeException : Exception;
 internal sealed class OfflineBoundException : Exception;
 internal sealed class OfflineDocumentException : Exception;
 
@@ -65,7 +67,10 @@ internal sealed partial class OfflinePackageFiles(string root, OfflineDiagnostic
         return parts[0].ToLowerInvariant() switch
         {
             "app" => true,
-            "standards" => parts.Length == 2 && CatalogueName(parts[1]),
+            "standards" => parts.Length == 2 && CatalogueName(parts[1])
+                || parts.Length == 3 && parts[1].Equals(ReleaseLineage.Folder, StringComparison.OrdinalIgnoreCase)
+                && (parts[2].Equals(ReleaseLineage.ManifestFile, StringComparison.OrdinalIgnoreCase)
+                    || parts[2].StartsWith("lineage-", StringComparison.OrdinalIgnoreCase) && CatalogueName(parts[2]["lineage-".Length..])),
             "config" => parts.Length == 2 && parts[1].Equals("toolkit.settings.json", StringComparison.OrdinalIgnoreCase),
             "docs" => parts.Length == 2 && parts[1].EndsWith(".md", StringComparison.OrdinalIgnoreCase),
             "licenses" => true,

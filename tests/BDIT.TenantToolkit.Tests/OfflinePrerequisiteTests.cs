@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Engine.Diagnostics;
+using BDIT.TenantToolkit.Engine.Standards;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -42,10 +44,31 @@ internal sealed class OfflinePackageFixture : IDisposable
     {
         var lines = Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories)
             .Select(path => (Path: path, Relative: Path.GetRelativePath(Root, path).Replace('\\', '/')))
-            .Where(file => file.Relative != "SHA256SUMS.txt" && OfflinePackageFiles.PackageContent(file.Relative))
+            // Build-Portable inventories every staged file, independently of the doctor's admission policy.
+            .Where(file => file.Relative != "SHA256SUMS.txt")
             .OrderBy(file => file.Relative, StringComparer.Ordinal)
             .Select(file => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(file.Path))) + "  " + file.Relative);
         Write("SHA256SUMS.txt", string.Join('\n', lines) + "\n");
+    }
+    internal void UseShippedStandards()
+    {
+        var source = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards"));
+        var destination = FilePath("standards");
+        Directory.Delete(destination, recursive: true);
+        foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
+        {
+            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
+        Write("config/toolkit.settings.json", ToolkitJson.Serialize(new ToolkitSettings { DefaultStandardRelease = "2026.09.30" }));
+        var metadata = ToolkitJson.ParseObject(File.ReadAllText(FilePath("VERSION.json")));
+        metadata["defaultStandard"] = "2026.09.30";
+        metadata["standards"] = new JsonArray(Directory.EnumerateFiles(destination, "*.json")
+            .Select(Path.GetFileName).Where(name => name != "manifest.json")
+            .Select(name => (JsonNode?)JsonValue.Create(name)).ToArray());
+        Write("VERSION.json", ToolkitJson.Serialize(metadata));
+        RewriteInventory();
     }
     internal void RefreshStandardManifest() { _root.WriteManifest(); RewriteInventory(); }
     internal OfflinePrerequisiteService Service(OfflineDiagnosticIo? io = null, OfflineDiagnosticLimits? limits = null,
@@ -70,6 +93,137 @@ public sealed class OfflinePrerequisiteTests
         Assert.Equal(OfflineFindingDisposition.Unknown, Finding(result, "exchange.access").Disposition);
         Assert.Equal(OfflineFindingDisposition.Unknown, Finding(result, "package.trust").Disposition);
         Assert.Contains("SDK is not required", Finding(result, "package.metadata").Explanation);
+        fixture.NoProbes();
+    }
+
+    [Fact]
+    public void Recursive_builder_inventory_with_shipped_catalogues_and_lineage_is_ready()
+    {
+        using var fixture = new OfflinePackageFixture();
+        fixture.UseShippedStandards();
+        var paths = ToolkitPaths.Resolve(fixture.Root);
+        var catalogue = new StandardsLoader(paths, NullLog.Instance).Load("2026.09.30.json");
+        var lineage = ReleaseLineage.Load(paths.StandardsDirectory, StandardsManifest.Load(paths.StandardsDirectory), catalogue.Release);
+        Assert.NotNull(lineage);
+        Assert.Equal(catalogue.IntegrityDigest, lineage.Target.Sha256);
+        var inventory = File.ReadAllLines(fixture.FilePath("SHA256SUMS.txt")).Select(line => line[66..]).ToArray();
+        Assert.Equal(Directory.EnumerateFiles(fixture.Root, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(fixture.Root, path).Replace('\\', '/'))
+            .Where(path => path != "SHA256SUMS.txt").Order(StringComparer.Ordinal), inventory);
+        Assert.Contains("standards/lineage/manifest.json", inventory);
+        Assert.Contains("standards/lineage/lineage-2026.09.30.json", inventory);
+
+        var reads = new List<string>();
+        var io = new OfflineDiagnosticIo { Read = path => { reads.Add(Path.GetRelativePath(fixture.Root, path).Replace('\\', '/')); return File.OpenRead(path); } };
+        var result = fixture.Service(io).Check(fixture.Root);
+        Assert.Equal(OfflineFindingDisposition.Pass, Finding(result, "package.integrity").Disposition);
+        Assert.Contains("standards/lineage/manifest.json", reads);
+        Assert.Contains("standards/lineage/lineage-2026.09.30.json", reads);
+        Assert.Equal(OfflineFindingDisposition.Pass, Finding(result, "standard").Disposition);
+        Assert.Equal(OfflinePrerequisiteStatus.Ready, result.Status);
+        fixture.NoProbes();
+    }
+
+    [Theory]
+    [InlineData("standards/lineage/manifest.json")]
+    [InlineData("standards/lineage/lineage-2026.09.30.json")]
+    public void Changed_lineage_bytes_fail_the_immutable_inventory_check(string relative)
+    {
+        using var fixture = new OfflinePackageFixture();
+        fixture.UseShippedStandards();
+        fixture.Write(relative, "Synthetic changed lineage bytes");
+        var result = fixture.Service().Check(fixture.Root);
+        Assert.Equal(OfflineFindingDisposition.Fail, Finding(result, "package.integrity").Disposition);
+        Assert.Contains("differ from SHA256SUMS.txt", Finding(result, "package.integrity").Explanation);
+        Assert.Equal(OfflinePrerequisiteStatus.NeedsAttention, result.Status);
+        fixture.NoProbes();
+    }
+
+    [Theory]
+    [InlineData("standards/lineage/unrelated.json")]
+    [InlineData("standards/lineage/nested/lineage-2026.09.30.json")]
+    [InlineData("standards/lineage/lineage-2026.09.30.txt")]
+    [InlineData("extra/public.txt")]
+    public void Safe_out_of_scope_inventory_has_a_distinct_reason_and_never_opens_its_content(string relative)
+    {
+        using var fixture = new OfflinePackageFixture();
+        fixture.Write(relative, "Synthetic out-of-scope component");
+        fixture.RewriteInventory();
+        var opened = false;
+        var io = new OfflineDiagnosticIo { Read = path =>
+        {
+            if (path == fixture.FilePath(relative)) { opened = true; throw new InvalidOperationException("Out-of-scope sentinel was opened."); }
+            return File.OpenRead(path);
+        } };
+        var finding = Finding(fixture.Service(io).Check(fixture.Root), "package.integrity");
+        Assert.False(opened);
+        Assert.Equal(OfflineFindingDisposition.Fail, finding.Disposition);
+        Assert.Contains("outside the supported package inspection scope", finding.Explanation);
+        Assert.DoesNotContain("unsafe path", finding.Explanation);
+        Assert.DoesNotContain(relative, finding.Explanation);
+        fixture.NoProbes();
+    }
+
+    [Fact]
+    public void Complete_inventory_cannot_admit_or_open_a_sensitive_app_file()
+    {
+        using var fixture = new OfflinePackageFixture();
+        const string relative = "app/secrets.json";
+        // Inventory is otherwise complete: omission checks cannot mask removal of the private-path guard.
+        fixture.Write(relative, OfflinePackageFixture.Private);
+        fixture.RewriteInventory();
+        var opened = false;
+        var io = new OfflineDiagnosticIo { Read = path =>
+        {
+            if (path == fixture.FilePath(relative)) { opened = true; throw new InvalidOperationException("PRIVATE_FILE_OPENED_SENTINEL"); }
+            return File.OpenRead(path);
+        } };
+        OfflinePrerequisiteResult? result = null;
+        var error = Record.Exception(() => result = fixture.Service(io).Check(fixture.Root));
+        Assert.False(opened);
+        Assert.Null(error);
+        var finding = Finding(Assert.IsType<OfflinePrerequisiteResult>(result), "package.integrity");
+        Assert.Equal(OfflineFindingDisposition.Fail, finding.Disposition);
+        Assert.Contains("unsafe path", finding.Explanation);
+        Assert.DoesNotContain(OfflinePackageFixture.Private, ToolkitJson.Serialize(result));
+        fixture.NoProbes();
+    }
+
+    [Theory]
+    [InlineData("standards/lineage/manifest.json")]
+    [InlineData("standards/lineage/lineage-2026.09.30.json")]
+    public void Admitted_lineage_files_still_refuse_links_before_opening(string relative)
+    {
+        using var fixture = new OfflinePackageFixture();
+        fixture.UseShippedStandards();
+        var opened = false;
+        var io = new OfflineDiagnosticIo
+        {
+            Attributes = path => path == fixture.FilePath(relative) ? FileAttributes.ReparsePoint : File.GetAttributes(path),
+            Read = path =>
+            {
+                if (path == fixture.FilePath(relative)) { opened = true; throw new InvalidOperationException("Linked lineage sentinel was opened."); }
+                return File.OpenRead(path);
+            }
+        };
+        var finding = Finding(fixture.Service(io).Check(fixture.Root), "package.integrity");
+        Assert.False(opened);
+        Assert.Equal(OfflineFindingDisposition.Fail, finding.Disposition);
+        Assert.Contains("unsafe path, link or reparse point", finding.Explanation);
+        fixture.NoProbes();
+    }
+
+    [Fact]
+    public void Admitted_lineage_inventory_still_refuses_case_duplicates()
+    {
+        using var fixture = new OfflinePackageFixture();
+        fixture.UseShippedStandards();
+        var inventory = File.ReadAllText(fixture.FilePath("SHA256SUMS.txt"));
+        var entry = inventory.Split('\n').Single(line => line.EndsWith("  standards/lineage/lineage-2026.09.30.json", StringComparison.Ordinal));
+        fixture.Write("SHA256SUMS.txt", inventory + entry.ToUpperInvariant() + "\n");
+        var finding = Finding(fixture.Service().Check(fixture.Root), "package.integrity");
+        Assert.Equal(OfflineFindingDisposition.Fail, finding.Disposition);
+        Assert.Contains("unsafe path", finding.Explanation);
         fixture.NoProbes();
     }
 
