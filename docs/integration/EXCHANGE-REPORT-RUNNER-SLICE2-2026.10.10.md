@@ -63,12 +63,13 @@ It adds no shipped runnable item. The shipped registry stays schema 1, and every
 - **The gate (`Use-BditRead`).** It lives in a private module.
   - It accepts only registered commands, and only the read's own parameters, as data. Common parameters and script-block values are refused.
   - Before and after every read it requires exactly one Exchange connection to the expected tenant and account, and polls the stop file.
+  - That connection must also have a usable token: `TokenStatus` is `Active` and `TokenExpiryTimeUTC` is after now (AST-20261010-03). A missing, null, malformed or ambiguous status or expiry is never guessed usable. A `DateTimeOffset` is an instant, a Local `DateTime` is converted, and an Unspecified `DateTime` is read as the documented UTC. Text is accepted only as ISO 8601 with `Z` or an explicit offset, under the invariant culture. An expired token before the first read refuses the run with nothing read; one that expires during the run keeps no rows, like an identity change. There is no retry or replay.
   - After any failure it refuses every later read.
 - **The body's scope.** The body runs in its own module scope. It sees only the gate and its typed arguments.
 - **After the body.**
   - The connection is checked once more, then disconnected.
   - Exactly the registered sections and columns are projected, with string, boolean or null values.
-  - An identity change keeps no rows and marks every section Failed.
+  - An identity change or an expired token keeps no rows and marks every section Failed.
   - A stop keeps any rows already returned, as Cancelled.
 - **Result.** The envelope is written create-new to the parent-named file.
 
@@ -131,11 +132,18 @@ It adds no shipped runnable item. The shipped registry stays schema 1, and every
   - One first attempt broke the script's syntax instead of the guard. It was discarded and redone precisely.
   - The post-read identity check alone is backed up by the final connection check. Disabling both fails the late account-change test.
 
+## Review corrections
+
+- **AST-20261010-01 (Astra, from #74).** Carried in by merging the slice 1 branch: blank mailbox values are refused.
+- **AST-20261010-02 (Astra, P2).** An explicit null collection, null element or null required member in the child envelope escaped the controlled refusal as an ordinary exception. `ScriptReadResult.Read` now refuses any null where a value is required, so the run ends Failed with no evidence and the fixed reason. Eight of 24 new null cases failed on `95a2343` (the rest were already refused); all pass now, and a null section error stays accepted.
+- **AST-20261010-03 (Astra, P2).** The gate ignored `TokenExpiryTimeUTC` and `TokenStatus`, so an expired-but-Active connection still read and sealed Collected rows. The gate now checks the token as described above. Eleven unusable-token cases (expired but Active, expired status, missing or null status or expiry, malformed text, a number, ambiguous day/month text, a past instant written with a +14:00 offset, a past Unspecified `DateTime`) and two expiry-during-run cases failed on `95a2343` and pass now; five usable forms pass. The child runs in a time zone chosen so that reading an Unspecified UTC expiry as local time fails a test; that mutation and removing the time comparison were both caught. The final post-body check is backed up by the per-read check, as for identity. The wrapper pin changed to `20cc92dd…`.
+
 ## Not done here, and still required
 
 - **Slice 3:** the registered Exchange adapters, meaning the first shipped schema 2 body for `exo-mailbox-inventory`, with its real projection, fixed reasons and live-unverified status. `-CommandName` with `Get-EXO*` REST cmdlets is unverified against the real module.
 - **Slice 4:** the Reports and Scripts UI and the experimental opt-in, after #73.
-- **Live acceptance:** none. The behaviour of the real module, prompts, RBAC, `Get-ConnectionInformation` output and policy refusals stays unverified until William accepts each in a test tenant.
+- **Live acceptance:** none. Whether the real module returns `TokenStatus` and `TokenExpiryTimeUTC` on every connection, and in which type, is unverified; if either is missing the runner refuses, which a live run must confirm is not every run.
+- **Live acceptance (other):** none. The behaviour of the real module, prompts, RBAC, `Get-ConnectionInformation` output and policy refusals stays unverified until William accepts each in a test tenant.
 - **Not covered by a test:** two branches are refused in code, but the real wrapper and stand-in never produce them, so no test exercises them:
   - a non-zero runner exit with a plausible result;
   - a descendant holding the output pipes open.
