@@ -87,7 +87,7 @@ public sealed class DeployViewModel : PageViewModel
             return;
         }
         var confirm = System.Windows.MessageBox.Show(
-            "Deployment access signs you in again with the M365 BuildStandard Deployment Tool application and requests write permissions for this tenant.\n\n" +
+            "Deployment access uses the M365 BuildStandard Deployment Tool application and requests write permissions for this tenant. A known, verified account may reconnect silently; Microsoft can still require sign-in, MFA or consent.\n\n" +
             "Any capture, assessment and plan from the read-only session are discarded and must be repeated in the deployment session.\n\nNothing is written until you confirm a reviewed plan. Continue?",
             "Enable deployment access", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;

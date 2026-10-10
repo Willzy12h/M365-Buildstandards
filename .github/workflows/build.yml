@@ -86,6 +86,13 @@ jobs:
           } finally { Remove-Item -LiteralPath $mutation -ErrorAction SilentlyContinue }
 
       # Parse only, then a synthetic run: a stand-in module answers every read, so no Microsoft module or tenant is used.
+      - name: Verify fixed Exchange account binding with offline stubs (PowerShell 5.1)
+        shell: powershell
+        run: |
+          $scripts = @(Get-ChildItem dist/ui-review -Recurse -Filter 'exchange-read-capture-*.ps1')
+          if ($scripts.Count -eq 0) { throw 'The synthetic command review produced no Exchange read template.' }
+          foreach ($script in $scripts) { ./build/Test-ExchangeReadIdentity.ps1 -ScriptPath $script.FullName }
+
       - name: Script library parse, Copy literals and synthetic run (PowerShell 5.1)
         shell: powershell
         run: |
