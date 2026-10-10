@@ -1,0 +1,21 @@
+# Fixed Exchange/Purview known-account check — PR #59
+
+Source baseline: freshly fetched integration `14e62275ca212b6f34ecd3b17d676f2445e39845`. The previous template verified one connected resource and tenant before reads, but only supplied `UserPrincipalName` as an authentication hint. It did not verify that Microsoft returned the requested account. The new check compares the returned non-empty account case-insensitively with the supplied confirmed name before the initial and every subsequent collection. Integrated runs require a valid confirmed name; manual exports without one remain explicitly tenant-only.
+
+No schema, permission, Graph authentication/cache, module install, mutation or retry changes. Purview keeps its separate boundary. Initial mismatch means no accepted capture; a later failure remains a failed collection/partial evidence, never an empty success. The error/progress text gives a reconnect/verification next step without retaining arbitrary module/authentication output.
+
+## Regression method
+
+`build/Test-ExchangeReadIdentity.ps1` parses the generated owned template, defines only `Assert-CaptureConnection` and invokes it against a local `Get-ConnectionInformation` stub. It never executes template top-level authentication/module/collection blocks, loads Microsoft modules or reads a tenant. Matching/case-varied identities, wrong/missing accounts, wrong/ambiguous/absent resource/tenant, identity changes between reads and explicit unpinned manual behaviour are checked separately. CI uses Windows PowerShell 5.1; Linux cross-compilation is not runtime proof of this helper.
+
+Test-only Windows checkpoint `b7a7a2a5cd6610d50db73cd1856be0e8affdca37` deliberately keeps the old template to demonstrate the account refusals fail; its actual completed outcome is recorded on the PR before the fix is pushed. Five initial C# regression cases failed on the old process builder (four invalid names accepted, supplied name not normalised). With validation/account checks, the first 68 relevant engine/process/evidence cases passed locally. Two further CaptureAsync entry-point cases verify refusal occurs before the platform/files/process boundary.
+
+The old hostile-account argument-binding test retains its original malicious value as an explicit refusal, then tests legitimate account/path binding and every original no-shell/no-policy assertion. This strengthens the launch prerequisite; it does not remove injection coverage or enable a command string. Full local/Windows outcomes and exact identities remain distinct. Native/Human/Microsoft behaviour is live-unverified.
+
+The actual failing-first Windows push run [37840118290](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37840118290) and PR run 37840122011 completed with failure on the offline helper at `b7a7a2a`. The failed-step log names the seven intended regressions: wrong, unnamed and missing-property account for both Exchange and Purview, plus account changed between reads. Tenant/resource and matching/manual controls succeeded. The run's 1,270 engine/156 app tests and 48 layouts passed, but package acceptance did not complete; this is regression proof, not candidate acceptance.
+
+Confirmed finding **AST-20261008-10**: at integration `14e62275`, `src/BDIT.TenantToolkit.Engine/Exchange/ReadCapture.ps1:51` verified tenant/resource but did not verify the supplied account; `ExchangeCaptureRunner.cs:72` permitted an empty/display-only hint. Corrected source plus regression is in this PR. Local final broad checks executed and passed 1,277 engine/CLI cases, zero skipped, and the strict solution cross-build passed with zero warnings/errors. Windows validation of the fix remains pending at this source commit.
+
+## CLA-20261008-35 response — 9 October 2026
+
+The identity harness now invokes the full owned template entry point with Integrated and empty, space-only and tab-only accounts. An inert Get-Module sentinel must never be called; existing connection-stub counts and output-file absence must remain unchanged. All 20 PS7 checks pass. A scratch template with only the integrated account guard removed fails the new case at the module boundary, without loading a Microsoft module or contacting a tenant. Windows PowerShell 5.1 execution is checked by the existing exact-head workflow, not inferred from PS7.
