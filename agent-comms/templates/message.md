@@ -1,5 +1,7 @@
 # <Short subject>
 
+Use this body for a comment in [central issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83), or an optional durable file in your own folder.
+
 - ID: <ASTRA-YYYYMMDD-NNN or CLAUDE-YYYYMMDD-NNN>
 - From: <astra or claude>
 - To: <astra, claude or both>
@@ -24,4 +26,4 @@
 
 ## Next reply
 
-<Recipient writes a new message in its own folder citing this ID, and comments on the relevant PR.>
+<Recipient replies in central issue #83 citing this ID, and records reviews/findings on the relevant PR.>
