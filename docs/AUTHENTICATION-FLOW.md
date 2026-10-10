@@ -63,3 +63,7 @@ Offline tests exercise the real authenticator state machine and forwarded invali
 ## Permission-review time and cancellation (PR #73 follow-up)
 
 The explicit-connect timeout is one cumulative budget for silent and interactive Microsoft acquisition. Time spent reading the access preview does not consume that budget. The preview remains cancellable, and the window closes when its operation is cancelled; ticking its acknowledgement alone does not approve access. Declining or cancelling the preview remains cancellation, while acquisition-deadline expiry reports a sign-in timeout. Deployment/setup request-approval expiry remains unchanged. This path has offline virtual-time and native harness coverage; Microsoft/WAM/CA behaviour remains live-unverified.
+
+### Delayed timer delivery (AST-20261010-08)
+
+Result admission also checks elapsed monotonic time. A cancellation timer can be delivered after its deadline; an uncancelled token alone therefore cannot establish that a successful reply is in budget. Replies at or after the remaining deadline refuse without a new prompt or retry. Caller cancellation is checked first and remains cancellation. The existing budget, preview exclusion, cache, identity, scope and renewal contracts are unchanged. Deterministic tests defer timer delivery independently of clock advancement; actual Microsoft/Windows scheduling frequency remains unmeasured.

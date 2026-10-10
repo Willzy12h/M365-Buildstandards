@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
+
 - Let engineers read the permission preview without consuming the Microsoft sign-in timeout. Keep a shared acquisition budget, close cancelled previews, and preserve cancellation without reporting it as successful sign-in.
 
 - Add production-path authentication and setup/consent refusal regressions; show an unknown account for explicit account-choice previews instead of the previous identity.

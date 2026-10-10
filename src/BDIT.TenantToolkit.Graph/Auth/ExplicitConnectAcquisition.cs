@@ -35,6 +35,8 @@ internal static class ExplicitConnectAcquisition
             {
                 var result = await acquire(linked.Token);
                 linked.Token.ThrowIfCancellationRequested();
+                // Timer delivery can lag behind its deadline; elapsed time still bounds result acceptance.
+                if (clock.GetElapsedTime(started) >= remaining) throw TimedOut();
                 return result;
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested && deadline.IsCancellationRequested)

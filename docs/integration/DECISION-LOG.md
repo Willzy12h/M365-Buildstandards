@@ -516,3 +516,7 @@ After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-
 ### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
 
 CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
+
+### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
+
+AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.
