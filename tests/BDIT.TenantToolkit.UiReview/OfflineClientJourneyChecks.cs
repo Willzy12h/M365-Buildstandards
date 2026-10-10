@@ -12,6 +12,7 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Configuration;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Standards;
 
 /// <summary>Real saved-client and historical-read buttons in a cold workspace; no synthetic connection is injected.</summary>
@@ -76,11 +77,25 @@ internal static partial class Program
                 content.UpdateLayout(); Pump();
                 var configuration = shell.Page<ConfigurationViewModel>();
                 if (shell.CurrentPage != configuration) throw new InvalidOperationException("Offline action did not open saved configuration review.");
-                configuration.SelectedStored = configuration.StoredSnapshots.Single(s => s.Id == snapshot.Id);
                 foreach (var expander in Descendants(content).OfType<Expander>().Where(e => e.Header?.ToString() == "Capture details, exports and saved captures"))
                     expander.IsExpanded = true;
                 content.UpdateLayout(); Pump();
-                InvokeJourneyButton(shell, JourneyButton(content, configuration.LoadStoredCommand), "Open saved capture");
+                var savedCaptures = Descendants(content).OfType<ComboBox>().Single(c => ReferenceEquals(c.ItemsSource, configuration.StoredSnapshots)
+                    && System.Windows.Automation.AutomationProperties.GetName(c) == "Saved capture");
+                var savedCapture = configuration.StoredSnapshots.Single(s => s.Id == snapshot.Id);
+                savedCaptures.BringIntoView(); content.UpdateLayout(); Pump();
+                savedCaptures.SelectedItem = savedCapture; content.UpdateLayout(); Pump();
+                var openCapture = JourneyButton(content, configuration.LoadStoredCommand);
+                string CaptureSelectionDiagnostics() => $"client {size.Width}x{size.Height}; stored rows {configuration.StoredSnapshots.Count}; "
+                    + $"target row still current {configuration.StoredSnapshots.Any(s => ReferenceEquals(s, savedCapture))}; "
+                    + $"ComboBox rows {savedCaptures.Items.Count}, selected {(savedCaptures.SelectedItem as SnapshotSummary)?.Id ?? "<none>"}, current row {ReferenceEquals(savedCaptures.SelectedItem, savedCapture)}; "
+                    + $"VM selected {configuration.SelectedStored?.Id ?? "<none>"}, current row {ReferenceEquals(configuration.SelectedStored, savedCapture)}; "
+                    + $"Idle {workspace.Idle}, Busy {workspace.Busy}; command CanExecute {configuration.LoadStoredCommand.CanExecute(null)}, Button IsEnabled {openCapture.IsEnabled}.";
+                Console.WriteLine("Saved capture selection: " + CaptureSelectionDiagnostics());
+                if (!configuration.StoredSnapshots.Any(s => ReferenceEquals(s, savedCapture)) || !ReferenceEquals(savedCaptures.SelectedItem, savedCapture)
+                    || !ReferenceEquals(configuration.SelectedStored, savedCapture) || !workspace.Idle)
+                    throw new InvalidOperationException("The real saved-capture selection did not bind the current row while idle. " + CaptureSelectionDiagnostics());
+                InvokeJourneyButton(shell, openCapture, "Open saved capture", CaptureSelectionDiagnostics);
                 if (workspace.Snapshot?.Id != snapshot.Id || workspace.Snapshot.CapturedAt != snapshot.CapturedAt
                     || workspace.SnapshotIsLive || workspace.Assessment is null || workspace.Plan is not null)
                     throw new InvalidOperationException("Opening saved evidence lost its original identity/time or created live/plan authority.");
@@ -157,11 +172,13 @@ internal static partial class Program
     }
     private static Button JourneyButton(FrameworkElement content, ICommand command) => Descendants(content).OfType<Button>()
         .Single(b => ReferenceEquals(b.Command, command));
-    private static void InvokeJourneyButton(ShellViewModel shell, Button button, string label)
+    private static void InvokeJourneyButton(ShellViewModel shell, Button button, string label, Func<string>? diagnostics = null)
     {
         button.BringIntoView(); Pump();
         if (!button.IsEnabled || button.Command?.CanExecute(button.CommandParameter) != true)
-            throw new InvalidOperationException(label + " is disabled in its populated local journey.");
+            throw new InvalidOperationException(label + " is disabled in its populated local journey. "
+                + $"Button IsEnabled {button.IsEnabled}; command CanExecute {button.Command?.CanExecute(button.CommandParameter)}; Idle {shell.Workspace.Idle}; Busy {shell.Workspace.Busy}. "
+                + diagnostics?.Invoke());
         var peer = new ButtonAutomationPeer(button);
         ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke(); Pump();
         var clock = Stopwatch.StartNew();

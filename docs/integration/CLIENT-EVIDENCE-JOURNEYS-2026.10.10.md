@@ -27,3 +27,9 @@ Claude independent review remains separate from the delegated bounded review. Hu
 ## First repaired-head Windows result
 
 Windows push38080373544 at1b4d3e1e5256ee487df6834d3012f50ecfde20b8 executed258 App cases:257 passed,1 failed,zero skipped. All31 new journey cases passed; the sole failure was the existing Offline_next_step_keeps_engineer_exports_available_and_saved_evidence_inert assertion requiring explicit “Connect read-only” guidance. The source guidance is corrected to retain that read-only next step alongside local review options; the assertion stays unchanged. Native/package checks did not run after this App failure. Fresh full Windows validation remains required on the corrected final head.
+
+## Second repaired Windows result — 4b5c15f
+
+Actual push38081273148 passes all1785 engine/CLI and258 App tests, zero failures/skips. All31 added App journey cases therefore execute successfully. Native1480×940 saved-client selection, original-time historical capture, persistent evidence/identity, offline Recovery and empty-filter guidance passes. Native1180×760 then reports the Open saved capture button disabled. Later sizes, Reports/native completion and fresh-package checks are not claimed as passing in this failed overall run.
+
+The combined old button assertion cannot distinguish a stale enabled state from selection reset or busy state. Source inspection confirms SelectedStored changes lacked explicit command requery notification. The bounded follow-up invalidates command state after changed selection and selects through the actual Saved capture ComboBox after expanding/layout. It verifies exact current-row selection, idle state and real button/command agreement, with detailed failure diagnostics; no direct command bypass. The exact original runtime cause remains unconfirmed, and fresh Windows/native checks are required. Parent80’s Naming small-window repair is preserved.

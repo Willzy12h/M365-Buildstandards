@@ -145,7 +145,14 @@ public sealed class ConfigurationViewModel : PageViewModel
 
     public string FilterCollection { get => _filterCollection; set { if (SetProperty(ref _filterCollection, value)) ApplyFilter(); } }
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) ApplyFilter(); } }
-    public SnapshotSummary? SelectedStored { get => _selectedStored; set => SetProperty(ref _selectedStored, value); }
+    public SnapshotSummary? SelectedStored
+    {
+        get => _selectedStored;
+        set
+        {
+            if (SetProperty(ref _selectedStored, value)) CommandManager.InvalidateRequerySuggested();
+        }
+    }
     public string LastExport { get; private set; } = "";
     private string _lastExportFile = "";
 
