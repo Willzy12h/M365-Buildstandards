@@ -106,15 +106,10 @@ internal static partial class Program
         {
             foreach (var size in PageSizes)
             {
-                // PageSizes are the client-content measurements used by the existing page checks.
-                var chromeWidth = window.ActualWidth - content.ActualWidth;
-                var chromeHeight = window.ActualHeight - content.ActualHeight;
-                window.Width = size.Width + chromeWidth; window.Height = size.Height + chromeHeight;
                 session.TenantVerified = false; NotifyFixture(workspace);
                 traces.Context = "native reports " + size;
-                shell.Navigate("reports"); SeedGraphReportsPage(shell); content.UpdateLayout(); Pump();
-                if (Math.Abs(content.ActualWidth - size.Width) > 1 || Math.Abs(content.ActualHeight - size.Height) > 1)
-                    throw new InvalidOperationException("Native report journey client content size differs from the requested PageSizes measurement.");
+                shell.Navigate("reports"); SeedGraphReportsPage(shell);
+                FitNativeReportClientSize(window, content, size);
                 Console.WriteLine($"Native reports/naming client content: {content.ActualWidth:0}x{content.ActualHeight:0}; outer window: {window.ActualWidth:0}x{window.ActualHeight:0}.");
                 var vm = shell.Page<GraphReportsViewModel>();
                 var where = "native reports " + (int)size.Width + "x" + (int)size.Height;
@@ -215,6 +210,44 @@ internal static partial class Program
             session.TenantVerified = verified; NotifyFixture(workspace);
             window.Width = 1480; window.Height = 940; content.UpdateLayout(); Pump();
         }
+    }
+
+    private static void FitNativeReportClientSize(Window window, FrameworkElement content, Size requested)
+    {
+        // A shown HWND resizes separately from layout. Settle before measuring the client delta,
+        // then verify it again after another pass; PageSizes and the one-pixel assertion stay fixed.
+        const int maximumAttempts = 8;
+        void Settle()
+        {
+            window.UpdateLayout(); Pump();
+            Thread.Sleep(10);
+            content.UpdateLayout(); Pump(); window.UpdateLayout();
+        }
+        bool Matches() => Math.Abs(content.ActualWidth - requested.Width) <= 1
+            && Math.Abs(content.ActualHeight - requested.Height) <= 1;
+        string Dimensions(int attempt) => $"attempt {attempt}/{maximumAttempts}; requested client {requested.Width:0.###}x{requested.Height:0.###}; "
+            + $"requested outer {window.Width:0.###}x{window.Height:0.###}; actual outer {window.ActualWidth:0.###}x{window.ActualHeight:0.###}; "
+            + $"actual client {content.ActualWidth:0.###}x{content.ActualHeight:0.###}; "
+            + $"measured chrome {window.ActualWidth - content.ActualWidth:0.###}x{window.ActualHeight - content.ActualHeight:0.###}; "
+            + $"window min {window.MinWidth:0.###}x{window.MinHeight:0.###}, max {window.MaxWidth:0.###}x{window.MaxHeight:0.###}; "
+            + $"content min {content.MinWidth:0.###}x{content.MinHeight:0.###}, max {content.MaxWidth:0.###}x{content.MaxHeight:0.###}; state {window.WindowState}.";
+        for (var attempt = 1; attempt <= maximumAttempts; attempt++)
+        {
+            Settle();
+            Console.WriteLine("Native report sizing: " + Dimensions(attempt));
+            if (Matches())
+            {
+                Settle();
+                if (Matches()) return;
+            }
+            if (attempt < maximumAttempts)
+            {
+                window.Width = Math.Max(window.MinWidth, window.ActualWidth + requested.Width - content.ActualWidth);
+                window.Height = Math.Max(window.MinHeight, window.ActualHeight + requested.Height - content.ActualHeight);
+            }
+        }
+        throw new InvalidOperationException("Native report journey client content size differs from the requested PageSizes measurement after bounded resize settlement. "
+            + Dimensions(maximumAttempts));
     }
 
     private static void NotifyFixture(Workspace workspace) => typeof(Workspace).GetMethod("Notify", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(workspace, null);
