@@ -73,18 +73,31 @@ if ($Kind -contains 'SharingPolicy') {
         $isDefault = Get-Flag $policy 'Default'
         $entries = $null
         if ($null -ne $policy -and $policy.PSObject.Properties['Domains']) { $entries = $policy.Domains }
+        $all = @()
         $list = @()
-        if ($null -ne $entries) { $list = @(@($entries) | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ } | Where-Object { $_ -ne '' }) }
+        if ($null -ne $entries) {
+            $all = @($entries)
+            $list = @($all | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ } | Where-Object { $_.Trim() -ne '' })
+        }
         $rows = @()
         if ($null -eq $entries) {
             $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault 'Unknown' 'Unknown' 'NotApplicable' 'NotApplicable' @('Exchange did not return the domains this policy shares with.')
-        } elseif ($list.Count -eq 0) {
+        } elseif ($all.Count -eq 0) {
             $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault 'NotSet' 'NotSet' 'NotApplicable' 'NotApplicable' @('Exchange returned no domains for this policy.')
         } else {
+            # An entry returned null or blank could not be read; it is not the absence of a domain.
+            if ($all.Count -gt $list.Count) {
+                $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault 'Unknown' 'Unknown' 'NotApplicable' 'NotApplicable' @('Exchange returned ' + ($all.Count - $list.Count) + ' domain entry(ies) for this policy that could not be read, so its domains may be incomplete.')
+            }
             foreach ($entry in $list) {
                 $at = $entry.IndexOf(':')
-                if ($at -gt 0) {
-                    $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault $entry.Substring(0, $at).Trim() ($entry.Substring($at + 1).Trim() -replace '\s+', ' ') 'NotApplicable' 'NotApplicable' @()
+                $domainPart = ''; $actions = ''
+                if ($at -ge 0) { $domainPart = $entry.Substring(0, $at).Trim(); $actions = ($entry.Substring($at + 1).Trim() -replace '\s+', ' ') }
+                # Known only when both the domain and at least one action were returned; a blank part is not "no access".
+                if ($domainPart -ne '' -and $actions -ne '') {
+                    $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault $domainPart $actions 'NotApplicable' 'NotApplicable' @()
+                } elseif ($at -ge 0) {
+                    $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault $entry 'Unknown' 'NotApplicable' 'NotApplicable' @('This domain entry has an empty domain or sharing-action part, so what it allows is unknown; it is shown as returned.')
                 } else {
                     $rows += Get-SharingRow 'SharingPolicy' $policy $isDefault $entry 'Unknown' 'NotApplicable' 'NotApplicable' @('This domain entry has no sharing actions in the expected domain:actions form; it is shown as returned.')
                 }

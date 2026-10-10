@@ -13,9 +13,15 @@
     <StackPanel Grid.Row="2" Margin="0,0,0,10">
       <TextBlock x:Name="ItemText" FontWeight="SemiBold"/>
       <TextBlock x:Name="TypeText" Foreground="{StaticResource Good}" FontWeight="SemiBold" Margin="0,4,0,0"/>
-      <TextBlock Text="Values the script will use" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
     </StackPanel>
-    <ListBox Grid.Row="3" x:Name="ValueList" AutomationProperties.Name="Values the script will use"/>
+    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel>
+        <TextBlock Text="Requirements and limitations" Style="{StaticResource FieldLabel}"/>
+        <TextBlock x:Name="RequirementsText" TextWrapping="Wrap" AutomationProperties.Name="Script requirements and limitations"/>
+        <TextBlock Text="Values the script will use" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+        <ListBox x:Name="ValueList" AutomationProperties.Name="Values the script will use"/>
+      </StackPanel>
+    </ScrollViewer>
     <StackPanel Grid.Row="4" Margin="0,16,0,0">
       <CheckBox x:Name="ApprovalBox" Checked="OnApprovalChanged" Unchecked="OnApprovalChanged" AutomationProperties.Name="Confirm this tenant, item and values"><TextBlock Text="I have checked the tenant, the item and every value. Produce this script for this tenant only." TextWrapping="Wrap"/></CheckBox>
       <TextBlock Text="Blank optional fields are left out. Review the script before you run it; it is not run by this tool." Style="{StaticResource Muted}"/>

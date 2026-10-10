@@ -121,6 +121,26 @@ What each item decides, and what it leaves Unknown:
 
 Every finding has a synthetic Copy case in `build/Test-ScriptLibraryStubs.ps1`. Each was checked failing-first by mutating the script back to the wrong behaviour (for example, null as False, an unsized read, a case-insensitive tag match), which made all twelve new negative cases fail, and then restoring it.
 
+## Review corrections for the third pack (Astra, 9 October 2026)
+
+Astra's post-merge review of PR #66 (AST-20261009-01 to -04, posted on the PR) was fixed by Claude on branch `claude/scripts-pack3-fixes-2026-10-09`. Each fix has a synthetic Copy case in `build/Test-ScriptLibraryStubs.ps1`. All eight new cases fail against the merged scripts at `59f1d02` and pass now, beside cases that keep known values. All items stay Copy and Save only and live-unverified.
+
+| ID | Correction |
+|---|---|
+| AST-20261009-01 | Retention tag links are compared with the raw Name, Identity and DistinguishedName, byte for byte. Spaces are no longer collapsed, so a link with single spaces does not resolve a tag whose name has two. |
+| AST-20261009-02 | Linked tags are tracked by the tag itself, not by its key values. A tag that only shares a value (for example a Name equal to another tag's Identity) with a linked tag is still listed as NotLinked when unlinked tags are asked for. |
+| AST-20261009-03 | A list holding a null or blank entry could not be read in full. A retention link list with one gives an Unknown row (never NoTags), keeps its readable links and stops any tag being NotLinked; a sharing domain list gives an Unknown row (never NotSet) and keeps its readable entries; a counted or listed setting in the mailbox, protection and quarantine policy items is Unknown, never a shorter count or list. Only a list returned empty is 0. |
+| AST-20261009-04 | A sharing entry with nothing, or only spaces, on either side of the colon has Access Unknown and is shown exactly as returned, never with a blank Access. |
+
+**Whitespace-only entries (Astra's re-review of #70, fixed in #72).** The unreadable test in the mailbox, protection and quarantine policy items compared each list entry with the empty string, so an entry made only of whitespace passed it and the display helper then collapsed it: `MultiLanguageSetting = @(' ')` read as a known count of 1 with no warning. Entries are now tested with `IsNullOrWhiteSpace`, in the unreadable test and in the count, so a null, empty or whitespace-only entry makes the list Unknown with a warning. Four synthetic cases (a whitespace entry beside a known one and on its own, in all three items) failed against integration `494773b` and pass; a list returned empty is still 0.
+
+Astra's other points from the same review are recorded rather than changed in code:
+
+- **SMTP AUTH.** Reading a returned null as FollowsOrganisation matches the `Set-CASMailbox` documentation. Whether `Get-EXOCASMailbox -Properties SmtpClientAuthenticationDisabled` is supported is still to be confirmed in a live tenant.
+- **Retention names.** An exact Name match is acceptable, because `RetentionPolicyTagLinks` holds tag names.
+- **Quarantine presets.** Microsoft's documentation conflicts: `New-QuarantinePolicy` Example 1 gives LimitedAccess 27 and FullAccess 23, and the parameter section gives 43 and 39. The item keeps 27 and 23, stays live-unverified and says so in its limitations. The decoded bits are the configured permissions, not effective actions: Download has no effect, a zero ViewHeader bit does not hide that action, and Release is not honoured for malware or high-confidence phishing. The item's limitations now say this.
+- **Roles.** They stay unverified until a live run.
+
 ## Not implemented in this slice
 
 - Everything here is manual and unverified live: each item is copied and run by an engineer, and none has been run in a tenant.
