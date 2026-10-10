@@ -509,3 +509,7 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 ### INT-084 compatibility clarification — 10 October 2026, PR #57
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
+
+### Report read-status review corrections — 10 October 2026, PR #78
+
+CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.

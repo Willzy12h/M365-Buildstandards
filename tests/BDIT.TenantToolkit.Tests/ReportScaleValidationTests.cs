@@ -106,16 +106,24 @@ public sealed class ReportScaleValidationTests(ITestOutputHelper output)
         Assert.Equal(ReportReadState.Partial, restored.Status);
         Assert.Equal(GraphReportRegistry.MaximumRows, restored.Sections.Single().Rows.Count);
         Assert.Equal(CapReason, restored.Sections.Single().Error);
-        Assert.Contains(CapReason, RegisteredReportDocuments.Html(restored, "Synthetic benchmark"), StringComparison.Ordinal);
+        var html = RegisteredReportDocuments.Html(restored, "Synthetic benchmark");
 
         using var csv = new ZipArchive(new MemoryStream(CsvWriter.ZipSheets(RegisteredReportDocuments.Sheets(restored))));
         using var provenance = new StreamReader(csv.GetEntry("01_Report_provenance.csv")!.Open());
-        Assert.Contains(CapReason, provenance.ReadToEnd(), StringComparison.Ordinal);
+        var csvProvenance = provenance.ReadToEnd();
 
         using var xlsx = new ZipArchive(new MemoryStream(XlsxWriter.Write(RegisteredReportDocuments.Sheets(restored))));
         using var metadata = xlsx.GetEntry("xl/worksheets/sheet1.xml")!.Open();
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-        Assert.Contains(XDocument.Load(metadata).Descendants(ns + "t"), cell => cell.Value.Contains(CapReason, StringComparison.Ordinal));
+        var metadataRows = XDocument.Load(metadata).Descendants(ns + "row").ToArray();
+        Assert.Multiple(
+            () => Assert.Contains(CapReason, html, StringComparison.Ordinal),
+            () => Assert.Contains("<strong>Read status: Partial.</strong>", html, StringComparison.Ordinal),
+            () => Assert.Contains("<p class=\"notice\">" + CapReason + "</p>", html, StringComparison.Ordinal),
+            () => Assert.Contains(CapReason, csvProvenance, StringComparison.Ordinal),
+            () => Assert.Contains("\"Read status\",\"Partial\"\r\n", csvProvenance, StringComparison.Ordinal),
+            () => Assert.Contains(metadataRows.SelectMany(row => row.Descendants(ns + "t")), cell => cell.Value.Contains(CapReason, StringComparison.Ordinal)),
+            () => Assert.Contains(metadataRows, row => row.Descendants(ns + "t").Select(cell => cell.Value).SequenceEqual(["Read status", "Partial"])));
     }
 
     private T Measure<T>(int rows, string stage, Func<T> operation)

@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Require truthful Partial headlines/provenance and visible truncation warnings in registered report export regressions; production exporters and limits remain unchanged (CLA-20261010-95/96).
+
 - Verify cap-reached report truncation reasons across JSON/HTML/CSV/XLSX, use explicit Partial unknown rows in scale fixtures, and assert CSV UTF-8 BOM and XLSX line breaks (Claude review follow-up #78; no production exporter change).
 
 - Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; unsealed edits refuse every format before writing. Production export behaviour is unchanged.

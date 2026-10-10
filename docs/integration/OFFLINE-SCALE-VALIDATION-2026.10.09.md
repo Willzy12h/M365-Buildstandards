@@ -37,3 +37,9 @@ Next independent slice: exercise real read back-off cancellation and pagination 
 3. Merge commits only under HANDOVER's delegation, then verify the actual merge-commit CI and record SHA/run.
 4. Dependent production optimisation follows the validated baseline; new report contracts merge before their implementation.
 5. Live acceptance, release promotion and publication keep their separate approval gates. These additions do not postpone an otherwise usable preview candidate.
+
+## Read-status headline and visible notice regression — PR #78
+
+CLA-20261010-95/96 add exact cap-reached Partial assertions for the HTML headline, CSV provenance and same-row XLSX field/value, plus the visible HTML warning paragraph. Existing error-text checks remain. A controlled exporter mutant hard-coding the report-level status to Collected passed the original 13 scale/export checks; with the strengthened test, all three independent status assertions fail. Removing only the warning paragraph fails its new visible-notice assertion. Restored exact production exporter/cap passes all 13 checks; no production behaviour changes.
+
+An optional wider Linux report filter produced 240 passes and 22 empty-PowerShell-runtime-data failures because the scratch host discovery did not include this environment's installed PowerShell path. That run is not a full-suite pass or a product regression proof. Fresh exact-head Windows CI still supplies full suite/native/package validation. CLA-20261009-42's two own claim rows now have a proper table header; other agents' rows are unchanged.
