@@ -36,7 +36,7 @@ The confirmed findings and token-efficient review recommendation are in [REVIEW-
 
 ## Cleanup and release boundaries
 
-William authorised removing unnecessary merged branch references. 24 remote and 21 local Astra branches were deleted only after proving their heads are reachable from retained integration and checking there is no open PR. Active branches, Claude remote branches, tags, releases and evidence were retained. [The audit](archive/BRANCH-CLEANUP-2026.10.10.json) records original heads for recovery; deleting a reference did not delete integration history.
+William authorised removing unnecessary merged branch references. 28 remote and 25 local Astra branches were deleted (initial 24/21 plus four newly merged slices) only after proving their heads are reachable from retained integration and checking there is no open PR. Active branches, Claude remote branches, tags, releases and evidence were retained. [The audit](archive/BRANCH-CLEANUP-2026.10.10.json) records original heads for recovery; deleting a reference did not delete integration history.
 
 William acknowledged reusing **Application.Read.All** for tenant-wide application/service-principal credential-expiry metadata and app-role assignments on 10 October. Exclude secret values and all writes; add no Directory.Read.All consent. Dependent source waits for #69's merged contract. Live reads, human acceptance, security-owner distribution decisions, main promotion, tags and publication remain separate approval gates.
 

@@ -340,5 +340,47 @@
     "claude/exchange-report-evidence-2026-10-10",
     "claude/exchange-report-runner-2026-10-10"
   ],
-  "recovery": "Every deleted head is reachable from retained integration history; original head SHAs are recorded here."
+  "recovery": "Every deleted head is reachable from retained integration history; original head SHAs are recorded here.",
+  "subsequentMergeCleanup": {
+    "deletedRemote": 4,
+    "deletedLocal": 4,
+    "items": [
+      {
+        "pr": 58,
+        "branch": "astra/mailbox-capacity-evaluation-2026-10-08",
+        "remoteHead": "6b20bbf549fd0f121666fb1365e1de15c9c81125",
+        "localHead": "6b20bbf549fd0f121666fb1365e1de15c9c81125",
+        "merge": "f679d3da6beb7265fa8c0637d2cfa867b98c8e61",
+        "retainedInIntegration": "463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8"
+      },
+      {
+        "pr": 62,
+        "branch": "astra/offline-report-evidence-export-2026-10-08",
+        "remoteHead": "c691baeac4094cca41d21d9544f0b31d510f10ff",
+        "localHead": "c691baeac4094cca41d21d9544f0b31d510f10ff",
+        "merge": "ee9ca60436ee85fe6447bf281e9d72cb72c4db94",
+        "retainedInIntegration": "463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8"
+      },
+      {
+        "pr": 65,
+        "branch": "astra/offline-scale-validation-2026-10-09",
+        "remoteHead": "08fd92f0f9db2273ee73a6acfe84e6b51060cd62",
+        "localHead": "08fd92f0f9db2273ee73a6acfe84e6b51060cd62",
+        "merge": "a55659defff56bd714fee604eeb82363cc7ee603",
+        "retainedInIntegration": "463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8"
+      },
+      {
+        "pr": 68,
+        "branch": "astra/report-export-robustness-2026-10-09",
+        "remoteHead": "831b5bc6451d6f3631116709da4be2f751a7b292",
+        "localHead": "831b5bc6451d6f3631116709da4be2f751a7b292",
+        "merge": "463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8",
+        "retainedInIntegration": "463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8"
+      }
+    ],
+    "remoteDeletionLog": "To https://github.com/Willzy12h/M365-Buildstandards.git\n - [deleted]         astra/mailbox-capacity-evaluation-2026-10-08\n - [deleted]         astra/offline-report-evidence-export-2026-10-08\n - [deleted]         astra/offline-scale-validation-2026-10-09\n - [deleted]         astra/report-export-robustness-2026-10-09\n",
+    "notes": "Only newly merged Astra refs; all exact heads reachable from retained integration. Active/Claude refs, tags and evidence preserved."
+  },
+  "totalDeletedRemoteAstraRefs": 28,
+  "totalDeletedLocalAstraRefs": 25
 }
