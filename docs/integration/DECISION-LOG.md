@@ -493,3 +493,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### Report regression evidence follow-up — 10 October 2026, PR #78
+
+CLA-20261009-01 remained an open test gap at #65 merge despite a contradictory ready comment. Add cap-reached Partial export regressions rather than treating a green suite as proof of a truncation marker. Use partial rows with read reasons for unknown last sync; pin CSV BOM and XLSX line breaks from #68 review. Clarify unkeyed-digest and validation-layer limits. No production code, bounds, schema, historical catalogue, live access or acceptance changes. Exact mutation/restoration and CI results belong on the PR; Claude owns independent re-review.

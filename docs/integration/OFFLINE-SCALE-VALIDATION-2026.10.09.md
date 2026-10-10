@@ -1,5 +1,9 @@
 # Offline report scale validation — 9 October 2026
 
+### Independent review follow-up — 10 October, PR #78
+
+CLA-20261009-01 remained open at #65's merge despite a contradictory ready comment. The follow-up verifies that an explicitly cap-reached Partial report retains its full truncation reason in JSON round-trip, HTML, CSV provenance and XLSX provenance. Removing the reason must fail the regression. Unknown last-sync rows now carry Partial and a read reason, matching collection semantics (CLA-02). The benchmark's `outputBytes` remains the measured return value size: seal returns the 64-byte digest text and read returns an object recorded as zero, not a measured document size (CLA-03). No machine-independent speed, memory or live-performance claim is made. The merged library contains 29 Copy/Save-only items; historical base descriptions below identify the original claim, not current source (CLA-04).
+
 PR #65 is the first additional optimisation/robustness slice William authorised on 9 October. It branches from integration `92cb07c`, after Claude's second Exchange pack merged. The script library now contains 21 Copy-only items. Existing review and release work remains separate.
 
 ## Run and interpret

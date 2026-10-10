@@ -1,6 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; tampered records refuse every format before writing. Production export behaviour is unchanged.
+- Verify cap-reached report truncation reasons across JSON/HTML/CSV/XLSX, use explicit Partial unknown rows in scale fixtures, and assert CSV UTF-8 BOM and XLSX line breaks (Claude review follow-up #78; no production exporter change).
+
+- Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; unsealed edits refuse every format before writing. Production export behaviour is unchanged.
 
 - Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
 
