@@ -414,6 +414,10 @@ PR #53 corrects the existing read-only `ServiceReadinessService`: HTTP 404 no lo
 
 PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` manifests and bodies, `scripts/registry.json` pinning every manifest and script SHA-256, strict loading (unknown, duplicate or missing members, uncontained paths, unregistered files, non-ASCII scripts and write verbs in read-only bodies all refuse the whole library), typed form binding and the Copy script. It proposes four additive schema 1 fields for Astra's review: `area` and `keywords` for finding items, `rules` (`atLeastOne`, `dateRange` with maximum days and age) and a string `format` (text, upn, smtp, mailbox, domain, ipAddress). Blank optional fields are not passed; a default applies only where the manifest shows it. Only `exchangeOnline` is an accepted resource until another connection has a reviewed tenant check. Live status is fixed at unverified; only William records acceptance. Not changed: INT-072's copy-only rule for changes, Exchange integrated writes (still blocked), permissions, evidence schemas and the publisher. The desktop **Scripts & Reports** page (Copy only, no Run) follows on the same PR: a tenant banner for the selected client, the manifest-generated form checked by the engine, and a confirmation that restates tenant and values before anything is produced. Pending William's decision on how client colours are set, the banner colour is derived from the tenant ID in one place (`TenantColours.For`); no setting is stored and the profile schema is unchanged. Details: [SCRIPT-LIBRARY-2026.10.08](SCRIPT-LIBRARY-2026.10.08.md). After Astra's review (AST-20261008-05 to -09, fixed in `27c40b0`), a confirmed account is part of the copied script's refusal check alongside the tenant, output columns may say Unknown rather than guess, and the manifest timeout is recorded as a future runner limit rather than something the copied script enforces.
 
+## INT-092 — Test actual retry interruptions without timing assertions (9 October 2026)
+
+PR #67 extends existing transport tests through a synthetic HTTP handler using the actual cancellable back-off path. It checks operator cancellation before a read retry, cancellation on a throttled second page, the single silent-renewal rule across an interposed transient failure, and uncertain write dispatch without replay. No production retry, token, permission or evidence behaviour changes. Generous outer test timeouts detect a stuck cancellation; elapsed time is not a pass/fail performance metric.
+
 ## INT-084 — Enforce existing authored naming at local import boundaries
 
 PR #57 calls the existing reviewed `NamingConvention.RequireAuthored` from both local candidate importers. It checks only the new resolved candidate name and preserves baseline/historical controls. No global loader rule, schema, new compiler, live rename, permission or execution change is introduced. Names with leading/trailing whitespace refuse instead of being silently trimmed into compliance. Import shape and write-payload safeguards remain independent. Meaningful fixtures use compliant names so negative settings/metadata tests retain their original purpose.
@@ -497,6 +501,14 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### INT-092 review refinement — 10 October 2026, PR #67
+
+Deliberately asynchronous synthetic token acquisition reproduces the independent reviewer's dispatch scheduling concern. Await observable back-off/dispatch boundaries before cancellation; preserve all counts, real delay and stuck-operation ceilings. No production retry, token, HTTP, write or uncertainty behaviour changes. Removing back-off cancellation still fails all three intended regressions.
+
+### INT-092 second review corrections — 10 October 2026, PR #67
+
+CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.
 
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
