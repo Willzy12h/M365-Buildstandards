@@ -430,6 +430,14 @@ PR #54 reconciles status only: INT-070–072/074 settled through #39; INT-073 im
 
 After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
 
+## INT-082 — Experimental desktop tenant-change gate (proposed, decision-only #55)
+
+[EXPERIMENTAL-GATE-CONTRACT-2026.10.08](EXPERIMENTAL-GATE-CONTRACT-2026.10.08.md) records the default-off runtime gate required by William's current goal: transient verified-context opt-in across desktop tenant-change surfaces, separate bootstrap setup/consent approval, direct-boundary refusal and clear next steps, without new caches/evidence schemas or weakened exact approvals. Read-only/preview routes and Exchange copy-only remain. Source implementation awaits this contract's independent review/checks/merge; no tenant, version or publication action occurs in the decision PR.
+
+### INT-082 review refinement — 9 October 2026, PR #55
+
+CLA-20261008-20–24 extend the proposed boundary to interactive scope/consent requests, direct service/view-model routes and coexisting setup/deployment contexts. A single desktop guard binds actual verified identity/registration/scopes and INT-056's canonical client-scope digest, invalidates on scope/profile/setup drift and never replaces exact typed confirmation, before-evidence or write leases. Unknown pre-sign-in identity is labelled unverified and permission-request approval cannot authorise operations. Standalone and chained setup consent require an exact visible preview. Read-only sign-in keeps its own authority; no write scopes are requested automatically. This is a revised decision proposal for independent re-review before dependent source; no permission, auth flow, schema, tenant action or acceptance is changed here.
+
 ### INT-081 review corrections — PR #53
 
 Preserve concrete emergency-account problems alongside explicit unknown/failed identity reads, without treating the partial check as complete. Reuse the existing sanitised failure wording. Recognise documented beta unbinding as Review required/in progress, keeping unknown values and cancellation truthful (CLA-20261008-30/31). No new access, mutation or authentication contract.
