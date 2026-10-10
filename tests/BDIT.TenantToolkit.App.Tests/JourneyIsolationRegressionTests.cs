@@ -164,7 +164,7 @@ public sealed class JourneyIsolationRegressionTests : IDisposable
         {
             Id = AId, TenantId = TestData.TenantA, Release = Workspace.RequireStandard().Release,
             StartedAt = "2026-10-10T00:00:00Z", EndedAt = "2026-10-10T00:01:00Z",
-            ToolkitVersion = ToolkitVersion.Current, Status = RunStatus.ReviewRequired,
+            ToolkitVersion = Workspace.Version, Status = RunStatus.ReviewRequired,
             Results = new() { new RunResult
             {
                 ControlId = Control, Name = "Synthetic uncertain candidate", Collection = "conditionalAccess",
