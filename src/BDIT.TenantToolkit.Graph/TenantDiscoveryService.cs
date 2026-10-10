@@ -55,14 +55,15 @@ public static class TenantDiscoveryService
     }
 
     public static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
-        StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct)
+        StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct,
+        Func<CancellationToken, Task>? beforeInteractive = null)
     {
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
         if (readScopes.Any(s => s.Contains("Write", StringComparison.OrdinalIgnoreCase) || s.Contains("AccessAsUser", StringComparison.OrdinalIgnoreCase)))
             throw new ConfigurationException("Quick Connect cannot request write permissions.");
         var auth = await MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser,
-            TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct, readScopes);
+            TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct, readScopes, beforeInteractive);
         try
         {
             var graph = new GraphClient(http, auth, auth.Outcome.TenantId, SessionMode.Assessment, Routes(),

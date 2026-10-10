@@ -88,3 +88,7 @@ Other steps remain Not run unless explicitly listed above.
 ```
 
 Update the existing completion/feedback registers with attributed evidence after review. A passing journey is not approval to promote to main, tag, publish or deploy to another tenant. Keep unresolved human/live gates open and prepare the exact-source promotion record separately.
+
+### Authentication follow-up for the candidate (PR #73 review)
+
+On an explicitly approved disposable-tenant session, record whether a normal silent token renewal keeps the same verified Graph identity/scopes and whether an interactive requirement stops the operation with reconnect guidance. Record only pass/fail, prompt count/reason and whether scope membership changed, without values, tokens or account/tenant identifiers. Check Quick Connect/Connect with another account previews show an unknown account, known-account reconnect previews show the deliberate hint, and setup/consent closes any previous experimental opt-in. A slow access-preview review may exhaust the existing sign-in timeout; a refused/expired request must send no new operation. These steps remain Not run until William supplies acceptance.

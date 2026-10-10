@@ -2,6 +2,14 @@
 
 - Add the initial desktop Graph Reports and naming-audit presentation over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Shell/native journey integration is still in progress; no new permissions or tenant access.
 
+- Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
+
+- Let engineers read the permission preview without consuming the Microsoft sign-in timeout. Keep a shared acquisition budget, close cancelled previews, and preserve cancellation without reporting it as successful sign-in.
+
+- Add production-path authentication and setup/consent refusal regressions; show an unknown account for explicit account-choice previews instead of the previous identity.
+
+- Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
+
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
 - Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; tampered records refuse every format before writing. Production export behaviour is unchanged.

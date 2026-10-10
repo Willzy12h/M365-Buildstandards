@@ -64,7 +64,7 @@ public sealed class DeployViewModel : PageViewModel
         : "No deployment application client ID is recorded for this connection. Select Configure deployment application. If it already exists in Entra, enter its Application (client) ID, approve permissions and check your account assignment. Use Continue to deployment when ready; do not create a duplicate or use the assessment application's ID.";
 
     public bool IsRunning => Workspace.Executor.IsRunning;
-    public bool CanDeploy => Workspace.IsDeploymentSession && Workspace.Plan is not null && Workspace.SnapshotIsLive
+    public bool CanDeploy => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Plan is not null && Workspace.SnapshotIsLive
                              && Workspace.Snapshot?.Complete == true && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot?.Id && Workspace.Idle && Workspace.Plan.WriteRows.Any();
 
     public string RunText
@@ -103,6 +103,7 @@ public sealed class DeployViewModel : PageViewModel
 
     private async Task DeployAsync()
     {
+        Workspace.RequireExperimentalChanges(BDIT.TenantToolkit.App.Services.ExperimentalOperation.Deploy);
         Workspace.ValidatePlanForExecution();
         var plan = Workspace.Plan!;
         var reviewedDigest = plan.PlanDigest;
@@ -139,8 +140,8 @@ public sealed class DeployViewModel : PageViewModel
         Prerequisites.Add(new PrerequisiteRow
         {
             Step = "1 · Connect: deployment access", PageKey = "connect",
-            Status = session is null ? "Not connected" : session.Mode == SessionMode.Deployment ? "Ready" : "Read-only session",
-            Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}" : DeploymentApplicationText
+            Status = session is null ? "Not connected" : session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "Ready for exact review" : "Experimental changes off") : "Read-only session",
+            Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}. {Workspace.ExperimentalChangeGuidance}" : DeploymentApplicationText
         });
         var missingScopes = Workspace.Access?.Writes.Where(w => w.Status == "Missing scope").Select(w => w.Label).ToList() ?? new List<string>();
         Prerequisites.Add(new PrerequisiteRow
