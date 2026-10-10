@@ -745,6 +745,68 @@ public sealed class ExchangeReportRunnerTests
         Refused(e => e["sections"]![0]!["rawOutput"] = "x");
     }
 
+    /// <summary>
+    /// AST-20261010-02: <c>[JsonRequired]</c> needs a member to be present, not non-null. An explicit null collection, a null
+    /// element or a null required text member must be the same controlled refusal as any other malformed envelope, never an
+    /// ordinary exception that escapes the runner's decision.
+    /// </summary>
+    public static TheoryData<string> NullMembers()
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in new[] { "kind", "runId", "scriptId", "manifestSha256", "scriptSha256", "runnerTemplateSha256", "adapter", "reportId",
+            "tenantId", "startedAt", "endedAt", "runtimeVersion", "moduleVersion", "parameters", "sections" })
+            data.Add(name);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(NullMembers))]
+    public void An_explicit_null_member_is_a_controlled_refusal(string field)
+    {
+        var (entry, parameters, envelope) = Envelope();
+        envelope[field] = null;
+        Assert.Throws<ConfigurationException>(() => ReadEnvelope(envelope, entry, parameters));
+    }
+
+    [Theory]
+    [InlineData("parameters: [null]")]
+    [InlineData("parameters: [..., null]")]
+    [InlineData("sections: [null]")]
+    [InlineData("section id: null")]
+    [InlineData("section status: null")]
+    [InlineData("section limitations: null")]
+    [InlineData("section limitations: [null]")]
+    [InlineData("section rows: null")]
+    [InlineData("section rows: [null]")]
+    public void A_null_element_or_null_nested_member_is_a_controlled_refusal(string change)
+    {
+        var (entry, parameters, envelope) = Envelope();
+        var section = envelope["sections"]![0]!;
+        switch (change)
+        {
+            case "parameters: [null]": envelope["parameters"] = new JsonArray((JsonNode?)null); break;
+            case "parameters: [..., null]": envelope["parameters"]!.AsArray().Add(null); break;
+            case "sections: [null]": envelope["sections"] = new JsonArray((JsonNode?)null); break;
+            case "section id: null": section["id"] = null; break;
+            case "section status: null": section["status"] = null; break;
+            case "section limitations: null": section["limitations"] = null; break;
+            case "section limitations: [null]": section["limitations"] = new JsonArray((JsonNode?)null); break;
+            case "section rows: null": section["rows"] = null; break;
+            case "section rows: [null]": section["rows"] = new JsonArray((JsonNode?)null); break;
+            default: throw new ArgumentOutOfRangeException(nameof(change));
+        }
+        Assert.Throws<ConfigurationException>(() => ReadEnvelope(envelope, entry, parameters));
+    }
+
+    [Fact]
+    public void A_section_error_may_be_null_and_the_matching_envelope_still_seals()
+    {
+        var (entry, parameters, envelope) = Envelope();
+        var result = ReadEnvelope(envelope, entry, parameters);
+        Assert.Null(result.Sections.Single().Error);
+        Assert.Equal(ReportReadState.Collected, result.Sections.Single().Status);
+    }
+
     [Fact]
     public void Duplicate_properties_invalid_utf8_and_oversize_results_are_refused()
     {

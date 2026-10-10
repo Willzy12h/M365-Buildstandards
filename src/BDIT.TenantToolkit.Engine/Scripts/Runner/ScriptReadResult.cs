@@ -59,6 +59,10 @@ public sealed class ScriptReadResult
         }
         catch (JsonException) { throw Bad("The result is not a strict scriptReadResult envelope."); }
 
+        // [JsonRequired] needs a member to be present, not non-null. An explicit null anywhere the envelope requires a value is
+        // malformed output and gets the same controlled refusal as any other forgery, never an ordinary exception (AST-20261010-02).
+        if (!Complete(r)) throw Bad("The result has a null required member, collection or element.");
+
         var m = entry.Manifest;
         var report = ScriptCatalogue.ReportFor(m);
         var same = r.SchemaVersion == 1 && r.Kind == ReadRunnerLimits.OutputKind && r.RunId == runId && r.ScriptId == m.Id
@@ -87,6 +91,13 @@ public sealed class ScriptReadResult
         if (r.Sections.Any(s => s.Rows is null || s.Rows.Count > maximum)) throw Bad("The result has more rows than the item allows.");
         return r;
     }
+
+    private static bool Complete(ScriptReadResult r) =>
+        new[] { r.Kind, r.RunId, r.ScriptId, r.ManifestSha256, r.ScriptSha256, r.RunnerTemplateSha256, r.Adapter, r.ReportId, r.TenantId,
+            r.StartedAt, r.EndedAt, r.RuntimeVersion, r.ModuleVersion }.All(v => v is not null)
+        && r.Parameters is not null && r.Parameters.All(p => p is not null)
+        && r.Sections is not null && r.Sections.All(s => s is not null && s.Id is not null && s.Status is not null
+            && s.Limitations is not null && s.Limitations.All(l => l is not null) && s.Rows is not null && s.Rows.All(row => row is not null));
 
     private static bool Utc(string value, out DateTimeOffset at) => Timestamps.TryParse(value, out at) && value.EndsWith('Z');
     private static ConfigurationException Bad(string message) => new("The runner's result was refused: " + message);
