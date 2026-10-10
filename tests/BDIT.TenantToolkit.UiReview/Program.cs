@@ -316,6 +316,8 @@ internal static partial class Program
                 ("Reports complete exports in all four formats at all three sizes", GraphReportExportsChecked == 12),
                 ("Cold-start saved-client historical journeys at all three sizes", OfflineClientJourneySizes == 3 && OfflineClientJourneyPresses == 9),
                 ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 45),
+                ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
+                ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };

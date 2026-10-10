@@ -2,18 +2,18 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Home task centre" KeyboardNavigation.TabNavigation="Continue">
     <StackPanel Margin="24,20">
       <TextBlock Text="YOUR WORKSPACE" Style="{StaticResource Eyebrow}"/>
-      <TextBlock Text="{Binding Projection.Headline}" Style="{StaticResource H1}" AutomationProperties.Name="Home headline"/>
+      <TextBlock Text="{Binding Projection.Headline}" Style="{StaticResource H1}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home headline"/>
       <TextBlock Text="Choose a task. Each shortcut opens its existing page so you can review the client, evidence and next action." Style="{StaticResource Lead}"/>
       <Border Style="{StaticResource Card}" Padding="16">
         <StackPanel>
           <TextBlock Text="SUGGESTED NEXT STEP" Style="{StaticResource Eyebrow}"/>
-          <TextBlock Text="{Binding Projection.Guidance}" AutomationProperties.Name="Home next step guidance" Margin="0,0,0,10"/>
-          <Button x:Name="HomeNextStepButton" Command="{Binding NextStepCommand}" HorizontalAlignment="Left" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="Home next step" AutomationProperties.HelpText="{Binding Projection.Guidance}">
-            <TextBlock Text="{Binding Projection.NextActionLabel}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Projection.Guidance}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home next step guidance" Margin="0,0,0,10"/>
+          <Button x:Name="HomeNextStepButton" Command="{Binding NextStepCommand}" HorizontalAlignment="Left" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="{Binding Projection.NextActionLabel}" AutomationProperties.HelpText="{Binding Projection.Guidance}">
+            <TextBlock Text="{Binding Projection.NextActionLabel}" TextWrapping="Wrap" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
           </Button>
         </StackPanel>
       </Border>
-      <TextBlock Text="{Binding Projection.ContextSummary}" Style="{StaticResource Muted}" AutomationProperties.Name="Home context summary" Margin="0,0,0,16"/>
+      <TextBlock Text="{Binding Projection.ContextSummary}" Style="{StaticResource Muted}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home context summary" Margin="0,0,0,16"/>
       <TextBlock Text="What are you working on?" Style="{StaticResource H2}"/>
       <ItemsControl ItemsSource="{Binding Tasks}" AutomationProperties.Name="Home workflows">
         <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -31,10 +31,10 @@
       </ItemsControl>
       <Expander Header="Current client and evidence details" Margin="0,8,0,12" AutomationProperties.Name="Home context details">
       <UniformGrid Columns="2" Margin="0,0,0,8">
-        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,8,8"><StackPanel><TextBlock Text="CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.ClientText}" AutomationProperties.Name="Home client status"/></StackPanel></Border>
-        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,8"><StackPanel><TextBlock Text="CONNECTION" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.ConnectionText}" AutomationProperties.Name="Home connection status"/></StackPanel></Border>
-        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,8,8"><StackPanel><TextBlock Text="EVIDENCE" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.EvidenceText}" AutomationProperties.Name="Home evidence status"/></StackPanel></Border>
-        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,8"><StackPanel><TextBlock Text="BUILD STANDARD" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.StandardText}" AutomationProperties.Name="Home standard status"/></StackPanel></Border>
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,8,8"><StackPanel><TextBlock Text="CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.ClientText}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home client status"/></StackPanel></Border>
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,8"><StackPanel><TextBlock Text="CONNECTION" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.ConnectionText}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home connection status"/></StackPanel></Border>
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,8,8"><StackPanel><TextBlock Text="EVIDENCE" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.EvidenceText}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home evidence status"/></StackPanel></Border>
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,8"><StackPanel><TextBlock Text="BUILD STANDARD" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding Projection.StandardText}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home standard status"/></StackPanel></Border>
       </UniformGrid>
       </Expander>
       <TextBlock Text="Keep working" Style="{StaticResource H2}" Margin="0,12,0,8"/>
@@ -46,7 +46,7 @@
           </Button>
         </DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
-      <TextBlock Text="{Binding BoundaryText}" Style="{StaticResource Muted}" AutomationProperties.Name="Home evidence and change boundaries" Margin="0,10,0,8"/>
+      <TextBlock Text="{Binding BoundaryText}" Style="{StaticResource Muted}" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="Home evidence and change boundaries" Margin="0,10,0,8"/>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

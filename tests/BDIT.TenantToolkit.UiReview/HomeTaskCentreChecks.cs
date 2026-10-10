@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
 using BDIT.TenantToolkit.App.Services;
@@ -15,6 +17,8 @@ internal static partial class Program
 {
     private static int HomeJourneySizes;
     private static int HomeJourneyPresses;
+    private static int HomeAccessibleStatuses;
+    private static int HomePrimaryContrastChecks;
 
     private static void CheckHomeNativeJourneys(string source, string output, ShellViewModel originalShell,
         Window window, FrameworkElement content, BindingTrace traces)
@@ -40,10 +44,18 @@ internal static partial class Program
                 Set(workspace, nameof(Workspace.Profile), (TenantProfile?)null);
                 Set(workspace, nameof(Workspace.Snapshot), (TenantSnapshot?)null);
                 Set(workspace, nameof(Workspace.SnapshotIsLive), false);
+                NotifyFixture(workspace);
                 shell.Navigate("home"); content.UpdateLayout(); Pump();
                 var home = shell.Page<HomeViewModel>(); home.Refresh(); content.UpdateLayout(); Pump();
                 var primary = JourneyButton(content, home.NextStepCommand);
                 var primaryBounds = VisibleBounds(primary, content);
+                var primaryLabel = (TextBlock)primary.Content;
+                if (!TryTextColours(primaryLabel, out var labelColour, out var surfaceColour)
+                    || Contrast(labelColour, surfaceColour) < 4.5)
+                    throw new InvalidOperationException("Home next-step text lacks readable 4.5:1 contrast at " + size);
+                HomePrimaryContrastChecks++;
+                CheckAccessibleHomeStatus(content, "Home next step guidance");
+                CheckAccessibleHomeStatus(content, "Home context summary");
                 if (!IsShown(primary, content) || primaryBounds.Height < primary.ActualHeight - 1
                     || primaryBounds.Width < primary.ActualWidth - 1)
                     throw new InvalidOperationException("Home's next-step button is not fully visible at " + size);
@@ -59,12 +71,24 @@ internal static partial class Program
                     TenantName = profile.Company, PrimaryDomain = profile.Domain, CapturedAt = "2026-09-01T08:00:00Z",
                     StandardRelease = workspace.Standard.Release, ToolkitVersion = workspace.Version, Complete = false };
                 Set(workspace, nameof(Workspace.Snapshot), snapshot);
+                NotifyFixture(workspace);
                 shell.Navigate("home"); home.Refresh(); content.UpdateLayout(); Pump();
                 if (!home.Projection.EvidenceText.Contains("Historical", StringComparison.Ordinal)
                     || !home.Projection.EvidenceText.Contains("incomplete", StringComparison.OrdinalIgnoreCase)
                     || !home.Projection.EvidenceText.Contains("01 Sep 2026 08:00 UTC", StringComparison.Ordinal))
                     throw new InvalidOperationException("Home lost historical/unknown evidence or its original time.");
+                if (shell.TenantTitle != profile.Company || !shell.EvidenceStatus.Contains("Historical", StringComparison.Ordinal))
+                    throw new InvalidOperationException("The Home fixture header did not receive the same client/evidence state.");
                 CaptureReportState(content, output, "home-historical-incomplete", size, checkPageScrolling: false);
+                var details = Descendants(content).OfType<Expander>().Single(e =>
+                    AutomationProperties.GetName(e) == "Home context details");
+                details.IsExpanded = true; content.UpdateLayout(); Pump();
+                var evidence = CheckAccessibleHomeStatus(content, "Home evidence status");
+                if (!new TextBlockAutomationPeer(evidence).GetName().Contains("01 Sep 2026 08:00 UTC", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Accessible Home evidence lost its original capture time.");
+                evidence.BringIntoView(); content.UpdateLayout(); Pump();
+                CaptureReportState(content, output, "home-historical-details", size, checkPageScrolling: false);
+                details.IsExpanded = false; content.UpdateLayout(); Pump();
                 var before = ToolkitJson.Serialize(snapshot);
                 var cards = home.Tasks.Concat(home.Shortcuts).ToArray();
                 foreach (var card in cards)
@@ -90,5 +114,15 @@ internal static partial class Program
             window.DataContext = originalShell; content.DataContext = originalShell;
             originalShell.Navigate("home"); content.UpdateLayout(); Pump();
         }
+    }
+
+    private static TextBlock CheckAccessibleHomeStatus(FrameworkElement content, string purpose)
+    {
+        var text = Descendants(content).OfType<TextBlock>().Single(t => AutomationProperties.GetHelpText(t) == purpose);
+        var peer = new TextBlockAutomationPeer(text);
+        if (string.IsNullOrWhiteSpace(text.Text) || peer.GetName() != text.Text)
+            throw new InvalidOperationException(purpose + " does not expose its actual status through UI Automation.");
+        HomeAccessibleStatuses++;
+        return text;
     }
 }
