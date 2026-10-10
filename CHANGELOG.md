@@ -2,6 +2,26 @@
 
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix, without changing historical standards or live object names.
 
+- Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
+
+- Add offline `bdit report-evidence` HTML/JSON/CSV/Excel exports for validated registered Graph report evidence. Exact tenant, bounded UTF-8, schema and integrity checks refuse untrusted input; failed/partial/cancelled reads remain explicit. No sign-in, new collection, evidence mutation or script execution.
+
+- Correct mailbox-capacity interpretation for legacy shared mailboxes, the actual reviewed Business Premium service-plan set and malformed byte displays; retain separate statistics/quotas read failures.
+
+- Add pure read-only mailbox capacity evaluation using strict assigned-licence evidence: keep observed primary quotas, 100 GB configuration, commercial Plan 2 eligibility and archive limits separate. Exchange collection/report integration and live acceptance remain pending.
+
+- Script library: a list entry made only of whitespace now makes the mailbox, protection or quarantine policy setting Unknown with a warning, instead of a known count.
+
+- Show script requirements and limitations in the actual Copy/Save confirmation; retain stored-capture deployment ineligibility in the compact configuration summary.
+
+- Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
+
+- Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
+
+- Verify the integrated Exchange capture refuses empty accounts before module lookup, authentication, collection or output creation.
+
+- Integrated read-only Exchange/Purview capture verifies the returned confirmed account as well as tenant/resource before every collection; unpinned, unknown or mismatched accounts refuse rather than yielding empty-success evidence. Manual unpinned exports retain their historical meaning.
+
 
 - Add a shared registered read-only report core for users/assigned licence details, Intune devices, MFA registration, sign-ins and directory audit, with separate strict immutable evidence and HTML/CSV/JSON/Excel exports. Preserve failed/partial/cancelled reads, exact identities and unknown values; reuse existing Graph authentication and authorised scopes. Reports UI/CLI and live acceptance remain pending; new AuditLog access is proposed only.
 - Registered reports keep malformed, zero or duplicate identities and empty required licence text as explicit partial rows instead of discarding the report; read at most 5,000 rows per section (keeping returned rows when a later page fails, is cancelled or times out); query logs with the documented `ge`/`le` operators without `$select`; and refuse report access through a Graph client that cannot be restricted to report routes.
@@ -69,6 +89,7 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 - Outcomes cite stored assessments (INT-049): an outcome recorded on the Jobs page can cite a stored assessment of the capture in view, under the same standard, as its evidence. The citation is pinned by digest, so a changed or deleted assessment sends the outcome back to review. A pass cannot cite an assessment that found the requirement unmet or could not assess it (INT-065).
 - Release publishing: one manual publisher for every version (`publish-release.yml`), driven by a reviewed pin per release in `build/releases/`, keeping every Preview.18 provenance check. Dispatches only from `main` or `integration`. Release notes always carry the SHA-256 and the allow-by-policy route for unsigned internal distribution (INT-066).
 - CI: GitHub Actions moved off Node 20 to checkout v5, setup-dotnet v5, cache v5, upload-artifact v6 and download-artifact v7, each pinned to a commit SHA, in the build and publisher workflows.
+- Third Exchange Online pack review corrections (Astra, AST-20261009-01 to -04): retention tag links match raw names byte for byte and track linked tags individually; a list holding an unreadable entry is Unknown, never NoTags, NotSet or a shorter count, in the retention, sharing, mailbox, protection and quarantine policy items; a sharing entry with an empty domain or action part has Access Unknown. The quarantine item's limitations now note Microsoft's conflicting preset values (27/23 against 43/39) and that decoded bits are configured permissions, not effective actions.
 
 # 1.1.0-preview.18 — 6 October 2026 (published prerelease, source 10808de)
 
@@ -227,6 +248,10 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 # Changelog
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
+
+- Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
+
+- Readiness reads now keep failed or malformed results Unknown, preserve exact emergency-account identity and give practical access/service next steps; no configuration is inferred from a failed request.
 
 - Distinguish confirmed pre-request failures from uncertain write outcomes. Auth/guard failures before transport no longer permanently lock a control; original plans remain single-use.
 - Add read-only deployment/recovery re-verification with separate integrity-checked evidence and safe local mapping finalisation. Unknown modern writes remain blocked; completed 1.0.0 records require explicit acknowledgement and fresh exact-ID, ownership and settings checks.
