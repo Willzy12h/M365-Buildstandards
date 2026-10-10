@@ -1,16 +1,16 @@
 # Testing this build
 
-Preview.18 / standard 2026.09.30 was developed and tested with synthetic fixtures only. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
+This guide follows the current integration source and immutable standard 2026.09.30. Use the exact version/source/check record supplied with your candidate; Preview.18 is a historical published package, not proof for changed integration bytes. Agent development and CI checks use synthetic fixtures only. William has reported his own tenant tests; new capabilities still need their recorded acceptance. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
 
 ## 1. Get the build
 
 Engineers use a **published release**, not a CI artifact. Open the repository's **Releases** page, choose the release you were told to use (for example `v1.1.0-preview.18`), and download the application ZIP. Its `RELEASE-RECORD.json` names the exact source commit, validated run, package SHA-256 and standard; compare the ZIP's SHA-256 with that record and with the digest given to you through the approved channel. You do not need Visual Studio or the .NET SDK.
 
-Reviewers checking an unreleased change use the CI artifact instead. It is not a promoted package and must not be given to engineers:
+Reviewers checking an unreleased change use the CI artifact instead. It is not a promoted package: use it only for authorised review/acceptance, and do not present it as an approved production release:
 
 1. Open the repository's **Actions** tab and select the successful run for the exact PR head under review. After merge, use the reviewed `integration` run. Check the commit, not only the green badge on an older run.
 2. Download the **portable-windows-review** artifact. It contains the application ZIP and its `.sha256` checksum.
-3. Unzip it, then **unblock** it: right-click the ZIP before extracting, tick *Unblock*, and extract. Windows marks downloaded files, and an unblocked folder saves a warning on every launch.
+3. Verify the original ZIP against the independently trusted fingerprint, then extract it normally. If organisation application control or Windows security blocks it, use your security owner's approval route for that exact application. Do not unblock, change execution policy, rename it or use another host to evade the block; there is no broad writable-path exception.
 4. Run `Start.cmd`, or `app\BDIT.TenantToolkit.App.exe` directly.
 
 To check the download, compare the `.sha256` file with:
@@ -34,6 +34,8 @@ The same run publishes **synthetic-ui-review** at three window sizes, with bindi
 Launch the application and go straight to these two pages.
 
 **Build Standard.** Load 2026.09.30, browse all 93 controls and expand **More export formats and engineer guides → Export engineer standards and manual guide**. Export both documents in both formats; every control should appear under its area with exact settings and complete manual sections. No client selection or connection is needed. Historical releases should refuse an incomplete manual guide with an explanation. The separate *Prepared for* export is the client-facing document. [Export instructions](ENGINEER-DOCUMENTS.md) explain the distinction; Chromium checks cover all 93 articles, internal anchors, catalogue identity and viewport overflow; both printed PDFs retain all control IDs, and representative pages have been visually inspected. This does not replace checking your chosen browser, printer or assistive technology.
+
+**Configuration.** Open **Capture details, exports and saved captures → HTML inventory** to export the captured settings and objects, with collection status and original provenance. JSON, CSV and Excel remain alongside it. This inventory is separate from assessment and the intended build standard. An incomplete capture remains incomplete; exports do not grant deployment authority.
 
 **Assessment and Plan.** Review the Entra, Intune, Exchange and Purview area filters. A new Plan area clears selection; Select visible selects only eligible rows displayed in that area. **Configuration > Exchange and Purview** exposes the domain, read-only script export, capture import and selected inert proposal. Do not execute the references or press DNS during an offline review; use only synthetic imported captures for local checks.
 
@@ -69,7 +71,7 @@ Note anything that does not behave as described, with the page and window size, 
 
 ## 4. Connect a tenant read-only
 
-1. On **Connect**, choose **Quick Connect with Microsoft**, sign in with the client account, inspect the verified tenant/account and choose **Connect to this tenant read-only**. If application readiness needs attention, use **Set up or validate applications**; the verified tenant is carried into setup. Select **Quick setup · check existing applications** or **Administrator sign-in / preview**, review the two applications and their permissions, tick the reviewed approval and select **Approve and create/configure applications**. Approve Microsoft's page twice, once per application. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
+1. On **Connect**, choose **Quick Connect with Microsoft**, sign in with the client account, inspect the verified tenant/account and choose **Connect to this tenant read-only**. If application readiness needs attention, use **Set up or validate applications**; the verified tenant is carried into setup. Select **Quick setup · check existing applications** or **Administrator sign-in / preview**, review the two applications and their permissions, tick the reviewed approval and select **Approve and create/configure applications**. If an application needs new or changed grants, review and approve its Microsoft browser consent page separately. Existing matching applications/grants are validated and reused; previewing creates nothing. See [application setup](APPLICATION-SETUP.md) for what happens at each stage and what to do if one stops.
 2. After any separately approved setup/consent, choose **Connect read-only now**. A different dedicated app or changed/expired identity may require its own sign-in.
 3. **Overview and licences** loads subscription counts. **Capture** reads the tenant configuration.
 4. **Assessment** compares the capture with the standard. Export the engineer report in any format.
@@ -78,7 +80,7 @@ Application setup above creates/repairs registrations and requests consent, so t
 
 ## 5. Try a deployment in a disposable tenant
 
-**Both registrations need administrator consent again** for .12's documented scope changes. Review [application setup](APPLICATION-SETUP.md) and the generated before/manual/after instructions before any authorised acceptance test.
+Validate both existing registrations and actual grants against the loaded standard using [application setup](APPLICATION-SETUP.md). Review and separately approve genuinely missing or changed permissions; matching existing grants do not require blanket re-consent. Read the generated before/manual/after instructions before an authorised acceptance test.
 
 Do it in this order, because everything else depends on the first step:
 

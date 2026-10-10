@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Engine.Scripts;
 
 namespace BDIT.TenantToolkit.Engine.Exchange;
 
@@ -18,6 +19,7 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
     public async Task<string> CaptureAsync(string tenantId, string referenceDomain, string account, bool includePurview,
         IProgress<string>? progress, CancellationToken ct)
     {
+        account = RequireKnownAccount(account);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Integrated Exchange capture requires Windows.");
         // Generate and validate before creating files or starting a process. User values never become shell code.
         var script = ExchangeCaptureScripts.ReadOnlyCapture(tenantId, referenceDomain);
@@ -66,6 +68,7 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
     public static ProcessStartInfo CreateStartInfo(string executable, string scriptFile, string resultFile,
         string account, bool includePurview)
     {
+        account = RequireKnownAccount(account);
         var start = new ProcessStartInfo(executable)
         { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = false };
         foreach (var argument in new[] { "-NoLogo", "-NoProfile", "-File", scriptFile, "-OutputFile", resultFile, "-Integrated" }) start.ArgumentList.Add(argument);
@@ -73,6 +76,10 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
         if (includePurview) start.ArgumentList.Add("-IncludePurview");
         return start;
     }
+
+    private static string RequireKnownAccount(string account) => ScriptCopy.IsAcceptableAccount(account)
+        ? account.Trim()
+        : throw new ConfigurationException("Integrated Exchange capture needs a confirmed sign-in name, such as engineer@example.com. Reconnect and verify the account; a display name or empty hint cannot pin the Exchange session.");
 
     public static async Task<string> ReadBoundedResultAsync(string file, CancellationToken ct)
     {
@@ -111,8 +118,8 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
     }
     private static void ReportKnownProgress(string line, IProgress<string>? progress)
     {
-        if (line == "BDIT:EXCHANGE") progress?.Report("Microsoft Exchange sign-in; tenant identity will be verified before reading.");
-        else if (line == "BDIT:PURVIEW") progress?.Report("Microsoft Purview sign-in; separate tenant identity and read RBAC are required.");
+        if (line == "BDIT:EXCHANGE") progress?.Report("Microsoft Exchange sign-in; the tenant and confirmed account must match before reading.");
+        else if (line == "BDIT:PURVIEW") progress?.Report("Microsoft Purview sign-in; the tenant and confirmed account must match separately, with read RBAC.");
         else if (line == "BDIT:MODULE_MISSING") progress?.Report(DependencyGuidance);
         else if (line.StartsWith("BDIT:READ:", StringComparison.Ordinal) && ExchangeCaptureSchema.Definitions.TryGetValue(line[10..], out var definition))
             progress?.Report("Reading " + definition.Command + " (read-only).");

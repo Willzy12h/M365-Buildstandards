@@ -14,7 +14,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-QuarantinePolicyReport.ps1",
-  "scriptSha256": "5b88aabb4e4dfbb2bcf5b9e7fd26fe88a3e3609cda5091bf59e36ce853a2b92d",
+  "scriptSha256": "95f10b6a7d54743b46b830212089f1d14894a01c92b943a6810b587aa656606f",
   "supportedRuntimes": [
     "5.1",
     "7"
@@ -66,6 +66,8 @@
     "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
     "End-user permissions are decoded from the returned value using the bit order Microsoft documents; the decoding has not been confirmed in a tenant. A value not returned, or not a number from 0 to 255, is not decoded.",
     "AccessPreset names a preset only when the value equals it (NoAccess 0, LimitedAccess 27, FullAccess 23); any other value is Custom.",
+    "Microsoft's documentation gives two sets of preset values: New-QuarantinePolicy Example 1 says LimitedAccess 27 and FullAccess 23, while its parameter section says 43 and 39. This item uses 27 and 23 until a live tenant confirms which is returned, so a policy with 43 or 39 shows as Custom with its bits decoded.",
+    "The decoded bits are the permissions configured on the policy, not the actions a user will see: Microsoft documents that Download has no effect, that a zero ViewHeader bit does not hide that action, and that Release is not honoured for malware or high-confidence phishing.",
     "Which protection policies use each quarantine policy is not read here; the protection policies item does not list them either.",
     "A true or false value Exchange did not return is shown as Unknown, never as False.",
     "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
