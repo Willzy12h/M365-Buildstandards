@@ -1,5 +1,9 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
+
+- Add offline `bdit report-evidence` HTML/JSON/CSV/Excel exports for validated registered Graph report evidence. Exact tenant, bounded UTF-8, schema and integrity checks refuse untrusted input; failed/partial/cancelled reads remain explicit. No sign-in, new collection, evidence mutation or script execution.
+
 - Correct mailbox-capacity interpretation for legacy shared mailboxes, the actual reviewed Business Premium service-plan set and malformed byte displays; retain separate statistics/quotas read failures.
 
 - Add pure read-only mailbox capacity evaluation using strict assigned-licence evidence: keep observed primary quotas, 100 GB configuration, commercial Plan 2 eligibility and archive limits separate. Exchange collection/report integration and live acceptance remain pending.
