@@ -6,14 +6,12 @@ Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot 
 
 ## Next — 10 October 2026, current continuation
 
-Integration `4f35285e96d8b78dd2fbf9aae83babe44e7d959b` contains reviewed #67/#69/#85/#86; actual integration pushes through 38093073914 passed. Source remains unpublished Preview.19 / standard 2026.09.30. CURRENT-STATE identifies the active source/review queue; MERGE-EVIDENCE binds exact sources, checks and package identities.
+Integration is `1e06ccfdb156c759c40cba88589f2a7cc9048a63`, unpublished Preview.19 / standard2026.09.30. #89's corrected source is independently reviewed and merged; actual push38095690739 failed before all jobs executed any step. Latest fully verified integration is #82 merge0c963e2, push38094369170. CURRENT-STATE and MERGE-EVIDENCE distinguish these identities; no candidate proof for changed bytes exists.
 
-1. Close Claude's current-delta reviews of #73/#78–#82/#84 and refreshed #76; merge eligible source with merge commits, preserving runtime/evidence/authentication safeguards through parent updates. Verify actual integration push CI after each merge.
-2. Claude fixes #89 derived source provenance/archive-state findings, then finishes owned Exchange adapters, Run UI and mailbox presentation. #85/#86 are independently reviewed, merged and Windows-verified; the first adapter alone does not establish complete report presentation.
-3. Astra obtains independent review of implemented application metadata engine #87 and offline diagnostics #88, finishes #90 doctor CLI dispatch and remaining desktop/application-report wiring in sequence with existing claims. No duplicate Application.Read.All acknowledgement or new Directory.Read.All consent.
-4. Inspect final native renders/engineer flows; prepare the authorised next-preview exact-source ZIP/hash/capability/candidate record and compact final-review packet pinned to the tested SHA. #77 remains a draft main-promotion placeholder. Green tests do not finish source or acceptance.
-
-Waiting on William: live Microsoft/tenant acceptance; interactive Windows console/newcomer/Narrator/physical-scaling/second-engineer checks; named owners/evidence/deferral/client-colour policies; security/distribution, repository settings, main promotion/tags/releases/publication and final 1.1.0 approval. Unfinished source and reviews remain separate dependencies.
+1. Resolve Actions capacity; review #91's duplicate-trigger reduction without disabling any required check or protection. #77 promotion placeholder is deferred until candidate preparation. No automatic rerun or further merge while integration validation is blocked.
+2. Claude confirms #73's narrow CLA-101 settings-forwarding delta (current f6fbad5 exact checks passed), then continues owned Run/mailbox presentation. #89 is source-merged; Home/application-report UI introduces no new dependency to #89/#73/Claude's work. The agreed design is concept B tasks with A persistent context.
+3. Finish independent narrow deltas for #79/#84/#87/#88 and compact #76; preserve previous review/source evidence. #92 application-report desktop wiring continues offline. Complete missing doctor/application CLI/desktop/package surfaces in owned sequence; do not duplicate Claude's library/runner.
+4. Only after reviewed source and exact Windows/package proof settle, prepare the authorised next-preview/candidate, capability matrix and blank acceptance forms. Human/live/role/module/accessibility, main promotion, version/publication and final 1.1.0 gates remain open. No broad feedback item is complete.
 
 ## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 
