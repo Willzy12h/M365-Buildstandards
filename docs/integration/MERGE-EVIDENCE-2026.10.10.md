@@ -76,3 +76,14 @@ Original push ZIP SHA-256: `57f3948e48b93c3712e1394d1159369681c59f24a49ec59de7bb
 | #69 | `42891e38e4a91026fe1c0058e4390d04cf962677` / 6102727581 | `4c813451c3990b1bfe13ddc001f572ec3ce6e08e` / 38091061845 / 114327409356 | 38090398128 / 38090401278 | 1723 / 157 | `5bf8e8dbe4066b882baad0ec8bbf1e17434743481693b4a5901b5c210005a7c7` |
 
 Actual full aggregate logs/jobs independently read: all build/standard/secrets passed; zero failed/not-executed tests; 48 native layouts/89 commands, zero bindings/tenant calls; PowerShell 5.1/script/identity and fresh 302-file startup/context-menu/CLI checks. Source/standard remain unpublished Preview.19/2026.09.30. These CI-bound original fingerprints are not local rehashes or a published candidate. #87/#88 dependent source remains unfinished. No live/consent/version/publication/human approval occurred.
+
+## Independently reviewed Claude runner and mailbox merges — #85 and #86
+
+| PR | Exact reviewed head / Astra review | Integration merge / actual push / build | Exact-head push / PR | Engine+CLI / App | Original integration ZIP SHA-256 |
+|---|---|---|---|---|---|
+| #85 | `5e2b5e6326be504a037f07d79e41279a09cb1e47` / 6102909434 | `363764e7a3750e1e919096ff1476c74e2b95a47e` / 38091977258 / 114330082631 | 38090971093 / 38090973722 | 1735 / 157 | `1e542d0f4b4a2041b1c71d2e61ef7634f350f12505e08964a0cf23384ca736e9` |
+| #86 | `d8a126844cb12376e20b213467ba8094a29f8ea7` / 6103019577 | `4f35285e96d8b78dd2fbf9aae83babe44e7d959b` / 38093073914 / 114333310565 | 38092193305 / 38092195319 | 1756 / 157 | `8a677be154d72b1ddc5dea7cc4366ff329f132701a63fa534719b387a46bf279` |
+
+Actual aggregate logs and every required build/standard/secrets job were read: zero failed/skipped tests; 48 native layouts/89 commands, zero binding issues/tenant calls; PS5.1 parser, synthetic identity/Copy checks and fresh 302-file extraction, first launch/shutdown, Accessibility/context-menu Copy and portable CLI routes passed. Package source identities equal the actual integration merges. CI-bound original fingerprints are not local ZIP rehashes, publication or human/live acceptance. Source remains unpublished Preview.19 / standard 2026.09.30.
+
+#85 preserves its earlier PS5.1 fixture failure, corrected with a wider test-only cooperative grace; production stop bounds were not raised. AST-05/19 were independently rechecked before merge. #86 closes AST-20/21: explicit ExchangeGuid selection and combined cap/missing-identity limitations. Thirteen restored selective-stub cases pass; original adapter bytes fail nine cases, and the original limitation overwrite fails the combined case. Real Get-EXOMailboxStatistics identity compatibility remains live-unverified. This ships a schema-2 read-only mailbox adapter and 30 total library entries, with existing 29 schema-1 Copy items tested unchanged; desktop Run, capacity presentation and other report adapters remain Claude's work. Exchange mutations remain Copy/Save only.

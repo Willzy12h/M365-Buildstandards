@@ -105,3 +105,5 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 | Date | Agent | Repository | Scope | Branch / base | PR | State |
 |---|---|---|---|---|---|---|
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Documentation-only top-level `agent-comms/` rules and central issue #83 requested by William: author-owned concise messages, incremental active-session reads, verified archives/safe cleanup and initial Claude queue; no background service, product source, permissions or other-agent tracker changes; all-three-repository pre-flight complete | `astra/agent-mailbox-2026-10-10` (integration `5ef5470`) | #82 | Open |
+
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | CLI dispatch for existing INT-094 offline doctor engine: early headless route, owned cancellation lifecycle, sanitised failures, actual-process tests and help; excludes engine, desktop, authentication, permissions and Claude runner/UI work; all-three-repository pre-flight complete | `astra/offline-doctor-cli-2026-10-10` (integration `4f35285e`, stacked on #88 `14169d0`) | #90 | Open |
