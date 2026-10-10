@@ -1,5 +1,11 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
+
+- Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
+
+- Extend offline Graph interruption checks through real retry delays and second-page cancellation, preserving one silent renewal and treating cancellation after write dispatch as ambiguous without replay. Production transport behaviour is unchanged.
+
 - Require truthful Partial headlines/provenance and visible truncation warnings in registered report export regressions; production exporters and limits remain unchanged (CLA-20261010-95/96).
 
 - Verify cap-reached report truncation reasons across JSON/HTML/CSV/XLSX, use explicit Partial unknown rows in scale fixtures, and assert CSV UTF-8 BOM and XLSX line breaks (Claude review follow-up #78; no production exporter change).
