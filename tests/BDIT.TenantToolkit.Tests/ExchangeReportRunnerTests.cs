@@ -130,11 +130,12 @@ public sealed class ExchangeReportRunnerTests
         public void Dispose() { try { Directory.Delete(Root, true); } catch (IOException) { } }
 
         public Task<ReadRunResult> Execute(string runtime, string scenario, ScriptEntry? entry = null, IReadOnlyDictionary<string, string?>? inputs = null,
-            Dictionary<string, string>? extra = null, string? origin = null, CancellationToken ct = default, Action<string>? onProgress = null)
+            Dictionary<string, string>? extra = null, string? origin = null, CancellationToken ct = default, Action<string>? onProgress = null,
+            TimeSpan? stopGrace = null)
         {
             var environment = FakeEnvironment(runtime, Root, scenario);
             foreach (var (key, value) in extra ?? []) environment[key] = value;
-            var host = new ReadRunnerHost(_ => RuntimePath(runtime), environment, origin, Path.Combine(Root, "staging"));
+            var host = new ReadRunnerHost(_ => RuntimePath(runtime), environment, origin, Path.Combine(Root, "staging"), stopGrace);
             var progress = new SyncProgress(text => { lock (Progress) Progress.Add(text); onProgress?.Invoke(text); });
             return new ExchangeReportRunner(host, new SystemClock()).RunAsync(entry ?? Entry(), Context, inputs ?? NoArchive, runtime, progress, ct);
         }
@@ -419,8 +420,11 @@ public sealed class ExchangeReportRunnerTests
     {
         using var run = new Run();
         using var cts = new CancellationTokenSource();
+        // The grace is widened here so the case tests the cooperative path, not how fast a shared machine starts
+        // Windows PowerShell 5.1; the forced path after the fixed grace is covered by the next case.
         var result = await run.Execute(runtime, "slow-stats", extra: new() { ["BDIT_FAKE_COOPERATE"] = "1" }, ct: cts.Token,
-            onProgress: p => { if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) cts.Cancel(); });
+            onProgress: p => { if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) cts.Cancel(); },
+            stopGrace: TimeSpan.FromSeconds(60));
 
         Assert.Equal(ReadRunOutcome.Cancelled, result.Outcome);
         var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
@@ -429,6 +433,45 @@ public sealed class ExchangeReportRunnerTests
         // The slow read returned, then the gate saw the stop: no further read was made.
         Assert.Equal(2, run.Reads);
     }
+
+    /// <summary>
+    /// AST-20261010-05: when the stop file cannot be created, the run is ended at once and nothing is kept, rather than
+    /// waiting on a stop the child was never asked for. A folder is put where the stop file belongs, which makes creating it
+    /// fail on every platform and for every account. The case where the failure strands the child is in
+    /// <see cref="OwnedProcessTests"/>, which proves the child process is gone.
+    /// </summary>
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_stop_file_that_cannot_be_created_ends_the_run_at_once(string runtime)
+    {
+        using var run = new Run();
+        using var cts = new CancellationTokenSource();
+        var watch = new Stopwatch();
+        var result = await run.Execute(runtime, "slow-stats", extra: new() { ["BDIT_FAKE_COOPERATE"] = "1" }, ct: cts.Token,
+            onProgress: p =>
+            {
+                if (!p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) return;
+                var folder = Directory.GetDirectories(Path.Combine(run.Root, "staging")).Single();
+                var runId = (string)JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "request.json")))!["runId"]!;
+                Directory.CreateDirectory(Path.Combine(folder, "stop-" + runId + ".flag"));
+                watch.Start();
+                cts.Cancel();
+            }, stopGrace: TimeSpan.FromSeconds(60)).WaitAsync(TimeSpan.FromSeconds(60));
+
+        Assert.Equal(ReadRunOutcome.Cancelled, result.Outcome);
+        // The stop could not be requested, so the child was ended by force before it returned a result.
+        Assert.Null(result.Evidence);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "The run must not wait out the stop grace for a stop it never requested.");
+        if (!OperatingSystem.IsWindows())
+            Assert.DoesNotContain(Directory.GetDirectories("/proc").Select(d => Path.Combine(d, "cmdline")), RunsFrom(run.Root));
+    }
+
+    /// <summary>True for a /proc command line that names a file under <paramref name="root"/>, so a child left running is found.</summary>
+    private static Predicate<string> RunsFrom(string root) => path =>
+    {
+        try { return File.Exists(path) && File.ReadAllText(path).Contains(root, StringComparison.Ordinal); }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    };
 
     [Theory, MemberData(nameof(Runtimes))]
     public async Task A_read_that_ignores_the_stop_is_ended_after_the_grace_period(string runtime)

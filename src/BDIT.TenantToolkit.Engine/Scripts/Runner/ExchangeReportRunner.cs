@@ -32,8 +32,12 @@ public enum ReadRunOutcome
 /// <summary>The outcome of one run. <see cref="Reason"/> is a fixed, sanitised description, never raw module output.</summary>
 public sealed record ReadRunResult(string RunId, ReadRunOutcome Outcome, string Reason, ExchangeReportEvidence? Evidence, bool DiagnosticsTruncated);
 
-/// <summary>Where the runner finds PowerShell and which file's download origin the materialised files inherit.</summary>
-internal sealed record ReadRunnerHost(Func<string, string?> RuntimePath, IReadOnlyDictionary<string, string>? Environment, string? OriginSource, string StagingRoot)
+/// <summary>
+/// Where the runner finds PowerShell and which file's download origin the materialised files inherit. <paramref name="StopGrace"/>
+/// replaces the fixed stop grace only for tests that must not depend on how fast a shared machine is.
+/// </summary>
+internal sealed record ReadRunnerHost(Func<string, string?> RuntimePath, IReadOnlyDictionary<string, string>? Environment, string? OriginSource, string StagingRoot,
+    TimeSpan? StopGrace = null)
 {
     /// <summary>The fixed system locations only: Windows PowerShell 5.1 and machine-wide PowerShell 7. No PATH lookup.</summary>
     public static ReadRunnerHost Default { get; } = new(DefaultRuntime, null, System.Environment.ProcessPath, Path.GetTempPath());
@@ -120,8 +124,8 @@ public sealed class ExchangeReportRunner
                 },
                 TimeSpan.FromSeconds(Math.Min(m.Limits.TimeoutSeconds, ReadRunnerLimits.MaximumTimeoutSeconds)),
                 () => markers.Overflowed,
-                () => { try { using var _ = new FileStream(files.Stop, FileMode.CreateNew, FileAccess.Write); } catch (IOException) { } },
-                ReadRunnerLimits.StopGrace, ct);
+                () => { using var _ = new FileStream(files.Stop, FileMode.CreateNew, FileAccess.Write); },
+                _host.StopGrace ?? ReadRunnerLimits.StopGrace, ct);
             var finishedAt = _clock.UtcNow;
             var truncated = Interlocked.Read(ref diagnosticBytes) > ReadRunnerLimits.MaximumDiagnosticBytes;
             return Decide(runId, entry, report, context, parameters, outcome, markers, files.Result, launchedAt, finishedAt, truncated);
@@ -146,6 +150,8 @@ public sealed class ExchangeReportRunner
 
         if (outcome.End == OwnedProcessEnd.NotStarted)
             return Result(ReadRunOutcome.HostRefused, HostRefusedReason);
+        if (outcome.End == OwnedProcessEnd.NotStopped)
+            return Result(ReadRunOutcome.Failed, NotStoppedReason);
         if (!markers.Started)
         {
             // Without the start marker no admitted runner start is established, whatever the exit code says.
@@ -222,6 +228,8 @@ public sealed class ExchangeReportRunner
 
     internal const string HostRefusedReason = "PowerShell did not start the toolkit's runner. A script execution policy or application control may have refused it. "
         + "Ask your security owner whether this read-only runner may be approved. The toolkit does not change policy, remove download markings or try another host.";
+    internal const string NotStoppedReason = "The run had to be ended, but Windows did not stop the PowerShell process, so it may still be running. "
+        + "No rows were kept. Close any remaining PowerShell window for this run, or ask your administrator to end it.";
     internal const string ModuleGuidance = "The ExchangeOnlineManagement module is not installed at the required version. Install it through your organisation's "
         + "approved PowerShell process; the toolkit does not install modules. Nothing was signed in or read.";
 
