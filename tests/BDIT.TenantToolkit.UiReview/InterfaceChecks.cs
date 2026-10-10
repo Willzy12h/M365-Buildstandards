@@ -691,6 +691,23 @@ internal static partial class Program
         ("ScriptsViewModel.CopyScriptCommand", Press),
         ("ScriptsViewModel.SaveScriptCommand", Press),
 
+        ("GraphReportsViewModel.ReadCommand", TenantRead),
+        ("GraphReportsViewModel.StopReadCommand", Disabled),
+        ("GraphReportsViewModel.RefreshStoredCommand", Press),
+        ("GraphReportsViewModel.OpenStoredCommand", Press),
+        ("GraphReportsViewModel.ChooseSuppliedCommand", FilePicker),
+        ("GraphReportsViewModel.OpenSuppliedCommand", Press),
+        ("GraphReportsViewModel.ExportHtmlCommand", Press),
+        ("GraphReportsViewModel.ExportJsonCommand", Press),
+        ("GraphReportsViewModel.ExportCsvCommand", Press),
+        ("GraphReportsViewModel.ExportXlsxCommand", Press),
+        ("GraphReportsViewModel.OpenExportCommand", Explorer),
+        ("GraphReportsViewModel.CopyDetailsCommand", Clipboard),
+        ("GraphReportsViewModel.CopyRowCommand", Clipboard),
+        ("NamingAuditViewModel.ReviewCommand", Press),
+        ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
+        ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
+
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
         ("StandardViewModel.ExportDocumentMarkdownCommand", Press),
@@ -769,6 +786,14 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
+        ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportHtmlCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportJsonCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportCsvCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportXlsxCommand"] = SeedGraphReportsPage,
+        ["NamingAuditViewModel.ReviewCommand"] = SeedNamingPage,
         ["AssessmentViewModel.CheckAreaCommand"] = shell =>
         {
             var vm = shell.Page<AssessmentViewModel>(); vm.Refresh(); vm.CheckStored = true; vm.CheckArea = "Entra";
