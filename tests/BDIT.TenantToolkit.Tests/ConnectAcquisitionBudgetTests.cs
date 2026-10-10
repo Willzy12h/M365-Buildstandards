@@ -1,0 +1,212 @@
+using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Graph.Auth;
+using Microsoft.Identity.Client;
+using Xunit;
+
+namespace BDIT.TenantToolkit.Tests;
+
+public sealed class ConnectAcquisitionBudgetTests
+{
+    private static readonly TimeSpan Budget = TimeSpan.FromMinutes(5);
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Reading_permissions_does_not_consume_the_Microsoft_acquisition_budget(bool knownAccount)
+    {
+        var clock = new ManualTime(); var prompts = 0; var previews = 0;
+        var result = await ExplicitConnectAcquisition.AcquireAsync(knownAccount, new[] { "known" },
+            (_, token) => { clock.Advance(TimeSpan.FromMinutes(1)); throw new MsalUiRequiredException("interaction_required", "synthetic"); },
+            (_, token) => { token.ThrowIfCancellationRequested(); prompts++; clock.Advance(TimeSpan.FromMinutes(3)); token.ThrowIfCancellationRequested(); return Task.FromResult("connected"); },
+            CancellationToken.None,
+            token => { previews++; clock.Advance(TimeSpan.FromMinutes(20)); token.ThrowIfCancellationRequested(); return Task.CompletedTask; },
+            Budget, clock);
+        Assert.Equal("connected", result); Assert.Equal(1, prompts); Assert.Equal(1, previews);
+    }
+
+    [Fact]
+    public async Task The_silent_and_interactive_attempts_share_one_budget_after_a_long_preview()
+    {
+        var clock = new ManualTime(); var prompts = 0;
+        await Assert.ThrowsAsync<AuthenticationRequiredException>(() => ExplicitConnectAcquisition.AcquireAsync(true, new[] { "known" },
+            (_, token) => { clock.Advance(TimeSpan.FromMinutes(4)); throw new MsalUiRequiredException("interaction_required", "synthetic"); },
+            (_, token) => { prompts++; clock.Advance(TimeSpan.FromMinutes(2)); token.ThrowIfCancellationRequested(); return Task.FromResult("too late"); },
+            CancellationToken.None, token => { clock.Advance(TimeSpan.FromMinutes(20)); return Task.CompletedTask; }, Budget, clock));
+        Assert.Equal(1, prompts);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Timed_out_acquisition_never_returns_a_token_or_retries(bool silent)
+    {
+        var clock = new ManualTime(); var prompts = 0; var previews = 0;
+        await Assert.ThrowsAsync<AuthenticationRequiredException>(() => ExplicitConnectAcquisition.AcquireAsync(silent, new[] { "known" },
+            (_, token) => { clock.Advance(Budget); return Task.FromResult("expired silent"); },
+            (_, token) => { prompts++; clock.Advance(Budget); return Task.FromResult("expired interactive"); },
+            CancellationToken.None, token => { previews++; return Task.CompletedTask; }, Budget, clock));
+        Assert.Equal(silent ? 0 : 1, prompts); Assert.Equal(silent ? 0 : 1, previews);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Cancelled_or_declined_preview_remains_cancellation_with_no_interaction(bool decline)
+    {
+        var clock = new ManualTime(); using var stop = new CancellationTokenSource(); var prompts = 0;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(false, Array.Empty<string>(),
+            (_, token) => Task.FromResult("unused"), (_, token) => { prompts++; return Task.FromResult("not allowed"); }, stop.Token,
+            token => { clock.Advance(TimeSpan.FromMinutes(20)); if (decline) throw new OperationCanceledException("Permission review declined"); stop.Cancel(); return Task.CompletedTask; },
+            Budget, clock));
+        Assert.Equal(0, prompts);
+    }
+
+    [Fact]
+    public async Task Cancellation_during_acquisition_remains_cancellation_even_at_its_deadline()
+    {
+        var clock = new ManualTime(); using var stop = new CancellationTokenSource();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(false, Array.Empty<string>(),
+            (_, token) => Task.FromResult("unused"), (_, token) => { stop.Cancel(); clock.Advance(Budget); token.ThrowIfCancellationRequested(); return Task.FromResult("not allowed"); },
+            stop.Token, acquisitionTimeout: Budget, timeProvider: clock));
+    }
+
+    [Theory]
+    [InlineData(false, 0)] [InlineData(false, 1)]
+    [InlineData(true, 0)] [InlineData(true, 1)]
+    public async Task A_reply_at_or_after_the_deadline_is_refused_even_when_timer_delivery_is_delayed(bool silent, int overdueTicks)
+    {
+        var clock = new ManualTime(); var silentCalls = 0; var prompts = 0; var previews = 0;
+        Task<string> CompleteLate(CancellationToken token)
+        {
+            clock.Advance(Budget + TimeSpan.FromTicks(overdueTicks), deliverTimers: false);
+            Assert.False(token.IsCancellationRequested);
+            return Task.FromResult("too late");
+        }
+        await Assert.ThrowsAsync<AuthenticationRequiredException>(() => ExplicitConnectAcquisition.AcquireAsync(silent, new[] { "known" },
+            (_, token) => { silentCalls++; return CompleteLate(token); },
+            (_, token) => { prompts++; return CompleteLate(token); }, CancellationToken.None,
+            _ => { previews++; return Task.CompletedTask; }, Budget, clock));
+        Assert.Equal(silent ? 1 : 0, silentCalls); Assert.Equal(silent ? 0 : 1, prompts); Assert.Equal(silent ? 0 : 1, previews);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task A_reply_just_before_the_deadline_succeeds_when_timer_delivery_is_delayed(bool silent)
+    {
+        var clock = new ManualTime(); var silentCalls = 0; var prompts = 0; var previews = 0;
+        Task<string> CompleteInBudget(CancellationToken token)
+        {
+            clock.Advance(Budget - TimeSpan.FromTicks(1), deliverTimers: false);
+            Assert.False(token.IsCancellationRequested);
+            return Task.FromResult("connected");
+        }
+        var result = await ExplicitConnectAcquisition.AcquireAsync(silent, new[] { "known" },
+            (_, token) => { silentCalls++; return CompleteInBudget(token); },
+            (_, token) => { prompts++; return CompleteInBudget(token); }, CancellationToken.None,
+            _ => { previews++; return Task.CompletedTask; }, Budget, clock);
+        Assert.Equal("connected", result);
+        Assert.Equal(silent ? 1 : 0, silentCalls); Assert.Equal(silent ? 0 : 1, prompts); Assert.Equal(silent ? 0 : 1, previews);
+    }
+
+    [Theory]
+    [InlineData(0)] [InlineData(1)]
+    public async Task Delayed_timer_delivery_does_not_extend_the_shared_silent_and_fallback_budget(int overdueTicks)
+    {
+        var clock = new ManualTime(); var silentCalls = 0; var prompts = 0; var previews = 0;
+        await Assert.ThrowsAsync<AuthenticationRequiredException>(() => ExplicitConnectAcquisition.AcquireAsync(true, new[] { "known" },
+            (_, token) =>
+            {
+                silentCalls++; clock.Advance(TimeSpan.FromMinutes(4), deliverTimers: false);
+                Assert.False(token.IsCancellationRequested);
+                throw new MsalUiRequiredException("interaction_required", "synthetic");
+            },
+            (reason, token) =>
+            {
+                prompts++; Assert.Equal(ConnectInteractionReason.MicrosoftInteractionRequired, reason);
+                clock.Advance(TimeSpan.FromMinutes(1) + TimeSpan.FromTicks(overdueTicks), deliverTimers: false);
+                Assert.False(token.IsCancellationRequested);
+                return Task.FromResult("too late");
+            }, CancellationToken.None,
+            token => { previews++; clock.Advance(TimeSpan.FromMinutes(20), deliverTimers: false); token.ThrowIfCancellationRequested(); return Task.CompletedTask; },
+            Budget, clock));
+        Assert.Equal(1, silentCalls); Assert.Equal(1, prompts); Assert.Equal(1, previews);
+    }
+
+    [Fact]
+    public async Task Delayed_timer_delivery_keeps_the_shared_budget_available_until_its_deadline_after_a_long_preview()
+    {
+        var clock = new ManualTime(); var silentCalls = 0; var prompts = 0; var previews = 0;
+        var result = await ExplicitConnectAcquisition.AcquireAsync(true, new[] { "known" },
+            (_, token) =>
+            {
+                silentCalls++; clock.Advance(TimeSpan.FromMinutes(4), deliverTimers: false);
+                Assert.False(token.IsCancellationRequested);
+                throw new MsalUiRequiredException("interaction_required", "synthetic");
+            },
+            (reason, token) =>
+            {
+                prompts++; Assert.Equal(ConnectInteractionReason.MicrosoftInteractionRequired, reason);
+                clock.Advance(TimeSpan.FromMinutes(1) - TimeSpan.FromTicks(1), deliverTimers: false);
+                Assert.False(token.IsCancellationRequested);
+                return Task.FromResult("connected");
+            }, CancellationToken.None,
+            token => { previews++; clock.Advance(TimeSpan.FromMinutes(20), deliverTimers: false); token.ThrowIfCancellationRequested(); return Task.CompletedTask; },
+            Budget, clock);
+        Assert.Equal("connected", result); Assert.Equal(1, silentCalls); Assert.Equal(1, prompts); Assert.Equal(1, previews);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Caller_cancellation_still_wins_over_a_late_reply_when_timer_delivery_is_delayed(bool silent)
+    {
+        var clock = new ManualTime(); using var stop = new CancellationTokenSource(); var silentCalls = 0; var prompts = 0;
+        Task<string> CompleteCancelled(CancellationToken token)
+        {
+            clock.Advance(Budget + TimeSpan.FromTicks(1), deliverTimers: false);
+            Assert.False(token.IsCancellationRequested);
+            stop.Cancel();
+            return Task.FromResult("not allowed");
+        }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(silent, new[] { "known" },
+            (_, token) => { silentCalls++; return CompleteCancelled(token); },
+            (_, token) => { prompts++; return CompleteCancelled(token); }, stop.Token,
+            acquisitionTimeout: Budget, timeProvider: clock));
+        Assert.Equal(silent ? 1 : 0, silentCalls); Assert.Equal(silent ? 0 : 1, prompts);
+    }
+
+    // Deterministic acquisition time and timers: no network, wall-clock sleeps or additional test package.
+    private sealed class ManualTime : TimeProvider
+    {
+        private long _ticks;
+        private readonly List<Timer> _timers = [];
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => _ticks;
+        public override DateTimeOffset GetUtcNow() => DateTimeOffset.UnixEpoch.AddTicks(_ticks);
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = new Timer(this, callback, state); _timers.Add(timer); timer.Change(dueTime, period); return timer;
+        }
+        public void Advance(TimeSpan time, bool deliverTimers = true)
+        {
+            _ticks += time.Ticks;
+            if (deliverTimers)
+                foreach (var timer in _timers.ToArray()) timer.FireIfDue();
+        }
+        private sealed class Timer(ManualTime owner, TimerCallback callback, object? state) : ITimer
+        {
+            private long _due = long.MaxValue;
+            private bool _disposed;
+            public bool Change(TimeSpan dueTime, TimeSpan period)
+            {
+                Assert.Equal(Timeout.InfiniteTimeSpan, period);
+                if (_disposed) return false;
+                _due = dueTime == Timeout.InfiniteTimeSpan ? long.MaxValue : owner._ticks + dueTime.Ticks;
+                return true;
+            }
+            public void FireIfDue()
+            {
+                if (_disposed || _due > owner._ticks) return;
+                _due = long.MaxValue; callback(state);
+            }
+            public void Dispose() => _disposed = true;
+            public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+        }
+    }
+}

@@ -498,6 +498,14 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
+### INT-082 runtime implementation — 10 October 2026, PR #73
+
+Implement the merged desktop guard as transient coordination authority, not another token cache or engine approval. Keep scope acquisition approval separate from verified operation opt-in. Reuse the existing explicit-connect and MSAL silent-renewal paths; add policy seams to prove prompt counts and refusal before token replacement. Unexpected renewal identity/scopes invalidate the operator and opt-in, with no interactive retry. Original expiry bounds the opt-in; explicit expired reconnect refreshes the verified session via silent-first acquisition. Manual setup/consent remains separately reviewed and invalidates deployment authority. Exact engine safeguards and historical schema meanings are unchanged. Evidence/status: [EXPERIMENTAL-RUNTIME-2026.10.10](EXPERIMENTAL-RUNTIME-2026.10.10.md). No live or human gate is closed.
+
+### INT-082 production-wiring review response — 10 October 2026, PR #73
+
+CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
+
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
 After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
@@ -505,3 +513,10 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 ### INT-084 compatibility clarification — 10 October 2026, PR #57
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
+### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
+
+CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
+
+### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
+
+AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.

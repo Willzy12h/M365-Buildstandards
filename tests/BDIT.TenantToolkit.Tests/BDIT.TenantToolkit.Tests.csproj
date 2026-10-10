@@ -13,6 +13,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Desktop guard is pure coordination logic; run the same source on Linux as well as Windows App tests. -->
+    <Compile Include="..\..\src\BDIT.TenantToolkit.App\Services\ExperimentalOperationGuard.cs" Link="Desktop/ExperimentalOperationGuard.cs" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Graph\BDIT.TenantToolkit.Graph.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />

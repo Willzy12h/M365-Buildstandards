@@ -261,6 +261,9 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!CanApproveSetup(plan, TenantId, service.Identity.TenantId, service.Identity.AccountObjectId, PermissionsApproved))
             throw new PlanValidationException("Review the current verified tenant and application plan, then tick approval before creating or configuring applications.");
         var standard = Workspace.RequireStandard();
+        BDIT.TenantToolkit.App.Services.ExperimentalOperationGuard.RequireManualSetup(PermissionsApproved, TenantId,
+            service.Identity.TenantId, service.Identity.AccountObjectId);
+        Workspace.InvalidateExperimentalChanges();
         Results.Clear();
         progress.Report("Creating and configuring the applications. Each write is recorded before it is sent.");
         var result = await service.ExecuteAsync(plan, standard, TenantId.Trim(), PermissionsApproved,
@@ -365,6 +368,16 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     {
         var name = Name(mode);
         var id = (mode == SessionMode.Assessment ? AssessmentClientId : DeploymentClientId).Trim();
+        var consentContext = ValidationContext;
+        var catalogueDigest = standard.IntegrityDigest;
+        Workspace.InvalidateExperimentalChanges();
+        await Workspace.ReviewPermissionRequestAsync(service.Identity.TenantId, id,
+            ApplicationSetupService.RequiredScopes(standard, mode),
+            "Administrator consent for the " + name + " application — grant changes are experimental/manual", Workspace.OperationToken,
+            knownAccount: service.Identity.Account + " (verified setup operator " + service.Identity.AccountObjectId + ")");
+        GuardContext(consentContext);
+        if (!ReferenceEquals(service, Workspace.ApplicationSetup) || Workspace.RequireStandard().IntegrityDigest != catalogueDigest)
+            throw new SafetyViolationException("Setup identity or standard changed. Review a new consent request.");
         await service.ValidateConsentRedirectAsync(id, Workspace.OperationToken);
         using var callback = await OpenCallbackAsync(id, ApplicationSetupService.RequiredScopes(standard, mode), progress);
         Outcome = $"Microsoft's approval page for the {name} application is open in your browser. Sign in as an administrator if asked, check the permission list, select Accept, then return here. This is separate from the four temporary setup permissions.";

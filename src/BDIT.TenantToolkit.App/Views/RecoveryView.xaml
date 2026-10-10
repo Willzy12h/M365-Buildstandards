@@ -2,6 +2,7 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28,24">
     <TextBlock Text="CONTROLLED RECOVERY" Style="{StaticResource Eyebrow}"/>
     <TextBlock Text="Undo and recovery" Style="{StaticResource H1}"/>
+      <TextBlock Text="{Binding Workspace.ExperimentalChangeGuidance}" TextWrapping="Wrap" Margin="0,8,0,12" AutomationProperties.Name="Experimental tenant change status and next step"/>
     <TextBlock Text="Inspect every recorded policy write. Preview the exact object and consequences before removing a toolkit-created policy, restoring its latest supported update or disabling an unexpectedly active Conditional Access candidate." Style="{StaticResource Lead}"/>
     <Border Style="{StaticResource Card}"><StackPanel>
       <DockPanel><Button DockPanel.Dock="Right" Content="Load change register" Command="{Binding LoadRegisterCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="Durable change register" Style="{StaticResource H2}"/></DockPanel>

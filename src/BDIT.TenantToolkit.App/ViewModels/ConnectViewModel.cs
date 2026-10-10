@@ -336,22 +336,27 @@ public sealed class ConnectViewModel : PageViewModel
         var profile = RememberConnection ? Workspace.SaveProfile(FormToProfile()) : ProfileValidator.Validate(FormToProfile(), DateTimeOffset.UtcNow);
         EditId = profile.Id;
         if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
-        if (mode == SessionMode.Deployment)
-        {
-            var confirm = System.Windows.MessageBox.Show(
-                "Connect with the M365 BuildStandard Deployment Tool to request the reviewed write permissions. Microsoft may reuse your existing Windows sign-in.\n\n" +
-                "Nothing is written until you build a plan, acknowledge the before-change snapshot and confirm the tenant ID. Continue?",
-                "Connect for deployment", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
-            if (confirm != System.Windows.MessageBoxResult.Yes) return;
-        }
         var previous = Workspace.Connection;
         await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }
 
+    public bool ExperimentalChangesEnabled
+    {
+        get => Workspace.ExperimentalChangesEnabled;
+        set { try { Workspace.SetExperimentalChanges(value); } catch (Exception ex) { Shell.ShowError(ex); } OnPropertyChanged(nameof(ExperimentalChangesEnabled)); }
+    }
+    public bool CanEnableExperimentalChanges => Workspace.CanEnableExperimentalChanges;
+    public string ExperimentalChangeGuidance => Workspace.ExperimentalChangeGuidance;
+    public string ExperimentalContextText => Workspace.ExperimentalContextText;
+
     public override void Refresh()
     {
+        OnPropertyChanged(nameof(ExperimentalChangesEnabled));
+        OnPropertyChanged(nameof(CanEnableExperimentalChanges));
+        OnPropertyChanged(nameof(ExperimentalChangeGuidance));
+        OnPropertyChanged(nameof(ExperimentalContextText));
         if (Selected is null && Workspace.Profile is not null)
         {
             var saved = Profiles.FirstOrDefault(p => p.Id == Workspace.Profile.Id);
