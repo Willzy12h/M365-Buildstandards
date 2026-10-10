@@ -212,7 +212,7 @@ public sealed class ShellViewModel : ObservableObject
             if (Workspace.Standard is null) return "Load a valid Build Standard in Settings.";
             if (Workspace.ApplicationSetup is not null) return "Finish application setup validation, then connect with assessment access.";
             if (Workspace.Profile is null) return "Choose a client in Connect, or export the engineer guide offline.";
-            if (!Workspace.IsConnected) return "Open Configuration's saved captures, or review local reports, jobs and the change register. Connect and capture fresh evidence before planning changes.";
+            if (!Workspace.IsConnected) return "Open Configuration's saved captures, or review local reports, jobs and the change register. Connect read-only and capture fresh evidence before planning changes.";
             if (Workspace.Snapshot is null) return "Capture this tenant in Configuration.";
             if (!Workspace.SnapshotIsLive) return "Stored evidence is for review. Capture again before planning a change.";
             if (!Workspace.Snapshot.Complete) return "Review failed collections and capture again. Incomplete evidence blocks writes.";
