@@ -1,6 +1,6 @@
 # Astra and Claude handoff mailbox
 
-William requested this shared GitHub folder on 10 October 2026. It lets active agent sessions exchange short messages and pick up work without William copying each result between chats. It supplements [AGENT-COORDINATION](../AGENT-COORDINATION.md), [WORK-CLAIMS](../WORK-CLAIMS.md) and [HANDOVER](../HANDOVER.md); their ownership, review, merge and approval rules still apply.
+William requested this permanent top-level GitHub folder on 10 October 2026. Once #82 merges, it lives on the product’s integration branch, not inside a pull-request folder or a separate source-of-truth branch. PR #82 is the reviewed change that installs it. It lets active agent sessions exchange short messages and pick up work without William copying each result between chats. It supplements [AGENT-COORDINATION](../docs/integration/AGENT-COORDINATION.md), [WORK-CLAIMS](../docs/integration/WORK-CLAIMS.md) and [HANDOVER](../docs/integration/HANDOVER.md); their ownership, review, merge and approval rules still apply.
 
 This folder does not notify or start an agent. William starts each external chat once with the prompt below. Agents check while their sessions are active. No unattended service, scheduled workflow, credentials or new permissions are required.
 
@@ -8,7 +8,7 @@ This folder does not notify or start an agent. William starts each external chat
 
 Give Claude this instruction:
 
-> Continue Willzy12h/M365-Buildstandards. Fetch integration and actual open PR heads. Read docs/integration/agent-mailbox/README.md and messages addressed to Claude, including mailbox files on open PRs. Follow AGENTS.md and the existing coordination and merge rules. Acknowledge and claim the authorised work, continue your review and implementation queue, and leave concise replies in your own mailbox files and the relevant PRs. Check again between work slices. Do independent work while blocked; do not wait for William to relay messages. Preserve every live-action, access, release and publication approval gate.
+> Continue Willzy12h/M365-Buildstandards. Fetch integration and actual open PR heads. Read agent-comms/README.md and messages addressed to Claude, including mailbox files on open PRs. Follow AGENTS.md and the existing coordination and merge rules. Acknowledge and claim the authorised work, continue your review and implementation queue, and leave concise replies in your own mailbox files and the relevant PRs. Check again between work slices. Do independent work while blocked; do not wait for William to relay messages. Preserve every live-action, access, release and publication approval gate.
 
 If this folder is not yet on integration, read it from [PR #82](https://github.com/Willzy12h/M365-Buildstandards/pull/82)'s freshly fetched head. Review the mailbox proposal before treating it as the agreed shared protocol. Its initial messages can still be read as handoff requests. No dependent product implementation uses this proposal.
 
@@ -30,7 +30,7 @@ Do not edit, tick off, move or delete another author's message. Keep sent messag
 
    ```sh
    git fetch origin integration:refs/remotes/origin/integration
-   git ls-tree -r --name-only origin/integration docs/integration/agent-mailbox
+   git ls-tree -r --name-only origin/integration agent-comms
    gh pr list --repo Willzy12h/M365-Buildstandards --state open --limit 100 --json number,title,headRefName,headRefOid,files
    ```
 
@@ -39,8 +39,8 @@ Do not edit, tick off, move or delete another author's message. Keep sent messag
 
    ```sh
    git fetch origin pull/82/head:refs/remotes/origin/pr/82
-   git ls-tree -r --name-only origin/pr/82 docs/integration/agent-mailbox
-   git show origin/pr/82:docs/integration/agent-mailbox/astra/2026-10-10-001-continuation.md
+   git ls-tree -r --name-only origin/pr/82 agent-comms
+   git show origin/pr/82:agent-comms/astra/2026-10-10-001-continuation.md
    ```
 
    For another PR, substitute its actual number/ref/path. Fetching for read-only inspection does not authorise checking out, pushing to or modifying another agent's branch.
