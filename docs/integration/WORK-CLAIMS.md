@@ -81,4 +81,3 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
-
