@@ -11,7 +11,8 @@ internal enum ConnectInteractionReason { UnknownAccount, AccountNotCached, Ambig
 internal static class ExplicitConnectAcquisition
 {
     internal static async Task<TResult> AcquireAsync<TAccount, TResult>(bool knownContext, IReadOnlyList<TAccount> accounts,
-        Func<TAccount, Task<TResult>> silent, Func<ConnectInteractionReason, Task<TResult>> interactive, CancellationToken ct)
+        Func<TAccount, Task<TResult>> silent, Func<ConnectInteractionReason, Task<TResult>> interactive, CancellationToken ct,
+        Func<CancellationToken, Task>? beforeInteractive = null)
     {
         ct.ThrowIfCancellationRequested();
         var reason = !knownContext ? ConnectInteractionReason.UnknownAccount
@@ -21,6 +22,8 @@ internal static class ExplicitConnectAcquisition
             try { return await silent(accounts[0]); }
             catch (MsalUiRequiredException) { reason = ConnectInteractionReason.MicrosoftInteractionRequired; }
         }
+        ct.ThrowIfCancellationRequested();
+        if (beforeInteractive is not null) await beforeInteractive(ct);
         ct.ThrowIfCancellationRequested();
         return await interactive(reason);
     }

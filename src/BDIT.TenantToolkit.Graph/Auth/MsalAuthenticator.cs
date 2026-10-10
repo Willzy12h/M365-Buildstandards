@@ -30,6 +30,8 @@ public sealed class SignInRequest
     public IntPtr ParentWindowHandle { get; init; }
     public bool UseSystemBrowser { get; init; }
     public string LoginHint { get; init; } = "";
+    /// <summary>Desktop approval before explicit interactive acquisition; never invoked during silent renewal.</summary>
+    public Func<CancellationToken, Task>? BeforeInteractive { get; init; }
 }
 
 public sealed class SignInOutcome
@@ -62,6 +64,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     private DateTimeOffset _expiresOn;
     private bool _disconnected;
 
+    public event Action? AuthorisationInvalidated;
     public SignInOutcome Outcome { get; }
     public string ClientId { get; }
 
@@ -98,13 +101,14 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
     // Discovery is deliberately a separate entry point: normal assessment, deployment and setup still require
     // a known tenant. The client remains fixed and no cache file or login hint is accepted; the discovery service validates assessment read scopes.
     internal static Task<MsalAuthenticator> DiscoverAsync(IntPtr parentWindow, bool useBrowser, TimeSpan timeout,
-        IToolkitLog log, CancellationToken ct, IReadOnlyList<string>? assessmentScopes = null) => SignInCoreAsync(new SignInRequest
+        IToolkitLog log, CancellationToken ct, IReadOnlyList<string>? assessmentScopes = null,
+        Func<CancellationToken, Task>? beforeInteractive = null) => SignInCoreAsync(new SignInRequest
         {
             ClientId = ToolkitSettings.MicrosoftGraphPowerShellClientId,
             ClientLabel = "Microsoft Graph PowerShell", Mode = SessionMode.Assessment,
             Scopes = assessmentScopes ?? new[] { "User.Read", "Organization.Read.All" },
             Purpose = "Quick Connect assessment (read-only)", ParentWindowHandle = parentWindow,
-            UseSystemBrowser = useBrowser, Timeout = timeout
+            UseSystemBrowser = useBrowser, Timeout = timeout, BeforeInteractive = beforeInteractive
         }, "organizations", discoverTenant: true, log, ct);
 
     private static async Task<MsalAuthenticator> SignInCoreAsync(SignInRequest request, string authorityTenant,
@@ -161,7 +165,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                         HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
                     });
                 return await interactive.ExecuteAsync(timeout.Token);
-            }, timeout.Token);
+            }, timeout.Token, request.BeforeInteractive);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -198,8 +202,19 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                 var result = await _pca.AcquireTokenSilent(_scopes, _account)
                     .WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct);
                 if (!string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal))
+                    || !string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal)
+                    || !string.Equals(result.UniqueId, Outcome.AccountObjectId, StringComparison.OrdinalIgnoreCase))
+                {
+                    _accessToken = null;
+                    AuthorisationInvalidated?.Invoke();
                     throw new AuthenticationRequiredException("The authenticated identity changed during silent renewal. Disconnect and reconnect.");
+                }
+                if (!SameAuthorisationScopes(Outcome.Scopes, result.Scopes))
+                {
+                    _accessToken = null;
+                    AuthorisationInvalidated?.Invoke();
+                    throw new AuthenticationRequiredException("Returned permissions changed during silent renewal. Disconnect and reconnect, then review access and experimental authorisation again. No interactive retry was performed.");
+                }
                 _account = result.Account;
                 _accessToken = result.AccessToken;
                 _expiresOn = result.ExpiresOn;
@@ -254,6 +269,9 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             _gate.Release();
         }
     }
+
+    public static bool SameAuthorisationScopes(IEnumerable<string> expected, IEnumerable<string> actual) =>
+        NormaliseScopes(expected).ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(NormaliseScopes(actual));
 
     public static IReadOnlyList<string> NormaliseScopes(IEnumerable<string>? scopes) =>
         (scopes ?? Array.Empty<string>())
