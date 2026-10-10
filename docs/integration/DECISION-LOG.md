@@ -612,3 +612,7 @@ Desktop/CLI/schema-2 browser wiring remains required. Existing raw HTTP page buf
 ### Application-report honesty corrections — 10 October 2026, PR #87
 
 CLA-20261010-124–126: enforce truthful schema-2 source/section/owner accounting through the existing strict import and all exports, preserving valid partial metadata and cancellation. At exact metadata saturation, disclose Partial and remaining unread pages; keep every resource/scope limit. Two supplied-file contradictions and the real synthetic Graph boundary fail on original source; isolated guard-deletion tests prove meaningful refusal. No new wire schema, scope, schema-1 behaviour or auth/cache changes. Local validation is not Windows/live or merge authority; Actions budget constrains fresh remote checks.
+
+### Application report desktop composition — 10 October 2026, PR #92
+
+Compose existing own #80 presentation and repaired #87 engine source sequentially, preserving their independent review and merge gates. Extend the same Tenant Reports destination through exact schema/report-ID selection, typed expiry horizon and strict supplied-file envelope dispatch. Reuse verified context, shared engine collection/export and immutable stores; no additional authentication/cache, new scope/consent, Directory.Read.All or WPF collector. Parent code remains attributable and is not reimplemented. Claude retains Scripts/Run/mailbox presentation. Local validation and CI-skipped draft commits are not Windows/candidate evidence; parent reviews, real exact-head validation and release gates remain necessary.
