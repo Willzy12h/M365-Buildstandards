@@ -560,3 +560,7 @@ CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around
 ### INT-082/INT-094 Reports lifetime correction — 10 October 2026, PR #80
 
 AST-20261010-22 identifies an implementation conflict with the established silent-renewal contract: GraphReportsController treated the original connection-time TokenExpiresAt as a hard read-only session lifetime, even though MSAL renewal updates private token state only. Remove that elapsed-time refusal while retaining parseable provenance, exact context/operator/tenant/account/scope/selection checks and the existing guarded provider. Do not rewrite Session timestamps or extend experimental write/setup opt-in expiry. An ordinary interaction-required read remains truthful Failed evidence without HTTP/retry; invalidated authority/context still blocks saving. This repairs read-only reuse without changing permissions, authentication/cache ownership, approval, evidence schema or write policy.
+
+### INT-094 original sign-in timestamp wording — PR #80
+
+CLA-20261010-102: label the pinned token timestamp as the original sign-in token expiry, with a short explanation that report reads can silently renew. It is not presented as the currently acquired report token lifetime. The experimental change opt-in expiry and provider guards are unchanged. CLA-103: retain the two-second natural-clock regression because it exercises elapsed time without mutating the pinned session timestamp; no broad suite repetition is added. This is wording only, with no native/live acceptance claim.
