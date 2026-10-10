@@ -11,6 +11,30 @@ namespace BDIT.TenantToolkit.Tests;
 
 public sealed class NamingAuditPageTests
 {
+    [Fact]
+    public void Failed_repeat_review_notifies_cleared_acceptance_and_validates_presentation_filters()
+    {
+        using var f = new ConnectedReportsFixture(false);
+        var snapshot = TestData.Snapshot(f.Workspace.RequireStandard());
+        f.Set(nameof(f.Workspace.Snapshot), snapshot);
+        var shell = new ShellViewModel(f.Workspace); var page = new NamingAuditViewModel(shell);
+        page.Review(); Assert.Contains(snapshot.Id, page.Provenance);
+        page.CollectionFilter = null!; page.OwnershipFilter = "not-a-filter";
+        Assert.Equal("All", page.CollectionFilter); Assert.Equal("All", page.OwnershipFilter);
+        var notifications = new List<string?>();
+        page.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+        var mappingFile = Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA), "managed-objects.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(mappingFile)!); File.WriteAllText(mappingFile, "{ damaged mapping");
+        page.ReviewCommand.Execute(null);
+        Assert.True(shell.HasError); Assert.Empty(page.Rows); Assert.Empty(page.Collections);
+        Assert.Equal("No reviewed capture.", page.Provenance);
+        Assert.Equal("No naming audit accepted for the current capture.", page.Summary);
+        Assert.Contains(nameof(NamingAuditViewModel.Summary), notifications);
+        Assert.Contains(nameof(NamingAuditViewModel.Provenance), notifications);
+        Assert.Equal("All", Assert.Single(page.CollectionFilters));
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
+
     [Theory]
     [InlineData(true, true, NamingAudit.Managed)]
     [InlineData(false, true, NamingAudit.OwnershipUnknown)]

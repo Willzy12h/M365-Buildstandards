@@ -80,6 +80,29 @@ internal sealed class ConnectedReportsFixture : IDisposable
 
 public sealed class GraphReportsPageTests
 {
+    [Fact]
+    public void Selecting_damaged_saved_entries_notifies_the_problem_and_refuses_open_without_reads()
+    {
+        using var f = new ConnectedReportsFixture();
+        var page = f.Page();
+        var first = new GraphReportEvidenceBrowser.Entry(Guid.NewGuid().ToString(), "first.json", "First record has an invalid digest.");
+        var second = new GraphReportEvidenceBrowser.Entry(Guid.NewGuid().ToString(), "second.json", "Second record is inaccessible.");
+        page.StoredReports.Add(first); page.StoredReports.Add(second);
+        var notifications = new List<string?>();
+        page.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+        foreach (var entry in new[] { first, second })
+        {
+            notifications.Clear(); page.SelectedStored = entry;
+            Assert.Contains(nameof(GraphReportsViewModel.SelectedStored), notifications);
+            Assert.Equal(entry.Problem, page.SelectedStored!.Problem);
+            Assert.False(page.OpenStoredCommand.CanExecute(null));
+            Assert.Throws<ToolkitException>(page.OpenStored);
+            Assert.Null(page.Rows);
+        }
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+        Assert.False(Directory.Exists(Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA), "report-evidence")));
+    }
+
     [Theory]
     [InlineData("users-licences", 2)]
     [InlineData("intune-devices", 1)]
@@ -201,6 +224,22 @@ public sealed class GraphReportsPageTests
         };
         await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.False(page.ExportJsonCommand.CanExecute(null)); Assert.False(page.ReadAcknowledged);
+        Assert.False(Directory.Exists(Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA), "report-evidence")));
+    }
+
+    [Fact]
+    public async Task Same_pinned_session_expiring_in_response_is_refused_without_save_retry_or_relabelling()
+    {
+        using var f = new ConnectedReportsFixture(); var page = f.Page();
+        page.SelectedReport = GraphReportRegistry.Find("intune-devices"); page.ReadAcknowledged = true;
+        var pinnedSession = f.Workspace.Session;
+        f.Handler.BeforeResponse = () => pinnedSession!.TokenExpiresAt = "2020-01-01T00:00:00Z";
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
+        Assert.Same(pinnedSession, f.Workspace.Session);
+        Assert.Equal(1, f.Handler.Calls); Assert.Equal(1, f.Tokens.Calls);
+        Assert.Null(page.Rows); Assert.False(page.ExportJsonCommand.CanExecute(null)); Assert.False(page.ReadAcknowledged);
+        Assert.Contains("no new report accepted", page.Outcome);
+        Assert.Contains("expired", page.ReadGuidance);
         Assert.False(Directory.Exists(Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA), "report-evidence")));
     }
 

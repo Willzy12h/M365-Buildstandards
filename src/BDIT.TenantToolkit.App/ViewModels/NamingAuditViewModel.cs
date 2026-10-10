@@ -32,8 +32,13 @@ public sealed class NamingAuditViewModel : PageViewModel
     {
         _contextGuard = new(Workspace);
         ReviewCommand = Sync(Review, () => Workspace.Idle && Workspace.Snapshot is not null && Workspace.Profile is not null);
-        CopyDetailsCommand = CopyText(() => SelectedDetails);
-        CopyProvenanceCommand = CopyText(() => Provenance);
+        CopyDetailsCommand = Sync(() =>
+        {
+            RequireReviewedCapture();
+            if (SelectedRow is null) throw new ToolkitException("Select an object before copying its details.");
+            Shell.CopyToClipboard(SelectedDetails);
+        }, () => _result is not null && SelectedRow is not null);
+        CopyProvenanceCommand = Sync(() => { RequireReviewedCapture(); Shell.CopyToClipboard(Provenance); }, () => _result is not null);
         Refresh();
     }
     public ICommand ReviewCommand { get; }
@@ -44,9 +49,9 @@ public sealed class NamingAuditViewModel : PageViewModel
     public ObservableCollection<string> CollectionFilters { get; } = new() { "All" };
     public IReadOnlyList<string> OwnershipFilters { get; } = ["All", NamingAudit.Managed, NamingAudit.Unmapped, NamingAudit.OwnershipUnknown];
     public string Search { get => _search; set { if (SetProperty(ref _search, value)) Filter(); } }
-    public string OwnershipFilter { get => _ownership; set { if (SetProperty(ref _ownership, value)) Filter(); } }
-    public string CollectionFilter { get => _collection; set { if (SetProperty(ref _collection, value)) Filter(); } }
-    public Row? SelectedRow { get => _selected; set { if (SetProperty(ref _selected, value)) OnPropertyChanged(nameof(SelectedDetails)); } }
+    public string OwnershipFilter { get => _ownership; set { if (SetProperty(ref _ownership, OwnershipFilters.Contains(value) ? value : "All")) Filter(); } }
+    public string CollectionFilter { get => _collection; set { if (SetProperty(ref _collection, CollectionFilters.Contains(value) ? value : "All")) Filter(); } }
+    public Row? SelectedRow { get => _selected; set { if (SetProperty(ref _selected, value)) { OnPropertyChanged(nameof(SelectedDetails)); CommandManager.InvalidateRequerySuggested(); } } }
     public string SelectedDetails => SelectedRow?.Details ?? "Select an object to inspect and copy its exact ID, ownership proof and naming reason.";
     public string Guidance => Workspace.Profile is null ? "Select a client in Connect first."
         : Workspace.Snapshot is null ? "Open a stored capture in Configuration, or deliberately capture there first. Naming audit performs no collection."
@@ -65,16 +70,28 @@ public sealed class NamingAuditViewModel : PageViewModel
         if (_source != SourceKey) throw new ToolkitException("The selected capture changed. Refresh before reviewing it.");
         if (!string.Equals(snapshot.TenantId, Workspace.Profile!.TenantId, StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The selected capture belongs to another client.");
         Clear();
-        var result = NamingAudit.Review(snapshot, Workspace.Evidence.LoadMappings(snapshot.TenantId), Workspace.Evidence.LoadRuns(snapshot.TenantId));
+        try
+        {
+            var result = NamingAudit.Review(snapshot, Workspace.Evidence.LoadMappings(snapshot.TenantId), Workspace.Evidence.LoadRuns(snapshot.TenantId));
+            _contextGuard.RequireContext(_context);
+            if (_source != SourceKey) throw new ToolkitException("The capture changed during review; no audit accepted.");
+            _result = result;
+            foreach (var collection in result.Collections) { Collections.Add(collection); CollectionFilters.Add(collection.Collection); }
+            Filter();
+        }
+        finally { NotifyPage(); }
+    }
+    private void RequireReviewedCapture()
+    {
         _contextGuard.RequireContext(_context);
-        if (_source != SourceKey) throw new ToolkitException("The capture changed during review; no audit accepted.");
-        _result = result;
-        foreach (var collection in result.Collections) { Collections.Add(collection); CollectionFilters.Add(collection.Collection); }
-        Filter(); NotifyPage();
+        if (_result is null || _source != SourceKey) throw new ToolkitException("Review the current capture before copying audit evidence.");
     }
     private void Clear()
     {
-        _result = null; Rows.Clear(); Collections.Clear(); CollectionFilters.Clear(); CollectionFilters.Add("All"); SelectedRow = null;
+        _result = null; Rows.Clear(); Collections.Clear();
+        // Keep All admitted while an attached ComboBox observes the collection changes.
+        while (CollectionFilters.Count > 1) CollectionFilters.RemoveAt(CollectionFilters.Count - 1);
+        CollectionFilter = "All"; SelectedRow = null;
     }
     private void Filter()
     {

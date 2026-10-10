@@ -23,6 +23,8 @@
     <DataTemplate DataType="{x:Type vm:AutomationViewModel}"><views:AutomationView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ScriptsViewModel}"><views:ScriptsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GraphReportsViewModel}"><views:GraphReportsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:NamingAuditViewModel}"><views:NamingAuditView/></DataTemplate>
   </Window.Resources>
   <Grid Background="{StaticResource BgWindow}">
     <Grid.ColumnDefinitions><ColumnDefinition Width="224"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -44,16 +46,15 @@
       </Border>
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
-          <TextBlock Text="WORKFLOW" Foreground="#94B2CD" FontSize="10" FontWeight="SemiBold" Margin="22,0,0,10"/>
           <ItemsControl ItemsSource="{Binding NavItems}" Margin="10,0,10,20">
             <ItemsControl.ItemTemplate><DataTemplate>
               <StackPanel>
-                <TextBlock Text="EVIDENCE &amp; REFERENCE" Foreground="#94B2CD" FontSize="10" FontWeight="SemiBold" Margin="12,22,0,10">
-                  <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers><DataTrigger Binding="{Binding Key}" Value="history"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                <TextBlock Text="{Binding GroupHeading}" Foreground="#94B2CD" FontSize="10" FontWeight="SemiBold" Margin="12,14,0,8">
+                  <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers><DataTrigger Binding="{Binding GroupHeading}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
                   </Style></TextBlock.Style>
                 </TextBlock>
-                <Button AutomationProperties.Name="{Binding Title}" Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="12,11" Margin="0,0,0,4" BorderThickness="1">
+                <Button AutomationProperties.Name="{Binding Title}" Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="12,8" Margin="0,0,0,4" BorderThickness="1">
                   <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                     <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/>
                     <Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True">

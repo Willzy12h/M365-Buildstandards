@@ -30,6 +30,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     private string _suppliedFile = "";
     private int _selectedTab;
     private bool _reading;
+    private GraphReportEvidenceBrowser.Entry? _selectedStored;
 
     public GraphReportsViewModel(ShellViewModel shell) : base(shell, "Graph reports")
     {
@@ -54,8 +55,13 @@ public sealed class GraphReportsViewModel : PageViewModel
         ExportCsvCommand = Command(() => ExportAsync(ExportFormat.Csv), CanExport);
         ExportXlsxCommand = Command(() => ExportAsync(ExportFormat.Xlsx), CanExport);
         OpenExportCommand = Sync(() => { RequireResultContext(); Infrastructure.ShellFolders.RevealFile(_exportFile); }, () => _exportFile.Length > 0 && CanExport());
-        CopyDetailsCommand = CopyText(() => Details);
-        CopyRowCommand = CopyText(() => SelectedRowDetails);
+        CopyDetailsCommand = Sync(() => { RequireResultContext(); Shell.CopyToClipboard(Details); }, () => _report is not null && CanExport());
+        CopyRowCommand = Sync(() =>
+        {
+            RequireResultContext();
+            if (SelectedRow is null) throw new ToolkitException("Select a report row before copying its details.");
+            Shell.CopyToClipboard(SelectedRowDetails);
+        }, () => SelectedRow is not null && CanExport());
         Refresh();
     }
 
@@ -108,7 +114,11 @@ public sealed class GraphReportsViewModel : PageViewModel
         }
     }
     public ObservableCollection<GraphReportEvidenceBrowser.Entry> StoredReports { get; } = new();
-    public GraphReportEvidenceBrowser.Entry? SelectedStored { get; set; }
+    public GraphReportEvidenceBrowser.Entry? SelectedStored
+    {
+        get => _selectedStored;
+        set { if (SetProperty(ref _selectedStored, value)) CommandManager.InvalidateRequerySuggested(); }
+    }
     public string StoredStatus { get; private set; } = "Refresh the offline list to browse saved report evidence.";
     public string SuppliedFile { get => _suppliedFile; set => SetProperty(ref _suppliedFile, value); }
     public string Outcome { get; private set; } = "No report opened or read. Navigation performs no tenant reads.";
@@ -133,7 +143,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     public string RowState { get => _rowState; set { if (SetProperty(ref _rowState, value)) ApplyFilter(); } }
     public DataView? Rows { get; private set; }
     public string FilterSummary => $"{Rows?.Count ?? 0} rows visible · display filters only. All exports include the complete original report, provenance and every read state.";
-    public DataRowView? SelectedRow { get => _selectedRow; set { if (SetProperty(ref _selectedRow, value)) OnPropertyChanged(nameof(SelectedRowDetails)); } }
+    public DataRowView? SelectedRow { get => _selectedRow; set { if (SetProperty(ref _selectedRow, value)) { OnPropertyChanged(nameof(SelectedRowDetails)); CommandManager.InvalidateRequerySuggested(); } } }
     public string SelectedRowDetails => SelectedRow is null ? "Select a row to inspect and copy its exact IDs, unknown fields and read detail."
         : string.Join("\n", SelectedRow.DataView.Table!.Columns.Cast<DataColumn>().Select(c => c.ColumnName + ": " + SelectedRow[c.ColumnName]));
     public string LastExport { get; private set; } = "";

@@ -66,6 +66,32 @@ public sealed class GraphReportEvidenceBrowserTests
     }
 
     [Fact]
+    public async Task Aggregate_inspection_budget_stops_before_next_valid_padded_record_and_retains_admitted_entries()
+    {
+        using var f = new ConnectedReportsFixture(); var saved = await f.Read();
+        var paths = new List<string>();
+        for (var i = 0; i < 3; i++)
+        {
+            var report = ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(saved.Evidence), TestData.TenantA);
+            report.Id = Guid.NewGuid().ToString(); ReportEvidenceSchema.Seal(report);
+            var path = f.Workspace.Evidence.SaveReport(report); paths.Add(path);
+            using var stream = new FileStream(path, FileMode.Append);
+            var padding = Enumerable.Repeat((byte)' ', 64 * 1024).ToArray();
+            const int paddedBytes = 24 * 1024 * 1024;
+            while (stream.Length < paddedBytes) stream.Write(padding, 0, (int)Math.Min(padding.Length, paddedBytes - stream.Length));
+            Assert.True(stream.Length < GraphReportEvidenceBrowser.MaximumFileBytes);
+        }
+        var browser = new GraphReportEvidenceBrowser(f.Workspace.Evidence);
+        typeof(GraphReportEvidenceBrowser).GetProperty("EnumerateEntries", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(browser, (Func<string, IEnumerable<string>>)(_ => paths));
+        var listing = browser.List(TestData.TenantA);
+        Assert.False(listing.Complete); Assert.Contains("64 MiB inspection budget", listing.Detail);
+        Assert.Equal(paths.Take(2).Select(Path.GetFileNameWithoutExtension), listing.Entries.Select(e => e.Id));
+        Assert.All(listing.Entries, e => Assert.True(e.CanOpen));
+        Assert.Equal(1, f.Handler.Calls); Assert.Equal(1, f.Tokens.Calls);
+    }
+
+    [Fact]
     public void Entry_bound_stops_listing_and_shows_incomplete_reason()
     {
         using var f = new ConnectedReportsFixture(false);
