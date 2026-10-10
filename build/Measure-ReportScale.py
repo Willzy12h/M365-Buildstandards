@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 REPO = Path(__file__).resolve().parent.parent
 PREFIX = "BDIT_SCALE "
 EXPECTED = {(rows, stage) for rows in (100, 1000, 5000) for stage in ("seal", "read", "html", "csv", "xlsx")}
+EXPECTED_TESTS = 5
 
 
 def command(*args):
@@ -50,8 +51,8 @@ def main():
             root = ET.parse(results / "scale.trx").getroot()
             ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
             tests = root.findall(".//t:UnitTestResult", ns)
-            if len(tests) != 4 or any(test.get("outcome") != "Passed" for test in tests):
-                raise ValueError("Expected all four correctness tests to pass; zero, skipped or incomplete runs are refused.")
+            if len(tests) != EXPECTED_TESTS or any(test.get("outcome") != "Passed" for test in tests):
+                raise ValueError(f"Expected all {EXPECTED_TESTS} correctness tests to pass; zero, skipped or incomplete runs are refused.")
             current = []
             for test in tests:
                 for line in (test.findtext("t:Output/t:StdOut", default="", namespaces=ns)).splitlines():
@@ -73,7 +74,7 @@ def main():
         medians.append({"rows": rows, "stage": stage, **{
             field: statistics.median(s[field] for s in group)
             for field in ("elapsedMilliseconds", "allocatedBytesOnCurrentThread", "outputBytes")}})
-    result = {"metadata": metadata, "repeats": args.repeats, "correctnessTestsPerRepeat": 4, "samples": samples, "medians": medians}
+    result = {"metadata": metadata, "repeats": args.repeats, "correctnessTestsPerRepeat": EXPECTED_TESTS, "samples": samples, "medians": medians}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # Exclusive creation also protects a file created after the initial existence check.
     with args.output.open("x", encoding="utf-8") as stream:

@@ -74,5 +74,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-10 | Claude | M365-Buildstandards | evidence and reporting: INT-088 slice 2, the owned read-only runner: schema 2 manifest/registry admission, engine-embedded wrapper with the `Use-BditRead` gate, strict request/`scriptReadResult` binding, bounded owned process, stop/kill, sealing to `exchangeReportEvidence`; synthetic fake-module/process regressions only; no shipped runnable item, adapter, UI, CLI, permission or tenant access | `claude/exchange-report-runner-2026-10-10` (stacked on #74 at `9cb3b05`) | #75 | Open |
 
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Test-only follow-up for merged #65/#68: cap-reached truncation reason across HTML/CSV/XLSX, real partial-row fixture, CSV BOM and XLSX multiline assertions; no production/schema/permission/live changes; fresh all-three-repository pre-flight and #74/#75 narrowed overlap checked | `astra/report-validation-followup-2026-10-10` (integration `fa62b6d`) | #78 | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
