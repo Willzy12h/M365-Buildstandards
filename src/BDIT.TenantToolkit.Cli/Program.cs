@@ -510,7 +510,8 @@ public static class Program
             Console.WriteLine();
             Console.WriteLine(area.Key);
             foreach (var entry in area)
-                Console.WriteLine($"  {entry.Manifest.Id,-28} {(entry.Manifest.Mode == ScriptMode.ReadOnly ? "Read  " : "Change")} {entry.Manifest.Name}");
+                Console.WriteLine($"  {entry.Manifest.Id,-28} {(entry.Manifest.Mode == ScriptMode.ReadOnly ? "Read  " : "Change")} {entry.Manifest.Name}"
+                    + (entry.Manifest.SchemaVersion == 2 ? " (toolkit run only; no Copy form, and Run is not available in this build)" : ""));
         }
         return 0;
     }
