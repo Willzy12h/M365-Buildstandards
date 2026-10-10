@@ -78,7 +78,14 @@ public sealed class TenantConnectionService
     }
 
     public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
-        DiscoveredTenant? expectedIdentity = null, Func<CancellationToken, Task>? beforeInteractive = null)
+        DiscoveredTenant? expectedIdentity = null, Func<CancellationToken, Task>? beforeInteractive = null) =>
+        await ConnectAsync(profile, mode, standard, progress, ct, expectedIdentity, beforeInteractive, MsalAuthenticator.SignInAsync);
+
+    // Offline tests replace only acquisition; request construction and all pre-acquisition guards remain shared.
+    internal async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard,
+        IProgress<string>? progress, CancellationToken ct, DiscoveredTenant? expectedIdentity,
+        Func<CancellationToken, Task>? beforeInteractive,
+        Func<SignInRequest, IToolkitLog, CancellationToken, Task<MsalAuthenticator>> signIn)
     {
         if (expectedIdentity is not null && (mode != SessionMode.Assessment
             || !string.Equals(profile.TenantId, expectedIdentity.TenantId, StringComparison.OrdinalIgnoreCase)))
@@ -94,7 +101,7 @@ public sealed class TenantConnectionService
         var cacheFile = Path.Combine(tenantDir, $"msal-{mode.ToString().ToLowerInvariant()}.cache");
 
         progress?.Report($"Checking sign-in for {profile.Company} ({mode}, {client.Label}). Cached access is tried for a known account; Microsoft may require interaction.");
-        var authenticator = await MsalAuthenticator.SignInAsync(new SignInRequest
+        var authenticator = await signIn(new SignInRequest
         {
             TenantId = profile.TenantId,
             ClientId = client.ClientId,

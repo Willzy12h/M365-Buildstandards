@@ -1,4 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
+
 
 - Pin configured sign-in timeout forwarding through the real sign-in path with synthetic acquisition and distinguish acquisition time from permission-review time in the live run sheet (CLA-20261010-75/76).
 

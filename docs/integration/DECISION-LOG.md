@@ -557,3 +557,7 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 ### INT-094 current-head wording corrections — 10 October 2026, PR #69
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
+
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
