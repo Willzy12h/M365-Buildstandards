@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
+
 - Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
 
 - Add offline `bdit report-evidence` HTML/JSON/CSV/Excel exports for validated registered Graph report evidence. Exact tenant, bounded UTF-8, schema and integrity checks refuse untrusted input; failed/partial/cancelled reads remain explicit. No sign-in, new collection, evidence mutation or script execution.
