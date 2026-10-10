@@ -589,6 +589,7 @@ internal static partial class Program
         ("ConnectViewModel.ConnectPartnerCommand", SignIn),
         ("ConnectViewModel.ConnectDeploymentCommand", SignIn),
         ("ConnectViewModel.ConnectSelectedCommand", SignIn),
+        ("ConnectViewModel.ReviewOfflineCommand", "pressed by the separate cold-start offline journey at all three sizes"),
         ("ConnectViewModel.CheckAccessCommand", TenantRead),
         ("ConnectViewModel.SearchAccountsCommand", TenantRead),
         ("ConnectViewModel.CopyApplicationCommand", Clipboard),

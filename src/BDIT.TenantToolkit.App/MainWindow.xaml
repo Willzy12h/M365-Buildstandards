@@ -81,6 +81,7 @@
             <TextBlock Text="CURRENT TENANT" Style="{StaticResource Eyebrow}"/>
             <TextBlock Text="{Binding TenantTitle}" FontWeight="SemiBold" FontSize="18" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TenantTitle}"/>
             <TextBlock Text="{Binding TenantSubtitle}" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+            <TextBlock x:Name="EvidenceSourceStatus" Text="{Binding EvidenceStatus}" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,3,0,0" TextWrapping="Wrap" AutomationProperties.Name="Current evidence source and capture time"/>
           </StackPanel>
           <StackPanel Grid.Column="1" Margin="0,0,18,0">
             <TextBlock Text="SIGNED-IN IDENTITY" Style="{StaticResource Eyebrow}"/>
@@ -105,13 +106,13 @@
                 </Style></TextBlock.Style>
               </TextBlock>
             </Border>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Copy details" Padding="6,6" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Margin="0,5,4,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Copy details" Padding="6,6" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Margin="0,5,4,0" Visibility="{Binding HeaderHasDetails, Converter={StaticResource BoolToVis}}"/>
             <Button Content="Disconnect tenant" Padding="6,6" Command="{Binding DisconnectCommand}" Style="{StaticResource QuietButton}" Margin="0,5,0,0" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/></StackPanel>
           </StackPanel>
         </Grid>
       </Border>
-      <Expander DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="28,12" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}">
-        <Expander.Header><TextBlock Text="Connection details · tenant, domain, account and permissions" FontWeight="SemiBold"/></Expander.Header>
+      <Expander DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="28,12" Visibility="{Binding HeaderHasDetails, Converter={StaticResource BoolToVis}}">
+        <Expander.Header><TextBlock Text="Client and connection details · tenant, account, permissions and evidence" FontWeight="SemiBold"/></Expander.Header>
         <DockPanel Margin="0,12,0,6">
           <Button DockPanel.Dock="Right" Content="Copy details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top"/>
           <TextBox AutomationProperties.Name="Connection details" Text="{Binding DetailsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" MaxHeight="180" Margin="0,0,12,0"/>

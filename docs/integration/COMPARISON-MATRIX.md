@@ -177,3 +177,13 @@ PR #73 preserves the existing explicit-connect broker/cache selection while movi
 ### Delayed cancellation timer — delegated follow-up, 10 October 2026
 
 AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
+
+
+## Client-bound editors and offline review — PR #81
+
+| Surface | Choice | Evidence / limits |
+|---|---|---|
+| Manual and deviation drafts | Existing tenant, standard integrity and ReviewedClientScope digest; current-row membership and direct-handler refusal | Original product Windows run 38077676842 executes five failing defect cases and two passing same-context controls. Source repairs and extended regressions require fresh Windows proof. No persisted contract change. |
+| Recovery register | Durable tenant history separate from transient connection/approval authority | Offline load/notification must retain rows; replacement identity/mode/scopes invalidates previews. Engine identity, evidence, lease and no-replay safeguards remain unchanged. |
+| Saved-client offline journey | Resolve the exact persisted validated profile through an explicit Connect action; clear old transient evidence/approval | Cold start, restart, adoption and active connection/setup refusal are separately tested. No auth/cache, tenant requests or consent; historical/scoped evidence cannot authorise writes. |
+| Evidence header | Evidence source, original time and incomplete state separate from access badge | Native three-size and keyboard/binding checks required. Newcomer/Narrator/physical scaling and live acceptance remain open. |
