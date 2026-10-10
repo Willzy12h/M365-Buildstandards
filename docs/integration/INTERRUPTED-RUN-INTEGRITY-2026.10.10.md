@@ -1,6 +1,8 @@
 # Interrupted deployment evidence — Astra review, 10 October 2026
 
-## AST-20261010-04 (P2): startup recovery re-sealed untrusted evidence
+## AST-20261010-07 (P2): startup recovery re-sealed untrusted evidence
+
+Identifier correction: this finding was initially called AST-20261010-04 on #79. That ID already belongs to the preserved #77 promotion-description finding in #76’s review strategy. AST-20261010-07 is the canonical ID for this startup defect; earlier comments and validation commits remain historical evidence.
 
 Confirmed at integration `5ef5470e1d6d28653261d88f40e854ebe9d09d02`, `src/BDIT.TenantToolkit.Engine/Evidence/EvidenceStore.cs:345–367`. `MarkInterruptedRuns` used the display-only `LoadRuns` loader, then saved each Running record with a fresh digest. The loader neither refused a bad digest nor surfaced malformed/empty/wrong-tenant records to its caller.
 
