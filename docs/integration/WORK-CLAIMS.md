@@ -76,3 +76,5 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Documentation-only shared agent mailbox requested by William: author-owned append-only messages, active-session check/reply protocol and initial Claude queue; no background service, product source, permissions or other-agent tracker changes; all-three-repository pre-flight complete | `astra/agent-mailbox-2026-10-10` (integration `5ef5470`) | #82 | Open |
