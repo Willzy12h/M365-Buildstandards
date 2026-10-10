@@ -65,6 +65,7 @@ public sealed class ShellViewModel : ObservableObject
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
+        AddNavigationGroup("Workspace", ("home", "Home", ""));
         AddNavigationGroup("Tenant", ("overview", "Overview and licences", ""), ("connect", "Connect", "1"),
             ("configuration", "Configuration", "2"));
         AddNavigationGroup("Build standard", ("standard", "Build Standard", ""), ("assessment", "Assessment", "3"),
@@ -77,6 +78,7 @@ public sealed class ShellViewModel : ObservableObject
         AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""));
         AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
 
+        _pages["home"] = new HomeViewModel(this);
         _pages["overview"] = new OverviewViewModel(this);
         _pages["recovery"] = new RecoveryViewModel(this);
         _pages["connect"] = new ConnectViewModel(this);
@@ -115,7 +117,7 @@ public sealed class ShellViewModel : ObservableObject
             }
         };
         if (workspace.StandardError is not null) ErrorMessage = workspace.StandardError;
-        Navigate("overview");
+        Navigate("home");
     }
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
@@ -174,15 +176,23 @@ public sealed class ShellViewModel : ObservableObject
     public string WindowTitle => $"{Workspace.Settings.ProductName} {Workspace.Version}";
     public bool IsConnected => Workspace.IsConnected;
     public bool HeaderHasConnection => Workspace.IsConnected || Workspace.ApplicationSetup is not null;
+    public bool HeaderHasDetails => HeaderHasConnection || Workspace.Profile is not null;
     public string HeaderAccount => Workspace.ApplicationSetup?.Identity.Account ?? Workspace.Session?.Account ?? "No active connection";
-    public string HeaderTenantId => Workspace.ApplicationSetup?.Identity.TenantId ?? Workspace.Session?.TenantId ?? "—";
+    public string HeaderTenantId => Workspace.ApplicationSetup?.Identity.TenantId ?? Workspace.Session?.TenantId ?? Workspace.Profile?.TenantId ?? "—";
     public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session?.HasWriteScopes == true || Workspace.ApplicationSetup is not null;
     public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.HasWriteScopes == false;
     public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "WRITE ACCESS · EXPERIMENTAL ON" : "WRITE ACCESS · EXPERIMENTAL OFF") : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
+    public EvidenceSourcePresentation EvidenceSource => EvidenceSourcePresentation.Create(Workspace.Snapshot,
+        Workspace.SnapshotIsLive, Workspace.ExchangeSnapshot, Workspace.ExchangeCapturedByTool, Workspace.Profile?.TenantId, HeaderTenantId);
+    public string EvidenceStatus => EvidenceSource.Summary;
+    private bool CaptureMatchesCurrentTenant => (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is { } capture
+        && string.Equals(capture.TenantId, Workspace.Profile?.TenantId, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(capture.TenantId, HeaderTenantId, StringComparison.OrdinalIgnoreCase);
     public string TenantTitle => Workspace.ApplicationSetup is not null ? "Application setup tenant" : Workspace.Session?.TenantName is { Length: > 0 } name ? name : Workspace.Profile?.Company ?? "No client selected";
     public string TenantSubtitle => Workspace.ApplicationSetup is { } setup ? setup.Identity.TenantId + " · setup identity verified" : Workspace.Session is not null
         ? (Workspace.Session.PrimaryDomain.Length > 0 ? Workspace.Session.PrimaryDomain : Workspace.Session.TenantId) + (Workspace.Session.TenantVerified ? " · verified" : " · NOT verified")
-        : Workspace.Profile?.TenantId ?? "Choose or create a client on the Connect page";
+        : Workspace.Profile is { } profile ? (profile.Domain.Length > 0 ? profile.Domain + " · saved reference domain" : "Saved client · no reference domain")
+        : "Choose or create a client on the Connect page";
     public string StandardText => Workspace.Standard is null ? "No Build Standard loaded" : $"Build Standard {Workspace.Standard.Release} · {Workspace.Standard.IntegrityDigest[..Math.Min(12, Workspace.Standard.IntegrityDigest.Length)]}";
     public string NextAction
     {
@@ -192,7 +202,7 @@ public sealed class ShellViewModel : ObservableObject
             if (Workspace.Standard is null) return "Load a valid Build Standard in Settings.";
             if (Workspace.ApplicationSetup is not null) return "Finish application setup validation, then connect with assessment access.";
             if (Workspace.Profile is null) return "Choose a client in Connect, or export the engineer guide offline.";
-            if (!Workspace.IsConnected) return "Connect read-only, or reopen saved evidence for review.";
+            if (!Workspace.IsConnected) return "Open Configuration's saved captures, or review local reports, jobs and the change register. Connect read-only and capture fresh evidence before planning changes.";
             if (Workspace.Snapshot is null) return "Capture this tenant in Configuration.";
             if (!Workspace.SnapshotIsLive) return "Stored evidence is for review. Capture again before planning a change.";
             if (!Workspace.Snapshot.Complete) return "Review failed collections and capture again. Incomplete evidence blocks writes.";
@@ -215,7 +225,9 @@ public sealed class ShellViewModel : ObservableObject
         get
         {
             var s = Workspace.Session;
-            if (s is null) return Workspace.ApplicationSetup is { } setup ? $"Privileged application setup session\nTenant: {setup.Identity.TenantId}\nAccount: {setup.Identity.Account}\nOperator: {setup.Identity.AccountObjectId}\nSetup scopes: {string.Join(", ", setup.Identity.Scopes)}" : "Not connected. A saved profile is not an authenticated connection.";
+            if (s is null) return Workspace.ApplicationSetup is { } setup ? $"Privileged application setup session\nTenant: {setup.Identity.TenantId}\nAccount: {setup.Identity.Account}\nOperator: {setup.Identity.AccountObjectId}\nSetup scopes: {string.Join(", ", setup.Identity.Scopes)}"
+                : Workspace.Profile is { } profile ? $"Local evidence review — no active connection\nClient: {profile.Company}\nSaved profile ID: {profile.Id}\nTenant: {profile.TenantId}\nReference domain: {profile.Domain}\nEvidence: {EvidenceStatus}\nCapture ID: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.Id : "none for this client")}\nCaptured at: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.CapturedAt : "none for this client")}\n{EvidenceSource.Details}\nA saved profile is not an authenticated connection. Historical evidence cannot authorise deployment."
+                : "Not connected. A saved profile is not an authenticated connection.";
             var sb = new StringBuilder();
             sb.AppendLine("Tenant ID:      " + s.TenantId);
             sb.AppendLine("Account:        " + s.Account);
@@ -226,6 +238,8 @@ public sealed class ShellViewModel : ObservableObject
             sb.AppendLine("Mode:           " + s.Mode);
             sb.AppendLine("Scopes:         " + string.Join(", ", s.Scopes));
             sb.AppendLine("Connected:      " + s.ConnectedAt);
+            sb.AppendLine("Evidence:       " + EvidenceStatus);
+            if (EvidenceSource.Details.Length > 0) sb.AppendLine(EvidenceSource.Details);
             foreach (var n in s.Notices) sb.AppendLine("Notice:         " + n);
             return sb.ToString().TrimEnd();
         }
@@ -235,6 +249,9 @@ public sealed class ShellViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(HeaderHasConnection));
+        OnPropertyChanged(nameof(HeaderHasDetails));
+        OnPropertyChanged(nameof(EvidenceStatus));
+        OnPropertyChanged(nameof(EvidenceSource));
         OnPropertyChanged(nameof(HeaderAccount));
         OnPropertyChanged(nameof(HeaderTenantId));
         OnPropertyChanged(nameof(IsDeploymentSession));

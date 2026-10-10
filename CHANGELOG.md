@@ -1,8 +1,18 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
+
 
 - Keep connected read-only Reports usable after the original token expiry: the existing guarded provider owns silent renewal. Preserve malformed-context, identity/scope/selection refusals and the separate expiry of experimental write approval.
 
 - Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
+
+- Keep Graph/Exchange evidence origins consistent between Home and the shell, redact another client's capture details, and include visible button labels in Home's accessible names (CLA-20261010-120–122).
+
+- Add an engineer Home task centre with next-step guidance and new-tenant, legacy/backfill, repeat-review and handoff shortcuts. Retain Overview/licences and persistent client/access/evidence context. All Home actions navigate only; historical, incomplete and scoped evidence do not imply readiness or completion. Exact Windows/native and independent review remain required.
+
+- Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
+
+- Bind manual-check and deviation drafts to the current client, verified standard and material client inputs; refuse stale rows before save/delete. Retain offline change-register history while clearing recovery approval when connection authority changes. Add explicit saved-client offline review and a separate persistent evidence-source header. No sign-in, new schema or write authority is introduced; exact Windows/native and independent review remain required.
 
 - Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
 
@@ -47,6 +57,8 @@
 - Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
+
+- Review mailbox capacity and Plan 2 eligibility for every mailbox in a sealed Exchange mailbox inventory against a sealed assigned-licence report for the same tenant (INT-071 over INT-088). Each value keeps its own read state, archive values apply only to an archive read as present, a failed archive read stays Failed, and a capped or incomplete list keeps its reason. Each source record keeps its digest, source mode, interval, status and limitations, so a failed licence read is never shown as an unlicensed user. Offline and pure: no read, record, quota change, UI or CLI is added.
 
 - Add the first runnable library item for the owned read-only runner (INT-088 slice 3): mailbox size, quotas and archive from Exchange Online, read only through the runner's gate. Each size, quota and archive value keeps its own read state, a value Exchange did not return is never zero or blank, `Unlimited` stays `Unlimited`, and an archive is recorded only from a non-empty archive GUID. The item has no Copy form and Run is not offered yet; the Copy library and its checks are unchanged. The registry moves to schema 2. No permission, sign-in or tenant access is added, and the adapter has not been run against a tenant.
 
@@ -368,3 +380,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 ### Unpublished — application report presentation (#92)
 
 - Add application credential expiry and observed consent choices to Tenant reports, with typed horizon, strict saved/supplied evidence browsing, nested tables and complete original-evidence exports. Offline synthetic validation and Windows-targeted compilation are separate from pending native/live acceptance.
+
+- Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).

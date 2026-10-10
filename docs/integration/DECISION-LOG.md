@@ -620,3 +620,29 @@ Compose existing own #80 presentation and repaired #87 engine source sequentiall
 ### INT-094 registered desktop report composition — PR #92
 
 Compose the existing five report choices with the two reviewed schema-2 registrations through a presentation registry and the existing strict dispatcher. Retain separate original schemas, full nested tables, immutable persistence, complete exports and shared verified read context. Parameters are typed and selection changes invalidate acknowledgement/results. No authentication implementation, new permission, consent or deployment authority is added. Windows execution and independent review remain outstanding.
+
+### Client-bound editor context and explicit offline selection — 10 October 2026, PR #81
+
+Five executed Windows regressions on unchanged #73 product source (55ed373 test head) confirm cross-client manual/deviation editor persistence and disappearing offline Recovery rows; two same-context preservation controls pass. App-only draft context is the normalised tenant, verified standard integrity digest and existing reviewed-client-scope digest. Clear material context changes; preserve same-context drafts. Stale objects and direct commands must be refused before local persistence/modal prompts. Recovery separates inspectable local history from connection-bound approval authority; a disconnect/replaced context clears previews and approvals without hiding same-tenant history.
+
+Add an explicit saved-client offline action using persisted validated profile identity, no live/set-up connection, existing exclusive operation and pending-discovery release. Clear old client evidence/approval state; never authenticate, transfer cache/authority or make historical/scoped evidence eligible for writes. Authentication mode and selected evidence source are separate visible states. No persisted schema, engine deployment/recovery, cache, permission or historical-standard contract changes. Source slice is deliberately stacked on Astra’s own #80/#73 with one checkout writer and unchanged parent heads; each still requires independent review/exact checks.
+
+
+### Engineer Home presentation — 10 October 2026, PR #84
+
+William's B task-centre plus A persistent-working-context preference is implemented as a new Home destination on the owned #81 interface stack. Preserve Overview/licences, all existing keys, exact destination guards and engine workflows. A pure, cheap presentation projection supplies readable state and next-step routing; every action navigates only. Missing/mismatched/incomplete/historical/scoped evidence cannot become readiness, successful checking or job completion. No refresh scans stored jobs or invokes authentication/collection/consent/write paths. The current shell banner remains the persistent context; no new companion window, schema, permission or authority is introduced. See [scope and verification](HOME-TASK-CENTRE-2026.10.10.md); current exact-head independent/Windows/parent/merge validation remains required.
+### INT-083 source and active-client removal follow-up — 10 October 2026, PR #81
+
+CLA-20261010-79/80: use one pure evidence-source presentation for the pinned header and assessment. A mixed Graph/Exchange result retains each actual source; the compact header identifies supplemental historical/tool capture and copied details retain original capture identities/times. Different-tenant observations are disclosed without copying their identifiers under the current client. This does not establish write eligibility. Deleting the active saved-client entry clears the selected profile and existing transient evidence/authority after saved-list persistence succeeds; durable evidence remains byte-identical. Deleting another saved client retains current state. Fourteen synthetic cases accompany the correction; native/human/live acceptance stays separate.
+
+### Home evidence labels and accessible actions — 10 October 2026, PR #84
+
+CLA-20261010-120–122: compose Home from the existing shell evidence-source presentation rather than interpreting supplemental Exchange origin separately. Bind presentation refusal to the displayed tenant, including application setup, and retain conservative collection guidance. Include each visible action label in its accessible name. No destination, evidence authority, authentication or persisted-schema change; validate native peers and mixed evidence at the existing three sizes.
+
+### INT-094 original sign-in timestamp wording — PR #80
+
+CLA-20261010-102: label the pinned token timestamp as the original sign-in token expiry, with a short explanation that report reads can silently renew. It is not presented as the currently acquired report token lifetime. The experimental change opt-in expiry and provider guards are unchanged. CLA-103: retain the two-second natural-clock regression because it exercises elapsed time without mutating the pinned session timestamp; no broad suite repetition is added. This is wording only, with no native/live acceptance claim.
+
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.

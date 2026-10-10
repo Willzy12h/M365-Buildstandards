@@ -1,5 +1,7 @@
 # Engineer start guide
 
+The tool opens on **Home**. Choose a task or its suggested next step; every shortcut opens an existing page without signing in, collecting data or changing the tenant. The pinned header keeps the current client, account, access and evidence source visible. **Current client and evidence details** expands Home's full status text; connection/evidence details remain copyable in the header. **Overview and licences** retains the subscription and assigned-user tables. Historical or incomplete evidence and scoped checks do not establish readiness or job completion.
+
 This is an internal preview. Use the exact reviewed package and its trusted checksum reference. Available recipes are not live effectiveness acceptance. The release owner records approved scope using [controlled acceptance](CONTROLLED-ACCEPTANCE.md). A new client build and legacy backfill follow the same evidence and approval boundaries.
 
 ## Your first read-only assessment
@@ -90,3 +92,10 @@ Use **Results** to inspect section/read status, original time, unknown fields an
 Use **Saved evidence → Refresh saved reports → Open saved report**, or **Choose JSON → Open supplied JSON**, for offline review of the selected tenant’s schema 1 Graph report evidence. Damaged records explain why they cannot open; an incomplete listing does not imply there are no other files. Supplied-file claims keep their original times and provenance and never establish a new sign-in. Opening a report does not overwrite a configuration capture or authorise writes.
 
 On **Naming and ownership**, choose **Review selected capture** after opening or deliberately collecting configuration in **Configuration**. Review names, collection completeness, exact IDs and ownership reasons. A matching name cannot establish toolkit ownership; overlapping collections and missing corroboration remain unknown. The audit makes no tenant request and never renames an object.
+
+
+## Review a saved client offline
+
+On **Connect**, select a saved client and choose **Review saved evidence offline**. Disconnect tenant and application-setup sessions first. This opens the persisted saved client, rather than unsaved form edits, without authentication or tenant requests. On **Configuration**, select its stored capture and open it; the evidence banner keeps its original time and completeness visible on other pages. Connection/access and evidence source are separate: historical evidence does not verify current access or authorise deployment.
+
+Use **Undo and recovery → Load change register** to inspect local history offline. Re-verification requires a fresh verified read connection; recovery preview/execution requires the separate deployment context and exact approval. Disabled-action guidance states the next step. Switching clients, standards or material client inputs clears unfinished manual-check/exception drafts. Ordinary refreshes and label-only changes preserve a draft for the same context. Restart or workspace adoption requires explicit saved-client selection again; authentication and approval are never transferred.

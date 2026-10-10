@@ -26,7 +26,8 @@
           <TextBlock Text="Saved clients" Style="{StaticResource H2}"/>
           <DockPanel><Button DockPanel.Dock="Right" Content="New client" Command="{Binding NewProfileCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"/><ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding Selected, Mode=TwoWay}" Margin="0" AutomationProperties.Name="Saved client"><ComboBox.ItemTemplate><DataTemplate><TextBlock><Run Text="{Binding Company, Mode=OneWay}"/> · <Run Text="{Binding TenantId, Mode=OneWay}"/></TextBlock></DataTemplate></ComboBox.ItemTemplate></ComboBox></DockPanel>
           <TextBlock Text="{Binding SelectionText}" Style="{StaticResource Muted}" Margin="0,10,0,12"/>
-          <WrapPanel><Button Content="Connect saved client read-only" Command="{Binding ConnectSelectedCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Remove saved client" Command="{Binding DeleteProfileCommand}" Style="{StaticResource QuietButton}" Foreground="{StaticResource Danger}"/></WrapPanel>
+          <WrapPanel><Button Content="Connect saved client read-only" Command="{Binding ConnectSelectedCommand}" Style="{StaticResource SecondaryButton}"/><Button x:Name="ReviewOfflineButton" Content="Review saved evidence offline" Command="{Binding ReviewOfflineCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.HelpText="{Binding OfflineReviewGuidance}"/><Button Content="Remove saved client" Command="{Binding DeleteProfileCommand}" Style="{StaticResource QuietButton}" Foreground="{StaticResource Danger}"/></WrapPanel>
+          <TextBlock Text="{Binding OfflineReviewGuidance}" Style="{StaticResource Muted}" Margin="0,8,0,0" AutomationProperties.Name="Offline evidence review status and next step"/>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">

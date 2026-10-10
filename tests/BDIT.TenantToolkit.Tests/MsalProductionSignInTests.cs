@@ -17,7 +17,7 @@ public sealed class MsalProductionSignInTests
     }
 
     [Fact]
-    public async Task Configured_sign_in_timeout_reaches_acquisition_without_consuming_permission_review_time()
+    public async Task Request_timeout_reaches_acquisition_without_consuming_permission_review_time()
     {
         var settings = ToolkitSettings.Validate(new ToolkitSettings { SignInTimeoutMinutes = 1 });
         var budget = TimeSpan.FromMinutes(settings.SignInTimeoutMinutes);

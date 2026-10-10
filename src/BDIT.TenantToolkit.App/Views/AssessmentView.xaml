@@ -52,6 +52,7 @@
               <StackPanel Grid.Column="1" Margin="0,0,10,0"><TextBlock Text="Category" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding CategoryFilters}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}" AutomationProperties.Name="Filter category"/></StackPanel>
               <StackPanel Grid.Column="2"><TextBlock Text="Search" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search findings"/></StackPanel>
             </Grid>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding ViewStateText}" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,8" AutomationProperties.Name="Assessment evidence source and filter result"/>
             <DataGrid ItemsSource="{Binding Findings}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="Assessment findings">
               <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Control" Width="*" MinWidth="220"><DataGridTemplateColumn.CellTemplate><DataTemplate>
