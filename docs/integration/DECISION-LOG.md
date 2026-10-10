@@ -517,3 +517,15 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 ### INT-084 compatibility clarification — 10 October 2026, PR #57
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
+
+### Own tracker reconciliation follow-up — 10 October 2026, PR #76
+
+Record reviewed #57 as merged 5ef5470 with its fresh source checks and actual merge run still pending; record #73 production-path response without claiming full Windows/native/live proof. Consolidate only Astra's redundant #56 response row, retaining scope and immutable Git history. Preserve every Claude row and one #73 row. This is status accuracy, not human/live or release acceptance.
+
+### Reviewed naming branch cleanup — 10 October 2026, PR #76
+
+After #57 merged, freshly verify b8b2537 is its remote/local head, has no open PR and is reachable from retained integration 5ef5470. Delete only that merged Astra ref; audit totals become 29 remote and 26 local removals. Preserve all Claude refs, active Astra work, tags and evidence. No history or catalogue is deleted.
+
+### Naming merge and production-authentication check identities — 10 October 2026, PR #76
+
+#57 exact head b8b2537 passed push/PR 38056546038 / 38056548278 and the independently reviewed source delta was unchanged by refresh/compatibility wording. Merge 5ef5470 passed actual integration push 38057154787, with package source matched and no tenant calls. #73 production response 28a30a0 passed exact push/PR 38057034112 / 38057036961 and still requires independent delta review; no unmerged branch proof becomes integration or live acceptance. Source remains unpublished Preview.19.

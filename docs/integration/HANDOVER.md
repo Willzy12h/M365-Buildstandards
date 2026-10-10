@@ -6,10 +6,10 @@ Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot 
 
 ## Next — 10 October 2026
 
-Integration is `7573887`, actual push run 38055150098 green. [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68 and corrected Claude #74/#75, including the retained #65 review gap and #75 failed first attempt.
+Integration is `5ef5470`, actual push run 38057154787 green (1,716 engine/CLI, 157 App, native/PS5.1/fresh package). [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68 and corrected Claude #74/#75, including the retained #65 review gap and #75 failed first attempt.
 
-1. Claude #74/#75 fixes are independently re-reviewed and merged. The engine is implemented, live-unverified; runnable report adapters/Run UI still belong to Claude and are not present. Keep Exchange changes copy-only.
-2. Astra #67/#69 review responses are pushed, #78 report regressions are green and awaiting independent review. Finish #57 historical-import compatibility/fresh-base proof, #73 production authentication/setup tests, and #76 review corrections. Keep outstanding findings visible rather than relying on earlier conflicting ready comments.
+1. Claude #74/#75 fixes are independently re-reviewed and merged. The engine is implemented, live-unverified; runnable report adapters/Run UI still belong to Claude and are not present. Use the [compact delta-review packet](release-readiness/CLAUDE-DELTA-REVIEW-2026.10.10.md). Keep Exchange changes copy-only.
+2. Astra #67/#69 review responses are pushed, #78 report regressions are green and awaiting independent review. #57 is merged as 5ef5470 after resolved source review and fresh exact-head checks; actual integration push 38057154787 is independently verified green. #73 production authentication/setup regressions are pushed at 28a30a0, full Windows push 38057034112 passed (1,737 engine/CLI, 170 App, native/package); PR check 38057036961 also passed; delta review remains. Finish narrow delta reviews, then refresh eligible branches to the final base. Keep outstanding findings visible rather than relying on earlier conflicting ready comments.
 3. Finish dependent report/adapters/navigation, agreed application reports and offline prerequisite diagnostics, then prepare the next-version exact-source candidate and truthful release record. No unimplemented surface is complete.
 4. Keep #77 a draft promotion placeholder; its accuracy wording is corrected. No main merge or publisher invocation without William's separate approval.
 

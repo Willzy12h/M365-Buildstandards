@@ -381,8 +381,19 @@
     "remoteDeletionLog": "To https://github.com/Willzy12h/M365-Buildstandards.git\n - [deleted]         astra/mailbox-capacity-evaluation-2026-10-08\n - [deleted]         astra/offline-report-evidence-export-2026-10-08\n - [deleted]         astra/offline-scale-validation-2026-10-09\n - [deleted]         astra/report-export-robustness-2026-10-09\n",
     "notes": "Only newly merged Astra refs; all exact heads reachable from retained integration. Active/Claude refs, tags and evidence preserved."
   },
-  "totalDeletedRemoteAstraRefs": 28,
-  "totalDeletedLocalAstraRefs": 25,
+  "totalDeletedRemoteAstraRefs": 29,
+  "totalDeletedLocalAstraRefs": 26,
   "snapshotNote": "Historical initial cleanup snapshot at integration f03b995, not the current branch list. Four preservedActive Astra entries were later deleted in subsequentMergeCleanup. Claude entries shown there are examples, not an exhaustive list.",
-  "ownershipRule": "Every claude/* reference is preserved and is never an Astra cleanup candidate; use fresh GitHub/ref checks for the full current set."
+  "ownershipRule": "Every claude/* reference is preserved and is never an Astra cleanup candidate; use fresh GitHub/ref checks for the full current set.",
+  "namingMergeCleanup": {
+    "pr": 57,
+    "branch": "astra/authored-import-names-2026-10-08",
+    "remoteHead": "b8b2537811a827aceaa31d8d329138754708fb17",
+    "localHead": "b8b2537811a827aceaa31d8d329138754708fb17",
+    "merge": "5ef5470e1d6d28653261d88f40e854ebe9d09d02",
+    "retainedInIntegration": "5ef5470e1d6d28653261d88f40e854ebe9d09d02",
+    "openPRUsesRef": false,
+    "reachableFromIntegration": true,
+    "notes": "Removed only after fresh exact-head/state/ref/ancestry checks. All Claude refs, active Astra branches, tags and evidence retained."
+  }
 }
