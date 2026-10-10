@@ -252,3 +252,9 @@ State at 8 October 2026 (after #42, #44, #43 and #45 merged): the Response colum
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-17 | Native UI harness / Naming (P2) | At e4ab3cd,1180×640 table bounds are179 high but only76 visible, with no complete populated rows | Local compact spacing/filter margins and150-DIP table minimum implemented in #80; all guidance/provenance retained | Actual failing push38081012364. Strict compile passes; new exact-head Windows/native/package and Claude review remain required. Reports passes its unchanged >=2 assertion at all3 sizes in this failed overall run. |
+
+## Astra Reports authentication interaction review — 10 October 2026, PR #80
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-22 | Astra / Reports and existing silent renewal (P2, confirmed) | At 480634370203dff9307d738be4c954c4280bb0a8, GraphReportsController.cs:40–41 and :77 use stale connection-time expiry as read lifetime, preventing provider renewal or discarding a successful stable read | Remove natural elapsed-time gate; keep timestamp parsing/context mutation refusal, invalidated authority and independent write opt-in expiry | Unchanged exact-controller stub reproduces zero-read preflight and post-read result loss. Fixed real-controller portable cases 9/9 and actual MSAL renewal cases 11/11 pass; original controller fails both added temporal positives. Strict App compilation passes; exact-source Windows execution, Claude review and live acceptance remain open |
