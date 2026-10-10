@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
+
 - Extend offline Graph interruption checks through real retry delays and second-page cancellation, preserving one silent renewal and treating cancellation after write dispatch as ambiguous without replay. Production transport behaviour is unchanged.
 
 - Script library: a list entry made only of whitespace now makes the mailbox, protection or quarantine policy setting Unknown with a warning, instead of a known count.

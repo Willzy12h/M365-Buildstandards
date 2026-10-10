@@ -18,3 +18,7 @@ dotnet test tests/BDIT.TenantToolkit.Tests -c Release -p:EnableWindowsTargeting=
 ```
 
 Local and exact-head Windows results are recorded on the PR before readiness. Claude independent review is required before merge. Refresh from integration after Claude's source merges, rerun required exact-head checks, then use a merge commit and verify its actual CI. This is separate from #65 scale profiling, #63 executor scheduling and Claude's #66 script pack.
+
+## Independent-review refinement — 10 October 2026
+
+Claude noted that initial path-count assertions depended on synchronous token acquisition. The test provider now deliberately yields; the old assertions failed in three cases. The corrected tests await the observable back-off warning (after the read cancellation checks) or the actual synthetic write dispatch before stopping, with the same ten-second outer ceiling. All five focused cases pass. Removing cancellation from the real back-off still causes the three intended delay cases to fail; production source is restored afterwards. This avoids both a scheduling assumption and mistaking cancellation before the back-off for proof that the delay is cancellable. Exact-head Windows and full-suite results remain separate evidence recorded on the PR.

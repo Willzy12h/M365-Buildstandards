@@ -23,8 +23,10 @@ public sealed class GraphInterruptionValidationTests
         using var handler = new Handler((_, _) => Task.FromResult(Response(status)));
         using var http = new HttpClient(handler);
         var tokens = new Tokens();
-        var client = Client(http, tokens, true);
+        var log = new BackoffLog();
+        var client = Client(http, tokens, true, log);
         var operation = client.GetAsync(GraphApi.V1, "/organization", stop.Token);
+        await log.Observed.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Single(handler.Paths);
         Assert.False(operation.IsCompleted); // Real 30-second Delay; no sleeps or elapsed-time pass threshold.
         stop.Cancel();
@@ -44,11 +46,13 @@ public sealed class GraphInterruptionValidationTests
             : Response(429)));
         using var http = new HttpClient(handler);
         var tokens = new Tokens();
-        var report = Client(http, tokens, true).ForReports();
+        var log = new BackoffLog();
+        var report = Client(http, tokens, true, log).ForReports();
         await using var iterator = report.GetBoundedAsync(GraphApi.V1, "/auditLogs/signIns", 5000, stop.Token).GetAsyncEnumerator();
         Assert.True(await iterator.MoveNextAsync());
         var first = iterator.Current;
         var second = iterator.MoveNextAsync().AsTask();
+        await log.Observed.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal(2, handler.Paths.Count);
         Assert.False(second.IsCompleted);
         stop.Cancel();
@@ -86,6 +90,7 @@ public sealed class GraphInterruptionValidationTests
         var tokens = new Tokens();
         var operation = Client(http, tokens, false).WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
             "/identity/conditionalAccess/policies", new JsonObject { ["displayName"] = "Synthetic candidate", ["state"] = "disabled" }, stop.Token);
+        await handler.Dispatched.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Single(handler.Paths);
         Assert.False(operation.IsCompleted);
         stop.Cancel();
@@ -95,9 +100,9 @@ public sealed class GraphInterruptionValidationTests
         Assert.Equal(new[] { HttpMethod.Post }, handler.Methods);
     }
 
-    private static GraphClient Client(HttpClient http, Tokens tokens, bool sleep) => new(http, tokens,
+    private static GraphClient Client(HttpClient http, Tokens tokens, bool sleep, IToolkitLog? log = null) => new(http, tokens,
         TestData.TenantA, SessionMode.Deployment, GraphRouteAllowList.FromStandard(TestData.Standard()),
-        new GraphClientOptions { Sleep = sleep, MaxRetryAfter = TimeSpan.FromSeconds(30), WriteTimeout = TimeSpan.FromMinutes(1) }, NullLog.Instance);
+        new GraphClientOptions { Sleep = sleep, MaxRetryAfter = TimeSpan.FromSeconds(30), WriteTimeout = TimeSpan.FromMinutes(1) }, log ?? NullLog.Instance);
 
     private static HttpResponseMessage Response(int status, string body = "{}")
     {
@@ -111,24 +116,45 @@ public sealed class GraphInterruptionValidationTests
         public int Calls { get; private set; }
         public int Renewals { get; private set; }
         public Task<string> GetAccessTokenAsync(CancellationToken ct) => GetAccessTokenAsync(false, ct);
-        public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct)
+        public async Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct)
         {
+            await Task.Yield(); // Explicitly exercise a provider that cannot dispatch synchronously.
             ct.ThrowIfCancellationRequested();
             Calls++;
             if (forceRefresh) Renewals++;
-            return Task.FromResult("synthetic-offline-token");
+            return "synthetic-offline-token";
         }
     }
 
     private sealed class Handler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond) : HttpMessageHandler
     {
+        private readonly TaskCompletionSource _dispatched = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task Dispatched => _dispatched.Task;
         public List<string> Paths { get; } = [];
         public List<HttpMethod> Methods { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Paths.Add(request.RequestUri!.PathAndQuery);
             Methods.Add(request.Method);
-            return respond(request, cancellationToken);
+            var response = respond(request, cancellationToken);
+            _dispatched.TrySetResult();
+            return response;
+        }
+    }
+
+    private sealed class BackoffLog : IToolkitLog
+    {
+        private readonly TaskCompletionSource _observed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task Observed => _observed.Task;
+        public void Log(LogLevel level, string category, string message, string? tenantId = null,
+            string? controlId = null, Exception? exception = null)
+        {
+            // Wait past the read's cancellation checks, at the observable decision to back off.
+            // A cancelled dispatched request alone would not prove cancellation inside the delay.
+            if (level == LogLevel.Warning && category == "Graph"
+                && (message.Contains("throttled (429)", StringComparison.Ordinal)
+                    || message.Contains("retrying after", StringComparison.Ordinal)))
+                _observed.TrySetResult();
         }
     }
 }
