@@ -15,6 +15,50 @@ public sealed class HomeTaskProjectionTests
             Snapshot = TestData.Snapshot(standard), SnapshotIsLive = true };
     }
 
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, true)]
+    public void Mixed_capture_sources_share_header_labels_and_preserve_each_original_time(bool graphLive, bool exchangeTool, bool incomplete)
+    {
+        var context = Current();
+        var exchange = TestData.Snapshot(context.Standard!);
+        exchange.Id = "synthetic-separate-exchange"; exchange.CapturedAt = "2026-09-02T09:00:00Z";
+        exchange.Complete = !incomplete;
+        context.Snapshot!.CapturedAt = "2026-09-01T08:00:00Z";
+        var expected = EvidenceSourcePresentation.Create(context.Snapshot, graphLive, exchange, exchangeTool,
+            context.Profile!.TenantId, context.Session!.TenantId);
+        var result = HomeTaskProjection.Create(context with { SnapshotIsLive = graphLive, ExchangeSnapshot = exchange, ExchangeCapturedByTool = exchangeTool });
+        Assert.StartsWith(expected.Summary, result.EvidenceText);
+        Assert.Contains(expected.Details, result.EvidenceText);
+        Assert.Contains(exchange.Id, result.EvidenceText); Assert.Contains(exchange.CapturedAt, result.EvidenceText);
+        Assert.Contains(context.Snapshot.CapturedAt, result.EvidenceText);
+        if (incomplete) Assert.Contains("Exchange completeness: INCOMPLETE", result.EvidenceText);
+    }
+
+    [Fact]
+    public void Different_displayed_setup_tenant_refuses_evidence_without_copying_the_previous_capture()
+    {
+        var context = Current();
+        var result = HomeTaskProjection.Create(context with { ApplicationSetupActive = true, DisplayedTenantId = TestData.TenantB });
+        Assert.Contains("another tenant", result.EvidenceText);
+        Assert.DoesNotContain(context.Snapshot!.Id, result.EvidenceText);
+        Assert.DoesNotContain(context.Snapshot.CapturedAt, result.EvidenceText);
+        Assert.DoesNotContain("collections reported complete", result.EvidenceText);
+        Assert.Equal("setup", result.NextPageKey);
+    }
+
+    [Fact]
+    public void Foreign_supplemental_evidence_is_disclosed_without_showing_its_id_or_capture_time()
+    {
+        var context = Current(); var exchange = TestData.Snapshot(context.Standard!);
+        exchange.TenantId = TestData.TenantB; exchange.Id = "foreign-exchange-id"; exchange.CapturedAt = "2026-09-02T09:00:00Z";
+        var result = HomeTaskProjection.Create(context with { ExchangeSnapshot = exchange });
+        Assert.Contains("Exchange: different tenant", result.EvidenceText);
+        Assert.Contains("another tenant", result.EvidenceText);
+        Assert.DoesNotContain(exchange.Id, result.EvidenceText); Assert.DoesNotContain(exchange.CapturedAt, result.EvidenceText);
+    }
+
     [Fact]
     public void Cold_start_and_missing_catalogue_have_explicit_first_steps()
     {
@@ -86,7 +130,7 @@ public sealed class HomeTaskProjectionTests
         else context.Session!.TenantId = TestData.TenantB;
         var result = HomeTaskProjection.Create(context);
         Assert.Equal(foreignCapture ? "configuration" : "connect", result.NextPageKey);
-        Assert.Contains("another client", foreignCapture ? result.EvidenceText : result.ConnectionText);
+        Assert.Contains(foreignCapture ? "another tenant" : "another client", foreignCapture ? result.EvidenceText : result.ConnectionText);
         Assert.DoesNotContain("Original capture", result.EvidenceText);
     }
 

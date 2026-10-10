@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Keep Graph/Exchange evidence origins consistent between Home and the shell, redact another client's capture details, and include visible button labels in Home's accessible names (CLA-20261010-120–122).
+
 - Add an engineer Home task centre with next-step guidance and new-tenant, legacy/backfill, repeat-review and handoff shortcuts. Retain Overview/licences and persistent client/access/evidence context. All Home actions navigate only; historical, incomplete and scoped evidence do not imply readiness or completion. Exact Windows/native and independent review remain required.
 - Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
 

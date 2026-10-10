@@ -76,6 +76,14 @@ public sealed class HomeNavigationTests : IDisposable
     }
 
     [Fact]
+    public void Task_and_shortcut_accessible_names_begin_with_their_visible_labels()
+    {
+        var home = new HomeViewModel(_shell);
+        Assert.All(home.Tasks, task => Assert.StartsWith(task.ActionLabel, task.AccessibleName));
+        Assert.All(home.Shortcuts, shortcut => Assert.StartsWith(shortcut.Title, shortcut.AccessibleName));
+    }
+
+    [Fact]
     public void Home_refresh_does_not_evaluate_or_invalidate_experimental_authority()
     {
         var guard = typeof(ExperimentalOperationGuard).GetField("_binding", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

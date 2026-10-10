@@ -12,6 +12,7 @@ public sealed record HomeTaskContext
     public bool SnapshotIsLive { get; init; }
     public TenantSnapshot? ExchangeSnapshot { get; init; }
     public bool ExchangeCapturedByTool { get; init; }
+    public string? DisplayedTenantId { get; init; }
     public bool ApplicationSetupActive { get; init; }
     public bool Busy { get; init; }
     public string BusyMessage { get; init; } = "";
@@ -50,11 +51,25 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             && (standard is null || standard.Collections.Keys.All(snapshot.Collections.ContainsKey));
         var liveCapture = context.SnapshotIsLive && session is { TenantVerified: true, OperatorVerified: true }
             && snapshot is not null && SameTenant(snapshot.TenantId, session.TenantId);
-        var evidence = capture is null ? "No full capture open · use Configuration to capture or open saved evidence."
-            : !captureMatches ? "Capture belongs to another client · open evidence for the selected client."
-            : snapshot is null ? $"{(context.ExchangeCapturedByTool ? "Supplemental Exchange observations" : "Historical Exchange observations")}\nOriginal capture: {CaptureTime(capture.CapturedAt)} · full Graph evidence is not open."
-            : $"{(liveCapture ? "Current-session capture" : context.SnapshotIsLive ? "Previously collected evidence · no verified current connection" : "Historical evidence · offline review")}\nOriginal capture: {CaptureTime(capture.CapturedAt)} · {(complete ? "collections reported complete; review findings" : "incomplete or partial; unread settings remain unknown")}";
-        if (captureMatches && snapshot is not null && standard is not null && snapshot.StandardRelease != standard.Release)
+        // Use the pinned header's source labels, including separate Exchange origin/completeness and tenant refusal.
+        // Collection review below is deliberately stricter than the capture's recorded Complete flag; neither grants authority.
+        var displayedTenant = context.DisplayedTenantId ?? session?.TenantId ?? profile?.TenantId ?? "";
+        var sourceMatches = captureMatches && SameTenant(capture?.TenantId, displayedTenant);
+        var source = EvidenceSourcePresentation.Create(snapshot, context.SnapshotIsLive, context.ExchangeSnapshot,
+            context.ExchangeCapturedByTool, profile?.TenantId, displayedTenant);
+        var evidence = source.Summary + (source.Details.Length > 0 ? "\n" + source.Details : "");
+        if (capture is null)
+            evidence += "\nNo full capture open · use Configuration to capture or open saved evidence.";
+        else if (sourceMatches && snapshot is null)
+            evidence += "\nSupplemental observations only · full Graph evidence is not open.";
+        else if (sourceMatches)
+        {
+            evidence += "\nCollection review: " + (complete ? "collections reported complete; review findings"
+                : "incomplete or partial; unread settings remain unknown");
+            if (context.SnapshotIsLive && !liveCapture)
+                evidence += "\nPreviously collected evidence · no verified current connection.";
+        }
+        if (sourceMatches && snapshot is not null && standard is not null && snapshot.StandardRelease != standard.Release)
             evidence += $"\nCaptured against standard {Name(snapshot.StandardRelease, "unknown")}; current standard {standard.Release}.";
 
         var headline = profile is null ? "What would you like to work on?" : $"Your next steps for {Name(profile.Company, "this client")}";
@@ -96,7 +111,4 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
     private static bool SameTenant(string? left, string? right) => !string.IsNullOrWhiteSpace(left)
         && !string.IsNullOrWhiteSpace(right) && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     private static string Name(string value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
-    private static string CaptureTime(string value) => DateTimeOffset.TryParse(value, System.Globalization.CultureInfo.InvariantCulture,
-        System.Globalization.DateTimeStyles.AssumeUniversal, out var time)
-        ? time.ToUniversalTime().ToString("dd MMM yyyy HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture) : "time unknown";
 }

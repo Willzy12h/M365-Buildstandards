@@ -549,3 +549,7 @@ William's B task-centre plus A persistent-working-context preference is implemen
 ### INT-083 source and active-client removal follow-up — 10 October 2026, PR #81
 
 CLA-20261010-79/80: use one pure evidence-source presentation for the pinned header and assessment. A mixed Graph/Exchange result retains each actual source; the compact header identifies supplemental historical/tool capture and copied details retain original capture identities/times. Different-tenant observations are disclosed without copying their identifiers under the current client. This does not establish write eligibility. Deleting the active saved-client entry clears the selected profile and existing transient evidence/authority after saved-list persistence succeeds; durable evidence remains byte-identical. Deleting another saved client retains current state. Fourteen synthetic cases accompany the correction; native/human/live acceptance stays separate.
+
+### Home evidence labels and accessible actions — 10 October 2026, PR #84
+
+CLA-20261010-120–122: compose Home from the existing shell evidence-source presentation rather than interpreting supplemental Exchange origin separately. Bind presentation refusal to the displayed tenant, including application setup, and retain conservative collection guidance. Include each visible action label in its accessible name. No destination, evidence authority, authentication or persisted-schema change; validate native peers and mixed evidence at the existing three sizes.

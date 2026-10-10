@@ -197,3 +197,5 @@ AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed agai
 | Licence overview and workflows | Already present and preserved; every original navigation key and numbered workflow remains | Home adds its own destination; no engine, auth, evidence, permission or write contract changes. |
 | Evidence/readiness wording | Fixed during implementation: disconnected live flag does not imply a current connection; historical gaps stay explicit | Complete collection is not approval, scoped results are partial, and job presence is not completion. Human/live acceptance remains open. |
 | Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
+
+PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.
