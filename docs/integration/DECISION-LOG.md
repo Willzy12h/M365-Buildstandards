@@ -418,6 +418,10 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 
 PR #67 extends existing transport tests through a synthetic HTTP handler using the actual cancellable back-off path. It checks operator cancellation before a read retry, cancellation on a throttled second page, the single silent-renewal rule across an interposed transient failure, and uncertain write dispatch without replay. No production retry, token, permission or evidence behaviour changes. Generous outer test timeouts detect a stuck cancellation; elapsed time is not a pass/fail performance metric.
 
+## INT-084 — Enforce existing authored naming at local import boundaries
+
+PR #57 calls the existing reviewed `NamingConvention.RequireAuthored` from both local candidate importers. It checks only the new resolved candidate name and preserves baseline/historical controls. No global loader rule, schema, new compiler, live rename, permission or execution change is introduced. Names with leading/trailing whitespace refuse instead of being silently trimmed into compliance. Import shape and write-payload safeguards remain independent. Meaningful fixtures use compliant names so negative settings/metadata tests retain their original purpose.
+
 ## INT-093 — Verify export fidelity through the existing boundary (9 October 2026)
 
 PR #68 adds end-to-end offline exporter regressions for partial registered evidence, multilingual/multiline text, spreadsheet guarding and explicit Excel truncation, preservation of previous exports and modified-evidence refusal before any output. It preserves JSON/HTML/CSV full values while recognising the existing XLSX cell limit. No production export, schema, cap, permission or evidence semantics change.
@@ -505,3 +509,11 @@ Deliberately asynchronous synthetic token acquisition reproduces the independent
 ### INT-092 second review corrections — 10 October 2026, PR #67
 
 CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.
+
+### INT-084 / INT-091 source correction — 10 October 2026, PR #57
+
+After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
+
+### INT-084 compatibility clarification — 10 October 2026, PR #57
+
+After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
