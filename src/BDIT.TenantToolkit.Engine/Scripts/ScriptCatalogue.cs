@@ -4,10 +4,18 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Reporting;
+using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Scripts.Runner;
 
 namespace BDIT.TenantToolkit.Engine.Scripts;
 
-public sealed record ScriptRegistryEntry(string Id, string Manifest, string ManifestSha256, string ScriptSha256);
+/// <summary>
+/// One registry entry. Registry schema 1 has no <see cref="ManifestSchemaVersion"/> and admits only manifest schema 1.
+/// Registry schema 2 (INT-088) requires it on every entry, and it must equal the pinned manifest's own schema version.
+/// </summary>
+public sealed record ScriptRegistryEntry(string Id, string Manifest, string ManifestSha256, string ScriptSha256, int? ManifestSchemaVersion = null);
 public sealed record ScriptRegistry(int SchemaVersion, IReadOnlyList<ScriptRegistryEntry> Scripts);
 
 /// <summary>
@@ -103,7 +111,7 @@ public sealed class ScriptCatalogue
         }
         if (!files.TryGetValue(RegistryPath, out var registryBytes)) throw Refuse("the registry is missing.");
         var registry = Deserialize<ScriptRegistry>(registryBytes, RegistryPath);
-        if (registry.SchemaVersion != 1) throw Refuse("the registry schema version is not 1.");
+        if (registry.SchemaVersion is not (1 or 2)) throw Refuse("the registry schema version is not 1 or 2.");
 
         var used = new HashSet<string>(StringComparer.Ordinal) { RegistryPath };
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -118,6 +126,11 @@ public sealed class ScriptCatalogue
             if (Sha256(manifestBytes) != item.ManifestSha256) throw Refuse($"{item.Manifest} does not match its registered SHA-256.");
             var manifest = Deserialize<ScriptManifest>(manifestBytes, item.Manifest);
             if (manifest.Id != item.Id) throw Refuse($"{item.Manifest} declares the ID {manifest.Id}, not {item.Id}.");
+            // Version dispatch is explicit: schema 1 registries mean schema 1 manifests, and a schema 2 registry names each one.
+            var declared = registry.SchemaVersion == 1
+                ? item.ManifestSchemaVersion is null ? 1 : throw Refuse($"{item.Id}: a schema 1 registry cannot declare a manifest schema version.")
+                : item.ManifestSchemaVersion ?? throw Refuse($"{item.Id}: a schema 2 registry must declare the manifest schema version.");
+            if (manifest.SchemaVersion != declared) throw Refuse($"{item.Manifest} is manifest schema {manifest.SchemaVersion}, but the registry declares {declared}.");
             if (!item.Manifest.StartsWith(manifest.Category + "/", StringComparison.Ordinal))
                 throw Refuse($"{item.Manifest} is not in its category folder {manifest.Category}.");
 
@@ -145,7 +158,8 @@ public sealed class ScriptCatalogue
     internal static void ValidateManifest(ScriptManifest m)
     {
         var at = m.Id;
-        if (m.SchemaVersion != 1) throw Refuse($"{at}: schema version must be 1.");
+        if (m.SchemaVersion is not (1 or 2)) throw Refuse($"{at}: schema version must be 1 or 2.");
+        if (m.SchemaVersion == 1 && m.Execution is not null) throw Refuse($"{at}: only a schema 2 manifest has an execution member.");
         if (!IdPattern.IsMatch(m.Id) || m.Id.Length > 80) throw Refuse($"{at}: the ID must be lower-case dotted words, for example exo.message-trace.");
         if (!CategoryPattern.IsMatch(m.Category)) throw Refuse($"{at}: the category must be a lower-case folder name.");
         RequireText(at, "name", m.Name, 80);
@@ -201,6 +215,7 @@ public sealed class ScriptCatalogue
                 if (ScriptInputs.Convert(p, p.Default, problems) is null || problems.Count > 0) throw Refuse($"{pat}: the default is not a valid value.");
             }
         }
+        if (m.SchemaVersion == 2) ValidateExecution(m);
         foreach (var rule in m.Rules)
         {
             switch (rule.Kind)
@@ -230,6 +245,56 @@ public sealed class ScriptCatalogue
         }
     }
 
+    /// <summary>The registered report a schema 2 item runs. Refuses anything that does not exactly equal the engine's registration.</summary>
+    public static ExchangeReportRegistry.Definition ReportFor(ScriptManifest m)
+    {
+        if (m.SchemaVersion != 2 || m.Execution is null) throw Refuse($"{m.Id}: only a schema 2 item can run.");
+        try { return ExchangeReportRegistry.Find(m.Execution.ReportId); }
+        catch (ConfigurationException) { throw Refuse($"{m.Id}: the report {m.Execution.ReportId} is not registered in this engine."); }
+    }
+
+    /// <summary>
+    /// INT-088 schema 2 admission. The engine's registration is authoritative: the manifest may only repeat it. Run is
+    /// read-only, so a copy-only change can never be admitted, and the caps are lower than schema 1's.
+    /// </summary>
+    private static void ValidateExecution(ScriptManifest m)
+    {
+        var at = m.Id;
+        var e = m.Execution ?? throw Refuse($"{at}: a schema 2 manifest needs an execution member.");
+        if (m.Mode != ScriptMode.ReadOnly) throw Refuse($"{at}: a copy-only change can never be run.");
+        if (m.Limits.MaximumRows > ExchangeReportRegistry.MaximumRows) throw Refuse($"{at}: a runnable item reads at most 10,000 rows per section.");
+        if (m.Limits.TimeoutSeconds > ReadRunnerLimits.MaximumTimeoutSeconds) throw Refuse($"{at}: a runnable item has at most 1,800 seconds.");
+        if (!string.Equals(m.Resources[0], e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the execution adapter must be the item's resource.");
+        var report = ReportFor(m);
+        if (!string.Equals(report.Adapter, e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the report belongs to another adapter.");
+        if (e.ReportSchemaVersion != 1 || e.OutputSchemaVersion != 1 || !string.Equals(e.OutputKind, ReadRunnerLimits.OutputKind, StringComparison.Ordinal))
+            throw Refuse($"{at}: the execution output must be scriptReadResult schema 1 for report schema 1.");
+        if (!string.Equals(e.RunnerTemplateSha256, ReadRunnerTemplate.Sha256, StringComparison.Ordinal))
+            throw Refuse($"{at}: the runner template pin does not match this engine's own runner.");
+        if (m.Modules.Count != 1 || m.Modules[0].Name != "ExchangeOnlineManagement") throw Refuse($"{at}: an Exchange Online item names exactly the ExchangeOnlineManagement module.");
+        // Columns are not defined by the manifest: they must equal the registered row projection, in order.
+        if (report.Sections.Count != 1 || !m.OutputSchema.Columns.SequenceEqual(ExchangeReportEvidenceSchema.Columns(report.Sections[0].RowType), StringComparer.Ordinal))
+            throw Refuse($"{at}: the output columns must equal the registered row projection.");
+        if (m.Parameters.Count != report.Parameters.Count) throw Refuse($"{at}: the parameters must equal the registered report parameters.");
+        for (var i = 0; i < m.Parameters.Count; i++)
+        {
+            var (p, registered) = (m.Parameters[i], report.Parameters[i]);
+            var type = p.Type switch
+            {
+                ScriptParameterType.Boolean => ExchangeReportParameterType.Boolean,
+                ScriptParameterType.Integer => ExchangeReportParameterType.Integer,
+                ScriptParameterType.Date => ExchangeReportParameterType.Date,
+                ScriptParameterType.String => ExchangeReportParameterType.Text,
+                _ => null
+            };
+            if (!string.Equals(p.Name, registered.Name, StringComparison.Ordinal) || type != registered.Type || p.Array || p.Format is not null)
+                throw Refuse($"{at}: parameter {p.Name} must equal the registered {registered.Name} ({registered.Type}).");
+            // Every registered value is recorded, so an integer or date is always supplied.
+            if (p.Type is ScriptParameterType.Integer or ScriptParameterType.Date && !p.Required && p.Default is null)
+                throw Refuse($"{at}: parameter {p.Name} needs a value on every run: make it required or give it a default.");
+        }
+    }
+
     internal static void ValidateScript(ScriptManifest m, string script)
     {
         // The Copy script places the body inside a script block, where #requires is not allowed; requirements are
@@ -240,11 +305,40 @@ public sealed class ScriptCatalogue
             if (!Regex.IsMatch(script, "\\$" + p.Name + "\\b", RegexOptions.CultureInvariant))
                 throw Refuse($"{m.Id}: parameter {p.Name} is declared but the script never uses ${p.Name}.");
         if (m.Mode != ScriptMode.ReadOnly) return;
+        if (m.SchemaVersion == 2) { ValidateRunnableScript(m, script); return; }
         foreach (Match command in CommandPattern.Matches(script))
             if (!ReadOnlyVerbs.Contains(command.Groups[1].Value) && !LocalCommands.Contains(command.Value))
                 throw Refuse($"{m.Id}: read-only scripts cannot use {command.Value}.");
         foreach (var token in new[] { "Invoke-", "iex ", "Add-Type", "[scriptblock]::Create", "Start-Process", ".Invoke(" })
             if (script.Contains(token, StringComparison.OrdinalIgnoreCase)) throw Refuse($"{m.Id}: read-only scripts cannot use {token.Trim()}.");
+    }
+
+    /// <summary>Commands a schema 2 body may name. Registered reads are reachable only as Use-BditRead -Command 'Name'.</summary>
+    public static readonly IReadOnlySet<string> RunnableCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Use-BditRead", "Where-Object", "ForEach-Object", "Select-Object", "Sort-Object", "Group-Object", "Measure-Object", "Set-StrictMode"
+    };
+
+    private static readonly Regex GateCall = new("Use-BditRead -Command '([A-Za-z]+-[A-Za-z0-9]+)' -Parameters ", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// A text-level mirror of the wrapper's own parse check, so a library that could never run is refused when it loads. The
+    /// wrapper's syntax-tree check before every run remains the authority; this one only has to agree with it.
+    /// </summary>
+    private static void ValidateRunnableScript(ScriptManifest m, string script)
+    {
+        var report = ReportFor(m);
+        var gated = GateCall.Matches(script);
+        if (gated.Count == 0 || Regex.Matches(script, "Use-BditRead", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).Count != gated.Count)
+            throw Refuse($"{m.Id}: every read must be written as Use-BditRead -Command 'Name' -Parameters ...");
+        foreach (Match call in gated)
+            if (!report.SourceCommands.Contains(call.Groups[1].Value, StringComparer.Ordinal))
+                throw Refuse($"{m.Id}: {call.Groups[1].Value} is not a registered source command for {report.Id}.");
+        var remainder = GateCall.Replace(script, "");
+        foreach (Match command in CommandPattern.Matches(remainder))
+            if (!RunnableCommands.Contains(command.Value)) throw Refuse($"{m.Id}: a runnable script cannot use {command.Value}.");
+        foreach (var token in new[] { "Invoke-", "iex ", "Add-Type", "[scriptblock]", "Start-Process", ".Invoke", "$ExecutionContext", "global:", "script:", "env:", "function:", "variable:", "& ", "&$", ". {", ". $", "#requires", "using ", "GetType(", "InvokeMember", ".Assembly", "GetMethod", "Reflection" })
+            if (script.Contains(token, StringComparison.OrdinalIgnoreCase)) throw Refuse($"{m.Id}: a runnable script cannot use {token.Trim()}.");
     }
 
     private static void RequireText(string at, string field, string value, int maximum)
