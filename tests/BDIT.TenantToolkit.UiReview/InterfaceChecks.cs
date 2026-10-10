@@ -218,6 +218,34 @@ internal static partial class Program
         }
     }
 
+    private static readonly List<string> CrampedCurrentPages = new();
+    private static int ConfigurationViewportsMeasured;
+    private static int ScriptFormViewportsMeasured;
+
+    private static void RecordConfigurationViewport(FrameworkElement content, string where)
+    {
+        ConfigurationViewportsMeasured++;
+        var table = Descendants(content).OfType<DataGrid>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Captured objects");
+        var rows = Descendants(table).OfType<DataGridRow>().Where(r => IsShown(r, content)).ToList();
+        var visible = rows.Count(r => VisibleBounds(r, content).Height >= r.ActualHeight - 1);
+        if (table.Items.Count < 2 || visible < 2)
+            CrampedCurrentPages.Add($"  {where} · {visible} fully visible captured-object rows; at least two are required without scrolling the page.");
+    }
+
+    private static void RecordScriptFormViewport(FrameworkElement content, string where)
+    {
+        ScriptFormViewportsMeasured++;
+        var form = Descendants(content).OfType<ItemsControl>().Single(g =>
+            System.Windows.Automation.AutomationProperties.GetName(g) == "Script form");
+        var first = form.ItemContainerGenerator.ContainerFromIndex(0) as FrameworkElement
+            ?? throw new InvalidOperationException("The populated synthetic script must have a first form field.");
+        var field = Descendants(first).OfType<Control>().First(c => (c is TextBox or ComboBox or CheckBox) &&
+            c.Visibility == Visibility.Visible && c.ActualHeight > 0);
+        if (VisibleBounds(field, content).Height < field.ActualHeight - 1)
+            CrampedCurrentPages.Add($"  {where} · the first script input is below the first viewport; purpose/access details must not hide the form.");
+    }
+
     // ---- keyboard ------------------------------------------------------------------------------------------------
 
     private static readonly List<string> KeyboardProblems = new();
@@ -417,8 +445,11 @@ internal static partial class Program
                 throw new InvalidOperationException("The script copy dialog does not restate the selected client's tenant.");
             if (Part<TextBlock>(dialog, "TypeText").Text != ScriptsViewModel.ReadOnlyText)
                 throw new InvalidOperationException("The script copy dialog does not say the item is read only.");
+            var requirements = Part<TextBlock>(dialog, "RequirementsText");
+            if (string.IsNullOrWhiteSpace(review.Requirements) || requirements.Text != review.Requirements)
+                throw new InvalidOperationException("The script copy dialog omits the reviewed requirements and limitations.");
 
-            foreach (var size in new[] { new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
+            foreach (var size in new[] { new Size(960, 760), new Size(dialog.Width, dialog.Height), new Size(dialog.MinWidth, dialog.MinHeight) })
             {
                 var where = $"script-copy-dialog {(int)size.Width}x{(int)size.Height}";
                 dialog.Width = size.Width; dialog.Height = size.Height;
@@ -579,6 +610,7 @@ internal static partial class Program
         ("ApplicationSetupViewModel.DisconnectCommand", "ends the setup session"),
         ("ApplicationSetupViewModel.OpenEntraCommand", Browser),
 
+        ("ConfigurationViewModel.ExportHtmlCommand", Press),
         ("ConfigurationViewModel.ExportJsonCommand", Press),
         ("ConfigurationViewModel.ExportCsvCommand", Press),
         ("ConfigurationViewModel.ExportXlsxCommand", Press),

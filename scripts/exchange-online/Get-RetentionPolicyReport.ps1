@@ -54,10 +54,15 @@ function Get-Setting([object]$Item, [string]$Name) {
 $policies = @(Get-RetentionPolicy)
 $tags = @(Get-RetentionPolicyTag)
 
-# Each tag's exact identities, as Exchange returned them. Nothing is matched on a display name or by case folding.
+# Each tag's exact identities, as Exchange returned them: not trimmed, not case-folded and with spaces kept, so a link
+# matches only a byte-for-byte equal value. Get-Text, which tidies spaces for display, is never used for matching.
 function Get-TagKeys([object]$Tag) {
-    return @(@('Name', 'Identity', 'DistinguishedName') | ForEach-Object { Get-Text (Get-Value $Tag $_) } | Where-Object { $_ })
+    return @(@('Name', 'Identity', 'DistinguishedName') | ForEach-Object {
+        $value = Get-Value $Tag $_
+        if ($null -ne $value) { [string]$value }
+    } | Where-Object { $_ -ne '' })
 }
+$tagKeys = @(foreach ($tag in $tags) { , @(Get-TagKeys $tag) })
 
 function Get-TagRow([string]$Policy, [string]$PolicyIsDefault, [string]$LinkAsReturned, [string]$LinkStatus, [object]$Tag, [string[]]$Notes) {
     $notes = @($Notes)
@@ -90,7 +95,9 @@ function Get-TagRow([string]$Policy, [string]$PolicyIsDefault, [string]$LinkAsRe
     }
 }
 
-$linkedTags = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+# Tags are tracked by their position in what Exchange returned, not by key, so a tag that only shares a value with a
+# linked tag (one's Identity equal to another's Name) is never taken to be linked.
+$linkedTags = @{}
 # A tag can be called NotLinked only when every policy's links were returned and every link resolved to one tag.
 $linksUncertain = $false
 foreach ($policy in $policies) {
@@ -106,18 +113,27 @@ foreach ($policy in $policies) {
         $row
         continue
     }
-    $linkList = @(@($links) | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ } | Where-Object { $_ -ne '' })
-    if ($linkList.Count -eq 0) {
+    $allLinks = @($links)
+    $linkList = @($allLinks | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ } | Where-Object { $_ -ne '' })
+    # An entry returned null or empty is a link that could not be read, not the absence of one.
+    $unreadable = $allLinks.Count - $linkList.Count
+    if ($unreadable -gt 0) {
+        $linksUncertain = $true
+        $row = Get-TagRow $policyName $isDefault '' 'Unknown' $null @('Exchange returned ' + $unreadable + ' tag link(s) for this policy that could not be read, so its tags may be incomplete.')
+        $unknownRows++
+        $row
+    }
+    if ($allLinks.Count -eq 0) {
         $row = Get-TagRow $policyName $isDefault '' 'NoTags' $null @('Exchange returned no tag links for this policy.')
         if (Test-UnknownValue $row) { $unknownRows++ }
         $row
         continue
     }
     foreach ($link in $linkList) {
-        $found = @($tags | Where-Object { (Get-TagKeys $_) -ccontains $link })
+        $found = @(for ($i = 0; $i -lt $tags.Count; $i++) { if ($tagKeys[$i] -ccontains $link) { $i } })
         if ($found.Count -eq 1) {
-            foreach ($key in (Get-TagKeys $found[0])) { $linkedTags[$key] = $true }
-            $row = Get-TagRow $policyName $isDefault $link 'Resolved' $found[0] @()
+            $linkedTags[$found[0]] = $true
+            $row = Get-TagRow $policyName $isDefault $link 'Resolved' $tags[$found[0]] @()
         } else {
             $why = 'No returned tag has this exact Name, Identity or DistinguishedName, so the tag settings are not shown.'
             if ($found.Count -gt 1) { $why = 'More than one returned tag has this exact value, so the tag settings are not shown.' }
@@ -129,9 +145,10 @@ foreach ($policy in $policies) {
     }
 }
 if ($IncludeUnlinkedTags) {
-    foreach ($tag in $tags) {
-        $keys = @(Get-TagKeys $tag)
-        if (@($keys | Where-Object { $linkedTags.ContainsKey($_) }).Count -gt 0) { continue }
+    for ($i = 0; $i -lt $tags.Count; $i++) {
+        if ($linkedTags.ContainsKey($i)) { continue }
+        $tag = $tags[$i]
+        $keys = @($tagKeys[$i])
         $notes = @('No returned policy links to this tag by an exact identity.')
         $status = 'NotLinked'
         if ($linksUncertain) {
