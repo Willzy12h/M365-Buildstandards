@@ -38,14 +38,15 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
     }
 
     public static async Task<ApplicationSetupService> ConnectAsync(HttpClient http, string tenantId, IToolkitLog log, CancellationToken ct,
-        IntPtr parentWindowHandle = default, bool useSystemBrowser = false, string loginHint = "")
+        IntPtr parentWindowHandle = default, bool useSystemBrowser = false, string loginHint = "",
+        Func<CancellationToken, Task>? beforeInteractive = null)
     {
         var auth = await MsalAuthenticator.SignInAsync(new SignInRequest
         {
             TenantId = tenantId, ClientId = BootstrapClientId,
             ClientLabel = "Microsoft Graph Command Line Tools — temporary application setup",
             Purpose = "Application setup: registration writes and grant inspection", Scopes = SetupScopes,
-            ParentWindowHandle = parentWindowHandle, UseSystemBrowser = useSystemBrowser, LoginHint = loginHint,
+            ParentWindowHandle = parentWindowHandle, UseSystemBrowser = useSystemBrowser, LoginHint = loginHint, BeforeInteractive = beforeInteractive,
             ClientVersion = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(ApplicationSetupService).Assembly)?.InformationalVersion ?? "unknown",
             CacheFile = "" // Never attach the privileged setup identity to a persistent cache.
         }, log, ct).ConfigureAwait(false);

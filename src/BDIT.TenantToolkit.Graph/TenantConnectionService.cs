@@ -11,6 +11,8 @@ namespace BDIT.TenantToolkit.Graph;
 /// <summary>A live, verified tenant connection: the session facts, the guarded client and the authenticator that backs it.</summary>
 public sealed class ConnectedTenant : IAsyncDisposable
 {
+    public event Action? AuthorisationInvalidated;
+    private void OnAuthorisationInvalidated() => AuthorisationInvalidated?.Invoke();
     public TenantSession Session { get; }
     public IGraphClient Graph { get; }
     private readonly MsalAuthenticator? _authenticator;
@@ -20,6 +22,7 @@ public sealed class ConnectedTenant : IAsyncDisposable
         Session = session;
         Graph = graph;
         _authenticator = authenticator;
+        if (_authenticator is not null) _authenticator.AuthorisationInvalidated += OnAuthorisationInvalidated;
     }
 
     public Task ReleaseAsync() => _authenticator?.ReleaseAsync() ?? Task.CompletedTask;
@@ -33,7 +36,8 @@ public sealed class ConnectedTenant : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_authenticator is not null) await _authenticator.DisconnectAsync();
+        if (_authenticator is not null)
+        { _authenticator.AuthorisationInvalidated -= OnAuthorisationInvalidated; await _authenticator.DisconnectAsync(); }
     }
 }
 
@@ -74,7 +78,7 @@ public sealed class TenantConnectionService
     }
 
     public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
-        DiscoveredTenant? expectedIdentity = null)
+        DiscoveredTenant? expectedIdentity = null, Func<CancellationToken, Task>? beforeInteractive = null)
     {
         if (expectedIdentity is not null && (mode != SessionMode.Assessment
             || !string.Equals(profile.TenantId, expectedIdentity.TenantId, StringComparison.OrdinalIgnoreCase)))
@@ -95,7 +99,7 @@ public sealed class TenantConnectionService
             TenantId = profile.TenantId,
             ClientId = client.ClientId,
             ClientLabel = client.Label,
-            Mode = mode,
+            Mode = mode, BeforeInteractive = beforeInteractive,
             Scopes = scopes,
             CacheFile = cacheFile,
             Timeout = TimeSpan.FromMinutes(_settings.SignInTimeoutMinutes),
@@ -107,7 +111,7 @@ public sealed class TenantConnectionService
     }
 
     public async Task<ConnectedTenant> ConfirmDiscoveryAsync(PendingTenantDiscovery pending, TenantProfile profile,
-        StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct)
+        StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct, Func<CancellationToken, Task>? beforeInteractive = null)
     {
         var client = _settings.ResolveClient(SessionMode.Assessment, profile)
             ?? throw new ConfigurationException("No assessment application is configured.");
@@ -118,7 +122,7 @@ public sealed class TenantConnectionService
             // A different application needs its own token. Never label a shared token as dedicated access.
             progress?.Report("The configured dedicated assessment application needs its own Microsoft sign-in; cached access is tried first.");
             LoginHint = pending.Identity.Account;
-            try { return await ConnectAsync(profile, SessionMode.Assessment, standard, progress, ct, pending.Identity); }
+            try { return await ConnectAsync(profile, SessionMode.Assessment, standard, progress, ct, pending.Identity, beforeInteractive); }
             finally { await pending.DisposeAsync(); }
         }
         var auth = pending.Take(profile, standard);

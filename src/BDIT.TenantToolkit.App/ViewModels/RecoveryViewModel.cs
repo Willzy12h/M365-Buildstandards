@@ -23,7 +23,7 @@ public sealed class RecoveryViewModel : PageViewModel
         PreviewDeleteCommand = Command(() => Preview(RecoveryAction.DeleteCreatedObject), CanPreview);
         PreviewRestoreCommand = Command(() => Preview(RecoveryAction.RestoreUpdate), CanPreview);
         PreviewDisableCommand = Command(() => Preview(RecoveryAction.DisableConditionalAccess), CanPreview);
-        ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.Idle && Plan is not null && Approved);
+        ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && Plan is not null && Approved);
         ReverifyDeploymentCommand = Command(() => Reverify(false), () => Workspace.IsConnected && Workspace.Idle && Selected is not null
             && (Selected.Acceptance == WriteAcceptance.Accepted || (Selected.Historical && HistoricalAcknowledged)));
         ReverifyRecoveryCommand = Command(() => Reverify(true), () => Workspace.IsConnected && Workspace.Idle && SelectedRecovery is not null);
