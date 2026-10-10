@@ -201,7 +201,7 @@ public sealed class ExchangeReportRunner
                 return Result(ReadRunOutcome.ModuleMissing, ModuleGuidance);
             // A non-zero exit is never promoted to success, even if a plausible result file exists.
             if (outcome.ExitCode != 0 || markers.Failure is not null || !markers.Done)
-                return Result(markers.Failure is "RequestInvalid" or "BodyChanged" or "BodyRefused" or "IdentityMismatch" ? ReadRunOutcome.Refused : ReadRunOutcome.Failed,
+                return Result(markers.Failure is "RequestInvalid" or "BodyChanged" or "BodyRefused" or "IdentityMismatch" or "ConnectionExpired" ? ReadRunOutcome.Refused : ReadRunOutcome.Failed,
                     FailureReason(markers.Failure));
             var evidence = Evidence(null, null);
             return evidence is null
@@ -232,6 +232,7 @@ public sealed class ExchangeReportRunner
         "ModuleUnavailable" => "The ExchangeOnlineManagement module could not be loaded, already had a connection, or did not provide the expected commands. Nothing was read.",
         "ConnectFailed" => "Exchange Online sign-in did not complete. Nothing was read.",
         "IdentityMismatch" => "Exchange Online connected to another tenant or account, or more than one connection was open. Nothing was read.",
+        "ConnectionExpired" => "The Exchange Online sign-in had expired, or its expiry could not be confirmed. Nothing was read; sign in again and start a new run.",
         "BodyFailed" => "The script stopped with an error before it returned a result. No rows were kept.",
         "OutputInvalid" => "The script's result did not match the registered report. No rows were kept.",
         _ => "The runner did not finish. No rows were kept."

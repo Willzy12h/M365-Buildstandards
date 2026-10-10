@@ -24,12 +24,42 @@ function Disconnect-ExchangeOnline {
     $script:Connected = $false
 }
 
+# The token fields Get-ConnectionInformation documents. By default the token is Active and expires in an hour, as a
+# DateTimeOffset. BDIT_FAKE_TOKEN picks another shape: expired, missing, null, malformed, another type or a string form.
+function Add-FakeToken($Connection) {
+    $now = [DateTimeOffset]::UtcNow
+    $status = 'Active'
+    $expiry = $now.AddHours(1)
+    switch ([string]$env:BDIT_FAKE_TOKEN) {
+        'expired-active' { $expiry = $now.AddHours(-1) }
+        'expired-status' { $status = 'Expired' }
+        'missing-status' { $status = '<absent>' }
+        'null-status' { $status = $null }
+        'missing-expiry' { $expiry = '<absent>' }
+        'null-expiry' { $expiry = $null }
+        'malformed-expiry' { $expiry = 'not a date' }
+        'number-expiry' { $expiry = 4102444800 }
+        'ambiguous-string' { $expiry = $now.AddDays(40).UtcDateTime.ToString('dd/MM/yyyy HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) }
+        'offset-string-past' { $expiry = $now.AddMinutes(-10).ToOffset([TimeSpan]::FromHours(14)).ToString('yyyy-MM-ddTHH:mm:sszzz', [Globalization.CultureInfo]::InvariantCulture) }
+        'offset-string-future' { $expiry = $now.AddMinutes(30).ToOffset([TimeSpan]::FromHours(-11)).ToString('yyyy-MM-ddTHH:mm:sszzz', [Globalization.CultureInfo]::InvariantCulture) }
+        'utc-string-future' { $expiry = $now.AddMinutes(30).UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ', [Globalization.CultureInfo]::InvariantCulture) }
+        'utc-datetime-future' { $expiry = $now.AddMinutes(30).UtcDateTime }
+        'unspecified-datetime-past' { $expiry = [DateTime]::SpecifyKind($now.AddMinutes(-30).UtcDateTime, [DateTimeKind]::Unspecified) }
+        'unspecified-datetime-future' { $expiry = [DateTime]::SpecifyKind($now.AddMinutes(30).UtcDateTime, [DateTimeKind]::Unspecified) }
+        'expires-after-first-read' { if ($script:Reads -ge 1) { $expiry = $now.AddSeconds(-1) } }
+        'expires-after-last-read' { if ($script:Reads -ge 3) { $expiry = $now.AddSeconds(-1) } }
+    }
+    if ($status -ne '<absent>') { $Connection | Add-Member -NotePropertyName TokenStatus -NotePropertyValue $status }
+    if (-not ($expiry -is [string] -and $expiry -eq '<absent>')) { $Connection | Add-Member -NotePropertyName TokenExpiryTimeUTC -NotePropertyValue $expiry }
+}
+
 function Get-ConnectionInformation {
     if (-not $script:Connected) { return }
     $account = $script:Account
     # Changes only after the last of the three reads, so only the gate's check after a read can notice it.
     if ($script:Scenario -eq 'account-changes' -and $script:Reads -ge 3) { $account = 'someone.else@synthetic.example' }
     $connection = [pscustomobject]@{ State = 'Connected'; IsEopSession = $false; TenantID = $script:Tenant; UserPrincipalName = $account }
+    Add-FakeToken $connection
     if ($script:Scenario -eq 'two-connections') { return @($connection, $connection) }
     return $connection
 }

@@ -261,6 +261,84 @@ public sealed class ExchangeReportRunnerTests
         Assert.Equal(3, run.Reads);
     }
 
+    /// <summary>
+    /// AST-20261010-03: an observed expired token, or one whose status or expiry is missing, null, malformed, of another type
+    /// or in an ambiguous text form, is never a usable connection. Nothing is read. The child runs twelve hours behind UTC,
+    /// so reading an Unspecified UTC expiry as local time would move a past expiry into the future.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(UnusableTokens))]
+    public async Task An_expired_or_unconfirmed_token_is_refused_before_any_read(string runtime, string token)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "happy", extra: new() { ["BDIT_FAKE_TOKEN"] = token, ["TZ"] = "Etc/GMT+12" });
+
+        Assert.Equal(ReadRunOutcome.Refused, result.Outcome);
+        Assert.Null(result.Evidence);
+        Assert.Equal(0, run.Reads);
+        Assert.Contains("sign-in had expired", result.Reason, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string, string> UnusableTokens()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (runtime, _) in FindRuntimes())
+            foreach (var token in new[] { "expired-active", "expired-status", "missing-status", "null-status", "missing-expiry", "null-expiry",
+                "malformed-expiry", "number-expiry", "ambiguous-string", "offset-string-past", "unspecified-datetime-past" })
+                data.Add(runtime, token);
+        return data;
+    }
+
+    /// <summary>The child runs fourteen hours ahead of UTC, so reading an Unspecified UTC expiry as local time would move a
+    /// future expiry into the past.</summary>
+    [Theory]
+    [MemberData(nameof(UsableTokens))]
+    public async Task A_future_expiry_in_each_supported_form_is_a_usable_connection(string runtime, string token)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "happy", extra: new() { ["BDIT_FAKE_TOKEN"] = token, ["TZ"] = "Pacific/Kiritimati" });
+
+        Assert.Equal(ReadRunOutcome.Completed, result.Outcome);
+        Assert.Equal(ReportReadState.Collected, Assert.IsType<ExchangeReportEvidence>(result.Evidence).Status);
+    }
+
+    public static TheoryData<string, string> UsableTokens()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (runtime, _) in FindRuntimes())
+            foreach (var token in new[] { "default", "utc-datetime-future", "unspecified-datetime-future", "utc-string-future", "offset-string-future" })
+                data.Add(runtime, token);
+        return data;
+    }
+
+    /// <summary>The gate rechecks the token after every read: an expiry after the first read stops the run, and one after the
+    /// last read still keeps no row, with no retry or replay.</summary>
+    [Theory]
+    [MemberData(nameof(ExpiryDuringRun))]
+    public async Task A_token_that_expires_during_the_run_keeps_no_rows(string runtime, string token, int reads)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "happy", extra: new() { ["BDIT_FAKE_TOKEN"] = token });
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        Assert.Equal(ReportReadState.Failed, evidence.Status);
+        Assert.Empty(evidence.Sections.Single().Rows);
+        Assert.Contains("sign-in expired", evidence.Sections.Single().Error, StringComparison.Ordinal);
+        Assert.Equal(reads, run.Reads);
+        Assert.Equal(1, run.Log.Split('\n').Count(l => l.StartsWith("Connect ", StringComparison.Ordinal)));
+    }
+
+    public static TheoryData<string, string, int> ExpiryDuringRun()
+    {
+        var data = new TheoryData<string, string, int>();
+        foreach (var (runtime, _) in FindRuntimes())
+        {
+            data.Add(runtime, "expires-after-first-read", 1);
+            data.Add(runtime, "expires-after-last-read", 3);
+        }
+        return data;
+    }
+
     /// <summary>The item requires a version above the stand-in's, so no installed module of any version can qualify.</summary>
     [Theory, MemberData(nameof(Runtimes))]
     public async Task A_missing_module_is_reported_and_nothing_is_signed_in(string runtime)

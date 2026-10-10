@@ -259,23 +259,51 @@ function Invoke-BditRunner {
             param($Tenant, $Account, $Connections, $Readers, $StopFile)
             $script:Failure = $null
             $script:Observed = $null
+            # A token is usable only when it is reported Active and its expiry is read as a time after now. A missing, null,
+            # malformed or ambiguous status or expiry is never guessed usable. Typed values keep their own meaning: a
+            # DateTimeOffset is an instant, a Local DateTime is converted, and an Unspecified DateTime is the documented UTC.
+            # Text is accepted only as ISO 8601 with Z or an explicit offset, read with the invariant culture.
+            function Test-BditToken($Connection) {
+                $statusProperty = $Connection.PSObject.Properties['TokenStatus']
+                $expiryProperty = $Connection.PSObject.Properties['TokenExpiryTimeUTC']
+                if ($null -eq $statusProperty -or $null -eq $expiryProperty) { return $false }
+                if ($statusProperty.Value -isnot [string] -or -not [string]::Equals($statusProperty.Value, 'Active', [StringComparison]::OrdinalIgnoreCase)) { return $false }
+                $value = $expiryProperty.Value
+                if ($value -is [DateTimeOffset]) { $expiry = $value.UtcDateTime }
+                elseif ($value -is [DateTime]) {
+                    if ($value.Kind -eq [DateTimeKind]::Local) { $expiry = $value.ToUniversalTime() }
+                    else { $expiry = [DateTime]::SpecifyKind($value, [DateTimeKind]::Utc) }
+                }
+                elseif ($value -is [string]) {
+                    if ($value -cnotmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,7})?(Z|[+-][0-9]{2}:[0-9]{2})$') { return $false }
+                    $parsed = [DateTimeOffset]::MinValue
+                    if (-not [DateTimeOffset]::TryParse($value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) { return $false }
+                    $expiry = $parsed.UtcDateTime
+                }
+                else { return $false }
+                return $expiry -gt [DateTime]::UtcNow
+            }
+            # 'Usable', or why not: 'Identity' (none, several, another tenant or account) or 'Expired' (the token).
             function Test-BditConnection {
                 $live = @(& $Connections | Where-Object { $_.State -eq 'Connected' -and -not $_.IsEopSession })
-                if ($live.Count -ne 1) { return $false }
+                if ($live.Count -ne 1) { return 'Identity' }
                 $tenantProperty = $live[0].PSObject.Properties['TenantID']
                 $accountProperty = $live[0].PSObject.Properties['UserPrincipalName']
-                if ($null -eq $tenantProperty -or $null -eq $accountProperty) { return $false }
+                if ($null -eq $tenantProperty -or $null -eq $accountProperty) { return 'Identity' }
                 $parsed = [guid]::Empty
-                if (-not [guid]::TryParse([string]$tenantProperty.Value, [ref]$parsed) -or $parsed -ne $Tenant) { return $false }
+                if (-not [guid]::TryParse([string]$tenantProperty.Value, [ref]$parsed) -or $parsed -ne $Tenant) { return 'Identity' }
                 $observed = ([string]$accountProperty.Value).Trim()
-                if (-not [string]::Equals($observed, $Account, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+                if (-not [string]::Equals($observed, $Account, [StringComparison]::OrdinalIgnoreCase)) { return 'Identity' }
+                if (-not (Test-BditToken $live[0])) { return 'Expired' }
                 $script:Observed = $observed
-                return $true
+                return 'Usable'
             }
+            function Get-BditConnectionFailure([string]$State) { if ($State -eq 'Expired') { return 'TokenExpired' } else { return 'IdentityChanged' } }
             function Assert-BditGate {
                 if ($null -ne $script:Failure) { throw 'BDIT-GATE-CLOSED' }
                 if ([IO.File]::Exists($StopFile)) { $script:Failure = 'Stopped'; throw 'BDIT-STOP' }
-                if (-not (Test-BditConnection)) { $script:Failure = 'IdentityChanged'; throw 'BDIT-IDENTITY' }
+                $state = Test-BditConnection
+                if ($state -ne 'Usable') { $script:Failure = Get-BditConnectionFailure $state; throw 'BDIT-IDENTITY' }
             }
             function Use-BditRead {
                 param([Parameter(Mandatory = $true)][string]$Command, [Parameter(Mandatory = $true)][hashtable]$Parameters)
@@ -295,16 +323,20 @@ function Invoke-BditRunner {
                 return $output
             }
             function Get-BditGateState { return @{ Failure = $script:Failure; Observed = $script:Observed } }
-            function Close-BditGate { if ($null -eq $script:Failure -and -not (Test-BditConnection)) { $script:Failure = 'IdentityChanged' } }
+            function Close-BditGate {
+                if ($null -ne $script:Failure) { return }
+                $state = Test-BditConnection
+                if ($state -ne 'Usable') { $script:Failure = Get-BditConnectionFailure $state }
+            }
             Export-ModuleMember -Function Use-BditRead
         })
     $null = Import-Module -ModuleInfo $BditGate -Global -Force
 
-    try {
-        if (-not (& $BditGate { Test-BditConnection })) { throw 'identity' }
-    }
-    catch {
+    $connectionState = 'Identity'
+    try { $connectionState = & $BditGate { Test-BditConnection } } catch { $connectionState = 'Identity' }
+    if ($connectionState -ne 'Usable') {
         try { & $identity['Disconnect-ExchangeOnline'] -Confirm:$false -ErrorAction SilentlyContinue } catch { }
+        if ($connectionState -eq 'Expired') { Stop-BditRun 'ConnectionExpired' }
         Stop-BditRun 'IdentityMismatch'
     }
 
@@ -329,12 +361,13 @@ function Invoke-BditRunner {
     $failureReason = @{
         Stopped = 'The engineer stopped the run before the read finished; later rows were not read.'
         IdentityChanged = 'The Exchange connection no longer matched the verified tenant and account, so no rows from this run are kept.'
+        TokenExpired = 'The Exchange sign-in expired, or its expiry could no longer be confirmed, during the run, so no rows from this run are kept.'
     }
     $states = @('Collected', 'Partial', 'Failed', 'NotAttempted', 'Cancelled')
     try {
         $sections = New-Object Collections.ArrayList
         # A stop can end the body before it returns anything; that is a cancelled run with no rows, not invalid output.
-        $keepNothing = $gate.Failure -eq 'IdentityChanged' -or ($gate.Failure -eq 'Stopped' -and $bodyFailed)
+        $keepNothing = $gate.Failure -eq 'IdentityChanged' -or $gate.Failure -eq 'TokenExpired' -or ($gate.Failure -eq 'Stopped' -and $bodyFailed)
         if (-not $keepNothing) {
             if ($bodyOutput.Count -ne 1 -or $bodyOutput[0] -isnot [Collections.IDictionary]) { throw 'output' }
             $claimed = $bodyOutput[0]
@@ -346,8 +379,8 @@ function Invoke-BditRunner {
         foreach ($registered in @($BditRequest.sections)) {
             $columns = @($registered.columns | ForEach-Object { [string]$_ })
             $rows = New-Object Collections.ArrayList
-            if ($gate.Failure -eq 'IdentityChanged') {
-                $status = 'Failed'; $reason = $failureReason.IdentityChanged
+            if ($gate.Failure -eq 'IdentityChanged' -or $gate.Failure -eq 'TokenExpired') {
+                $status = 'Failed'; $reason = $failureReason[[string]$gate.Failure]
             }
             elseif ($keepNothing) {
                 $status = 'Cancelled'; $reason = $failureReason.Stopped
