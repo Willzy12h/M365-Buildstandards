@@ -162,7 +162,11 @@ internal static partial class Program
                         throw new InvalidOperationException("Failed report was presented as empty success.");
                     if (label == "zero" && !vm.SectionSummary.Contains("Checked successfully; no objects returned", StringComparison.Ordinal))
                         throw new InvalidOperationException("Collected zero report was not distinct from failed or unknown.");
-                    if (label == "large" && vm.Rows?.Count != 120) throw new InvalidOperationException("Large report rows were lost.");
+                    if (label == "large")
+                    {
+                        if (vm.Rows?.Count != 120) throw new InvalidOperationException("Large report rows were lost.");
+                        CheckVirtualisedReportCell(vm, content);
+                    }
                     CaptureReportState(content, output, "reports-" + label, size);
                 }
 
@@ -288,6 +292,29 @@ internal static partial class Program
             + string.Join("; ", rows.Select(r => $"row {r.GetIndex()} height {r.ActualHeight:0.###}, visible {VisibleBounds(r, content).Height:0.###}"));
         Console.WriteLine(where + ": " + geometry);
         if (table.Items.Count < 2 || fullyVisible < 2) throw new InvalidOperationException(where + ": at least two populated rows must be fully visible; observed " + fullyVisible + ". " + geometry);
+    }
+
+    private static void CheckVirtualisedReportCell(GraphReportsViewModel vm, FrameworkElement content)
+    {
+        var table = Descendants(content).OfType<DataGrid>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Typed report rows");
+        var column = table.Columns.Single(c => Equals(c.Header, "Object ID"));
+        var lastIndex = vm.Rows!.Count - 1;
+        table.ScrollIntoView(vm.Rows[0], column); content.UpdateLayout(); Pump(); content.UpdateLayout(); Pump();
+        if (!table.EnableRowVirtualization || table.ItemContainerGenerator.ContainerFromIndex(lastIndex) is not null)
+            throw new InvalidOperationException("The 120-row report fixture did not virtualise its final off-screen row.");
+        var item = vm.Rows[lastIndex]; var expected = item["Object ID"].ToString()!;
+        if (!Guid.TryParse(expected, out _) || expected.Length != 36)
+            throw new InvalidOperationException("The immutable large-row fixture must supply a full 36-character object ID.");
+        vm.SelectedRow = item; table.ScrollIntoView(item, column);
+        content.UpdateLayout(); Pump(); content.UpdateLayout(); Pump();
+        var row = table.ItemContainerGenerator.ContainerFromIndex(lastIndex) as DataGridRow
+            ?? throw new InvalidOperationException("The final virtualised report row was not realised after scrolling.");
+        var cell = Descendants(row).OfType<DataGridCell>().Single(c => c.Column == column);
+        var text = Descendants(cell).OfType<TextBlock>().Single();
+        if (!IsShown(text, content) || string.IsNullOrWhiteSpace(text.Text) || text.Text != expected
+            || text.ToolTip is not string tooltip || tooltip != expected || !vm.SelectedRowDetails.Contains(expected, StringComparison.Ordinal))
+            throw new InvalidOperationException("A realised report string cell must show its original nonblank ID and full-value tooltip, also retained in row details.");
+        Console.WriteLine($"Native report virtualised cell: row {lastIndex}, full object ID and tooltip match original {expected}.");
     }
 
     private static void CheckIdentityHeader(ShellViewModel shell, FrameworkElement content, string where)

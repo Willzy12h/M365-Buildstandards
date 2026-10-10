@@ -259,3 +259,9 @@ First repaired Windows push38080373544 / PR38080376218 at1b4d3e1 executed all31 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-16 | Native UI harness / Reports (P2) | Actual1180x760 client view at40eb1f21 shows only one fully visible populated report row | Table minimum, readable columns/cells, compact redundant spacing and blank-path layout repaired in #80; full details/provenance retained | Executed failure38080199959 at unchanged >=2 assertion. Strict compile passes; final Windows three-size/native/package and independent review remain required. |
+
+## Astra Naming small-window follow-up — 10 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-17 | Native UI harness / Naming (P2) | At e4ab3cd,1180×640 table bounds are179 high but only76 visible, with no complete populated rows | Local compact spacing/filter margins and150-DIP table minimum implemented in #80; all guidance/provenance retained | Actual failing push38081012364. Strict compile passes; new exact-head Windows/native/package and Claude review remain required. Reports passes its unchanged >=2 assertion at all3 sizes in this failed overall run. |
