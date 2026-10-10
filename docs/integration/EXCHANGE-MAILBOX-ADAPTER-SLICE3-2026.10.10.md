@@ -33,6 +33,15 @@ Synthetic stand-in module only (`tests/.../Fixtures/ReadRunner`). The new regres
 - **AST-20261010-20 (Astra, P2).** `Get-EXOMailbox` returns only its Minimum property set plus the properties asked for, and `ExchangeGuid` is not in Minimum, so a real tenant would have listed no mailboxes. The adapter now asks for `ExchangeGuid`. The stand-in module now returns only Minimum plus the requested properties whenever `-Properties` is passed; with that change all nine adapter cases failed on `c3d96f1` and pass now. The older synthetic slice 2 body asks for no properties and keeps the full shape.
 - **AST-20261010-21 (Astra, P3).** A mailbox without a GUID overwrote the cap's section reason, so a truncated list no longer said so. Each limitation is now kept. `A_section_over_the_cap_with_a_mailbox_missing_its_guid_keeps_both_limitations` runs 10,001 mailboxes with one missing GUID and checks both reasons and 9,999 rows.
 
+## Capacity review over the inventory (follow-up PR)
+
+`MailboxCapacityInventory.Evaluate` joins one sealed `exo-mailbox-inventory` record to one sealed `users-licences` report for the same tenant and runs the reviewed INT-071 evaluator (#58, [MAILBOX-CAPACITY-2026.10.08.md](MAILBOX-CAPACITY-2026.10.08.md)) on every mailbox. Both records are checked with their strict readers first, so a record from another tenant, another report or changed after sealing is refused. The licence report is validated and indexed by exact user ID once, rather than once per mailbox.
+
+- Size, quota and archive keep the row's own read states. A quota that was not read leaves the configured 100 GB check unknown, while eligibility from the licence report still shows.
+- Archive values apply only when the archive was read as present. The row's archive state (true, false or not read) is returned beside the capacity result.
+- A section that was not read, or was cancelled, lists no mailboxes. A Partial section returns its own reason, so a capped or incomplete list is never shown as every mailbox.
+- The review is pure and offline. It reads nothing, stores no new record and changes no quota. No UI or CLI uses it yet; that follows the Run screen (slice 4).
+
 ## Not verified
 
 The adapter has not been run against a real tenant. The property names, the `ArchiveGuid` signal for archive presence and the run time for large tenants are from Microsoft's documentation, not observation. Live acceptance stays a human gate.
