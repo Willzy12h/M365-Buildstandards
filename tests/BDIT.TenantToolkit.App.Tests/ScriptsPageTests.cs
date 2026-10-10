@@ -253,6 +253,11 @@ public sealed class ScriptsPageTests : IDisposable
         Assert.Equal(TenantColours.For(TestData.TenantA), review.Colour);
         Assert.Equal("Message trace", review.ItemName);
         Assert.Equal("Read only. Makes no changes.", review.TypeText);
+        Assert.Contains(_page.Selected!.Needs, review.Requirements);
+        Assert.Contains(_page.Selected.Entry.Manifest.Prerequisites, review.Requirements);
+        Assert.Contains(_page.Selected.LiveStatus, review.Requirements);
+        foreach (var limitation in _page.Selected.Entry.Manifest.Limitations)
+            Assert.Contains(limitation, review.Requirements);
         Assert.Contains(new ScriptReviewValue("Recipients", "alex@example.com"), review.Values);
         Assert.Contains(new ScriptReviewValue("From (UTC)", "2026-10-06"), review.Values);
 

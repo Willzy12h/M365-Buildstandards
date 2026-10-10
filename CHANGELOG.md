@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Show script requirements and limitations in the actual Copy/Save confirmation; retain stored-capture deployment ineligibility in the compact configuration summary.
+
 - Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
@@ -234,6 +236,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 # Changelog
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
+
+- Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
 
 - Readiness reads now keep failed or malformed results Unknown, preserve exact emergency-account identity and give practical access/service next steps; no configuration is inferred from a failed request.
 
