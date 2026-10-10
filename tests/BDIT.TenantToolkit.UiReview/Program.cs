@@ -273,8 +273,11 @@ internal static partial class Program
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
             VerifyQuickConnectScroll(shell, window, content);
-            CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
-            CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            using (new NativeHarnessTrackBounds(window, content, PageSizes))
+            {
+                CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
+                CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            }
             foreach (var nav in shell.NavItems)
             {
                 traces.Context = "keyboard " + nav.Key;

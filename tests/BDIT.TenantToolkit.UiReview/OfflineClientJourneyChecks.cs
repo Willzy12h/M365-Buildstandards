@@ -125,15 +125,8 @@ internal static partial class Program
 
     private static void ResizeOfflineJourney(Window window, FrameworkElement content, Size size)
     {
-        // Measure current chrome after layout; an outer-window size is not a client-content size.
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            content.UpdateLayout(); Pump();
-            var width = size.Width - content.ActualWidth; var height = size.Height - content.ActualHeight;
-            if (Math.Abs(width) <= 1 && Math.Abs(height) <= 1) return;
-            window.Width += width; window.Height += height; content.UpdateLayout(); Pump();
-        }
-        throw new InvalidOperationException($"Offline journey client size is {content.ActualWidth}x{content.ActualHeight}, expected {size.Width}x{size.Height}.");
+        // Both shown journeys use the same bounded measurement and exact client-size assertions.
+        FitNativeReportClientSize(window, content, size);
     }
     private static void CheckNativeSameContextDrafts(ShellViewModel shell, FrameworkElement content, string control)
     {
