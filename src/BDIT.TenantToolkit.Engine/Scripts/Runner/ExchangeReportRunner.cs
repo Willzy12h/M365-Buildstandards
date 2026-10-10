@@ -34,10 +34,11 @@ public sealed record ReadRunResult(string RunId, ReadRunOutcome Outcome, string 
 
 /// <summary>
 /// Where the runner finds PowerShell and which file's download origin the materialised files inherit. <paramref name="StopGrace"/>
-/// replaces the fixed stop grace only for tests that must not depend on how fast a shared machine is.
+/// replaces the fixed stop grace only for tests that must not depend on how fast a shared machine is; <paramref name="Terminate"/>
+/// and <paramref name="TerminationWait"/> stand in for a system that refuses to end the process, again only in tests.
 /// </summary>
 internal sealed record ReadRunnerHost(Func<string, string?> RuntimePath, IReadOnlyDictionary<string, string>? Environment, string? OriginSource, string StagingRoot,
-    TimeSpan? StopGrace = null)
+    TimeSpan? StopGrace = null, Action<Process>? Terminate = null, TimeSpan? TerminationWait = null)
 {
     /// <summary>The fixed system locations only: Windows PowerShell 5.1 and machine-wide PowerShell 7. No PATH lookup.</summary>
     public static ReadRunnerHost Default { get; } = new(DefaultRuntime, null, System.Environment.ProcessPath, Path.GetTempPath());
@@ -125,7 +126,7 @@ public sealed class ExchangeReportRunner
                 TimeSpan.FromSeconds(Math.Min(m.Limits.TimeoutSeconds, ReadRunnerLimits.MaximumTimeoutSeconds)),
                 () => markers.Overflowed,
                 () => { using var _ = new FileStream(files.Stop, FileMode.CreateNew, FileAccess.Write); },
-                _host.StopGrace ?? ReadRunnerLimits.StopGrace, ct);
+                _host.StopGrace ?? ReadRunnerLimits.StopGrace, ct, _host.Terminate, _host.TerminationWait);
             var finishedAt = _clock.UtcNow;
             var truncated = Interlocked.Read(ref diagnosticBytes) > ReadRunnerLimits.MaximumDiagnosticBytes;
             return Decide(runId, entry, report, context, parameters, outcome, markers, files.Result, launchedAt, finishedAt, truncated);

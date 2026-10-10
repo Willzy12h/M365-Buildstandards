@@ -136,6 +136,45 @@ public sealed class OwnedProcessTests
         finally { await child.CleanUpAsync(); }
     }
 
+    /// <summary>A termination step that fails the way a system refusal does.</summary>
+    private static void Refuse(Process _) => throw new System.ComponentModel.Win32Exception(5, "Access is denied.");
+
+    [Fact]
+    public async Task A_limit_check_that_throws_when_the_system_will_not_stop_the_child_is_reported_as_not_stopped()
+    {
+        // AST-20261010-19: the callback's own error must not hide that the child may still be running.
+        var child = new Child();
+        var started = false;
+        try
+        {
+            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync, Drain, Long,
+                () => Volatile.Read(ref started) ? throw new InvalidOperationException("Limit check failed.") : false,
+                () => { }, Grace, CancellationToken.None, terminate: Refuse, terminationWait: TimeSpan.FromMilliseconds(500));
+            await child.StartedAsync();
+            Volatile.Write(ref started, true);
+            var outcome = await run.WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.Equal(new OwnedProcessOutcome(OwnedProcessEnd.NotStopped, null, false), outcome);
+            Assert.False(await child.GoneAsync());
+        }
+        finally { await child.CleanUpAsync(); }
+    }
+
+    [Fact]
+    public async Task A_reader_that_throws_when_the_system_will_not_stop_the_child_is_reported_as_not_stopped()
+    {
+        var child = new Child();
+        try
+        {
+            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync,
+                _ => { child.Pid.Wait(TimeSpan.FromSeconds(30)); throw new InvalidOperationException("Reader failed."); },
+                Long, () => false, () => { }, Grace, CancellationToken.None, terminate: Refuse, terminationWait: TimeSpan.FromMilliseconds(500));
+            var outcome = await run.WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.Equal(OwnedProcessEnd.NotStopped, outcome.End);
+            Assert.False(await child.GoneAsync());
+        }
+        finally { await child.CleanUpAsync(); }
+    }
+
     [Fact]
     public async Task A_cooperative_stop_that_works_ends_without_force()
     {

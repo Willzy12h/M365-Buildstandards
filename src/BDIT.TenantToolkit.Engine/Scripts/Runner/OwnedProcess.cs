@@ -88,10 +88,13 @@ public static class OwnedProcess
             if (end == OwnedProcessEnd.Exited && limitExceeded()) end = OwnedProcessEnd.LimitExceeded;
             return new(end, kill ? null : process.ExitCode, kill);
         }
-        finally
+        catch (Exception) when (!stopped && !exit.IsCompleted)
         {
-            // Whatever failed above, a started process is never left running behind a returned or thrown result.
-            if (!stopped && !exit.IsCompleted) _ = await TerminateAsync(process, exit, terminate, terminationWait ?? TerminationWait);
+            // Whatever failed above, a started process is never left running behind a thrown result. When it is ended, the
+            // original error stands; when the system will not end it, that is what the caller must be told (AST-20261010-19).
+            if (!await TerminateAsync(process, exit, terminate, terminationWait ?? TerminationWait))
+                return new(OwnedProcessEnd.NotStopped, null, false);
+            throw;
         }
     }
 

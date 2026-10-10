@@ -131,11 +131,12 @@ public sealed class ExchangeReportRunnerTests
 
         public Task<ReadRunResult> Execute(string runtime, string scenario, ScriptEntry? entry = null, IReadOnlyDictionary<string, string?>? inputs = null,
             Dictionary<string, string>? extra = null, string? origin = null, CancellationToken ct = default, Action<string>? onProgress = null,
-            TimeSpan? stopGrace = null)
+            TimeSpan? stopGrace = null, Action<Process>? terminate = null)
         {
             var environment = FakeEnvironment(runtime, Root, scenario);
             foreach (var (key, value) in extra ?? []) environment[key] = value;
-            var host = new ReadRunnerHost(_ => RuntimePath(runtime), environment, origin, Path.Combine(Root, "staging"), stopGrace);
+            var host = new ReadRunnerHost(_ => RuntimePath(runtime), environment, origin, Path.Combine(Root, "staging"), stopGrace,
+                terminate, terminate is null ? null : TimeSpan.FromMilliseconds(500));
             var progress = new SyncProgress(text => { lock (Progress) Progress.Add(text); onProgress?.Invoke(text); });
             return new ExchangeReportRunner(host, new SystemClock()).RunAsync(entry ?? Entry(), Context, inputs ?? NoArchive, runtime, progress, ct);
         }
@@ -463,6 +464,31 @@ public sealed class ExchangeReportRunnerTests
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "The run must not wait out the stop grace for a stop it never requested.");
         if (!OperatingSystem.IsWindows())
             Assert.DoesNotContain(Directory.GetDirectories("/proc").Select(d => Path.Combine(d, "cmdline")), RunsFrom(run.Root));
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_run_the_system_will_not_stop_fails_with_the_warning_that_PowerShell_may_still_be_running(string runtime)
+    {
+        // AST-20261010-19, at the runner's fixed-reason boundary: the read ignores the stop, and ending it is refused.
+        using var run = new Run();
+        using var cts = new CancellationTokenSource();
+        int? pid = null;
+        try
+        {
+            var result = await run.Execute(runtime, "slow-stats", ct: cts.Token, stopGrace: TimeSpan.FromMilliseconds(200),
+                terminate: p => { pid = p.Id; throw new System.ComponentModel.Win32Exception(5, "Access is denied."); },
+                onProgress: p => { if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) cts.Cancel(); })
+                .WaitAsync(TimeSpan.FromSeconds(60));
+            Assert.Equal(ReadRunOutcome.Failed, result.Outcome);
+            Assert.Equal(ExchangeReportRunner.NotStoppedReason, result.Reason);
+            Assert.Null(result.Evidence);
+        }
+        finally
+        {
+            // The refusal was simulated, so the child really is still running; end it here.
+            if (pid is int id) try { using var p = Process.GetProcessById(id); p.Kill(entireProcessTree: true); p.WaitForExit(10000); }
+                catch (ArgumentException) { } catch (InvalidOperationException) { }
+        }
     }
 
     /// <summary>True for a /proc command line that names a file under <paramref name="root"/>, so a child left running is found.</summary>
