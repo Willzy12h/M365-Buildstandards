@@ -14,7 +14,7 @@
 |---|---|---|
 | 1 | Source inventory | Reproducible commits and handovers |
 | 2 | Architecture and schemas | Canonical repository, configuration and standard format |
-| 3 | Authentication and permissions | Explicit delegated and application modes |
+| 3 | Authentication and permissions | Stabilise delegated mode and renewal; app-only remains deferred |
 | 4 | Collection and snapshots | Complete outcomes and mandatory pre-change evidence |
 | 5 | Comparison | Semantic matching and incomplete-data handling |
 | 6 | Planning and dependencies | Selective, reviewable and resolved plan |

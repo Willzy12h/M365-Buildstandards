@@ -1,0 +1,102 @@
+using System.IO.Compression;
+using System.Text.Json.Nodes;
+using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Graph;
+using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Reports;
+using Xunit;
+
+namespace BDIT.TenantToolkit.Tests;
+
+// Scratch review tests for PR #44 — not to be committed.
+public sealed class ZzReviewPr44Tests
+{
+    private static TenantSession Session() { var s = TestData.Session(); s.Scopes = ["Organization.Read.All", "User.Read.All", "DeviceManagementManagedDevices.Read.All", "AuditLog.Read.All"]; return s; }
+    private static GraphReportService Service() => new(new FixedClock());
+    private static ReportParameters Dates() => new() { Start = "2026-09-10T00:00:00Z", End = "2026-09-11T00:00:00Z" };
+    private static JsonObject User(string? id) => new() { ["id"] = id, ["displayName"] = "n", ["userPrincipalName"] = "u@example.invalid", ["accountEnabled"] = true, ["userType"] = "Member", ["assignedLicenses"] = new JsonArray(), ["assignedPlans"] = new JsonArray() };
+
+    [Fact]
+    public async Task R1_duplicate_subscription_ids_become_partial_not_an_exception()
+    {
+        var g = new Fake();
+        var sku = ToolkitJson.ParseObject($$"""{"id":"pool_x","skuId":"{{TestData.ClientId}}","skuPartNumber":"P","consumedUnits":1,"prepaidUnits":{"enabled":1,"warning":0,"suspended":0} }""");
+        g.Responses["/subscribedSkus"] = [sku, (JsonObject)sku.DeepClone()];
+        var report = await Service().CaptureAsync(g, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[0].Status);
+    }
+
+    [Theory]
+    [InlineData("sign-ins", "")]
+    [InlineData("directory-audit", " ")]
+    public async Task R2_empty_or_blank_log_ids_become_partial_rows_not_an_exception(string reportId, string id)
+    {
+        var g = new Fake();
+        var path = reportId == "sign-ins" ? "/auditLogs/signIns" : "/auditLogs/directoryAudits";
+        g.Responses[path] = [new JsonObject { ["id"] = id, ["createdDateTime"] = "2026-09-10T01:00:00Z", ["activityDateTime"] = "2026-09-10T01:00:00Z", ["status"] = new JsonObject { ["errorCode"] = 0 } }];
+        var report = await Service().CaptureAsync(g, Session(), reportId, Dates(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Status);
+    }
+
+    [Fact]
+    public async Task R3_empty_service_plan_name_is_partial_not_an_exception()
+    {
+        var g = new Fake(); g.Responses["/users"] = [User(TestData.Operator)];
+        g.Responses["/users/" + TestData.Operator + "/licenseDetails"] = [ToolkitJson.ParseObject($$"""{"skuId":"{{TestData.ClientId}}","skuPartNumber":"P","servicePlans":[{"servicePlanId":"efb87545-963c-4e0d-99df-69c6916d9eb0","servicePlanName":"","provisioningStatus":"Success","appliesTo":"User"}] }""")];
+        var report = await Service().CaptureAsync(g, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Status);
+    }
+
+    [Fact]
+    public async Task R4_empty_guid_user_id_is_partial_not_an_exception()
+    {
+        var g = new Fake(); g.Responses["/users"] = [User("00000000-0000-0000-0000-000000000000")];
+        var report = await Service().CaptureAsync(g, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Equal(ReportReadState.Partial, report.Sections[1].Status);
+    }
+
+    [Fact]
+    public async Task R5_same_user_id_with_trailing_newline_is_detected_as_duplicate()
+    {
+        var g = new Fake(); g.Responses["/users"] = [User(TestData.Operator), User(TestData.Operator + "\n")];
+        var report = await Service().CaptureAsync(g, Session(), "users-licences", new(), CancellationToken.None);
+        Assert.Single(report.Sections[1].Rows);
+    }
+
+    [Fact]
+    public async Task V1_export_neutralises_formula_and_escapes_html()
+    {
+        var g = new Fake();
+        g.Responses["/deviceManagement/managedDevices"] = [new JsonObject { ["id"] = TestData.Operator, ["deviceName"] = "=HYPERLINK(\"x\")", ["operatingSystem"] = "\t=1+1", ["managedDeviceOwnerType"] = "@SUM(1)", ["complianceState"] = "<script>alert(1)</script>", ["lastSyncDateTime"] = "2026-09-10T00:00:00Z", ["osVersion"] = "-1+2", ["userId"] = "+1" }];
+        var report = await Service().CaptureAsync(g, Session(), "intune-devices", new(), CancellationToken.None);
+        var sheet = RegisteredReportDocuments.Sheets(report)[1];
+        var csv = CsvWriter.Write(sheet.Rows);
+        Assert.DoesNotContain(",\"=", csv); Assert.DoesNotContain(",\"\t", csv); Assert.DoesNotContain(",\"@", csv); Assert.DoesNotContain(",\"-", csv);
+        var html = RegisteredReportDocuments.Html(report, "<b>co</b>");
+        Assert.DoesNotContain("<script>", html); Assert.DoesNotContain("<b>co", html);
+        var xlsx = XlsxWriter.Write(RegisteredReportDocuments.Sheets(report));
+        using var zip = new ZipArchive(new MemoryStream(xlsx));
+        foreach (var e in zip.Entries) { using var r = new StreamReader(e.Open()); Assert.DoesNotContain("<f>", r.ReadToEnd()); }
+    }
+
+    [Fact]
+    public async Task V2_log_filter_operators_used()
+    {
+        var g = new Fake();
+        await Service().CaptureAsync(g, Session(), "directory-audit", Dates(), CancellationToken.None);
+        Assert.Contains(g.Paths, p => p.Contains("%20lt%20", StringComparison.Ordinal)); // documents use of 'lt' (Graph documents eq/ge/le only)
+    }
+
+    private sealed class Fake : IGraphClient
+    {
+        public string TenantId => TestData.TenantA;
+        public SessionMode Mode => SessionMode.Deployment;
+        public Dictionary<string, List<JsonObject>> Responses { get; } = new();
+        public List<string> Paths { get; } = [];
+        public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct)
+        { Paths.Add(path); return Task.FromResult<IReadOnlyList<JsonObject>>(Responses.GetValueOrDefault(path.Split('?')[0], []).Select(r => (JsonObject)r.DeepClone()).ToList()); }
+        public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException();
+        public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException();
+    }
+}

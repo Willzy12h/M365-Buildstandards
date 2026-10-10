@@ -1,0 +1,179 @@
+using BDIT.TenantToolkit.Core;
+using BDIT.TenantToolkit.Core.Configuration;
+using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Engine.Exchange;
+
+namespace BDIT.TenantToolkit.Engine.Reports;
+
+/// <summary>
+/// How a report is written. <see cref="ClientHtml"/> is the odd one out: it names an audience rather than a file
+/// format, and it applies only to an assessment, which can be written for the engineer or summarised for the client.
+/// The build standard document has one audience by definition, so it takes <see cref="Html"/> or
+/// <see cref="Markdown"/> and nothing else; letting it also accept ClientHtml made the two mean the same thing there
+/// and the enum stopped saying what it meant.
+/// </summary>
+public enum ExportFormat { Html, Markdown, Json, Csv, Xlsx, ClientHtml }
+
+/// <summary>Writes reports to the reports folder with deterministic, filesystem-safe names.</summary>
+public sealed class ReportExporter
+{
+    private readonly ToolkitPaths _paths;
+    private readonly string _companyName;
+
+    public ReportExporter(ToolkitPaths paths, string companyName)
+    {
+        _paths = paths;
+        _companyName = string.IsNullOrWhiteSpace(companyName) ? "M365 BuildStandard" : companyName;
+    }
+
+    public static string SafeName(string value)
+    {
+        var chars = value.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '_').ToArray();
+        var s = new string(chars).Trim('_');
+        return s.Length == 0 ? "tenant" : s.Length > 60 ? s[..60] : s;
+    }
+
+    private static string Stamp(string iso) => Timestamps.TryParse(iso, out var t) ? t.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) : "undated";
+
+    private string Target(string kind, string tenantLabel, string iso, string extension)
+    {
+        Directory.CreateDirectory(_paths.ReportsDirectory);
+        return Path.Combine(_paths.ReportsDirectory, $"{kind}-{SafeName(tenantLabel)}-{Stamp(iso)}.{extension}");
+    }
+
+    public string ExportAssessment(AssessmentResult result, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(result.PrimaryDomain) ? result.TenantId : result.PrimaryDomain;
+        switch (format)
+        {
+            case ExportFormat.Html: return WriteText(Target("assessment", label, result.AssessedAt, "html"), HtmlReports.Engineer(result));
+            case ExportFormat.Markdown: return WriteText(Target("assessment", label, result.AssessedAt, "md"), MarkdownReports.Engineer(result));
+            case ExportFormat.Json: return WriteText(Target("assessment", label, result.AssessedAt, "json"), ToolkitJson.Serialize(result));
+            case ExportFormat.Csv: return WriteBytes(Target("assessment", label, result.AssessedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.AssessmentSheets(result)));
+            case ExportFormat.Xlsx: return WriteBytes(Target("assessment", label, result.AssessedAt, "xlsx"), XlsxWriter.Write(TabularReports.AssessmentSheets(result)));
+            case ExportFormat.ClientHtml: return WriteText(Target("client-summary", label, result.AssessedAt, "html"), HtmlReports.ClientSummary(result, _companyName));
+            default: throw new ArgumentOutOfRangeException(nameof(format));
+        }
+    }
+
+    public string ExportExchangeReadScript(string tenantId, string domain, DateTimeOffset now) =>
+        WriteText(Target("exchange-read-capture", domain, Timestamps.Format(now), "ps1"), ExchangeCaptureScripts.ReadOnlyCapture(tenantId, domain));
+
+    public string ExportExchangeProposal(string reviewedText, string controlId, DateTimeOffset now) =>
+        WriteText(Target("exchange-review-proposal", controlId, Timestamps.Format(now), "ps1"), reviewedText);
+
+    public string ExportRun(DeploymentRun run, IReadOnlyList<JournalEntry> journal, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(run.PrimaryDomain) ? run.TenantId : run.PrimaryDomain;
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target("deployment-run", label, run.StartedAt, "html"), HtmlReports.Run(run, journal)),
+            ExportFormat.Markdown => WriteText(Target("deployment-run", label, run.StartedAt, "md"), MarkdownReports.Run(run, journal)),
+            ExportFormat.Json => WriteText(Target("deployment-run", label, run.StartedAt, "json"), ToolkitJson.Serialize(new { run, journal })),
+            ExportFormat.Csv => WriteBytes(Target("deployment-run", label, run.StartedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.RunSheets(run, journal))),
+            ExportFormat.Xlsx => WriteBytes(Target("deployment-run", label, run.StartedAt, "xlsx"), XlsxWriter.Write(TabularReports.RunSheets(run, journal))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    public string ExportDrift(DriftReport drift, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(drift.TenantName) ? drift.TenantId : drift.TenantName;
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target("drift", label, drift.GeneratedAt, "html"), HtmlReports.Drift(drift)),
+            ExportFormat.Markdown => WriteText(Target("drift", label, drift.GeneratedAt, "md"), MarkdownReports.Drift(drift)),
+            ExportFormat.Json => WriteText(Target("drift", label, drift.GeneratedAt, "json"), ToolkitJson.Serialize(drift)),
+            ExportFormat.Csv => WriteBytes(Target("drift", label, drift.GeneratedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.DriftSheets(drift))),
+            ExportFormat.Xlsx => WriteBytes(Target("drift", label, drift.GeneratedAt, "xlsx"), XlsxWriter.Write(TabularReports.DriftSheets(drift))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    public string ExportUpgradeImpact(UpgradeImpactReport report, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(report.TenantName) ? report.TenantId : report.TenantName;
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "html"), HtmlReports.UpgradeImpact(report)),
+            ExportFormat.Markdown => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "md"), MarkdownReports.UpgradeImpact(report)),
+            ExportFormat.Json => WriteText(Target("upgrade-impact", label, report.GeneratedAt, "json"), ToolkitJson.Serialize(report)),
+            ExportFormat.Csv => WriteBytes(Target("upgrade-impact", label, report.GeneratedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.UpgradeImpactSheets(report))),
+            ExportFormat.Xlsx => WriteBytes(Target("upgrade-impact", label, report.GeneratedAt, "xlsx"), XlsxWriter.Write(TabularReports.UpgradeImpactSheets(report))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    public string ExportReport(ReportEvidence report, ExportFormat format, bool suppliedFile = false)
+    {
+        ReportEvidenceSchema.Validate(report, report.TenantId);
+        var kind = "tenant-report-" + SafeName(report.ReportId) + "-" + report.Id + "-" + Guid.NewGuid().ToString("N");
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target(kind, report.TenantId, report.EndedAt, "html"), RegisteredReportDocuments.Html(report, _companyName, suppliedFile)),
+            ExportFormat.Json => WriteText(Target(kind, report.TenantId, report.EndedAt, "json"), ReportEvidenceSchema.Serialize(report)),
+            ExportFormat.Csv => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "csv.zip"), CsvWriter.ZipSheets(RegisteredReportDocuments.Sheets(report, suppliedFile))),
+            ExportFormat.Xlsx => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "xlsx"), XlsxWriter.Write(RegisteredReportDocuments.Sheets(report, suppliedFile))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Registered reports export as HTML, JSON, CSV or XLSX.")
+        };
+    }
+
+    public string ExportSnapshot(TenantSnapshot snapshot, StandardCatalogue? standard, ExportFormat format)
+    {
+        var label = string.IsNullOrWhiteSpace(snapshot.PrimaryDomain) ? snapshot.TenantId : snapshot.PrimaryDomain;
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target("configuration", label, snapshot.CapturedAt, "html"), ConfigurationInventoryHtml.Render(snapshot, standard)),
+            ExportFormat.Json => WriteText(Target("configuration", label, snapshot.CapturedAt, "json"), ToolkitJson.Serialize(snapshot)),
+            ExportFormat.Csv => WriteBytes(Target("configuration", label, snapshot.CapturedAt, "csv.zip"), CsvWriter.ZipSheets(TabularReports.SnapshotSheets(snapshot, standard))),
+            ExportFormat.Xlsx => WriteBytes(Target("configuration", label, snapshot.CapturedAt, "xlsx"), XlsxWriter.Write(TabularReports.SnapshotSheets(snapshot, standard))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Configuration captures export as HTML, JSON, CSV or XLSX.")
+        };
+    }
+
+    /// <summary>
+    /// Writes the client-facing build standard for a named client. Generated from the catalogue, so it always
+    /// describes the configuration the toolkit would actually apply from this release.
+    /// </summary>
+    public string ExportBuildStandard(StandardCatalogue standard, string clientName, DateTimeOffset now, ExportFormat format)
+    {
+        var client = string.IsNullOrWhiteSpace(clientName) ? "Client" : clientName.Trim();
+        var date = now.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB"));
+        var iso = Timestamps.Format(now);
+        return format switch
+        {
+            ExportFormat.Html =>
+                WriteText(Target("build-standard", client + "-" + standard.Release, iso, "html"),
+                    BuildStandardDocument.Html(standard, client, _companyName, date)),
+            ExportFormat.Markdown =>
+                WriteText(Target("build-standard", client + "-" + standard.Release, iso, "md"),
+                    BuildStandardDocument.Markdown(standard, client, _companyName, date)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "The build standard document exports as HTML or Markdown.")
+        };
+    }
+
+    private static string WriteText(string file, string content)
+    {
+        File.WriteAllText(file, content, new System.Text.UTF8Encoding(false));
+        return file;
+    }
+
+    public string ExportEngineerStandard(StandardCatalogue standard, EngineerDocumentKind kind, ExportFormat format)
+    {
+        var name = kind == EngineerDocumentKind.BuildStandard ? "engineer-build-standard" : "manual-implementation-guide";
+        var content = format switch
+        {
+            ExportFormat.Html => EngineerStandardDocuments.Html(standard, kind),
+            ExportFormat.Markdown => EngineerStandardDocuments.Markdown(standard, kind),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), "Engineer documents export as HTML or Markdown.")
+        };
+        return WriteText(Target(name, standard.Release, standard.PublishedOn, format == ExportFormat.Html ? "html" : "md"), content);
+    }
+
+    private static string WriteBytes(string file, byte[] content)
+    {
+        File.WriteAllBytes(file, content);
+        return file;
+    }
+}

@@ -1,0 +1,64 @@
+name: Publish validated release
+
+# Manual promotion of an original, already tested build artifact. The release is chosen by version and must
+# have a reviewed pin at build/releases/<version>.json naming the exact source commit, build run and ZIP SHA-256.
+# Kept out of build.yml so a dispatch never creates skipped build/standard/secrets check runs on the head commit,
+# which GitHub counts as satisfying required checks (CLA-20261006-09). The job never rebuilds, merges branches or
+# overwrites a published release, and refuses dispatches from any branch other than main or integration.
+#
+# The `release` environment is the approval gate. Until the repository owner adds required reviewers to it under
+# Settings -> Environments, GitHub creates it unprotected and the gate is documentary only.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, for example 1.1.0-preview.19 (needs build/releases/<version>.json)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    concurrency:
+      group: publish-release
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Verify the reviewed pin and its successful source run
+        id: pin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Passed through the environment, never interpolated into the script, so input text cannot run.
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 build/Publish-ValidatedRelease.py --version "$RELEASE_VERSION" --check-run --github-output "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.pin.outputs.run }}
+          name: portable-windows-review
+          path: release-input/portable
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.pin.outputs.run }}
+          name: synthetic-ui-review
+          path: release-input/ui
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.pin.outputs.run }}
+          name: standard-definition-exports
+          path: release-input/standards
+      - name: Verify original bytes, upload assets and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 build/Publish-ValidatedRelease.py --version "$RELEASE_VERSION"

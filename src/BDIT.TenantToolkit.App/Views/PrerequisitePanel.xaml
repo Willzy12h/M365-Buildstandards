@@ -1,0 +1,22 @@
+<UserControl x:Class="BDIT.TenantToolkit.App.Views.PrerequisitePanel"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:views="clr-namespace:BDIT.TenantToolkit.App.Views">
+ <Expander Header="Prerequisites and manual steps" Margin="0,8,0,12"
+  ToolTip="Review the required tenant settings, licensing and engineer actions. Reading this guidance does not grant consent or make tenant changes.">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="220"><StackPanel Margin="0,10,0,0">
+   <TextBlock Text="Complete the applicable prerequisites before rollout. A listed prerequisite is guidance, not a completed check or approval." Style="{StaticResource Muted}" Margin="0,0,0,8"/>
+   <ItemsControl ItemsSource="{Binding Items, RelativeSource={RelativeSource AncestorType={x:Type views:PrerequisitePanel}}}">
+    <ItemsControl.ItemTemplate><DataTemplate>
+     <Border Style="{StaticResource Panel}" Margin="0,0,0,8"><StackPanel>
+      <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" ToolTip="{Binding Details}"/>
+      <TextBlock Text="{Binding Automation, StringFormat='Workflow: {0}'}" Foreground="{StaticResource Accent}" TextWrapping="Wrap" Margin="0,4"/>
+      <TextBlock Text="{Binding Details}" TextWrapping="Wrap"/>
+      <TextBlock Margin="0,6,0,0"><Hyperlink NavigateUri="{Binding DocumentationUrl}" RequestNavigate="OpenDocumentation"
+       ToolTip="Opens Microsoft documentation only. It does not open a consent request or execute a tenant action.">Microsoft documentation</Hyperlink></TextBlock>
+     </StackPanel></Border>
+    </DataTemplate></ItemsControl.ItemTemplate>
+   </ItemsControl>
+  </StackPanel></ScrollViewer>
+ </Expander>
+</UserControl>

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mailbox-permissions",
+  "name": "Mailbox permissions",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Shows Full Access, Send As and Send on Behalf on chosen mailboxes, or on every mailbox when none are named.",
+  "keywords": [
+    "full access",
+    "send as",
+    "send on behalf",
+    "delegate",
+    "delegation",
+    "Get-EXOMailboxPermission",
+    "Get-EXORecipientPermission"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxPermissionReport.ps1",
+  "scriptSha256": "0e1aa877930b2933c44bfd9ea996c254fbddbc00132908e2ed160a9817df871a",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "FullAccess",
+      "label": "Full Access",
+      "type": "boolean",
+      "help": "Include Full Access permissions.",
+      "default": "true"
+    },
+    {
+      "name": "SendAs",
+      "label": "Send As",
+      "type": "boolean",
+      "help": "Include Send As permissions.",
+      "default": "true"
+    },
+    {
+      "name": "SendOnBehalf",
+      "label": "Send on Behalf",
+      "type": "boolean",
+      "help": "Include Send on Behalf delegates.",
+      "default": "true"
+    },
+    {
+      "name": "IncludeInherited",
+      "label": "Include inherited",
+      "type": "boolean",
+      "help": "Also list permissions inherited from the organisation."
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "500"
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum rows",
+      "type": "integer",
+      "help": "Stops after this many rows and says the result is partial.",
+      "minimum": 1,
+      "maximum": 20000,
+      "default": "5000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "Permission",
+      "User",
+      "AccessRights",
+      "IsInherited",
+      "Deny"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 20000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
+  ]
+}

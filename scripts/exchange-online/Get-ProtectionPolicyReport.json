@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.protection-policies",
+  "name": "Anti-spam, phishing and malware policies",
+  "category": "exchange-online",
+  "area": "Mail protection",
+  "description": "Summarises inbound anti-spam, outbound spam, anti-phishing and anti-malware policies with the rule that scopes each, its state, priority, who it applies to and key settings.",
+  "keywords": [
+    "anti-spam",
+    "anti-phishing",
+    "anti-malware",
+    "EOP",
+    "protection",
+    "spam filter",
+    "Get-HostedContentFilterPolicy",
+    "Get-AntiPhishPolicy",
+    "Get-MalwareFilterPolicy"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-ProtectionPolicyReport.ps1",
+  "scriptSha256": "09bd1beb6f70a6f417fcac597f4cfa8c6454f4861f2c8e50d091f106e388cf9e",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "Security Reader",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "PolicyType",
+      "label": "Policy types",
+      "type": "enum",
+      "help": "Which policy types to list.",
+      "array": true,
+      "maxItems": 4,
+      "allowed": [
+        "AntiSpam",
+        "OutboundSpam",
+        "AntiPhish",
+        "AntiMalware"
+      ],
+      "default": "AntiSpam, OutboundSpam, AntiPhish, AntiMalware"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "PolicyType",
+      "Policy",
+      "IsDefault",
+      "Rule",
+      "RuleState",
+      "Priority",
+      "AppliesTo",
+      "Excludes",
+      "KeySettings",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 2000,
+    "timeoutSeconds": 900
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange or Microsoft Defender role that can read threat policies, such as Security Reader.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A preset security policy (Standard or Strict) is listed as Preset: its preset rule is not read, so who it applies to is not shown. A policy with no rule that Exchange does not mark as custom or preset is Unknown, not NoRule.",
+    "Defender for Office 365 policies such as Safe Links and Safe Attachments are not included.",
+    "Only key settings are summarised; allowed sender and domain lists are counted, not listed.",
+    "A rule is matched to its policy by the policy identity the rule names. A rule naming a policy that was not returned is listed with its settings Unknown.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

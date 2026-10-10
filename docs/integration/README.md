@@ -1,5 +1,13 @@
 # Integration workflow
 
+## Current product completion proposal
+
+The [6 October multi-perspective review](FINAL-PRODUCT-REVIEW-2026.10.06.md) proposes a finished internal engineer product for new builds, legacy backfill and repeat reviews. Read its [completion plan](PRODUCT-COMPLETION-PLAN.md), [shared feedback register](PRODUCT-FEEDBACK-REGISTER.md) and [Claude/Astra handoff](PRODUCT-AGENT-HANDOFF.md). These are recommendations awaiting scope approval; they do not replace the coordination rules or certify live acceptance.
+
+## Current continuation
+
+PR #19, #20 and #21 are merged into `integration` (7 October 2026). Claude's follow-up PR #22 adds release lineage and the reviewed-scope digest. The next agent starts from [GPT-USABILITY-CONTINUATION-PROMPT](GPT-USABILITY-CONTINUATION-PROMPT.md); [HANDOVER](HANDOVER.md) has the merge delegation and what comes next.
+
 ## Repositories
 
 | Name | Role | Editing rule |
@@ -31,5 +39,7 @@
 8. Promote `integration` to `main` through a reviewed pull request.
 
 ## Concurrent work
+
+The operating protocol for two agents working at once is `AGENT-COORDINATION.md`: pre-flight check, claiming work by draft pull request, branch ownership, feature areas, merge order and conflict resolution. Read it before starting. Current claims are in `WORK-CLAIMS.md`.
 
 Astra/Codex and Claude should not make unrelated direct commits to `integration`. Each creates a feature branch from the same current integration commit and opens a pull request. This keeps changes attributable and allows the other implementation to review the diff.

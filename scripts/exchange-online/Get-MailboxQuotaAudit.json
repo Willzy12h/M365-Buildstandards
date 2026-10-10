@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.quota-audit",
+  "name": "Quota and 100 GB audit",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Finds mailboxes using at least a chosen share of their send and receive quota, and shows whether the configured quota is 100 GB. Mailboxes whose size or quota cannot be measured are always listed as Unknown with the reason.",
+  "keywords": [
+    "quota",
+    "100 GB",
+    "full mailbox",
+    "storage",
+    "Get-EXOMailboxStatistics"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxQuotaAudit.ps1",
+  "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "ThresholdPercent",
+      "label": "Threshold (% of quota)",
+      "type": "integer",
+      "help": "List mailboxes at or above this share of their prohibit send and receive quota.",
+      "minimum": 1,
+      "maximum": 100,
+      "default": "90"
+    },
+    {
+      "name": "RecipientType",
+      "label": "Mailbox types",
+      "type": "enum",
+      "help": "Which mailbox types to check.",
+      "array": true,
+      "maxItems": 4,
+      "allowed": [
+        "UserMailbox",
+        "SharedMailbox",
+        "RoomMailbox",
+        "EquipmentMailbox"
+      ],
+      "default": "UserMailbox, SharedMailbox"
+    },
+    {
+      "name": "IncludeAll",
+      "label": "List every mailbox",
+      "type": "boolean",
+      "help": "Show every checked mailbox, not only those over the threshold."
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes to check",
+      "type": "integer",
+      "help": "Stops after this many mailboxes and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "DisplayName",
+      "PrimarySmtpAddress",
+      "RecipientTypeDetails",
+      "TotalItemSizeBytes",
+      "ProhibitSendReceiveQuota",
+      "ProhibitSendQuota",
+      "IssueWarningQuota",
+      "PercentOfQuota",
+      "QuotaIs100GB",
+      "Status",
+      "Reason"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A 100 GB quota seen here is configured, not proof of a licence entitlement.",
+    "Unlimited or unreadable quotas, and unreadable sizes, are listed with Status Unknown and a reason, never guessed or left out.",
+    "Archive mailbox size and archive quota are not reported."
+  ]
+}

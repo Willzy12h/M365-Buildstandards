@@ -1,0 +1,280 @@
+name: Build and test
+
+# Every change, from any contributor or model, must build and pass the safety tests before it can be merged.
+# This is the check that keeps parallel work honest: an agent cannot claim a green build, only produce one.
+# Runs on every branch, so an upload to a review branch (for example incoming/*) is verified without a pull request.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # WPF requires Windows; the toolkit only ever ships win-x64.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: '10.0.401'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-
+
+      - name: Restore
+        run: dotnet restore BDIT.TenantToolkit.sln
+
+      # Warnings are fatal here and nowhere else: a developer can still build with a warning while working, but
+      # nothing reaches integration carrying one. Nullability warnings are fixed, never suppressed.
+      - name: Build
+        run: dotnet build BDIT.TenantToolkit.sln -c Release --no-restore -warnaserror
+
+      # The review harness is not in the solution, so it would otherwise gain warnings unseen.
+      - name: Build the interface review harness
+        run: dotnet build tests/BDIT.TenantToolkit.UiReview -c Release -warnaserror
+
+      - name: Test
+        run: dotnet test tests/BDIT.TenantToolkit.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+
+      # The application's own logic - which client is selected, whether a capture may be deployed from - lives in a
+      # WPF assembly the engine test project cannot reference, so it has its own project on the Windows runner.
+      - name: Test the application
+        run: dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release --no-build --logger "trx;LogFileName=app-tests.trx" --results-directory TestResults
+
+      - name: Build portable Windows package
+        shell: pwsh
+        # Exercise the engineer's native PowerShell bootstrap as well as the guarded portable builder.
+        run: ./build/Setup-And-Build.ps1 -SkipTests
+
+      - name: Render offline WPF workflows and check bindings
+        shell: pwsh
+        run: |
+          dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+          $reviewExit = $LASTEXITCODE
+          if ($reviewExit -ne 0) {
+            $errorFile = Join-Path $pwd 'dist/ui-review/harness-error.txt'
+            if (Test-Path -LiteralPath $errorFile) {
+              $detail = (Get-Content -LiteralPath $errorFile -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Offline WPF validation::$detail"
+            }
+            exit $reviewExit
+          }
+
+      - name: Parse Exchange read template and reject an injected write (PowerShell 5.1)
+        shell: powershell
+        run: |
+          $scripts = @(Get-ChildItem dist/ui-review -Recurse -Filter 'exchange-read-capture-*.ps1')
+          if ($scripts.Count -eq 0) { throw 'The synthetic command review produced no Exchange read template.' }
+          foreach ($script in $scripts) { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $script.FullName }
+          $mutation = Join-Path $pwd ('dist/ui-review/rejected-write-' + [guid]::NewGuid().ToString('N') + '.ps1')
+          try {
+            [IO.File]::WriteAllText($mutation, [IO.File]::ReadAllText($scripts[0].FullName) + "`nSet-TransportConfig -SmtpClientAuthenticationDisabled `$false`n")
+            $refused = $false
+            try { ./build/Test-ExchangeReadTemplate.ps1 -ScriptPath $mutation } catch { $refused = $_.Exception.Message -like '*Unsupported command*Set-TransportConfig*' }
+            if (-not $refused) { throw 'Exchange read command guard did not reject an injected write.' }
+            Write-Output '::notice title=Exchange read template::PowerShell 5.1 parse passed; injected write refused; no module loaded or tenant command executed.'
+          } finally { Remove-Item -LiteralPath $mutation -ErrorAction SilentlyContinue }
+
+      # Parse only, then a synthetic run: a stand-in module answers every read, so no Microsoft module or tenant is used.
+      - name: Verify fixed Exchange account binding with offline stubs (PowerShell 5.1)
+        shell: powershell
+        run: |
+          $scripts = @(Get-ChildItem dist/ui-review -Recurse -Filter 'exchange-read-capture-*.ps1')
+          if ($scripts.Count -eq 0) { throw 'The synthetic command review produced no Exchange read template.' }
+          foreach ($script in $scripts) { ./build/Test-ExchangeReadIdentity.ps1 -ScriptPath $script.FullName }
+
+      - name: Script library parse, Copy literals and synthetic run (PowerShell 5.1)
+        shell: powershell
+        run: |
+          ./build/Test-ScriptLibraryStubs.ps1 -Bdit src/BDIT.TenantToolkit.Cli/bin/Release/net10.0/bdit.dll -Library scripts
+          $copy = Join-Path $env:RUNNER_TEMP ('library-' + [guid]::NewGuid().ToString('N'))
+          Copy-Item -Recurse scripts $copy
+          try {
+            Add-Content -LiteralPath (Join-Path $copy 'exchange-online/Get-InboxRuleReport.ps1') -Value "`nSet-Mailbox -Identity x -ForwardingSmtpAddress y"
+            $refused = $false
+            try { ./build/Test-ScriptLibrary.ps1 -Library $copy } catch { $refused = $_.Exception.Message -like '*unsupported command*Set-Mailbox*' }
+            if (-not $refused) { throw 'The script library guard did not reject an injected write.' }
+            Write-Output '::notice title=Script library::PowerShell 5.1 parse and synthetic Copy runs passed; injected write refused; no Microsoft module or tenant used.'
+          } finally { Remove-Item -LiteralPath $copy -Recurse -Force -ErrorAction SilentlyContinue }
+
+      - name: Verify fresh extraction and actual packaged first launch
+        shell: powershell
+        run: |
+          $zips = @(Get-ChildItem dist -Filter '*.zip')
+          if ($zips.Count -ne 1) { throw 'Expected exactly one portable review ZIP.' }
+          $zip = $zips[0]
+          try {
+            ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json"
+          } catch {
+            $detail = ($_ | Out-String) + $_.ScriptStackTrace
+            $detail = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Extracted portable validation::$detail"
+            throw
+          }
+
+      # Keep small, synthetic validation facts visible on the check itself as well as in downloadable artifacts.
+      - name: Record validation evidence on the check
+        if: always()
+        shell: pwsh
+        run: |
+          function Notice([string]$title, [string]$message) {
+            $safe = $message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::notice title=${title}::$safe"
+          }
+          Get-ChildItem TestResults -Filter '*.trx' -ErrorAction SilentlyContinue | ForEach-Object {
+            [xml]$result = Get-Content -LiteralPath $_.FullName -Raw
+            $counters = $result.TestRun.ResultSummary.Counters
+            Notice $_.Name "Total=$($counters.total); executed=$($counters.executed); passed=$($counters.passed); failed=$($counters.failed); notExecuted=$($counters.notExecuted)"
+            foreach ($failed in @($result.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed')) {
+              Notice ('Failed test: ' + $failed.testName) ($failed.Output.ErrorInfo.Message + "`n" + $failed.Output.ErrorInfo.StackTrace)
+            }
+          }
+          if (Test-Path dist/ui-review/verification.json) {
+            $ui = Get-Content dist/ui-review/verification.json -Raw | ConvertFrom-Json
+            Notice 'Offline WPF result' "Status=$($ui.status); pagesAtSizes=$($ui.records.Count); commandsPressed=$($ui.commandsPressed); bindingIssues=$($ui.bindingIssues.Count); idleWindowClosed=$($ui.idleWindowClosed); tenantCalls=$($ui.tenantCalls)"
+          }
+          if (Test-Path dist/portable-verification.json) {
+            Notice 'Extracted portable result' (Get-Content dist/portable-verification.json -Raw)
+          }
+
+      - name: Upload synthetic UI review
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: synthetic-ui-review
+          path: |
+            dist/ui-review/*.png
+            dist/ui-review/verification.json
+            dist/ui-review/binding-errors.txt
+            dist/ui-review/harness-error.txt
+            dist/ui-review/commands.txt
+            dist/ui-review/tab-order.txt
+
+      - name: Upload portable review package
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: portable-windows-review
+          path: |
+            dist/*.zip
+            dist/*.zip.sha256
+            dist/portable-verification.json
+          if-no-files-found: error
+
+      - name: Upload generated engineer documents
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: engineer-standard-documents
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/engineer-build-standard-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/manual-implementation-guide-*.md
+          if-no-files-found: error
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: test-results
+          path: TestResults/
+
+      # Keep catalogue assets separate from tenant reports and the application package.
+      - name: Upload generated standard definitions
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: standard-definition-exports
+          path: |
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.zip
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.sha256
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.html
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.md
+            dist/ui-review/synthetic-portable-root-*/reports/standard-definition-*.json
+          if-no-files-found: error
+
+  standard:
+    # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Every standard release is valid JSON
+        shell: pwsh
+        run: |
+          Get-ChildItem standards -Filter *.json | ForEach-Object {
+            try { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }
+            catch { throw "$($_.Name) is not valid JSON: $_" }
+            Write-Host "OK $($_.Name)"
+          }
+
+      - name: No Conditional Access recipe requests an enforcing state
+        shell: pwsh
+        run: |
+          # The catalogue validator enforces this at load time; checking it here too means a bad standard
+          # never reaches a branch, rather than failing on an engineer's machine.
+          $bad = @()
+          Get-ChildItem standards -Filter *.json | ForEach-Object {
+            $json = Get-Content $_.FullName -Raw | ConvertFrom-Json
+            foreach ($c in $json.controls) {
+              if ($c.payload -and $c.payload.state -and $c.payload.state -ne 'disabled') {
+                $bad += "$($_.Name): $($c.id) requests state '$($c.payload.state)'"
+              }
+              if ($c.payload.PSObject.Properties.Name -contains 'assignments') {
+                $bad += "$($_.Name): $($c.id) payload contains assignments"
+              }
+            }
+          }
+          if ($bad) { $bad | ForEach-Object { Write-Error $_ }; exit 1 }
+          Write-Host "All recipes are disabled candidates with no assignments."
+
+  secrets:
+    # Tenant evidence and client identifiers must never reach the repository.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Reporting and evidence source must be tracked
+        shell: bash
+        run: |
+          for file in ReportExporter CsvWriter XlsxWriter HtmlReports MarkdownReports TabularReports; do
+            git ls-files --error-unmatch "src/BDIT.TenantToolkit.Engine/Reports/$file.cs" || exit 1
+          done
+          git ls-files --error-unmatch src/BDIT.TenantToolkit.Engine/Evidence/EvidenceStore.cs
+
+      - name: Script library pins are current
+        run: python3 build/Update-ScriptRegistry.py --check
+
+      - name: Release pins and publisher checks
+        shell: bash
+        run: |
+          # Offline only: a malformed pin or a weakened publisher check fails here, not at a release dispatch.
+          python3 build/Publish-ValidatedRelease.py --validate-pins
+          python3 build/Test-PublishValidatedRelease.py
+
+      - name: No tenant evidence or configured client IDs committed
+        shell: bash
+        run: |
+          fail=0
+          for path in data logs app portable dist .dotnet; do
+            if git ls-files --error-unmatch "$path" >/dev/null 2>&1; then
+              echo "::error::$path is tracked; it must stay local and ignored."
+              fail=1
+            fi
+          done
+          # Shipped settings must be templates. A real client ID here would follow the repo everywhere.
+          if grep -Eq '"(assessment|deployment)ClientId"[[:space:]]*:[[:space:]]*"[0-9a-fA-F-]{36}"' config/toolkit.settings.json; then
+            echo "::error::config/toolkit.settings.json contains a real client ID. Leave it empty in the repository."
+            fail=1
+          fi
+          exit $fail
