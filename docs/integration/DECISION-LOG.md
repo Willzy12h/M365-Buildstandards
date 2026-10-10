@@ -534,3 +534,8 @@ CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existin
 ### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
 
 AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.
+
+
+### INT-082 configured sign-in regression — 10 October 2026, PR #73
+
+CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around the existing public sign-in implementation, retaining production provider defaults and the existing acquisition policy. A valid one-minute configured budget accepts a thirty-second reply after a twenty-minute virtual permission preview but refuses a reply after one minute plus one tick. Removing timeout forwarding fails that regression; restored selected tests pass. No second authenticator/cache, renewal, scopes, approval-expiry or retry contract changes. Correct the run sheet to exclude permission-review time and require William's separate more-than-one-hour/due-token read-only renewal acceptance, still Not run.
