@@ -50,8 +50,21 @@ public sealed record ScriptOutputSchema(IReadOnlyList<string> Columns);
 public sealed record ScriptLimits(int MaximumRows, int TimeoutSeconds);
 
 /// <summary>
+/// INT-088 manifest schema 2 only: binds a reviewed read-only body to one registered Exchange report and to the engine's
+/// own runner wrapper. Every value must equal the engine's registration; a manifest cannot define a report or a wrapper.
+/// </summary>
+public sealed record ScriptExecution(
+    string Adapter,
+    string ReportId,
+    int ReportSchemaVersion,
+    string OutputKind,
+    int OutputSchemaVersion,
+    string RunnerTemplateSha256);
+
+/// <summary>
 /// INT-072 manifest schema 1, with the additive library fields proposed in INT-080 (area, keywords, rules and string
-/// formats). Strict: unknown members, missing required members and nulls in non-nullable members are refused.
+/// formats). Strict: unknown members, missing required members and nulls in non-nullable members are refused. Schema 2
+/// (INT-088) is the same shape plus a required <see cref="Execution"/>, which schema 1 must not have.
 /// </summary>
 public sealed record ScriptManifest(
     int SchemaVersion,
@@ -76,7 +89,8 @@ public sealed record ScriptManifest(
     ScriptLimits Limits,
     string Prerequisites,
     ScriptLiveStatus LiveStatus,
-    IReadOnlyList<string> Limitations);
+    IReadOnlyList<string> Limitations,
+    ScriptExecution? Execution = null);
 
 /// <summary>A registered, digest-checked library item: its manifest and the exact script bytes it pins.</summary>
 public sealed record ScriptEntry(ScriptManifest Manifest, string Script, string ManifestSha256);
