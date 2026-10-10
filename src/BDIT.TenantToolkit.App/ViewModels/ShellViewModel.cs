@@ -65,6 +65,7 @@ public sealed class ShellViewModel : ObservableObject
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
+        AddNavigationGroup("Workspace", ("home", "Home", ""));
         AddNavigationGroup("Tenant", ("overview", "Overview and licences", ""), ("connect", "Connect", "1"),
             ("configuration", "Configuration", "2"));
         AddNavigationGroup("Build standard", ("standard", "Build Standard", ""), ("assessment", "Assessment", "3"),
@@ -77,6 +78,7 @@ public sealed class ShellViewModel : ObservableObject
         AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""));
         AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
 
+        _pages["home"] = new HomeViewModel(this);
         _pages["overview"] = new OverviewViewModel(this);
         _pages["recovery"] = new RecoveryViewModel(this);
         _pages["connect"] = new ConnectViewModel(this);
@@ -115,7 +117,7 @@ public sealed class ShellViewModel : ObservableObject
             }
         };
         if (workspace.StandardError is not null) ErrorMessage = workspace.StandardError;
-        Navigate("overview");
+        Navigate("home");
     }
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }

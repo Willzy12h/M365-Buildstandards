@@ -565,6 +565,8 @@ internal static partial class Program
     private static readonly (string Command, string Handling)[] CommandRegister =
     {
         ("ShellViewModel.NavigateCommand", Press),
+        ("HomeViewModel.NextStepCommand", Press),
+        ("HomeViewModel.OpenTaskCommand", Press),
         ("ShellViewModel.ClearErrorCommand", Press),
         ("ShellViewModel.CopyCommand", Clipboard),
         ("ShellViewModel.CopyDetailsCommand", Clipboard),
@@ -1029,7 +1031,9 @@ internal static partial class Program
                 }
                 if (handling != Press) { CommandLog.Add($"{name}: not pressed - {handling}"); continue; }
 
-                var parameters = name == "ShellViewModel.NavigateCommand" ? shell.NavItems.Cast<object?>().ToArray() : new object?[] { null };
+                var parameters = name == "ShellViewModel.NavigateCommand" ? shell.NavItems.Cast<object?>().ToArray()
+                    : name == "HomeViewModel.OpenTaskCommand" ? shell.Page<HomeViewModel>().Tasks.Concat(shell.Page<HomeViewModel>().Shortcuts).Cast<object?>().ToArray()
+                    : new object?[] { null };
                 foreach (var parameter in parameters)
                 {
                     var label = parameter is NavItem item ? $"{name}({item.Key})" : name;
