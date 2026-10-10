@@ -1,0 +1,21 @@
+# Connected Graph Reports and naming presentation — PR #80
+
+Source slice based on integration `5ef5470`, extending merged INT-071. This record will be updated with exact validation before review. The initial new-file page/controller slice is not yet registered in the shell and is not a complete engineer journey. No version, publication, tenant read or acceptance is implied.
+
+## Engineer journey and preserved boundaries
+
+The Reports page presents the five registered report definitions: users and assigned licences, Intune devices, MFA registration, sign-ins and directory audit. It describes the selected report's purpose, current tenant/account/registration, existing access and limitations before a deliberate read. Date-range reports use UTC and the existing maximum 31-day range. The report's experimental acknowledgement is transient and bound to the current selection/context; it grants neither Microsoft consent nor tenant-write authority.
+
+The controller reuses the current verified connection via its restricted report client and the existing engine service. No page navigation, local open or export signs in. Missing authorised scopes yield NotAttempted and an explained next step; consent or a deliberate reconnect remains a separate action. A context change refuses stale reads/results before saving/exporting. There is no new registration, cache, route or permission contract. The exact scopes remain in GraphReportRegistry and APPLICATION-SETUP.
+
+Structured results retain read status, capture interval, source routes, integrity limits and unknown values. Successful zero-row reads say that no objects were returned; failed, partial, cancelled and unattempted reads never say that. Display filters do not change the underlying evidence or the full exported report. HTML, JSON, CSV ZIP and Excel reuse the existing exporters and their format-specific limits. A save failure says Not saved with its reason, without asserting durable evidence.
+
+Saved report browsing is offline and tenant-partitioned, bounded by entry count and the existing 32 MiB schema reader limit. Unexpected names, links, damaged or inaccessible files are visible findings; incomplete enumeration is explicit. Supplied records are strict UTF-8 and checked for kind/schema, tenant and digest. Opening never reseals, overwrites or authenticates the source; formatted exports retain the supplied-file provenance notice. Report evidence never becomes a configuration snapshot or complete deployment before-evidence.
+
+Naming audit separately reviews the current supplied configuration capture with existing mappings and deployment history. Names and exact IDs remain available alongside collection status and corroborated or unknown ownership. An overlap never establishes toolkit ownership, and a name alone never authorises adoption or rename. No new tenant request, automatic correction or historical catalogue edit occurs.
+
+## Completion and validation
+
+Required source and flow checks include every registered report, exact context/selection drift, missing access, dates, cancellation, partial/failed/zero results, strict saved/supplied admission, immutable storage and full-evidence exports. Final shell wiring must preserve all existing pages and show Reports and naming with keyboard and three-size native coverage. Build, synthetic, native, human and live results will be recorded independently. Claude's Exchange adapters, script Run and mailbox integration remain outside this claim.
+
+Initial source validation: strict Linux App.Tests cross-build passed with zero warnings/errors; 51 new App cases compiled but have not run on Windows. Existing targeted engine/CLI suites passed 138/138 with no failures/skips. A portable diagnostic linked the exact Browser source and passed three initial-absence/disappearing-folder cases; original catch behaviour with only an enumeration seam failed both disappearing-folder cases. The first parallel build failed MSB4166 worker exit; the unchanged single-worker build passed. Shell wiring and native validation remain in progress. Exact Windows source/run/package proof and independent review remain required. Human/newcomer/Narrator/physical-scaling and live Microsoft acceptance remain outstanding.

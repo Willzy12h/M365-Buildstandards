@@ -76,3 +76,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+| Date | Agent | Repository | Scope | Branch / base | PR | State |
+|---|---|---|---|---|---|---|
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Connected Graph Reports presentation/controller and naming audit using merged INT-071 services; new source/test files only in initial slice, excludes #73 Workspace/Shell/native Program wiring and Claude Exchange/Script/Run/mailbox files; full three-repository pre-flight, no new permission/schema/live/version action | `astra/connected-reports-2026-10-10` (integration `5ef5470`) | #80 | Open |

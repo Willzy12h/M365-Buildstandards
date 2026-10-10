@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add the initial desktop Graph Reports and naming-audit presentation over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Shell/native journey integration is still in progress; no new permissions or tenant access.
+
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
 - Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; tampered records refuse every format before writing. Production export behaviour is unchanged.
