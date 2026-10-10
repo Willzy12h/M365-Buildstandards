@@ -23,6 +23,7 @@ public sealed class SignInRequest
     public SessionMode Mode { get; init; }
     public IReadOnlyList<string> Scopes { get; init; } = Array.Empty<string>();
     public string CacheFile { get; init; } = "";
+    /// <summary>Total silent/interactive acquisition budget, excluding the engineer's permission review.</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
     public string ClientName { get; init; } = "M365 BuildStandard Tool";
     public string ClientVersion { get; init; } = "1.0.0";
@@ -142,8 +143,6 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         }
 
         var scopes = request.Scopes.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(request.Timeout);
         AuthenticationResult result;
         try
         {
@@ -153,12 +152,12 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             var accounts = knownContext
                 ? (await pca.GetAccountsAsync()).Where(a => string.Equals(a.Username, request.LoginHint, StringComparison.OrdinalIgnoreCase)).ToList()
                 : new List<IAccount>();
-            result = await ExplicitConnectAcquisition.AcquireAsync(knownContext, accounts, async account =>
+            result = await ExplicitConnectAcquisition.AcquireAsync(knownContext, accounts, async (account, token) =>
             {
-                var cached = await pca.AcquireTokenSilent(scopes, account).WithTenantId(request.TenantId).ExecuteAsync(timeout.Token);
+                var cached = await pca.AcquireTokenSilent(scopes, account).WithTenantId(request.TenantId).ExecuteAsync(token);
                 log.Info("Auth", "Reused cached sign-in for the requested tenant and application.", request.TenantId);
                 return cached;
-            }, async reason =>
+            }, async (reason, token) =>
             {
                 log.Info("Auth", $"{ExplicitConnectAcquisition.Explain(reason)} Opening {(broker ? "Windows sign-in" : "the system browser")} for tenant {authorityTenant} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
                 var interactive = pca.AcquireTokenInteractive(scopes);
@@ -170,12 +169,8 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                         HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to M365 BuildStandard Tool. This temporary sign-in page can now be closed.</p></body></html>",
                         HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
                     });
-                return await interactive.ExecuteAsync(timeout.Token);
-            }, timeout.Token, request.BeforeInteractive);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            throw new AuthenticationRequiredException("Microsoft sign-in did not complete within the allowed time. Try again.");
+                return await interactive.ExecuteAsync(token);
+            }, ct, request.BeforeInteractive, request.Timeout);
         }
         catch (MsalException ex)
         {

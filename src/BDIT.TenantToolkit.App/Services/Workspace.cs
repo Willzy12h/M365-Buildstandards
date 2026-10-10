@@ -142,7 +142,7 @@ public sealed class Workspace : ObservableObject
         var confirmed = await app.Dispatcher.InvokeAsync(() =>
         {
             var dialog = new BDIT.TenantToolkit.App.Views.PermissionRequestDialog(details) { Owner = app.MainWindow };
-            dialog.ShowDialog(); return dialog.Confirmed;
+            return dialog.ShowForReview(ct);
         });
         ct.ThrowIfCancellationRequested();
         if (!confirmed)

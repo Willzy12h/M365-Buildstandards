@@ -43,5 +43,42 @@ internal static partial class Program
             if (dialog.Confirmed) throw new InvalidOperationException("Merely ticking approval authorised the request.");
         }
         finally { dialog.Close(); Pump(); }
+
+        CheckPermissionReviewCancellation(details, alreadyCancelled: false);
+        CheckPermissionReviewCancellation(details, alreadyCancelled: true);
+    }
+
+    private static void CheckPermissionReviewCancellation(string details, bool alreadyCancelled)
+    {
+        using var stop = new CancellationTokenSource();
+        var dialog = new PermissionRequestDialog(details)
+        { ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000 };
+        var opened = false; var expired = false;
+        // A broken cancellation registration must fail rather than leave Windows CI in a modal dialog forever.
+        var deadline = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        deadline.Tick += (_, _) => { expired = true; dialog.Close(); };
+        dialog.Loaded += (_, _) =>
+        {
+            opened = true;
+            Part<CheckBox>(dialog, "ApprovalBox").IsChecked = true;
+            ThreadPool.QueueUserWorkItem(_ => stop.Cancel());
+        };
+        if (alreadyCancelled) stop.Cancel();
+        try
+        {
+            deadline.Start();
+            try
+            {
+                dialog.ShowForReview(stop.Token);
+                throw new InvalidOperationException("Cancelled access review returned approval instead of cancellation.");
+            }
+            catch (OperationCanceledException)
+            {
+                if (expired || dialog.IsVisible || dialog.Confirmed || opened == alreadyCancelled)
+                    throw new InvalidOperationException("Cancelled access review did not promptly close without approval.");
+            }
+            DialogChecks++;
+        }
+        finally { deadline.Stop(); dialog.Close(); Pump(); }
     }
 }

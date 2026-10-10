@@ -17,8 +17,8 @@ public sealed class PermissionAcquisitionTests
     {
         var silent = 0; var approvals = 0; var interactive = 0;
         var result = await ExplicitConnectAcquisition.AcquireAsync(known, Enumerable.Range(0, accounts).ToArray(),
-            _ => { silent++; if (expired) throw new MsalUiRequiredException("interaction_required", "synthetic"); return Task.FromResult("cached"); },
-            _ => { Assert.Equal(1, approvals); interactive++; return Task.FromResult("selected"); }, CancellationToken.None,
+            (_, token) => { silent++; if (expired) throw new MsalUiRequiredException("interaction_required", "synthetic"); return Task.FromResult("cached"); },
+            (_, token) => { Assert.Equal(1, approvals); interactive++; return Task.FromResult("selected"); }, CancellationToken.None,
             _ => { approvals++; return Task.CompletedTask; });
         Assert.Equal(expectedSilent, silent); Assert.Equal(expectedInteraction, approvals); Assert.Equal(expectedInteraction, interactive);
         Assert.Equal(expectedInteraction == 0 ? "cached" : "selected", result);
@@ -31,8 +31,8 @@ public sealed class PermissionAcquisitionTests
         var interactive = 0;
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(afterCache,
             afterCache ? new[] { "known" } : Array.Empty<string>(),
-            _ => Task.FromException<string>(new MsalUiRequiredException("interaction_required", "synthetic")),
-            _ => { interactive++; return Task.FromResult("not allowed"); }, CancellationToken.None,
+            (_, token) => Task.FromException<string>(new MsalUiRequiredException("interaction_required", "synthetic")),
+            (_, token) => { interactive++; return Task.FromResult("not allowed"); }, CancellationToken.None,
             _ => throw new OperationCanceledException("Engineer declined the displayed request")));
         Assert.Equal(0, interactive);
     }
