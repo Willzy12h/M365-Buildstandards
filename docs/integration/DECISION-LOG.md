@@ -417,6 +417,10 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 ## INT-094 — Additional application reports and integration order (9 October 2026, proposed)
 
 Decision PR #69 proposes new application-expiry and application-consent registrations with typed metadata-only rows, exact application/service-principal/role identities, fixed-time expiry derivation and independent access states. Existing Application.Read.All is reused where authorised; delegated grants require Directory.Read.All in the actual report context, otherwise NotAttempted and separately previewed consent. Historical report contracts, bounds and no-write rules remain. The shared registration/parameter/row amendments must merge before implementation. #65/#67/#68 are independent offline validation slices; doctor work follows #53/#62 and script maintenance remains coordinated with Claude. Details: ADDITIONAL-REPORT-CONTRACTS-2026.10.09.md.
+
+## INT-084 — Enforce existing authored naming at local import boundaries
+
+PR #57 calls the existing reviewed `NamingConvention.RequireAuthored` from both local candidate importers. It checks only the new resolved candidate name and preserves baseline/historical controls. No global loader rule, schema, new compiler, live rename, permission or execution change is introduced. Names with leading/trailing whitespace refuse instead of being silently trimmed into compliance. Import shape and write-payload safeguards remain independent. Meaningful fixtures use compliant names so negative settings/metadata tests retain their original purpose.
 ## INT-093 — Verify export fidelity through the existing boundary (9 October 2026)
 
 PR #68 adds end-to-end offline exporter regressions for partial registered evidence, multilingual/multiline text, spreadsheet guarding and explicit Excel truncation, preservation of previous exports and modified-evidence refusal before any output. It preserves JSON/HTML/CSV full values while recognising the existing XLSX cell limit. No production export, schema, cap, permission or evidence semantics change.
@@ -504,3 +508,11 @@ William acknowledged the tenant-wide Application.Read.All metadata inventory pur
 ### INT-094 second review corrections — 10 October 2026, PR #69
 
 Name Claude as library/Exchange runner-adapter owner and Astra as Graph application-report/offline-doctor implementer. Require an explicit schema dispatcher with unchanged schema 1 refusals and negative export tests, UK English for new identifiers, and factual grant-replication limits. Refresh dependencies to actual merged states while preserving #65's open regression in #78. CLA-20261009-46/48/50/51 and CLA-20261010-04; no additional permission, live consent, write route or release action.
+
+### INT-084 / INT-091 source correction — 10 October 2026, PR #57
+
+After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
+
+### INT-084 compatibility clarification — 10 October 2026, PR #57
+
+After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
