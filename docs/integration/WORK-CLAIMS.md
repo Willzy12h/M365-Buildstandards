@@ -76,3 +76,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+
+| Date | Agent | Repository | Scope | Branch / base | PR | State |
+|---|---|---|---|---|---|---|
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-094 application metadata report engine: separate strict schema 2, explicit dispatch, expiry/consent collectors, metadata-only projections and immutable exports/store; excludes Claude #86 script/runner/CLI files and current desktop surface claims; fresh all-three-repository pre-flight | `astra/application-report-engine-2026-10-10` (integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e`) | #87 | Open |
