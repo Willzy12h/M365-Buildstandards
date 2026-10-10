@@ -469,3 +469,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### Continuation hygiene — 10 October 2026, PR #76
+
+William authorised cleanup to reduce repeated historical checking. Remove only merged Astra branch references whose heads remain reachable from integration and have no open PR; retain active work, Claude remote branches, tags, releases and historical evidence. The audit records original heads. CURRENT-STATE is a dated orientation index, not a substitute for fresh all-three-repository pre-flight, affected contract review or exact-head/merge verification. No safeguard or publication authority changes. William also acknowledged the existing Application.Read.All metadata inventory purpose; #69 retains its separate decision/implementation boundary and grants no live action or new Directory.Read.All consent.

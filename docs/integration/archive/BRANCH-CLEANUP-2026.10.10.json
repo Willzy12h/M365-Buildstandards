@@ -1,0 +1,344 @@
+{
+  "integration": "f03b995049e4e10e35c9a9d25044cef6fc63591d",
+  "deletedRemote": [
+    {
+      "branch": "astra/authentication-flow-2026-10-08",
+      "sha": "0efdb1840e94449badcf75103521ac6ea9c76652",
+      "mergedPRs": [
+        37
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/claude-baseline-reporting",
+      "sha": "3db6c5a3b3426869ac6803c1472db057563818a9",
+      "mergedPRs": [
+        1
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/configuration-html-inventory-2026-10-08",
+      "sha": "fd0451a8fe2421d424bd0e8798dc36105a55436a",
+      "mergedPRs": [
+        40
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/current-guidance-exports-2026-10-08",
+      "sha": "e02eb3dcda28e8e08d9af2e389478a80859f8722",
+      "mergedPRs": [
+        56
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/disposition-identity-regression-2026-10-08",
+      "sha": "7f02a97c3f90bbadc9b37377ad85744af6bd7272",
+      "mergedPRs": [
+        60
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/engineer-guidance-2026-10-08",
+      "sha": "856d9bda60528b8e7ab060afe2cde219694bbff0",
+      "mergedPRs": [
+        38
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/engineer-workflow",
+      "sha": "f5859da0a84cb28783702ff993af5ea5166dde5d",
+      "mergedPRs": [
+        2
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/enrolment-name-contract-2026-10-09",
+      "sha": "29d0d1263605c6cb781e7be6127ace41ec147d99",
+      "mergedPRs": [
+        71
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/exchange-read-identity-2026-10-08",
+      "sha": "c057944ff92329f5e7a9cf0311b0054d91f2994a",
+      "mergedPRs": [
+        59
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/executor-test-isolation-2026-10-08",
+      "sha": "2a254381d419563f5d22b9dc336eaa3dea158f76",
+      "mergedPRs": [
+        63
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/experimental-gate-contract-2026-10-08",
+      "sha": "9e8e8f95bfe97f1957c58e603f6642ef22083c4e",
+      "mergedPRs": [
+        55
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/live-acceptance-runsheet-2026-10-08",
+      "sha": "ee3b59cb79c3cfab2009fe9d1c8a521181d8e3c0",
+      "mergedPRs": [
+        41
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/merge-records-2026-10-08",
+      "sha": "c9b78318b7c970f4e9830c5ac8dd875903c9036f",
+      "mergedPRs": [
+        54
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/module-report-script-contracts-2026-10-08",
+      "sha": "47b4a656c0f8dd073a784ec1851968fbb5cc7300",
+      "mergedPRs": [
+        39
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/naming-audit-2026-10-08",
+      "sha": "ed9045417becbcd08454e1a89e7e894dc4513f51",
+      "mergedPRs": [
+        43
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/portable-cli-host-2026-10-08",
+      "sha": "0384d1af1bcfec638c7c9d054df260e870d56bd0",
+      "mergedPRs": [
+        45
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/post-merge-review-2026-10-08",
+      "sha": "0fa23e67c2b3e7ea01c6776bd15379d11e748e4a",
+      "mergedPRs": [
+        36
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/product-contracts-2026-10-06",
+      "sha": "674b1ba6b638a4cb43da74d3217cfff0aac14bd2",
+      "mergedPRs": [
+        20
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/read-only-runner-contract-2026-10-08",
+      "sha": "b040bc82cf8227e1bc325c631d5e3f4938723a79",
+      "mergedPRs": [
+        61
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/readiness-read-status-2026-10-08",
+      "sha": "33eb7d6f5433a63d05fe992232f2cce5d8f5d358",
+      "mergedPRs": [
+        53
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/release-2026-09-12",
+      "sha": "2668d00b955317f90840332198791ee66d3d2b86",
+      "mergedPRs": [
+        19
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/report-evidence-core-2026-10-08",
+      "sha": "0efce56dcd95e727f74cc2a15729f0d6ac935e5b",
+      "mergedPRs": [
+        44
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/review-fixes",
+      "sha": "1f094dfc4c33726f6e9571ce3fa1d4f1355be4ee",
+      "mergedPRs": [
+        9
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    },
+    {
+      "branch": "astra/scoped-checks-core-2026-10-08",
+      "sha": "dd878c97632cfdf396fbd27c3e871b7ae042c97a",
+      "mergedPRs": [
+        42
+      ],
+      "open": false,
+      "reachableFromIntegration": true,
+      "delete": true
+    }
+  ],
+  "deletedLocal": [
+    {
+      "branch": "astra/authentication-flow-2026-10-08",
+      "sha": "0efdb1840e94449badcf75103521ac6ea9c76652"
+    },
+    {
+      "branch": "astra/configuration-html-inventory-2026-10-08",
+      "sha": "fd0451a8fe2421d424bd0e8798dc36105a55436a"
+    },
+    {
+      "branch": "astra/current-guidance-exports-2026-10-08",
+      "sha": "e02eb3dcda28e8e08d9af2e389478a80859f8722"
+    },
+    {
+      "branch": "astra/disposition-identity-regression-2026-10-08",
+      "sha": "7f02a97c3f90bbadc9b37377ad85744af6bd7272"
+    },
+    {
+      "branch": "astra/engineer-guidance-2026-10-08",
+      "sha": "856d9bda60528b8e7ab060afe2cde219694bbff0"
+    },
+    {
+      "branch": "astra/enrolment-name-contract-2026-10-09",
+      "sha": "29d0d1263605c6cb781e7be6127ace41ec147d99"
+    },
+    {
+      "branch": "astra/exchange-read-identity-2026-10-08",
+      "sha": "c057944ff92329f5e7a9cf0311b0054d91f2994a"
+    },
+    {
+      "branch": "astra/executor-test-isolation-2026-10-08",
+      "sha": "2a254381d419563f5d22b9dc336eaa3dea158f76"
+    },
+    {
+      "branch": "astra/experimental-gate-contract-2026-10-08",
+      "sha": "9e8e8f95bfe97f1957c58e603f6642ef22083c4e"
+    },
+    {
+      "branch": "astra/live-acceptance-runsheet-2026-10-08",
+      "sha": "ee3b59cb79c3cfab2009fe9d1c8a521181d8e3c0"
+    },
+    {
+      "branch": "astra/merge-records-2026-10-08",
+      "sha": "c9b78318b7c970f4e9830c5ac8dd875903c9036f"
+    },
+    {
+      "branch": "astra/module-report-script-contracts-2026-10-08",
+      "sha": "47b4a656c0f8dd073a784ec1851968fbb5cc7300"
+    },
+    {
+      "branch": "astra/naming-audit-2026-10-08",
+      "sha": "ed9045417becbcd08454e1a89e7e894dc4513f51"
+    },
+    {
+      "branch": "astra/portable-cli-host-2026-10-08",
+      "sha": "0384d1af1bcfec638c7c9d054df260e870d56bd0"
+    },
+    {
+      "branch": "astra/post-merge-review-2026-10-08",
+      "sha": "0fa23e67c2b3e7ea01c6776bd15379d11e748e4a"
+    },
+    {
+      "branch": "astra/product-contracts-2026-10-06",
+      "sha": "674b1ba6b638a4cb43da74d3217cfff0aac14bd2"
+    },
+    {
+      "branch": "astra/read-only-runner-contract-2026-10-08",
+      "sha": "b040bc82cf8227e1bc325c631d5e3f4938723a79"
+    },
+    {
+      "branch": "astra/readiness-read-status-2026-10-08",
+      "sha": "33eb7d6f5433a63d05fe992232f2cce5d8f5d358"
+    },
+    {
+      "branch": "astra/release-2026-09-12",
+      "sha": "2668d00b955317f90840332198791ee66d3d2b86"
+    },
+    {
+      "branch": "astra/report-evidence-core-2026-10-08",
+      "sha": "0efce56dcd95e727f74cc2a15729f0d6ac935e5b"
+    },
+    {
+      "branch": "astra/scoped-checks-core-2026-10-08",
+      "sha": "dd878c97632cfdf396fbd27c3e871b7ae042c97a"
+    }
+  ],
+  "preservedActive": [
+    "astra/additional-report-contracts-2026-10-09",
+    "astra/authored-import-names-2026-10-08",
+    "astra/experimental-runtime-2026-10-10",
+    "astra/graph-interruption-validation-2026-10-09",
+    "astra/mailbox-capacity-evaluation-2026-10-08",
+    "astra/offline-report-evidence-export-2026-10-08",
+    "astra/offline-scale-validation-2026-10-09",
+    "astra/report-export-robustness-2026-10-09",
+    "claude/exchange-report-evidence-2026-10-10",
+    "claude/exchange-report-runner-2026-10-10"
+  ],
+  "recovery": "Every deleted head is reachable from retained integration history; original head SHAs are recorded here."
+}

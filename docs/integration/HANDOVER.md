@@ -1,5 +1,9 @@
 # Handover and priorities
 
+## Start here — current continuation
+
+Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot and next work. Refresh integration and open PR heads before using it. The dated sections below are historical checkpoints; their old pending states and package proofs apply to their recorded revisions. Preserve them, but do not infer current capabilities from an older section. Required coordination, safeguards and exact-source verification remain unchanged.
+
 ## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 
 Integration `14e62275ca212b6f34ecd3b17d676f2445e39845` contains #42 → #44 → #43 → #45, Claude's fix PRs #51/#49/#48/#50, the independently re-reviewed copy-only library #46, and Claude's findings record #47. Every merge has a separately read passing Windows run. Latest integration run [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 layouts/88 command presses, zero binding issues/tenant calls and fresh 302-file desktop/portable CLI checks. Source remains unpublished Preview.19; this is not a release candidate publication. Exact records: [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md).
