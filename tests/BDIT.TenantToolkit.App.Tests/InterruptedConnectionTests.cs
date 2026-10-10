@@ -101,6 +101,40 @@ public sealed class InterruptedConnectionTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(_root.Paths.TenantDirectory(TestData.TenantB), "licensing")));
     }
 
+    [Theory]
+    [InlineData(SessionMode.Assessment)]
+    [InlineData(SessionMode.Deployment)]
+    public async Task Held_tenant_lease_reports_unavailable_access_without_claiming_untrusted_history_and_keeps_read_checks(SessionMode mode)
+    {
+        var run = SaveRunning(); var file = _workspace.Evidence.RunFile(run); var bytes = File.ReadAllBytes(file);
+        var active = new EvidenceStore(_root.Paths, NullLog.Instance);
+        var next = Connection(mode); var profile = TestData.Profile();
+        using (active.AcquireTenantWriteLease(TestData.TenantA))
+        {
+            await Adopt(next, profile);
+
+            Assert.Same(next, _workspace.Connection); Assert.Same(profile, _workspace.Profile);
+            Assert.Contains("exclusive access", _workspace.InterruptedNotice);
+            Assert.Contains("unavailable", _workspace.InterruptedNotice);
+            Assert.Contains("another operation may be active", _workspace.InterruptedNotice);
+            Assert.Contains("Wait for it to finish, then retry", _workspace.InterruptedNotice);
+            Assert.Contains("write guards remain unchanged", _workspace.InterruptedNotice);
+            Assert.DoesNotContain("untrusted", _workspace.InterruptedNotice);
+            Assert.DoesNotContain("reconcile", _workspace.InterruptedNotice);
+            Assert.Contains(_workspace.InterruptedNotice, _shell.Page<OverviewViewModel>().Summary);
+            Assert.Equal(bytes, File.ReadAllBytes(file));
+            Assert.Equal(RunStatus.Running, _workspace.Evidence.LoadRun(TestData.TenantA, run.Id)!.Status);
+            Assert.Throws<PlanValidationException>(() => _workspace.Evidence.AssertCompletionWritesResolved(TestData.TenantA, ["CA-001"]));
+            Assert.All(_workspace.Access!.Reads, read => Assert.Equal("Pass", read.Status));
+            Assert.Equal(TestData.TenantA, _workspace.Access.TenantId);
+            Assert.True(_workspace.Licences!.SubscriptionsComplete); Assert.Single(_workspace.Licences.Subscriptions);
+            Assert.False(_workspace.Busy); Assert.Null(_workspace.Snapshot); Assert.Null(_workspace.AcknowledgedSnapshotId);
+            Assert.NotEmpty(_handler.Methods); Assert.All(_handler.Methods, method => Assert.Equal(HttpMethod.Get, method));
+            Assert.True(_tokens.Calls > 0);
+        }
+        Assert.Equal(bytes, File.ReadAllBytes(file));
+    }
+
     [Fact]
     public async Task Verified_history_keeps_the_existing_interrupted_notice_and_read_checks()
     {

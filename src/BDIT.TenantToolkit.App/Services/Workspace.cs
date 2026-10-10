@@ -436,6 +436,12 @@ public sealed class Workspace : ObservableObject
             var interrupted = Evidence.RequireIntactRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
             InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
         }
+        catch (SafetyViolationException ex) when (EvidenceStore.IsTenantWriteLeaseRefusal(ex))
+        {
+            // Lease acquisition precedes history inspection. Its refusal establishes neither corruption nor integrity.
+            InterruptedNotice = "Previous deployment history has not been checked because exclusive access to this tenant's evidence store is unavailable; another operation may be active. Wait for it to finish, then retry. Original files were retained and write guards remain unchanged; read-only access and licence checks can continue.";
+            Logger.Warn("App", "Previous deployment history was not checked because exclusive evidence-store access is unavailable; another operation may be active. Wait for it to finish, then retry. Original files were retained and write guards remain unchanged.", profile.TenantId);
+        }
         catch (Exception ex) when (ex is ToolkitException or IOException or UnauthorizedAccessException)
         {
             // Local refused history does not undo verified authentication or authorise a write. Keep it unknown,

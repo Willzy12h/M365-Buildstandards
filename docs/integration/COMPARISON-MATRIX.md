@@ -164,3 +164,5 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 ## Astra focused integrity follow-up — 10 October 2026
 
 PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
+
+PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.

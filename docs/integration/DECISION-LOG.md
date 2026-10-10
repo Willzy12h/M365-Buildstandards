@@ -545,3 +545,7 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 ### INT-094 current-head wording corrections — 10 October 2026, PR #69
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
+
+### Unavailable evidence-store access wording — 10 October 2026, PR #79
+
+CLA-20261010-110: distinguish only a marked tenant-lease acquisition refusal from integrity failures in the connection notice. History is uninspected while exclusive access is unavailable; advise waiting and retrying, preserve original files and existing write guards. Keep all other refused-history errors on the untrusted/reconciliation path. No lease, evidence schema, authentication or write-authority change. Actual engine checks and strict App compilation pass; native execution and independent delta review remain separate gates.

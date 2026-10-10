@@ -127,7 +127,12 @@ public sealed class InterruptedRunIntegrityTests
         var file = active.RunFile(run); var bytes = File.ReadAllBytes(file);
         using (active.AcquireTenantWriteLease(TestData.TenantA))
         {
-            Assert.Throws<SafetyViolationException>(() => startup.MarkInterruptedRuns(TestData.TenantA));
+            var refusal = Assert.Throws<SafetyViolationException>(() => startup.MarkInterruptedRuns(TestData.TenantA));
+            Assert.True(EvidenceStore.IsTenantWriteLeaseRefusal(refusal));
+            Assert.StartsWith("Another deployment or recovery is using this tenant's evidence store. Wait for it to finish. ", refusal.Message);
+            Assert.False(EvidenceStore.IsTenantWriteLeaseRefusal(new SafetyViolationException(refusal.Message)));
+            Assert.False(EvidenceStore.IsTenantWriteLeaseRefusal(new SafetyViolationException("Deployment evidence was modified; recovery is blocked.")));
+            Assert.False(EvidenceStore.IsTenantWriteLeaseRefusal(new IOException("unavailable")));
             Assert.Equal(bytes, File.ReadAllBytes(file));
         }
         Assert.Equal(1, startup.MarkInterruptedRuns(TestData.TenantA));
