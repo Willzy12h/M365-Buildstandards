@@ -281,8 +281,13 @@ internal static partial class Program
     private static void AssertNewPageRowViewport(FrameworkElement content, string name, string where)
     {
         var table = Descendants(content).OfType<DataGrid>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == name);
-        var fullyVisible = Descendants(table).OfType<DataGridRow>().Count(r => IsShown(r, content) && VisibleBounds(r, content).Height >= r.ActualHeight - 1);
-        if (table.Items.Count < 2 || fullyVisible < 2) throw new InvalidOperationException(where + ": at least two populated rows must be fully visible; observed " + fullyVisible + ".");
+        var rows = Descendants(table).OfType<DataGridRow>().ToArray();
+        var fullyVisible = rows.Count(r => IsShown(r, content) && VisibleBounds(r, content).Height >= r.ActualHeight - 1);
+        var headerHeight = Descendants(table).OfType<System.Windows.Controls.Primitives.DataGridColumnHeader>().Select(h => h.ActualHeight).DefaultIfEmpty(0).Max();
+        var geometry = $"table {table.ActualWidth:0.###}x{table.ActualHeight:0.###}, visible {VisibleBounds(table, content).Width:0.###}x{VisibleBounds(table, content).Height:0.###}, header {headerHeight:0.###}; "
+            + string.Join("; ", rows.Select(r => $"row {r.GetIndex()} height {r.ActualHeight:0.###}, visible {VisibleBounds(r, content).Height:0.###}"));
+        Console.WriteLine(where + ": " + geometry);
+        if (table.Items.Count < 2 || fullyVisible < 2) throw new InvalidOperationException(where + ": at least two populated rows must be fully visible; observed " + fullyVisible + ". " + geometry);
     }
 
     private static void CheckIdentityHeader(ShellViewModel shell, FrameworkElement content, string where)
