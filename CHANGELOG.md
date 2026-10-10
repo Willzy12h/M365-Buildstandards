@@ -20,7 +20,7 @@
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
 
-- Add strict `exchangeReportEvidence` schema 1 (INT-088 slice 1): models, a package-owned registry with the first `exo-mailbox-inventory` registration, a bounded reader and a create-once tenant-partitioned store. Anything outside the registration, any non-normalised parameter, any value from a group that was not read and any status better than its sections is refused; a failed read is never zero and `Unlimited` stays `Unlimited`. No runner, adapter, UI or tenant access is added, so nothing in the product creates these records yet.
+- Add strict `exchangeReportEvidence` schema 1 (INT-088 slice 1): models, a package-owned registry with the first `exo-mailbox-inventory` registration, a bounded reader and a create-once tenant-partitioned store. Anything outside the registration, any non-normalised parameter, any value from a group that was not read and any status better than its sections is refused; a failed read is never zero and `Unlimited` stays `Unlimited`. A blank mailbox type, size, quota or archive value is unreadable and is refused (AST-20261010-01). No runner, adapter, UI or tenant access is added, so nothing in the product creates these records yet.
 
 - Verify the integrated Exchange capture refuses empty accounts before module lookup, authentication, collection or output creation.
 
