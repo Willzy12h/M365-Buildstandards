@@ -529,3 +529,7 @@ After #57 merged, freshly verify b8b2537 is its remote/local head, has no open P
 ### Naming merge and production-authentication check identities — 10 October 2026, PR #76
 
 #57 exact head b8b2537 passed push/PR 38056546038 / 38056548278 and the independently reviewed source delta was unchanged by refresh/compatibility wording. Merge 5ef5470 passed actual integration push 38057154787, with package source matched and no tenant calls. #73 production response 28a30a0 passed exact push/PR 38057034112 / 38057036961 and still requires independent delta review; no unmerged branch proof becomes integration or live acceptance. Source remains unpublished Preview.19.
+
+### Astra response-base refresh — 10 October 2026, PR #76
+
+Refresh #67/#69/#73/#78 to actual integration 5ef5470 before their pending delta reviews. All source/test/build response files and incoming #57 source/tests retain exact prior bytes. Resolve only insertion conflicts in CHANGELOG/DECISION-LOG, preserving both histories; #78 keeps the precise unsealed-edit refusal wording. New heads are 3401980/ef434aa/1996c0d/b272edf. Re-run exact Windows checks rather than reusing previous-source proof. Do not merge before the independent response review; no other-agent row, version, permission, tenant action or release gate changes.

@@ -9,7 +9,7 @@ Integration `5ef5470e1d6d28653261d88f40e854ebe9d09d02` remains unpublished Previ
 | Offline reports | #62 added CLI exports; #65/#68 merged; #65 open truncation gap and #68 fidelity checks corrected on unmerged #78 | Connected Reports/navigation integration not implemented; tests claim no optimisation |
 | Mailbox capacity | #58 pure evaluator added | Real bounded inventory/adapters and integrated entitlement/report UI not implemented |
 | Scripts | 29 Copy/Save-only items; #61 execution contract merged | #74/#75 corrected evidence/runner engine merged and exact Windows-verified; adapters/Run UI not implemented; Exchange changes stay copy-only |
-| Authentication/experimental safeguard | Existing broker/cache/session; #73 added guard/previews and fixed native header on green branch | Production-wiring/setup regressions -40/-41 implemented on 28a30a0; full Windows push/PR passed; delta review pending; live Microsoft behaviour unverified |
+| Authentication/experimental safeguard | Existing broker/cache/session; #73 added guard/previews and fixed native header on green branch | Production-wiring/setup regressions -40/-41 implemented on 28a30a0; that full Windows push/PR passed; refreshed head 1996c0d passed fresh full Windows checks (1,766 engine/CLI, 170 App), delta review pending; live Microsoft behaviour unverified |
 | Application metadata reports | #69 decision drafted; William acknowledged existing Application.Read.All reuse | Contract merge and source implementation not completed; no Directory.Read.All or live consent added |
 | Release candidate | #77 draft promotion placeholder; source/check/hash records prepared | Next-version candidate/pin/approval record still required; no main promotion, tags or publication |
 
