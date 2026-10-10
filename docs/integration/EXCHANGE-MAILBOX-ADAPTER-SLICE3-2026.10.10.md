@@ -38,9 +38,17 @@ Synthetic stand-in module only (`tests/.../Fixtures/ReadRunner`). The new regres
 `MailboxCapacityInventory.Evaluate` joins one sealed `exo-mailbox-inventory` record to one sealed `users-licences` report for the same tenant and runs the reviewed INT-071 evaluator (#58, [MAILBOX-CAPACITY-2026.10.08.md](MAILBOX-CAPACITY-2026.10.08.md)) on every mailbox. Both records are checked with their strict readers first, so a record from another tenant, another report or changed after sealing is refused. The licence report is validated and indexed by exact user ID once, rather than once per mailbox.
 
 - Size, quota and archive keep the row's own read states. A quota that was not read leaves the configured 100 GB check unknown, while eligibility from the licence report still shows.
-- Archive values apply only when the archive was read as present. The row's archive state (true, false or not read) is returned beside the capacity result.
+- Archive values apply only when the archive was read as present. An archive read as absent has nothing to check; an archive state that was not read keeps its own read state (a failed read stays Failed). The row's archive state (true, false or not read) is returned beside the capacity result.
+- The review keeps an immutable summary of each source record: tenant, report, record ID, integrity digest, source mode, start and end, overall status and limitations, and its section's status, error and limitations. The two reads stay independent, so a failed licence read shows as a failed licence read, not as a user with no licence.
 - A section that was not read, or was cancelled, lists no mailboxes. A Partial section returns its own reason, so a capped or incomplete list is never shown as every mailbox.
 - The review is pure and offline. It reads nothing, stores no new record and changes no quota. No UI or CLI uses it yet; that follows the Run screen (slice 4).
+
+### Review findings
+
+- **AST-20261010-23 (Astra, P2).** The review dropped each source's digest, source mode, start time, overall status and limitations, and the licence section's state and error. A failed licence read looked like an unmatched user. Both sources are now returned as copied summaries.
+- **AST-20261010-24 (Astra, P3).** A failed archive-state read was reported as never attempted. It now keeps its read state.
+
+Both have failing-first cases; reverting either fix, dropping the limitations, the section error or the digest, or returning the caller's list instead of a copy each fails a case.
 
 ## Not verified
 

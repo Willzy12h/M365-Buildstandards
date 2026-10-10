@@ -16,12 +16,27 @@ public static class MailboxCapacityInventory
     /// <summary>One reviewed mailbox. <see cref="HasArchive"/> is null unless the archive state was read.</summary>
     public sealed record Mailbox(MailboxCapacity.Result Capacity, string RowReadStatus, string? RowError, bool? HasArchive);
 
+    /// <summary>One section of a source record exactly as it was read: its own state, error and limitations.</summary>
+    public sealed record SectionSummary(string Id, string Status, string? Error, IReadOnlyList<string> Limitations);
+
     /// <summary>
-    /// The review of one inventory record. A section that was not read, or was cancelled, lists no mailboxes; a Partial section
-    /// keeps its own limitation, so a capped or incomplete list is never presented as every mailbox in the tenant.
+    /// An immutable copy of one validated source record's identity and limitations, taken when it was checked, so the review
+    /// keeps each record's digest, source mode, capture interval and read state and never merges the two reads.
     /// </summary>
-    public sealed record Review(string MailboxEvidenceId, string MailboxesObservedAt, string SectionStatus, string? SectionError,
-        string LicenceEvidenceId, string LicencesObservedAt, IReadOnlyList<Mailbox> Mailboxes);
+    public sealed record SourceSummary(string Kind, string TenantId, string ReportId, string EvidenceId, string IntegrityDigest,
+        string SourceMode, string StartedAt, string EndedAt, string Status, IReadOnlyList<string> Limitations, SectionSummary Section);
+
+    /// <summary>
+    /// The review of one inventory record against one licence record. A mailbox section that was not read, or was cancelled,
+    /// lists no mailboxes; a Partial section keeps its own limitation, so a capped or incomplete list is never presented as
+    /// every mailbox in the tenant. A failed licence read stays a failed licence read, not an empty user list.
+    /// </summary>
+    public sealed record Review(SourceSummary MailboxSource, SourceSummary LicenceSource, IReadOnlyList<Mailbox> Mailboxes);
+
+    internal static SourceSummary Summarise(string kind, string tenantId, string reportId, string id, string digest, string sourceMode,
+        string startedAt, string endedAt, string status, IEnumerable<string> limitations, ReportSection section) =>
+        new(kind, tenantId, reportId, id, digest, sourceMode, startedAt, endedAt, status, Array.AsReadOnly(limitations.ToArray()),
+            new(section.Id, section.Status, section.Error, Array.AsReadOnly(section.Limitations.ToArray())));
 
     public static Review Evaluate(ExchangeReportEvidence mailboxes, ReportEvidence licences)
     {
@@ -37,9 +52,10 @@ public static class MailboxCapacityInventory
             foreach (var node in section.Rows)
             {
                 var row = ToolkitJson.Deserialize<MailboxReportRow>(node.ToJsonString());
-                // Archive quota and size apply only to an archive that was read as present.
-                var archive = row.HasArchive == true ? row.ArchiveReadStatus : ReportReadState.NotAttempted;
-                var archiveSize = row.HasArchive == true ? row.ArchiveSizeReadStatus : ReportReadState.NotAttempted;
+                // A mailbox read as having no archive has no archive quota or size to check. Otherwise the archive keeps the read
+                // state it was given: a failed archive read stays Failed rather than becoming NotAttempted.
+                var archive = row.HasArchive == false ? ReportReadState.NotAttempted : row.ArchiveReadStatus;
+                var archiveSize = row.HasArchive == false ? ReportReadState.NotAttempted : row.ArchiveSizeReadStatus;
                 var observation = new MailboxCapacity.Observation(mailboxes.TenantId, row.Id!, row.ExternalDirectoryObjectId,
                     row.Name, row.PrimarySmtpAddress, row.MailboxType, mailboxes.EndedAt,
                     row.QuotaReadStatus, row.PrimarySizeRaw, row.IssueWarningQuotaRaw, row.ProhibitSendQuotaRaw, row.ProhibitSendReceiveQuotaRaw,
@@ -47,6 +63,8 @@ public static class MailboxCapacityInventory
                 reviewed.Add(new(MailboxCapacity.Review(observation, checkedLicences), row.ReadStatus, row.Error, row.HasArchive));
             }
         }
-        return new(mailboxes.Id, mailboxes.EndedAt, section.Status, section.Error, licences.Id, licences.EndedAt, reviewed);
+        var mailboxSource = Summarise(mailboxes.Kind, mailboxes.TenantId, mailboxes.ReportId, mailboxes.Id, mailboxes.IntegrityDigest,
+            mailboxes.SourceMode, mailboxes.StartedAt, mailboxes.EndedAt, mailboxes.Status, mailboxes.Limitations, section);
+        return new(mailboxSource, checkedLicences.Source, reviewed.AsReadOnly());
     }
 }

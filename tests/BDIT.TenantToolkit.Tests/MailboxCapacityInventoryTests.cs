@@ -40,7 +40,11 @@ public sealed class MailboxCapacityInventoryTests
         ArchiveSizeReadStatus = ReportReadState.NotAttempted, ArchiveSizeRaw = null, ArchiveQuotaRaw = null
     };
 
-    private static ExchangeReportEvidence Inventory(string sectionStatus, string? sectionError, params MailboxReportRow[] rows)
+    private static ExchangeReportEvidence Inventory(string sectionStatus, string? sectionError, params MailboxReportRow[] rows) =>
+        Inventory(sectionStatus, sectionError, null, rows);
+
+    private static ExchangeReportEvidence Inventory(string sectionStatus, string? sectionError, Action<ExchangeReportEvidence>? change,
+        params MailboxReportRow[] rows)
     {
         var definition = ExchangeReportRegistry.Find(MailboxCapacityInventory.ReportId);
         var report = new ExchangeReportEvidence
@@ -57,13 +61,15 @@ public sealed class MailboxCapacityInventoryTests
                 Rows = [.. rows.Select(ExchangeReportEvidenceSchema.Row)] }],
             Status = sectionStatus
         };
+        change?.Invoke(report);
         ExchangeReportEvidenceSchema.Seal(report);
         return report;
     }
 
     private static ExchangeReportEvidence Collected() => Inventory(ReportReadState.Collected, null, User(), Shared());
 
-    private static ReportEvidence Licences(string tenant = TestData.TenantA, string planId = MailboxCapacity.Plan2Id, string planName = "EXCHANGE_S_ENTERPRISE")
+    private static ReportEvidence Licences(string tenant = TestData.TenantA, string planId = MailboxCapacity.Plan2Id, string planName = "EXCHANGE_S_ENTERPRISE",
+        Action<ReportEvidence>? change = null)
     {
         var definition = GraphReportRegistry.Find("users-licences");
         var plan = new AssignedPlanReport { ServicePlanId = planId, ServicePlanName = planName, ProvisioningStatus = "Success", AppliesTo = "User" };
@@ -75,6 +81,7 @@ public sealed class MailboxCapacityInventoryTests
             ModuleVersion = GraphReportRegistry.AdapterVersion, Status = ReportReadState.Collected,
             Sources = definition.Routes.Select(r => new ReportSource { Api = "v1.0", RegisteredRoute = r.Path, Reference = definition.Reference }).ToList(),
             Sections = [new() { Id = "subscriptions", Status = ReportReadState.Collected }, new() { Id = "users", Status = ReportReadState.Collected, Rows = [ReportEvidenceSchema.Row(user)] }] };
+        change?.Invoke(report);
         ReportEvidenceSchema.Seal(report);
         return report;
     }
@@ -89,10 +96,10 @@ public sealed class MailboxCapacityInventoryTests
         var review = MailboxCapacityInventory.Evaluate(inventory, Licences());
 
         Assert.Equal(2, review.Mailboxes.Count);
-        Assert.Equal(inventory.Id, review.MailboxEvidenceId);
-        Assert.Equal(inventory.EndedAt, review.MailboxesObservedAt);
-        Assert.Equal(TestData.Mam, review.LicenceEvidenceId);
-        Assert.Equal(ReportReadState.Collected, review.SectionStatus);
+        Assert.Equal(inventory.Id, review.MailboxSource.EvidenceId);
+        Assert.Equal(inventory.EndedAt, review.MailboxSource.EndedAt);
+        Assert.Equal(TestData.Mam, review.LicenceSource.EvidenceId);
+        Assert.Equal(ReportReadState.Collected, review.MailboxSource.Section.Status);
         var user = Reviewed(review, UserMailbox);
         Assert.Equal("Configured100GBAndEligible", user.Capacity.Finding);
         Assert.Equal(MailboxCapacity.HundredGiB, user.Capacity.SendReceiveQuota.Bytes);
@@ -121,8 +128,8 @@ public sealed class MailboxCapacityInventoryTests
         const string limitation = "More than 10,000 mailboxes were found; only the first 10,000 are listed.";
         var review = MailboxCapacityInventory.Evaluate(Inventory(ReportReadState.Partial, limitation, failedQuota, Shared()), Licences());
 
-        Assert.Equal(ReportReadState.Partial, review.SectionStatus);
-        Assert.Equal(limitation, review.SectionError);
+        Assert.Equal(ReportReadState.Partial, review.MailboxSource.Section.Status);
+        Assert.Equal(limitation, review.MailboxSource.Section.Error);
         var user = Reviewed(review, UserMailbox);
         Assert.Equal(ReportReadState.Partial, user.RowReadStatus);
         Assert.Equal("The mailbox quotas were not all returned.", user.RowError);
@@ -157,6 +164,81 @@ public sealed class MailboxCapacityInventoryTests
         var unknown = Reviewed(notRead, UserMailbox);
         Assert.Null(unknown.HasArchive);
         Assert.Equal(MailboxCapacity.UnableToCheck, unknown.Capacity.ArchiveQuota.State);
+        // AST-20261010-24: a failed archive read stays Failed; it is not reported as never attempted.
+        Assert.Equal(ReportReadState.Failed, unknown.Capacity.Observed.ArchiveReadStatus);
+        Assert.Null(unknown.Capacity.ArchiveSize.Bytes);
+        // An archive read as absent is still distinct: it has nothing to check.
+        Assert.Equal(ReportReadState.NotAttempted, shared.Capacity.Observed.ArchiveReadStatus);
+    }
+
+    [Fact]
+    public void Each_source_keeps_its_own_digest_mode_interval_status_and_limitations()
+    {
+        // AST-20261010-23, reproduction 1.
+        var inventory = Inventory(ReportReadState.Collected, null, r =>
+        {
+            r.SourceMode = "historical";
+            r.Limitations.Add("Synthetic inventory limitation.");
+            r.Sections[0].Limitations.Add("Synthetic mailbox section limitation.");
+        }, User(), Shared());
+        var licences = Licences(change: r =>
+        {
+            r.Limitations.Add("Synthetic licence limitation.");
+            r.Sections[1].Limitations.Add("Synthetic users section limitation.");
+        });
+
+        var review = MailboxCapacityInventory.Evaluate(inventory, licences);
+
+        var mailbox = review.MailboxSource;
+        Assert.Equal("exchangeReportEvidence", mailbox.Kind);
+        Assert.Equal(TestData.TenantA, mailbox.TenantId);
+        Assert.Equal(MailboxCapacityInventory.ReportId, mailbox.ReportId);
+        Assert.Equal(inventory.IntegrityDigest, mailbox.IntegrityDigest);
+        Assert.Equal("historical", mailbox.SourceMode);
+        Assert.Equal("2026-10-10T01:00:00Z", mailbox.StartedAt);
+        Assert.Equal("2026-10-10T01:05:00Z", mailbox.EndedAt);
+        Assert.Equal(ReportReadState.Collected, mailbox.Status);
+        Assert.Contains("Synthetic inventory limitation.", mailbox.Limitations);
+        Assert.Equal("mailboxes", mailbox.Section.Id);
+        Assert.Equal(["Synthetic mailbox section limitation."], mailbox.Section.Limitations);
+
+        var licence = review.LicenceSource;
+        Assert.Equal("reportEvidence", licence.Kind);
+        Assert.Equal("users-licences", licence.ReportId);
+        Assert.Equal(licences.IntegrityDigest, licence.IntegrityDigest);
+        Assert.Equal("historical", licence.SourceMode);
+        Assert.Equal("2026-10-10T00:50:00Z", licence.StartedAt);
+        Assert.Equal("2026-10-10T00:55:00Z", licence.EndedAt);
+        Assert.Equal(["Synthetic licence limitation."], licence.Limitations);
+        Assert.Equal("users", licence.Section.Id);
+        Assert.Equal(["Synthetic users section limitation."], licence.Section.Limitations);
+
+        // The summaries are copies: changing the caller's records afterwards does not change the review.
+        inventory.Limitations.Clear();
+        licences.Sections[1].Limitations.Clear();
+        Assert.Contains("Synthetic inventory limitation.", mailbox.Limitations);
+        Assert.Equal(["Synthetic users section limitation."], licence.Section.Limitations);
+    }
+
+    [Fact]
+    public void A_failed_licence_read_keeps_its_own_state_and_reason_beside_a_complete_mailbox_read()
+    {
+        // AST-20261010-23, reproduction 2.
+        var licences = Licences(change: r =>
+        {
+            r.Sections[1].Status = ReportReadState.Failed;
+            r.Sections[1].Error = "Synthetic licence read denied";
+            r.Sections[1].Rows.Clear();
+            r.Status = ReportReadState.Partial;
+        });
+
+        var review = MailboxCapacityInventory.Evaluate(Collected(), licences);
+
+        Assert.Equal(ReportReadState.Collected, review.MailboxSource.Section.Status);
+        Assert.Equal(ReportReadState.Partial, review.LicenceSource.Status);
+        Assert.Equal(ReportReadState.Failed, review.LicenceSource.Section.Status);
+        Assert.Equal("Synthetic licence read denied", review.LicenceSource.Section.Error);
+        Assert.Equal(MailboxCapacity.UnableToCheck, Reviewed(review, UserMailbox).Capacity.Eligibility);
     }
 
     [Fact]
@@ -164,8 +246,8 @@ public sealed class MailboxCapacityInventoryTests
     {
         var review = MailboxCapacityInventory.Evaluate(Inventory(ReportReadState.Failed, "The module refused the read."), Licences());
         Assert.Empty(review.Mailboxes);
-        Assert.Equal(ReportReadState.Failed, review.SectionStatus);
-        Assert.Equal("The module refused the read.", review.SectionError);
+        Assert.Equal(ReportReadState.Failed, review.MailboxSource.Section.Status);
+        Assert.Equal("The module refused the read.", review.MailboxSource.Section.Error);
     }
 
     [Fact]

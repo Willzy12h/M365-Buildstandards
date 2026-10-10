@@ -37,10 +37,13 @@ public static partial class MailboxCapacity
     public static Result Review(Observation mailbox, ReportEvidence licences) =>
         Review(mailbox, CheckedLicences(licences, mailbox.TenantId));
 
-    /// <summary>The assigned-licence report, validated once for its tenant and indexed by exact user ID.</summary>
+    /// <summary>
+    /// The assigned-licence report, validated once for its tenant and indexed by exact user ID. It keeps a copy of the validated
+    /// metadata, not the caller's object, so a later change to that object cannot mix with the index.
+    /// </summary>
     internal sealed class Licences
     {
-        internal required ReportEvidence Evidence { get; init; }
+        internal required MailboxCapacityInventory.SourceSummary Source { get; init; }
         internal required ILookup<string, UserLicenceReportRow> Users { get; init; }
     }
 
@@ -48,15 +51,18 @@ public static partial class MailboxCapacity
     {
         ReportEvidenceSchema.Validate(licences, tenantId);
         if (licences.ReportId != "users-licences") throw new ConfigurationException("Mailbox eligibility requires the registered users and assigned licences report.");
-        var users = licences.Sections.Single(s => s.Id == "users").Rows
+        var section = licences.Sections.Single(s => s.Id == "users");
+        var users = section.Rows
             .Select(r => ToolkitJson.Deserialize<UserLicenceReportRow>(r.ToJsonString()))
             .ToLookup(r => r.Id ?? "", StringComparer.OrdinalIgnoreCase);
-        return new() { Evidence = licences, Users = users };
+        var source = MailboxCapacityInventory.Summarise(licences.Kind, licences.TenantId, licences.ReportId, licences.Id,
+            licences.IntegrityDigest, licences.SourceMode, licences.StartedAt, licences.EndedAt, licences.Status, licences.Limitations, section);
+        return new() { Source = source, Users = users };
     }
 
     internal static Result Review(Observation mailbox, Licences checkedLicences)
     {
-        var licences = checkedLicences.Evidence;
+        var licences = checkedLicences.Source;
         if (!string.Equals(mailbox.TenantId, licences.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("The mailbox and the assigned-licence evidence belong to different tenants.");
         if (!ReportValues.IsCanonicalGuid(mailbox.MailboxId)
@@ -92,7 +98,7 @@ public static partial class MailboxCapacity
             _ => UnableToCheck
         };
         return new(mailbox, size, warning, send, receive, archiveSize, archiveQuota,
-            configured, eligibility, reason, finding, licences.Id, licences.EndedAt);
+            configured, eligibility, reason, finding, licences.EvidenceId, licences.EndedAt);
     }
 
     /// <summary>Only Exchange's explicit integer byte count is interpreted. Raw text is always retained.</summary>
