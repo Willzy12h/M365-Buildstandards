@@ -177,3 +177,14 @@ PR #73 preserves the existing explicit-connect broker/cache selection while movi
 ### Delayed cancellation timer — delegated follow-up, 10 October 2026
 
 AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
+
+
+## Application metadata report engine — PR #87 / INT-094
+
+| Surface | Implemented source | Remaining integration/acceptance |
+|---|---|---|
+| Expiry/observed consent | Typed metadata-only sections, fixed-end horizon classification, exact unique joins, independent read states, bounded nested lists/fan-out and existing guarded provider | Desktop/CLI report selection and real Microsoft property/RBAC/retention acceptance |
+| Evidence/export | Strict paired schema/ID dispatcher, immutable shared storage, full HTML/CSV/JSON/Excel, unchanged direct schema-1 refusal | Schema-2 saved-browser dispatch and native/user flows; unsigned digests are not authentication |
+| Access | Existing Application.Read.All purpose reused; absent actual Directory.Read.All leaves delegated grants NotAttempted | No new consent authorised; human/live and final release gates remain open |
+
+PR #87's application-report repair refuses resealed contradictory supplied evidence across import and all exports; exact metadata saturation remains Partial. Original cases and isolated guard deletions fail meaningfully. Delegated related tests pass 144; root application/schema-dispatch checks pass 84 with zero skipped. Fresh actual Windows validation remains budget-blocked; no human/live acceptance is inferred.

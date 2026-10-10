@@ -85,3 +85,8 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 | Date | Agent | Repository | Scope | Branch / base | PR | State |
 |---|---|---|---|---|---|---|
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Connected Graph Reports presentation/controller and naming audit using merged INT-071 services; initial new-file source complete; sequentially stacked on own #73 for Shell/MainWindow/native harness wiring (no parent-head changes or concurrent writer) and Claude Exchange/Script/Run/mailbox files; full three-repository pre-flight, no new permission/schema/live/version action | `astra/connected-reports-2026-10-10` (integration `5ef5470`) | #80 | Open |
+
+
+| Date | Agent | Repository | Scope | Branch / base | PR | State |
+|---|---|---|---|---|---|---|
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-094 application metadata report engine implemented: separate strict schema 2/dispatcher, bounded metadata-only expiry/observed-consent collectors, immutable shared store and full exports; 71 new synthetic cases, legacy schema 1 preserved. Desktop/CLI/browser wiring remains separate; excludes Claude script/runner/CLI files and current surface claims; refreshed all-three-repository pre-flight | `astra/application-report-engine-2026-10-10` (integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e`) | #87 | Open |
