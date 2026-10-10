@@ -46,3 +46,7 @@ The runner's PowerShell 5.1 cooperative-stop timing failure and missing dedicate
 ## Dedicated continuation performed — 10 October 2026
 
 William has now requested the focused Astra xhigh continuation. [The pinned result](XHIGH-REVIEW-2026.10.10.md) records confirmed startup-integrity and owned-process cancellation defects plus the permission-preview timing correction, with reproductions and narrow repair checks. This supersedes the earlier suggestion to wait for a new master prompt. Review the pending corrections and future integration deltas; repeat a broad pass only when new interacting source or a demonstrated regression warrants it. The final candidate and human/live gates remain open.
+
+## Delegation calibration
+
+William subsequently authorised a bounded parallel Astra/Sol 6.1 xhigh comparison and a first delegated implementation. [DELEGATION-2026.10.10](DELEGATION-2026.10.10.md) records the actual results, AST-20261010-08 discovery and repair, one-writer policy and effort routing. Both models passed the shared process grading; Sol found the independently confirmed deadline defect. Reliable token/cost counters were unavailable, so neither speed nor this small sample establishes a cost winner. Correctness, usability and total task/review/rework efficiency take priority over speed; Medium/Low have not been benchmarked here.
