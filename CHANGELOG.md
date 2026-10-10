@@ -1,10 +1,18 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
+
+
+- Keep connected read-only Reports usable after the original token expiry: the existing guarded provider owns silent renewal. Preserve malformed-context, identity/scope/selection refusals and the separate expiry of experimental write approval.
+
+- Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
 
 - Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
 
 - Bind manual-check and deviation drafts to the current client, verified standard and material client inputs; refuse stale rows before save/delete. Retain offline change-register history while clearing recovery approval when connection authority changes. Add explicit saved-client offline review and a separate persistent evidence-source header. No sign-in, new schema or write authority is introduced; exact Windows/native and independent review remain required.
 
 - Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
+
+- Pin configured sign-in timeout forwarding through the real sign-in path with synthetic acquisition and distinguish acquisition time from permission-review time in the live run sheet (CLA-20261010-75/76).
 
 - Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
 
@@ -13,6 +21,12 @@
 - Add production-path authentication and setup/consent refusal regressions; show an unknown account for explicit account-choice previews instead of the previous identity.
 
 - Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
+
+- Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
+
+- Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
+
+- Extend offline Graph interruption checks through real retry delays and second-page cancellation, preserving one silent renewal and treating cancellation after write dispatch as ambiguous without replay. Production transport behaviour is unchanged.
 
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
@@ -36,7 +50,11 @@
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
 
-- Add the owned read-only runner engine (INT-088 slice 2): schema 2 manifests and registry with explicit version dispatch; an engine-pinned PowerShell wrapper that checks the script's syntax tree before sign-in and reaches registered Exchange reads only through a private gate that rechecks the tenant, account and stop request before and after every read; a pinned, strictly typed request; and a strict result that must repeat the exact run, item, pins, tenant, account and parameters before it is sealed as `exchangeReportEvidence`. Output, diagnostics, result size and time are bounded; a stop ends the process tree after five seconds; a refused host, a missing module or a failed check keeps no rows. No shipped item becomes runnable and no UI, CLI, permission or tenant access is added; every regression uses a synthetic stand-in module. The runner refuses a child result with a null required member, collection or element as malformed output (AST-20261010-02), and the read gate refuses an expired or unconfirmed Exchange token before and after every read, keeping no rows when it expires mid-run (AST-20261010-03).
+- Review mailbox capacity and Plan 2 eligibility for every mailbox in a sealed Exchange mailbox inventory against a sealed assigned-licence report for the same tenant (INT-071 over INT-088). Each value keeps its own read state, archive values apply only to an archive read as present, a failed archive read stays Failed, and a capped or incomplete list keeps its reason. Each source record keeps its digest, source mode, interval, status and limitations, so a failed licence read is never shown as an unlicensed user. Offline and pure: no read, record, quota change, UI or CLI is added.
+
+- Add the first runnable library item for the owned read-only runner (INT-088 slice 3): mailbox size, quotas and archive from Exchange Online, read only through the runner's gate. Each size, quota and archive value keeps its own read state, a value Exchange did not return is never zero or blank, `Unlimited` stays `Unlimited`, and an archive is recorded only from a non-empty archive GUID. The item has no Copy form and Run is not offered yet; the Copy library and its checks are unchanged. The registry moves to schema 2. No permission, sign-in or tenant access is added, and the adapter has not been run against a tenant.
+
+- Add the owned read-only runner engine (INT-088 slice 2): schema 2 manifests and registry with explicit version dispatch; an engine-pinned PowerShell wrapper that checks the script's syntax tree before sign-in and reaches registered Exchange reads only through a private gate that rechecks the tenant, account and stop request before and after every read; a pinned, strictly typed request; and a strict result that must repeat the exact run, item, pins, tenant, account and parameters before it is sealed as `exchangeReportEvidence`. Output, diagnostics, result size and time are bounded; a stop ends the process tree after five seconds; a refused host, a missing module or a failed check keeps no rows. No shipped item becomes runnable and no UI, CLI, permission or tenant access is added; every regression uses a synthetic stand-in module. The runner refuses a child result with a null required member, collection or element as malformed output (AST-20261010-02), and the read gate refuses an expired or unconfirmed Exchange token before and after every read, keeping no rows when it expires mid-run (AST-20261010-03). A stop request that fails, or any callback failure after launch, now ends the owned process tree before the run returns, and a process the system will not end is reported as possibly still running, not as stopped, including after a callback failure (AST-20261010-05, AST-20261010-19).
 
 - Add strict `exchangeReportEvidence` schema 1 (INT-088 slice 1): models, a package-owned registry with the first `exo-mailbox-inventory` registration, a bounded reader and a create-once tenant-partitioned store. Anything outside the registration, any non-normalised parameter, any value from a group that was not read and any status better than its sections is refused; a failed read is never zero and `Unlimited` stays `Unlimited`. A blank mailbox type, size, quota or archive value is unreadable and is refused (AST-20261010-01). No runner, adapter, UI or tenant access is added, so nothing in the product creates these records yet.
 
@@ -350,3 +368,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 ### Standards
 - Catalogue schema v3 with expected production state and safe deployment state per control; 45 controls (12 automated recipes) carried over from Tenant Console 2026.09.2 and enriched with severity, business impact, engineer action, licence and manual instructions.
 - SHA-256 manifest integrity check (documented as a digest, not a signature).
+
+- Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).

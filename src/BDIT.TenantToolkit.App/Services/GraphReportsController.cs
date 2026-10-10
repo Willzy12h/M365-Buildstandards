@@ -33,12 +33,15 @@ public sealed class GraphReportsController(Workspace workspace)
     {
         var connection = workspace.RequireConnection();
         var s = connection.Session;
-        if (!s.TenantVerified || !ProfileValidator.IsGuid(s.AccountObjectId)
+        if (!s.TenantVerified || !s.OperatorVerified || !ProfileValidator.IsGuid(s.AccountObjectId)
             || !string.Equals(connection.Graph.TenantId, s.TenantId, StringComparison.OrdinalIgnoreCase)
             || connection.Graph.Mode != s.Mode)
-            throw new TenantMismatchException("Connect with a verified tenant and account before reading reports.");
-        if (!Timestamps.TryParse(s.TokenExpiresAt, out var expiry) || expiry <= DateTimeOffset.UtcNow)
-            throw new ToolkitException("The current session has expired or its expiry is unknown. Use Connect deliberately; Reports never signs in.");
+            throw new TenantMismatchException("Reconnect deliberately with a verified tenant and account before reading reports.");
+        // This is the expiry observed at Connect, not the lifetime of the verified read context.
+        // The existing provider silently renews same-identity/same-scope access without changing this timestamp.
+        // Experimental tenant-write authority retains its separate original-expiry guard.
+        if (!Timestamps.TryParse(s.TokenExpiresAt, out _))
+            throw new ToolkitException("The connection's original token expiry is unknown or malformed. Use Connect deliberately; Reports never signs in.");
         if (connection.Graph is not GraphClient)
             throw new ToolkitException("Reports require the existing guarded Graph connection; use Connect first.");
         return connection;

@@ -60,7 +60,8 @@ internal sealed class ConnectedReportsFixture : IDisposable
     internal sealed class ReportTokens : IAccessTokenProvider
     {
         public int Calls { get; private set; }
-        public Task<string> GetAccessTokenAsync(CancellationToken ct) { ct.ThrowIfCancellationRequested(); Calls++; return Task.FromResult("synthetic-token"); }
+        public Action? BeforeAcquisition { get; set; }
+        public Task<string> GetAccessTokenAsync(CancellationToken ct) { ct.ThrowIfCancellationRequested(); Calls++; BeforeAcquisition?.Invoke(); return Task.FromResult("synthetic-token"); }
         public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) => GetAccessTokenAsync(ct);
     }
     internal sealed class ReportHttp : HttpMessageHandler
@@ -150,8 +151,10 @@ public sealed class GraphReportsPageTests
 
     [Theory]
     [InlineData("missing")]
-    [InlineData("expired")]
+    [InlineData("unknownExpiry")]
+    [InlineData("malformedExpiry")]
     [InlineData("unverified")]
+    [InlineData("operatorUnverified")]
     [InlineData("wrongTenant")]
     [InlineData("wrongAccount")]
     [InlineData("fakeGraph")]
@@ -159,8 +162,10 @@ public sealed class GraphReportsPageTests
     public async Task Direct_read_guards_refuse_invalid_context_before_any_tenant_request(string fault)
     {
         using var f = new ConnectedReportsFixture(connect: fault != "missing");
-        if (fault == "expired") f.Workspace.Session!.TokenExpiresAt = "2020-01-01T00:00:00Z";
+        if (fault == "unknownExpiry") f.Workspace.Session!.TokenExpiresAt = "";
+        if (fault == "malformedExpiry") f.Workspace.Session!.TokenExpiresAt = "not-a-timestamp";
         if (fault == "unverified") f.Workspace.Session!.TenantVerified = false;
+        if (fault == "operatorUnverified") f.Workspace.Session!.OperatorVerified = false;
         if (fault == "wrongTenant") f.Workspace.Session!.TenantId = TestData.TenantB;
         if (fault == "wrongAccount") f.Workspace.Session!.AccountObjectId = "invalid";
         if (fault == "fakeGraph") f.Set(nameof(Workspace.Connection), new ConnectedTenant(f.Workspace.Session!, new FakeGraphClient(TestData.Standard()), null));
@@ -228,18 +233,20 @@ public sealed class GraphReportsPageTests
     }
 
     [Fact]
-    public async Task Same_pinned_session_expiring_in_response_is_refused_without_save_retry_or_relabelling()
+    public async Task Changing_the_pinned_connection_timestamp_in_response_is_refused_without_save_retry_or_relabelling()
     {
         using var f = new ConnectedReportsFixture(); var page = f.Page();
         page.SelectedReport = GraphReportRegistry.Find("intune-devices"); page.ReadAcknowledged = true;
         var pinnedSession = f.Workspace.Session;
+        var pinnedContext = f.Controller.ContextKey;
+        // An explicit mutation changes ContextKey; ordinary passage of time does not mutate this Connect-time fact.
         f.Handler.BeforeResponse = () => pinnedSession!.TokenExpiresAt = "2020-01-01T00:00:00Z";
         await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.Same(pinnedSession, f.Workspace.Session);
         Assert.Equal(1, f.Handler.Calls); Assert.Equal(1, f.Tokens.Calls);
         Assert.Null(page.Rows); Assert.False(page.ExportJsonCommand.CanExecute(null)); Assert.False(page.ReadAcknowledged);
         Assert.Contains("no new report accepted", page.Outcome);
-        Assert.Contains("expired", page.ReadGuidance);
+        Assert.NotEqual(pinnedContext, f.Controller.ContextKey);
         Assert.False(Directory.Exists(Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA), "report-evidence")));
     }
 

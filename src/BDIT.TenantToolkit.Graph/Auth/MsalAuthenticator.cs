@@ -97,12 +97,17 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         };
     }
 
-    public static async Task<MsalAuthenticator> SignInAsync(SignInRequest request, IToolkitLog log, CancellationToken ct)
+    public static Task<MsalAuthenticator> SignInAsync(SignInRequest request, IToolkitLog log, CancellationToken ct) =>
+        SignInAsync(request, log, ct, acquireInteractive: null, timeProvider: null);
+
+    // Offline tests replace only explicit MSAL transport and time; public sign-in retains its provider defaults.
+    internal static async Task<MsalAuthenticator> SignInAsync(SignInRequest request, IToolkitLog log, CancellationToken ct,
+        Func<CancellationToken, Task<AuthenticationResult>>? acquireInteractive, TimeProvider? timeProvider)
     {
         if (!ProfileValidator.IsGuid(request.TenantId)) throw new ConfigurationException("Sign-in requires a tenant ID GUID.");
         if (!ProfileValidator.IsGuid(request.ClientId)) throw new ConfigurationException("Sign-in requires an application (client) ID GUID.");
         if (request.Scopes.Count == 0) throw new ConfigurationException("Sign-in requires at least one scope.");
-        return await SignInCoreAsync(request, request.TenantId, discoverTenant: false, log, ct);
+        return await SignInCoreAsync(request, request.TenantId, discoverTenant: false, log, ct, acquireInteractive, timeProvider);
     }
 
     // Discovery is deliberately a separate entry point: normal assessment, deployment and setup still require
@@ -119,7 +124,8 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
         }, "organizations", discoverTenant: true, log, ct);
 
     private static async Task<MsalAuthenticator> SignInCoreAsync(SignInRequest request, string authorityTenant,
-        bool discoverTenant, IToolkitLog log, CancellationToken ct)
+        bool discoverTenant, IToolkitLog log, CancellationToken ct,
+        Func<CancellationToken, Task<AuthenticationResult>>? acquireInteractive = null, TimeProvider? timeProvider = null)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -160,6 +166,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             }, async (reason, token) =>
             {
                 log.Info("Auth", $"{ExplicitConnectAcquisition.Explain(reason)} Opening {(broker ? "Windows sign-in" : "the system browser")} for tenant {authorityTenant} ({request.ClientLabel}, {(request.Purpose.Length > 0 ? request.Purpose : request.Mode.ToString())}).", request.TenantId);
+                if (acquireInteractive is not null) return await acquireInteractive(token);
                 var interactive = pca.AcquireTokenInteractive(scopes);
                 if (string.IsNullOrWhiteSpace(request.LoginHint) || reason == ConnectInteractionReason.AmbiguousAccount)
                     interactive.WithPrompt(Prompt.SelectAccount);
@@ -170,7 +177,7 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                         HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
                     });
                 return await interactive.ExecuteAsync(token);
-            }, ct, request.BeforeInteractive, request.Timeout);
+            }, ct, request.BeforeInteractive, request.Timeout, timeProvider);
         }
         catch (MsalException ex)
         {
