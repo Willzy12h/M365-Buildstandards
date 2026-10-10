@@ -32,12 +32,21 @@ public static class ExchangeReportEvidenceSchema
             DefaultIgnoreCondition = JsonIgnoreCondition.Never, MaxDepth = 48
         };
         options.Converters.Clear(); options.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
+        // Frozen, with its resolver, so the registered row projection can be read from the same contract that writes rows.
+        options.MakeReadOnly(populateMissingResolver: true);
         return options;
     }
 
     public static JsonObject Row<T>(T row) where T : ExchangeReportRow =>
         JsonSerializer.SerializeToNode(row, Strict)!.AsObject();
     public static string Serialize(ExchangeReportEvidence evidence) => JsonSerializer.Serialize(evidence, Strict);
+
+    /// <summary>The registered row projection: a row type's JSON property names in the order they are written.</summary>
+    public static IReadOnlyList<string> Columns(Type rowType)
+    {
+        if (!typeof(ExchangeReportRow).IsAssignableFrom(rowType)) throw Bad("Not a registered Exchange report row type.");
+        return Strict.GetTypeInfo(rowType).Properties.Select(p => p.Name).ToList();
+    }
 
     public static ExchangeReportEvidence Read(string json, string expectedTenantId)
     {
