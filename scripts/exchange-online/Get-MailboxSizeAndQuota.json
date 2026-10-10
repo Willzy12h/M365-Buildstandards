@@ -16,7 +16,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-MailboxSizeAndQuota.ps1",
-  "scriptSha256": "371312af6206611728963c628b12dc06c712e1832e60fc1356a94158f9ab99bd",
+  "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
   "supportedRuntimes": [
     "5.1",
     "7"

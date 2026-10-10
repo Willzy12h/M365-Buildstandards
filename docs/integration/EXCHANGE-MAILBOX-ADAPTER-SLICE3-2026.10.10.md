@@ -22,10 +22,16 @@ Run is still not offered anywhere. The desktop Scripts page and `bdit scripts` k
 - **Values are recorded exactly as Exchange returned them.** `Unlimited` stays `Unlimited`; byte parsing and eligibility are left to the #58 mailbox capacity evaluator.
 - **Archive.** Only when Include archive is ticked. An archive exists only when Exchange returns a non-empty `ArchiveGuid`; a missing `ArchiveGuid` makes the archive state Failed, not "no archive".
 - **Cap.** It asks for 10,001 mailboxes. More than 10,000 lists the first 10,000 and makes the section Partial.
+- **Every section limitation is kept.** The cap, mailboxes without a GUID and unread row values each add their own sentence to the section error; one never replaces another.
 
 ## Validation
 
 Synthetic stand-in module only (`tests/.../Fixtures/ReadRunner`). The new regressions cover the exact reads and their parameters, archive reads only where one exists, each unreadable value leaving its row Partial (quotas, archive presence, object ID, size, archive size), a missing GUID, a missing type, and the absence of a Copy form. The schema 2 admission tests now assert that the shipped library has exactly one runnable item.
+
+## Review corrections
+
+- **AST-20261010-20 (Astra, P2).** `Get-EXOMailbox` returns only its Minimum property set plus the properties asked for, and `ExchangeGuid` is not in Minimum, so a real tenant would have listed no mailboxes. The adapter now asks for `ExchangeGuid`. The stand-in module now returns only Minimum plus the requested properties whenever `-Properties` is passed; with that change all nine adapter cases failed on `c3d96f1` and pass now. The older synthetic slice 2 body asks for no properties and keeps the full shape.
+- **AST-20261010-21 (Astra, P3).** A mailbox without a GUID overwrote the cap's section reason, so a truncated list no longer said so. Each limitation is now kept. `A_section_over_the_cap_with_a_mailbox_missing_its_guid_keeps_both_limitations` runs 10,001 mailboxes with one missing GUID and checks both reasons and 9,999 rows.
 
 ## Not verified
 

@@ -81,6 +81,26 @@ function Get-EXOMailbox {
     if ($script:Scenario -eq 'bad-object-id') { $mailboxes[0].ExternalDirectoryObjectId = 'not-a-guid' }
     if ($script:Scenario -eq 'no-mailbox-guid') { $mailboxes += [pscustomobject]@{ ExchangeGuid = ''; DisplayName = 'No GUID'; RecipientTypeDetails = 'UserMailbox' } }
     if ($script:Scenario -eq 'no-type') { $mailboxes[1].PSObject.Properties.Remove('RecipientTypeDetails') }
+    # More than the adapter's 10,000 cap, with one mailbox inside the cap returned without its GUID.
+    if ($script:Scenario -eq 'over-cap-missing-guid') {
+        $mailboxes = @(for ($i = 0; $i -lt 10001; $i++) {
+            [pscustomobject]@{ ExchangeGuid = $(if ($i -eq 5) { '' } else { '{0:x8}-0000-4000-8000-000000000000' -f ($i + 1) }); DisplayName = 'Bulk ' + $i
+                PrimarySmtpAddress = 'bulk' + $i + '@synthetic.example'; RecipientTypeDetails = 'UserMailbox'; IssueWarningQuota = 'Unlimited'
+                ProhibitSendQuota = 'Unlimited'; ProhibitSendReceiveQuota = 'Unlimited'; ArchiveGuid = '00000000-0000-0000-0000-000000000000'; ArchiveQuota = '0 B (0 bytes)' }
+        })
+    }
+    # With -Properties, return only the documented Minimum property set plus the properties asked for, as the real cmdlet
+    # does (AST-20261010-20). ExchangeGuid is not in Minimum. The older synthetic body asks for no properties and keeps the full shape.
+    if ($Properties) {
+        $minimum = @('ExternalDirectoryObjectId', 'UserPrincipalName', 'Alias', 'DisplayName', 'EmailAddresses', 'PrimarySmtpAddress',
+            'RecipientType', 'RecipientTypeDetails', 'Identity', 'Id', 'ExchangeVersion', 'Name', 'DistinguishedName', 'OrganizationId', 'Guid')
+        $wanted = $minimum + $Properties
+        $mailboxes = @($mailboxes | ForEach-Object {
+            $selected = [ordered]@{}
+            foreach ($property in $_.PSObject.Properties) { if ($wanted -contains $property.Name) { $selected[$property.Name] = $property.Value } }
+            [pscustomobject]$selected
+        })
+    }
     return $mailboxes
 }
 

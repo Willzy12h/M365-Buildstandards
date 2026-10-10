@@ -735,7 +735,8 @@ public sealed class ExchangeReportRunnerTests
         Assert.Equal("0 B (0 bytes)", shared["primarySizeRaw"]!.GetValue<string>());
         Assert.All(evidence.Sections.Single().Rows, r => Assert.Equal(ReportReadState.NotAttempted, r["archiveReadStatus"]!.GetValue<string>()));
         // One list read with the cap plus one, then one statistics read per mailbox, and no archive read.
-        Assert.Contains("Read Get-EXOMailbox ResultSize=10001 Properties=ExternalDirectoryObjectId,IssueWarningQuota,ProhibitSendQuota,ProhibitSendReceiveQuota,ArchiveGuid,ArchiveQuota", run.Log);
+        // The stand-in returns only the Minimum set plus what is asked for, so the mailbox GUID must be requested (AST-20261010-20).
+        Assert.Contains("Read Get-EXOMailbox ResultSize=10001 Properties=ExchangeGuid,ExternalDirectoryObjectId,IssueWarningQuota,ProhibitSendQuota,ProhibitSendReceiveQuota,ArchiveGuid,ArchiveQuota", run.Log);
         Assert.Equal(3, run.Reads);
         Assert.DoesNotContain("-Archive", run.Log);
     }
@@ -804,6 +805,21 @@ public sealed class ExchangeReportRunnerTests
         Assert.Equal(2, section.Rows.Count);
         // The row that could not be identified was not read further.
         Assert.Equal(3, run.Reads);
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_section_over_the_cap_with_a_mailbox_missing_its_guid_keeps_both_limitations(string runtime)
+    {
+        // AST-20261010-21: one limitation must never hide another. 10,001 mailboxes, one inside the cap without a GUID.
+        using var run = new Run();
+        var result = await run.Execute(runtime, "over-cap-missing-guid", Shipped).WaitAsync(TimeSpan.FromMinutes(10));
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        var section = evidence.Sections.Single();
+        Assert.Equal(ReportReadState.Partial, section.Status);
+        Assert.Contains("only the first 10,000 are listed", section.Error, StringComparison.Ordinal);
+        Assert.Contains("without an Exchange mailbox GUID", section.Error, StringComparison.Ordinal);
+        Assert.Equal(9999, section.Rows.Count);
     }
 
     [Theory, MemberData(nameof(Runtimes))]

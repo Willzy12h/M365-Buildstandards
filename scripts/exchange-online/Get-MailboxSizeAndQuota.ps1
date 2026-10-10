@@ -12,10 +12,11 @@ Set-StrictMode -Version Latest
 
 $cap = 10000
 $emptyGuid = '00000000-0000-0000-0000-000000000000'
-$properties = @('ExternalDirectoryObjectId', 'IssueWarningQuota', 'ProhibitSendQuota', 'ProhibitSendReceiveQuota', 'ArchiveGuid', 'ArchiveQuota')
+$properties = @('ExchangeGuid', 'ExternalDirectoryObjectId', 'IssueWarningQuota', 'ProhibitSendQuota', 'ProhibitSendReceiveQuota', 'ArchiveGuid', 'ArchiveQuota')
 $rows = [System.Collections.Generic.List[object]]::new()
 $sectionStatus = 'Collected'
-$sectionError = $null
+# Every limitation that applies is kept, so one never hides another.
+$sectionReasons = [System.Collections.Generic.List[object]]::new()
 
 # One property as text, or $null when Exchange did not return it or returned only whitespace.
 function TextOf($Item, [string]$Name) {
@@ -37,8 +38,10 @@ $mailboxes = @(Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{ ResultSize 
 if ($mailboxes.Count -gt $cap) {
     $mailboxes = @($mailboxes | Select-Object -First $cap)
     $sectionStatus = 'Partial'
-    $sectionError = 'More than 10,000 mailboxes were found; only the first 10,000 are listed.'
+    $sectionReasons.Add('More than 10,000 mailboxes were found; only the first 10,000 are listed.')
 }
+$missingGuid = 'Some mailboxes were returned without an Exchange mailbox GUID and are not listed.'
+$unreadValues = 'Some mailbox values could not be read; each row says which.'
 
 foreach ($mailbox in $mailboxes) {
     $problems = [System.Collections.Generic.List[object]]::new()
@@ -46,7 +49,7 @@ foreach ($mailbox in $mailboxes) {
     if ($null -eq $id) {
         # Without its exact mailbox GUID a row cannot be joined or compared, so it is not listed at all.
         $sectionStatus = 'Partial'
-        $sectionError = 'Some mailboxes were returned without an Exchange mailbox GUID and are not listed.'
+        if (-not $sectionReasons.Contains($missingGuid)) { $sectionReasons.Add($missingGuid) }
         continue
     }
     $objectIdText = TextOf $mailbox 'ExternalDirectoryObjectId'
@@ -104,8 +107,10 @@ foreach ($mailbox in $mailboxes) {
         $row.readStatus = 'Partial'
         $row.error = [string]::Join(' ', $problems.ToArray())
         $sectionStatus = 'Partial'
-        if ($null -eq $sectionError) { $sectionError = 'Some mailbox values could not be read; each row says which.' }
+        if (-not $sectionReasons.Contains($unreadValues)) { $sectionReasons.Add($unreadValues) }
     }
     $rows.Add($row)
 }
+$sectionError = $null
+if ($sectionReasons.Count -gt 0) { $sectionError = [string]::Join(' ', $sectionReasons.ToArray()) }
 @{ Sections = @(@{ Id = 'mailboxes'; Status = $sectionStatus; Error = $sectionError; Rows = $rows.ToArray() }) }
