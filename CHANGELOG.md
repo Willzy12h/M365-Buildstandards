@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Script library: a list entry made only of whitespace now makes the mailbox, protection or quarantine policy setting Unknown with a warning, instead of a known count.
+
 - Show script requirements and limitations in the actual Copy/Save confirmation; retain stored-capture deployment ineligibility in the compact configuration summary.
 
 - Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
