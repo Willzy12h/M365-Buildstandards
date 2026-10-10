@@ -500,3 +500,7 @@ Add full-template empty-account refusal cases before module lookup, connection o
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
+
+### INT-094 second review corrections — 10 October 2026, PR #69
+
+Name Claude as library/Exchange runner-adapter owner and Astra as Graph application-report/offline-doctor implementer. Require an explicit schema dispatcher with unchanged schema 1 refusals and negative export tests, UK English for new identifiers, and factual grant-replication limits. Refresh dependencies to actual merged states while preserving #65's open regression in #78. CLA-20261009-46/48/50/51 and CLA-20261010-04; no additional permission, live consent, write route or release action.
