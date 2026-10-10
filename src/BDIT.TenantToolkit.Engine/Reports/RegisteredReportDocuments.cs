@@ -10,13 +10,15 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 /// <summary>Offline visibility over validated report evidence; no re-collection or current-state inference.</summary>
 public static class RegisteredReportDocuments
 {
-    public static IReadOnlyList<Sheet> Sheets(ReportEvidence report)
+    public const string SuppliedFileNotice = "Offline supplied file: source, account and live-mode claims have not been independently verified. No live reads were performed for this export. A digest detects modification; it does not authenticate the source.";
+    public static IReadOnlyList<Sheet> Sheets(ReportEvidence report, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);
         var metadata = new Sheet("Report provenance", ["Field", "Value"]);
+        if (suppliedFile) metadata.Add("Export provenance", SuppliedFileNotice);
         metadata.Add("Report", GraphReportRegistry.Find(report.ReportId).Name);
         metadata.Add("Report ID", report.ReportId); metadata.Add("Record ID", report.Id);
-        metadata.Add("Tenant ID", report.TenantId); metadata.Add("Verified account object ID", report.AccountObjectId ?? "Unknown historical account");
+        metadata.Add("Tenant ID", report.TenantId); metadata.Add("Recorded account object ID", report.AccountObjectId ?? "Unknown historical account");
         metadata.Add("Resource", report.Resource); metadata.Add("Source mode", report.SourceMode);
         metadata.Add("Started at", report.StartedAt); metadata.Add("Ended at", report.EndedAt);
         metadata.Add("Read status", report.Status); metadata.Add("Toolkit version", report.ToolkitVersion); metadata.Add("Adapter version", report.ModuleVersion);
@@ -38,14 +40,15 @@ public static class RegisteredReportDocuments
         return sheets;
     }
 
-    public static string Html(ReportEvidence report, string companyName)
+    public static string Html(ReportEvidence report, string companyName, bool suppliedFile = false)
     {
-        var sheets = Sheets(report);
+        var sheets = Sheets(report, suppliedFile);
         var definition = GraphReportRegistry.Find(report.ReportId);
         var html = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
         html.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">");
         html.Append("<title>").Append(E(definition.Name)).Append("</title><style>body{font:15px system-ui;margin:32px;color:#172c3e}h1,h2{color:#145887}.table{overflow:auto}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #cad4dd;padding:10px;text-align:left;vertical-align:top}th{background:#eef3f8}td{white-space:pre-wrap;overflow-wrap:anywhere;min-width:110px}.notice{padding:14px;background:#fff0cd}.muted{color:#536477}</style></head><body>");
         html.Append("<p class=\"muted\">").Append(E(companyName)).Append("</p><h1>").Append(E(definition.Name)).Append("</h1>");
+        if (suppliedFile) html.Append("<p class=\"notice\">").Append(E(SuppliedFileNotice)).Append("</p>");
         html.Append("<p>Tenant ID: ").Append(E(report.TenantId)).Append(" · ").Append(E(report.SourceMode == "live" ? "Recorded live read" : "Historical report"))
             .Append(" · ").Append(E(report.StartedAt)).Append(" to ").Append(E(report.EndedAt)).Append("</p>");
         html.Append("<div class=\"notice\"><strong>Read status: ").Append(E(report.Status)).Append(".</strong> Separate report evidence; cannot authorise deployment. Unknown values are not zero, false or proof of absence. This document does not refresh the data.</div>");

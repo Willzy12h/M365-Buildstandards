@@ -105,16 +105,16 @@ public sealed class ReportExporter
         };
     }
 
-    public string ExportReport(ReportEvidence report, ExportFormat format)
+    public string ExportReport(ReportEvidence report, ExportFormat format, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);
         var kind = "tenant-report-" + SafeName(report.ReportId) + "-" + report.Id + "-" + Guid.NewGuid().ToString("N");
         return format switch
         {
-            ExportFormat.Html => WriteText(Target(kind, report.TenantId, report.EndedAt, "html"), RegisteredReportDocuments.Html(report, _companyName)),
+            ExportFormat.Html => WriteText(Target(kind, report.TenantId, report.EndedAt, "html"), RegisteredReportDocuments.Html(report, _companyName, suppliedFile)),
             ExportFormat.Json => WriteText(Target(kind, report.TenantId, report.EndedAt, "json"), ReportEvidenceSchema.Serialize(report)),
-            ExportFormat.Csv => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "csv.zip"), CsvWriter.ZipSheets(RegisteredReportDocuments.Sheets(report))),
-            ExportFormat.Xlsx => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "xlsx"), XlsxWriter.Write(RegisteredReportDocuments.Sheets(report))),
+            ExportFormat.Csv => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "csv.zip"), CsvWriter.ZipSheets(RegisteredReportDocuments.Sheets(report, suppliedFile))),
+            ExportFormat.Xlsx => WriteBytes(Target(kind, report.TenantId, report.EndedAt, "xlsx"), XlsxWriter.Write(RegisteredReportDocuments.Sheets(report, suppliedFile))),
             _ => throw new ArgumentOutOfRangeException(nameof(format), "Registered reports export as HTML, JSON, CSV or XLSX.")
         };
     }

@@ -37,6 +37,7 @@ Each group carries its own read state: primary size, the three quotas together, 
 - A group that was read records every value.
 - A group that was not read records none, so a failed read can never look like zero or like a known quota.
 - `Unlimited` is kept as Exchange's own text.
+- A recorded value must be readable: empty or whitespace-only type, size, quota, archive or address text is refused in any row (AST-20261010-01). Readable raw values, including zero and `Unlimited`, are kept exactly as returned; a value that could not be read is absent, with its group's read state and the row's reason.
 - `HasArchive` is set only by a successful archive-state read, so absence of an archive is never inferred from a failed request.
 - Archive size and archive quota apply only to a mailbox whose archive was read as present.
 - A run with `IncludeArchive=false` records no archive state at all.
@@ -65,6 +66,10 @@ No report record can load as configuration before-evidence or authorise deployme
   - source commands; overall status; Boolean normalisation; live accounts;
   - a partial row in a Collected section; row-identity uniqueness; resource; row reason.
 - The first Boolean-normalisation test passed for the wrong reason, because an archive rule refused the record first. It now runs without archives so that only the parameter rule can refuse it.
+
+## Review corrections
+
+- **AST-20261010-01 (Astra, P2).** Blank size, quota and mailbox-type values could be sealed as Collected. The reader now refuses any empty or whitespace-only mailbox value, and a Collected row needs a readable type. Thirteen negative cases (type, primary size, each quota, archive size, archive quota, address; empty and whitespace) and a partial-row case fail on `9cb3b05` and pass after the fix; a positive control keeps zero and `Unlimited` exactly as returned.
 
 ## Not done here, and still required
 

@@ -177,10 +177,22 @@ public static class PortableCliStandardHandles {
     $reportLine = @($report.Text -split "`r?`n" | Where-Object { $_ -match '^Report: ' })
     if ($reportLine.Count -ne 1) { throw 'Packaged CLI did not print exactly one assessment report path.' }
     Assert-SyntheticReport $reportLine[0].Substring('Report: '.Length) 'assessment-*.html' 'assessment report'
+    # The registered report path uses a strict separate fixture, never configuration assessment or live collection.
+    $registeredFile = Join-Path $synthetic 'synthetic registered report.json'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'test-fixtures\registered-report.json') -Destination $registeredFile
+    $registered = Invoke-OwnedCli $exe ('--cli report-evidence --input "' + $registeredFile + '" --tenant 11111111-1111-4111-8111-111111111111') 0
+    if ($registered.Error -or $registered.Text -notmatch 'read status Partial') { throw 'Packaged registered report lost its partial read state.' }
+    $registeredExports = @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'tenant-report-intune-devices-*.html' -File)
+    if ($registeredExports.Count -ne 1 -or [IO.Path]::GetFullPath((@($registered.Text -split "`r?`n")[0]).Trim()) -ine $registeredExports[0].FullName) { throw 'Packaged registered report did not return its exact export path.' }
+    $registeredHtml = Get-Content -LiteralPath $registeredExports[0].FullName -Raw
+    if ($registeredHtml -notmatch '11111111-1111-4111-8111-111111111111' -or $registeredHtml -notmatch 'not an empty successful check' -or $registeredHtml -notmatch 'Read status: Partial') { throw 'Packaged registered report invented a complete empty read.' }
+    $wrongRegisteredTenant = Invoke-OwnedCli $exe ('--cli report-evidence --input "' + $registeredFile + '" --tenant 22222222-2222-4222-8222-222222222222') 2
+    if ($wrongRegisteredTenant.Text -or $wrongRegisteredTenant.Error -notmatch 'Refused:') { throw 'Packaged registered report did not refuse another tenant.' }
+    if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -Filter 'tenant-report-intune-devices-*.html' -File).Count -ne 1) { throw 'Refused registered report wrote another export.' }
     if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
     if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'data') -File -Recurse | Where-Object { $_.Name -match 'cache|token|session' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
     # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
-    Remove-Item -LiteralPath $snapshotFile, $profileFile -Force
+    Remove-Item -LiteralPath $snapshotFile, $profileFile, $registeredFile -Force
     Remove-Item -LiteralPath $synthetic -Force
     Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File | Remove-Item -Force
 
@@ -281,7 +293,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliHelp=$true; portableCliLauncher=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; noCliDesktopOrAuthInitialisation=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of bdit.cmd, WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

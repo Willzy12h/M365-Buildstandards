@@ -154,7 +154,7 @@ public static class ExchangeReportEvidenceSchema
     {
         foreach (var state in new[] { m.PrimarySizeReadStatus, m.QuotaReadStatus, m.ArchiveReadStatus, m.ArchiveSizeReadStatus }) State(state);
         if (m.ExternalDirectoryObjectId is not null) CanonicalGuid(m.ExternalDirectoryObjectId);
-        foreach (var text in new[] { m.PrimarySmtpAddress, m.MailboxType }) if (text is not null) Value(text);
+        foreach (var text in new[] { m.PrimarySmtpAddress, m.MailboxType }) if (text is not null) Readable(text);
         Group(m.PrimarySizeReadStatus, m.PrimarySizeRaw);
         Group(m.QuotaReadStatus, m.IssueWarningQuotaRaw, m.ProhibitSendQuotaRaw, m.ProhibitSendReceiveQuotaRaw);
         // Archive absence is only ever a successful explicit archive-state read.
@@ -162,7 +162,7 @@ public static class ExchangeReportEvidenceSchema
             throw Bad("Archive existence is known only from a successful archive-state read.");
         if (m.ArchiveReadStatus != ReportReadState.Collected && m.ArchiveQuotaRaw is not null)
             throw Bad("An archive quota needs a successful archive-state read.");
-        if (m.ArchiveQuotaRaw is not null) Value(m.ArchiveQuotaRaw);
+        if (m.ArchiveQuotaRaw is not null) Readable(m.ArchiveQuotaRaw);
         if (m.HasArchive != true && (m.ArchiveSizeReadStatus != ReportReadState.NotAttempted || m.ArchiveSizeRaw is not null || m.ArchiveQuotaRaw is not null))
             throw Bad("Archive size and quota apply only to a mailbox whose archive was read as present.");
         Group(m.ArchiveSizeReadStatus, m.ArchiveSizeRaw);
@@ -170,7 +170,7 @@ public static class ExchangeReportEvidenceSchema
             throw Bad("Archive values were recorded although the run did not include archives.");
         if (m.ReadStatus == ReportReadState.Collected)
         {
-            if (m.MailboxType is null || m.PrimarySizeReadStatus != ReportReadState.Collected || m.QuotaReadStatus != ReportReadState.Collected)
+            if (string.IsNullOrWhiteSpace(m.MailboxType) || m.PrimarySizeReadStatus != ReportReadState.Collected || m.QuotaReadStatus != ReportReadState.Collected)
                 throw Bad("A successful mailbox row needs its type, size and quotas.");
             if (includeArchive && (m.ArchiveReadStatus != ReportReadState.Collected
                 || m.HasArchive == true && m.ArchiveSizeReadStatus != ReportReadState.Collected))
@@ -185,7 +185,18 @@ public static class ExchangeReportEvidenceSchema
             if (values.Any(v => v is null)) throw Bad("A value group read successfully must record every value.");
         }
         else if (values.Any(v => v is not null)) throw Bad("A value group that was not read successfully cannot record values.");
-        foreach (var value in values) if (value is not null) Value(value);
+        foreach (var value in values) if (value is not null) Readable(value);
+    }
+
+    /// <summary>
+    /// A recorded mailbox value must be readable. Empty or whitespace-only text is not an observed zero, a known quota or a
+    /// known type: a value that could not be read is recorded as absent with its group's read state and reason, never blank.
+    /// Readable raw values, including zero and Unlimited, are kept exactly as returned.
+    /// </summary>
+    private static void Readable(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) throw Bad("A report value is empty or blank; an unreadable value is recorded as not read, never as blank text.");
+        Value(value);
     }
 
     public static void ValidateParameters(ExchangeReportRegistry.Definition definition, List<ExchangeReportParameter>? parameters)

@@ -152,6 +152,14 @@ Reviewer: Astra (issue comment on PR #66, posted from the Willzy12h account) on 
 | AST-20261009-04 | Astra / sharing (P3) | `partner.example:` gave a blank Access | Fixed by Claude: an empty domain or action part is Access Unknown, entry shown as returned | Empty and spaces-only action cases failed on `59f1d02` and pass. Live run pending |
 | AST-20261009 (notes) | Astra / quarantine, protocols, roles | Quarantine preset values conflict in Microsoft's documentation (27/23 against 43/39); decoded bits are configured, not effective; SMTP AUTH `-Properties` support and roles unconfirmed | Recorded in the quarantine item's limitations and the script library note; no behaviour change | Live run pending for presets, `SmtpClientAuthenticationDisabled` and roles |
 
+## Astra independent review of #74 and #75 (INT-088 slices 1 and 2) — 10 October 2026
+
+Reviewer: Astra (PR comments on #74 at `9cb3b05` and #75 at `95a2343`, posted from the Willzy12h account), by source inspection and scratch reproductions with no Microsoft module or tenant. Fix evidence is the author's (Claude): failing-first engine cases, then exact-head Windows CI. Live acceptance remains open.
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-01 | Astra / Exchange report evidence reader, #74 (P2) | Empty or whitespace-only size, quota and mailbox-type values could be sealed in a Collected row | Fixed by Claude on #74: any blank mailbox value is refused in any row; a Collected row needs a readable type; zero and `Unlimited` kept as returned. Carried into #75 | Thirteen negative cases and a partial-row case failed on `9cb3b05` and pass; positive control for zero and `Unlimited`. Re-review and live run pending |
+
 ## Claude Preview.18 review — 6–7 October 2026
 
 Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.
