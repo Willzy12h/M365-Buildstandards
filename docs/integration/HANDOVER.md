@@ -6,12 +6,12 @@ Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot 
 
 ## Next — 10 October 2026
 
-Integration is `463c0c8`, actual push run 38044346614 green. [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68; [review findings and strategy](release-readiness/REVIEW-STRATEGY-2026.10.10.md) records the current blockers.
+Integration is `7573887`, actual push run 38055150098 green. [Merge evidence](MERGE-EVIDENCE-2026.10.10.md) records #58/#62/#65/#68 and corrected Claude #74/#75, including the retained #65 review gap and #75 failed first attempt.
 
-1. Claude fixes AST-20261010-01–03 in #74/#75; Astra re-reviews exact corrected heads and Windows proof before merge. Preserve the library and no-Exchange-write boundary.
-2. Obtain narrow reviews for Astra #57/#67/#69/#73/#76, refresh against integration, rerun changed-head checks and merge only under delegation.
-3. Finish dependent report/adapters/navigation, the agreed application reports and offline prerequisite diagnostics, then prepare the authorised next-version exact-source candidate and truthful release record. Do not claim these unimplemented surfaces are complete.
-4. Keep #77 a draft promotion placeholder; correct AST-20261010-04 against the final candidate. No main merge or publisher invocation without William’s separate approval.
+1. Claude #74/#75 fixes are independently re-reviewed and merged. The engine is implemented, live-unverified; runnable report adapters/Run UI still belong to Claude and are not present. Keep Exchange changes copy-only.
+2. Astra #67/#69 review responses are pushed, #78 report regressions are green and awaiting independent review. Finish #57 historical-import compatibility/fresh-base proof, #73 production authentication/setup tests, and #76 review corrections. Keep outstanding findings visible rather than relying on earlier conflicting ready comments.
+3. Finish dependent report/adapters/navigation, agreed application reports and offline prerequisite diagnostics, then prepare the next-version exact-source candidate and truthful release record. No unimplemented surface is complete.
+4. Keep #77 a draft promotion placeholder; its accuracy wording is corrected. No main merge or publisher invocation without William's separate approval.
 
 Waiting on William: live tenant/Microsoft acceptance; interactive Windows console and human accessibility/handoff checks; client colours, named owners/evidence/deferral policies and security-owner signing/distribution decisions; protection/settings changes, main promotion, tags/releases/publication and final 1.1.0 approval. Current source work requires no duplicate permission-purpose acknowledgement.
 

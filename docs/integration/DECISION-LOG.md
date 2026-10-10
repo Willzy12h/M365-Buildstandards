@@ -501,3 +501,7 @@ William authorised cleanup to reduce repeated historical checking. Remove only m
 ### Continuation record refinement — 10 October 2026, PR #76
 
 Keep a compact current index and commit-bound merge table while retaining historical records. Actual integration push CI is distinct from a prospective main-promotion PR check, even when both advertise the same head SHA; source/package identities must match the recorded merge. #65/#68 records are corrected to verified push runs without ignoring failures or granting release approval. Source review AST-20261010-01–03 remains with Claude for fixes; #77 is a draft promotion placeholder with accuracy finding -04. No safeguard, schema, permission, publication or human/live gate is weakened.
+
+### Continuation second independent review response — 10 October 2026, PR #76
+
+CLA-20261010-50–53: acknowledge #65's still-open truncation-test gap at merge (corrected on #78, not silently closed); label cleanup JSON as a historical snapshot and every Claude ref as outside Astra cleanup authority; expose the two paused PR-less Claude branches; refresh actual #74/#75 merge/source/push proof and retain one #73 claim row. Keep CLA-owned rows untouched. The duplicate historical INT-091 allocation is disambiguated as INT-091/#65 (scale) versus INT-091/#71 (enrolment); do not reassign or erase either decision's history. This index and the green suite do not close remaining production-wiring, human/live or release gates.

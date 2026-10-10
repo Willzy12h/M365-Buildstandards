@@ -77,7 +77,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | Date | Agent | Repository | Scope | Branch / base | PR | State |
 |---|---|---|---|---|---|---|
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-082 desktop experimental operation/permission boundaries, transient verified-context opt-in and direct-path safeguards; excludes Claude scripts/runner and #56 configuration/copy-dialog files; no live, version or publisher work | `astra/experimental-runtime-2026-10-10` (verified integration `8e9c323`) | #73 | Open |
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | Compact continuation index and owner-authorised merged Astra branch cleanup; historical bytes/claims retained, no product or permission change; fresh three-repository pre-flight and #73/#74/#75 boundaries checked | `astra/workspace-hygiene-2026-10-10` (integration `f03b995`) | #76 | Open |
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Compact continuation index and owner-authorised merged Astra branch cleanup; historical bytes/claims retained, no product or permission change; fresh three-repository pre-flight and #73/#74/#75 boundaries checked | `astra/workspace-hygiene-2026-10-10` (original `f03b995`, refreshed `7573887`; CLA-50–53 corrections) | #76 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.

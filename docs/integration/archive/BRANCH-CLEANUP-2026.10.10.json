@@ -382,5 +382,7 @@
     "notes": "Only newly merged Astra refs; all exact heads reachable from retained integration. Active/Claude refs, tags and evidence preserved."
   },
   "totalDeletedRemoteAstraRefs": 28,
-  "totalDeletedLocalAstraRefs": 25
+  "totalDeletedLocalAstraRefs": 25,
+  "snapshotNote": "Historical initial cleanup snapshot at integration f03b995, not the current branch list. Four preservedActive Astra entries were later deleted in subsequentMergeCleanup. Claude entries shown there are examples, not an exhaustive list.",
+  "ownershipRule": "Every claude/* reference is preserved and is never an Astra cleanup candidate; use fresh GitHub/ref checks for the full current set."
 }

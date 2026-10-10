@@ -1,15 +1,15 @@
 # Current continuation — 10 October 2026
 
-Integration `463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8` remains unpublished Preview.19; actual integration push [38044346614](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38044346614) passed. [CURRENT-STATE](CURRENT-STATE.md) and [exact merge evidence](MERGE-EVIDENCE-2026.10.10.md) supersede older pending source status below. Preserve historical proof; it does not validate changed bytes.
+Integration `7573887329100be2dfb6d998f55310c1d34dd71a` remains unpublished Preview.19; actual integration push [38055150098](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38055150098) passed. [CURRENT-STATE](CURRENT-STATE.md) and [exact merge evidence](MERGE-EVIDENCE-2026.10.10.md) supersede older pending source status below. Preserve historical proof; it does not validate changed bytes.
 
 | Product surface | Already present / added / fixed | Remaining implementation or validation |
 |---|---|---|
 | Readiness, guidance, configuration HTML | #53/#56 fixes merged; assessment remains read-only | Human/newcomer/Narrator/scaling and Microsoft acceptance remain open |
 | Naming/import | Existing audit; #57 ENR/import correction implemented and green on its branch | Independent delta review; naming desktop surface and live acceptance |
-| Offline reports | #62 added CLI exports; #65/#68 add correctness/scale/robustness proof | Connected Reports/navigation integration not implemented; tests claim no optimisation |
+| Offline reports | #62 added CLI exports; #65/#68 merged; #65 open truncation gap and #68 fidelity checks corrected on unmerged #78 | Connected Reports/navigation integration not implemented; tests claim no optimisation |
 | Mailbox capacity | #58 pure evaluator added | Real bounded inventory/adapters and integrated entitlement/report UI not implemented |
-| Scripts | 29 Copy/Save-only items; #61 execution contract merged | #74/#75 source review findings await Claude fixes; adapters/Run UI not implemented; Exchange changes stay copy-only |
-| Authentication/experimental safeguard | Existing broker/cache/session; #73 added guard/previews and fixed native header on green branch | Independent source review before integration; live Microsoft behaviour unverified |
+| Scripts | 29 Copy/Save-only items; #61 execution contract merged | #74/#75 corrected evidence/runner engine merged and exact Windows-verified; adapters/Run UI not implemented; Exchange changes stay copy-only |
+| Authentication/experimental safeguard | Existing broker/cache/session; #73 added guard/previews and fixed native header on green branch | Claude production-wiring/setup regressions -40/-41 still require fixes and delta review; live Microsoft behaviour unverified |
 | Application metadata reports | #69 decision drafted; William acknowledged existing Application.Read.All reuse | Contract merge and source implementation not completed; no Directory.Read.All or live consent added |
 | Release candidate | #77 draft promotion placeholder; source/check/hash records prepared | Next-version candidate/pin/approval record still required; no main promotion, tags or publication |
 
