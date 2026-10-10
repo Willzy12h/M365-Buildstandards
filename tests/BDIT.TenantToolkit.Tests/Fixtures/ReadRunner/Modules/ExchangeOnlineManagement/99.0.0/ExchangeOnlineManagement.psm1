@@ -118,7 +118,7 @@ function Get-EXOMailboxStatistics {
     if ($script:Scenario -eq 'slow-stats' -and $Identity -like 'aaaaaaaa*') {
         Write-FakeLog 'Slow read started'
         for ($i = 0; $i -lt 300; $i++) {
-            if ($env:BDIT_FAKE_COOPERATE -and @(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -Filter 'stop-*.flag').Count -gt 0) { break }
+            if ($env:BDIT_FAKE_COOPERATE -and @(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0) { break }
             Start-Sleep -Milliseconds 100
         }
     }

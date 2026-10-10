@@ -276,3 +276,9 @@ Next: obtain Claude delta review of #53/#56/#58/#62 and revised decisions #55/#6
 The source remains unpublished Preview.19. No release candidate, live verification, permission grant, publication or version bump is claimed. Waiting on William remains the live/human/owner/security/repository/promotion/publication/final-acceptance stops listed above; review dependencies are separately named source dependencies.
 
 Waiting on William: live/human acceptance and the owner/security/repository/promotion/publication/final-1.1.0 stop points above. Claude review responses are separately pending; no live credentials or private exports are required to continue source work.
+
+## Verified Graph interruption merge — 10 October 2026
+
+#67 merged as `c021b2a0561d1305667aca3732485f4333a09d45` from independently reviewed `3401980482fe95f57f0d297d242ff4d434c0bc7f`. Exact-head push/PR 38060710948/38060713489 passed; Claude's current-head ready comment is 6102529472. Actual integration push run [38089490338](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38089490338), build 114322807757, passed all required jobs: 1,723 Engine/CLI and 157 App tests; 48 native layouts/89 command presses; zero bindings/tenant calls; PS5.1 script/identity checks and fresh 302-file portable startup/context-menu/CLI checks. CI's original ZIP SHA-256 is `f0808939e6feb9fbf9b0a370d4a377e601b25f2d4667cc4e2534bff5f5c57056`; this is the CI-bound package identity, not a newly published candidate.
+
+Next: refresh/recheck the ready UI stack and #69's document corrections, close #78's read-status test gap and #79's connect/history fixes, and re-review Claude's #85 correction. #84 Home remains draft while its native fixes validate. Application reports/offline doctor still wait for #69's reviewed decision merge. Claude owns Exchange adapters/Run UI/mailbox integration. Human/live/release/promotion gates remain blank and source remains unpublished Preview.19.
