@@ -182,21 +182,9 @@ public sealed class ShellViewModel : ObservableObject
     public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session?.HasWriteScopes == true || Workspace.ApplicationSetup is not null;
     public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.HasWriteScopes == false;
     public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "WRITE ACCESS · EXPERIMENTAL ON" : "WRITE ACCESS · EXPERIMENTAL OFF") : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
-    public string EvidenceStatus
-    {
-        get
-        {
-            var capture = Workspace.Snapshot ?? Workspace.ExchangeSnapshot;
-            if (capture is null) return Workspace.Profile is null ? "No client evidence selected" : "No full capture open · choose saved evidence or capture read-only";
-            if (!CaptureMatchesCurrentTenant) return "Capture belongs to another tenant · reopen evidence for the current client";
-            var live = Workspace.Snapshot is not null && Workspace.SnapshotIsLive;
-            var source = Workspace.Snapshot is not null ? (live ? "Live full capture" : "Historical evidence · offline")
-                : Workspace.ExchangeCapturedByTool ? "Supplemental Exchange capture" : "Historical Exchange evidence · offline";
-            var at = DateTimeOffset.TryParse(capture.CapturedAt, System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.AssumeUniversal, out var time) ? time.ToUniversalTime().ToString("dd MMM yyyy HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture) : capture.CapturedAt;
-            return $"{source} · {at} · {(capture.Complete ? "complete" : "INCOMPLETE")}";
-        }
-    }
+    public EvidenceSourcePresentation EvidenceSource => EvidenceSourcePresentation.Create(Workspace.Snapshot,
+        Workspace.SnapshotIsLive, Workspace.ExchangeSnapshot, Workspace.ExchangeCapturedByTool, Workspace.Profile?.TenantId, HeaderTenantId);
+    public string EvidenceStatus => EvidenceSource.Summary;
     private bool CaptureMatchesCurrentTenant => (Workspace.Snapshot ?? Workspace.ExchangeSnapshot) is { } capture
         && string.Equals(capture.TenantId, Workspace.Profile?.TenantId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(capture.TenantId, HeaderTenantId, StringComparison.OrdinalIgnoreCase);
@@ -238,7 +226,7 @@ public sealed class ShellViewModel : ObservableObject
         {
             var s = Workspace.Session;
             if (s is null) return Workspace.ApplicationSetup is { } setup ? $"Privileged application setup session\nTenant: {setup.Identity.TenantId}\nAccount: {setup.Identity.Account}\nOperator: {setup.Identity.AccountObjectId}\nSetup scopes: {string.Join(", ", setup.Identity.Scopes)}"
-                : Workspace.Profile is { } profile ? $"Local evidence review — no active connection\nClient: {profile.Company}\nSaved profile ID: {profile.Id}\nTenant: {profile.TenantId}\nReference domain: {profile.Domain}\nEvidence: {EvidenceStatus}\nCapture ID: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.Id : "none for this client")}\nCaptured at: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.CapturedAt : "none for this client")}\nA saved profile is not an authenticated connection. Historical evidence cannot authorise deployment."
+                : Workspace.Profile is { } profile ? $"Local evidence review — no active connection\nClient: {profile.Company}\nSaved profile ID: {profile.Id}\nTenant: {profile.TenantId}\nReference domain: {profile.Domain}\nEvidence: {EvidenceStatus}\nCapture ID: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.Id : "none for this client")}\nCaptured at: {(CaptureMatchesCurrentTenant ? (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.CapturedAt : "none for this client")}\n{EvidenceSource.Details}\nA saved profile is not an authenticated connection. Historical evidence cannot authorise deployment."
                 : "Not connected. A saved profile is not an authenticated connection.";
             var sb = new StringBuilder();
             sb.AppendLine("Tenant ID:      " + s.TenantId);
@@ -251,6 +239,7 @@ public sealed class ShellViewModel : ObservableObject
             sb.AppendLine("Scopes:         " + string.Join(", ", s.Scopes));
             sb.AppendLine("Connected:      " + s.ConnectedAt);
             sb.AppendLine("Evidence:       " + EvidenceStatus);
+            if (EvidenceSource.Details.Length > 0) sb.AppendLine(EvidenceSource.Details);
             foreach (var n in s.Notices) sb.AppendLine("Notice:         " + n);
             return sb.ToString().TrimEnd();
         }
@@ -262,6 +251,7 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(HeaderHasConnection));
         OnPropertyChanged(nameof(HeaderHasDetails));
         OnPropertyChanged(nameof(EvidenceStatus));
+        OnPropertyChanged(nameof(EvidenceSource));
         OnPropertyChanged(nameof(HeaderAccount));
         OnPropertyChanged(nameof(HeaderTenantId));
         OnPropertyChanged(nameof(IsDeploymentSession));

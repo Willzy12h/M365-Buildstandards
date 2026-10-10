@@ -454,6 +454,8 @@ public sealed class Workspace : ObservableObject
         if (Profile?.Id == id) await DisconnectAsync();
         var remaining = Profiles.Where(p => p.Id != id).ToList();
         Evidence.SaveProfiles(remaining);
+        // Removing the active saved client also removes its local target and transient authority; durable evidence stays.
+        if (Profile?.Id == id) { ClearClientEvidence(); Profile = null; }
         Profiles.Clear();
         foreach (var p in remaining) Profiles.Add(p);
         Logger.Info("Profiles", "Saved connection removed. Tenant objects and saved evidence are retained.");
