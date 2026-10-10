@@ -15,17 +15,18 @@ This is a navigation index, not a release approval or substitute for fresh repos
 |---|---|---|
 | #57 | Astra | Merged `5ef5470` after Claude resolved CLA-34, compatibility note and exact-head Windows green; actual integration push 38057154787 green |
 | #67 | Astra | Seven-case transport/report-service corrections at `3401980`, refreshed with integration `5ef5470`; response source unchanged; fresh Windows push/PR 38060710948 / 38060713489 passed; delta review pending |
-| #69 | Astra | Ownership, strict schema dispatch and replication limits corrected at `ef434aa`, refreshed with integration `5ef5470`; existing permission acknowledgement retained; fresh Windows push/PR 38060734610 / 38060738159 passed; delta review pending |
-| #73 | Astra | Production-path renewal/setup/consent regressions and truthful account-choice preview at `1996c0d`, refreshed with integration `5ef5470`; response source unchanged; fresh Windows push/PR 38060747543 / 38060752044 passed (1,766 engine/CLI, 170 App); delta review pending |
-| #76 | Astra | Current index, own trackers, exact merge evidence and cleanup snapshot corrections for CLA-50–53; fresh review/checks pending |
+| #69 | Astra | Application-report refinements plus concrete offline-doctor result/exit contract at `e0611bf`; purpose acknowledgement retained; fresh Windows push/PR 38064527697 / 38064532488 passed; independent delta review required |
+| #73 | Astra | Guard/production-auth corrections plus preview-budget and modal cancellation correction at `dc2f5de`; 66 focused local cases and strict cross-build passed; fresh Windows push/PR 38064417447 / 38064420362 passed (1,774 engine/CLI +170 App); independent delta review required |
+| #76 | Astra | Current index, own trackers, exact evidence/cleanup corrections and focused xhigh/candidate-draft packet; fresh review/checks required |
 | #77 | Claude / William | Draft main-promotion placeholder; inaccurate description corrected, final candidate/approval still required |
 | #78 | Astra | #65 truncation and #68 BOM/line-break gaps corrected at `b272edf`, refreshed with integration `5ef5470`; response source unchanged; fresh Windows push/PR 38060763307 / 38060766622 passed; independent review/merge pending |
+| #79 | Astra | AST-20261010-07 startup-history integrity correction; current `4a57ac1` has an ID-only documentation follow-up to Windows-green source `816567e`; fresh push/PR 38064755065 / 38064759648 passed (1,722 engine/CLI +157 App); independent review required |
 
 PR links use https://github.com/Willzy12h/M365-Buildstandards/pull/ followed by the number. This table is a dated snapshot: check the actual current heads and states before action.
 
 #73's wrapped-header regression and production authentication/setup coverage corrections are implemented on its branch. [Exact branch and merge evidence](MERGE-EVIDENCE-2026.10.10.md) retains the original failures, corrected source, mutation results and Windows package identities; those branch results do not certify integration or live behaviour.
 
-The confirmed findings and token-efficient review recommendation are in [REVIEW-STRATEGY](release-readiness/REVIEW-STRATEGY-2026.10.10.md). This is source review and a dated snapshot, not a declaration that the master programme or final candidate is complete.
+The latest focused xhigh findings and dependencies are in [the pinned review packet](release-readiness/XHIGH-REVIEW-2026.10.10.md); [REVIEW-STRATEGY](release-readiness/REVIEW-STRATEGY-2026.10.10.md) preserves the earlier findings and cost guidance. AST-20261010-05 is a newly confirmed owned-process cancellation defect awaiting Claude’s correction before runnable adapters ship. This is source review and a dated snapshot, not a declaration that the master programme or final candidate is complete.
 
 ## Continue without rereading every historical checkpoint
 
@@ -40,7 +41,7 @@ William authorised removing unnecessary merged branch references. 29 remote and 
 
 William acknowledged reusing **Application.Read.All** for tenant-wide application/service-principal credential-expiry metadata and app-role assignments on 10 October. Exclude secret values and all writes; add no Directory.Read.All consent. Dependent source waits for #69's merged contract. Live reads, human acceptance, security-owner distribution decisions, main promotion, tags and publication remain separate approval gates.
 
-Remaining product source includes report/navigation integration, bounded read-only runner integration, the agreed application reports and offline prerequisite diagnostics, followed by exact-source candidate/package and promotion preparation. Preserve existing features; do not rebuild the script library. Live-unverified features remain gated and Exchange changes remain copy-only.
+Remaining product source includes report/navigation integration after #73, Claude’s bounded read-only runner/adapters/mailbox integration, and application reports/offline prerequisites after #69. The [candidate draft and blank acceptance form](release-readiness/RELEASE-CANDIDATE-DRAFT-2026.10.10.md) exist; the next-version exact-source candidate does not yet exist. Preserve existing features; do not rebuild the script library. Live-unverified features remain gated and Exchange changes remain copy-only.
 
 ## Other-agent work without an open PR
 

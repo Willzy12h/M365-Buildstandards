@@ -44,3 +44,17 @@ The actual #75 integration push 38055150098 passed 1,687 engine/CLI and 157 App 
 | #78 | `b272edfc5fa9f6765283a7b5d06fbfd6ee2abbd9` | 38060763307 / 38060766622 | 1717 / 157 | `5a0fd01f7f40933d4b147587eec8fa99573112c090e9bcfe4b689dfd6e92295d` |
 
 #76's preceding records head d705a6b passed push/PR 38057815413 / 38057819081 (1,716 engine/CLI, 157 App, native/PS5.1/fresh portable); push package source d705a6b, original ZIP SHA-256 99434549d9bca93aa20c8d87e66591d703493df65fafba0ffd309f7bd756ae95. Later records edits require their own checks. No review disposition, human/live gate or publication is inferred from these green runs.
+
+## Focused xhigh follow-up heads — not merged
+
+Integration remains `5ef5470`. All push/PR runs below passed on the listed current heads; no independent review or actual integration merge is inferred. #79 initially used finding ID AST-20261010-04; its canonical ID is -07, preserving the older #77 record.
+
+| PR | Exact head | Windows push / PR runs | Engine+CLI / App passed | Original PUSH ZIP SHA-256 |
+|---|---|---|---|---|
+| #69 | `e0611bf79c3a0c24a04df56ff62bb3db79a78b30` | 38064527697 / 38064532488 | 1716 / 157 | `b0ba63618022ba20deebf19e113bf5eeb5bc34112ace5e525399670b7b2bd787` |
+| #73 | `dc2f5de9504d73004051d89f431479c67808f740` | 38064417447 / 38064420362 | 1774 / 170 | `699088951fe99527c12073fcce843530a850c36d3bc1c9a1c10b4263e3ed8e11` |
+| #79 | `4a57ac1172004c0c87b2ce564b8f20eaf025ee52` | 38064755065 / 38064759648 | 1722 / 157 | `cfcf010d2c1a684ca1e8fa0a1e1d804721d7277d12814a0a4be72383d638191e` |
+
+Each run: zero failed/skipped tests, 48 native page/size renders, 89 commands, zero binding issues/tenant calls; PowerShell 5.1 parser/synthetic checks; fresh 302-file desktop/CLI extraction/startup, Accessibility and context-menu Copy. #73’s native harness includes both new permission-review cancellation cases. All packages are unpublished Preview.19 / standard 2026.09.30, and the push package source equals the branch head. PR artifacts are prospective merges, not actual integration pushes.
+
+Initial #79 source `816567e79c33f9ea93fdb9270d513f58c404f907` also passed push/PR 38063960007 / 38063963771 (1,722 +157); original push ZIP `eb2dad852aacbd1f43e108786e0263b3fdff939a20c809cff4eec6bf8da327a6`. The final ID-only documentation correction preserves source/test bytes, with fresh checks above. Local ZIP download was refused by the environment’s artifact-storage destination; no local independent rehash is claimed. Original artifacts and check annotations remain on GitHub.
