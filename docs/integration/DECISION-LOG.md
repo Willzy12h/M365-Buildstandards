@@ -497,3 +497,7 @@ Add full-template empty-account refusal cases before module lookup, connection o
 ### Continuation hygiene — 10 October 2026, PR #76
 
 William authorised cleanup to reduce repeated historical checking. Remove only merged Astra branch references whose heads remain reachable from integration and have no open PR; retain active work, Claude remote branches, tags, releases and historical evidence. The audit records original heads. CURRENT-STATE is a dated orientation index, not a substitute for fresh all-three-repository pre-flight, affected contract review or exact-head/merge verification. No safeguard or publication authority changes. William also acknowledged the existing Application.Read.All metadata inventory purpose; #69 retains its separate decision/implementation boundary and grants no live action or new Directory.Read.All consent.
+
+### Continuation record refinement — 10 October 2026, PR #76
+
+Keep a compact current index and commit-bound merge table while retaining historical records. Actual integration push CI is distinct from a prospective main-promotion PR check, even when both advertise the same head SHA; source/package identities must match the recorded merge. #65/#68 records are corrected to verified push runs without ignoring failures or granting release approval. Source review AST-20261010-01–03 remains with Claude for fixes; #77 is a draft promotion placeholder with accuracy finding -04. No safeguard, schema, permission, publication or human/live gate is weakened.

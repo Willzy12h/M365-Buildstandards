@@ -4,28 +4,28 @@ This is a navigation index, not a release approval or substitute for fresh repos
 
 ## Verified baseline
 
-- Integration `f03b995049e4e10e35c9a9d25044cef6fc63591d`, source **1.1.0-preview.19, unpublished**.
-- Latest actual integration Windows run [38016401510](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38016401510) succeeded. #61 runner contract and #71 enrolment naming decision are merged. #70/#72 contain the post-merge Exchange script corrections; the current library remains Copy/Save only.
+- Integration `463c0c84e396aac4d3dcf4dfc1c8f3e4d9eae2a8`, source **1.1.0-preview.19, unpublished**.
+- Latest actual integration Windows run [38044346614](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38044346614) succeeded. #61 runner contract and #71 enrolment naming decision are merged. #70/#72 contain the post-merge Exchange script corrections; the current library remains Copy/Save only.
+- Reviewed #58 mailbox-capacity evaluation, #62 offline report exports, #65 scale and #68 export robustness merged. [Exact source/merge/push evidence](MERGE-EVIDENCE-2026.10.10.md) distinguishes integration runs from promotion PR checks.
 - Existing engine workflows, historical standards, evidence, reviewed approvals and protected publisher remain authoritative. No live tenant action or publication is authorised by this index.
 
 ## Active work
 
 | PR | Owner | Remaining action |
 |---|---|---|
-| #57 | Astra | Implement the merged ENR naming decision, refresh and validate imported candidates |
-| #58 | Astra | Refresh reviewed mailbox-capacity evaluator; it does not collect a mailbox inventory |
-| #62 | Astra | Refresh reviewed offline report exports and validate the package |
-| #65 | Astra | No Claude finding; refresh and validate scale tests, without claiming an optimisation |
-| #67 | Astra | Remove the non-blocking initial-dispatch timing assumption, then revalidate |
-| #68 | Astra | No Claude finding; refresh and validate export robustness |
-| #69 | Astra | Refresh report contract and record William's application-inventory acknowledgement; no new consent |
-| #73 | Astra | Full validation passed on refreshed head `198cd9d`; independent source review before integration |
-| #74 / #75 | Claude | Separate Exchange report evidence and reviewed read-only runner; Astra independent review, then source/UI integration |
-| #76 | Astra | This index, own tracker reconciliation and safe branch-cleanup record |
+| #57 | Astra | ENR correction implemented at `665fa2d`, full Linux/Windows/native/package checks green; independent delta re-review pending |
+| #67 | Astra | Dispatch timing assumption fixed at `381deb0`; cancellation mutation still fails and restored suite/Windows checks pass; narrow review pending |
+| #69 | Astra | William’s permission-purpose acknowledgement recorded at `8e8257b`; no Directory.Read.All or live consent added; narrow documentation review pending |
+| #73 | Astra | Full validation passed at `198cd9d`; independent safeguard/authentication source review before integration |
+| #74 / #75 | Claude | Astra review complete: AST-20261010-01–03 require fixes, fresh Windows proof and re-review; then adapters/UI integration |
+| #76 | Astra | Current index, own trackers, exact merge evidence, safe branch-cleanup audit and review recommendations; independent review pending |
+| #77 | Claude / William | Draft main-promotion placeholder; AST-20261010-04 accuracy corrections and final candidate still required; separate promotion approval |
 
 PR links use https://github.com/Willzy12h/M365-Buildstandards/pull/ followed by the number. This table is a dated snapshot: check the actual current heads and states before action.
 
 The #73 header regression was a wrapped write-access badge increasing the persistent header height. `3ea8485` keeps write access and experimental state visible in a compact label. Its full Windows runs 38011061374 / 38011064887 passed 1,414 engine/CLI and 162 App tests, 48 layouts/89 command presses, zero binding issues/tenant calls, PowerShell 5.1 checks and fresh extracted startup/context-menu/CLI verification. The refreshed combined-source head `198cd9d` also passed Linux 1,414 tests with no skips and strict cross-builds. Exact-head Windows push/PR runs 38039989331 / 38039991349 both passed the full suite: 1,414 engine/CLI, 162 App, 48 layouts/89 commands, zero binding issues/tenant calls, PowerShell 5.1 and fresh 302-file package checks. The original ZIP SHA-256 for push run 38039989331 is `c9ffce4642362ee39f5fe75bba1497f90838489670936972304e286bcc7002b1`. Independent review is still required before merge.
+
+The confirmed findings and token-efficient review recommendation are in [REVIEW-STRATEGY](release-readiness/REVIEW-STRATEGY-2026.10.10.md). This is source review and a dated snapshot, not a declaration that the master programme or final candidate is complete.
 
 ## Continue without rereading every historical checkpoint
 
