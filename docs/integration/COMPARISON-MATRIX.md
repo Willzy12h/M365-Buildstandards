@@ -161,3 +161,6 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
+## Astra focused integrity follow-up — 10 October 2026
+
+PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
