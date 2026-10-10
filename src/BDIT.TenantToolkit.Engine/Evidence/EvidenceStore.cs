@@ -272,16 +272,9 @@ public sealed partial class EvidenceStore
 
     private void AssertRunHistoryResolved(string tenantId, IEnumerable<string> controlIds, string? planId = null)
     {
-        var directory = RunsDirectory(tenantId);
-        if (!Directory.Exists(directory)) return;
         var controls = controlIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+        foreach (var run in ReadVerifiedRunHistory(tenantId))
         {
-            // Do not silently skip unreadable history: it may describe the previous ambiguous attempt.
-            var run = ReadJson<DeploymentRun>(file) ?? throw new ConfigurationException("Previous run evidence is empty. Reconcile it before deploying.");
-            AssertTenant(tenantId, run.TenantId, "Previous run");
-            if (!EvidenceIntegrity.Verify(run, run.IntegrityDigest))
-                throw new PlanValidationException("Previous run evidence failed its integrity check. Reconcile it before deploying.");
             if (planId is not null && string.Equals(run.PlanId, planId, StringComparison.OrdinalIgnoreCase))
                 throw new PlanValidationException("This plan already has a deployment attempt. Reconcile its results, capture fresh evidence and review a new plan; existing plans are never replayed.");
             foreach (var result in run.Results.Where(r => controls.Contains(r.ControlId)))
@@ -296,6 +289,24 @@ public sealed partial class EvidenceStore
                     throw new PlanValidationException($"{result.ControlId} has an unresolved write in run {run.Id}. A fresh plan or missing search result cannot clear this uncertainty. Preserve the evidence and reconcile manually; this release has no automatic reconciliation override.");
             }
         }
+    }
+
+    /// <summary>Validate the whole history before a caller changes any record or trusts a write outcome.</summary>
+    private IReadOnlyList<DeploymentRun> ReadVerifiedRunHistory(string tenantId)
+    {
+        var directory = RunsDirectory(tenantId);
+        if (!Directory.Exists(directory)) return Array.Empty<DeploymentRun>();
+        var runs = new List<DeploymentRun>();
+        foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+        {
+            // The display loader may list readable records; recovery and write guards must not skip failures.
+            var run = ReadJson<DeploymentRun>(file) ?? throw new ConfigurationException("Previous run evidence is empty. Preserve it and reconcile before continuing.");
+            AssertTenant(tenantId, run.TenantId, "Previous run");
+            if (!EvidenceIntegrity.Verify(run, run.IntegrityDigest))
+                throw new PlanValidationException("Previous run evidence failed its integrity check. Preserve it and reconcile before continuing.");
+            runs.Add(run);
+        }
+        return runs;
     }
 
     public string RunFile(DeploymentRun run) => Path.Combine(RunsDirectory(run.TenantId), $"{StampFor(run.StartedAt)}-{SafeId(run.Id)}.json");
@@ -342,7 +353,7 @@ public sealed partial class EvidenceStore
     public int MarkInterruptedRuns(string tenantId)
     {
         var count = 0;
-        foreach (var run in LoadRuns(tenantId))
+        foreach (var run in ReadVerifiedRunHistory(tenantId))
         {
             if (run.Status != RunStatus.Running) continue;
             run.Status = RunStatus.Interrupted;
