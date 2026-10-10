@@ -64,7 +64,9 @@ public sealed class ScriptsPageTests : IDisposable
     public void The_page_is_in_the_navigation_and_lists_the_whole_library_grouped_by_area()
     {
         Assert.Contains(_shell.NavItems, n => n.Key == "scripts" && n.Title == "Scripts & Reports");
-        Assert.Equal(ScriptCatalogue.Shipped.Entries.Count, _page.Items.Count);
+        // The page lists the Copy library: a schema 2 item runs only through the runner, which this build does not offer.
+        Assert.Equal(ScriptCatalogue.Shipped.Entries.Count(e => e.Manifest.SchemaVersion == 1), _page.Items.Count);
+        Assert.DoesNotContain(_page.Items, i => i.Id == "exo.mailbox-size-quota");
         var groups = _page.ItemsView.Groups.Cast<CollectionViewGroup>().ToList();
         Assert.Equal(_page.Items.Select(i => i.Area).Distinct().OrderBy(a => a, StringComparer.CurrentCulture), groups.Select(g => (string)g.Name));
         Assert.Equal(_page.Items.Count, groups.Sum(g => g.ItemCount));
@@ -93,8 +95,11 @@ public sealed class ScriptsPageTests : IDisposable
         Assert.Empty(_page.Fields);
         Assert.False(_page.CopyScriptCommand.CanExecute(null));
 
+        _page.SearchText = "mailbox size quota";
+        Assert.DoesNotContain(_page.Items, i => i.Id == "exo.mailbox-size-quota");
+
         _page.SearchText = "";
-        Assert.Equal(ScriptCatalogue.Shipped.Entries.Count, _page.Items.Count);
+        Assert.Equal(ScriptCatalogue.Shipped.Entries.Count(e => e.Manifest.SchemaVersion == 1), _page.Items.Count);
     }
 
     [Fact]

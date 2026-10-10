@@ -67,20 +67,51 @@ function Get-ConnectionInformation {
 function Get-EXOMailbox {
     param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails)
     $script:Reads++
-    Write-FakeLog 'Read Get-EXOMailbox'
+    Write-FakeLog ('Read Get-EXOMailbox' + $(if ($ResultSize) { ' ResultSize=' + $ResultSize } else { '' }) + $(if ($Properties) { ' Properties=' + ($Properties -join ',') } else { '' }))
     if ($script:Scenario -eq 'chatty') { [Console]::Out.Write(('x' * 1100000)); [Console]::Out.Flush() }
     if ($script:Scenario -eq 'noisy-errors') { 1..3000 | ForEach-Object { [Console]::Error.WriteLine(('e' * 200)) } }
     if ($script:Scenario -eq 'hang') { Start-Sleep -Seconds 120 }
-    return @(
-        [pscustomobject]@{ ExchangeGuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; DisplayName = 'Synthetic user'; ExternalDirectoryObjectId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; PrimarySmtpAddress = 'user@synthetic.example'; RecipientTypeDetails = 'UserMailbox'; IssueWarningQuota = '49 GB (52,613,349,376 bytes)'; ProhibitSendQuota = '49.5 GB (53,150,220,288 bytes)'; ProhibitSendReceiveQuota = '50 GB (53,687,091,200 bytes)' },
-        [pscustomobject]@{ ExchangeGuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'; DisplayName = 'Synthetic shared'; ExternalDirectoryObjectId = ''; PrimarySmtpAddress = 'shared@synthetic.example'; RecipientTypeDetails = 'SharedMailbox'; IssueWarningQuota = 'Unlimited'; ProhibitSendQuota = 'Unlimited'; ProhibitSendReceiveQuota = 'Unlimited' }
+    $mailboxes = @(
+        [pscustomobject]@{ ExchangeGuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; DisplayName = 'Synthetic user'; ExternalDirectoryObjectId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; PrimarySmtpAddress = 'user@synthetic.example'; RecipientTypeDetails = 'UserMailbox'; IssueWarningQuota = '49 GB (52,613,349,376 bytes)'; ProhibitSendQuota = '49.5 GB (53,150,220,288 bytes)'; ProhibitSendReceiveQuota = '50 GB (53,687,091,200 bytes)'; ArchiveGuid = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'; ArchiveQuota = '100 GB (107,374,182,400 bytes)' },
+        [pscustomobject]@{ ExchangeGuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'; DisplayName = 'Synthetic shared'; ExternalDirectoryObjectId = ''; PrimarySmtpAddress = 'shared@synthetic.example'; RecipientTypeDetails = 'SharedMailbox'; IssueWarningQuota = 'Unlimited'; ProhibitSendQuota = 'Unlimited'; ProhibitSendReceiveQuota = 'Unlimited'; ArchiveGuid = '00000000-0000-0000-0000-000000000000'; ArchiveQuota = '0 B (0 bytes)' }
     )
+    # Shapes the shipped adapter must not trust: a missing quota, a blank archive GUID, a malformed object ID, no mailbox GUID.
+    if ($script:Scenario -eq 'no-quota') { $mailboxes[0].IssueWarningQuota = '  ' }
+    if ($script:Scenario -eq 'no-archive-guid') { $mailboxes[0].ArchiveGuid = '' }
+    if ($script:Scenario -eq 'bad-object-id') { $mailboxes[0].ExternalDirectoryObjectId = 'not-a-guid' }
+    if ($script:Scenario -eq 'no-mailbox-guid') { $mailboxes += [pscustomobject]@{ ExchangeGuid = ''; DisplayName = 'No GUID'; RecipientTypeDetails = 'UserMailbox' } }
+    if ($script:Scenario -eq 'no-type') { $mailboxes[1].PSObject.Properties.Remove('RecipientTypeDetails') }
+    # More than the adapter's 10,000 cap, with one mailbox inside the cap returned without its GUID.
+    if ($script:Scenario -eq 'over-cap-missing-guid') {
+        $mailboxes = @(for ($i = 0; $i -lt 10001; $i++) {
+            [pscustomobject]@{ ExchangeGuid = $(if ($i -eq 5) { '' } else { '{0:x8}-0000-4000-8000-000000000000' -f ($i + 1) }); DisplayName = 'Bulk ' + $i
+                PrimarySmtpAddress = 'bulk' + $i + '@synthetic.example'; RecipientTypeDetails = 'UserMailbox'; IssueWarningQuota = 'Unlimited'
+                ProhibitSendQuota = 'Unlimited'; ProhibitSendReceiveQuota = 'Unlimited'; ArchiveGuid = '00000000-0000-0000-0000-000000000000'; ArchiveQuota = '0 B (0 bytes)' }
+        })
+    }
+    # With -Properties, return only the documented Minimum property set plus the properties asked for, as the real cmdlet
+    # does (AST-20261010-20). ExchangeGuid is not in Minimum. The older synthetic body asks for no properties and keeps the full shape.
+    if ($Properties) {
+        $minimum = @('ExternalDirectoryObjectId', 'UserPrincipalName', 'Alias', 'DisplayName', 'EmailAddresses', 'PrimarySmtpAddress',
+            'RecipientType', 'RecipientTypeDetails', 'Identity', 'Id', 'ExchangeVersion', 'Name', 'DistinguishedName', 'OrganizationId', 'Guid')
+        $wanted = $minimum + $Properties
+        $mailboxes = @($mailboxes | ForEach-Object {
+            $selected = [ordered]@{}
+            foreach ($property in $_.PSObject.Properties) { if ($wanted -contains $property.Name) { $selected[$property.Name] = $property.Value } }
+            [pscustomobject]$selected
+        })
+    }
+    return $mailboxes
 }
 
 function Get-EXOMailboxStatistics {
-    param([string]$Identity)
+    param([string]$Identity, [switch]$Archive)
     $script:Reads++
-    Write-FakeLog ('Read Get-EXOMailboxStatistics ' + $Identity)
+    Write-FakeLog ('Read Get-EXOMailboxStatistics ' + $Identity + $(if ($Archive) { ' -Archive' } else { '' }))
+    if ($Archive) {
+        if ($script:Scenario -eq 'archive-stats-fail') { throw 'Synthetic archive statistics failure.' }
+        return [pscustomobject]@{ TotalItemSize = '3 GB (3,221,225,472 bytes)' }
+    }
     if ($script:Scenario -eq 'stats-fail' -and $Identity -like 'bbbbbbbb*') { throw 'Synthetic statistics failure.' }
     # A slow first statistics read. With BDIT_FAKE_COOPERATE it ends as soon as the runner's stop file appears, as a read
     # that returns promptly would; without it, it outlasts the stop grace period, as a hung module call would.

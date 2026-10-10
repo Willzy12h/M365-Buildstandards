@@ -772,6 +772,148 @@ public sealed class ExchangeReportRunnerTests
         Assert.Null(result);
     }
 
+    // ---- the shipped adapter (INT-088 slice 3) ---------------------------------------------------------------------------
+    // The registered exo-mailbox-inventory body as shipped in the library, through the real runner and wrapper. Its reads,
+    // projection and fixed reasons are checked against the synthetic module; the real module's output stays unverified.
+
+    private static ScriptEntry Shipped => ScriptCatalogue.Shipped.Find("exo.mailbox-size-quota");
+    private static readonly Dictionary<string, string?> WithArchive = new() { ["IncludeArchive"] = "true" };
+
+    private static JsonNode Row(ExchangeReportEvidence evidence, string mailboxType) =>
+        evidence.Sections.Single().Rows.Single(r => r["mailboxType"]?.GetValue<string>() == mailboxType);
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task The_shipped_adapter_reads_sizes_and_quotas_exactly_as_returned(string runtime)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "happy", Shipped);
+
+        Assert.Equal(ReadRunOutcome.Completed, result.Outcome);
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        Assert.Equal(ReportReadState.Collected, evidence.Status);
+        Assert.Equal("exo-mailbox-inventory", evidence.ReportId);
+        var user = Row(evidence, "UserMailbox");
+        Assert.Equal("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", user["id"]!.GetValue<string>());
+        Assert.Equal("cccccccc-cccc-4ccc-8ccc-cccccccccccc", user["externalDirectoryObjectId"]!.GetValue<string>());
+        Assert.Equal("1.2 GB (1,288,490,189 bytes)", user["primarySizeRaw"]!.GetValue<string>());
+        Assert.Equal("50 GB (53,687,091,200 bytes)", user["prohibitSendReceiveQuotaRaw"]!.GetValue<string>());
+        var shared = Row(evidence, "SharedMailbox");
+        // An empty object ID is absent, never invented; Unlimited and a zero size stay as returned.
+        Assert.Null(shared["externalDirectoryObjectId"]);
+        Assert.Equal("Unlimited", shared["issueWarningQuotaRaw"]!.GetValue<string>());
+        Assert.Equal("0 B (0 bytes)", shared["primarySizeRaw"]!.GetValue<string>());
+        Assert.All(evidence.Sections.Single().Rows, r => Assert.Equal(ReportReadState.NotAttempted, r["archiveReadStatus"]!.GetValue<string>()));
+        // One list read with the cap plus one, then one statistics read per mailbox, and no archive read.
+        // The stand-in returns only the Minimum set plus what is asked for, so the mailbox GUID must be requested (AST-20261010-20).
+        Assert.Contains("Read Get-EXOMailbox ResultSize=10001 Properties=ExchangeGuid,ExternalDirectoryObjectId,IssueWarningQuota,ProhibitSendQuota,ProhibitSendReceiveQuota,ArchiveGuid,ArchiveQuota", run.Log);
+        Assert.Equal(3, run.Reads);
+        Assert.DoesNotContain("-Archive", run.Log);
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task The_shipped_adapter_reads_an_archive_only_where_one_exists(string runtime)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "happy", Shipped, WithArchive);
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        Assert.Equal(ReportReadState.Collected, evidence.Status);
+        var user = Row(evidence, "UserMailbox");
+        Assert.True(user["hasArchive"]!.GetValue<bool>());
+        Assert.Equal("3 GB (3,221,225,472 bytes)", user["archiveSizeRaw"]!.GetValue<string>());
+        Assert.Equal("100 GB (107,374,182,400 bytes)", user["archiveQuotaRaw"]!.GetValue<string>());
+        // An empty archive GUID is a read "no archive": no archive size read, no archive quota recorded.
+        var shared = Row(evidence, "SharedMailbox");
+        Assert.False(shared["hasArchive"]!.GetValue<bool>());
+        Assert.Equal(ReportReadState.NotAttempted, shared["archiveSizeReadStatus"]!.GetValue<string>());
+        Assert.Null(shared["archiveQuotaRaw"]);
+        Assert.Equal(1, run.Log.Split('\n').Count(l => l.EndsWith(" -Archive", StringComparison.Ordinal)));
+    }
+
+    public static TheoryData<string, string, string, string> AdapterPartialCases()
+    {
+        var data = new TheoryData<string, string, string, string>();
+        foreach (var (runtime, _) in FindRuntimes())
+        {
+            data.Add(runtime, "stats-fail", "SharedMailbox", "The mailbox size could not be read.");
+            data.Add(runtime, "no-quota", "UserMailbox", "The mailbox quotas were not all returned.");
+            data.Add(runtime, "bad-object-id", "UserMailbox", "The Entra object ID Exchange returned is not a GUID.");
+            data.Add(runtime, "no-archive-guid", "UserMailbox", "Whether the mailbox has an archive was not returned.");
+            data.Add(runtime, "archive-stats-fail", "UserMailbox", "The archive size could not be read.");
+        }
+        return data;
+    }
+
+    /// <summary>A value Exchange did not return, or returned unreadably, is recorded as not read with a fixed reason, never as zero or blank.</summary>
+    [Theory, MemberData(nameof(AdapterPartialCases))]
+    public async Task A_value_the_shipped_adapter_could_not_read_leaves_its_row_partial(string runtime, string scenario, string mailboxType, string reason)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, scenario, Shipped, WithArchive);
+
+        Assert.Equal(ReadRunOutcome.Completed, result.Outcome);
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        Assert.Equal(ReportReadState.Partial, evidence.Status);
+        Assert.Equal(ReportReadState.Partial, evidence.Sections.Single().Status);
+        var row = Row(evidence, mailboxType);
+        Assert.Equal(ReportReadState.Partial, row["readStatus"]!.GetValue<string>());
+        Assert.Contains(reason, row["error"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Equal(2, evidence.Sections.Single().Rows.Count);
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_mailbox_returned_without_its_guid_is_not_listed_and_the_section_says_so(string runtime)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "no-mailbox-guid", Shipped);
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        var section = evidence.Sections.Single();
+        Assert.Equal(ReportReadState.Partial, section.Status);
+        Assert.Contains("without an Exchange mailbox GUID", section.Error, StringComparison.Ordinal);
+        Assert.Equal(2, section.Rows.Count);
+        // The row that could not be identified was not read further.
+        Assert.Equal(3, run.Reads);
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_section_over_the_cap_with_a_mailbox_missing_its_guid_keeps_both_limitations(string runtime)
+    {
+        // AST-20261010-21: one limitation must never hide another. 10,001 mailboxes, one inside the cap without a GUID.
+        using var run = new Run();
+        var result = await run.Execute(runtime, "over-cap-missing-guid", Shipped).WaitAsync(TimeSpan.FromMinutes(10));
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        var section = evidence.Sections.Single();
+        Assert.Equal(ReportReadState.Partial, section.Status);
+        Assert.Contains("only the first 10,000 are listed", section.Error, StringComparison.Ordinal);
+        Assert.Contains("without an Exchange mailbox GUID", section.Error, StringComparison.Ordinal);
+        Assert.Equal(9999, section.Rows.Count);
+    }
+
+    [Theory, MemberData(nameof(Runtimes))]
+    public async Task A_mailbox_returned_without_its_type_is_partial_not_collected(string runtime)
+    {
+        using var run = new Run();
+        var result = await run.Execute(runtime, "no-type", Shipped);
+
+        var evidence = Assert.IsType<ExchangeReportEvidence>(result.Evidence);
+        var row = evidence.Sections.Single().Rows.Single(r => r["id"]!.GetValue<string>() == "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        Assert.Null(row["mailboxType"]);
+        Assert.Equal(ReportReadState.Partial, row["readStatus"]!.GetValue<string>());
+        Assert.Contains("The mailbox type was not returned.", row["error"]!.GetValue<string>(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_shipped_adapter_has_no_Copy_form()
+    {
+        var entry = Shipped;
+        Assert.Equal(2, entry.Manifest.SchemaVersion);
+        Assert.Equal("exo-mailbox-inventory", ScriptCatalogue.ReportFor(entry.Manifest).Id);
+        var binding = ScriptInputs.Bind(entry.Manifest, NoArchive, DateTimeOffset.UtcNow);
+        Assert.Throws<ConfigurationException>(() => ScriptCopy.Generate(entry, binding, new ScriptCopyTarget(TestData.TenantA), DateTimeOffset.UtcNow));
+    }
+
     // ---- checks before anything is created ---------------------------------------------------------------------------
 
     [Fact]
@@ -780,7 +922,7 @@ public sealed class ExchangeReportRunnerTests
         using var run = new Run();
         var host = new ReadRunnerHost(_ => throw new InvalidOperationException("No runtime may be looked up."), null, null, Path.Combine(run.Root, "staging"));
         var runner = new ExchangeReportRunner(host, new SystemClock());
-        var copyOnly = ScriptCatalogue.Shipped.Entries.First();
+        var copyOnly = ScriptCatalogue.Shipped.Entries.First(e => e.Manifest.SchemaVersion == 1);
         await Assert.ThrowsAsync<ConfigurationException>(() => runner.RunAsync(copyOnly, Context, new Dictionary<string, string?>(), "7", null, CancellationToken.None));
         foreach (var context in new[]
         {
