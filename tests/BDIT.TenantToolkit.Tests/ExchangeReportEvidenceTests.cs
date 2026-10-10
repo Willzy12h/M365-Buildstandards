@@ -373,6 +373,54 @@ public sealed class ExchangeReportEvidenceTests
         RefusedAfter(r => r.Limitations = [.. Enumerable.Repeat("x", 65)]);
     }
 
+    /// <summary>
+    /// AST-20261010-01: a blank value is unreadable, not an observed zero, a known quota or a known type, so a row that
+    /// records one cannot be sealed. Readable raw values, including zero and Unlimited, are kept exactly as returned.
+    /// </summary>
+    [Theory]
+    [InlineData("mailboxType", "")]
+    [InlineData("mailboxType", "   ")]
+    [InlineData("primarySizeRaw", "")]
+    [InlineData("primarySizeRaw", "   ")]
+    [InlineData("issueWarningQuotaRaw", "")]
+    [InlineData("prohibitSendQuotaRaw", "   ")]
+    [InlineData("prohibitSendReceiveQuotaRaw", "")]
+    [InlineData("prohibitSendReceiveQuotaRaw", "   ")]
+    [InlineData("archiveSizeRaw", "")]
+    [InlineData("archiveSizeRaw", "   ")]
+    [InlineData("archiveQuotaRaw", "")]
+    [InlineData("primarySmtpAddress", "   ")]
+    public void A_blank_value_is_unreadable_and_cannot_be_recorded(string property, string value) =>
+        RefusedAfter(r => r.Sections[0].Rows[0][property] = value);
+
+    [Fact]
+    public void A_blank_value_cannot_be_recorded_in_a_partial_row_either()
+    {
+        var partial = User(); partial.QuotaReadStatus = ReportReadState.Failed; partial.IssueWarningQuotaRaw = null;
+        partial.ProhibitSendQuotaRaw = null; partial.ProhibitSendReceiveQuotaRaw = null;
+        partial.ReadStatus = ReportReadState.Partial; partial.Error = "Quota read failed."; partial.PrimarySizeRaw = " ";
+        RefusedAfter(r =>
+        {
+            r.Sections[0].Rows = [ExchangeReportEvidenceSchema.Row(partial)];
+            r.Sections[0].Status = ReportReadState.Partial; r.Sections[0].Error = "Some values could not be read."; r.Status = ReportReadState.Partial;
+        });
+    }
+
+    [Fact]
+    public void Readable_zero_and_unlimited_values_are_kept_exactly_as_returned()
+    {
+        var zero = User(); zero.PrimarySizeRaw = "0"; zero.ArchiveSizeRaw = "0 B (0 bytes)"; zero.IssueWarningQuotaRaw = "Unlimited";
+        zero.ArchiveQuotaRaw = "Unlimited";
+        var report = RoundTrip(Report(true, zero, Shared()));
+        Assert.Equal(ReportReadState.Collected, report.Status);
+        var row = report.Sections[0].Rows.Single(r => r["id"]!.GetValue<string>() == UserMailbox);
+        Assert.Equal("0", row["primarySizeRaw"]!.GetValue<string>());
+        Assert.Equal("0 B (0 bytes)", row["archiveSizeRaw"]!.GetValue<string>());
+        Assert.Equal("Unlimited", row["issueWarningQuotaRaw"]!.GetValue<string>());
+        Assert.Equal("Unlimited", row["archiveQuotaRaw"]!.GetValue<string>());
+        Assert.Equal("UserMailbox", row["mailboxType"]!.GetValue<string>());
+    }
+
     /// <summary>The support bundle is allowlisted metadata; Exchange report rows name mailboxes and must never reach it.</summary>
     [Fact]
     public void The_support_bundle_never_carries_exchange_report_evidence()
