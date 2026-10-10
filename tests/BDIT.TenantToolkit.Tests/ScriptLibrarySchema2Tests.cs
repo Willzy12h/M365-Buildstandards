@@ -17,13 +17,16 @@ public sealed class ScriptLibrarySchema2Tests
         Assert.Throws<ConfigurationException>(() => ScriptCatalogue.Load(files));
 
     [Fact]
-    public void A_reviewed_schema_2_item_is_admitted_and_the_shipped_library_keeps_schema_1()
+    public void A_reviewed_schema_2_item_is_admitted_and_the_shipped_library_adds_only_the_registered_adapter()
     {
         var entry = ScriptCatalogue.Load(Library()).Find("exo.synthetic-mailbox-inventory");
         Assert.Equal(2, entry.Manifest.SchemaVersion);
         Assert.Equal("exo-mailbox-inventory", ScriptCatalogue.ReportFor(entry.Manifest).Id);
-        // No shipped item is upgraded by this slice: every one stays a schema 1, Copy-only manual item.
-        Assert.All(ScriptCatalogue.Shipped.Entries, e => { Assert.Equal(1, e.Manifest.SchemaVersion); Assert.Null(e.Manifest.Execution); });
+        // Slice 3 ships exactly one runnable item, the registered mailbox adapter; every other item stays a schema 1,
+        // Copy-only manual item, unchanged.
+        var runnable = Assert.Single(ScriptCatalogue.Shipped.Entries, e => e.Manifest.SchemaVersion == 2);
+        Assert.Equal("exo.mailbox-size-quota", runnable.Manifest.Id);
+        Assert.All(ScriptCatalogue.Shipped.Entries.Where(e => e != runnable), e => { Assert.Equal(1, e.Manifest.SchemaVersion); Assert.Null(e.Manifest.Execution); });
     }
 
     [Fact]
@@ -46,7 +49,7 @@ public sealed class ScriptLibrarySchema2Tests
     public void A_copy_only_change_can_never_be_admitted_for_run()
     {
         Refused(Library(manifest: m => m["mode"] = "copyOnlyChange"));
-        Assert.Throws<ConfigurationException>(() => ScriptCatalogue.ReportFor(ScriptCatalogue.Shipped.Entries.First().Manifest));
+        Assert.Throws<ConfigurationException>(() => ScriptCatalogue.ReportFor(ScriptCatalogue.Shipped.Entries.First(e => e.Manifest.SchemaVersion == 1).Manifest));
     }
 
     [Fact]

@@ -239,7 +239,9 @@ public sealed class ScriptsViewModel : PageViewModel
 
     public ScriptsViewModel(ShellViewModel shell) : base(shell, "Scripts & Reports")
     {
-        try { _library = ScriptCatalogue.Shipped.Entries; }
+        // Schema 2 items run only through the toolkit's read-only runner and have no Copy form. Run is not offered in this
+        // build, so this page lists the Copy library only.
+        try { _library = ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 1).ToList(); }
         catch (ToolkitException ex)
         {
             // A library that fails its pins is refused whole, and the page says so instead of listing part of it.
@@ -286,7 +288,7 @@ public sealed class ScriptsViewModel : PageViewModel
     private void ApplySearch()
     {
         var keep = _selected?.Id;
-        var matches = _library.Count == 0 || SearchText.Trim().Length == 0 ? _library : ScriptCatalogue.Shipped.Search(SearchText);
+        var matches = _library.Count == 0 || SearchText.Trim().Length == 0 ? _library : ScriptCatalogue.Shipped.Search(SearchText).Where(e => e.Manifest.SchemaVersion == 1).ToList();
         // While the list is rebuilt the list box reports "nothing selected"; that is not the engineer's choice.
         _searching = true;
         try
