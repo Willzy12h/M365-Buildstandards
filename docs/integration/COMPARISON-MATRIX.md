@@ -209,3 +209,9 @@ PR #87's application-report repair refuses resealed contradictory supplied evide
 | Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
 
 PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.
+
+## Astra focused integrity follow-up — 10 October 2026
+
+PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
+
+PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.

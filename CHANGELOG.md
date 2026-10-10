@@ -30,11 +30,17 @@
 
 - Add registered application credential-expiry and observed-consent report engines: strict separate schema 2, metadata-only bounded collection, exact identity joins, immutable storage and HTML/CSV/JSON/Excel exports. Reuse existing authorised access; missing delegated-grant access stays NotAttempted. Desktop/CLI dispatch remains a separate integration slice.
 
+- Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
+
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
 - Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
 
 - Extend offline Graph interruption checks through real retry delays and second-page cancellation, preserving one silent renewal and treating cancellation after write dispatch as ambiguous without replay. Production transport behaviour is unchanged.
+
+- Preserve read-only connection checks and an explicit untrusted-history warning on startup refusal; serialise interrupted-run marking with the existing tenant lease and strengthen deterministic history regressions (CLA-20261010-97–99).
+
+- Validate all stored deployment-run evidence before startup recovery changes any record. Refuse modified, missing-digest, unreadable or wrong-tenant history unchanged, preserving unresolved-write and single-use-plan blocks rather than automatically re-sealing altered results.
 
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
