@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.mailbox-size-quota",
+  "name": "Mailbox size, quotas and archive (toolkit run)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Reads every mailbox's size, warning and send quotas and, optionally, its archive, through the toolkit's own read-only runner. Each value says whether it was read; nothing unread is shown as zero.",
+  "keywords": [
+    "mailbox",
+    "size",
+    "quota",
+    "archive",
+    "capacity",
+    "Get-EXOMailbox",
+    "Get-EXOMailboxStatistics"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxSizeAndQuota.ps1",
+  "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "IncludeArchive",
+      "label": "Include archives",
+      "type": "boolean",
+      "help": "Also read whether each mailbox has an archive and, when it does, the archive's size and quota. One extra read per archive."
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "externalDirectoryObjectId",
+      "primarySmtpAddress",
+      "mailboxType",
+      "primarySizeReadStatus",
+      "primarySizeRaw",
+      "quotaReadStatus",
+      "issueWarningQuotaRaw",
+      "prohibitSendQuotaRaw",
+      "prohibitSendReceiveQuotaRaw",
+      "archiveReadStatus",
+      "hasArchive",
+      "archiveSizeReadStatus",
+      "archiveSizeRaw",
+      "archiveQuotaRaw",
+      "id",
+      "name",
+      "readStatus",
+      "error"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read mailboxes and their statistics. The toolkit does not install modules or change policy.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runs only through the toolkit's read-only runner; it has no Copy form. Run is experimental and is not offered in this build.",
+    "One statistics read per mailbox, and one more per archive: a large tenant may reach the 30-minute limit, and rows read by then are kept only as partial.",
+    "An archive is counted as present only when Exchange returns a non-empty archive GUID. Recoverable Items, OST and PST sizes are not reported.",
+    "Live behaviour, the roles required and the module's output format are unverified until accepted in a test tenant."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-mailbox-inventory",
+    "reportSchemaVersion": 1,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "20cc92ddac21b8ba499423cca21fa348d420c005a4729441fa0cd43872e806ae"
+  }
+}

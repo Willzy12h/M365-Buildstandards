@@ -95,6 +95,9 @@ $bodies = @{}
 $checked = 0
 foreach ($manifestFile in @(Get-ChildItem -LiteralPath $libraryRoot -Recurse -Filter '*.json' | Where-Object { $_.Name -ne 'registry.json' })) {
     $manifest = Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json
+    # A schema 2 item (INT-088) has no Copy form: it reads only through Use-BditRead inside the toolkit's runner, whose own
+    # syntax-tree check and the engine's catalogue check admit it. Only Copy bodies are checked here.
+    if ($manifest.schemaVersion -eq 2) { continue }
     $scriptFile = Join-Path $libraryRoot $manifest.scriptPath
     $name = $manifest.id
     $ast = Read-Ast $scriptFile
@@ -109,7 +112,7 @@ foreach ($manifestFile in @(Get-ChildItem -LiteralPath $libraryRoot -Recurse -Fi
     $checked++
 }
 if ($checked -eq 0) { throw 'No library scripts were found.' }
-Write-Output ('Library parsed: ' + $checked + ' read-only script(s) use only allow-listed commands and their manifest parameters.')
+Write-Output ('Library parsed: ' + $checked + ' read-only Copy script(s) use only allow-listed commands and their manifest parameters.')
 
 foreach ($copy in $CopyScript) {
     $name = Split-Path -Leaf $copy
