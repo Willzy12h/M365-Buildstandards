@@ -67,6 +67,10 @@ public sealed class GraphClient : IGraphClient
     /// <summary>Reuse this verified identity/token provider and transport; restrict report requests to read-only routes.</summary>
     public GraphClient ForReports() => new(_http, _tokens, TenantId, Mode, GraphRouteAllowList.ForReports(), _options, _log);
 
+    /// <summary>Schema/ID-pinned application metadata routes, reusing the current provider and transport.</summary>
+    public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
+        GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);

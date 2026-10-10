@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add registered application credential-expiry and observed-consent report engines: strict separate schema 2, metadata-only bounded collection, exact identity joins, immutable storage and HTML/CSV/JSON/Excel exports. Reuse existing authorised access; missing delegated-grant access stays NotAttempted. Desktop/CLI dispatch remains a separate integration slice.
+
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
 - Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
