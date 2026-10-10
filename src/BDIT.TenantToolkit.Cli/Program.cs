@@ -60,12 +60,13 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1));
+        var options = ParseOptions(args.Skip(1), command == "report-evidence");
 
         return command switch
         {
             "releases" => Releases(options),
             "report" => Report(options),
+            "report-evidence" => ReportEvidenceExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -109,6 +110,13 @@ public static class Program
                   Formats: html, markdown, json, csv, xlsx. Default html.
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
+
+              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>]
+                  Export a registered Graph report already captured by the tool; no live reads.
+                  Validates its recorded tenant, schema and integrity before writing an export.
+                  Formats: html, json, csv (ZIP of sections), xlsx. Default html.
+                  No client record or standard is required. Failed/partial reads retain their status;
+                  a successful export does not mean the original collection succeeded.
 
               bdit document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
                   Write the client-facing build standard document.
@@ -387,6 +395,38 @@ public static class Program
         return 0;
     }
 
+    private static int ReportEvidenceExport(IReadOnlyDictionary<string, string> options)
+    {
+        var allowed = new[] { "input", "tenant", "format", "root" };
+        if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Report evidence exports accept only --input, --tenant, --format and --root. No collection or execution is supported.");
+        var tenant = Require(options, "tenant");
+        if (!ProfileValidator.IsGuid(tenant)) throw new ConfigurationException("--tenant must name the expected tenant GUID.");
+        var file = Require(options, "input");
+        if (!File.Exists(file)) throw new ConfigurationException($"Report evidence file not found: {file}");
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Report evidence exports as html, json, csv or xlsx.");
+        byte[] bytes;
+        using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            if (stream.Length > ReportEvidenceSchema.MaximumBytes)
+                throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
+            using var reader = new BinaryReader(stream);
+            bytes = reader.ReadBytes(ReportEvidenceSchema.MaximumBytes + 1);
+        }
+        if (bytes.Length > ReportEvidenceSchema.MaximumBytes)
+            throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
+        string json;
+        try { json = new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
+        catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
+        var report = ReportEvidenceSchema.Read(json, tenant);
+        var context = Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportReport(report, format, suppliedFile: true));
+        Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
+        return 0;
+    }
+
     private static int VerifyRestore(IReadOnlyDictionary<string, string> options)
     {
         var folder = Require(options, "folder");
@@ -536,16 +576,18 @@ public static class Program
         return 0;
     }
 
-    private static IReadOnlyDictionary<string, string> ParseOptions(IEnumerable<string> args)
+    private static IReadOnlyDictionary<string, string> ParseOptions(IEnumerable<string> args, bool rejectDuplicates = false)
     {
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string? pending = null;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var arg in args)
         {
             if (arg.StartsWith("--", StringComparison.Ordinal))
             {
                 if (pending is not null) options[pending] = "";
                 pending = arg[2..];
+                if (rejectDuplicates && !seen.Add(pending)) throw new ConfigurationException($"Duplicate --{pending.ToLowerInvariant()} option; supply each option once.");
                 continue;
             }
             if (pending is null) throw new ConfigurationException($"Unexpected value '{arg}'. Options are given as --name value.");

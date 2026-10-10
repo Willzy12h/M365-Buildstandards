@@ -20,4 +20,8 @@
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Engine\BDIT.TenantToolkit.Engine.csproj" />
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.Cli\BDIT.TenantToolkit.Cli.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Synthetic runner fixtures: a stand-in Exchange module and a schema 2 body. Never Microsoft code. -->
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

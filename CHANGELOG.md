@@ -2,6 +2,18 @@
 
 - Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
 
+- Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; tampered records refuse every format before writing. Production export behaviour is unchanged.
+
+- Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
+
+- Label offline report exports with supplied-file provenance, refuse duplicate export options, and strengthen malformed-input safeguard checks.
+
+- Add offline `bdit report-evidence` HTML/JSON/CSV/Excel exports for validated registered Graph report evidence. Exact tenant, bounded UTF-8, schema and integrity checks refuse untrusted input; failed/partial/cancelled reads remain explicit. No sign-in, new collection, evidence mutation or script execution.
+
+- Correct mailbox-capacity interpretation for legacy shared mailboxes, the actual reviewed Business Premium service-plan set and malformed byte displays; retain separate statistics/quotas read failures.
+
+- Add pure read-only mailbox capacity evaluation using strict assigned-licence evidence: keep observed primary quotas, 100 GB configuration, commercial Plan 2 eligibility and archive limits separate. Exchange collection/report integration and live acceptance remain pending.
+
 - Script library: a list entry made only of whitespace now makes the mailbox, protection or quarantine policy setting Unknown with a warning, instead of a known count.
 
 - Show script requirements and limitations in the actual Copy/Save confirmation; retain stored-capture deployment ineligibility in the compact configuration summary.
@@ -9,6 +21,10 @@
 - Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
+
+- Add the owned read-only runner engine (INT-088 slice 2): schema 2 manifests and registry with explicit version dispatch; an engine-pinned PowerShell wrapper that checks the script's syntax tree before sign-in and reaches registered Exchange reads only through a private gate that rechecks the tenant, account and stop request before and after every read; a pinned, strictly typed request; and a strict result that must repeat the exact run, item, pins, tenant, account and parameters before it is sealed as `exchangeReportEvidence`. Output, diagnostics, result size and time are bounded; a stop ends the process tree after five seconds; a refused host, a missing module or a failed check keeps no rows. No shipped item becomes runnable and no UI, CLI, permission or tenant access is added; every regression uses a synthetic stand-in module. The runner refuses a child result with a null required member, collection or element as malformed output (AST-20261010-02), and the read gate refuses an expired or unconfirmed Exchange token before and after every read, keeping no rows when it expires mid-run (AST-20261010-03).
+
+- Add strict `exchangeReportEvidence` schema 1 (INT-088 slice 1): models, a package-owned registry with the first `exo-mailbox-inventory` registration, a bounded reader and a create-once tenant-partitioned store. Anything outside the registration, any non-normalised parameter, any value from a group that was not read and any status better than its sections is refused; a failed read is never zero and `Unlimited` stays `Unlimited`. A blank mailbox type, size, quota or archive value is unreadable and is refused (AST-20261010-01). No runner, adapter, UI or tenant access is added, so nothing in the product creates these records yet.
 
 - Verify the integrated Exchange capture refuses empty accounts before module lookup, authentication, collection or output creation.
 

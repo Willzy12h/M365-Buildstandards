@@ -22,6 +22,8 @@ public static class ScriptCopy
     {
         if (!binding.IsValid) throw new ConfigurationException("The form is not complete: " + string.Join(" ", binding.Problems));
         var m = entry.Manifest;
+        // A schema 2 body reads only through the runner's gate, which does not exist in a copied script.
+        if (m.SchemaVersion != 1) throw new ConfigurationException($"{m.Name} runs only through the toolkit's read-only runner; it has no Copy form.");
         var tenant = "";
         if (!string.IsNullOrWhiteSpace(target.TenantId))
             tenant = Guid.TryParse(target.TenantId, out var parsed) ? parsed.ToString("D") : throw new ConfigurationException("The tenant ID is not a GUID.");
