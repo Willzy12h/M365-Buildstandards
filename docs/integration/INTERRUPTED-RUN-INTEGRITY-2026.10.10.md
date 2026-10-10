@@ -20,3 +20,13 @@ PR #79 uses one strict run-history reader for startup recovery and the existing 
 ## Operational consequence
 
 An engineer encountering refused history must preserve the local files and reconcile the evidence through the existing support/recovery process. Editing or deleting the evidence to dismiss the error is not a supported recovery route. Startup does not repair untrusted evidence or authorise a tenant write.
+
+## Current-head connect and cooperative-history corrections
+
+CLA-20261010-97: strict startup history could refuse after a verified new connection was adopted, before access/licence reads. The old tenant notice was already cleared; the confirmed problem was an empty notice and unfinished checks, not retained prior-tenant notice. Isolate expected local history refusal, retain an explicit unknown/untrusted history notice and original bytes, then continue the existing read-only access/licence checks. Later read cancellation still cancels; no authentication, scope, experimental opt-in, exact approval or deployment-history guard is bypassed. Local diagnostics use fixed wording rather than raw exception data.
+
+CLA-20261010-98: deterministic valid-first/damaged-last and reverse-order fixtures prove whole-history validation before any marking write. A narrow internal enumerator feeds the actual reader; production enumeration semantics are unchanged. The lazy-validation mutation fails the valid-first byte-preservation check.
+
+CLA-20261010-99: startup marking now takes the existing cross-process tenant write lease across verification and all marking, so a cooperating active deployment/recovery cannot have its Running record reclassified by another host. A two-store real-lease test proves refusal and unchanged bytes while the lease is held, then honest marking and idempotence after release. Arbitrary external editors ignoring that lease remain outside this guarantee; the precise lost-update interleaving was not reproduced.
+
+The delegated exact-source repair passed 70 Linux engine/executor/completion checks and strict App compilation; two controlled negative tests failed as intended. Six actual post-authentication App cases compile, using an actual GraphClient with synthetic HTTP. Windows execution/native/package and Claude independent review of this new source remain required. Preserve #81's authorisation-invalidated subscription when bringing this helper forward; no subscriptions, permission-preview budgets or cache behaviour change here.

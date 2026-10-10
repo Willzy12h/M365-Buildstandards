@@ -89,4 +89,56 @@ public sealed class InterruptedRunIntegrityTests
         Assert.Equal(0, store.MarkInterruptedRuns(TestData.TenantA));
         Assert.Equal(bytes, File.ReadAllBytes(store.RunFile(run)));
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Entire_history_is_validated_before_any_marking_write_regardless_of_order(bool damagedFirst)
+    {
+        using var root = new TempRoot();
+        var writer = new EvidenceStore(root.Paths, NullLog.Instance);
+        var valid = Running(); writer.SaveRun(valid);
+        var damaged = Running(); writer.SaveRun(damaged);
+        var validFile = writer.RunFile(valid); var damagedFile = writer.RunFile(damaged);
+        var node = JsonNode.Parse(File.ReadAllText(damagedFile))!.AsObject();
+        node["results"]![0]!["status"] = ResultStatus.Pending;
+        File.WriteAllText(damagedFile, node.ToJsonString());
+        var validBytes = File.ReadAllBytes(validFile); var damagedBytes = File.ReadAllBytes(damagedFile);
+        var ordered = damagedFirst ? new[] { damagedFile, validFile } : new[] { validFile, damagedFile };
+        var enumerations = 0;
+        var store = new EvidenceStore(root.Paths, NullLog.Instance, directory =>
+        {
+            Assert.Equal(Path.GetDirectoryName(validFile), directory); enumerations++; return ordered;
+        });
+
+        Assert.Throws<PlanValidationException>(() => store.MarkInterruptedRuns(TestData.TenantA));
+
+        Assert.Equal(1, enumerations);
+        Assert.Equal(validBytes, File.ReadAllBytes(validFile));
+        Assert.Equal(damagedBytes, File.ReadAllBytes(damagedFile));
+    }
+
+    [Fact]
+    public void Startup_respects_another_store_active_tenant_lease_without_rewriting_the_run()
+    {
+        using var root = new TempRoot();
+        var active = new EvidenceStore(root.Paths, NullLog.Instance);
+        var startup = new EvidenceStore(root.Paths, NullLog.Instance);
+        var run = Running(); active.SaveRun(run);
+        var file = active.RunFile(run); var bytes = File.ReadAllBytes(file);
+        using (active.AcquireTenantWriteLease(TestData.TenantA))
+        {
+            Assert.Throws<SafetyViolationException>(() => startup.MarkInterruptedRuns(TestData.TenantA));
+            Assert.Equal(bytes, File.ReadAllBytes(file));
+        }
+        Assert.Equal(1, startup.MarkInterruptedRuns(TestData.TenantA));
+        var loaded = startup.LoadRun(TestData.TenantA, run.Id)!;
+        Assert.Equal(RunStatus.Interrupted, loaded.Status);
+        Assert.Equal(ResultStatus.Error, loaded.Results[0].Status);
+        Assert.Equal(WriteAcceptance.Unknown, loaded.Results[0].WriteAcceptance);
+        Assert.True(EvidenceIntegrity.Verify(loaded, loaded.IntegrityDigest));
+        var interruptedBytes = File.ReadAllBytes(file);
+        Assert.Equal(0, startup.MarkInterruptedRuns(TestData.TenantA));
+        Assert.Equal(interruptedBytes, File.ReadAllBytes(file));
+    }
+
 }

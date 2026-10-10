@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Preserve read-only connection checks and an explicit untrusted-history warning on startup refusal; serialise interrupted-run marking with the existing tenant lease and strengthen deterministic history regressions (CLA-20261010-97–99).
+
 - Validate all stored deployment-run evidence before startup recovery changes any record. Refuse modified, missing-digest, unreadable or wrong-tenant history unchanged, preserving unresolved-write and single-use-plan blocks rather than automatically re-sealing altered results.
 
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.

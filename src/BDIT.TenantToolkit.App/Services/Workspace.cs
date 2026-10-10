@@ -418,17 +418,35 @@ public sealed class Workspace : ObservableObject
                 await CancelPendingDiscoveryAsync();
                 nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
             }
-            await DisconnectCoreAsync(releaseOnly: true);
-            await DisconnectSetupCoreAsync();
-            Profile = profile;
-            Connection = nextConnection;
-            Evidence.MarkInterruptedRuns(profile.TenantId);
-            var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
-            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
-            progress.Report("Checking access (read-only).");
-            Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
-            await LoadLicencesCoreAsync(includeUsers: false);
+            await CompleteConnectionAsync(profile, nextConnection, standard, progress);
         });
+
+    /// <summary>Accepts an already authenticated connection and performs the existing read-only checks.</summary>
+    internal async Task CompleteConnectionAsync(TenantProfile profile, ConnectedTenant nextConnection,
+        StandardCatalogue standard, IProgress<string> progress)
+    {
+        await DisconnectCoreAsync(releaseOnly: true);
+        await DisconnectSetupCoreAsync();
+        Profile = profile;
+        Connection = nextConnection;
+        InterruptedNotice = "Previous deployment history has not been verified. Preserve the original evidence before further changes.";
+        try
+        {
+            Evidence.MarkInterruptedRuns(profile.TenantId);
+            var interrupted = Evidence.RequireIntactRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
+            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
+        }
+        catch (Exception ex) when (ex is ToolkitException or IOException or UnauthorizedAccessException)
+        {
+            // Local refused history does not undo verified authentication or authorise a write. Keep it unknown,
+            // preserve every refused record, and continue the read-only checks needed to investigate the tenant.
+            InterruptedNotice = "Previous deployment history could not be verified and remains untrusted. Preserve the original files and reconcile the change register before any further changes. Strict history checks continue to block writes; read-only access and licence checks can continue.";
+            Logger.Warn("App", "Previous deployment history could not be verified. Original files were retained; review the change register before further changes.", profile.TenantId);
+        }
+        progress.Report("Checking access (read-only).");
+        Access = await Connections.CheckAccessAsync(nextConnection, standard, progress, OperationToken);
+        await LoadLicencesCoreAsync(includeUsers: false);
+    }
 
     public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode

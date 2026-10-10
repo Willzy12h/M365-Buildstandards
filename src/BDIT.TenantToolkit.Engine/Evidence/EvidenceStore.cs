@@ -40,11 +40,16 @@ public sealed partial class EvidenceStore
     private readonly ToolkitPaths _paths;
     private readonly IToolkitLog _log;
     private readonly object _gate = new();
+    private readonly Func<string, IEnumerable<string>> _enumerateRunFiles;
 
     public EvidenceStore(ToolkitPaths paths, IToolkitLog log)
+        : this(paths, log, directory => Directory.EnumerateFiles(directory, "*.json")) { }
+
+    internal EvidenceStore(ToolkitPaths paths, IToolkitLog log, Func<string, IEnumerable<string>> enumerateRunFiles)
     {
         _paths = paths;
         _log = log;
+        _enumerateRunFiles = enumerateRunFiles;
     }
 
     public string RootDirectory => _paths.DataDirectory;
@@ -297,7 +302,7 @@ public sealed partial class EvidenceStore
         var directory = RunsDirectory(tenantId);
         if (!Directory.Exists(directory)) return Array.Empty<DeploymentRun>();
         var runs = new List<DeploymentRun>();
-        foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+        foreach (var file in _enumerateRunFiles(directory))
         {
             // The display loader may list readable records; recovery and write guards must not skip failures.
             var run = ReadJson<DeploymentRun>(file) ?? throw new ConfigurationException("Previous run evidence is empty. Preserve it and reconcile before continuing.");
@@ -352,6 +357,9 @@ public sealed partial class EvidenceStore
     /// <summary>Marks runs that were still "Running" when a previous host ended. Called once at start-up per tenant.</summary>
     public int MarkInterruptedRuns(string tenantId)
     {
+        // A Running record may belong to a still-active host sharing this root. Hold the same lease as deployment
+        // and recovery across validation and marking, so startup cannot rewrite an active operation's evidence.
+        using var lease = AcquireTenantWriteLease(tenantId);
         var count = 0;
         foreach (var run in ReadVerifiedRunHistory(tenantId))
         {
