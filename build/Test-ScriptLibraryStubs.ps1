@@ -485,6 +485,10 @@ function Get-HostedContentFilterPolicy {
         # Counted lists holding an entry that could not be read; the setting lists are otherwise known.
         return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = 'MoveToJmf'; HighConfidenceSpamAction = 'Quarantine'; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 7; QuarantineRetentionPeriod = 30; AllowedSenders = @('a@partner.example', $null); AllowedSenderDomains = @('') }
     }
+    if ((Get-Scenario) -eq 'whitespace') {
+        # Counted lists holding a whitespace-only entry, beside a known entry and on its own; neither list was read in full.
+        return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = 'MoveToJmf'; HighConfidenceSpamAction = 'Quarantine'; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 7; QuarantineRetentionPeriod = 30; AllowedSenders = @('a@partner.example', '   '); AllowedSenderDomains = @(' ') }
+    }
     if ((Get-Scenario) -eq 'nulls') {
         # Null list, null setting and an empty string, beside a list returned empty and a known zero.
         return [pscustomobject]@{ Name = 'Default'; Identity = 'Default'; IsDefault = $true; SpamAction = $null; HighConfidenceSpamAction = ''; PhishSpamAction = 'Quarantine'; HighConfidencePhishAction = 'Quarantine'; BulkThreshold = 0; QuarantineRetentionPeriod = 30; AllowedSenders = $null; AllowedSenderDomains = @() }
@@ -663,6 +667,10 @@ function Get-OwaMailboxPolicy {
         # File type lists holding an entry that could not be read: a null beside a known entry, and a blank alone.
         return [pscustomobject]@{ Name = 'OwaMailboxPolicy-Default'; IsDefault = $true; ConditionalAccessPolicy = 'Off'; DirectFileAccessOnPublicComputersEnabled = $true; DirectFileAccessOnPrivateComputersEnabled = $true; WacViewingOnPublicComputersEnabled = $true; AdditionalStorageProvidersAvailable = $true; ActiveSyncIntegrationEnabled = $true; AllowOfflineOn = 'AllComputers'; PersonalAccountCalendarsEnabled = $true; BlockedFileTypes = @('.exe', $null); AllowedFileTypes = @('') }
     }
+    if ((Get-Scenario) -eq 'whitespace') {
+        # File type lists holding a whitespace-only entry: a space beside a known entry, and a tab alone.
+        return [pscustomobject]@{ Name = 'OwaMailboxPolicy-Default'; IsDefault = $true; ConditionalAccessPolicy = 'Off'; DirectFileAccessOnPublicComputersEnabled = $true; DirectFileAccessOnPrivateComputersEnabled = $true; WacViewingOnPublicComputersEnabled = $true; AdditionalStorageProvidersAvailable = $true; ActiveSyncIntegrationEnabled = $true; AllowOfflineOn = 'AllComputers'; PersonalAccountCalendarsEnabled = $true; BlockedFileTypes = @('.exe', ' '); AllowedFileTypes = @("`t") }
+    }
     if ((Get-Scenario) -eq 'nulls') {
         # A null flag and a null list, beside an empty value, a list returned empty and a known False; the default flag not returned.
         return [pscustomobject]@{ Name = 'OwaMailboxPolicy-Default'; ConditionalAccessPolicy = ''; DirectFileAccessOnPublicComputersEnabled = $false; DirectFileAccessOnPrivateComputersEnabled = $null; WacViewingOnPublicComputersEnabled = $true; AdditionalStorageProvidersAvailable = $false; ActiveSyncIntegrationEnabled = $true; AllowOfflineOn = 'AllComputers'; PersonalAccountCalendarsEnabled = $false; BlockedFileTypes = $null; AllowedFileTypes = @() }
@@ -728,6 +736,8 @@ function Get-QuarantinePolicy {
         switch (Get-Scenario) {
             'empty' { return @() }
             'malformed' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @('English', $null) } }
+            'whitespace' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @(' ') } }
+            'whitespace-mixed' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @('English', '  ') } }
             'nulls' { return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = $null; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = $null } }
         }
         return [pscustomobject]@{ Name = 'DefaultGlobalTag'; EndUserSpamNotificationFrequency = '04:00:00'; OrganizationBrandingEnabled = $false; EndUserSpamNotificationCustomFromAddress = ''; MultiLanguageSetting = @() }
@@ -1280,6 +1290,12 @@ try {
         $spam.Count -eq 1 -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenders=Unknown*' -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenderDomains=Unknown*' -and
             (Get-Cell $spam[0] 'KeySettings') -like '*BulkThreshold=7*' -and $protectionMalformed.Output.Contains('BDIT:UNKNOWN')
     }
+    $protectionWhitespace = Invoke-Copy (New-Copy 'exo.protection-policies' 'protection-whitespace' @('--PolicyType', 'AntiSpam')) 'protection-whitespace' -Scenario 'whitespace'
+    Test-Case 'protection: a counted list holding a whitespace-only entry is Unknown, never a known count, and the run warns' {
+        $spam = @(Find-Row $protectionWhitespace.Rows 'Policy' 'Default')
+        $spam.Count -eq 1 -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenders=Unknown*' -and (Get-Cell $spam[0] 'KeySettings') -like '*AllowedSenderDomains=Unknown*' -and
+            (Get-Cell $spam[0] 'KeySettings') -like '*BulkThreshold=7*' -and $protectionWhitespace.Output.Contains('BDIT:UNKNOWN')
+    }
     $rooms = Invoke-Copy $copyById['exo.resource-mailboxes'] 'rooms'
     Test-Case 'rooms: only room and equipment mailboxes are listed, with booking settings' {
         $room = @(Find-Row $rooms.Rows 'PrimarySmtpAddress' 'room1@contoso.example')
@@ -1483,6 +1499,12 @@ try {
         $owa.Count -eq 1 -and (Get-Cell $owa[0] 'KeySettings') -like '*BlockedFileTypes=Unknown*' -and (Get-Cell $owa[0] 'KeySettings') -like '*AllowedFileTypes=Unknown*' -and
             $policyMalformed.Output.Contains('BDIT:UNKNOWN')
     }
+    $policyWhitespace = Invoke-Copy (New-Copy 'exo.mailbox-policies' 'mailbox-policies-whitespace' @('--PolicyType', 'OwaMailbox')) 'mailbox-policies-whitespace' -Scenario 'whitespace'
+    Test-Case 'mailbox policies: a list holding a whitespace-only entry is Unknown, never a known count, and the run warns' {
+        $owa = @($policyWhitespace.Rows)
+        $owa.Count -eq 1 -and (Get-Cell $owa[0] 'KeySettings') -like '*BlockedFileTypes=Unknown*' -and (Get-Cell $owa[0] 'KeySettings') -like '*AllowedFileTypes=Unknown*' -and
+            $policyWhitespace.Output.Contains('BDIT:UNKNOWN')
+    }
     $owaOnly = Invoke-Copy (New-Copy 'exo.mailbox-policies' 'mailbox-policies-owa' @('--PolicyType', 'OwaMailbox')) 'mailbox-policies-owa'
     Test-Case 'mailbox policies: one type only reads only that type' {
         @(Find-Row $owaOnly.Rows 'PolicyType' 'MobileDeviceMailbox').Count -eq 0 -and @($owaOnly.Reads | Where-Object { $_ -eq 'Get-MobileDeviceMailboxPolicy' }).Count -eq 0
@@ -1583,6 +1605,13 @@ try {
     Test-Case 'quarantine: a global list holding a null entry is Unknown, never a shorter count, and the run warns' {
         $global = @(Find-Row $quarantineMalformed.Rows 'PolicyKind' 'GlobalQuarantinePolicy')
         $global.Count -eq 1 -and (Get-Cell $global[0] 'GlobalSettings') -like '*MultiLanguageSetting=Unknown*' -and $quarantineMalformed.Output.Contains('BDIT:UNKNOWN')
+    }
+    foreach ($scenario in @('whitespace', 'whitespace-mixed')) {
+        $quarantineWhitespace = Invoke-Copy $copyById['exo.quarantine-policies'] ('quarantine-' + $scenario) -Scenario $scenario
+        Test-Case ('quarantine (' + $scenario + '): a global list holding a whitespace-only entry is Unknown, never a known count, and the run warns') {
+            $global = @(Find-Row $quarantineWhitespace.Rows 'PolicyKind' 'GlobalQuarantinePolicy')
+            $global.Count -eq 1 -and (Get-Cell $global[0] 'GlobalSettings') -like '*MultiLanguageSetting=Unknown*' -and $quarantineWhitespace.Output.Contains('BDIT:UNKNOWN')
+        }
     }
     $quarantineEmpty = Invoke-Copy $copyById['exo.quarantine-policies'] 'quarantine-empty' -Scenario 'empty'
     Test-Case 'quarantine: global settings that were not returned make the run warn' { $quarantineEmpty.Code -eq 0 -and $quarantineEmpty.Output.Contains('BDIT:UNKNOWN') }
