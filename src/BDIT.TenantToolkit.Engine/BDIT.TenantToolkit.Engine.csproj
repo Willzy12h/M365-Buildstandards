@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Exchange\ReadCapture.ps1" LogicalName="Exchange.ReadCapture.ps1" />
+    <!-- INT-088 owned read-only runner wrapper, pinned by ReadRunnerTemplate.Sha256. Outside scripts/, so never a library item. -->
+    <EmbeddedResource Include="Scripts\Runner\ReadRunner.ps1" LogicalName="Runner.ReadRunner.ps1" />
     <!-- The reviewed script library (INT-072). Every file here must be pinned in scripts/registry.json or the library is refused. -->
     <EmbeddedResource Include="..\..\scripts\**\*.json;..\..\scripts\**\*.ps1" LogicalName="Scripts/%(RecursiveDir)%(Filename)%(Extension)" />
     <ProjectReference Include="..\BDIT.TenantToolkit.Core\BDIT.TenantToolkit.Core.csproj" />

@@ -418,6 +418,22 @@ PR #46 implements INT-072's reviewed library without Run: `scripts/<category>/` 
 
 PR #67 extends existing transport tests through a synthetic HTTP handler using the actual cancellable back-off path. It checks operator cancellation before a read retry, cancellation on a throttled second page, the single silent-renewal rule across an interposed transient failure, and uncertain write dispatch without replay. No production retry, token, permission or evidence behaviour changes. Generous outer test timeouts detect a stuck cancellation; elapsed time is not a pass/fail performance metric.
 
+## INT-093 — Verify export fidelity through the existing boundary (9 October 2026)
+
+PR #68 adds end-to-end offline exporter regressions for partial registered evidence, multilingual/multiline text, spreadsheet guarding and explicit Excel truncation, preservation of previous exports and modified-evidence refusal before any output. It preserves JSON/HTML/CSV full values while recognising the existing XLSX cell limit. No production export, schema, cap, permission or evidence semantics change.
+
+## INT-091 — Measure report scale before optimisation (9 October 2026)
+
+PR #65 adds a synthetic offline benchmark using existing strict registered-report readers and export implementations at 100, 1,000 and 5,000 rows. It checks correctness and over-cap refusal before retaining timings. Timing and allocation samples are observations, never pass/fail thresholds or live service speed claims; allocations are synchronous current-thread totals, not peak working set. This changes no shared schema, permission, safety boundary or production behaviour. Performance changes require a separately reviewed slice backed by the measured bottleneck and unchanged evidence semantics.
+
+## INT-089 — Offline CLI visibility for already captured registered Graph reports (PR #62)
+
+Expose the merged strict Graph ReportEvidenceSchema and existing HTML/CSV/JSON/Excel exporters with `bdit report-evidence --input <file> --tenant <expected-id>`. Unlike `bdit report`, this exports registered report evidence without reassessment, client/standard lookup, authentication or new reads. Bounded UTF-8/schema/tenant/integrity validation precedes exports; unknown options/formats refuse. Export success explicitly does not mean collection success, and inaccessible/partial empty reads remain distinct from genuine empty success. No new persisted schema, live CLI boundary, evidence mutator, permission or script execution. Actual process and extracted-package checks protect the route; details: [OFFLINE-REPORT-EXPORT-2026.10.08](OFFLINE-REPORT-EXPORT-2026.10.08.md). Independent review/merge and human/live acceptance remain outstanding.
+
+## INT-085 — Reuse strict assigned-plan evidence for pure mailbox capacity evaluation
+
+PR #58 implements the already settled INT-071 calculation without changing persisted evidence. The exact external-directory/user ID join and commercial service-plan identity/name/state checks are separate from observed primary quota bytes. Raw/Unlimited/failed values and archive limits retain their meaning. Unknown variants, identities, types and incomplete reads do not become negative entitlement or zero capacity. Official Microsoft limits and shared-mailbox exceptions are referenced in MAILBOX-CAPACITY-2026.10.08. No collector, script runner, live access, mutation or new schema is introduced; those source adapters and acceptance remain required.
+
 ## INT-088 — Versioned read-only execution and separate Exchange report evidence (proposed in PR #61)
 
 Decision-only refinement of merged INT-071/072/080: preserve Graph report and Exchange configuration schema 1 readers and existing copy-only library items; admit runnable read-only items only through explicit manifest schema 2, pinned owned wrapper and strict output. Add a separate registered Exchange report evidence kind/store with exact tenant/account/resource, truthful read states, bounded typed rows, raw quotas/archive identity and source citations. Known account is checked before each read; no token/cache transfer, arbitrary code, control bypass, module installation, retry/replay or Exchange mutation route. #58's pure capacity evaluator is reused only after its reviewed merge. Details: [READ-ONLY-RUNNER-CONTRACT-2026.10.08](READ-ONLY-RUNNER-CONTRACT-2026.10.08.md). Pending independent review/merge; no dependent source, access, live action, version or publication is implemented/approved by this proposal.
@@ -445,6 +461,14 @@ PR #54 reconciles status only: INT-070–072/074 settled through #39; INT-073 im
 ## INT-090 — Isolate real-time executor tests without weakening safeguards (PR #63)
 
 After the same decision-only head passed one Windows run and hit an existing outer executor-test timeout in another, isolate ExecutorTests from unrelated parallel fixture/process workload using an xUnit collection. Keep all test bodies, 50 ms verification budget, three-second outer deadline and accepted-write/after-evidence assertions unchanged; no production change, skip or retry. This is a scheduling mitigation, not proof that overload caused the failure or that Microsoft behaviour is accepted. If it still fails, investigate. Exact runs and rationale: [EXECUTOR-TEST-ISOLATION-2026.10.08](EXECUTOR-TEST-ISOLATION-2026.10.08.md). Independent review and actual Windows checks remain required.
+
+### INT-089 review corrections — PR #62
+
+Add explicit supplied-file provenance to formatted report exports without changing/resealing their evidence; recorded account IDs are not presented as authenticated by the export. The report-evidence route rejects duplicate options; other routes are unchanged. Strengthen strict decoding, size and kind fixtures to isolate the intended guard rather than incidental invalid JSON/digest refusals (CLA-20261008-78–80).
+
+### INT-085 review corrections — PR #58
+
+Following CLA-20261008-50–54, retain an unknown legacy entitlement for observed 100 GB shared mailboxes without creation proof, review exact archive/Foundation plan pairs without granting primary capacity, anchor the full byte display shape and permit independent statistics read states in the unpersisted adapter input. No quota mutation or schema change. Dated plan-prefix assumptions and live limitations remain explicit in MAILBOX-CAPACITY.
 
 ## INT-091 — Review enrolment naming before restoring candidate imports (proposed in PR #71)
 
