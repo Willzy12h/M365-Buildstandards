@@ -501,3 +501,7 @@ Add full-template empty-account refusal cases before module lookup, connection o
 ### INT-093 review refinement — 10 October 2026, PR #67
 
 Deliberately asynchronous synthetic token acquisition reproduces the independent reviewer's dispatch scheduling concern. Await observable back-off/dispatch boundaries before cancellation; preserve all counts, real delay and stuck-operation ceilings. No production retry, token, HTTP, write or uncertainty behaviour changes. Removing back-off cancellation still fails all three intended regressions.
+
+### INT-092 second review corrections — 10 October 2026, PR #67
+
+CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.

@@ -2,10 +2,10 @@
 
 PR #67 is a separate offline robustness slice based on integration `92cb07c`. Existing tests already check ordinary 429/5xx retries, cancellation boundaries and write non-retry. This slice adds combinations through the actual `GraphClient`, using a synthetic HTTP handler and token provider; no external request is possible through that handler.
 
-The five cases cover:
+The original five cases cover:
 
 - Operator cancellation during the actual 30-second Retry-After delay, for 429 and 503. Only the first request/token acquisition occurs.
-- A bounded report yields its first row, then encounters 429 on page two. Cancellation interrupts the real delay; the returned row remains intact, page one is not replayed and page two is not retried.
+- A bounded report yields its first row, then encounters 429 on page two. Cancellation interrupts the real delay; page two is not retried after the stop.
 - 401 → 503 → 401 retains exactly one forced silent token renewal. The second 401 requires an explicit reconnect rather than another renewal loop.
 - Operator cancellation after a candidate write has entered the transport yields AmbiguousWriteException, with exactly one POST and no retry. The synthetic handler waits on the actual request cancellation token; no tenant is changed.
 
@@ -22,3 +22,7 @@ Local and exact-head Windows results are recorded on the PR before readiness. Cl
 ## Independent-review refinement — 10 October 2026
 
 Claude noted that initial path-count assertions depended on synchronous token acquisition. The test provider now deliberately yields; the old assertions failed in three cases. The corrected tests await the observable back-off warning (after the read cancellation checks) or the actual synthetic write dispatch before stopping, with the same ten-second outer ceiling. All five focused cases pass. Removing cancellation from the real back-off still causes the three intended delay cases to fail; production source is restored afterwards. This avoids both a scheduling assumption and mistaking cancellation before the back-off for proof that the delay is cancellable. Exact-head Windows and full-suite results remain separate evidence recorded on the PR.
+
+## Second independent review corrections — 10 October 2026
+
+CLA-20261009-05–07 were still open despite an earlier conflicting ready comment. A successful 429 retry now verifies the exact page-two nextLink twice and page one only once. A separate real GraphReportService/GraphClient case retains the returned row in sealed Cancelled evidence after stopping during page-two back-off. The renewal case supplies an ordinary fallback 401, so resetting the renewal state fails the explicit renewal-count assertion rather than exhausting a response queue. The scheduling refinement and real cancellation delay remain intact. Seven focused cases, including the existing two-value theory, are expected; production code and live/human gates remain unchanged.
