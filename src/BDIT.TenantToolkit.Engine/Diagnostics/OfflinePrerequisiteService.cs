@@ -205,6 +205,7 @@ public sealed partial class OfflinePrerequisiteService
             cancellationToken.ThrowIfCancellationRequested();
             try { var result = check(); Add(id, result.Disposition, result.Explanation, nextStep, required); }
             catch (UnsafeOfflinePathException) { Add(id, OfflineFindingDisposition.Fail, "A component has an unsafe path, link or reparse point; no such content was read.", nextStep, required); }
+            catch (OfflinePackageScopeException) { Add(id, OfflineFindingDisposition.Fail, "The inventory includes a component outside the supported package inspection scope; its contents were not read.", nextStep, required); }
             catch (OfflineBoundException) { Add(id, OfflineFindingDisposition.Unknown, "The check exceeded its configured file or inventory bound; it was not certified.", nextStep, required); }
             catch (Exception ex) when (AccessFailure(ex)) { Add(id, OfflineFindingDisposition.Unknown, "A component is missing or could not be read; the check is incomplete.", nextStep, required); }
             catch (OfflineDocumentException) { Add(id, OfflineFindingDisposition.Fail, "The component document is invalid for the existing toolkit format or validator.", nextStep, required); }
@@ -228,9 +229,15 @@ public sealed partial class OfflinePrerequisiteService
         while (lines.ReadLine() is { } line)
         {
             if (result.Count >= _limits.ManifestEntries) throw new OfflineBoundException();
-            if (line.Length < 67 || !DigestPattern().IsMatch(line[..64]) || line.Substring(64, 2) != "  "
-                || !OfflinePackageFiles.PackageContent(line[66..]) || !result.TryAdd(line[66..], line[..64]))
+            if (line.Length < 67 || !DigestPattern().IsMatch(line[..64]) || line.Substring(64, 2) != "  ")
                 throw new UnsafeOfflinePathException();
+            var path = line[66..];
+            if (!result.TryAdd(path, line[..64])) throw new UnsafeOfflinePathException();
+            if (!OfflinePackageFiles.PackageContent(path))
+            {
+                if (!OfflinePackageFiles.SafeRelative(path) || OfflinePackageFiles.PrivatePath(path)) throw new UnsafeOfflinePathException();
+                throw new OfflinePackageScopeException();
+            }
         }
         if (result.Count == 0) throw new UnsafeOfflinePathException();
         return result;
