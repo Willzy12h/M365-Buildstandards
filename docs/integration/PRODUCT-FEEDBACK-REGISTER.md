@@ -175,6 +175,10 @@ Sol 6.1 xhigh discovered the delayed-timer case in the bounded model comparison;
 |---|---|---|---|---|
 | AST-20261010-08 | Sol 6.1 xhigh discovery / Astra confirmation, explicit-connect result admission, #73 (P2) | At `dc2f5de`, `ExplicitConnectAcquisition.cs:37` checked cancellation but deducted elapsed time only after returning; delayed timer delivery admitted silent and interactive successes beyond the deadline | Implemented in #73: monotonic elapsed-time rejection before success, after caller cancellation; shared budget and preview exclusion preserved | Six deterministic negative cases fail on original production bytes, with 71 controls passing; repaired source passes all 77 focused cases. Fresh Windows validation and independent Claude review required; see [runtime record](EXPERIMENTAL-RUNTIME-2026.10.10.md) |
 
+
+| AST-20261010-23 | Astra / mailbox capacity review on #89 at `4d262f9` (P2) | The review dropped each source's digest, source mode, interval, status and limitations, and the licence section's failed state and reason | Fixed by Claude on `claude/mailbox-capacity-report-2026-10-10`: immutable summaries of both validated sources, each with its section's status, error and limitations; the licence index keeps copied metadata, not the caller's object | Provenance and failed-licence cases added; mutations dropping limitations, section error, digest or the copy each fail. Re-review and Windows CI pending |
+| AST-20261010-24 | Astra / mailbox capacity review on #89 at `4d262f9` (P3) | A failed archive-state read became NotAttempted | Fixed by Claude on the same branch: only an archive read as absent is NotAttempted; otherwise the supplied state is kept | Restoring the old mapping fails the archive case. Re-review pending |
+
 ## Claude Preview.18 review — 6–7 October 2026
 
 Source: [CLAUDE-PREVIEW18-REVIEW](CLAUDE-PREVIEW18-REVIEW.md), reviewing `10808de`/`2668d00`/`674b1ba`. William then asked Claude to implement the fixes; they are in PR #21. "Windows CI" means the exact-head run named in the review's implementation status or in COMPLETION-REGISTER, read in full. No live tenant, Narrator or newcomer acceptance is claimed.
@@ -275,3 +279,9 @@ First repaired Windows push38080373544 / PR38080376218 at1b4d3e1 executed all31 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-18 | Native UI harness / shell layout (P2) | b0c34f3 narrow tenant-header evidence status consumes page height:24 unneeded-scroll cases at1180×760 and one fully visible Configuration object row at1180×640 | Full evidence status moved to pinned navigation footer; top identity/mode and all original thresholds retained | Actual failing push38081873273; all3 offline native journeys pass first. Fresh exact-head layout/package and Claude review remain required. |
+
+## Astra Reports authentication interaction review — 10 October 2026, PR #80
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-22 | Astra / Reports and existing silent renewal (P2, confirmed) | At 480634370203dff9307d738be4c954c4280bb0a8, GraphReportsController.cs:40–41 and :77 use stale connection-time expiry as read lifetime, preventing provider renewal or discarding a successful stable read | Remove natural elapsed-time gate; keep timestamp parsing/context mutation refusal, invalidated authority and independent write opt-in expiry | Unchanged exact-controller stub reproduces zero-read preflight and post-read result loss. Fixed real-controller portable cases 9/9 and actual MSAL renewal cases 11/11 pass; original controller fails both added temporal positives. Strict App compilation passes; exact-source Windows execution, Claude review and live acceptance remain open |

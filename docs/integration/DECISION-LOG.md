@@ -515,6 +515,7 @@ Implement the merged desktop guard as transient coordination authority, not anot
 
 CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
 
+
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
@@ -579,6 +580,22 @@ CLA-20261010-79/80: use one pure evidence-source presentation for the pinned hea
 
 CLA-20261010-120–122: compose Home from the existing shell evidence-source presentation rather than interpreting supplemental Exchange origin separately. Bind presentation refusal to the displayed tenant, including application setup, and retain conservative collection guidance. Include each visible action label in its accessible name. No destination, evidence authority, authentication or persisted-schema change; validate native peers and mixed evidence at the existing three sizes.
 
+### INT-071 invalidated-operator report guard — 10 October 2026, PR #80
+
+CLA-20261010-77: report reads require the existing OperatorVerified flag as well as tenant, Graph-mode, identity and expiry guards. After authorisation invalidation, opening Reports does not reconnect or request tokens; a direct read refuses before any token/HTTP/evidence action and explains deliberate reconnect. This preserves the existing reconnect policy without new authentication or consent. The added invalid-operator case compiles and requires exact-head Windows execution. CLA-20261010-78 remains a disclosed, unmeasured naming-preview serialisation cost hypothesis; no reference-only cache replaces mutable evidence binding.
+
+### INT-082 configured sign-in regression — 10 October 2026, PR #73
+
+CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around the existing public sign-in implementation, retaining production provider defaults and the existing acquisition policy. A valid one-minute configured budget accepts a thirty-second reply after a twenty-minute virtual permission preview but refuses a reply after one minute plus one tick. Removing timeout forwarding fails that regression; restored selected tests pass. No second authenticator/cache, renewal, scopes, approval-expiry or retry contract changes. Correct the run sheet to exclude permission-review time and require William's separate more-than-one-hour/due-token read-only renewal acceptance, still Not run.
+
+### INT-082/INT-094 Reports lifetime correction — 10 October 2026, PR #80
+
+AST-20261010-22 identifies an implementation conflict with the established silent-renewal contract: GraphReportsController treated the original connection-time TokenExpiresAt as a hard read-only session lifetime, even though MSAL renewal updates private token state only. Remove that elapsed-time refusal while retaining parseable provenance, exact context/operator/tenant/account/scope/selection checks and the existing guarded provider. Do not rewrite Session timestamps or extend experimental write/setup opt-in expiry. An ordinary interaction-required read remains truthful Failed evidence without HTTP/retry; invalidated authority/context still blocks saving. This repairs read-only reuse without changing permissions, authentication/cache ownership, approval, evidence schema or write policy.
+
+### INT-094 original sign-in timestamp wording — PR #80
+
+CLA-20261010-102: label the pinned token timestamp as the original sign-in token expiry, with a short explanation that report reads can silently renew. It is not presented as the currently acquired report token lifetime. The experimental change opt-in expiry and provider guards are unchanged. CLA-103: retain the two-second natural-clock regression because it exercises elapsed time without mutating the pinned session timestamp; no broad suite repetition is added. This is wording only, with no native/live acceptance claim.
+
 ### INT-094 offline diagnostics completion — 10 October 2026, PR #69
 
 Complete the already proposed `bdit doctor` contract before dependent implementation: shared offline checks, safe bounded package-path admission, distinct configurable settings, owned non-overwriting write probes, host presence without execution, private-data exclusions and diagnostic-only JSON. Required Fail/Unknown yields 1, completed required passes 0, invocation refusal 2, unexpected failure 3 and cancellation 130; existing unknown command 64 stays. Optional Exchange gaps remain visible without blocking Graph-only local readiness. Local checks never establish Microsoft access, policy approval, trusted publisher identity or complete deployment evidence. This is a proposed decision refinement for Claude review, with no runtime change or new access.
@@ -587,6 +604,9 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
 
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
 ## INT-095 — Repository agent mailbox — 10 October 2026, PR #82 (proposed)
 
 William requested a permanent top-level `agent-comms/` GitHub folder for Astra/Claude handoffs and periodic checks. The folder becomes part of integration when #82 installs it through review, rather than introducing a PR directory or a second authoritative branch. [agent-comms/README](../../agent-comms/README.md) proposes author-owned append-only messages, explicit acknowledgements and safe-boundary checks during active sessions. Open PR message files are discoverable before merge; immutable commit links distinguish what was read. The initial request records current heads without declaring Claude has received or started the work. The original folder-only proposal added no global editable inbox. That delivery choice is superseded by the central issue #83 clarification below; no duplicated authoritative task register is added.

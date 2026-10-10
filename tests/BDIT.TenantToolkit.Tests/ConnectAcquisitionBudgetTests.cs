@@ -172,7 +172,7 @@ public sealed class ConnectAcquisitionBudgetTests
     }
 
     // Deterministic acquisition time and timers: no network, wall-clock sleeps or additional test package.
-    private sealed class ManualTime : TimeProvider
+    internal sealed class ManualTime : TimeProvider
     {
         private long _ticks;
         private readonly List<Timer> _timers = [];
