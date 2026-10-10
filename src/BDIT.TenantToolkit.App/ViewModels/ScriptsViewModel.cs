@@ -201,6 +201,7 @@ public sealed record ScriptCopyReview(
     IReadOnlyList<ScriptReviewValue> Values,
     string Fingerprint)
 {
+    public string Requirements { get; init; } = "";
     public string ConfirmText => Action == ScriptCopyAction.Clipboard ? "Copy script to clipboard" : "Choose where to save";
     public string AccountText => Account.Length > 0
         ? "Signs in as " + Account + ". If another account signs in, the script stops before reading anything."
@@ -318,6 +319,7 @@ public sealed class ScriptsViewModel : PageViewModel
 
     public bool HasSelection => Selected is not null;
     public string SelectedHeading => Selected is null ? "Select an item" : Selected.Name;
+    public string SelectedPurpose => Selected?.Description ?? "Choose a script to see its purpose and fill in its form.";
     public string SelectedDetail => Selected is null
         ? "Choose a script on the left to see what it needs and fill in its form."
         : Selected.Description + "\n" + Selected.Needs + "\nPowerShell " + string.Join(" or ", Selected.Entry.Manifest.SupportedRuntimes) + ". " + Selected.Entry.Manifest.Prerequisites;
@@ -345,6 +347,7 @@ public sealed class ScriptsViewModel : PageViewModel
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedHeading));
         OnPropertyChanged(nameof(SelectedDetail));
+        OnPropertyChanged(nameof(SelectedPurpose));
         OnPropertyChanged(nameof(Limitations));
     }
 
@@ -426,7 +429,8 @@ public sealed class ScriptsViewModel : PageViewModel
         var account = Account;
         return new ScriptCopyReview(action, profile.Company, tenantId, TenantColours.For(tenantId), account, item.Id, item.Name,
             item.IsReadOnly ? ReadOnlyText : "CHANGE. Review every line before running.", values,
-            Fingerprint(tenantId, profile.Company, account, item, binding));
+            Fingerprint(tenantId, profile.Company, account, item, binding))
+        { Requirements = SelectedDetail + "\n" + item.LiveStatus + "\n" + Limitations };
     }
 
     /// <summary>
