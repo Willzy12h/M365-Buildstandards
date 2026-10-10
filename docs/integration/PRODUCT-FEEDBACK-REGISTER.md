@@ -265,3 +265,9 @@ First repaired Windows push38080373544 / PR38080376218 at1b4d3e1 executed all31 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-17 | Native UI harness / Naming (P2) | At e4ab3cd,1180×640 table bounds are179 high but only76 visible, with no complete populated rows | Local compact spacing/filter margins and150-DIP table minimum implemented in #80; all guidance/provenance retained | Actual failing push38081012364. Strict compile passes; new exact-head Windows/native/package and Claude review remain required. Reports passes its unchanged >=2 assertion at all3 sizes in this failed overall run. |
+
+## Astra persistent evidence placement follow-up — 10 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-18 | Native UI harness / shell layout (P2) | b0c34f3 narrow tenant-header evidence status consumes page height:24 unneeded-scroll cases at1180×760 and one fully visible Configuration object row at1180×640 | Full evidence status moved to pinned navigation footer; top identity/mode and all original thresholds retained | Actual failing push38081873273; all3 offline native journeys pass first. Fresh exact-head layout/package and Claude review remain required. |

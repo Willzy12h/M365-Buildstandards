@@ -38,6 +38,8 @@
       </Border>
       <Border DockPanel.Dock="Bottom" Padding="18,16" Background="{StaticResource BgNavHeader}">
         <StackPanel>
+          <!-- Pinned independently of page scrolling; keep the full evidence state/time visible without enlarging the tenant header. -->
+          <TextBlock x:Name="EvidenceSourceStatus" Text="{Binding EvidenceStatus}" FontSize="11" Foreground="{StaticResource TextNav}" Margin="0,0,0,10" TextWrapping="Wrap" ToolTip="{Binding EvidenceStatus}" AutomationProperties.Name="Current evidence source and capture time"/>
           <TextBlock Text="{Binding StandardText}" Foreground="{StaticResource TextNav}" FontSize="11"/>
           <TextBlock Text="NEXT STEP" Foreground="{StaticResource TextNav}" FontSize="10" FontWeight="SemiBold" Margin="0,10,0,4"/>
           <TextBlock Text="{Binding NextAction}" Foreground="{StaticResource TextNav}" FontSize="11" ToolTip="{Binding NextAction}"/>
@@ -81,7 +83,6 @@
             <TextBlock Text="CURRENT TENANT" Style="{StaticResource Eyebrow}"/>
             <TextBlock Text="{Binding TenantTitle}" FontWeight="SemiBold" FontSize="18" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TenantTitle}"/>
             <TextBlock Text="{Binding TenantSubtitle}" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
-            <TextBlock x:Name="EvidenceSourceStatus" Text="{Binding EvidenceStatus}" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,3,0,0" TextWrapping="Wrap" AutomationProperties.Name="Current evidence source and capture time"/>
           </StackPanel>
           <StackPanel Grid.Column="1" Margin="0,0,18,0">
             <TextBlock Text="SIGNED-IN IDENTITY" Style="{StaticResource Eyebrow}"/>
