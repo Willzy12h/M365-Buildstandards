@@ -10,12 +10,36 @@ Decision PR #69, INT-094. William authorised additional reliability, optimisatio
 | #67 | Seven synthetic actual-transport/report-service cases, including successful page-two retry and retained cancelled rows | Delta re-review and current-head Windows checks; original review gaps were not closed by earlier ready wording |
 | #68 / #78 | #68 export fidelity/integrity cases merged; #78 adds explicit BOM and XLSX line-break assertions | #68 actual merge checks passed; #78 independent review/merge remains |
 | This decision | Application-expiry/consent contracts below | Merge this decision before registry/row/collector changes |
-| Offline doctor (Astra) | Proposed `bdit doctor`: package integrity, writable folders and local prerequisite findings | #53/#62 are merged; reuse their services, no authentication/tenant/DNS reads; deterministic success/warning/failure exit contract reviewed before implementation |
+| Offline doctor (Astra) | Proposed `bdit doctor`: package integrity, writable folders and local prerequisite findings | #53/#62 are merged; use the explicit command/result/exit contract below after this decision is reviewed and merged; no authentication/tenant/DNS reads |
 | Servicing review | Resolved dependencies, runtime/MSAL/module compatibility and EOL references | Reuse RELEASE-AND-SERVICING and existing package inventory; named support/security owners remain human gates |
 | Script maintenance (Claude) | Extend existing parser/manifest/output/negative-case checks under INT-072/080 | Claude owns the library, adapters and runner/UI continuation; #74/#75 engine slices merged, remaining slices stay with Claude; no competing library or runner |
 | Application report implementation (Astra) | Implement the two registered Graph reports below, engine/CLI/desktop parity and exports | This decision must merge first; scope excludes Claude's library and Exchange runner/adapters |
 
 These are successive small PRs. They do not hold an earlier preview milestone open for later features. #55 experimental gates and #61 read-only runner remain separate decisions; this report work does not create an Exchange runner or write route.
+
+## Offline prerequisite diagnostics contract (Astra)
+
+Proposed command: `bdit doctor [--root <folder>] [--format text|json]`. The default is readable text; JSON is a separate diagnostic result, never configuration/report/deployment evidence. Both formats describe the same shared engine checks. The desktop may display that shared result after its navigation claim settles. Unknown/duplicate options, unsupported formats and missing option values refuse. No repair switch, module installer, tenant sign-in or script execution is added.
+
+Run only these local checks:
+
+- Portable layout, Windows/x64 applicability and package metadata. The portable package is self-contained; an installed .NET SDK is not required. A source checkout without published metadata is explicitly unable to establish package readiness.
+- Packaged immutable files against `SHA256SUMS.txt`, preserving the existing extracted-package checks. Refuse malformed/duplicate/rooted/traversal/alternate-stream paths and links/reparse points; do not follow them outside the chosen root. Bound manifest bytes, entry count and total hashed bytes, and honour cancellation between files. An unreadable or bounded-out inventory is Unknown, not an integrity pass. The adjacent unsigned manifest detects changed bytes but does not establish publisher trust; independently trusted ZIP fingerprint comparison remains a human gate.
+- The standard manifest and default catalogue using existing validators. Preserve all historical bytes. Settings are intentionally configurable: parse and validate them separately; distinguish an expected local settings change from an immutable binary/catalogue mismatch. Unknown additional files are reported and never silently included in a claim that every file is trusted. Read no profiles, tenant evidence, caches, credentials or existing log content.
+- Write/delete capability for the existing portable config/data/logs/reports destinations, using a uniquely named owned probe file opened with CreateNew. Never overwrite user files. Missing destinations may be probed through a temporary child in the existing portable root; describe this as parent-create capability, not proof of a future folder's ACLs. Remove only files/directories created by this probe; an incomplete cleanup is an explicit finding. Do not change ACLs, ownership or application-control/antivirus settings.
+- Presence of the supported PowerShell hosts at their standard locations for optional Exchange features. This is a file-presence/version observation, not proof that policy permits execution, that an Exchange module loads, or that a tenant role/access exists. No host is launched, module imported, registry policy changed or Microsoft endpoint contacted. Module/RBAC availability remains Unknown with the organisation-approved next step; do not infer readiness from a directory name alone. Optional Exchange limitations do not make the Graph-only portable application broken.
+
+The first diagnostic JSON has `kind: offlinePrerequisites`, `schemaVersion: 1`, toolkit version, start/end timestamps, an overall `Ready`/`NeedsAttention`/`Cancelled` status and findings. Each finding has a stable ID, required/optional applicability, `Pass`/`Fail`/`Unknown`/`NotApplicable`, a safe explanation and the next step. Unknown cannot be Pass; cancellation leaves uncompleted required checks Unknown. Report relative component names, not user-profile paths, machine/user names, environment contents, tokens or raw OS exceptions. It is local troubleshooting output, never an imported proof of tenant readiness, write approval or successful script execution.
+
+| Exit | Meaning |
+|---|---|
+| 0 | All required local checks completed and passed. Optional limitations remain visibly listed; human/live gates are not certified. |
+| 1 | Diagnostics completed with at least one required Fail/Unknown finding (NeedsAttention), including package mismatch or inaccessible prerequisites. A readable result is still emitted. |
+| 2 | Expected invocation refusal before a valid diagnostic run, consistent with existing CLI refusals: bad options, invalid root or unsafe requested input. Explain on stderr; do not emit a successful result. |
+| 3 | Unexpected diagnostic failure, consistent with the existing CLI failure path. No success claim or raw private error data. |
+| 130 | Operator cancellation. Completed findings may be retained in an explicitly Cancelled result; uncompleted checks remain Unknown. |
+
+The existing unknown-command exit 64 is unchanged. A host blocked before `bdit` starts cannot emit a diagnostic result; guidance must retain the security-owner allowlisting route. Synthetic acceptance must cover every exit, controlled clocks, missing/changed/inaccessible package files, path/link hostility, bounded hashing, missing optional PowerShell, probe refusal/cleanup failure, cancellation, no overwritten files, no private-data reads and desktop/CLI result parity. Runtime limits and safe file admission must be stated and tested in the implementation PR. This contract needs independent review/merge before source implementation; no permission or live action is authorised by it.
 
 ## Application credential-expiry report
 
