@@ -350,3 +350,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 ### Standards
 - Catalogue schema v3 with expected production state and safe deployment state per control; 45 controls (12 automated recipes) carried over from Tenant Console 2026.09.2 and enriched with severity, business impact, engineer action, licence and manual instructions.
 - SHA-256 manifest integrity check (documented as a digest, not a signature).
+
+- Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).

@@ -572,3 +572,7 @@ The independent docs review identified an asynchronous restart gap: reading only
 ### INT-095 current-head review corrections — 10 October 2026, PR #82
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
+
+### INT-094 exact-package doctor gate — PR #90
+
+Extend existing Test-Portable owned process validation to require the fresh extracted launcher to report local Ready before native startup. Preserve original ZIP/hash and startup checks. Reject weakened/omitted mandatory findings and required unknown/fail outcomes; synthetic assertion controls cannot satisfy the real smoke. No publisher, workflow, package-format, permission or live boundary changes. Exact Windows execution remains required.
