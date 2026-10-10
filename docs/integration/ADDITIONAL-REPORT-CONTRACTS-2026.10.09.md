@@ -1,13 +1,13 @@
 # Additional report contracts and integration plan — proposed, 9 October 2026
 
-Decision PR #69, INT-094. William authorised additional reliability, optimisation and reporting work. This document proposes the shared registrations before dependent implementation. Original base: integration `59f1d02`, after Claude's #66 merge; refreshed to `5ef5470` on 10 October after the reviewed #74/#75 merges. The library has 29 Copy-only Exchange items. This decision contains no collector, new registered row, live read, permission grant or script execution.
+Decision PR #69, INT-094. William authorised additional reliability, optimisation and reporting work. This document proposes the shared registrations before dependent implementation. Original base: integration `59f1d02`, after Claude's #66 merge; refreshed through `5ef5470` after the reviewed #74/#75 merges and `c021b2a` after #67 on 10 October. The library has 29 Copy-only Exchange items. This decision contains no collector, new registered row, live read, permission grant or script execution.
 
 ## First delivery and dependencies
 
 | Slice | Reviewable result | Dependency / next gate |
 |---|---|---|
 | #65 / #78 | Repeatable scale measurement, existing caps unchanged; #65 merged, missing truncated-result regression corrected in #78 | #78 independent review/merge remains; do not treat #65's earlier conflicting ready comment as closing CLA-20261009-01 |
-| #67 | Seven synthetic actual-transport/report-service cases, including successful page-two retry and retained cancelled rows | Delta re-review and current-head Windows checks; original review gaps were not closed by earlier ready wording |
+| #67 | Seven synthetic actual-transport/report-service cases, including successful page-two retry and retained cancelled rows | Merged `c021b2a` after current-head Claude review and Windows checks; actual integration run 38089490338 passed. Original review gaps were not closed by earlier ready wording |
 | #68 / #78 | #68 export fidelity/integrity cases merged; #78 adds explicit BOM and XLSX line-break assertions | #68 actual merge checks passed; #78 independent review/merge remains |
 | This decision | Application-expiry/consent contracts below | Merge this decision before registry/row/collector changes |
 | Offline doctor (Astra) | Proposed `bdit doctor`: package integrity, writable folders and local prerequisite findings | #53/#62 are merged; use the explicit command/result/exit contract below after this decision is reviewed and merged; no authentication/tenant/DNS reads |
@@ -78,7 +78,7 @@ No write permission is requested for these reports. Document registrations, reas
 
 Synthetic tests must cover exact identities and same names, separate application/SP objects, known/unknown/empty credential lists, dates and fixed-clock horizon boundaries, secret-bearing input that never reaches evidence/logs/exports, owner limited information, missing permissions, partial pages, every list bound, cancellation, hostile text, immutable import/export and refusal as deployment evidence. Desktop/CLI use shared engine collectors after their current surface claims settle. New items remain experimental/manual until applicable live acceptance is recorded.
 
-Claude independently reviewed #65, #67, #68 and this decision. #65 and #68 are merged (`a55659d` and `463c0c8`); #78 retains their identified regression gaps. #67 and this decision have current-head ready comments on 10 October, with new wording findings recorded below. For remaining branches, refresh from the final integration base, preserve both ledger histories, rerun exact-head required checks, merge with merge commits under HANDOVER and record each actual merge SHA/run. The decision merges before dependent report source. No automatic merge is scheduled merely because Claude has finished another PR. New live consent, tenant actions, promotion, tags and publication keep William's separate approval gates.
+Claude independently reviewed #65, #67, #68 and this decision. #65 and #68 are merged (`a55659d` and `463c0c8`); #78 retains their identified regression gaps. #67 merged as `c021b2a` with passing actual integration CI 38089490338. This decision has a 10 October ready comment with current-head wording corrections recorded below. For remaining branches, refresh from the final integration base, preserve both ledger histories, rerun exact-head required checks, merge with merge commits under HANDOVER and record each actual merge SHA/run. The decision merges before dependent report source. No automatic merge is scheduled merely because Claude has finished another PR. New live consent, tenant actions, promotion, tags and publication keep William's separate approval gates.
 
 ## Scope acknowledgement and review response — 10 October 2026
 
