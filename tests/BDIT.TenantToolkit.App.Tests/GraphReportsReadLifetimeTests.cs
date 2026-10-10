@@ -16,7 +16,7 @@ public sealed class GraphReportsReadLifetimeTests
         session.TokenExpiresAt = "2020-01-01T00:00:00Z";
         var context = f.Controller.ContextKey;
         var result = await f.Read();
-        Assert.Equal(ReportReadState.Collected, result.Evidence.Status);
+        Assert.Equal(ReportReadState.Collected, result.Evidence.Schema1!.Status);
         Assert.Equal(1, f.Tokens.Calls); Assert.Equal(1, f.Handler.Calls);
         Assert.True(File.Exists(result.File));
         Assert.Same(session, f.Workspace.Session);
@@ -41,7 +41,7 @@ public sealed class GraphReportsReadLifetimeTests
         };
         var result = await f.Read();
         Assert.True(DateTimeOffset.UtcNow >= expiry);
-        Assert.Equal(ReportReadState.Collected, result.Evidence.Status);
+        Assert.Equal(ReportReadState.Collected, result.Evidence.Schema1!.Status);
         Assert.Equal(1, f.Tokens.Calls); Assert.Equal(1, f.Handler.Calls);
         Assert.True(File.Exists(result.File));
         Assert.Same(session, f.Workspace.Session); Assert.Equal(originalExpiry, session.TokenExpiresAt);
@@ -58,9 +58,9 @@ public sealed class GraphReportsReadLifetimeTests
         // Here its deliberate failure crosses the real Graph client and report collector boundary.
         f.Tokens.BeforeAcquisition = () => throw new AuthenticationRequiredException("Microsoft requires a fresh interactive sign-in. No automatic interactive retry was performed.");
         var result = await f.Read();
-        Assert.Equal(ReportReadState.Failed, result.Evidence.Status);
-        Assert.Empty(result.Evidence.Sections.Single().Rows);
-        Assert.Contains("interactive sign-in", result.Evidence.Sections.Single().Error);
+        Assert.Equal(ReportReadState.Failed, result.Evidence.Schema1!.Status);
+        Assert.Empty(result.Evidence.Schema1!.Sections.Single().Rows);
+        Assert.Contains("interactive sign-in", result.Evidence.Schema1!.Sections.Single().Error);
         Assert.True(File.Exists(result.File));
         Assert.Equal(1, f.Tokens.Calls); Assert.Equal(0, f.Handler.Calls);
         Assert.True(f.Workspace.Session.OperatorVerified); Assert.Equal(context, f.Controller.ContextKey);

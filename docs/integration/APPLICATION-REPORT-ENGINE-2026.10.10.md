@@ -19,3 +19,11 @@ Strict schema-2 import/export now requires retained section counts and states to
 CLA-126 is confirmed: filling the metadata admission budget exactly with an unread next page previously stopped with a Collected root. Saturated exit now records Partial and an unchecked-remaining-pages reason. No budget, scope, schema-1 behaviour or provider change.
 
 The original contradictory import/export and exact-budget collector cases both fail; two isolated honesty-guard deletion tests fail without digest or unrelated refusals masking them. The delegated strict related suite passes 144 cases; root independently passes 84 application/schema-dispatch cases, zero skipped. Strict Windows-targeted compilation passes. Actual Windows execution, desktop/CLI wiring and human/live acceptance remain distinct outstanding gates. Fresh remote CI is paused while William's Actions allowance is constrained; skipped commits provide no merge or candidate evidence.
+
+## PR #92: desktop report presentation
+
+The Reports page now offers the five existing Graph reports and two application metadata reports. Expiry uses a validated 1–365 day horizon; consent accepts neither log dates nor a horizon. Reads reuse the existing verified connection and read-only route provider, with explicit experimental acknowledgement and context/selection pinning. Missing access remains NotAttempted; no consent or permission is granted here.
+
+Saved and supplied report browsing dispatches the registered schema/ID pair through the shared strict reader. Every nested export table can be displayed; tables lacking a row-status column explain why that filter is unavailable. Display filters never alter the original JSON or complete HTML/CSV/Excel exports. Supplied-file source claims remain unverified.
+
+Delegated offline evidence: 13 browser/presentation tests passed, and the original schema-1-only browser fails the mixed-history regression. Thirty-seven additional Windows App cases and the three-size native journeys are authored and crosscompiled; execution is outstanding. Strict App/native crosscompilation passed with zero warnings/errors. This does not establish native usability or live Microsoft behaviour.

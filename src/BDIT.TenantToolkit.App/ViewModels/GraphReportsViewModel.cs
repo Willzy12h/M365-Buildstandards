@@ -7,6 +7,7 @@ using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Reporting;
 using BDIT.TenantToolkit.Engine.Reports;
 using BDIT.TenantToolkit.Graph;
+using Envelope = BDIT.TenantToolkit.Engine.Reports.ReportEnvelopeDispatcher.Envelope;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -18,11 +19,12 @@ public sealed class GraphReportsViewModel : PageViewModel
     private ConnectedTenant? _connection;
     private TenantProfile? _profile;
     private string _resultContext = "";
-    private GraphReportRegistry.Definition _selectedReport = GraphReportRegistry.Definitions[0];
+    private GraphReportPresentation _selectedReport = GraphReportPresentation.Choices[0];
+    private string _horizonDays = "30";
     private string _start = "", _end = "", _search = "", _section = "", _rowState = "All";
     private bool _acknowledged;
     private int _selectionVersion;
-    private ReportEvidence? _report;
+    private Envelope? _report;
     private IReadOnlyList<Sheet> _sheets = Array.Empty<Sheet>();
     private bool _supplied;
     private DataRowView? _selectedRow;
@@ -65,9 +67,9 @@ public sealed class GraphReportsViewModel : PageViewModel
         Refresh();
     }
 
-    public IReadOnlyList<GraphReportRegistry.Definition> Reports => GraphReportRegistry.Definitions;
+    public IReadOnlyList<GraphReportPresentation> Reports => GraphReportPresentation.Choices;
     public int SelectedTab { get => _selectedTab; set => SetProperty(ref _selectedTab, value); }
-    public GraphReportRegistry.Definition SelectedReport
+    public GraphReportPresentation SelectedReport
     {
         get => _selectedReport;
         set
@@ -88,9 +90,31 @@ public sealed class GraphReportsViewModel : PageViewModel
         get => _acknowledged;
         set { EnsureCurrent(); if (SetProperty(ref _acknowledged, value)) NotifyPage(); }
     }
-    public string ScopeExplanation => string.Join("\n", SelectedReport.Routes.Select(r => r.Path + " requires " + r.Scope
-        + (Workspace.Session is { } s && GraphReportRegistry.HasAccess(s, r) ? " — available in this session." : " — unavailable in this session.")))
-        + "\nMissing permissions produce NotAttempted evidence with zero report requests. Use Connect/Application setup deliberately to review access and consent; this page grants neither.";
+    public bool RequiresHorizon => SelectedReport.Expiry;
+    public string HorizonDays { get => _horizonDays; set { if (SetProperty(ref _horizonDays, value)) { SelectionChanged(); NotifyPage(); } } }
+    private ApplicationExpiryParameters ExpiryParameters()
+    {
+        if (!int.TryParse(HorizonDays, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days)
+            || days is < 1 or > 365)
+            throw new ConfigurationException("Enter an expiry horizon as a whole number from 1 to 365 days.");
+        return new() { HorizonDays = days };
+    }
+    private void ValidateParameters()
+    {
+        if (SelectedReport.SchemaVersion == 1)
+        {
+            var p = Parameters(); ReportEvidenceSchema.ValidateParameters(GraphReportRegistry.Find(SelectedReport.Id), p);
+            if (p.End is not null && Timestamps.TryParse(p.End, out var end) && end > DateTimeOffset.UtcNow)
+                throw new ConfigurationException("The range cannot end in the future.");
+        }
+        else
+        {
+            if (StartUtc.Length != 0 || EndUtc.Length != 0) throw new ConfigurationException("Application reports have no date-range parameters. Clear the log dates.");
+            if (RequiresHorizon) ApplicationReportEvidenceSchema.ValidateParameters(ExpiryParameters());
+        }
+    }
+    public string ScopeExplanation => SelectedReport.Scopes(Workspace.Session)
+        + "\nMissing permissions produce NotAttempted evidence for the affected sources with zero requests to those sources. Consent metadata can still be read without Directory.Read.All; delegated grants then remain NotAttempted. Use Connect/Application setup deliberately to review access and consent; this page grants neither.";
     public string Limitations => SelectedReport.Limitations + "\nExperimental, live tenant behaviour is not accepted by source tests. Read-only routes reuse the current session; at most five minutes and 5,000 rows per section. Report evidence cannot authorise deployment.";
     public string ContextSummary => Workspace.Profile is null ? "Select a client in Connect to read or open its report evidence."
         : Workspace.Session is not { } s ? Workspace.Profile.Company + " · offline review · no authenticated account"
@@ -104,11 +128,7 @@ public sealed class GraphReportsViewModel : PageViewModel
             if (_controller.ContextKey != _context || !ReferenceEquals(_connection, Workspace.Connection) || !ReferenceEquals(_profile, Workspace.Profile))
                 return "Client or account changed. Refresh and review the new context.";
             if (_controller.ReadBlocker is { Length: > 0 } blocker) return blocker;
-            try
-            {
-                var p = Parameters(); ReportEvidenceSchema.ValidateParameters(SelectedReport, p);
-                if (p.End is not null && Timestamps.TryParse(p.End, out var end) && end > DateTimeOffset.UtcNow) return "The range cannot end in the future.";
-            }
+            try { ValidateParameters(); }
             catch (ToolkitException ex) { return ex.Message; }
             return ReadAcknowledged ? "" : "Acknowledge the experimental read and the displayed limitations first. This is not consent or a tenant-change opt-in.";
         }
@@ -126,11 +146,28 @@ public sealed class GraphReportsViewModel : PageViewModel
     public string ProvenanceNotice => _supplied ? RegisteredReportDocuments.SuppliedFileNotice : "Stored and collected reports retain their original times and read states. Digests detect changes; unsigned source claims do not authenticate the source.";
     public string SourceSummary => _report is null ? "No accepted report. Read a report or open saved/supplied evidence."
         : (_supplied ? "Supplied file — source and live-mode claims are unverified." : "Original report evidence — unsigned source claims.")
-            + " " + _report.StartedAt + " to " + _report.EndedAt + ".";
-    public string SectionSummary => _report?.Sections.SingleOrDefault(s => s.Id == SelectedSection) is not { } section ? "Select a report section."
-        : section.Status + " · " + section.Rows.Count + " recorded rows · "
-            + (section.Rows.Count == 0 ? section.Status == ReportReadState.Collected ? "Checked successfully; no objects returned." : "No rows available; this is not an empty successful check." : "Returned rows; unknown values stay unknown.")
-            + (section.Error is null ? "" : "\n" + ShortProblem(section.Error));
+            + " " + GraphReportPresentation.StartedAt(_report) + " to " + GraphReportPresentation.EndedAt(_report) + ".";
+    public string SectionSummary
+    {
+        get
+        {
+            if (_report is null) return "Select a report section.";
+            var section = GraphReportPresentation.Sections(_report).SingleOrDefault(s => s.Id == SelectedSection);
+            if (section is null)
+            {
+                var sheet = _sheets.SingleOrDefault(s => s.Name == SelectedSection);
+                if (sheet is null) return "Select a report table.";
+                return $"{SelectedSection} · {sheet.Rows.Count - 1} recorded child rows · Report {GraphReportPresentation.Status(_report)}. "
+                    + "Child rows retain parent/source limitations. An empty child table does not prove a successful check; inspect parent rows and Provenance and limits.";
+            }
+            return section.Status + " · " + section.Rows.Count + " recorded rows · "
+                + (section.Rows.Count == 0 ? section.Status == ReportReadState.Collected ? "Checked successfully; no objects returned." : "No rows available; this is not an empty successful check." : "Returned rows; unknown values stay unknown.")
+                + (section.Error is null ? "" : "\n" + ShortProblem(section.Error));
+        }
+    }
+    public bool CanFilterReadState => _sheets.SingleOrDefault(s => s.Name == SelectedSection)?.Rows[0].Contains("Read status") == true;
+    public string ReadStateFilterGuidance => CanFilterReadState ? "Filter the recorded row read status; exports retain all rows."
+        : "This table has no row read-status column. All read states are shown; inspect parent/source states in Provenance and limits.";
     private static string ShortProblem(string error)
     {
         var singleLine = string.Join(" ", error.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -166,7 +203,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     private void ClearResult()
     {
         _report = null; _sheets = Array.Empty<Sheet>(); _resultContext = ""; _supplied = false; _exportFile = ""; LastExport = "";
-        Sections.Clear(); _section = ""; Rows = null; SelectedRow = null;
+        Sections.Clear(); _section = ""; _rowState = "All"; Rows = null; SelectedRow = null;
         Outcome = "No report accepted for this selection. Older evidence remains stored separately.";
     }
     private void EnsureCurrent()
@@ -198,10 +235,13 @@ public sealed class GraphReportsViewModel : PageViewModel
         ClearResult(); _reading = true; Outcome = "Reading the selected report; no result accepted yet."; NotifyPage();
         try
         {
-            var result = await _controller.ReadAsync(SelectedReport.Id, Parameters(), ack, context,
-                () => version == _selectionVersion && ReadAcknowledged);
+            bool StillCurrent() => version == _selectionVersion && ReadAcknowledged;
+            var result = SelectedReport.SchemaVersion == 1
+                ? await _controller.ReadAsync(SelectedReport.Id, Parameters(), ack, context, StillCurrent)
+                : RequiresHorizon ? await _controller.ReadExpiryAsync(ExpiryParameters(), ack, context, StillCurrent)
+                : await _controller.ReadConsentAsync(ack, context, StillCurrent);
             Accept(result.Evidence, false, context);
-            Outcome = result.Evidence.Status + " · " + GraphReportRegistry.Find(result.Evidence.ReportId).Name
+            Outcome = GraphReportPresentation.Status(result.Evidence) + " · " + GraphReportPresentation.For(result.Evidence).Name
                 + (result.NotSavedReason is null ? " · saved locally." : " · NOT SAVED: " + result.NotSavedReason);
         }
         catch { ClearResult(); Outcome = "Read refused or failed; no new report accepted or relabelled. Review the error and try again deliberately."; throw; }
@@ -229,13 +269,13 @@ public sealed class GraphReportsViewModel : PageViewModel
         try { Accept(_browser.OpenSupplied(file, Workspace.Profile!.TenantId), true, _context); Outcome = "Opened supplied evidence offline; file not persisted or altered."; }
         finally { _acknowledged = false; NotifyPage(); }
     }
-    private void Accept(ReportEvidence report, bool supplied, string context)
+    private void Accept(Envelope report, bool supplied, string context)
     {
-        _controller.RequireContext(context); ReportEvidenceSchema.Validate(report, Workspace.Profile!.TenantId);
+        _controller.RequireContext(context); GraphReportPresentation.Validate(report, Workspace.Profile!.TenantId);
         _report = report; _supplied = supplied; _resultContext = context;
-        _sheets = RegisteredReportDocuments.Sheets(report, supplied);
+        _sheets = GraphReportPresentation.Sheets(report, supplied);
         SelectedTab = 1;
-        Sections.Clear(); foreach (var section in report.Sections) Sections.Add(section.Id);
+        Sections.Clear(); foreach (var sheet in _sheets.Skip(1)) Sections.Add(sheet.Name);
         _section = Sections[0]; ApplyFilter(); NotifyPage();
     }
     public async Task ExportAsync(ExportFormat format)
@@ -256,10 +296,11 @@ public sealed class GraphReportsViewModel : PageViewModel
         var table = new DataTable();
         foreach (var header in sheet.Rows[0]) table.Columns.Add(header, typeof(string));
         var statusColumn = table.Columns.IndexOf("Read status");
+        if (statusColumn < 0) _rowState = "All";
         foreach (var row in sheet.Rows.Skip(1))
         {
             if (Search.Length > 0 && !row.Any(c => c.Contains(Search, StringComparison.OrdinalIgnoreCase))) continue;
-            if (RowState != "All" && (statusColumn < 0 || row[statusColumn] != RowState)) continue;
+            if (RowState != "All" && statusColumn >= 0 && row[statusColumn] != RowState) continue;
             table.Rows.Add(row.Cast<object>().ToArray());
         }
         Rows = table.DefaultView; NotifyPage();
@@ -267,7 +308,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     public override void Refresh() { if (_controller is null) return; EnsureCurrent(); NotifyPage(); }
     private void NotifyPage()
     {
-        foreach (var name in new[] { nameof(RequiresDates), nameof(ReadAcknowledged), nameof(ReadGuidance), nameof(ScopeExplanation), nameof(Limitations), nameof(ContextSummary), nameof(StoredStatus), nameof(Outcome), nameof(Details), nameof(ProvenanceNotice), nameof(SourceSummary), nameof(Sections), nameof(SelectedSection), nameof(Rows), nameof(SectionSummary), nameof(FilterSummary), nameof(SelectedRowDetails), nameof(LastExport), nameof(ExportGuidance), nameof(SuppliedFile), nameof(SelectedStored) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(RequiresDates), nameof(RequiresHorizon), nameof(HorizonDays), nameof(RowState), nameof(CanFilterReadState), nameof(ReadStateFilterGuidance), nameof(ReadAcknowledged), nameof(ReadGuidance), nameof(ScopeExplanation), nameof(Limitations), nameof(ContextSummary), nameof(StoredStatus), nameof(Outcome), nameof(Details), nameof(ProvenanceNotice), nameof(SourceSummary), nameof(Sections), nameof(SelectedSection), nameof(Rows), nameof(SectionSummary), nameof(FilterSummary), nameof(SelectedRowDetails), nameof(LastExport), nameof(ExportGuidance), nameof(SuppliedFile), nameof(SelectedStored) }) OnPropertyChanged(name);
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 }

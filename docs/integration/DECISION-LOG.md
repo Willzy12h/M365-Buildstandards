@@ -616,3 +616,7 @@ CLA-20261010-124–126: enforce truthful schema-2 source/section/owner accountin
 ### Application report desktop composition — 10 October 2026, PR #92
 
 Compose existing own #80 presentation and repaired #87 engine source sequentially, preserving their independent review and merge gates. Extend the same Tenant Reports destination through exact schema/report-ID selection, typed expiry horizon and strict supplied-file envelope dispatch. Reuse verified context, shared engine collection/export and immutable stores; no additional authentication/cache, new scope/consent, Directory.Read.All or WPF collector. Parent code remains attributable and is not reimplemented. Claude retains Scripts/Run/mailbox presentation. Local validation and CI-skipped draft commits are not Windows/candidate evidence; parent reviews, real exact-head validation and release gates remain necessary.
+
+### INT-094 registered desktop report composition — PR #92
+
+Compose the existing five report choices with the two reviewed schema-2 registrations through a presentation registry and the existing strict dispatcher. Retain separate original schemas, full nested tables, immutable persistence, complete exports and shared verified read context. Parameters are typed and selection changes invalidate acknowledgement/results. No authentication implementation, new permission, consent or deployment authority is added. Windows execution and independent review remain outstanding.

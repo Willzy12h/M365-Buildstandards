@@ -17,6 +17,17 @@ public static class ReportEnvelopeDispatcher
         public string Export(ReportExporter exporter, ExportFormat format, bool suppliedFile = false) => Schema1 is { } legacy
             ? exporter.ExportReport(legacy, format, suppliedFile) : exporter.ExportApplicationReport(Schema2!, format, suppliedFile);
     }
+    /// <summary>Validates a collected envelope without converting, resealing or changing its schema.</summary>
+    public static Envelope Wrap(ReportEvidence evidence, string expectedTenantId)
+    {
+        ReportEvidenceSchema.Validate(evidence, expectedTenantId);
+        return new(evidence);
+    }
+    public static Envelope Wrap(ApplicationReportEvidence evidence, string expectedTenantId)
+    {
+        ApplicationReportEvidenceSchema.Validate(evidence, expectedTenantId);
+        return new(evidence);
+    }
     /// <summary>Bounded UTF-8 file admission for stored/supplied envelopes; never reseals or changes source claims.</summary>
     public static Envelope ReadFile(string file, string expectedTenantId)
     {

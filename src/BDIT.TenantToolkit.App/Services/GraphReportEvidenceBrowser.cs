@@ -5,6 +5,7 @@ using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
+using Envelope = BDIT.TenantToolkit.Engine.Reports.ReportEnvelopeDispatcher.Envelope;
 
 namespace BDIT.TenantToolkit.App.Services;
 
@@ -49,7 +50,7 @@ public sealed class GraphReportEvidenceBrowser(EvidenceStore evidence)
                         return new(entries, false, "Listing stopped at its 64 MiB inspection budget; further evidence was not inspected.");
                     if (length <= MaximumFileBytes) inspectedBytes += length;
                     var report = OpenStored(tenantId, id);
-                    entries.Add(new(id, GraphReportRegistryName(report) + " · " + report.EndedAt + " · " + report.Status, ""));
+                    entries.Add(new(id, GraphReportPresentation.For(report).Name + " · " + GraphReportPresentation.EndedAt(report) + " · " + GraphReportPresentation.Status(report), ""));
                 }
                 catch (Exception ex) when (IsReadFailure(ex)) { entries.Add(new(id, name, SensitiveDataScrubber.Scrub(ex.Message))); }
             }
@@ -60,29 +61,23 @@ public sealed class GraphReportEvidenceBrowser(EvidenceStore evidence)
         catch (Exception ex) when (IsReadFailure(ex)) { return new(entries, false, "Listing incomplete: " + SensitiveDataScrubber.Scrub(ex.Message)); }
     }
 
-    private static string GraphReportRegistryName(ReportEvidence report) => Core.Reporting.GraphReportRegistry.Find(report.ReportId).Name;
     private static bool IsReadFailure(Exception ex) => ex is IOException or UnauthorizedAccessException or ToolkitException or DecoderFallbackException;
 
-    public ReportEvidence OpenStored(string tenantId, string recordId)
+    public Envelope OpenStored(string tenantId, string recordId)
     {
         if (!Guid.TryParseExact(recordId, "D", out var id) || id == Guid.Empty || recordId != id.ToString("D"))
             throw new ConfigurationException("Choose a canonical report record ID from this tenant's listing.");
         var file = Path.Combine(evidence.TenantDirectory(tenantId), "report-evidence", recordId + ".json");
         RejectLinks(file);
-        return evidence.LoadReport(tenantId, recordId) ?? throw new IOException("The selected report disappeared; refresh the listing.");
+        var report = ReportEnvelopeDispatcher.ReadFile(file, tenantId);
+        if (GraphReportPresentation.RecordId(report) != recordId) throw new IntegrityException("The report file contains a different record ID.");
+        return report;
     }
 
-    public ReportEvidence OpenSupplied(string file, string expectedTenant) => ReadFile(file, expectedTenant);
-
-    private static ReportEvidence ReadFile(string file, string expectedTenant)
+    public Envelope OpenSupplied(string file, string expectedTenant)
     {
         RejectLinks(file);
-        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (stream.Length > MaximumFileBytes) throw new ConfigurationException("Report input exceeds the schema 1 reader limit of 32 MiB.");
-        using var reader = new BinaryReader(stream);
-        var bytes = reader.ReadBytes(MaximumFileBytes + 1);
-        if (bytes.Length > MaximumFileBytes) throw new ConfigurationException("Report input exceeds the schema 1 reader limit of 32 MiB.");
-        return ReportEvidenceSchema.Read(new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'), expectedTenant);
+        return ReportEnvelopeDispatcher.ReadFile(file, expectedTenant);
     }
 
     internal static void RejectLinks(string path)

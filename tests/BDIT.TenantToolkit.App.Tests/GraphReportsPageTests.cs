@@ -116,7 +116,7 @@ public sealed class GraphReportsPageTests
         var capture = TestData.Snapshot(f.Workspace.RequireStandard());
         f.Set(nameof(Workspace.Snapshot), capture); f.Set(nameof(Workspace.AcknowledgedSnapshotId), capture.Id);
         var before = ToolkitJson.Serialize(f.Workspace.Snapshot);
-        var page = f.Page(); page.SelectedReport = GraphReportRegistry.Find(id);
+        var page = f.Page(); page.SelectedReport = GraphReportPresentation.Find(1, id);
         if (page.RequiresDates) { page.StartUtc = "2026-09-01T00:00:00Z"; page.EndUtc = "2026-09-02T00:00:00Z"; }
         page.OnNavigatedTo(); page.RefreshStored();
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
@@ -142,7 +142,7 @@ public sealed class GraphReportsPageTests
     public async Task Missing_scope_produces_NotAttempted_without_token_or_report_requests()
     {
         using var f = new ConnectedReportsFixture(); f.Workspace.Session!.Scopes.Clear();
-        var page = f.Page(); page.SelectedReport = GraphReportRegistry.Find("mfa-registration");
+        var page = f.Page(); page.SelectedReport = GraphReportPresentation.Find(1, "mfa-registration");
         Assert.Contains("unavailable", page.ScopeExplanation); page.ReadAcknowledged = true;
         await page.ReadAsync();
         Assert.Contains("NotAttempted", page.Outcome); Assert.Contains("not an empty successful check", page.SectionSummary);
@@ -202,7 +202,7 @@ public sealed class GraphReportsPageTests
             if (mode.StartsWith("cancelled", StringComparison.Ordinal)) { f.Workspace.CancelOperation(); ct.ThrowIfCancellationRequested(); }
             return ConnectedReportsFixture.ReportHttp.Json("{\"error\":{\"code\":\"Denied\",\"message\":\"Synthetic denial\"}}", HttpStatusCode.Forbidden);
         };
-        var page = f.Page(); page.SelectedReport = GraphReportRegistry.Find("intune-devices"); page.ReadAcknowledged = true;
+        var page = f.Page(); page.SelectedReport = GraphReportPresentation.Find(1, "intune-devices"); page.ReadAcknowledged = true;
         await page.ReadAsync(); Assert.Contains(expected, page.Outcome); Assert.Equal(rows, page.Rows!.Count);
         if (rows == 0) Assert.Contains("not an empty successful check", page.SectionSummary);
         page.RefreshStored(); page.SelectedStored = Assert.Single(page.StoredReports); page.OpenStored();
@@ -225,7 +225,7 @@ public sealed class GraphReportsPageTests
             if (change == "account") f.Workspace.Session!.AccountObjectId = TestData.Emergency;
             if (change == "connection") f.ReplaceConnection();
             if (change == "profile") f.Set(nameof(Workspace.Profile), TestData.Profile());
-            if (change == "selection") page.SelectedReport = GraphReportRegistry.Find("mfa-registration");
+            if (change == "selection") page.SelectedReport = GraphReportPresentation.Find(1, "mfa-registration");
         };
         await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.False(page.ExportJsonCommand.CanExecute(null)); Assert.False(page.ReadAcknowledged);
@@ -236,7 +236,7 @@ public sealed class GraphReportsPageTests
     public async Task Changing_the_pinned_connection_timestamp_in_response_is_refused_without_save_retry_or_relabelling()
     {
         using var f = new ConnectedReportsFixture(); var page = f.Page();
-        page.SelectedReport = GraphReportRegistry.Find("intune-devices"); page.ReadAcknowledged = true;
+        page.SelectedReport = GraphReportPresentation.Find(1, "intune-devices"); page.ReadAcknowledged = true;
         var pinnedSession = f.Workspace.Session;
         var pinnedContext = f.Controller.ContextKey;
         // An explicit mutation changes ContextKey; ordinary passage of time does not mutate this Connect-time fact.
@@ -260,7 +260,7 @@ public sealed class GraphReportsPageTests
         Assert.Contains("NOT SAVED", page.Outcome); Assert.True(page.ExportJsonCommand.CanExecute(null));
         File.Delete(folder);
         var result = await f.Read(); var original = File.ReadAllBytes(result.File);
-        Assert.ThrowsAny<ToolkitException>(() => f.Workspace.Evidence.SaveReport(result.Evidence));
+        Assert.ThrowsAny<ToolkitException>(() => f.Workspace.Evidence.SaveReport(result.Evidence.Schema1!));
         Assert.Equal(original, File.ReadAllBytes(result.File));
     }
 
@@ -279,7 +279,7 @@ public sealed class GraphReportsPageTests
         var html = File.ReadAllText(Assert.Single(Directory.GetFiles(f.Root.Paths.ReportsDirectory, "*.html")));
         Assert.Contains("Synthetic device 2", html); Assert.Contains(RegisteredReportDocuments.SuppliedFileNotice, html);
         var json = ReportEvidenceSchema.Read(File.ReadAllText(Assert.Single(Directory.GetFiles(f.Root.Paths.ReportsDirectory, "*.json"))).TrimStart('\uFEFF'), TestData.TenantA);
-        Assert.Equal(2, json.Sections[0].Rows.Count); Assert.Equal(capture.Evidence.IntegrityDigest, json.IntegrityDigest);
+        Assert.Equal(2, json.Sections[0].Rows.Count); Assert.Equal(capture.Evidence.Schema1!.IntegrityDigest, json.IntegrityDigest);
         Assert.Single(Directory.GetFiles(f.Root.Paths.ReportsDirectory, "*.csv.zip")); Assert.Single(Directory.GetFiles(f.Root.Paths.ReportsDirectory, "*.xlsx"));
         f.Workspace.Session!.AccountObjectId = TestData.Emergency;
         await Assert.ThrowsAnyAsync<ToolkitException>(() => page.ExportAsync(ExportFormat.Json));
@@ -292,7 +292,7 @@ public sealed class GraphReportsPageTests
         using var f = new ConnectedReportsFixture();
         var array = new JsonArray(); for (var i = 1; i <= GraphReportRegistry.MaximumRows + 1; i++) array.Add(ConnectedReportsFixture.Device(i));
         f.Handler.Response = (_, _) => ConnectedReportsFixture.ReportHttp.Json(new JsonObject { ["value"] = array }.ToJsonString());
-        var page = f.Page(); page.SelectedReport = GraphReportRegistry.Find("intune-devices"); page.ReadAcknowledged = true;
+        var page = f.Page(); page.SelectedReport = GraphReportPresentation.Find(1, "intune-devices"); page.ReadAcknowledged = true;
         await page.ReadAsync(); Assert.Equal(GraphReportRegistry.MaximumRows, page.Rows!.Count);
         Assert.Contains("Partial", page.Outcome); Assert.Contains("cap", page.SectionSummary);
         Assert.Equal(1, f.Handler.Calls);
@@ -302,10 +302,10 @@ public sealed class GraphReportsPageTests
     public async Task Direct_page_actions_refuse_busy_workspace_and_new_selection_clears_acknowledgement()
     {
         using var f = new ConnectedReportsFixture(); var page = f.Page(); page.ReadAcknowledged = true;
-        page.SelectedReport = GraphReportRegistry.Find("sign-ins"); Assert.False(page.ReadAcknowledged);
+        page.SelectedReport = GraphReportPresentation.Find(1, "sign-ins"); Assert.False(page.ReadAcknowledged);
         page.StartUtc = "2026-09-01T00:00:00Z"; page.EndUtc = "2026-09-02T00:00:00Z";
         page.ReadAcknowledged = true; page.EndUtc = "2026-09-03T00:00:00Z"; Assert.False(page.ReadAcknowledged);
-        page.SelectedReport = GraphReportRegistry.Find("intune-devices"); Assert.Empty(page.StartUtc); Assert.Empty(page.EndUtc);
+        page.SelectedReport = GraphReportPresentation.Find(1, "intune-devices"); Assert.Empty(page.StartUtc); Assert.Empty(page.EndUtc);
         page.ReadAcknowledged = true;
         await f.Workspace.RunExclusiveAsync("Synthetic concurrent operation", async _ =>
         {
@@ -323,12 +323,12 @@ public sealed class GraphReportsPageTests
         using var f = new ConnectedReportsFixture(); var saved = await f.Read(); var page = f.Page(); page.OpenSupplied(saved.File);
         f.Workspace.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(Workspace.Busy) && f.Workspace.Busy) page.SelectedReport = GraphReportRegistry.Find("mfa-registration");
+            if (e.PropertyName == nameof(Workspace.Busy) && f.Workspace.Busy) page.SelectedReport = GraphReportPresentation.Find(1, "mfa-registration");
         };
         await Assert.ThrowsAnyAsync<ToolkitException>(() => page.ExportAsync(ExportFormat.Json));
         Assert.Empty(page.LastExport); Assert.False(page.ExportJsonCommand.CanExecute(null)); Assert.False(page.OpenExportCommand.CanExecute(null));
         Assert.Equal(1, f.Handler.Calls);
         var exported = Assert.Single(Directory.GetFiles(f.Root.Paths.ReportsDirectory, "*.json"));
-        Assert.Equal(saved.Evidence.Id, ReportEvidenceSchema.Read(File.ReadAllText(exported).TrimStart('\uFEFF'), TestData.TenantA).Id);
+        Assert.Equal(saved.Evidence.Schema1!.Id, ReportEvidenceSchema.Read(File.ReadAllText(exported).TrimStart('\uFEFF'), TestData.TenantA).Id);
     }
 }
