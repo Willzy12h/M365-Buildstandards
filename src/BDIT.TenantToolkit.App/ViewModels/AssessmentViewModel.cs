@@ -309,8 +309,15 @@ public sealed class AssessmentViewModel : PageViewModel
         OnPropertyChanged(nameof(ViewStateText));
     }
 
-    public string ViewStateText => Workspace.Assessment is null ? SummaryText
-        : $"{(Workspace.SnapshotIsLive ? "Live capture assessment" : "Historical evidence review — original capture " + (Workspace.Snapshot ?? Workspace.ExchangeSnapshot)?.CapturedAt)} · "
-            + (Findings.Count == 0 ? "No findings match these filters. Choose All results or change the area, category or search."
-                : $"Showing {Findings.Count} of {_all.Count} findings with the current filters.");
+    public string ViewStateText
+    {
+        get
+        {
+            if (Workspace.Assessment is null) return SummaryText;
+            var source = Shell.EvidenceSource;
+            return source.Summary + (source.OriginalCaptureTime.Length > 0 ? " · original capture " + source.OriginalCaptureTime : "") + " · "
+                + (Findings.Count == 0 ? "No findings match these filters. Choose All results or change the area, category or search."
+                    : $"Showing {Findings.Count} of {_all.Count} findings with the current filters.");
+        }
+    }
 }

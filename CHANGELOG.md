@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
+
 - Bind manual-check and deviation drafts to the current client, verified standard and material client inputs; refuse stale rows before save/delete. Retain offline change-register history while clearing recovery approval when connection authority changes. Add explicit saved-client offline review and a separate persistent evidence-source header. No sign-in, new schema or write authority is introduced; exact Windows/native and independent review remain required.
 
 - Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
