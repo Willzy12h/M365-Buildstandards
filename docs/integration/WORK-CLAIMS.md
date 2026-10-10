@@ -70,5 +70,6 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | Offline export validation: partial evidence, Unicode/multiline/long cells, existing-file preservation and tamper refusal across HTML/JSON/CSV/XLSX; production exporters unchanged; all-three-repository pre-flight and current claims checked | `astra/report-export-robustness-2026-10-09` (integration `92cb07c`) | #68 | Open |
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | Decision only: additional application-expiry/consent report identities, metadata/access/evidence boundaries and phased integration order; no dependent implementation or live access; fresh all-three-repository pre-flight | `astra/additional-report-contracts-2026-10-09` (integration `59f1d02`) | #69 | Open |
 
+| 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
