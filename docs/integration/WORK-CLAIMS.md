@@ -77,33 +77,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Merged |
 | Date | Agent | Repository | Scope | Branch / base | PR | State |
 |---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-082 desktop experimental operation/permission boundaries, transient verified-context opt-in and direct-path safeguards; excludes Claude scripts/runner and #56 configuration/copy-dialog files; no live, version or publisher work | `astra/experimental-runtime-2026-10-10` (original verified `8e9c323`, refreshed `5ef5470`; production-path/preview responses retained; AST-20261010-08 deadline admission `6d70d1d`) | #73 | Open |
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Compact continuation index, focused review/candidate draft and owner-authorised merged Astra branch cleanup; historical bytes/claims retained, no product or permission change; fresh three-repository pre-flight and #73/#74/#75 boundaries checked | `astra/workspace-hygiene-2026-10-10` (original `f03b995`, refreshed `5ef5470`; CLA-50–53 corrections) | #76 | Open |
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | Narrow #65 truncation-reason and #68 CSV BOM/XLSX line-break regression follow-up; synthetic mutation proof and current-head Windows checks, no production exporter/schema/bounds change; independent review pending | `astra/report-validation-followup-2026-10-10` (original `7573887`, refreshed `5ef5470`; response head `b272edf`) | #78 | Open |
-
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | AST-20261010-07 interrupted deployment history integrity: preserve refused records before startup changes; source Windows-green at `816567e`, unique finding-ID correction `4a57ac1`; no Exchange runner/UI overlap; independent review pending | `astra/interrupted-evidence-integrity-2026-10-10` (integration `5ef5470`) | #79 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
 
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-094 application metadata report engine: separate strict schema 2, explicit dispatch, expiry/consent collectors, metadata-only projections and immutable exports/store; excludes Claude #86 script/runner/CLI files and current desktop surface claims; fresh all-three-repository pre-flight | `astra/application-report-engine-2026-10-10` (integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e`) | #87 | Open |
-
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-094 offline prerequisite diagnostic engine and isolated CLI handler: bounded package/catalogue/settings checks, owned writable probes and optional host observations; excludes CLI Program.cs while Claude #86 is open and existing UI/storage claims; fresh all-three-repository pre-flight | `astra/offline-prerequisite-diagnostics-2026-10-10` (integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e`) | #88 | Open |
-
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | Client-bound manual/deviation draft guards, offline Recovery retention and authority reset, explicit saved-client offline activation, persistent evidence-source header and associated App/native journeys; same-owner sequential stack on #80/#73, no shared evidence/schema/permission/live contract change; all-three-repository pre-flight | `astra/client-evidence-journeys-2026-10-10` (initial #73 `6d70d1d`; now #80 `f5bf4b6`) | #81 | Open |
-
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | interface: B-style engineer Home task centre with existing persistent client/access/evidence context; navigation-only projection, preserved Overview/licences and workflow safeguards; all-three-repository pre-flight, explicit own stack above #81 | `astra/home-task-centre-2026-10-10` (parent #81 `7a04c839`, integration `5ef5470`) | #84 | Open |
-
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | Documentation-only top-level `agent-comms/` rules and central issue #83 requested by William: author-owned concise messages, incremental active-session reads, verified archives/safe cleanup and initial Claude queue; no background service, product source, permissions or other-agent tracker changes; all-three-repository pre-flight complete | `astra/agent-mailbox-2026-10-10` (integration `5ef5470`) | #82 | Open |
-
-| 2026-10-10 | Astra/Codex | M365-Buildstandards | CLI dispatch for existing INT-094 offline doctor engine: early headless route, owned cancellation lifecycle, sanitised failures, actual-process tests and help; excludes engine, desktop, authentication, permissions and Claude runner/UI work; all-three-repository pre-flight complete | `astra/offline-doctor-cli-2026-10-10` (integration `4f35285e`, stacked on #88 `14169d0`) | #90 | Open |

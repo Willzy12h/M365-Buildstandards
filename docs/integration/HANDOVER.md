@@ -6,11 +6,11 @@ Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot 
 
 ## Next — 10 October 2026, current continuation
 
-Integration `4c813451c3990b1bfe13ddc001f572ec3ce6e08e` contains reviewed #67 and #69; actual integration pushes 38089490338 / 38091061845 passed. Source remains unpublished Preview.19 / standard 2026.09.30. CURRENT-STATE identifies the active source/review queue; MERGE-EVIDENCE binds exact sources, checks and package identities.
+Integration `4f35285e96d8b78dd2fbf9aae83babe44e7d959b` contains reviewed #67/#69/#85/#86; actual integration pushes through 38093073914 passed. Source remains unpublished Preview.19 / standard 2026.09.30. CURRENT-STATE identifies the active source/review queue; MERGE-EVIDENCE binds exact sources, checks and package identities.
 
 1. Close Claude's current-delta reviews of #73/#78–#82/#84 and refreshed #76; merge eligible source with merge commits, preserving runtime/evidence/authentication safeguards through parent updates. Verify actual integration push CI after each merge.
-2. Claude corrects #85's stop-file fixture and #86's missing ExchangeGuid/cap-disclosure findings, then finishes owned Exchange adapters, Run UI and mailbox integration. Runner source alone does not establish runnable adapters or complete reporting.
-3. Astra finishes application metadata engine #87 and offline diagnostics #88 under merged INT-094, then desktop/CLI wiring in sequence with existing claims. No duplicate Application.Read.All acknowledgement or new Directory.Read.All consent.
+2. Claude fixes #89 derived source provenance/archive-state findings, then finishes owned Exchange adapters, Run UI and mailbox presentation. #85/#86 are independently reviewed, merged and Windows-verified; the first adapter alone does not establish complete report presentation.
+3. Astra obtains independent review of implemented application metadata engine #87 and offline diagnostics #88, finishes #90 doctor CLI dispatch and remaining desktop/application-report wiring in sequence with existing claims. No duplicate Application.Read.All acknowledgement or new Directory.Read.All consent.
 4. Inspect final native renders/engineer flows; prepare the authorised next-preview exact-source ZIP/hash/capability/candidate record and compact final-review packet pinned to the tested SHA. #77 remains a draft main-promotion placeholder. Green tests do not finish source or acceptance.
 
 Waiting on William: live Microsoft/tenant acceptance; interactive Windows console/newcomer/Narrator/physical-scaling/second-engineer checks; named owners/evidence/deferral/client-colour policies; security/distribution, repository settings, main promotion/tags/releases/publication and final 1.1.0 approval. Unfinished source and reviews remain separate dependencies.

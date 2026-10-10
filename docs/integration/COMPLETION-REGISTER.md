@@ -1,17 +1,17 @@
 # Current continuation — 10 October 2026
 
-Integration `5ef5470e1d6d28653261d88f40e854ebe9d09d02` remains unpublished Preview.19; actual integration push [38057154787](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38057154787) passed. [CURRENT-STATE](CURRENT-STATE.md) and [exact merge evidence](MERGE-EVIDENCE-2026.10.10.md) supersede older pending source status below. Preserve historical proof; it does not validate changed bytes.
+Integration `4f35285e96d8b78dd2fbf9aae83babe44e7d959b` remains unpublished Preview.19; actual integration push [38093073914](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38093073914) passed. [CURRENT-STATE](CURRENT-STATE.md) and [exact merge evidence](MERGE-EVIDENCE-2026.10.10.md) supersede older pending source status below. Preserve historical proof; it does not validate changed bytes.
 
 | Product surface | Already present / added / fixed | Remaining implementation or validation |
 |---|---|---|
 | Readiness, guidance, configuration HTML | #53/#56 fixes merged; assessment remains read-only | Human/newcomer/Narrator/scaling and Microsoft acceptance remain open |
 | Naming/import | Existing audit; #57 ENR/import correction merged as 5ef5470 after resolved Claude review and fresh exact-head checks | Actual merge CI green; naming desktop surface and live acceptance |
 | Offline reports | #62 added CLI exports; #65/#68 merged; #65 open truncation gap and #68 fidelity checks corrected on unmerged #78 | Connected Reports/navigation integration not implemented; tests claim no optimisation |
-| Mailbox capacity | #58 pure evaluator added | Real bounded inventory/adapters and integrated entitlement/report UI not implemented |
-| Scripts | 29 Copy/Save-only items; #61 execution contract and #74/#75 engine merged | AST-20261010-05 stop-callback failure still leaves its owned child running; Claude fix plus adapters/Run UI remain. Exchange changes stay copy-only |
+| Mailbox capacity | #58 pure evaluator; #86 bounded inventory adapter merged | #89 pure inventory join has AST-23/24 corrections pending; integrated capacity/entitlement presentation and live acceptance remain |
+| Scripts | 29 unchanged Copy items plus #86 schema-2 read-only mailbox adapter; #74/#75 engine and #85 process-stop repair merged | Desktop Run and other runnable adapters remain Claude's implementation work. Live status unverified; Exchange changes stay Copy/Save only |
 | Authentication/experimental safeguard | Existing broker/cache/session; #73 guard/previews and production-path corrections implemented | Latest `dc2f5de` fixes preview timing/modal cancellation (66 focused local checks and strict cross-build); fresh Windows push/PR 38064417447 / 38064420362 passed (1,774 engine/CLI +170 App); independent review and live Microsoft behaviour remain unverified |
-| Application metadata reports | #69 decision drafted; William acknowledged existing Application.Read.All reuse | Contract merge and source implementation not completed; no Directory.Read.All or live consent added |
-| Offline prerequisite diagnostics | Concrete command/result/exit proposal on #69 `e0611bf` | Contract review/merge and source implementation pending; no local health or Microsoft readiness claim |
+| Application metadata reports | #69 contract merged; William acknowledged existing Application.Read.All metadata reuse; #87 engine implemented on branch | Independent review, desktop/CLI/browser wiring and live acceptance remain; no new Directory.Read.All consent |
+| Offline prerequisite diagnostics | INT-094 merged; #88 engine/callable handler implemented on branch | Independent review, #90 actual CLI dispatch and desktop wiring remain; no private-data reads or Microsoft-readiness claim |
 | Startup/workflow integrity | Existing jobs/legacy/completion workflows; AST-20261010-07 fixed in #79 | Five original-source negatives fail; restored 138 related local checks pass; source `816567e` full Windows green, latest `4a57ac1` push/PR 38064755065 / 38064759648 passed; independent review required |
 | Release candidate | #77 draft promotion placeholder; [candidate record/blank form](release-readiness/RELEASE-CANDIDATE-DRAFT-2026.10.10.md) and exact baseline proof prepared | Next-version candidate and approved publisher pin still required; no main promotion, tags or publication |
 
