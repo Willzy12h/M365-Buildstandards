@@ -72,8 +72,13 @@
               <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="0,0,8,0">
                   <TextBlock Text="{Binding SelectedHeading}" Style="{StaticResource H2}"/>
-                  <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}"/>
-                  <TextBlock Text="{Binding Limitations}" Style="{StaticResource Muted}" Margin="0,6,0,0"/>
+                  <TextBlock Text="{Binding SelectedPurpose}" Style="{StaticResource Muted}"/>
+                  <Expander Header="Requirements and limitations · review before copying" Margin="0,8,0,0" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Margin="0,8,0,0">
+                      <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}"/>
+                      <TextBlock Text="{Binding Limitations}" Style="{StaticResource Muted}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                  </Expander>
                   <TextBlock Text="FORM" Style="{StaticResource Eyebrow}" Margin="0,16,0,8" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}"/>
                   <ItemsControl ItemsSource="{Binding Fields}" AutomationProperties.Name="Script form" IsTabStop="False">
                     <ItemsControl.ItemTemplate>

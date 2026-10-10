@@ -132,6 +132,8 @@ Astra's post-merge review of PR #66 (AST-20261009-01 to -04, posted on the PR) w
 | AST-20261009-03 | A list holding a null or blank entry could not be read in full. A retention link list with one gives an Unknown row (never NoTags), keeps its readable links and stops any tag being NotLinked; a sharing domain list gives an Unknown row (never NotSet) and keeps its readable entries; a counted or listed setting in the mailbox, protection and quarantine policy items is Unknown, never a shorter count or list. Only a list returned empty is 0. |
 | AST-20261009-04 | A sharing entry with nothing, or only spaces, on either side of the colon has Access Unknown and is shown exactly as returned, never with a blank Access. |
 
+**Whitespace-only entries (Astra's re-review of #70, fixed in #72).** The unreadable test in the mailbox, protection and quarantine policy items compared each list entry with the empty string, so an entry made only of whitespace passed it and the display helper then collapsed it: `MultiLanguageSetting = @(' ')` read as a known count of 1 with no warning. Entries are now tested with `IsNullOrWhiteSpace`, in the unreadable test and in the count, so a null, empty or whitespace-only entry makes the list Unknown with a warning. Four synthetic cases (a whitespace entry beside a known one and on its own, in all three items) failed against integration `494773b` and pass; a list returned empty is still 0.
+
 Astra's other points from the same review are recorded rather than changed in code:
 
 - **SMTP AUTH.** Reading a returned null as FollowsOrganisation matches the `Set-CASMailbox` documentation. Whether `Get-EXOCASMailbox -Properties SmtpClientAuthenticationDisabled` is supported is still to be confirmed in a live tenant.

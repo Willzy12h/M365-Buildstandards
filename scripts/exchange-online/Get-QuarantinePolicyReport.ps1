@@ -43,19 +43,20 @@ function Get-Flag([object]$Item, [string]$Name) {
 }
 
 # Name=value pairs; a setting that was not returned, or was returned null, is Unknown. One returned as an empty value is
-# NotSet. Lists are counted, and only a list returned empty counts as 0; one holding a null or blank entry is Unknown.
+# NotSet. Lists are counted, and only a list returned empty counts as 0; one holding a null, empty or whitespace-only
+# entry is Unknown.
 function Get-Settings([object]$Item, [string[]]$Names, [string[]]$Counted) {
     $pairs = @()
     foreach ($name in $Names) {
         $value = 'Unknown'
         if ($null -ne $Item -and $Item.PSObject.Properties[$name] -and $null -ne $Item.$name) {
             $raw = $Item.$name
-            # A list holding a null or blank entry could not be read in full: it is Unknown, not a shorter count or
-            # a shorter list. Only a list returned empty counts as 0.
+            # A list holding a null, empty or whitespace-only entry could not be read in full: it is Unknown, not a
+            # shorter count or a shorter list. Only a list returned empty counts as 0.
             $unreadable = $raw -is [System.Collections.IEnumerable] -and $raw -isnot [string] -and
-                @(@($raw) | Where-Object { $null -eq $_ -or [string]$_ -eq '' }).Count -gt 0
+                @(@($raw) | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0
             if ($unreadable) { $value = 'Unknown' }
-            elseif ($Counted -contains $name) { $value = [string]@($raw | Where-Object { $null -ne $_ -and [string]$_ -ne '' }).Count }
+            elseif ($Counted -contains $name) { $value = [string]@($raw | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count }
             elseif ($raw -is [bool]) { if ($raw) { $value = 'True' } else { $value = 'False' } }
             else { $value = Get-Text $raw; if ($value -eq '') { $value = 'NotSet' } }
         }

@@ -52,9 +52,12 @@ public sealed class Preview17AuthAndProcessTests
     }
 
     [Fact]
-    public void PowerShell_arguments_keep_account_and_paths_as_data_without_policy_bypass()
+    public void PowerShell_arguments_refuse_invalid_account_and_keep_paths_as_data_without_policy_bypass()
     {
-        var account = "engineer@example.invalid; Write-Output 'must remain data'";
+        // The account is now validated before launch, a stricter boundary than merely passing hostile text as data.
+        var hostile = "engineer@example.invalid; Write-Output 'must remain data'";
+        Assert.Throws<ConfigurationException>(() => ExchangeCaptureRunner.CreateStartInfo("powershell.exe", "C:\\path with spaces\\read.ps1", "C:\\output\\capture.json", hostile, true));
+        var account = "engineer@example.invalid";
         var start = ExchangeCaptureRunner.CreateStartInfo("powershell.exe", "C:\\path with spaces\\read.ps1", "C:\\output\\capture.json", account, true);
         Assert.False(start.UseShellExecute);
         Assert.True(start.RedirectStandardOutput); Assert.True(start.RedirectStandardError);
