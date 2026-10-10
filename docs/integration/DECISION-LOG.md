@@ -473,3 +473,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### INT-094 owner acknowledgement — 10 October 2026, PR #69
+
+William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
