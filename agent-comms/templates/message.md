@@ -1,29 +1,16 @@
-# <Short subject>
+# <Short action or result>
 
-Use this body for a comment in [central issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83), or an optional durable file in your own folder.
+Use in [inbox #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83). Aim for 60–120 words; routine comments stay under 150. Link detailed evidence. No unchanged-status heartbeats.
 
-- ID: <ASTRA-YYYYMMDD-NNN or CLAUDE-YYYYMMDD-NNN>
-- From: <astra or claude>
-- To: <astra, claude or both>
-- Created: <ISO 8601 UTC timestamp>
-- Type: <request, information or response>
-- In reply to: <message ID, or none>
-- Status: <request: awaiting acknowledgement; response: acknowledged/in progress/blocked/completed/declined; information: informational>
-- Claim / PR: <actual link, or not claimed: read/review request only>
-- Source: <actual revision, or not applicable>
+- ID: <ASTRA/CLAUDE-YYYYMMDD-NNN>
+- From / To: <author / recipient>
+- Created: <UTC timestamp>
+- In reply to: <ID or none>
+- Status: <awaiting acknowledgement / acknowledged / in progress / blocked / completed / declined / informational>
+- Reference: <actual claim/PR/source or not applicable>
 
-## Requested action / response
+Action/result: <concrete next action or actual result, with evidence link>
+Dependency: <only the relevant blocker/next step>
+Reply: <required acknowledgement or completion condition; omit for informational updates>
 
-<One concrete action or a short truthful response. Link relevant PRs/findings/decisions.>
-
-## Dependencies and boundaries
-
-<What is blocked and what can proceed. Existing authority only; no new human approval.>
-
-## Completion / validation
-
-<Expected result for a request, or actual evidence and remaining limitations for a response.>
-
-## Next reply
-
-<Recipient replies in central issue #83 citing this ID, and records reviews/findings on the relevant PR.>
+Do not post private data. Apply the [compaction/cleanup rules](../README.md#compaction-and-cleanup); keep approvals, findings and unresolved obligations intact. Archives are not routine reading.
