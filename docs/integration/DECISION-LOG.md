@@ -498,7 +498,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
-### INT-093 review refinement — 10 October 2026, PR #67
+### INT-092 review refinement — 10 October 2026, PR #67
 
 Deliberately asynchronous synthetic token acquisition reproduces the independent reviewer's dispatch scheduling concern. Await observable back-off/dispatch boundaries before cancellation; preserve all counts, real delay and stuck-operation ceilings. No production retry, token, HTTP, write or uncertainty behaviour changes. Removing back-off cancellation still fails all three intended regressions.
 
