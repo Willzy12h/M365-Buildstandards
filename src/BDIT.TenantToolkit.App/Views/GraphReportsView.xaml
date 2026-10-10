@@ -35,26 +35,40 @@
           <Grid Margin="12,8">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 <StackPanel Grid.Row="0">
-        <TextBlock Text="{Binding Outcome}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6"/>
-        <TextBlock Text="{Binding SourceSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"/>
-        <WrapPanel Margin="0,8,0,6">
-          <StackPanel Margin="0,0,12,0"><TextBlock Text="Section"/><ComboBox ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Width="180" AutomationProperties.Name="Report section"/></StackPanel>
-          <StackPanel Margin="0,0,12,0"><TextBlock Text="Search visible values"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="270" AutomationProperties.Name="Report display search"/></StackPanel>
-          <StackPanel><TextBlock Text="Row read state"/><ComboBox ItemsSource="{Binding RowStates}" SelectedItem="{Binding RowState}" Width="150" AutomationProperties.Name="Row read state display filter"/></StackPanel>
+        <TextBlock Text="{Binding Outcome}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4"/>
+        <TextBlock Text="{Binding SourceSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+        <WrapPanel Margin="0,4,0,4">
+          <StackPanel Margin="0,0,12,0"><TextBlock Text="Section"/><ComboBox ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Width="180" Margin="0" AutomationProperties.Name="Report section"/></StackPanel>
+          <StackPanel Margin="0,0,12,0"><TextBlock Text="Search visible values"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="270" Margin="0" AutomationProperties.Name="Report display search"/></StackPanel>
+          <StackPanel><TextBlock Text="Row read state"/><ComboBox ItemsSource="{Binding RowStates}" SelectedItem="{Binding RowState}" Width="150" Margin="0" AutomationProperties.Name="Row read state display filter"/></StackPanel>
         </WrapPanel>
-        <TextBlock Text="{Binding SectionSummary}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+        <TextBlock Text="{Binding SectionSummary}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"/>
       </StackPanel>
       <TabControl Grid.Row="1" Margin="0,4,0,0">
-        <TabItem Header="Rows">      <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MinHeight="100" EnableRowVirtualization="True" EnableColumnVirtualization="True" ColumnWidth="SizeToHeader" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Typed report rows"/>
+        <TabItem Header="Rows">
+          <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MinHeight="150" EnableRowVirtualization="True" EnableColumnVirtualization="True" ColumnWidth="180" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Typed report rows">
+            <DataGrid.CellStyle><Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DataGridCell">
+                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                  <TextBlock Text="{Binding Content.Text, RelativeSource={RelativeSource TemplatedParent}}" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" VerticalAlignment="Center"/>
+                </Border>
+              </ControlTemplate></Setter.Value></Setter>
+            </Style></DataGrid.CellStyle>
+            <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+              <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></DataTemplate></Setter.Value></Setter>
+            </Style></DataGrid.ColumnHeaderStyle>
+          </DataGrid>
         </TabItem>
         <TabItem Header="Selected row details"><DockPanel Margin="8"><Button DockPanel.Dock="Bottom" Content="Copy row details" Command="{Binding CopyRowCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Open evidence and select a row before copying its details. Wait for the current operation to finish." Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/><TextBox Text="{Binding SelectedRowDetails, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Selected report row identity and read details"/></DockPanel></TabItem>
         <TabItem Header="Provenance and limits"><DockPanel Margin="8"><Button DockPanel.Dock="Bottom" Content="Copy provenance" Command="{Binding CopyDetailsCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Open or read evidence before copying its original provenance. Wait for the current operation to finish." Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/><TextBlock DockPanel.Dock="Top" Text="{Binding ProvenanceNotice}" TextWrapping="Wrap" Margin="0,0,0,8"/><TextBox Text="{Binding Details, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Report provenance and source claims"/></DockPanel></TabItem>
       </TabControl>
-      <StackPanel Grid.Row="2" Margin="0,8,0,0">
-        <TextBlock Text="{Binding FilterSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"/>
-        <WrapPanel Margin="0,8,0,0"><Button Content="HTML report" Command="{Binding ExportHtmlCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="JSON evidence" Command="{Binding ExportJsonCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="CSV ZIP" Command="{Binding ExportCsvCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Excel XLSX" Command="{Binding ExportXlsxCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open export folder" Command="{Binding OpenExportCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Export this report first, then open the folder when the operation has finished." Style="{StaticResource QuietButton}"/></WrapPanel>
+      <StackPanel Grid.Row="2" Margin="0,4,0,0">
+        <TextBlock Text="{Binding FilterSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="11"/>
+        <WrapPanel Margin="0,4,0,0"><Button Content="HTML report" Command="{Binding ExportHtmlCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/><Button Content="JSON evidence" Command="{Binding ExportJsonCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/><Button Content="CSV ZIP" Command="{Binding ExportCsvCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/><Button Content="Excel XLSX" Command="{Binding ExportXlsxCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/><Button Content="Open export folder" Command="{Binding OpenExportCommand}" Margin="0" ToolTipService.ShowOnDisabled="True" ToolTip="Export this report first, then open the folder when the operation has finished." Style="{StaticResource QuietButton}"/></WrapPanel>
         <TextBlock Text="{Binding ExportGuidance}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="11"/>
-        <TextBox Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" FontSize="11" MaxHeight="48" VerticalScrollBarVisibility="Auto" Padding="0" MinHeight="0" Margin="0,4,0,0" AutomationProperties.Name="Complete report export output path"/>
+        <TextBox Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" FontSize="11" MaxHeight="48" VerticalScrollBarVisibility="Auto" Padding="0" MinHeight="0" Margin="0,4,0,0" AutomationProperties.Name="Complete report export output path">
+          <TextBox.Style><Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"><Style.Triggers><DataTrigger Binding="{Binding LastExport}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBox.Style>
+        </TextBox>
       </StackPanel>
           </Grid>
         </TabItem>
