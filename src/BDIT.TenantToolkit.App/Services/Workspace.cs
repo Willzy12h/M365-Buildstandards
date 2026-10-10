@@ -88,7 +88,7 @@ public sealed class Workspace : ObservableObject
     public DeploymentRun? LastRun { get; private set; }
     public DeploymentControl? Control { get; private set; }
 
-    public bool Busy { get => _busy; private set { if (SetProperty(ref _busy, value)) OnPropertyChanged(nameof(Idle)); } }
+    public bool Busy { get => _busy; private set { if (SetProperty(ref _busy, value)) OnPropertyChanged(nameof(Idle)); OnPropertyChanged(nameof(CanEnableExperimentalChanges)); } }
     public bool Idle => !_busy;
     public string BusyMessage { get => _busyMessage; private set => SetProperty(ref _busyMessage, value); }
     public string ProgressDetail { get => _progressDetail; private set => SetProperty(ref _progressDetail, value); }
@@ -105,16 +105,22 @@ public sealed class Workspace : ObservableObject
             return ExperimentalGuard.IsEnabled(Connection, Session, Standard, Profile);
         }
     }
-    public bool CanEnableExperimentalChanges => Idle && Session is { Mode: SessionMode.Deployment, TenantVerified: true, OperatorVerified: true };
+    public bool CanEnableExperimentalChanges => Idle && ExperimentalGuard.CanEnable(Session, Standard, Profile)
+        && string.Equals(Settings.ResolveClient(SessionMode.Deployment, Profile)?.ClientId, Session?.ClientId, StringComparison.OrdinalIgnoreCase);
     public string ExperimentalChangeGuidance => ExperimentalChangesEnabled
         ? "Experimental changes enabled for this verified session only. Review and approve every exact operation. Live service behaviour is unverified."
-        : ExperimentalOperationGuard.ClosedReason;
+        : CanEnableExperimentalChanges ? ExperimentalOperationGuard.ClosedReason
+            : "Experimental changes need a current verified write-capable connection. Connect for deployment, or reconnect after an identity/permission/expiry problem. Read-only checks and local previews remain available.";
     public string ExperimentalContextText => Session is null ? "No verified deployment connection. Connect read-only first, then deliberately switch to deployment access."
         : $"Tenant: {Session.TenantName} ({Session.TenantId})\nAccount: {Session.Account} ({Session.AccountObjectId})\nApplication: {Session.ClientLabel} ({Session.ClientId})\nMode: {Session.Mode} · Microsoft Graph\nActual returned scopes: {string.Join(", ", Session.Scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}\nToken expires: {Session.TokenExpiresAt}\nOpt-in is temporary, is never exported, and does not establish production acceptance.";
     public void SetExperimentalChanges(bool approved)
     {
         if (!Idle) throw new ToolkitException("Wait for the active operation before changing experimental access.");
-        if (approved) ExperimentalGuard.Enable(RequireConnection(), Session!, RequireStandard(), Profile!, true);
+        if (approved)
+        {
+            if (!CanEnableExperimentalChanges) throw new SafetyViolationException("Connect with current verified deployment access before enabling experimental changes.");
+            ExperimentalGuard.Enable(RequireConnection(), Session!, RequireStandard(), Profile!, true);
+        }
         else ExperimentalGuard.Invalidate();
         Notify();
     }
@@ -125,12 +131,14 @@ public sealed class Workspace : ObservableObject
     }
     public void InvalidateExperimentalChanges() { ExperimentalGuard.Invalidate(); Notify(); }
 
-    public async Task ReviewPermissionRequestAsync(string tenant, string clientId, IReadOnlyList<string> scopes, string purpose, CancellationToken ct)
+    public async Task ReviewPermissionRequestAsync(string tenant, string clientId, IReadOnlyList<string> scopes, string purpose, CancellationToken ct, string? knownAccount = null)
     {
         ct.ThrowIfCancellationRequested();
+        if (!ProfileValidator.IsGuid(clientId) || scopes.Count == 0 || scopes.Any(string.IsNullOrWhiteSpace))
+            throw new SafetyViolationException("An exact application ID and non-empty permission list are required before an access request can be approved.");
         var app = System.Windows.Application.Current;
         if (app is null) throw new SafetyViolationException("This Microsoft access request requires visible, deliberate desktop approval. No request was sent.");
-        var details = $"Purpose: {purpose}\nTarget tenant: {tenant} (returned tenant/account will be verified separately)\nApplication (client) ID: {clientId}\nResource: Microsoft Graph — https://graph.microsoft.com\nConfirmed current account hint: {Session?.Account ?? ApplicationSetup?.Identity.Account ?? "Not known; Microsoft will ask you to choose"}\n\nExact requested permissions:\n" + string.Join("\n", scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        var details = $"Purpose: {purpose}\nTarget tenant: {tenant} (target of this exact request)\nApplication (client) ID: {clientId}\nResource: Microsoft Graph — https://graph.microsoft.com\nAccount context: {knownAccount ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "Not known; Microsoft will ask you to choose"}\nInteractive identity is verified after sign-in. Consent grants are checked separately; browser success is not verification.\n\nExact requested permissions:\n" + string.Join("\n", scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
         var confirmed = await app.Dispatcher.InvokeAsync(() =>
         {
             var dialog = new BDIT.TenantToolkit.App.Views.PermissionRequestDialog(details) { Owner = app.MainWindow };
@@ -517,6 +525,8 @@ public sealed class Workspace : ObservableObject
 
     public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
+        && DateTimeOffset.TryParse(session.TokenExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var expires) && expires > DateTimeOffset.UtcNow
         && string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(session.ClientId, Settings.ResolveClient(mode, profile)?.ClientId, StringComparison.OrdinalIgnoreCase)
         && ConnectionProfileDigest(Profile) == ConnectionProfileDigest(profile);

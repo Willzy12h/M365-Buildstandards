@@ -30,6 +30,10 @@ public sealed class ExperimentalOperationGuard
         return true;
     }
 
+    public bool CanEnable(TenantSession? session, StandardCatalogue? standard, TenantProfile? profile) =>
+        TryBinding(session, standard, profile, out _) && DateTimeOffset.TryParse(session!.TokenExpiresAt,
+            CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var expires) && expires > _now();
+
     public void Enable(object connection, TenantSession session, StandardCatalogue standard, TenantProfile profile, bool approved)
     {
         Invalidate();

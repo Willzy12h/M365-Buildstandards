@@ -16,8 +16,8 @@
     <TextBlock Text="I approve this exact access request. It does not approve a tenant operation." TextWrapping="Wrap"/>
    </CheckBox>
    <WrapPanel HorizontalAlignment="Right" Margin="0,12,0,0">
-    <Button Content="Cancel" Click="OnCancel" Padding="18,8" Margin="0,0,12,0"/>
-    <Button x:Name="ContinueButton" Content="Continue to Microsoft" IsEnabled="False" Click="OnContinue" Padding="18,8"/>
+    <Button Content="Cancel" IsCancel="True" Click="OnCancel" Padding="18,8" Margin="0,0,12,0"/>
+    <Button x:Name="ContinueButton" Content="Continue to Microsoft" IsDefault="True" IsEnabled="False" Click="OnContinue" Padding="18,8"/>
    </WrapPanel>
   </StackPanel>
  </Grid>

@@ -199,22 +199,13 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
             if (forceRefresh) _accessToken = null;
             try
             {
-                var result = await _pca.AcquireTokenSilent(_scopes, _account)
-                    .WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct);
-                if (!string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal)
-                    || !string.Equals(result.UniqueId, Outcome.AccountObjectId, StringComparison.OrdinalIgnoreCase))
-                {
-                    _accessToken = null;
-                    AuthorisationInvalidated?.Invoke();
-                    throw new AuthenticationRequiredException("The authenticated identity changed during silent renewal. Disconnect and reconnect.");
-                }
-                if (!SameAuthorisationScopes(Outcome.Scopes, result.Scopes))
-                {
-                    _accessToken = null;
-                    AuthorisationInvalidated?.Invoke();
-                    throw new AuthenticationRequiredException("Returned permissions changed during silent renewal. Disconnect and reconnect, then review access and experimental authorisation again. No interactive retry was performed.");
-                }
+                var result = await SilentRenewalAcquisition.AcquireAsync(
+                    () => _pca.AcquireTokenSilent(_scopes, _account).WithTenantId(_tenantId).WithForceRefresh(forceRefresh).ExecuteAsync(ct),
+                    result => string.Equals(result.TenantId, _tenantId, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(result.Account?.HomeAccountId?.Identifier, _accountIdentifier, StringComparison.Ordinal)
+                        && string.Equals(result.UniqueId, Outcome.AccountObjectId, StringComparison.OrdinalIgnoreCase),
+                    result => result.Scopes, Outcome.Scopes,
+                    () => { _accessToken = null; AuthorisationInvalidated?.Invoke(); }, ct);
                 _account = result.Account;
                 _accessToken = result.AccessToken;
                 _expiresOn = result.ExpiresOn;

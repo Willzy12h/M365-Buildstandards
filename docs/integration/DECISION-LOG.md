@@ -457,3 +457,7 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 ### INT-086 review verification — PR #59
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
+
+### INT-082 runtime implementation — 10 October 2026, PR #73
+
+Implement the merged desktop guard as transient coordination authority, not another token cache or engine approval. Keep scope acquisition approval separate from verified operation opt-in. Reuse the existing explicit-connect and MSAL silent-renewal paths; add policy seams to prove prompt counts and refusal before token replacement. Unexpected renewal identity/scopes invalidate the operator and opt-in, with no interactive retry. Original expiry bounds the opt-in; explicit expired reconnect refreshes the verified session via silent-first acquisition. Manual setup/consent remains separately reviewed and invalidates deployment authority. Exact engine safeguards and historical schema meanings are unchanged. Evidence/status: [EXPERIMENTAL-RUNTIME-2026.10.10](EXPERIMENTAL-RUNTIME-2026.10.10.md). No live or human gate is closed.

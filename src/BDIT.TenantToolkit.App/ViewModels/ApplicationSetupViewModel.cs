@@ -373,7 +373,8 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         Workspace.InvalidateExperimentalChanges();
         await Workspace.ReviewPermissionRequestAsync(service.Identity.TenantId, id,
             ApplicationSetupService.RequiredScopes(standard, mode),
-            "Administrator consent for the " + name + " application — grant changes are experimental/manual", Workspace.OperationToken);
+            "Administrator consent for the " + name + " application — grant changes are experimental/manual", Workspace.OperationToken,
+            knownAccount: service.Identity.Account + " (verified setup operator " + service.Identity.AccountObjectId + ")");
         GuardContext(consentContext);
         if (!ReferenceEquals(service, Workspace.ApplicationSetup) || Workspace.RequireStandard().IntegrityDigest != catalogueDigest)
             throw new SafetyViolationException("Setup identity or standard changed. Review a new consent request.");

@@ -6,6 +6,7 @@
     <StackPanel Margin="28,24">
       <TextBlock Text="06 / DEPLOY &amp; VERIFY" Style="{StaticResource Eyebrow}"/>
       <TextBlock Text="Deploy reviewed candidates" Style="{StaticResource H1}"/>
+      <TextBlock Text="{Binding Workspace.ExperimentalChangeGuidance}" TextWrapping="Wrap" Margin="0,8,0,12" AutomationProperties.Name="Experimental tenant change status and next step"/>
       <TextBlock Text="Review prerequisites, confirm the target tenant and track write acceptance separately from verification." Style="{StaticResource Lead}"/>
       <Border Style="{StaticResource WarnPanel}">
         <StackPanel>
