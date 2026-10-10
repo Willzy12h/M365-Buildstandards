@@ -70,7 +70,7 @@ internal static partial class Program
                 if (!button.Focus() || !button.IsKeyboardFocusWithin)
                     throw new InvalidOperationException("Review saved evidence offline cannot receive keyboard focus.");
                 CaptureReportState(content, output, "offline-saved-client", size, checkPageScrolling: false);
-                InvokeJourneyButton(shell, button, "Review saved evidence offline");
+                InvokeJourneyButton(shell, button, "Review saved evidence offline"); OfflineClientJourneyPresses++;
                 if (workspace.Profile?.TenantId != profile.TenantId || workspace.Connection is not null || workspace.ApplicationSetup is not null
                     || workspace.Snapshot is not null || workspace.Plan is not null || workspace.ExperimentalChangesEnabled)
                     throw new InvalidOperationException("Offline activation selected the unsaved form or retained session/evidence authority.");
@@ -95,7 +95,7 @@ internal static partial class Program
                 if (!configuration.StoredSnapshots.Any(s => ReferenceEquals(s, savedCapture)) || !ReferenceEquals(savedCaptures.SelectedItem, savedCapture)
                     || !ReferenceEquals(configuration.SelectedStored, savedCapture) || !workspace.Idle)
                     throw new InvalidOperationException("The real saved-capture selection did not bind the current row while idle. " + CaptureSelectionDiagnostics());
-                InvokeJourneyButton(shell, openCapture, "Open saved capture", CaptureSelectionDiagnostics);
+                InvokeJourneyButton(shell, openCapture, "Open saved capture", CaptureSelectionDiagnostics); OfflineClientJourneyPresses++;
                 if (workspace.Snapshot?.Id != snapshot.Id || workspace.Snapshot.CapturedAt != snapshot.CapturedAt
                     || workspace.SnapshotIsLive || workspace.Assessment is null || workspace.Plan is not null)
                     throw new InvalidOperationException("Opening saved evidence lost its original identity/time or created live/plan authority.");
@@ -109,7 +109,7 @@ internal static partial class Program
                 CaptureReportState(content, output, "offline-historical-header", size, checkPageScrolling: false);
                 shell.Navigate("recovery"); content.UpdateLayout(); Pump();
                 var recovery = shell.Page<RecoveryViewModel>();
-                InvokeJourneyButton(shell, JourneyButton(content, recovery.LoadRegisterCommand), "Load local change register");
+                InvokeJourneyButton(shell, JourneyButton(content, recovery.LoadRegisterCommand), "Load local change register"); OfflineClientJourneyPresses++;
                 if (recovery.Changes.Count != 1 || recovery.PreviewDeleteCommand.CanExecute(null) || recovery.ExecuteCommand.CanExecute(null)
                     || recovery.ReverifyDeploymentCommand.CanExecute(null))
                     throw new InvalidOperationException("Offline change register disappeared or enabled a connected recovery action.");
@@ -189,6 +189,5 @@ internal static partial class Program
         }
         Pump();
         if (shell.ErrorMessage.Length != 0) throw new InvalidOperationException(label + " failed: " + shell.ErrorMessage);
-        OfflineClientJourneyPresses++;
     }
 }
