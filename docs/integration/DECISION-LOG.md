@@ -565,3 +565,7 @@ The independent docs review identified an asynchronous restart gap: reading only
 ### INT-095 current-head review corrections — 10 October 2026, PR #82
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
+
+## Proposed INT-099 — copy-only Graph report library seeds, 11 October 2026
+
+PR #97 records the missing master-scope library entries and proposes a narrow resource/Copy-context change in GRAPH-COPY-LIBRARY-CONTRACT-2026.10.11.md. Native Graph reports already exist and are preserved. New schema-1 Graph Copy/Save entries require an already authorised delegated SDK session and exact intended tenant/account/client, no sign-in/consent or cache implementation; SDK-module/access limitations remain visible. Integrated Run stays Exchange-only. This is **proposed**, not settled or implemented; the reviewed decision must merge before dependent source. No access, runtime, role or live acceptance is claimed.
