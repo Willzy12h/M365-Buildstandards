@@ -3,6 +3,8 @@
 
 ### Pending source — mailbox capacity review, PR #94
 
+- Keep Run outcome, local-output and mailbox-capacity guidance reachable at smaller windows with a bounded scrolling panel and a shared action row; retain the native viewport, clipping and keyboard checks.
+
 - Add explicit collection/review shortcuts between mailbox capacity, Run reports and Tenant reports, with two-source guidance and idle guards. Page navigation starts no read, signs in nobody, changes no Run approval and selects no evidence. Add App/native cases for these boundaries; actual Windows execution remains pending.
 
 - Add an offline mailbox size/quota/100 GB eligibility page pairing strict original mailbox and assigned-licence evidence. Preserve unknowns, raw Unlimited/archive values, independent source histories and full HTML/CSV/JSON/Excel review exports.
