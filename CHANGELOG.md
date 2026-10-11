@@ -1,4 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
+
 - Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
 
 - Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
@@ -392,4 +394,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Catalogue schema v3 with expected production state and safe deployment state per control; 45 controls (12 automated recipes) carried over from Tenant Console 2026.09.2 and enriched with severity, business impact, engineer action, licence and manual instructions.
 - SHA-256 manifest integrity check (documented as a digest, not a signature).
 
+- Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
 - Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
