@@ -40,16 +40,35 @@ public sealed class ToolkitPaths
     }
 
     /// <summary>
-    /// Root resolution order: explicit override, BDIT_TOOLKIT_ROOT, then the nearest ancestor of the application
-    /// directory that contains a standards folder (portable layout or a source checkout).
+    /// Root resolution order: explicit override, BUILDSTANDARD_ROOT (with BDIT_TOOLKIT_ROOT as a legacy alias),
+    /// then the nearest ancestor of the application directory containing standards (portable layout or source).
+    /// Conflicting configured aliases are refused.
     /// </summary>
     public static ToolkitPaths Resolve(string? overrideRoot = null)
     {
         var appDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var candidate = overrideRoot ?? Environment.GetEnvironmentVariable("BDIT_TOOLKIT_ROOT");
+        string? candidate;
+        if (overrideRoot is not null)
+        {
+            if (string.IsNullOrWhiteSpace(overrideRoot))
+                throw new ConfigurationException("The explicit toolkit root is empty. Select the extracted package root.");
+            candidate = overrideRoot;
+        }
+        else
+        {
+            var neutral = Environment.GetEnvironmentVariable("BUILDSTANDARD_ROOT");
+            var legacy = Environment.GetEnvironmentVariable("BDIT_TOOLKIT_ROOT");
+            if (string.IsNullOrWhiteSpace(neutral)) neutral = null;
+            if (string.IsNullOrWhiteSpace(legacy)) legacy = null;
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            if (neutral is not null && legacy is not null
+                && !string.Equals(CanonicalRoot(neutral), CanonicalRoot(legacy), comparison))
+                throw new ConfigurationException("BUILDSTANDARD_ROOT and BDIT_TOOLKIT_ROOT select different roots. Use an explicit --root or correct the aliases before opening evidence.");
+            candidate = neutral ?? legacy;
+        }
         if (!string.IsNullOrWhiteSpace(candidate))
         {
-            var full = Path.GetFullPath(candidate);
+            var full = CanonicalRoot(candidate);
             if (!Directory.Exists(Path.Combine(full, "standards")))
                 throw new ConfigurationException($"The toolkit root '{full}' does not contain a standards folder.");
             return new ToolkitPaths(full, appDir);
@@ -62,8 +81,10 @@ public sealed class ToolkitPaths
                 return new ToolkitPaths(dir.FullName, appDir);
         }
         throw new ConfigurationException(
-            "Could not locate the toolkit root (a folder containing 'standards'). Extract the complete portable package and start it with Start.cmd, or set BDIT_TOOLKIT_ROOT.");
+            "Could not locate the toolkit root (a folder containing 'standards'). Extract the complete portable package and start it with Start.cmd, or set BUILDSTANDARD_ROOT (BDIT_TOOLKIT_ROOT is a supported legacy alias).");
     }
+
+    private static string CanonicalRoot(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 
     public void EnsureWritableFolders()
     {
