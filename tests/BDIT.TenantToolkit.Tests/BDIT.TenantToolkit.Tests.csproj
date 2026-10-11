@@ -28,6 +28,8 @@
     <Compile Include="..\..\src\BDIT.TenantToolkit.App\Services\OfflinePrerequisiteDiagnostic.cs" Link="App\OfflinePrerequisiteDiagnostic.cs" />
     <Compile Include="..\..\src\BDIT.TenantToolkit.App\Infrastructure\ObservableObject.cs" Link="App\ObservableObject.cs" />
     <Compile Include="..\BDIT.TenantToolkit.App.Tests\OfflinePrerequisiteDiagnosticTests.cs" Link="App\OfflinePrerequisiteDiagnosticTests.cs" />
+    <Compile Include="..\..\src\BDIT.TenantToolkit.App\Services\ReadOnlyRunWorkflow.cs" Link="App\ReadOnlyRunWorkflow.cs" />
+    <Compile Include="..\BDIT.TenantToolkit.App.Tests\ReadOnlyRunWorkflowTests.cs" Link="App\ReadOnlyRunWorkflowTests.cs" />
     <!-- Synthetic runner fixtures: a stand-in Exchange module and a schema 2 body. Never Microsoft code. -->
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
