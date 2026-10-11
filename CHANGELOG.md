@@ -12,6 +12,8 @@
 
 - Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
 
+- Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
+
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
 - Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
