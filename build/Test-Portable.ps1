@@ -221,7 +221,11 @@ public static class PortableCliStandardHandles {
             $applicationContent = Get-Content -LiteralPath $applicationExports[0].FullName -Raw
             if ($format -eq 'json') {
                 # Full original nested evidence, digest, source claims and fixed horizon are preserved, not a display projection.
-                if ($applicationContent -cne $originalApplication) { throw "Packaged $applicationId JSON changed the original evidence." }
+                # Current JSON is reserialised with the platform newline; only CRLF versus LF may differ.
+                # Escaped line breaks inside JSON strings are untouched, as are every field, value and digest.
+                if ($applicationContent.Replace("`r`n", "`n") -cne $originalApplication.Replace("`r`n", "`n")) {
+                    throw "Packaged $applicationId JSON changed the original evidence beyond platform newline formatting."
+                }
             } else {
                 if (-not $applicationContent.Contains('Read status: Partial') -or
                     -not $applicationContent.Contains('Offline supplied file: source, account and live-mode claims have not been independently verified.') -or

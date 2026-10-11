@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Compare current packaged JSON fully across platform newline formatting while retaining byte-exact historical bundle checks (#92).
+
 - Verify current expiry and explicit historical refusal/export separately in the extracted Windows package, retaining the original synthetic revision-1 bytes (#92).
 
 - Use a real integrity-bound planner fixture in application report isolation tests; retain full unchanged-plan/snapshot/acknowledgement assertions (#92).
