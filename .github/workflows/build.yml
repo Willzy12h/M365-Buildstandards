@@ -2,20 +2,21 @@ name: Build and test
 
 # Every change, from any contributor or model, must build and pass the safety tests before it can be merged.
 # This is the check that keeps parallel work honest: an agent cannot claim a green build, only produce one.
-# Pull requests validate feature work once; integration/main merges and incoming review uploads retain independent push validation.
+# Pull requests validate feature work once; integration/main/phase merges and incoming review uploads retain independent push validation.
 on:
   push:
     branches:
       - integration
       - main
       - 'incoming/**'
+      - phase/wpf-webview2
   pull_request:
   workflow_dispatch:
 
-# Only obsolete feature/PR work is cancelled. Preserve each integration/main merge run and manual candidate proof.
+# Only obsolete feature/PR work is cancelled. Preserve each integration/main/phase merge run and manual candidate proof.
 concurrency:
   group: build-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/incoming/') && github.ref) || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/integration' && github.ref != 'refs/heads/main') }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/integration' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/phase/wpf-webview2') }}
 
 permissions:
   contents: read

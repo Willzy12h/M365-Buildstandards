@@ -1,5 +1,13 @@
 # Current source completion record — 8 October 2026
 
+## BuildStandard phase — T0 reconciliation prepared, 12 October 2026
+
+William explicitly approved the complete plan for execution on 12 October 2026 (SHA-256 `a43e44ab9347828d1f9e3cf608f2e88a575cd22268c15cef8882a326b040c654`), prospectively; earlier T0 approval wording was unsupported. [PR #114](https://github.com/Willzy12h/M365-Buildstandards/pull/114), `astra/bs-phase-contract` into `phase/wpf-webview2`, establishes the phase contracts/coordination and minimal merge-source CI trigger. Frozen base is `4a7425f55385e84462975bcc5bdde5644815ca8f`; source/standard version is unchanged. INT-099 records shared boundaries; the approved documents are stored durably under `docs/superpowers`.
+
+Current state: **T0 prepared; not merged/completed.** Owner phase authority/control confirmation is now explicit under HANDOVER. The earlier head `d2c45aa` has independent technical review and passing Windows 38180163458; reconciliation requires applicable review and actual new-head checks, then resulting phase merge CI. None is claimed complete here. T1–T10 are pending their dependencies; H1 human/live acceptance is separate. No product source, test, historical catalogue or publisher change is claimed. Exact reviewer/head/run results will be retained on #114 and linked from #83; do not infer passing validation from the prepared workflow.
+
+This record supersedes old next-task lists only for the authorised phase; historical findings/acceptance obligations remain intact. No unacknowledged Claude handoff is treated as accepted.
+
 Source baseline: integration `14e62275ca212b6f34ecd3b17d676f2445e39845`, unpublished `1.1.0-preview.19`, immutable standard `2026.09.30`. This Astra update supersedes earlier pending source/PR status; historical acceptance and publication identities below remain unchanged. [Exact reviewed merges and CI](MERGE-EVIDENCE-2026.10.08.md) records #48–#51, #42/#44/#43/#45 and #46/#47. Latest integration Windows [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 native layouts/88 command presses, zero bindings/tenant calls and fresh 302-file desktop/CLI package checks.
 
 Independent review: Claude's 19 #42–#45 findings are fixed/integrated. Astra AST-20261008-05–09 are closed at source/synthetic level after re-review of #46's corrected head and actual Windows evidence. #46 merged as `b755dbb3b8e1b958c12825ec296fee4e319e9ae4`; #47 merged as the 8 October checkpoint and preserves remaining R01/R02/R16 delta-review/coverage limitations. #60 adds dedicated disposition regressions but does not close human/live completion. Claude owns feedback state and its claim rows.

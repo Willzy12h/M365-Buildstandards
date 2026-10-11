@@ -1,5 +1,15 @@
 # Handover and priorities
 
+## Approved BuildStandard phase T0 — 12 October 2026
+
+William explicitly approved the complete [implementation plan](../superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md) on **12 October 2026**, prospectively and initial GPT-led execution under [specification v0.2](../superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md). Older next lists below remain history, not a renewed backlog. Frozen integration remains `4a7425f55385e84462975bcc5bdde5644815ca8f`; the new phase target starts at that exact commit. T0 [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) changes only coordination, accepted-input storage and the phase CI trigger.
+
+**Authority now recorded:** William explicitly extended the reviewed merge-commit delegation to `phase/wpf-webview2`, including reconciliation/acceptance of #114, and accepted its documented PR, independent-review and exact-source CI procedure without new protection settings. Earlier 11 October approval assertions were unsupported; no approval is backdated. Branch metadata reports phase/integration unprotected, and classic protection reads are HTTP 403. No settings are changed and no existing enforced or named safety gate is waived.
+
+Phase merges require actual applicable head checks, fresh independent bounded-branch review, no unresolved safeguard finding, conflicts resolved/tested on the owner's branch, then the actual resulting phase push check and durable merge/source/run evidence. Main/integration promotion, publication, tags, tenant actions, access and protection changes remain separately prohibited/unapproved. T0's older head `d2c45aa180a6a81baf1fc539e9d774a644d5c03f` passed Windows run 38180163458 and independent technical review; its reconciliation head still needs applicable review/checks. Do not transfer earlier proof to changed bytes.
+
+**Next:** finish independent review/Windows checks of T0; merge T0 with its actual phase run; then T1 mechanical neutralisation before dependent feature branches. No T1–T10 product implementation is claimed by this record. Existing #83/templates/claims/completion/decision records are retained; a local ledger is not a remote handoff.
+
 ## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 
 Integration `14e62275ca212b6f34ecd3b17d676f2445e39845` contains #42 → #44 → #43 → #45, Claude's fix PRs #51/#49/#48/#50, the independently re-reviewed copy-only library #46, and Claude's findings record #47. Every merge has a separately read passing Windows run. Latest integration run [37833184420](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/37833184420) passed 1,270 engine/CLI and 156 App tests, 48 layouts/88 command presses, zero binding issues/tenant calls and fresh 302-file desktop/portable CLI checks. Source remains unpublished Preview.19; this is not a release candidate publication. Exact records: [MERGE-EVIDENCE-2026.10.08](MERGE-EVIDENCE-2026.10.08.md).

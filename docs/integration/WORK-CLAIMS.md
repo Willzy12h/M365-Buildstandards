@@ -111,3 +111,6 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 
 | 2026-10-11 | Claude | M365-Buildstandards | interface: side menu grouped by client lifecycle (Client, Build, Operate, Evidence and reference) and a Go to next step button; issue #98 | `claude/project-thread-ral7ad` | #109 | Merged with this row |
+
+
+| 2026-10-11 | GPT/Astra/Codex | M365-Buildstandards | BuildStandard phase T0 setup claimed on 11 October without execution approval; prospectively approved/reconciled on 12 October (see INT-099): decision/coordination and phase validation only; preserve frozen source, old claims, named safety gates and no live/release authority. No product implementation before shared contract acceptance. | `astra/bs-phase-contract` from frozen `4a7425f55385e84462975bcc5bdde5644815ca8f`, targeting `phase/wpf-webview2` | [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) | Open |

@@ -1,5 +1,15 @@
 # Working with two agents
 
+## Approved BuildStandard phase override — 12 October 2026
+
+For the finite approved [BuildStandard plan](../superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md), GPT/Codex initially owns all implementation areas and `phase/wpf-webview2` replaces `integration` as the feature-PR target. Run the same three-repository pre-flight and check actual phase/integration heads and overlapping PRs before each branch. Existing claims, other-agent branches, decision history, review attribution and shared inbox remain intact. Ownership does not waive an independent or named safety-review gate.
+
+T0 [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) must settle shared rename/admission/context/document contracts before dependent implementation. A completed bounded branch gets fresh independent review, all applicable actual head checks, merge-commit-only integration and verified resulting phase push CI. William explicitly confirmed phase merge delegation and the documented procedure without new protection settings on 12 October, as recorded in HANDOVER. That approval is prospective; existing enforced/named safety/check gates remain and no protection change is authorised.
+
+Use the existing issue #83 and `agent-comms/templates/message.md` for a future bounded handoff. Include claim/task, actual owner, base/head SHA, branch/PR, scope/interfaces/dependencies, review status, evidence/unrun checks, next action, acknowledgement and return criteria. A request remains requested until the recipient actually acknowledges. Preserve accepted rulings/task commits/check evidence in the existing records before scratch cleanup. Do not create another coordination system or resume take-next backlog work.
+
+### Preserved protocol (apply the phase override above)
+
 This is the operating protocol for Claude and Astra/Codex working the same product at the same time. It applies to all three repositories, not just this one.
 
 It exists because the two agents cannot see each other. Neither holds the other's context, neither is notified when the other pushes, and each works from whatever it read when it started. Everything below is a substitute for that missing awareness. Follow it literally; a rule that looks like ceremony is usually the one preventing silent loss of work.
