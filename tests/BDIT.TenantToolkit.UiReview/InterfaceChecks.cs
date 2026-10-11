@@ -566,6 +566,7 @@ internal static partial class Program
     {
         ("ShellViewModel.NavigateCommand", Press),
         ("ShellViewModel.ClearErrorCommand", Press),
+        ("ShellViewModel.NextStepCommand", Press),
         ("ShellViewModel.CopyCommand", Clipboard),
         ("ShellViewModel.CopyDetailsCommand", Clipboard),
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
