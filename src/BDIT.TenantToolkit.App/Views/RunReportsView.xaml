@@ -5,12 +5,12 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-      <StackPanel Margin="28,20,28,12">
+      <StackPanel Margin="28,14,28,8">
         <TextBlock Text="EXPERIMENTAL · REGISTERED READ-ONLY RUNNER" Style="{StaticResource Eyebrow}"/>
         <TextBlock Text="Run reports" Style="{StaticResource H1}"/>
         <TextBlock Text="Review and approve one bounded read. Exchange uses separate Microsoft authentication. Live tenant behaviour is unverified." Style="{StaticResource Lead}"/>
       </StackPanel>
-      <Grid Grid.Row="1" Margin="28,0,28,20">
+      <Grid Grid.Row="1" Margin="28,0,28,12">
         <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Text="REGISTERED REPORTS" Style="{StaticResource Eyebrow}" Margin="0,0,0,8"/>
@@ -65,7 +65,8 @@
                 <TextBox Text="{Binding ReviewText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontSize="12" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Exact read-only run review" Margin="8"/>
               </TabItem>
               <TabItem Header="Outcome">
-                <DockPanel Margin="8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <DockPanel Margin="8" MinHeight="300" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
                   <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                     <WrapPanel><Button Content="Copy outcome" Command="{Binding CopyOutcomeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy evidence JSON" Command="{Binding CopyEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Save evidence" Command="{Binding SaveEvidenceCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
                     <TextBlock Text="{Binding LocalOutputGuidance}" Style="{StaticResource Muted}"/>
@@ -74,6 +75,7 @@
                   </StackPanel>
                   <TextBox Text="{Binding Output, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontSize="12" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Read-only run outcome"/>
                 </DockPanel>
+                </ScrollViewer>
               </TabItem>
             </TabControl>
           </DockPanel>
