@@ -219,8 +219,8 @@ public interface IScriptCopyPrompts
 /// <summary>
 /// The Scripts &amp; Reports page (INT-072/INT-080, first desktop slice). It lists the reviewed library, builds each item's
 /// form from its manifest, checks it live with the engine and produces the Copy script only after an explicit
-/// confirmation that restates the tenant. Nothing is run: there is no Run here, by design, until the owned PowerShell
-/// session in the next slice exists.
+/// confirmation that restates the tenant. This Copy page does not execute. The separate Run reports page admits only
+/// registered schema 2 read-only items through the owned runner.
 /// </summary>
 public sealed class ScriptsViewModel : PageViewModel
 {
@@ -239,8 +239,8 @@ public sealed class ScriptsViewModel : PageViewModel
 
     public ScriptsViewModel(ShellViewModel shell) : base(shell, "Scripts & Reports")
     {
-        // Schema 2 items run only through the toolkit's read-only runner and have no Copy form. Run is not offered in this
-        // build, so this page lists the Copy library only.
+        // Schema 2 items run only on the separate Run reports page and have no Copy form. This page lists the unchanged
+        // schema 1 Copy library only.
         try { _library = ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 1).ToList(); }
         catch (ToolkitException ex)
         {

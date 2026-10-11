@@ -83,7 +83,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "reports", "naming" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "reports", "naming" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -110,6 +110,20 @@ internal static partial class Program
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
                     if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);
+                    if (nav.Key == "run-reports")
+                    {
+                        RecordReadRunViewport(content, pageAtSize);
+                        var runPage = shell.Page<RunReportsViewModel>();
+                        runPage.PrepareReview(); content.UpdateLayout(); Pump();
+                        RecordReadRunViewport(content, pageAtSize + " exact review");
+                        RecordUnnamedControls(content, pageAtSize + " exact review");
+                        RecordLowContrast(content, pageAtSize + " exact review");
+                        RecordClipping(content, pageAtSize + " exact review");
+                        SaveImage(content, size, Path.Combine(output, "run-reports-review-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        if (runPage.Approved || runPage.RunCommand.CanExecute(null)) throw new InvalidOperationException("Review unexpectedly authorised a run.");
+                        runPage.SelectedTab = 0; content.UpdateLayout(); Pump();
+                        CaptureReadRunPartial(shell, content, size, output); content.UpdateLayout(); Pump();
+                    }
                     if (size.Height >= 760) RecordUnneededScrolling(content, pageAtSize);
                     if (focus.Contains(nav.Key))
                     {
@@ -344,6 +358,8 @@ internal static partial class Program
                 ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
                 ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
                 ("Expanded offline diagnostic action/result viewport at all three sizes", OfflineDiagnosticViewportsMeasured == 3),
+                ("Read-only Run setup/review viewport at all three sizes", ReadRunViewportsMeasured == 6),
+                ("Synthetic Partial read-only outcome at all three sizes", ReadRunOutcomeViewportsMeasured == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
@@ -566,6 +582,7 @@ internal static partial class Program
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
         if (key == "scripts") SeedScripts(shell);
+        if (key == "run-reports") SeedReadRun(shell);
         if (key == "reports") SeedGraphReportsPage(shell);
         if (key == "naming") SeedNamingPage(shell);
         if (key == "deploy")

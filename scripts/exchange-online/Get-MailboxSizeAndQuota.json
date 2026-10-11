@@ -74,7 +74,7 @@
   "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read mailboxes and their statistics. The toolkit does not install modules or change policy.",
   "liveStatus": "unverified",
   "limitations": [
-    "Runs only through the toolkit's read-only runner; it has no Copy form. Run is experimental and is not offered in this build.",
+    "Runs only through the toolkit's read-only runner; it has no Copy form. Desktop Run requires experimental read-only opt-in for the current verified connection and separate approval of each exact review.",
     "One statistics read per mailbox, and one more per archive: a large tenant may reach the 30-minute limit, and rows read by then are kept only as partial.",
     "An archive is counted as present only when Exchange returns a non-empty archive GUID. Recoverable Items, OST and PST sizes are not reported.",
     "Live behaviour, the roles required and the module's output format are unverified until accepted in a test tenant."

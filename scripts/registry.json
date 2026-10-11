@@ -116,7 +116,7 @@
     {
       "id": "exo.mailbox-size-quota",
       "manifest": "exchange-online/Get-MailboxSizeAndQuota.json",
-      "manifestSha256": "890467c97d83d6e67995807be83e8f7739277f86d1484e636c6640871c5fa402",
+      "manifestSha256": "17a94a464aa259245b4983a7ab4803c1db6ad7d7b8044f1c5b2f902b5544c716",
       "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
       "manifestSchemaVersion": 2
     },

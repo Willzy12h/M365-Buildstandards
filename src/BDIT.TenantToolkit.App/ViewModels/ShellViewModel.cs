@@ -75,7 +75,7 @@ public sealed class ShellViewModel : ObservableObject
         AddNavigationGroup("Reports", ("reports", "Tenant reports", ""), ("naming", "Naming and ownership", ""),
             ("history", "Evidence and drift", ""));
         // Preserve the existing reviewed library page and its key; the new Graph pages have separate navigation.
-        AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""));
+        AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""), ("run-reports", "Run reports", ""));
         AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
 
         _pages["home"] = new HomeViewModel(this);
@@ -93,6 +93,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["jobs"] = new JobsViewModel(this);
         _pages["checks"] = new ManualChecksViewModel(this);
         _pages["scripts"] = new ScriptsViewModel(this);
+        _pages["run-reports"] = new RunReportsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);

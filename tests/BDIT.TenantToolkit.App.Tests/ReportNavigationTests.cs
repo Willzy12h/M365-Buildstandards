@@ -13,7 +13,7 @@ public sealed class ReportNavigationTests
         using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
         var originalKeys = new[] { "overview", "connect", "setup", "configuration", "assessment", "deviations", "plan", "deploy", "automation", "recovery", "history", "jobs", "checks", "scripts", "standard", "settings" };
         foreach (var key in originalKeys) Assert.Single(shell.NavItems, n => n.Key == key);
-        Assert.Equal(19, shell.NavItems.Count);
+        Assert.Equal(20, shell.NavItems.Count);
         Assert.Single(shell.NavItems, n => n.Key == "home");
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
         Assert.Equal(new[] { "Workspace", "Tenant", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
@@ -37,6 +37,8 @@ public sealed class ReportNavigationTests
         shell.Navigate("reports"); Assert.Same(shell.Page<GraphReportsViewModel>(), shell.CurrentPage);
         shell.Navigate("naming"); Assert.Same(shell.Page<NamingAuditViewModel>(), shell.CurrentPage);
         shell.Navigate("scripts"); Assert.Same(shell.Page<ScriptsViewModel>(), shell.CurrentPage);
+        shell.Navigate("run-reports"); Assert.Same(shell.Page<RunReportsViewModel>(), shell.CurrentPage);
+        Assert.Equal(new[] { "scripts", "run-reports" }, shell.NavItems.Where(n => n.Group == "Scripts").Select(n => n.Key));
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
 
