@@ -30,7 +30,7 @@ All three repositories were checked on 11 October. Claude has **no open implemen
 | #93 | c58d89b; implemented separate default-off exact-reviewed Run page, existing owned runner/store and typed forms. Six guard mutants caught; final 62 pure workflow cases pass. Temporarily targets #92; Claude review/Windows/native/live remain. |
 | #94 | c15c47c; reachable offline mailbox capacity page, strict saved/supplied paired sources and full original review exports. 27 focused cases pass. Temporarily targets #93; composed source 6d4f1bc validated as below. No quota/licence changes or new evidence contract. |
 | #95 | 5d1ac22; decision INT-096 and published failing synthetic proof. Required owner-outcome counts in expiry revision 2 and explicit limited historical inspection; no dependent source work before reviewed decision merge. |
-| #96 | 533c3d3; decision INT-097 for one-mailbox Full Access registration. Existing manual permissions/calendar/log scripts remain; new strict grant identity requires this reviewed shared contract before source. |
+| #96 | 0b33e30; decision INT-097 for one-mailbox Full Access registration. Existing manual permissions/calendar/log scripts remain; new strict grant identity requires this reviewed shared contract before source. |
 
 #78 is merged; #82/#85/#86/#89 are already merged. #77 promotion placeholder remains closed/deferred until an exact-source candidate. No older historical checklist resurrects these tasks.
 
