@@ -49,9 +49,12 @@
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
+
+- Group the side menu into Client, Build, Operate and Evidence and reference; number only the six Build steps (Policy automation is step 6), match page headings, and add a Go to next step button under the next-step hint (#98).
 - Define versioned retained-parent owner outcome consistency and explicitly limited historical application-report inspection (#95; source repair follows).
 
 - Remove duplicate feature push builds while retaining full PR and integration/main validation; cancel obsolete review runs and use Linux for unchanged catalogue checks (PR #91, pending validation).
+
 - Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
 
 - Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).

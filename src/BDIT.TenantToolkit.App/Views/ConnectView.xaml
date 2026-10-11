@@ -1,7 +1,7 @@
 <UserControl x:Class="BDIT.TenantToolkit.App.Views.ConnectView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
-      <TextBlock Text="01 / CONNECT TO A CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="Start with read-only access" Style="{StaticResource H1}"/>
+      <TextBlock Text="CLIENT / CONNECT TO A CLIENT" Style="{StaticResource Eyebrow}"/><TextBlock Text="Start with read-only access" Style="{StaticResource H1}"/>
       <TextBlock Text="Sign in with Microsoft to find a client, or choose a saved connection. Microsoft handles credentials and MFA in a Windows sign-in window." Style="{StaticResource Lead}"/>
       <Border Style="{StaticResource Card}">
         <StackPanel>

@@ -581,6 +581,7 @@ internal static partial class Program
         ("HomeViewModel.NextStepCommand", Press),
         ("HomeViewModel.OpenTaskCommand", Press),
         ("ShellViewModel.ClearErrorCommand", Press),
+        ("ShellViewModel.NextStepCommand", Press),
         ("ShellViewModel.CopyCommand", Clipboard),
         ("ShellViewModel.CopyDetailsCommand", Clipboard),
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
