@@ -165,3 +165,7 @@ These stay open in the [feedback register](PRODUCT-FEEDBACK-REGISTER.md) and are
 1. ~~Desktop Scripts & Reports page with the tenant banner, form, confirmation and Copy.~~ Done on this branch; see "Desktop page".
 2. Run: an owned PowerShell process per library session with one Exchange sign-in, tenant check before each run, bounded output and report evidence (needs INT-071's store from PR #44).
 3. More packs from the catalogue, then change items behind preview, typed confirmation and undo, which needs its own decision because INT-072 keeps changes copy-only.
+
+## Desktop Run continuation — 11 October 2026, PR #93
+
+The historical first-slice “no Run/session/store” statements above describe that checkpoint. The existing owned runner/store/mailbox adapter are merged; #93 adds a separate default-off exact-reviewed **Run reports** page. The 29 original Copy forms and all Exchange changes retain Copy/Save-only behaviour. [Current slice and actual checks](READ-ONLY-RUN-WORKFLOW-2026.10.11.md) distinguish implemented source from unrun Windows/native/live acceptance. No old catalogue/script body is rewritten or promoted silently.
