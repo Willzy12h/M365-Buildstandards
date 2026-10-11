@@ -5,6 +5,8 @@ using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.App.Services;
+using BDIT.TenantToolkit.App.Infrastructure;
 
 namespace BDIT.TenantToolkit.App.ViewModels;
 
@@ -29,8 +31,24 @@ public sealed class SettingsViewModel : PageViewModel
     private SupportSections _supportSections = SupportSections.None;
     private SupportContext _supportContext = SupportContext.Empty;
 
-    public SettingsViewModel(ShellViewModel shell) : base(shell, "Settings and diagnostics")
+    public SettingsViewModel(ShellViewModel shell) : this(shell, new OfflinePrerequisiteDiagnostic()) { }
+
+    internal SettingsViewModel(ShellViewModel shell, OfflinePrerequisiteDiagnostic diagnostic) : base(shell, "Settings and diagnostics")
     {
+        OfflineDiagnostic = diagnostic;
+        RunOfflineDiagnosticCommand = new AsyncCommand(RunOfflineDiagnostic, _ => OfflineDiagnostic.ShowUnexpectedFailure(),
+            () => Workspace.Idle && !OfflineDiagnostic.IsRunning);
+        CancelOfflineDiagnosticCommand = Sync(OfflineDiagnostic.Cancel,
+            () => OfflineDiagnostic.IsRunning && !OfflineDiagnostic.CancellationRequested);
+        CopyOfflineDiagnosticCommand = Sync(() => Shell.CopyToClipboard(OfflineDiagnostic.Output), () => OfflineDiagnostic.HasResult);
+        Workspace.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Workspace.Busy)) OnPropertyChanged(nameof(OfflineDiagnosticAvailability));
+        };
+        OfflineDiagnostic.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(OfflinePrerequisiteDiagnostic.IsRunning) or nameof(OfflinePrerequisiteDiagnostic.HasResult)) OnPropertyChanged(nameof(OfflineDiagnosticAvailability));
+        };
         OpenReportsCommand = Sync(() => OpenFolder(Workspace.Paths.ReportsDirectory));
         OpenLogsCommand = Sync(() => OpenFolder(Workspace.Paths.LogsDirectory));
         OpenDataCommand = Sync(() => OpenFolder(Workspace.Paths.DataDirectory));
@@ -83,6 +101,26 @@ public sealed class SettingsViewModel : PageViewModel
     public ICommand RestoreBackupCommand { get; }
     public ICommand VerifyRestoreCommand { get; }
     public ICommand AdoptRestoreCommand { get; }
+    public ICommand RunOfflineDiagnosticCommand { get; }
+    public ICommand CancelOfflineDiagnosticCommand { get; }
+    public ICommand CopyOfflineDiagnosticCommand { get; }
+    public OfflinePrerequisiteDiagnostic OfflineDiagnostic { get; }
+    public string OfflineDiagnosticAvailability => OfflineDiagnostic.IsRunning
+        ? "Cancel offline checks stops only this check. Closing waits for cancellation and probe cleanup. Copy is available after a result completes."
+        : !Workspace.Idle ? "Wait for the current workspace task to finish before running offline checks. Cancel applies only to an active offline check."
+        : OfflineDiagnostic.HasResult ? "Copy the completed local result, or run again. Cancel applies only to an active offline check."
+        : "Run offline checks to create a local result. Cancel is available during a check; Copy becomes available when a result completes.";
+
+    private async Task RunOfflineDiagnostic()
+    {
+        if (!Workspace.Idle || OfflineDiagnostic.IsRunning) return;
+        // The shared engine performs all inspection on a worker; the existing workspace owns exclusive shutdown.
+        await Workspace.RunExclusiveAsync("Checking offline prerequisites", async progress =>
+        {
+            progress.Report("Inspecting local package prerequisites; no tenant or host execution.");
+            await OfflineDiagnostic.RunAsync(Workspace.Paths.Root, Workspace.OperationToken);
+        });
+    }
 
     public string BackupGuide => WorkspaceBackup.Guide;
     public string LastResult { get => _lastResult; private set { if (SetProperty(ref _lastResult, value)) OnPropertyChanged(nameof(HasResult)); } }
@@ -328,6 +366,7 @@ public sealed class SettingsViewModel : PageViewModel
     public override void Refresh()
     {
         OnPropertyChanged(nameof(Text));
+        OnPropertyChanged(nameof(OfflineDiagnosticAvailability));
         OnPropertyChanged(nameof(TransferBlockedReason)); OnPropertyChanged(nameof(HasTransferBlock)); OnPropertyChanged(nameof(AdoptBlockedReason)); OnPropertyChanged(nameof(ReceiveNextStep));
         RefreshSupportPreview();
     }

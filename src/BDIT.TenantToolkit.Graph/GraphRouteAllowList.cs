@@ -9,6 +9,7 @@ public sealed record GraphRoute(GraphApi Api, string BasePath, string Scope, str
 {
     public bool PublicIpRangesOnly { get; init; }
     public bool RegisteredReportOnly { get; init; }
+    public string? ApplicationReportId { get; init; }
     public bool Writable => !string.IsNullOrWhiteSpace(WriteScope);
 }
 
@@ -63,21 +64,38 @@ public sealed class GraphRouteAllowList
     public static GraphRouteAllowList ForReports() => Only(GraphReportRegistry.Definitions.SelectMany(d => d.Routes)
         .Distinct().Select(r => new GraphRoute(GraphApi.V1, r.Path, r.Scope, null, "report:" + r.Path) { RegisteredReportOnly = true }));
 
+    /// <summary>A separate schema 2 allow-list; existing schema 1 ForReports remains unchanged.</summary>
+    public static GraphRouteAllowList ForApplicationReports(int schemaVersion, string reportId)
+    {
+        var definition = ApplicationReportRegistry.Find(schemaVersion, reportId);
+        return Only(definition.Routes.Where(r => !r.Path.Contains("{id}", StringComparison.Ordinal))
+            .Select(r => new GraphRoute(GraphApi.V1, r.Path, r.Scope, null, "application-report:" + reportId)
+            { RegisteredReportOnly = true, ApplicationReportId = reportId }));
+    }
+
     public GraphRoute? MatchRead(GraphApi api, string path)
     {
         var basePath = BasePathOf(path);
-        return _routes
+        var match = _routes
             .Where(r => r.Api == api && (string.Equals(basePath, r.BasePath, StringComparison.OrdinalIgnoreCase)
                                           || r.BasePath != "/deviceManagement" && basePath.StartsWith(r.BasePath + "/", StringComparison.OrdinalIgnoreCase))
                 && (!r.RegisteredReportOnly || ReportPathAllowed(r, basePath)))
             .OrderByDescending(r => r.BasePath.Length)
             .ThenByDescending(r => r.Writable)
             .FirstOrDefault();
+        // Child pagination must stay on the exact object/relation queried, not merely its collection root.
+        return match?.ApplicationReportId is not null ? match with { BasePath = basePath } : match;
     }
 
     private static bool ReportPathAllowed(GraphRoute route, string path)
     {
         if (string.Equals(path, route.BasePath, StringComparison.OrdinalIgnoreCase)) return true;
+        if (route.ApplicationReportId is { } id)
+        {
+            var child = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return child.Length == 3 && ReportValues.IsCanonicalGuid(child[1])
+                && ApplicationReportRegistry.Find(2, id).Routes.Any(r => r.Path == "/" + child[0] + "/{id}/" + child[2]);
+        }
         if (route.BasePath != "/users") return false;
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         return parts.Length == 3 && parts[0] == "users" && ReportValues.IsCanonicalGuid(parts[1]) && parts[2] == "licenseDetails";

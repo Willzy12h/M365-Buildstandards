@@ -1,10 +1,55 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
+
+
+- Keep connected read-only Reports usable after the original token expiry: the existing guarded provider owns silent renewal. Preserve malformed-context, identity/scope/selection refusals and the separate expiry of experimental write approval.
+
+- Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
+
+- Keep Graph/Exchange evidence origins consistent between Home and the shell, redact another client's capture details, and include visible button labels in Home's accessible names (CLA-20261010-120–122).
+
+- Add an engineer Home task centre with next-step guidance and new-tenant, legacy/backfill, repeat-review and handoff shortcuts. Retain Overview/licences and persistent client/access/evidence context. All Home actions navigate only; historical, incomplete and scoped evidence do not imply readiness or completion. Exact Windows/native and independent review remain required.
+
+- Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
+
+- Bind manual-check and deviation drafts to the current client, verified standard and material client inputs; refuse stale rows before save/delete. Retain offline change-register history while clearing recovery approval when connection authority changes. Add explicit saved-client offline review and a separate persistent evidence-source header. No sign-in, new schema or write authority is introduced; exact Windows/native and independent review remain required.
+
+- Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
+
+- Pin configured sign-in timeout forwarding through the real sign-in path with synthetic acquisition and distinguish acquisition time from permission-review time in the live run sheet (CLA-20261010-75/76).
+
+- Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
+
+- Let engineers read the permission preview without consuming the Microsoft sign-in timeout. Keep a shared acquisition budget, close cancelled previews, and preserve cancellation without reporting it as successful sign-in.
+
+- Add production-path authentication and setup/consent refusal regressions; show an unknown account for explicit account-choice previews instead of the previous identity.
+
+- Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
+
+- Refuse contradictory application-report source/section/owner outcomes and mark exact metadata-budget saturation Partial, keeping unread pages explicit (CLA-20261010-124–126).
+
+- Add registered application credential-expiry and observed-consent report engines: strict separate schema 2, metadata-only bounded collection, exact identity joins, immutable storage and HTML/CSV/JSON/Excel exports. Reuse existing authorised access; missing delegated-grant access stays NotAttempted. Desktop/CLI dispatch remains a separate integration slice.
+
+- Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
+- Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
+
+- Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
+
+- Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
+
+- Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
 - Make interruption tests independent of synchronous authentication/dispatch while retaining real back-off cancellation regressions.
 
 - Extend offline Graph interruption checks through real retry delays and second-page cancellation, preserving one silent renewal and treating cancellation after write dispatch as ambiguous without replay. Production transport behaviour is unchanged.
+
+- Preserve read-only connection checks and an explicit untrusted-history warning on startup refusal; serialise interrupted-run marking with the existing tenant lease and strengthen deterministic history regressions (CLA-20261010-97–99).
+
+- Validate all stored deployment-run evidence before startup recovery changes any record. Refuse modified, missing-digest, unreadable or wrong-tenant history unchanged, preserving unresolved-write and single-use-plan blocks rather than automatically re-sealing altered results.
+
+- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
 - Require truthful Partial headlines/provenance and visible truncation warnings in registered report export regressions; production exporters and limits remain unchanged (CLA-20261010-95/96).
 
@@ -350,3 +395,14 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 ### Standards
 - Catalogue schema v3 with expected production state and safe deployment state per control; 45 controls (12 automated recipes) carried over from Tenant Console 2026.09.2 and enriched with severity, business impact, engineer action, licence and manual instructions.
 - SHA-256 manifest integrity check (documented as a digest, not a signature).
+
+### Unpublished — application report presentation (#92)
+
+- Add application credential expiry and observed consent choices to Tenant reports, with typed horizon, strict saved/supplied evidence browsing, nested tables and complete original-evidence exports. Offline synthetic validation and Windows-targeted compilation are separate from pending native/live acceptance.
+
+- Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
+
+- Export registered application report evidence through the existing offline CLI, preserving full original sections/provenance; refuse linked input parents consistently with the desktop reader (AST-20261010-25, #92).
+- Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
+
+- Verify both application-report families and their refusal paths through the actual extracted executable and launcher during portable validation (#92); Windows execution remains pending.

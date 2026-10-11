@@ -23,7 +23,8 @@ namespace BDIT.TenantToolkit.Cli;
 /// in the engine rather than working around here.
 ///
 /// It is read-only by construction rather than by policy. It never authenticates, so there is no token, no Graph
-/// client and no write path reachable from this assembly. It reads evidence the application already captured, through
+/// client and no tenant-write path reachable from this assembly. Its offline doctor uses the shared engine's owned
+/// temporary local probes. It reads evidence the application already captured, through
 /// the same <see cref="EvidenceStore"/> the application reads it with, so a headless report cannot disagree with the
 /// application's for the same snapshot. Conformance tests assert the absence of every write-capable type and of every
 /// evidence mutator, so neither guarantee can be lost by accident.
@@ -39,6 +40,10 @@ public static class Program
 
     public static int Main(string[] args)
     {
+        // Doctor owns strict options, default-root refusal and console failures before the general raw catch.
+        if (args.FirstOrDefault()?.Equals("doctor", StringComparison.OrdinalIgnoreCase) == true)
+            return DoctorConsoleCancellation.RunCommand(args, Console.Out, Console.Error);
+
         try
         {
             return Run(args);
@@ -92,7 +97,14 @@ public static class Program
     private static int Help()
     {
         Console.WriteLine("""
-            bdit — headless reporting over captured tenant evidence. Never connects to a tenant.
+            bdit — offline reports and local prerequisite diagnostics. Never connects to a tenant.
+
+              bdit doctor [--root <folder>] [--format text|json]
+                  Check local portable prerequisites; text is the default, JSON is a separate diagnostic result.
+                  Checks package/catalogue/settings and uses temporary owned write/delete probes.
+                  No repair, installation, sign-in or script execution. Optional limitations stay visible.
+                  Ctrl+C requests cancellation and owned probe cleanup; remaining required checks are Unknown.
+                  Local readiness does not certify publisher trust, tenant readiness or write approval.
 
               bdit check --snapshot <file> (--area <area> | --control <id>) [--exchange-snapshot <file>] [--release <r>] [--root <dir>]
                   Review selected controls from stored evidence, using the saved client inputs.
@@ -168,6 +180,8 @@ public static class Program
               --release <r>    Standard release, for example 2026.09.11. Defaults to the configured release.
 
             Exit codes: 0 success, 2 refused, 3 failed, 64 usage.
+            Doctor: 0 required local checks pass, 1 needs attention, 2 invocation refused,
+                    3 sanitised unexpected failure, 130 cancelled. Unknown command remains 64.
             """);
         return 0;
     }
@@ -407,23 +421,13 @@ public static class Program
         var format = Format(options, ExportFormat.Html);
         if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
             throw new ConfigurationException("Report evidence exports as html, json, csv or xlsx.");
-        byte[] bytes;
-        using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            if (stream.Length > ReportEvidenceSchema.MaximumBytes)
-                throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-            using var reader = new BinaryReader(stream);
-            bytes = reader.ReadBytes(ReportEvidenceSchema.MaximumBytes + 1);
-        }
-        if (bytes.Length > ReportEvidenceSchema.MaximumBytes)
-            throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-        string json;
-        try { json = new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
-        catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
-        var report = ReportEvidenceSchema.Read(json, tenant);
+        var report = ReportEnvelopeDispatcher.ReadFile(file, tenant);
         var context = Context.Open(options);
-        Console.WriteLine(context.Exporter.ExportReport(report, format, suppliedFile: true));
-        Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
+        Console.WriteLine(report.Export(context.Exporter, format, suppliedFile: true));
+        var state = report.Schema1?.Status ?? report.Schema2!.Status;
+        var started = report.Schema1?.StartedAt ?? report.Schema2!.StartedAt;
+        var ended = report.Schema1?.EndedAt ?? report.Schema2!.EndedAt;
+        Console.WriteLine($"Offline export · read status {state} · recorded {started} to {ended} · no live reads or writes. Export success does not prove collection success.");
         return 0;
     }
 

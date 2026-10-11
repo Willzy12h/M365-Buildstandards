@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj" />
+    <Compile Include="..\BDIT.TenantToolkit.App.Tests\ApplicationReportUiFixtures.cs" Link="ApplicationReportUiFixtures.cs" />
   </ItemGroup>
 </Project>

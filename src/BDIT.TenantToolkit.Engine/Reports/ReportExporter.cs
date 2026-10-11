@@ -16,7 +16,7 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 public enum ExportFormat { Html, Markdown, Json, Csv, Xlsx, ClientHtml }
 
 /// <summary>Writes reports to the reports folder with deterministic, filesystem-safe names.</summary>
-public sealed class ReportExporter
+public sealed partial class ReportExporter
 {
     private readonly ToolkitPaths _paths;
     private readonly string _companyName;
