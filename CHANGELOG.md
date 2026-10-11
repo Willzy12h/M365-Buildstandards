@@ -322,6 +322,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
+- Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
+
 - Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
 
 - Readiness reads now keep failed or malformed results Unknown, preserve exact emergency-account identity and give practical access/service next steps; no configuration is inferred from a failed request.
