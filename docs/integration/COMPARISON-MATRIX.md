@@ -170,6 +170,16 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
+
+## Offline prerequisite diagnostic source — PR #88 / INT-094
+
+| Surface | Implemented source | Remaining validation/integration |
+|---|---|---|
+| Shared local checks | Bounded package/hash/catalogue checks, existing settings validator, owned non-overwriting probes, safe unknown/error/cancellation states and optional host presence | Native Windows junction/ACL and actual extracted-package diagnostic acceptance; unsigned inventory never establishes publisher trust |
+| Callable doctor handler | Shared text/JSON findings; options/refusal, safe errors and 0/1/2/3/130 exits tested through the actual handler | Program dispatch and desktop wiring remain absent; no executable command/user-flow completion claimed |
+| Boundaries | No profiles/evidence/cache/log-content reads, host execution, module installation, policy repair, authentication, consent or tenant calls | Human/security-owner and live gates remain separate; diagnostic JSON cannot satisfy deployment before-evidence |
+
+PR #88 now exercises the real portable inventory layout: unchanged shipped catalogues/lineage validate through existing loaders and are admitted by the doctor. The original lineage case and private-guard-removal mutant both fail; 123 repaired focused cases pass. Actual extracted Windows package Ready and #90 composition remain unverified.
 ## Astra focused integrity follow-up — 10 October 2026
 
 PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
