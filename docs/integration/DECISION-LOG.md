@@ -714,3 +714,6 @@ CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; op
 ### Sign-in expiry and experimental opt-in wording — 11 October 2026, PR #80
 
 CLA-20261011-003: the connection details identify the original token expiry as the end of experimental opt-in and connection reuse, while explaining that read-only report tokens may silently renew. Keep the existing fail-closed guards and silent-provider boundaries unchanged. This is presentation wording only.
+### Lease access wording clarification — 11 October 2026, PR #79
+
+CLA-20261011-002 remains a hypothesis about the underlying IOException cause. Explain both competing work and local file-access failure without claiming either cause was established. History remains uninspected and all original strict write guards/file preservation remain. No exception classification or schema changes.

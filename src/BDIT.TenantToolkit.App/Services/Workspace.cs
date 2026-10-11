@@ -570,8 +570,8 @@ public sealed class Workspace : ObservableObject
         catch (SafetyViolationException ex) when (EvidenceStore.IsTenantWriteLeaseRefusal(ex))
         {
             // Lease acquisition precedes history inspection. Its refusal establishes neither corruption nor integrity.
-            InterruptedNotice = "Previous deployment history has not been checked because exclusive access to this tenant's evidence store is unavailable; another operation may be active. Wait for it to finish, then retry. Original files were retained and write guards remain unchanged; read-only access and licence checks can continue.";
-            Logger.Warn("App", "Previous deployment history was not checked because exclusive evidence-store access is unavailable; another operation may be active. Wait for it to finish, then retry. Original files were retained and write guards remain unchanged.", profile.TenantId);
+            InterruptedNotice = "Previous deployment history has not been checked because exclusive access to this tenant's evidence store is unavailable; another operation may be active, or local file access may have failed. Wait for active work to finish, then retry; if this persists, check local storage access. Original files were retained and write guards remain unchanged; read-only access and licence checks can continue.";
+            Logger.Warn("App", "Previous deployment history was not checked because exclusive evidence-store access is unavailable; another operation may be active, or local file access may have failed. Wait for active work to finish, then retry; if this persists, check local storage access. Original files were retained and write guards remain unchanged.", profile.TenantId);
         }
         catch (Exception ex) when (ex is ToolkitException or IOException or UnauthorizedAccessException)
         {
