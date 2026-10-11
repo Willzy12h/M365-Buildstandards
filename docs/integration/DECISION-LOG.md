@@ -542,6 +542,13 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
 
+### Evidence-integrity enforcement correction — 10 October 2026, PR #79
+
+AST-20261010-07: startup recovery must consume the same strictly verified deployment history as completion and write guards, validating the whole inventory before changing any run. A modified Running record must never gain a fresh integrity digest merely because a new session starts. Invalid/missing digests, malformed/empty records and tenant mismatches refuse while preserving every file; valid interrupted runs retain unknown write acceptance and single-use-plan refusal. This enforces the existing integrity and no-replay contracts, with no schema or authority change. The display-only loader remains tolerant, but is no longer an input to automatic recovery. Digests detect unsealed edits; they are not signatures or protection against deliberately recomputed digests. See [the reproduction and validation record](INTERRUPTED-RUN-INTEGRITY-2026.10.10.md).
+
+### Interrupted-history connect and lease review corrections — 10 October 2026, PR #79
+
+CLA-20261010-97–99: keep verified read-only connection/access/licence checking usable when local history is refused, with an explicit blocking-history explanation and unchanged strict write guards. Validate the full run history before marking; deterministic order fixtures catch a lazy-marking mutation. Reuse the existing tenant lease for all startup marking so cooperating active runs are not reclassified. No tenant request/retry, evidence resealing of refused files, new schema or permission is added. Historical original findings and unexecuted external-editor races remain accurately attributed.
 ### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
 
 CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
@@ -565,6 +572,9 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
 
+### Unavailable evidence-store access wording — 10 October 2026, PR #79
+
+CLA-20261010-110: distinguish only a marked tenant-lease acquisition refusal from integrity failures in the connection notice. History is uninspected while exclusive access is unavailable; advise waiting and retrying, preserve original files and existing write guards. Keep all other refused-history errors on the untrusted/reconciliation path. No lease, evidence schema, authentication or write-authority change. Actual engine checks and strict App compilation pass; native execution and independent delta review remain separate gates.
 ### INT-082 service timeout mapping regression — 10 October 2026, PR #73
 
 CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
@@ -588,6 +598,9 @@ The independent docs review identified an asynchronous restart gap: reading only
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
 
+### Lease access wording clarification — 11 October 2026, PR #79
+
+CLA-20261011-002 remains a hypothesis about the underlying IOException cause. Explain both competing work and local file-access failure without claiming either cause was established. History remains uninspected and all original strict write guards/file preservation remain. No exception classification or schema changes.
 ### GitHub Actions budget preservation — 10 October 2026, PR #91
 
 William reported constrained Actions minutes. The latest 100 observed runs comprised 52 push and 48 pull-request executions; feature pushes and PR updates duplicated the full Windows suite, as did integration pushes with draft promotion #77. Defer the promotion placeholder until an exact-source candidate is ready; retain its history and William's main/release approval gate.
