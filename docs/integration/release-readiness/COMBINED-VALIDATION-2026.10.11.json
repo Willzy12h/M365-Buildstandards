@@ -1,0 +1,57 @@
+{
+  "sourceSha": "c14d923bb0ac5a737653b1bf52293a5b0f293e78",
+  "docsOnlyHead": "03a3d930cb6b55540e4db28b7efc1d45d2103126",
+  "sourceTestBuildWorkflowBytesIdentical": true,
+  "platform": "Linux; Windows targets crosscompiled only",
+  "sdk": "10.0.401",
+  "powerShell": "7.4.13 at /workspace/bdit-validation/pwsh-7.4.13/pwsh",
+  "recordedAtUtc": "2026-10-11T00:16:35.435967+00:00",
+  "runs": [
+    {
+      "label": "Full unmodified suite",
+      "total": 1975,
+      "passed": 1945,
+      "failed": 30,
+      "skipped": 0
+    },
+    {
+      "label": "Initial filtered run: tooling race",
+      "total": 1891,
+      "passed": 1890,
+      "failed": 1,
+      "skipped": 0
+    },
+    {
+      "label": "Sequential platform-available retest",
+      "total": 1891,
+      "passed": 1891,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "excludedClass": "BDIT.TenantToolkit.Tests.ExchangeReportRunnerTests",
+  "excludedFullRunPasses": 54,
+  "excludedFullRunMissingDataFailures": 30,
+  "crossCompilationOnly": {
+    "App.Tests": "Release -p:EnableWindowsTargeting=true -warnaserror: exit 0, 0 warnings/errors; not run",
+    "UiReview": "Release -p:EnableWindowsTargeting=true -warnaserror: exit 0, 0 warnings/errors; not run"
+  },
+  "unperformed": [
+    "Windows App.Tests runtime",
+    "Native UiReview rendering/bindings/input/accessibility",
+    "Fresh self-contained Windows ZIP extraction/bdit.cmd doctor/startup/shutdown",
+    "PowerShell 5.1 and runner PowerShell process execution at conventional host locations",
+    "Tenant/auth/Graph/Exchange calls",
+    "Actions/CI, publication or promotion"
+  ],
+  "localEvidenceRoot": "/workspace/delegated-release-readiness/2026-10-11/final-combined-validation",
+  "evidenceSha256": {
+    "RESULT.json": "fc1025df01aec54bdd9594c6ac3ef23869ecc88eeb4c1761c291acc89ca5b66f",
+    "RESULT.md": "b5ed101b805a56db5c7b3dd631042e23cb7c74f6709590a8046808db16ca608c",
+    "results/engine-cli-full.trx": "d6d7fb04181d54914249098db8d617394e8fa8cd02bbfde7f2f2b51e7f7ea4d6",
+    "results/engine-cli-platform-available.trx": "af3a0c247ae210d0b74695c2bb4642158a8d27203820bc0f9f8210d32e4752f5",
+    "results/engine-cli-platform-available-final.trx": "4a4da3ceeb60a84cd261d4d340fbd6a7923310b0b8b549a2d98e7b1d1937d4d2",
+    "app-tests-build.log": "e7f09713cd33c90bad8acc461f42cce20575dbe05958faed91d18357299c8cb9",
+    "ui-review-build.log": "2483ddc1b2cf9683d4969d578c58a2394a2422cc5a7ffa37149a4a9f5bb1adcd"
+  }
+}

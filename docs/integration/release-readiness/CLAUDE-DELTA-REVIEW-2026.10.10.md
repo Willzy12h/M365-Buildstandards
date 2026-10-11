@@ -1,3 +1,7 @@
+# Superseded dated review checkpoint — 10 October 2026
+
+For current heads and narrow requests, read [the 11 October handoff](CLAUDE-HANDOFF-2026.10.11.md). The following record preserves earlier requested deltas and is not the current queue.
+
 # Compact Claude delta review — 10 October 2026, continuation
 
 Fetch actual integration/PR heads and follow coordination. Comment review only: no William approval, astra/* push, live/consent/version/release/main action. [Earlier packet](https://github.com/Willzy12h/M365-Buildstandards/blob/fe4c6d6e3872cbd3ab36f7f44b13dbb27d47a5d8/docs/integration/release-readiness/CLAUDE-DELTA-REVIEW-2026.10.10.md) and canonical register/PR comments preserve historical findings and conflicting dispositions.

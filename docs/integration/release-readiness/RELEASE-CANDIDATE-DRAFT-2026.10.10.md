@@ -2,7 +2,7 @@
 
 This draft describes the tested baseline and the remaining source gates. It is **not** a publisher pin, a version bump or an approval to distribute. Populate the final candidate fields only after the required source is independently reviewed, merged and tested at its actual integration commit. Existing [release/servicing rules](../../RELEASE-AND-SERVICING.md) and [controlled acceptance](../../CONTROLLED-ACCEPTANCE.md) apply.
 
-## Verified baseline (not the final candidate)
+## Historical verified baseline (not the final candidate)
 
 | Field | Observed value |
 |---|---|
@@ -14,9 +14,13 @@ This draft describes the tested baseline and the remaining source gates. It is *
 | Catalogue file SHA-256 | `124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f` |
 | Standard manifest file SHA-256 | `1531eaa86f707bb4506983f8a190b0d4af1d5879d3463b3f32a0c27473da68b3` |
 | Features / known gaps | [Current completion matrix](../COMPLETION-REGISTER.md), [per-control coverage](../../AUTOMATION-COVERAGE.md), [focused review packet](XHIGH-REVIEW-2026.10.10.md) |
-| Promotion draft | [#77](https://github.com/Willzy12h/M365-Buildstandards/pull/77); placeholder, no promotion authorised |
+| Earlier promotion placeholder | [#77](https://github.com/Willzy12h/M365-Buildstandards/pull/77), closed/deferred to avoid duplicate builds; reopen/recreate only for the exact candidate |
 
 Current branch artifacts retain their own source identities. They cannot replace the integration artifact or certify a later candidate. During this pass the environment refused the Azure artifact-download destination; CI's original artifact, source and extracted-package/hash annotations remain available through the corresponding GitHub run. Local possession or an independent rehash of that download is not claimed.
+
+## Current preparation — 11 October 2026
+
+Integration is now `1e06ccfdb156c759c40cba88589f2a7cc9048a63`; push38095690739 failed before any job step. The latest fully verified integration is `0c963e2e649d219a026f62fb8bc5f2a97b77fb3b`, push38094369170, CI original ZIP SHA-256 `479fc88bc54a9f46741939754aeba8af7472e71a755047b839f0b87cb869ba00`. Neither historical package certifies current changes. Combined implementation03a3d93 on #92 is a review stack, not an integration candidate; [handoff](CLAUDE-HANDOFF-2026.10.11.md) lists source/validation gaps. Original final-candidate ZIP/hash, next-version metadata and promotion PR cannot truthfully be completed until source reviews/integration and actual Windows capacity checks settle. Approvals below remain blank.
 
 ## Final candidate fields — fill after source integration
 

@@ -238,3 +238,9 @@ Pinned head `4d262f9feff5039358615c47cdb07f132373d327`, base `4f35285e`. Pure/of
 | AST-20261010-24 | Astra / archive read-state mapping (P3) | MailboxCapacityInventory.cs:41 turns valid Failed archive state/HasArchive=null into NotAttempted in the derived Observation | Fixed by Claude6c3df85; independent corrected-delta review closes confirmed source defect. Failed/null stays Failed; explicit absence remains separate. Exact-head Windows passed; actual merge validation outstanding, live acceptance unrun |
 
 The internal indexed-licence helper retains mutable evidence metadata; direct internal reuse after caller mutation was demonstrated, but public entry points revalidate and no public cross-tenant failure was established. This remains a separate non-blocking refactor observation, not a reported public vulnerability. Original quota/entitlement rules, exact unique identity joins and raw Unlimited/zero controls remain intact.
+
+## Astra application CLI integration — 10–11 October 2026, PR #92
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-25 | Delegated CLI implementation / Astra confirmation, Program.cs at `7f1f066`:411/423 (P2, confirmed) | The schema-1 offline export opened a valid report through a linked input parent without the intended link admission | Reuse ReportEnvelopeDispatcher.ReadFile for both registered schemas, preserving bounded UTF-8, tenant, integrity, full exports and supplied provenance | Original actual Linux CLI invocation exports with exit 0 through Directory.CreateSymbolicLink; repaired invocation exits 2 with parent-link refusal, no export and unchanged source bytes. Delegated 52 focused process/conformance cases pass. Windows junction/native and live acceptance remain outstanding |
