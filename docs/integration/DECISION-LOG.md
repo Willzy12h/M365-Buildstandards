@@ -565,3 +565,7 @@ The independent docs review identified an asynchronous restart gap: reading only
 ### INT-095 current-head review corrections — 10 October 2026, PR #82
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
+
+## INT-097 — Next read-only Exchange registration — 11 October 2026 (proposed)
+
+INT-088 authorises successive read-only adapters, but inventory's canonical-GUID row contract cannot represent permission grants without losing identity. Propose [one-mailbox Full Access registration](MAILBOX-FULL-ACCESS-REPORT-CONTRACT-2026.10.11.md) with exact scalar target, explicit unknowns and reversible bounded grant IDs under narrowly registered validation. Preserve existing inventory, manual scripts, wrapper/resource boundaries and all Run safeguards. Decision-only before dependent implementation; no live/permission/release action.
