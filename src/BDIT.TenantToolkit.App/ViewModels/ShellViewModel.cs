@@ -14,6 +14,8 @@ public sealed class NavItem : ObservableObject
     public string Key { get; init; } = "";
     public string Title { get; init; } = "";
     public string Step { get; init; } = "";
+    public string Group { get; init; } = "";
+    public string GroupHeading { get; init; } = "";
     public bool IsActive { get => _isActive; set => SetProperty(ref _isActive, value); }
 }
 
@@ -63,24 +65,17 @@ public sealed class ShellViewModel : ObservableObject
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
-        NavItems.Add(new NavItem { Key = "overview", Step = "", Title = "Overview and licences" });
-        NavItems.Add(new NavItem { Key = "connect", Step = "1", Title = "Connect" });
-        NavItems.Add(new NavItem { Key = "setup", Step = "+", Title = "Application setup" });
-        NavItems.Add(new NavItem { Key = "configuration", Step = "2", Title = "Configuration" });
-        NavItems.Add(new NavItem { Key = "assessment", Step = "3", Title = "Assessment" });
-        NavItems.Add(new NavItem { Key = "deviations", Step = "4", Title = "Deviations" });
-        NavItems.Add(new NavItem { Key = "plan", Step = "5", Title = "Plan changes" });
-        NavItems.Add(new NavItem { Key = "deploy", Step = "6", Title = "Deploy" });
-        // Activation, assignment and the other reviewed tenant changes follow deployment, so they sit directly after it.
-        NavItems.Add(new NavItem { Key = "automation", Step = "+", Title = "Policy automation" });
-        NavItems.Add(new NavItem { Key = "recovery", Step = "", Title = "Undo and recovery" });
-        NavItems.Add(new NavItem { Key = "history", Step = "", Title = "Evidence and drift" });
-        NavItems.Add(new NavItem { Key = "jobs", Step = "", Title = "Jobs and completion" });
-        NavItems.Add(new NavItem { Key = "checks", Step = "", Title = "Manual checks" });
-        // Reviewed library scripts are copied to run outside the tool; nothing on the page reads or writes the tenant.
-        NavItems.Add(new NavItem { Key = "scripts", Step = "", Title = "Scripts & Reports" });
-        NavItems.Add(new NavItem { Key = "standard", Step = "", Title = "Build Standard" });
-        NavItems.Add(new NavItem { Key = "settings", Step = "", Title = "Settings and diagnostics" });
+        AddNavigationGroup("Tenant", ("overview", "Overview and licences", ""), ("connect", "Connect", "1"),
+            ("configuration", "Configuration", "2"));
+        AddNavigationGroup("Build standard", ("standard", "Build Standard", ""), ("assessment", "Assessment", "3"),
+            ("deviations", "Deviations", "4"), ("plan", "Plan changes", "5"), ("deploy", "Deploy", "6"),
+            ("automation", "Policy automation", "+"), ("recovery", "Undo and recovery", ""),
+            ("jobs", "Jobs and completion", ""), ("checks", "Manual checks", ""));
+        AddNavigationGroup("Reports", ("reports", "Tenant reports", ""), ("naming", "Naming and ownership", ""),
+            ("history", "Evidence and drift", ""));
+        // Preserve the existing reviewed library page and its key; the new Graph pages have separate navigation.
+        AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""));
+        AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
 
         _pages["overview"] = new OverviewViewModel(this);
         _pages["recovery"] = new RecoveryViewModel(this);
@@ -96,6 +91,8 @@ public sealed class ShellViewModel : ObservableObject
         _pages["jobs"] = new JobsViewModel(this);
         _pages["checks"] = new ManualChecksViewModel(this);
         _pages["scripts"] = new ScriptsViewModel(this);
+        _pages["reports"] = new GraphReportsViewModel(this);
+        _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);
 
@@ -122,6 +119,13 @@ public sealed class ShellViewModel : ObservableObject
     }
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
+
+    private void AddNavigationGroup(string group, params (string Key, string Title, string Step)[] items)
+    {
+        for (var i = 0; i < items.Length; i++)
+            NavItems.Add(new NavItem { Key = items[i].Key, Title = items[i].Title, Step = items[i].Step,
+                Group = group, GroupHeading = i == 0 ? group : "" });
+    }
 
     public void Navigate(string key)
     {

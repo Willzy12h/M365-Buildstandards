@@ -67,3 +67,9 @@ The explicit-connect timeout is one cumulative budget for silent and interactive
 ### Delayed timer delivery (AST-20261010-08)
 
 Result admission also checks elapsed monotonic time. A cancellation timer can be delivered after its deadline; an uncancelled token alone therefore cannot establish that a successful reply is in budget. Replies at or after the remaining deadline refuse without a new prompt or retry. Caller cancellation is checked first and remains cancellation. The existing budget, preview exclusion, cache, identity, scope and renewal contracts are unchanged. Deterministic tests defer timer delivery independently of clock advancement; actual Microsoft/Windows scheduling frequency remains unmeasured.
+
+## Reports read lifetime — PR #80 / AST-20261010-22
+
+The session timestamp records the token expiry observed at Connect. The existing MSAL provider can silently renew same-identity/same-scope access without changing that timestamp; its natural passage is not a read-only connection lifetime. Reports accepts a stable, verified context with a parseable original timestamp and lets that provider determine access. Unknown/malformed provenance, explicit session/context mutation, invalidated operator/identity/scopes and changed selection still refuse. Experimental write/setup opt-in retains its original-expiry limit and exact approval.
+
+Ordinary interaction-required acquisition produces truthful Failed report evidence with zero HTTP reads and no automatic retry; authorisation invalidation prevents saving under the existing context guards. No navigation sign-in, new cache, session timestamp rewrite or interactive mid-operation renewal is introduced. Offline actual-controller tests cover elapsed/stable and naturally crossed timestamps; separate production MSAL tests establish renewal and invalidation semantics. Real Windows/Microsoft behaviour remains live-unverified.

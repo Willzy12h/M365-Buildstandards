@@ -175,6 +175,7 @@ Sol 6.1 xhigh discovered the delayed-timer case in the bounded model comparison;
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-08 | Sol 6.1 xhigh discovery / Astra confirmation, explicit-connect result admission, #73 (P2) | At `dc2f5de`, `ExplicitConnectAcquisition.cs:37` checked cancellation but deducted elapsed time only after returning; delayed timer delivery admitted silent and interactive successes beyond the deadline | Implemented in #73: monotonic elapsed-time rejection before success, after caller cancellation; shared budget and preview exclusion preserved | Six deterministic negative cases fail on original production bytes, with 71 controls passing; repaired source passes all 77 focused cases. Fresh Windows validation and independent Claude review required; see [runtime record](EXPERIMENTAL-RUNTIME-2026.10.10.md) |
+
 | AST-20261010-23 | Astra / mailbox capacity review on #89 at `4d262f9` (P2) | The review dropped each source's digest, source mode, interval, status and limitations, and the licence section's failed state and reason | Fixed by Claude on `claude/mailbox-capacity-report-2026-10-10`: immutable summaries of both validated sources, each with its section's status, error and limitations; the licence index keeps copied metadata, not the caller's object | Provenance and failed-licence cases added; mutations dropping limitations, section error, digest or the copy each fail. Re-review and Windows CI pending |
 | AST-20261010-24 | Astra / mailbox capacity review on #89 at `4d262f9` (P3) | A failed archive-state read became NotAttempted | Fixed by Claude on the same branch: only an archive read as absent is NotAttempted; otherwise the supplied state is kept | Restoring the old mapping fails the archive case. Re-review pending |
 
@@ -237,3 +238,31 @@ State at 8 October 2026 (after #42, #44, #43 and #45 merged): the Response colum
 | CLA-20261008-17 | Claude / #45 | P3 hardening: createdump.exe exemption matches anywhere in tree (Test-Portable.ps1:71) | Fixed by Claude in #50 (`765f4e7`), at William's request; merged into #45's branch by `f0eac0b`; integrated with #45 at `865e1a1` (exact-head Windows push 37830266874 success; merge-commit push 37831138250 success) | Review doc; human/live acceptance open |
 | CLA-20261008-18 | Claude / #45 | P3 confirmed: INT-074 still 'proposed' in DECISION-LOG/contracts; Build-Portable.ps1 header stale | Fixed by Claude in #50 (`765f4e7`), at William's request; merged into #45's branch by `f0eac0b`; integrated with #45 at `865e1a1` (exact-head Windows push 37830266874 success; merge-commit push 37831138250 success) | Review doc; human/live acceptance open |
 | CLA-20261008-19 | Claude / #45 | P3 confirmed by reasoning: standalone self-contained CLI publish silently builds a library (Cli.csproj:8) | Fixed by Claude in #50 (`765f4e7`), at William's request; merged into #45's branch by `f0eac0b`; integrated with #45 at `865e1a1` (exact-head Windows push 37830266874 success; merge-commit push 37831138250 success) | Review doc; human/live acceptance open |
+
+
+## Astra desktop report-browser authoring review — 10 October 2026, PR #80
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-12 | Astra / desktop saved-report browser (P2) | Initial authoring source GraphReportEvidenceBrowser.List treated DirectoryNotFound/FileNotFound after folder admission as a complete empty-folder result, even after entries had been inspected | Fixed in initial committed source bc9d119: only absence before admission is complete; later failures retain entries and report INCOMPLETE | Exact fixed Browser portable diagnostic passes 3/3; original catch behaviour with only enumeration seam fails both disappearing-path cases. Pre-fix diagnostic SHA-256 c6099c4f2702f5d8e28694ed97ecf524069636cf490ebdbff336dfbbe7b58fe9 identifies the uncommitted authoring diagnostic, not an earlier published source revision. Two List-level App regressions executed in the 221-passing App suite on fe1b830, Windows push 38077389375. New-page native journeys and independent review pending |
+| AST-20261010-13 | Astra xhigh internal review / saved-report problem display, #80 (P2) | fe1b830 GraphReportsViewModel.cs:111 SelectedStored auto-property did not notify; selecting a damaged record could leave its failure reason hidden while Open stayed disabled | Implemented notifying selection setter and damaged-selection App/native regressions; Windows execution pending | Source-confirmed binding path; no original native failure execution claimed. Windows/current-head independent review pending |
+| AST-20261010-14 | Astra xhigh internal review / naming failure provenance, #80 (P2) | fe1b830 NamingAuditViewModel.cs:67–73 cleared accepted data before mapping review, but a subsequent exception skipped Summary/Provenance notification and could leave old accepted text visible | Implemented failure-finally notifications and prior-success/corrupt-mapping App/native regressions; Windows execution pending | Source-confirmed failure/notification path; attached ComboBox null selection is a separate unexecuted hypothesis. Windows/current-head independent review pending |
+
+
+## Astra populated Reports native follow-up — 10 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-16 | Native UI harness / Reports (P2) | Actual1180x760 client view at40eb1f21 shows only one fully visible populated report row | Table minimum, readable columns/cells, compact redundant spacing and blank-path layout repaired in #80; full details/provenance retained | Executed failure38080199959 at unchanged >=2 assertion. Strict compile passes; final Windows three-size/native/package and independent review remain required. |
+
+## Astra Naming small-window follow-up — 10 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-17 | Native UI harness / Naming (P2) | At e4ab3cd,1180×640 table bounds are179 high but only76 visible, with no complete populated rows | Local compact spacing/filter margins and150-DIP table minimum implemented in #80; all guidance/provenance retained | Actual failing push38081012364. Strict compile passes; new exact-head Windows/native/package and Claude review remain required. Reports passes its unchanged >=2 assertion at all3 sizes in this failed overall run. |
+
+## Astra Reports authentication interaction review — 10 October 2026, PR #80
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-22 | Astra / Reports and existing silent renewal (P2, confirmed) | At 480634370203dff9307d738be4c954c4280bb0a8, GraphReportsController.cs:40–41 and :77 use stale connection-time expiry as read lifetime, preventing provider renewal or discarding a successful stable read | Remove natural elapsed-time gate; keep timestamp parsing/context mutation refusal, invalidated authority and independent write opt-in expiry | Unchanged exact-controller stub reproduces zero-read preflight and post-read result loss. Fixed real-controller portable cases 9/9 and actual MSAL renewal cases 11/11 pass; original controller fails both added temporal positives. Strict App compilation passes; exact-source Windows execution, Claude review and live acceptance remain open |

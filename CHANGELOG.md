@@ -2,6 +2,12 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 
+- Keep connected read-only Reports usable after the original token expiry: the existing guarded provider owns silent renewal. Preserve malformed-context, identity/scope/selection refusals and the separate expiry of experimental write approval.
+
+- Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
+
+- Add desktop Tenant reports and Naming and ownership pages over existing collectors, immutable evidence and full HTML/JSON/CSV/Excel exporters. Group the existing navigation and retain every workflow key/step; new native journeys verify unknown/partial/failed/zero results, damaged-record reasons and full exports. No new permissions or tenant access; exact Windows/native validation and independent review remain required.
+
 - Pin configured sign-in timeout forwarding through the real sign-in path with synthetic acquisition and distinguish acquisition time from permission-review time in the live run sheet (CLA-20261010-75/76).
 
 - Refuse sign-in results that arrive at or after the acquisition deadline even when timer cancellation is delayed. Preserve the shared silent/fallback budget, preview time exclusion and caller cancellation.
@@ -372,3 +378,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 ### Standards
 - Catalogue schema v3 with expected production state and safe deployment state per control; 45 controls (12 automated recipes) carried over from Tenant Console 2026.09.2 and enriched with severity, business impact, engineer action, licence and manual instructions.
 - SHA-256 manifest integrity check (documented as a digest, not a signature).
+
+- Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
