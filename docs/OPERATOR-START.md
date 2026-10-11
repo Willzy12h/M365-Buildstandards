@@ -109,3 +109,11 @@ The offline command `bdit.cmd report-evidence --input "report.json" --tenant <ex
 ### Check this portable folder offline
 
 In Settings and diagnostics, expand Offline prerequisite checks and choose Run offline checks. Read each finding and next step; Required Unknown or Fail means local readiness is unconfirmed. Cancel stops only this check, and Copy local result copies the completed findings. These local checks do not sign in, run scripts, repair the computer or certify deployment authority. The equivalent command is `bdit doctor`.
+
+## Run a registered read-only Exchange report
+
+Under **Scripts → Run reports**, select the registered mailbox report and an approved installed PowerShell runtime. Connect to the selected client first, review **Verified connection and prerequisites**, then deliberately enable **experimental read-only runs for this connection**. This starts off and is separate from deployment access; no consent or module installation is granted here.
+
+Fill in the typed values and choose **Review**. Read **Exact review**, tick its separate approval and choose **Run**. Changing the client, account, runtime or values requires a new review. Exchange sign-in is separate from Graph and may require Microsoft CA/MFA/consent. Page navigation does not sign in. If application control blocks execution, ask the security owner; do not change policy or switch hosts to evade the block.
+
+Read **Outcome** and its original source/read states. Cancel waits for this owned run to stop; a cancelled or failed read is not an empty result. **Copy outcome**, **Copy evidence JSON** and **Save evidence** are deliberate local actions after completion. If saving is unconfirmed, inspect saved evidence and folder access first; an existing record is never overwritten and Save does not rerun the report. The separate **Scripts & Reports** page continues Copy/Save only, including all Exchange change proposals. Run is experimental/live-unverified until accepted.
