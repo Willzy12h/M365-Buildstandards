@@ -3,6 +3,7 @@
 
 ### Pending source — read-only Run workflow, PR #93
 
+- Keep the complete Run outcome and local-output guidance reachable at smaller windows with a bounded scrolling panel; retain the native 120-pixel outcome and clipping checks.
 - Add a separate experimental Run reports page for registered schema-2 reads, with exact single-use review, owned cancellation, truthful outcomes and deliberate local outputs. Existing Copy/change items remain Copy/Save only.
 - Reuse the existing runner/catalogue/store and correct its runnable manifest limitation/pin. No authentication-cache, permission, write, version or publication change. Source/synthetic checks pass; independent review and actual Windows/native/live acceptance remain pending.
 
