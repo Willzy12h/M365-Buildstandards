@@ -9,6 +9,34 @@ namespace BDIT.TenantToolkit.Tests;
 
 public sealed class MailboxCapacityPageTests
 {
+    [Fact]
+    public async Task Collection_shortcuts_navigate_without_authentication_evidence_selection_or_busy_execution()
+    {
+        using var f = new ConnectedReportsFixture(false);
+        var shell = new ShellViewModel(f.Workspace); var page = shell.Page<MailboxCapacityViewModel>();
+        shell.Navigate("mailbox-capacity");
+        var profile = f.Workspace.Profile; var standard = f.Workspace.Standard;
+        page.OpenMailboxCollectionCommand.Execute(null);
+        var run = Assert.IsType<RunReportsViewModel>(shell.CurrentPage);
+        Assert.False(run.ExperimentalReadEnabled); Assert.False(run.HasReview); Assert.False(run.Approved);
+        shell.Navigate("mailbox-capacity"); page.OpenLicenceCollectionCommand.Execute(null);
+        Assert.IsType<GraphReportsViewModel>(shell.CurrentPage);
+        Assert.Null(page.SelectedMailbox); Assert.Null(page.SelectedLicence); Assert.Empty(page.Rows);
+        Assert.Contains("No source is selected automatically", page.CollectionGuidance);
+        await f.Workspace.RunExclusiveAsync("synthetic active task", _ =>
+        {
+            var current = shell.CurrentPage;
+            Assert.False(page.OpenMailboxCollectionCommand.CanExecute(null));
+            Assert.False(page.OpenLicenceCollectionCommand.CanExecute(null));
+            page.OpenMailboxCollectionCommand.Execute(null); page.OpenLicenceCollectionCommand.Execute(null);
+            Assert.Same(current, shell.CurrentPage);
+            return Task.CompletedTask;
+        });
+        Assert.Same(profile, f.Workspace.Profile); Assert.Same(standard, f.Workspace.Standard);
+        Assert.Null(f.Workspace.Snapshot); Assert.Null(f.Workspace.Plan); Assert.Null(f.Workspace.Connection);
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls); Assert.False(shell.HasError);
+    }
+
     private static string Fixture(string family) => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../build/test-fixtures/mailbox-capacity-" + family + ".json"));
     private static MailboxCapacityViewModel Supplied(ConnectedReportsFixture f)
     {

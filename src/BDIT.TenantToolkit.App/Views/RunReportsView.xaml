@@ -69,6 +69,8 @@
                   <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                     <WrapPanel><Button Content="Copy outcome" Command="{Binding CopyOutcomeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy evidence JSON" Command="{Binding CopyEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Save evidence" Command="{Binding SaveEvidenceCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
                     <TextBlock Text="{Binding LocalOutputGuidance}" Style="{StaticResource Muted}"/>
+                    <Button Content="Open mailbox capacity" Command="{Binding OpenMailboxCapacityCommand}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open mailbox capacity evidence review" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MailboxReviewGuidance}"/>
+                    <TextBlock Text="{Binding MailboxReviewGuidance}" Style="{StaticResource Muted}"/>
                   </StackPanel>
                   <TextBox Text="{Binding Output, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontSize="12" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Read-only run outcome"/>
                 </DockPanel>

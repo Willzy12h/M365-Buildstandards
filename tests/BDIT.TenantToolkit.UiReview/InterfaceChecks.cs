@@ -734,6 +734,8 @@ internal static partial class Program
         ("ScriptsViewModel.SaveScriptCommand", Press),
 
         ("MailboxCapacityViewModel.RefreshSourcesCommand", Press),
+        ("MailboxCapacityViewModel.OpenMailboxCollectionCommand", Press),
+        ("MailboxCapacityViewModel.OpenLicenceCollectionCommand", Press),
         ("MailboxCapacityViewModel.ReviewCommand", Press),
         ("MailboxCapacityViewModel.ChooseMailboxCommand", FilePicker),
         ("MailboxCapacityViewModel.ChooseLicenceCommand", FilePicker),
@@ -809,6 +811,7 @@ internal static partial class Program
         ("SettingsViewModel.CancelOfflineDiagnosticCommand", Disabled),
         ("SettingsViewModel.CopyOfflineDiagnosticCommand", Clipboard),
         ("RunReportsViewModel.ReviewCommand", Press),
+        ("RunReportsViewModel.OpenMailboxCapacityCommand", Press),
         ("RunReportsViewModel.RunCommand", SignIn),
         ("RunReportsViewModel.CancelCommand", Disabled),
         ("RunReportsViewModel.SaveEvidenceCommand", Disabled),

@@ -20,6 +20,11 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
               <StackPanel Margin="10">
                 <TextBlock Text="Pair one mailbox inventory with one users/licences report for the selected tenant. Existing source records remain immutable; saved and supplied source claims are unverified." TextWrapping="Wrap" FontSize="12"/>
+                <WrapPanel Margin="0,5,0,2">
+                  <Button Content="Open mailbox collection" Command="{Binding OpenMailboxCollectionCommand}" Margin="0,2,6,2" AutomationProperties.Name="Open mailbox inventory collection page" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding CollectionGuidance}"/>
+                  <Button Content="Open users/licences collection" Command="{Binding OpenLicenceCollectionCommand}" Margin="0,2" AutomationProperties.Name="Open users and licences collection page" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding CollectionGuidance}"/>
+                </WrapPanel>
+                <TextBlock Text="{Binding CollectionGuidance}" TextWrapping="Wrap" FontSize="11"/>
                 <Button Content="Refresh saved source lists" Command="{Binding RefreshSourcesCommand}" HorizontalAlignment="Left" Margin="0,5" ToolTipService.ShowOnDisabled="True" ToolTip="Select a client and wait for the current operation. Listing uses only local evidence."/>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <StackPanel Margin="0,0,12,0">

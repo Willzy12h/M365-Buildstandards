@@ -61,6 +61,8 @@ public sealed class MailboxCapacityViewModel : PageViewModel
         ExportXlsxCommand = Command(() => ExportAsync(ExportFormat.Xlsx), CanExport);
         CopyRowCommand = Sync(() => { RequireAccepted(); if (SelectedRow is null) throw new ToolkitException("Select a mailbox first."); Shell.CopyToClipboard(SelectedDetails); }, () => CanExport() && SelectedRow is not null);
         CopyProvenanceCommand = Sync(() => { RequireAccepted(); Shell.CopyToClipboard(Provenance); }, CanExport);
+        OpenMailboxCollectionCommand = Sync(() => OpenCollectionPage("run-reports"), CanUseContext);
+        OpenLicenceCollectionCommand = Sync(() => OpenCollectionPage("reports"), CanUseContext);
         Refresh();
     }
     public IReadOnlyList<string> SourceModes { get; } = ["Saved record", "Supplied file"];
@@ -95,6 +97,9 @@ public sealed class MailboxCapacityViewModel : PageViewModel
     public string LastExport { get; private set; } = "";
     public string ReviewGuidance => Workspace.Profile is null ? ContextSummary : !Workspace.Idle ? "Wait for the current operation to finish." : SelectionProblem.Length == 0 ? "Review these two historical files locally; no tenant connection is needed." : SelectionProblem;
     public string ExportGuidance => _document is null ? "Review a valid source pair before exporting or copying provenance." : !Workspace.Idle ? "Wait for the current operation to finish." : "Exports contain the full derived review and source provenance. JSON includes both unchanged original source records; it is not new evidence.";
+    public string CollectionGuidance => Workspace.Profile is null ? "Select a client in Connect first. You can then choose existing evidence or deliberately collect the two reports."
+        : !Workspace.Idle ? "Wait for the current operation before opening a collection page."
+        : "Need source evidence? Open Run reports for mailbox inventory and Tenant reports for users/licences. These buttons only open pages; connect, review and collect there deliberately. Return here, refresh the saved lists and select both records. No source is selected automatically.";
     private string SelectionProblem => MailboxSupplied ? string.IsNullOrWhiteSpace(MailboxFile) ? "Choose the supplied mailbox inventory file." : LicenceProblem
         : SelectedMailbox is null ? "Select a saved mailbox inventory or choose Supplied file." : !SelectedMailbox.CanOpen || !MailboxRecords.Contains(SelectedMailbox) ? SelectedMailbox.Problem.Length == 0 ? "Refresh and select a mailbox record from this listing." : SelectedMailbox.Problem : LicenceProblem;
     private string LicenceProblem => LicenceSupplied ? string.IsNullOrWhiteSpace(LicenceFile) ? "Choose the supplied users/licences file." : ""
@@ -109,6 +114,13 @@ public sealed class MailboxCapacityViewModel : PageViewModel
     public ICommand ExportXlsxCommand { get; }
     public ICommand CopyRowCommand { get; }
     public ICommand CopyProvenanceCommand { get; }
+    public ICommand OpenMailboxCollectionCommand { get; }
+    public ICommand OpenLicenceCollectionCommand { get; }
+    private void OpenCollectionPage(string key)
+    {
+        if (!CanUseContext()) return;
+        Shell.Navigate(key);
+    }
     private bool CanUseContext() => Workspace.Idle && Workspace.Profile is not null && _guard.ContextKey == _context;
     private bool CanExport() => CanUseContext() && _document is not null;
     private void RequireContext()
@@ -171,7 +183,7 @@ public sealed class MailboxCapacityViewModel : PageViewModel
     }
     private void Notify()
     {
-        foreach (var name in new[] { nameof(MailboxSupplied), nameof(LicenceSupplied), nameof(MailboxListing), nameof(LicenceListing), nameof(ContextSummary), nameof(Summary), nameof(SourceTimes), nameof(Provenance), nameof(FilterSummary), nameof(SelectedDetails), nameof(LastExport), nameof(ReviewGuidance), nameof(ExportGuidance) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(MailboxSupplied), nameof(LicenceSupplied), nameof(MailboxListing), nameof(LicenceListing), nameof(ContextSummary), nameof(Summary), nameof(SourceTimes), nameof(Provenance), nameof(FilterSummary), nameof(SelectedDetails), nameof(LastExport), nameof(ReviewGuidance), nameof(ExportGuidance), nameof(CollectionGuidance) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

@@ -31,6 +31,7 @@ public sealed class RunReportsViewModel : PageViewModel
         SaveEvidenceCommand = Safe(() => Workflow?.SaveEvidence(), () => Workspace.Idle && Workflow?.CanSave == true);
         CopyOutcomeCommand = Safe(() => PutOnClipboard(Workflow!.Output), () => Workspace.Idle && Workflow is { IsRunning: false, Output.Length: > 0 });
         CopyEvidenceCommand = Safe(() => PutOnClipboard(Workflow!.EvidenceJson), () => Workspace.Idle && Workflow is { IsRunning: false, EvidenceJson.Length: > 0 });
+        OpenMailboxCapacityCommand = Safe(() => Shell.Navigate("mailbox-capacity"), () => Workspace.Idle && Workspace.Profile is not null);
         Workspace.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(Workspace.Busy)) Refresh(); };
     }
 
@@ -45,6 +46,7 @@ public sealed class RunReportsViewModel : PageViewModel
     public ICommand SaveEvidenceCommand { get; }
     public ICommand CopyOutcomeCommand { get; }
     public ICommand CopyEvidenceCommand { get; }
+    public ICommand OpenMailboxCapacityCommand { get; }
     internal Action<string> PutOnClipboard { get; set; } = System.Windows.Clipboard.SetText;
 
     private RelayCommand Safe(Action work, Func<bool> canExecute) => new(() =>
@@ -109,6 +111,9 @@ public sealed class RunReportsViewModel : PageViewModel
         : Workflow.SavedFile.Length == 0 ? "Saving is unconfirmed; a disk copy may already exist. Inspect saved evidence and local access before explicitly choosing Save evidence. Copy sensitive evidence deliberately; no record is overwritten or run repeated."
         : "Evidence was saved once locally. Save is disabled to preserve that immutable record. Copy outcome or sensitive evidence deliberately; no upload is performed.";
     public string Message => _localMessage.Length > 0 ? _localMessage : Workflow?.Message ?? ContextText;
+    public string MailboxReviewGuidance => !Workspace.Idle ? "Wait for the active task to finish before opening mailbox capacity."
+        : Workspace.Profile is null ? "Select a client in Connect before reviewing its mailbox evidence."
+        : "Open Mailbox capacity to review a saved or supplied mailbox inventory alongside a users/licences report. Collect licences separately in Tenant reports if needed. Refresh the saved lists and explicitly select both source records; opening the page does not collect or choose evidence.";
     public string Output => Workflow?.Output ?? "";
     public bool CanReview => Workspace.Idle && HasSelection && IsValid && Workflow is { Enabled: true, IsRunning: false };
     public bool CanRun => CanReview && Approved && _shownReview is not null && ReferenceEquals(_shownReview, Workflow?.Review);
@@ -157,7 +162,7 @@ public sealed class RunReportsViewModel : PageViewModel
         if (!ReferenceEquals(_shownReview, Workflow?.Review)) { _shownReview = null; _approved = false; }
         foreach (var name in new[] { nameof(ExperimentalReadEnabled), nameof(CanOptIn), nameof(Approved), nameof(HasReview), nameof(ReviewText),
             nameof(HasSelection), nameof(IsValid), nameof(HasProblems), nameof(Requirements), nameof(ContextText), nameof(Availability),
-            nameof(LocalOutputGuidance), nameof(Message), nameof(Output), nameof(CanReview), nameof(CanRun) }) OnPropertyChanged(name);
+            nameof(LocalOutputGuidance), nameof(MailboxReviewGuidance), nameof(Message), nameof(Output), nameof(CanReview), nameof(CanRun) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

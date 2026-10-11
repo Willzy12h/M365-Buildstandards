@@ -41,6 +41,19 @@ internal static partial class Program
         foreach (var size in PageSizes)
         {
             traces.Context = "native mailbox capacity " + size;
+            shell.Navigate("mailbox-capacity"); FitNativeReportClientSize(window, content, size);
+            var navigation = shell.Page<MailboxCapacityViewModel>(); navigation.SelectedTab = 0;
+            content.UpdateLayout(); Pump();
+            CaptureReportState(content, output, "mailbox-capacity-source-path", size);
+            var run = shell.Page<RunReportsViewModel>();
+            var enabled = run.ExperimentalReadEnabled; var review = run.HasReview; var approved = run.Approved;
+            PressOfflineReportCommand(shell, navigation.OpenMailboxCollectionCommand, "open mailbox collection page only");
+            if (!ReferenceEquals(shell.CurrentPage, run) || run.ExperimentalReadEnabled != enabled || run.HasReview != review || run.Approved != approved)
+                throw new InvalidOperationException("Mailbox collection navigation changed Run authorisation or failed to open its page.");
+            PressOfflineReportCommand(shell, run.OpenMailboxCapacityCommand, "return to mailbox capacity without collection");
+            if (!ReferenceEquals(shell.CurrentPage, navigation)) throw new InvalidOperationException("Run did not return to mailbox review.");
+            PressOfflineReportCommand(shell, navigation.OpenLicenceCollectionCommand, "open licence collection page only");
+            if (shell.CurrentPage is not GraphReportsViewModel) throw new InvalidOperationException("Licence collection shortcut opened the wrong page.");
             shell.Navigate("mailbox-capacity"); SeedMailboxCapacityPage(shell); FitNativeReportClientSize(window, content, size);
             var page = shell.Page<MailboxCapacityViewModel>(); var where = "native mailbox capacity " + size;
             if (page.Rows.Count != 2 || !page.Summary.Contains("Partial", StringComparison.Ordinal) || !page.Rows.Any(row => row.Configured == "Yes" && row.Entitlement == "Eligible")
