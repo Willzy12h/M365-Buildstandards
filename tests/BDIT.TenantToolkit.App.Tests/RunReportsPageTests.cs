@@ -116,7 +116,11 @@ public sealed class RunReportsPageTests : IDisposable
         Assert.True(_page.SaveEvidenceCommand.CanExecute(null)); _page.SaveEvidenceCommand.Execute(null);
         _page.PutOnClipboard = _ => throw new InvalidOperationException(secret); _page.CopyOutcomeCommand.Execute(null);
         Assert.DoesNotContain(secret, _page.Message + _page.Output + _shell.ErrorMessage);
-        _logger.Flush(); Assert.DoesNotContain(secret, File.ReadAllText(Assert.IsType<string>(_logger.FilePath)));
+        _logger.Flush();
+        // The synchronous logger keeps its write handle open. A Windows reader must permit that access too.
+        using var stream = new FileStream(Assert.IsType<string>(_logger.FilePath), FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        Assert.DoesNotContain(secret, reader.ReadToEnd());
     }
     public void Dispose() { _logger.Dispose(); _f.Dispose(); }
 }

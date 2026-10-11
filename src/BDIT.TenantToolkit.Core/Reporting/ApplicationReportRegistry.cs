@@ -7,6 +7,7 @@ public static class ApplicationReportRegistry
 {
     public const int SchemaVersion = 2;
     public const string AdapterVersion = "registered-graph-application-report/1";
+    public const string ExpiryAdapterVersion = "registered-graph-application-expiry/2";
     public const int MaximumRows = GraphReportRegistry.MaximumRows;
     public const int MaximumCredentials = 256;
     public const int MaximumOwners = 100;
@@ -20,7 +21,11 @@ public static class ApplicationReportRegistry
     public sealed record Route(string Path, string Scope);
     public sealed record Section(string Id, Type RowType, bool GuidIdentity);
     public sealed record Definition(string Id, string Name, Type EnvelopeType, IReadOnlyList<Section> Sections,
-        IReadOnlyList<Route> Routes, string Reference, string Limitations);
+        IReadOnlyList<Route> Routes, string Reference, string Limitations)
+    {
+        public int ReportSchemaVersion => Id == "application-expiry" ? 2 : 1;
+        public string RegisteredAdapter => Id == "application-expiry" ? ExpiryAdapterVersion : AdapterVersion;
+    }
     private static Definition Make(string id, string name, Type type, Section[] sections, Route[] routes, string reference, string limitations)
         => new(id, name, type, Array.AsReadOnly(sections), Array.AsReadOnly(routes), reference, limitations);
     public static IReadOnlyList<Definition> Definitions { get; } = Array.AsReadOnly(new[]

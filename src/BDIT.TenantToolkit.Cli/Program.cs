@@ -123,7 +123,7 @@ public static class Program
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
 
-              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>]
+              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
                   Validates its recorded tenant, schema and integrity before writing an export.
                   Formats: html, json, csv (ZIP of sections), xlsx. Default html.
@@ -411,9 +411,11 @@ public static class Program
 
     private static int ReportEvidenceExport(IReadOnlyDictionary<string, string> options)
     {
-        var allowed = new[] { "input", "tenant", "format", "root" };
+        var allowed = new[] { "input", "tenant", "format", "root", "historical" };
         if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.OrdinalIgnoreCase)))
-            throw new ConfigurationException("Report evidence exports accept only --input, --tenant, --format and --root. No collection or execution is supported.");
+            throw new ConfigurationException("Report evidence exports accept only --input, --tenant, --format, --root and --historical. No collection or execution is supported.");
+        if (options.TryGetValue("historical", out var historicalValue) && historicalValue.Length != 0)
+            throw new ConfigurationException("--historical is an explicit flag without a value, for limited original expiry revision-1 inspection only.");
         var tenant = Require(options, "tenant");
         if (!ProfileValidator.IsGuid(tenant)) throw new ConfigurationException("--tenant must name the expected tenant GUID.");
         var file = Require(options, "input");
@@ -421,8 +423,10 @@ public static class Program
         var format = Format(options, ExportFormat.Html);
         if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
             throw new ConfigurationException("Report evidence exports as html, json, csv or xlsx.");
-        var report = ReportEnvelopeDispatcher.ReadFile(file, tenant);
+        var report = options.ContainsKey("historical") ? ReportEnvelopeDispatcher.ReadHistoricalFile(file, tenant) : ReportEnvelopeDispatcher.ReadFile(file, tenant);
         var context = Context.Open(options);
+        if (report.AssuranceNotice.Length > 0)
+            Console.WriteLine(report.AssuranceNotice + ". Historical JSON exports bundle original bytes and a warning; current owner validation is unavailable for this revision.");
         Console.WriteLine(report.Export(context.Exporter, format, suppliedFile: true));
         var state = report.Schema1?.Status ?? report.Schema2!.Status;
         var started = report.Schema1?.StartedAt ?? report.Schema2!.StartedAt;
