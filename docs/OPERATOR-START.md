@@ -112,8 +112,20 @@ In Settings and diagnostics, expand Offline prerequisite checks and choose Run o
 
 ## Run a registered read-only Exchange report
 
-Under **Scripts → Run reports**, select the registered mailbox report and an approved installed PowerShell runtime. Connect to the selected client first, review **Verified connection and prerequisites**, then deliberately enable **experimental read-only runs for this connection**. This starts off and is separate from deployment access; no consent or module installation is granted here.
+Under **OPERATE → Run reports**, select the registered mailbox report and an approved installed PowerShell runtime. Connect to the selected client first, review **Verified connection and prerequisites**, then deliberately enable **experimental read-only runs for this connection**. This starts off and is separate from deployment access; no consent or module installation is granted here.
 
 Fill in the typed values and choose **Review run**. Read **Exact review**, tick its separate approval and choose **Run**. Changing the client, account, runtime or values requires a new review. Exchange sign-in is separate from Graph and may require Microsoft CA/MFA/consent. Page navigation does not sign in. If application control blocks execution, ask the security owner; do not change policy or switch hosts to evade the block.
 
 Read **Outcome** and its original source/read states. Cancel waits for this owned run to stop; a cancelled or failed read is not an empty result. **Copy outcome**, **Copy evidence JSON** and **Save evidence** are deliberate local actions after completion. If saving is unconfirmed, inspect saved evidence and folder access first; an existing record is never overwritten and Save does not rerun the report. The separate **Scripts & Reports** page continues Copy/Save only, including all Exchange change proposals. Run is experimental/live-unverified until accepted.
+
+Choose **Open mailbox capacity** in Outcome to continue to quota and eligibility review. It opens the historical review page without collecting, selecting a source or changing Run approval. You still need a separately collected users/licences report and must explicitly choose both records.
+
+## Review mailbox size, quotas and 100 GB eligibility
+
+Under **OPERATE → Mailbox capacity**, select the client for historical review. In **Choose sources**, choose saved records or supplied JSON separately for the registered mailbox inventory and **users/licences** report, then **Review selected source pair**. You can collect mailbox evidence deliberately through **Run reports** and licensing through **Tenant reports**; this review page makes no tenant call or sign-in. Source times and limitations stay separate.
+
+If either source is missing, **Open mailbox collection** opens Run reports and **Open users/licences collection** opens Tenant reports. Connect and review the intended report on that page before deliberately collecting it; these shortcuts do not sign in, enable experimental access or start a read. Return to Mailbox capacity, choose **Refresh saved source lists**, and select both original records. Navigation never guesses which source pair to use.
+
+**Results** distinguishes observed 100 GB capacity, actual assigned-plan eligibility and unable-to-check cases. Select a mailbox for exact IDs and raw primary/archive values; Unlimited or failed reads are never converted to zero. A licence name alone does not prove configured quota. Use **Source provenance and limits** to inspect both source histories; an incomplete list is not evidence of no mailboxes. Historical eligibility may change and does not authorise a quota increase.
+
+**Export HTML**, **Export JSON**, **Export CSV ZIP** and **Export Excel** export every review row and original source provenance, even after a display filter. Derived JSON includes the two original records and is clearly labelled as review, not importable deployment evidence. Changing source/client/context clears the old review and requires a new selection. No quota, archive or licence setting is changed.

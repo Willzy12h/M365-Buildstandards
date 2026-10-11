@@ -22,6 +22,15 @@
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
+### Pending source — mailbox capacity review, PR #94
+
+- Keep Run outcome, local-output and mailbox-capacity guidance reachable at smaller windows with a bounded scrolling panel and a shared action row; retain the native viewport, clipping and keyboard checks.
+
+- Add explicit collection/review shortcuts between mailbox capacity, Run reports and Tenant reports, with two-source guidance and idle guards. Page navigation starts no read, signs in nobody, changes no Run approval and selects no evidence. Add App/native cases for these boundaries; actual Windows execution remains pending.
+
+- Add an offline mailbox size/quota/100 GB eligibility page pairing strict original mailbox and assigned-licence evidence. Preserve unknowns, raw Unlimited/archive values, independent source histories and full HTML/CSV/JSON/Excel review exports.
+- Wire it alongside the separate read-only Run page; retain existing workflow/evidence/write safeguards. No quota/licence mutation, live read, new evidence schema, version change or publication. Source/synthetic checks and strict crossbuilds pass; Windows/native/independent/live gates remain.
+
 ### Pending source — read-only Run workflow, PR #93
 
 - Keep the complete Run outcome and local-output guidance reachable at smaller windows with a bounded scrolling panel; retain the native 120-pixel outcome and clipping checks.

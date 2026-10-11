@@ -731,6 +731,16 @@ CLA-20261011-031 remains a Windows Files On-Demand hypothesis, not a reproduced 
 
 Complete Claude's explicitly unstarted handed-off screen using the existing catalogue/request/runner/store and a pure application workflow. A separate default-off read gate, exact consumed review, pinned context/input/output and owned cancellation preserve read/write separation; no new shared evidence contract/cache or generic script execution. The original Copy page's behaviour and all change items remain unchanged. Correct only the first runnable manifest's stale no-Run limitation and its pin. Actual save-refusal regression preserves existing immutable bytes and reports unconfirmed persistence rather than asserting no disk copy. [Slice record](READ-ONLY-RUN-WORKFLOW-2026.10.11.md) separates executed source tests/crossbuilds from pending independent/Windows/native/live gates.
 
+### INT-071 / INT-088 — Mailbox capacity presentation — 11 October 2026, PR #94
+
+Complete the explicitly handed-off offline page by reusing #89's strict paired-source evaluator, existing schemas/store and shared exporter writers. Frozen sources and full four-format derived exports preserve independent timing/status/identity; no new persisted evidence contract, authentication, collection or quota/licence mutation. Root composes both new navigation surfaces and keeps exact page/command/three-size assertions. [Implementation and actual validation](MAILBOX-CAPACITY-PRESENTATION-2026.10.11.md) separates full Linux limitations, available tests and crossbuilds from pending independent/Windows/native/live gates. Source is implemented/live-unverified, not accepted or published.
+
+## INT-098 — explicit mailbox collection/review navigation, 11 October 2026
+
+PR #94 continues its own presentation claim with three shortcuts between Mailbox capacity, Run reports and Tenant reports. Engineers need two independently collected sources to assess configured quota and assigned-plan eligibility. Navigation opens the existing page only: it never signs in, collects, selects a source, enables experimental access or changes exact Run approval. Busy/stale-context shortcuts refuse direct invocation as well as disabling the button. Existing context and source readers remain authoritative; no schema, permission, runner or shared execution contract changes.
+
+Add App cases for zero authentication/collection, unchanged approval and busy refusal, plus native command registration and three-size journey cases. Strict Linux App.Tests/harness cross-compilation passed with zero warnings/errors; Windows execution and independent review remain pending. Historical engine/synthetic evidence is preserved for unchanged engine bytes, not presented as execution of these new Windows cases.
+
 ### INT-096 offline CLI historical admission — 11 October 2026, PR #92
 
 Expose the shared limited historical expiry reader only through explicit `bdit report-evidence --historical`, with no value accepted and no fallback on the normal path. The CLI prints the assurance notice and every derived export carries it; historical JSON bundles byte-identical source bytes with its warning. Current expiry and consent cannot be downgraded through that flag. Migrate synthetic UI fixtures to the registered revision/counts without changing desktop implementation. Human/live acceptance remains separate.

@@ -76,6 +76,7 @@ internal static partial class Program
             if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
             content.DataContext = shell;
             SeedWorkspace(workspace);
+            SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
             SeedGraphReportEvidence(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
@@ -83,7 +84,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "reports", "naming" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -309,6 +310,7 @@ internal static partial class Program
             {
                 CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+                CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }
             foreach (var nav in shell.NavItems)
@@ -539,6 +541,7 @@ internal static partial class Program
 
     private static void SeedPage(ShellViewModel shell, string key)
     {
+        if (key == "mailbox-capacity") SeedMailboxCapacityPage(shell);
         if (key == "connect" && shell.Page<ConnectViewModel>().AccountMatches.Count == 0) SeedConnect(shell.Page<ConnectViewModel>());
         if (key == "recovery")
         {

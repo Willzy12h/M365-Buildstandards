@@ -88,6 +88,8 @@ public sealed class ShellViewModel : ObservableObject
         AddNav("OPERATE", "scripts", "", "Scripts & Reports");
         // Registered read-only reports run here only after a per-connection opt-in and an exact review and approval.
         AddNav("OPERATE", "run-reports", "", "Run reports");
+        // Offline review of saved mailbox and licence evidence; it reads nothing from the tenant.
+        AddNav("OPERATE", "mailbox-capacity", "", "Mailbox capacity");
         AddNav("OPERATE", "jobs", "", "Jobs and completion");
         AddNav("EVIDENCE & REFERENCE", "history", "", "Evidence and drift");
         AddNav("EVIDENCE & REFERENCE", "recovery", "", "Undo and recovery");
@@ -111,6 +113,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["scripts"] = new ScriptsViewModel(this);
         _pages["run-reports"] = new RunReportsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
+        _pages["mailbox-capacity"] = new MailboxCapacityViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);

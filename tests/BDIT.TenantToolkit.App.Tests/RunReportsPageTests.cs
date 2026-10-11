@@ -35,6 +35,26 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Mailbox_review_shortcut_does_not_run_select_sources_or_invalidate_exact_review()
+    {
+        Approve(); var review = _f.Workflow.Review; var connection = _workspace.Connection;
+        _page.OpenMailboxCapacityCommand.Execute(null);
+        var capacity = Assert.IsType<MailboxCapacityViewModel>(_shell.CurrentPage);
+        Assert.Null(capacity.SelectedMailbox); Assert.Null(capacity.SelectedLicence); Assert.Empty(capacity.Rows);
+        Assert.Same(review, _f.Workflow.Review); Assert.True(_page.Approved); Assert.True(_page.HasReview);
+        Assert.Equal(0, _f.Calls); Assert.Null(_f.Workflow.Result);
+        await _workspace.RunExclusiveAsync("synthetic active task", _ =>
+        {
+            _shell.Navigate("home"); var current = _shell.CurrentPage;
+            Assert.False(_page.OpenMailboxCapacityCommand.CanExecute(null));
+            _page.OpenMailboxCapacityCommand.Execute(null); Assert.Same(current, _shell.CurrentPage);
+            return Task.CompletedTask;
+        });
+        Assert.Same(connection, _workspace.Connection); Assert.Null(_workspace.Snapshot); Assert.Null(_workspace.Plan);
+        Assert.False(_workspace.ExperimentalChangesEnabled); Assert.Empty(_shell.ErrorMessage);
+    }
+
+    [Fact]
     public async Task Actual_commands_are_default_off_then_run_once_exclusively_without_write_opt_in_or_capture_plan_mutation()
     {
         var standard = _workspace.Standard; var profile = _workspace.Profile; var connection = _workspace.Connection;
