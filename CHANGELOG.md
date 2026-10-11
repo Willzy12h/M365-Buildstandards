@@ -13,8 +13,13 @@
 - Validate all stored deployment-run evidence before startup recovery changes any record. Refuse modified, missing-digest, unreadable or wrong-tenant history unchanged, preserving unresolved-write and single-use-plan blocks rather than automatically re-sealing altered results.
 
 - Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
+- Require truthful Partial headlines/provenance and visible truncation warnings in registered report export regressions; production exporters and limits remain unchanged (CLA-20261010-95/96).
 
-- Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; tampered records refuse every format before writing. Production export behaviour is unchanged.
+- Verify cap-reached report truncation reasons across JSON/HTML/CSV/XLSX, use explicit Partial unknown rows in scale fixtures, and assert CSV UTF-8 BOM and XLSX line breaks (Claude review follow-up #78; no production exporter change).
+
+- Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; unsealed edits refuse every format before writing. Production export behaviour is unchanged.
+
+- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
 - Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
 
@@ -33,6 +38,8 @@
 - Keep a known emergency-account problem visible when another identity read is unknown, and explain in-progress Managed Google Play unbinding without proposing another bind.
 
 - Add dedicated regression coverage for conflicting legacy disposition identities, unchanged refused-write history and truthful completion of preserved conflicting records; production workflow behaviour is unchanged.
+
+- Review mailbox capacity and Plan 2 eligibility for every mailbox in a sealed Exchange mailbox inventory against a sealed assigned-licence report for the same tenant (INT-071 over INT-088). Each value keeps its own read state, archive values apply only to an archive read as present, a failed archive read stays Failed, and a capped or incomplete list keeps its reason. Each source record keeps its digest, source mode, interval, status and limitations, so a failed licence read is never shown as an unlicensed user. Offline and pure: no read, record, quota change, UI or CLI is added.
 
 - Add the first runnable library item for the owned read-only runner (INT-088 slice 3): mailbox size, quotas and archive from Exchange Online, read only through the runner's gate. Each size, quota and archive value keeps its own read state, a value Exchange did not return is never zero or blank, `Unlimited` stays `Unlimited`, and an archive is recorded only from a non-empty archive GUID. The item has no Copy form and Run is not offered yet; the Copy library and its checks are unchanged. The registry moves to schema 2. No permission, sign-in or tenant access is added, and the adapter has not been run against a tenant.
 
