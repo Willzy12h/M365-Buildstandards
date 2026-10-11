@@ -1,5 +1,13 @@
 # Handover and priorities
 
+## Current continuation — 11 October 2026
+
+Use [CURRENT-STATE](CURRENT-STATE.md) for the actual queue. Claude completed all requested delta reviews and has no open implementation PRs. #78 merged as **724d9e0**; actual integration push **38134379280 failed with zero executed steps**. The last fully verified integration remains 0c963e2, run 38094369170. No candidate bytes/version/publication claim advances.
+
+**Next:** fix confirmed CLA-20261011-010 after decision #95 is independently reviewed and merged; finish handed-off Run #93 and mailbox presentation #94; complete further runnable adapters. #92's connected application presentation is implemented on its branch, with the engine defect still blocking integration. Existing authentication/Home/evidence/diagnostic work is preserved and independently reviewed; refresh only changed compositions. #91 reduces duplicate Actions work without weakening checks, and its publisher evidence wording is corrected.
+
+Do not merge further until real required Windows execution and integration-push proof are available. Claude's stale #89 claim remains for its owner to reconcile. New Windows renders, PS5.1/package checks, acceptance and William's release/live stop points remain open. The sections below are preserved historical checkpoints, not the current Next list.
+
 ## Start here — current continuation
 
 Read [CURRENT-STATE](CURRENT-STATE.md) for the concise source/PR/check snapshot and next work. Refresh integration and open PR heads before using it. The dated sections below are historical checkpoints; their old pending states and package proofs apply to their recorded revisions. Preserve them, but do not infer current capabilities from an older section. Required coordination, safeguards and exact-source verification remain unchanged.

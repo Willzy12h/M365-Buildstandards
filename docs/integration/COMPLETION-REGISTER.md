@@ -1,5 +1,9 @@
 # Current continuation — 11 October 2026
 
+## Latest continuation — 11 October 2026
+
+[Current source and queue](CURRENT-STATE.md) supersedes the dated pending lists below without deleting their evidence. Integration 724d9e0 includes #78, but actual push 38134379280 failed before any step ran. Last fully verified source/package remains 0c963e2. Claude's independent queue is completed; #87 has confirmed CLA-20261011-010, requiring decision #95 and subsequent source repair. Run #93 and mailbox presentation #94 are newly claimed implementation slices, not delivered capabilities. No broad feedback, human/live, candidate or publication gate is closed.
+
 Integration `1e06ccfdb156c759c40cba88589f2a7cc9048a63` remains unpublished Preview.19. Its actual push38095690739 failed before all three jobs executed any step. Last fully verified integration0c963e2/push38094369170 is historical proof, not proof of changed bytes. [CURRENT-STATE](CURRENT-STATE.md), [merge evidence](MERGE-EVIDENCE-2026.10.10.md) and [combined review packet](release-readiness/CLAUDE-HANDOFF-2026.10.11.md) identify the actual current work.
 
 | Product surface | Already present / added / fixed | Remaining source or validation |
