@@ -84,3 +84,5 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+| 2026-10-11 | Astra/Codex | M365-Buildstandards | Handed-off mailbox capacity presentation after CLAUDE-20261011-003: pure existing #89 evidence pairing/provenance, HTML/CSV/JSON/Excel derived review exports and readable mailbox detail/filter page; offline or supplied evidence only, no quota/licence changes or new evidence contract; sequential own shell composition | `astra/mailbox-capacity-presentation-2026-10-11` (integration `724d9e0`, then own #93 shell) | PR pending | Open |
