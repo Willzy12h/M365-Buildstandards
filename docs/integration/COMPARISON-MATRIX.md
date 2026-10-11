@@ -170,6 +170,11 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
+## Astra focused integrity follow-up — 10 October 2026
+
+PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
+
+PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.
 ## Permission-review timing — Astra follow-up, 10 October 2026
 
 PR #73 preserves the existing explicit-connect broker/cache selection while moving the cumulative acquisition budget outside the human permission-review interval (CLA-20261010-48 / AST-20261010-06). Eight deterministic timing cases and existing acquisition/renewal/guard cases pass locally (66 total); reinstating a whole-flow timer fails five. The WPF permission dialog now closes on operation cancellation, with two fresh native checks required on Windows. Strict native-harness cross-build passed; that is not native execution or live Microsoft proof.

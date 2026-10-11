@@ -2,11 +2,20 @@ name: Build and test
 
 # Every change, from any contributor or model, must build and pass the safety tests before it can be merged.
 # This is the check that keeps parallel work honest: an agent cannot claim a green build, only produce one.
-# Runs on every branch, so an upload to a review branch (for example incoming/*) is verified without a pull request.
+# Pull requests validate feature work once; integration/main merges and incoming review uploads retain independent push validation.
 on:
   push:
+    branches:
+      - integration
+      - main
+      - 'incoming/**'
   pull_request:
   workflow_dispatch:
+
+# Only obsolete feature/PR work is cancelled. Preserve each integration/main merge run and manual candidate proof.
+concurrency:
+  group: build-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/incoming/') && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/integration' && github.ref != 'refs/heads/main') }}
 
 permissions:
   contents: read
@@ -202,8 +211,9 @@ jobs:
           if-no-files-found: error
 
   standard:
+    # Platform-independent catalogue checks retain the same PowerShell assertions on the lower-cost Linux runner.
     # The Build Standard is data that drives writes to client tenants. It must stay loadable and safe.
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
