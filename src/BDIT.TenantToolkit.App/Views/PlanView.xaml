@@ -10,7 +10,7 @@
       <Grid Margin="28,24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel>
-          <TextBlock Text="05 / SELECT &amp; REVIEW" Style="{StaticResource Eyebrow}"/>
+          <TextBlock Text="BUILD 4 / SELECT &amp; REVIEW" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Plan changes" Style="{StaticResource H1}"/>
           <TextBlock Text="Choose eligible controls, build a plan and review the exact changes before deployment." Style="{StaticResource Lead}" Margin="0,0,0,12"/>
         </StackPanel>

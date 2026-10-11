@@ -16,17 +16,17 @@ public sealed class ReportNavigationTests
         Assert.Equal(19, shell.NavItems.Count);
         Assert.Single(shell.NavItems, n => n.Key == "home");
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
-        Assert.Equal(new[] { "Workspace", "Tenant", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
-        Assert.Equal(new[] { "overview", "connect", "configuration" }, shell.NavItems.Where(n => n.Group == "Tenant").Select(n => n.Key));
-        Assert.Equal(new[] { "setup", "settings" }, shell.NavItems.Where(n => n.Group == "Settings").Select(n => n.Key));
+        Assert.Equal(new[] { "CLIENT", "BUILD", "OPERATE", "EVIDENCE & REFERENCE" }, shell.NavItems.Select(n => n.Group).Distinct());
+        Assert.Equal(new[] { "home", "connect", "overview", "setup" }, shell.NavItems.Where(n => n.Group == "CLIENT").Select(n => n.Key));
+        Assert.Equal(new[] { "reports", "naming", "scripts", "jobs" }, shell.NavItems.Where(n => n.Group == "OPERATE").Select(n => n.Key));
         foreach (var group in shell.NavItems.GroupBy(n => n.Group))
         {
-            Assert.Equal(group.Key, group.First().GroupHeading);
-            Assert.All(group.Skip(1), n => Assert.Empty(n.GroupHeading));
+            Assert.True(group.First().IsGroupStart);
+            Assert.All(group.Skip(1), n => Assert.False(n.IsGroupStart));
         }
         var numbered = shell.NavItems.Where(n => int.TryParse(n.Step, out _)).ToDictionary(n => n.Key, n => n.Step);
-        Assert.Equal("1", numbered["connect"]); Assert.Equal("2", numbered["configuration"]); Assert.Equal("3", numbered["assessment"]);
-        Assert.Equal("4", numbered["deviations"]); Assert.Equal("5", numbered["plan"]); Assert.Equal("6", numbered["deploy"]);
+        Assert.Equal("1", numbered["configuration"]); Assert.Equal("2", numbered["assessment"]); Assert.Equal("3", numbered["deviations"]);
+        Assert.Equal("4", numbered["plan"]); Assert.Equal("5", numbered["deploy"]); Assert.Equal("6", numbered["automation"]);
         var seen = new HashSet<object>();
         foreach (var nav in shell.NavItems)
         {
