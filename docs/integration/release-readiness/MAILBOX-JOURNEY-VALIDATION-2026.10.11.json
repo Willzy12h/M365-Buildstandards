@@ -1,0 +1,68 @@
+{
+  "sourceSha": "35a8ae1b7daf96e5974af28e78e204ecb96aaf9c",
+  "integrationSha": "724d9e05cfd486c4af8fed733fac8f31ecccbfd3",
+  "sourceVersion": "1.1.0-preview.19",
+  "requirement": "Explicit collection-to-capacity navigation without authentication, collection, evidence selection or approval changes",
+  "implemented": "Three navigation-only commands with idle/context guards and explanatory text; guide matches visible buttons",
+  "newAppCases": {
+    "count": 2,
+    "status": "cross_compiled_not_executed",
+    "coverage": [
+      "zero authentication/collection and no automatic source selection",
+      "existing exact Run approval retained",
+      "busy direct invocation refused"
+    ]
+  },
+  "nativeCases": {
+    "sizes": 3,
+    "status": "cross_compiled_not_executed",
+    "coverage": [
+      "source-path snapshots",
+      "actual navigation command categories",
+      "collection/review transitions without changing Run approval"
+    ]
+  },
+  "commands": [
+    "dotnet build tests/BDIT.TenantToolkit.App.Tests/BDIT.TenantToolkit.App.Tests.csproj -c Release -p:EnableWindowsTargeting=true -warnaserror",
+    "dotnet build tests/BDIT.TenantToolkit.UiReview/BDIT.TenantToolkit.UiReview.csproj -c Release -p:EnableWindowsTargeting=true -warnaserror"
+  ],
+  "logs": [
+    {
+      "file": "app-crossbuild.log",
+      "sha256": "1c55ab4475437395bf96afaad008c733b442713ab33b15583030f3dc1d709a68",
+      "warnings": 0,
+      "errors": 0,
+      "result": "cross_compiled_not_executed"
+    },
+    {
+      "file": "native-crossbuild.log",
+      "sha256": "8fbddab24ea7e6b79ba902863b89c28a82789b9e2ab6c65669be07e3a9788761",
+      "warnings": 0,
+      "errors": 0,
+      "result": "cross_compiled_not_executed"
+    }
+  ],
+  "reusedEvidence": {
+    "sourceSha": "6d4f1bc1e5c60ff0b389319113b0c8e7da25bdfa",
+    "reason": "git diff verified no change in Core/Engine/Graph/CLI/scripts/build/Engine-CLI tests",
+    "availableEngineCliTestsPassed": 1972,
+    "historicalFullSuite": {
+      "passed": 2026,
+      "failed": 30,
+      "skipped": 0
+    },
+    "fullSuiteFailureReason": "Existing Linux runtime discovery searches non-writable standard prefixes; PowerShell exists in workspace, sudo unavailable. No test alteration or hidden exclusion."
+  },
+  "unrun": [
+    "new App cases",
+    "actual native renders/keyboard/accessibility",
+    "Windows PowerShell 5.1 and native package checks",
+    "live Microsoft behaviour"
+  ],
+  "openDefects": [
+    "CLA-20261011-010 in parent PR #87; decision #95 required before dependent repair"
+  ],
+  "candidateZip": null,
+  "humanApproval": null,
+  "liveApproval": null
+}
