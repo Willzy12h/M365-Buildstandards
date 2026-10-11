@@ -10,17 +10,20 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 /// <summary>Shared typed tables for CLI/desktop/HTML/CSV/XLSX; child metadata gets separate rows, never giant cells.</summary>
 public static class ApplicationReportDocuments
 {
-    public static IReadOnlyList<Sheet> Sheets(ApplicationReportEvidence report, bool suppliedFile = false)
+    public static IReadOnlyList<Sheet> Sheets(ApplicationReportEvidence report, bool suppliedFile = false, bool historical = false)
     {
-        ApplicationReportEvidenceSchema.Validate(report, report.TenantId);
+        if (historical) ApplicationReportEvidenceSchema.ValidateHistorical(report, report.TenantId);
+        else ApplicationReportEvidenceSchema.Validate(report, report.TenantId);
         var definition = ApplicationReportRegistry.Find(2, report.ReportId);
         var provenance = new Sheet("Report provenance", ["Field", "Value"]);
+        if (historical) provenance.Add("Assurance limitation", ApplicationReportEvidenceSchema.HistoricalOwnerNotice);
         if (suppliedFile) provenance.Add("Export provenance", RegisteredReportDocuments.SuppliedFileNotice);
         provenance.Add("Report", definition.Name); provenance.Add("Report ID", report.ReportId); provenance.Add("Envelope schema", "2");
         provenance.Add("Record ID", report.Id); provenance.Add("Tenant ID", report.TenantId); provenance.Add("Recorded account object ID", report.AccountObjectId ?? "Unknown historical account");
         provenance.Add("Resource", report.Resource); provenance.Add("Source mode", report.SourceMode); provenance.Add("Started at", report.StartedAt);
         provenance.Add("Fixed collection end", report.EndedAt); provenance.Add("Read status", report.Status); provenance.Add("Toolkit version", report.ToolkitVersion);
         provenance.Add("Adapter version", report.ModuleVersion); provenance.Add("Integrity digest", report.IntegrityDigest);
+        provenance.Add("Report revision", report.ReportSchemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture));
         provenance.Add("Horizon days", report is ApplicationExpiryEvidence expiry ? expiry.Parameters.HorizonDays.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Not applicable — no consent date/horizon filter");
         foreach (var s in report.Sources)
             provenance.Add("Source " + s.RegisteredRoute, s.Status + " · " + s.StartedAt + " to " + s.EndedAt + " · " + s.Rows + " retained metadata entries · " + s.ObjectsAttempted + " child objects attempted · " + (s.Error ?? "Read completed") + " · " + s.Reference);
@@ -57,11 +60,12 @@ public static class ApplicationReportDocuments
         }
         return sheets;
     }
-    public static string Html(ApplicationReportEvidence report, string companyName, bool suppliedFile = false)
+    public static string Html(ApplicationReportEvidence report, string companyName, bool suppliedFile = false, bool historical = false)
     {
-        var sheets = Sheets(report, suppliedFile); var definition = ApplicationReportRegistry.Find(2, report.ReportId);
+        var sheets = Sheets(report, suppliedFile, historical); var definition = ApplicationReportRegistry.Find(2, report.ReportId);
         var html = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><style>body{font:15px system-ui;margin:24px;color:#172c3e}table{border-collapse:collapse;margin:12px 0}th,td{border:1px solid #ccd6df;padding:8px;white-space:pre-wrap;overflow-wrap:anywhere}.table{overflow:auto}.notice{padding:12px;background:#fff0cd}</style><title>");
         html.Append(E(definition.Name)).Append("</title></head><body><p>").Append(E(companyName)).Append("</p><h1>").Append(E(definition.Name)).Append("</h1>");
+        if (historical) html.Append("<p class=\"notice\">").Append(E(ApplicationReportEvidenceSchema.HistoricalOwnerNotice)).Append(". Original revision 1; no current owner-consistency assurance.</p>");
         html.Append("<p class=\"notice\">Read status: ").Append(E(report.Status)).Append(". Separate metadata report; never complete deployment before-evidence. Unknown values do not prove absence. No data is refreshed by export.</p>");
         if (suppliedFile) html.Append("<p class=\"notice\">").Append(E(RegisteredReportDocuments.SuppliedFileNotice)).Append("</p>");
         foreach (var section in report.Sections)

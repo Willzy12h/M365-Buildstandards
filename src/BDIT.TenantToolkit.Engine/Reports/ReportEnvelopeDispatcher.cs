@@ -10,12 +10,16 @@ public static class ReportEnvelopeDispatcher
     public sealed class Envelope
     {
         internal Envelope(ReportEvidence legacy) { Schema1 = legacy; }
-        internal Envelope(ApplicationReportEvidence application) { Schema2 = application; }
+        private readonly byte[]? _historicalBytes;
+        internal Envelope(ApplicationReportEvidence application, byte[]? historicalBytes = null) { Schema2 = application; _historicalBytes = historicalBytes; }
         public ReportEvidence? Schema1 { get; }
         public ApplicationReportEvidence? Schema2 { get; }
         public int SchemaVersion => Schema1 is not null ? 1 : 2;
+        public string AssuranceNotice => _historicalBytes is not null ? ApplicationReportEvidenceSchema.HistoricalOwnerNotice : "";
         public string Export(ReportExporter exporter, ExportFormat format, bool suppliedFile = false) => Schema1 is { } legacy
-            ? exporter.ExportReport(legacy, format, suppliedFile) : exporter.ExportApplicationReport(Schema2!, format, suppliedFile);
+            ? exporter.ExportReport(legacy, format, suppliedFile) : _historicalBytes is { } original
+                ? exporter.ExportHistoricalApplicationReport(Schema2!, original, format, suppliedFile)
+                : exporter.ExportApplicationReport(Schema2!, format, suppliedFile);
     }
     /// <summary>Validates a collected envelope without converting, resealing or changing its schema.</summary>
     public static Envelope Wrap(ReportEvidence evidence, string expectedTenantId)
@@ -29,7 +33,9 @@ public static class ReportEnvelopeDispatcher
         return new(evidence);
     }
     /// <summary>Bounded UTF-8 file admission for stored/supplied envelopes; never reseals or changes source claims.</summary>
-    public static Envelope ReadFile(string file, string expectedTenantId)
+    public static Envelope ReadFile(string file, string expectedTenantId) => ReadFileCore(file, expectedTenantId, false);
+    public static Envelope ReadHistoricalFile(string file, string expectedTenantId) => ReadFileCore(file, expectedTenantId, true);
+    private static Envelope ReadFileCore(string file, string expectedTenantId, bool historical)
     {
         RefuseLinks(file);
         using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -40,7 +46,7 @@ public static class ReportEnvelopeDispatcher
         string json;
         try { json = new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
         catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
-        return Read(json, expectedTenantId);
+        return historical ? ReadCore(json, expectedTenantId, bytes) : Read(json, expectedTenantId);
     }
     internal static void RefuseLinks(string file)
     {
@@ -53,10 +59,17 @@ public static class ReportEnvelopeDispatcher
             parent = parent.Parent;
         }
     }
-    public static Envelope Read(string json, string expectedTenantId)
+    public static Envelope Read(string json, string expectedTenantId) => ReadCore(json, expectedTenantId, null);
+    public static Envelope ReadHistorical(string json, string expectedTenantId) => ReadCore(json, expectedTenantId, System.Text.Encoding.UTF8.GetBytes(json));
+    private static Envelope ReadCore(string json, string expectedTenantId, byte[]? historicalBytes)
     {
         using var document = RegisteredReportJson.Parse(json);
         var (schema, id) = RegisteredReportJson.Inspect(document.RootElement);
+        if (historicalBytes is not null)
+        {
+            if (schema != 2 || id != "application-expiry") throw new ConfigurationException("Limited historical inspection applies only to original expiry report revision 1.");
+            return new(ApplicationReportEvidenceSchema.ReadHistorical(json, expectedTenantId), historicalBytes);
+        }
         if (schema == 1) { GraphReportRegistry.Find(id); return new(ReportEvidenceSchema.Read(json, expectedTenantId)); }
         if (schema == 2) { ApplicationReportRegistry.Find(schema, id); return new(ApplicationReportEvidenceSchema.Read(json, expectedTenantId)); }
         throw new ConfigurationException("Unsupported Graph report envelope schema.");

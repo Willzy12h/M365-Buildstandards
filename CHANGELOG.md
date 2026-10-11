@@ -1,4 +1,25 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+- Compare current packaged JSON fully across platform newline formatting while retaining byte-exact historical bundle checks (#92).
+
+- Verify current expiry and explicit historical refusal/export separately in the extracted Windows package, retaining the original synthetic revision-1 bytes (#92).
+
+- Use a real integrity-bound planner fixture in application report isolation tests; retain full unchanged-plan/snapshot/acknowledgement assertions (#92).
+
+- Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
+
+- Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
+
+- Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
+- Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
+
+- Reconcile Astra-owned merged work claims; use `docs/GOAL.md` for the current workflow instead of adding continuation and review documents (#76).
+
+- Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
+
+- Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
+
+- Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
@@ -45,11 +66,16 @@
 - Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
-- Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
-
-- Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
-
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
+
+- Group the side menu into Client, Build, Operate and Evidence and reference; number only the six Build steps (Policy automation is step 6), match page headings, and add a Go to next step button under the next-step hint (#98).
+- Define versioned retained-parent owner outcome consistency and explicitly limited historical application-report inspection (#95; source repair follows).
+
+- Remove duplicate feature push builds while retaining full PR and integration/main validation; cancel obsolete review runs and use Linux for unchanged catalogue checks (PR #91, pending validation).
+
+- Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
+
+- Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
 
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
@@ -68,8 +94,6 @@
 - Verify cap-reached report truncation reasons across JSON/HTML/CSV/XLSX, use explicit Partial unknown rows in scale fixtures, and assert CSV UTF-8 BOM and XLSX line breaks (Claude review follow-up #78; no production exporter change).
 
 - Check registered report exports end to end for partial status, multilingual/multiline text, explicit Excel truncation, unknown values and earlier-file preservation; unsealed edits refuse every format before writing. Production export behaviour is unchanged.
-
-- Local candidate imports enforce the existing authored naming rules, including collection prefix and platform suffix. Restore current ENR-002 imports through the reviewed enrolment rule. Historical 2026.09.6–2026.09.11 ENR-003 Autopilot candidate imports now refuse because no reviewed Autopilot naming family is registered; stored historical standards and live names stay unchanged.
 
 - Add offline report scale validation and a repeatable measurement command: round-trip and HTML/CSV/Excel checks at 100, 1,000 and 5,000 rows, preserving unknowns and refusing over-cap evidence. Measurements do not change production limits or imply live Microsoft performance.
 
@@ -328,6 +352,9 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
+
+
+
 - Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
 
 - Readiness reads now keep failed or malformed results Unknown, preserve exact emergency-account identity and give practical access/service next steps; no configuration is inferred from a failed request.
@@ -418,3 +445,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
 
 - Verify both application-report families and their refusal paths through the actual extracted executable and launcher during portable validation (#92); Windows execution remains pending.
+- Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
+- Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
