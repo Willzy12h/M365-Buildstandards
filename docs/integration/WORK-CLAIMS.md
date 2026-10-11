@@ -87,6 +87,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Reduce duplicate Actions triggers, preserve required Windows/standards/secrets checks and merge-run evidence; three-repository pre-flight at `0c963e2`; no publisher/protection/product change | `astra/actions-budget-2026-10-10` | #91 | Merged |
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Test-only follow-up for merged #65/#68: cap-reached truncation reason across HTML/CSV/XLSX, real partial-row fixture, CSV BOM and XLSX multiline assertions; no production/schema/permission/live changes; fresh all-three-repository pre-flight and #74/#75 narrowed overlap checked | `astra/report-validation-followup-2026-10-10` (integration `fa62b6d`) | #78 | Merged |
 
+| 2026-10-11 | Astra/Codex | M365-Buildstandards | Decision-only INT-096: versioned retained-parent owner outcome consistency and explicit historical inspection for CLA-20261011-010; no dependent implementation, permission or tenant action | `astra/application-owner-outcome-contract-2026-10-11` (integration `724d9e0`) | #95 | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
 

@@ -35,6 +35,8 @@
 
 - Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
 
+- Define versioned retained-parent owner outcome consistency and explicitly limited historical application-report inspection (#95; source repair follows).
+
 - Remove duplicate feature push builds while retaining full PR and integration/main validation; cancel obsolete review runs and use Linux for unchanged catalogue checks (PR #91, pending validation).
 - Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
 
