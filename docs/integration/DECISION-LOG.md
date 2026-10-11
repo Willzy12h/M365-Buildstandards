@@ -618,6 +618,16 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
 
+### INT-094 offline diagnostic implementation — 10 October 2026, PR #88
+
+Reuse the existing settings/catalogue validators and fixed optional host locations in a shared Engine service; the callable CLI handler owns option refusal and sanitisation before the general CLI catch. No Program dispatch or desktop wiring is claimed in this slice while those surfaces are held by existing PRs. Diagnostics are a distinct schema-1 local result, never imported tenant/deployment evidence. Required unknown/failure prevents local readiness; optional Exchange and independent-publisher-trust limits remain visible.
+
+Admission permits the actual named portable files and package areas, rejects private working paths, links/reparse ancestors, hostile/case-duplicate inventory paths and bounded-out reads. Defaults are 1 MiB/10,000 manifest entries, 256 MiB per file, 2 GiB aggregate hashing, 4 MiB structured files, 64 KiB package metadata and 20,000 inspected entries/16 levels. Editable settings are validated separately from immutable checksums. CreateNew establishes ownership of each uniquely named probe; collisions are never overwritten/deleted. Missing destinations prove parent-create capability only, and cleanup refusal remains a required finding. Managed path checks are point-in-time observations of a stable trusted extraction, not an atomic defence against hostile concurrent replacements. No host/module execution, access repair, machine/tenant action, new permission or live/human acceptance is added. See OFFLINE-PREREQUISITES.
+
+### Offline diagnostic inventory fidelity — 10 October 2026, PR #88
+
+CLA-20261010-130/131: admit the actual portable builder's bounded one-level standards lineage files without changing the package format or historical bytes. Separate safe out-of-scope inventory entries from unsafe/private/link refusal. Build synthetic inventories independently of the checker predicate, and prove private read refusal with a complete otherwise-valid inventory. No link, ancestor, byte/entry or private-path limit is weakened; fresh actual Windows package Ready remains an integration gate after #90.
+
 ### Unavailable evidence-store access wording — 10 October 2026, PR #79
 
 CLA-20261010-110: distinguish only a marked tenant-lease acquisition refusal from integrity failures in the connection notice. History is uninspected while exclusive access is unavailable; advise waiting and retrying, preserve original files and existing write guards. Keep all other refused-history errors on the untrusted/reconciliation path. No lease, evidence schema, authentication or write-authority change. Actual engine checks and strict App compilation pass; native execution and independent delta review remain separate gates.
@@ -644,6 +654,9 @@ The independent docs review identified an asynchronous restart gap: reading only
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
 
+### INT-094 Settings diagnostic presentation — 11 October 2026, PR #88
+
+Reuse the shared offline checker and doctor text formatter in a small desktop coordinator; retain inspection outside WPF. The existing workspace owns exclusivity and shutdown, while one operation owns cancellation and its registration. Clear prior success before reruns, sanitise input/unexpected failures, and refuse late Ready after cancellation. The compact collapsed Settings panel preserves existing controls, explains disabled actions and provides selectable/copyable local output. No automatic file export, host execution, permission or tenant action. Portable regression and three mutation checks pass; Windows execution remains required.
 ### Sign-in expiry and experimental opt-in wording — 11 October 2026, PR #80
 
 CLA-20261011-003: the connection details identify the original token expiry as the end of experimental opt-in and connection reuse, while explaining that read-only report tokens may silently renew. Keep the existing fail-closed guards and silent-provider boundaries unchanged. This is presentation wording only.
