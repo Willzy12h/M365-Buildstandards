@@ -32,7 +32,8 @@ public sealed class ApplicationReportService(IClock clock, TimeSpan? readBudget 
         var definition = ApplicationReportRegistry.Find(2, report.ReportId);
         report.Id = Guid.NewGuid().ToString("D"); report.TenantId = Canonical(session.TenantId)!;
         report.AccountObjectId = Canonical(session.AccountObjectId); report.StartedAt = Timestamps.Format(clock.UtcNow);
-        report.ToolkitVersion = ToolkitVersion.Current; report.ModuleVersion = ApplicationReportRegistry.AdapterVersion;
+        report.ToolkitVersion = ToolkitVersion.Current; report.ModuleVersion = definition.RegisteredAdapter;
+        report.ReportSchemaVersion = definition.ReportSchemaVersion;
         report.Sources = definition.Routes.Select(r => new ApplicationReportSource
         { RegisteredRoute = r.Path, Reference = definition.Reference, StartedAt = report.StartedAt, EndedAt = report.StartedAt, Error = "No read attempted." }).ToList();
         report.Sections = definition.Sections.Select(s => new ReportSection { Id = s.Id, Error = "No read attempted." }).ToList();
@@ -102,6 +103,15 @@ public sealed class ApplicationReportService(IClock clock, TimeSpan? readBudget 
                     if (row.OwnersReadStatus != ReportReadState.Collected) Partial(row, row.OwnerReadReason!);
                 }
                 CompleteChildSource(source, report.Sources[section].Status, parents.Count);
+                var retained = parents.Where(r => r.IdentityStatus == "Exact").ToList();
+                report.Sources[source].RetainedOwnerOutcomes = new()
+                {
+                    Collected = retained.Count(r => r.OwnersReadStatus == ReportReadState.Collected),
+                    Partial = retained.Count(r => r.OwnersReadStatus == ReportReadState.Partial),
+                    Failed = retained.Count(r => r.OwnersReadStatus == ReportReadState.Failed),
+                    Cancelled = retained.Count(r => r.OwnersReadStatus == ReportReadState.Cancelled),
+                    NotAttempted = retained.Count(r => r.OwnersReadStatus == ReportReadState.NotAttempted)
+                };
             }
         }
         internal async Task Consent()

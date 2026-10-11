@@ -199,7 +199,8 @@ public static class PortableCliStandardHandles {
     # HTML uses the packaged executable; JSON uses the shipped launcher, preserving the same offline path.
     foreach ($family in 'expiry','consent') {
         $applicationFile = Join-Path $synthetic ('synthetic application ' + $family + '.json')
-        Copy-Item -LiteralPath (Join-Path $PSScriptRoot ('test-fixtures\application-' + $family + '.json')) -Destination $applicationFile
+        $fixtureName = if ($family -eq 'expiry') { 'application-expiry-current.json' } else { 'application-consent.json' }
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot ('test-fixtures\' + $fixtureName)) -Destination $applicationFile
         $originalApplication = Get-Content -LiteralPath $applicationFile -Raw
         $applicationDigest = (Get-FileHash -LiteralPath $applicationFile -Algorithm SHA256).Hash
         $applicationFixture = $originalApplication | ConvertFrom-Json
@@ -220,7 +221,11 @@ public static class PortableCliStandardHandles {
             $applicationContent = Get-Content -LiteralPath $applicationExports[0].FullName -Raw
             if ($format -eq 'json') {
                 # Full original nested evidence, digest, source claims and fixed horizon are preserved, not a display projection.
-                if ($applicationContent -cne $originalApplication) { throw "Packaged $applicationId JSON changed the original evidence." }
+                # Current JSON is reserialised with the platform newline; only CRLF versus LF may differ.
+                # Escaped line breaks inside JSON strings are untouched, as are every field, value and digest.
+                if ($applicationContent.Replace("`r`n", "`n") -cne $originalApplication.Replace("`r`n", "`n")) {
+                    throw "Packaged $applicationId JSON changed the original evidence beyond platform newline formatting."
+                }
             } else {
                 if (-not $applicationContent.Contains('Read status: Partial') -or
                     -not $applicationContent.Contains('Offline supplied file: source, account and live-mode claims have not been independently verified.') -or
@@ -253,6 +258,44 @@ public static class PortableCliStandardHandles {
             (Get-Content -LiteralPath $tamperedApplicationFile -Raw) -cne $tamperedApplication) { throw 'Offline application export/refusal changed supplied evidence.' }
         Remove-Item -LiteralPath $applicationFile, $tamperedApplicationFile -Force
     }
+    # Keep the original revision-1 fixture immutable and prove the explicit historical boundary in the actual ZIP.
+    $historicalFile = Join-Path $synthetic 'synthetic original expiry.json'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'test-fixtures\application-expiry.json') -Destination $historicalFile
+    $historicalBytes = [IO.File]::ReadAllBytes($historicalFile)
+    $historicalHash = (Get-FileHash -LiteralPath $historicalFile -Algorithm SHA256).Hash
+    $historicalNotice = 'Historical owner outcome consistency unverified'
+    $beforeHistorical = @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File).Count
+    $defaultHistorical = Invoke-OwnedCli $exe ('--cli report-evidence --input "' + $historicalFile + '" --tenant 11111111-1111-4111-8111-111111111111 --format json') 2
+    if ($defaultHistorical.Text -or -not $defaultHistorical.Error.Contains($historicalNotice) -or
+        @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File).Count -ne $beforeHistorical) { throw 'Historical expiry entered current validation or wrote output without explicit historical selection.' }
+    $historical = Invoke-OwnedCli $exe ('--cli report-evidence --input "' + $historicalFile + '" --tenant 11111111-1111-4111-8111-111111111111 --format json --historical') 0
+    if ($historical.Error -or -not $historical.Text.Contains($historicalNotice)) { throw 'Explicit historical expiry export lost its limitation.' }
+    $historicalLines = @($historical.Text -split "`r?`n" | Where-Object { $_.Trim().EndsWith('.json.zip') })
+    if ($historicalLines.Count -ne 1) { throw 'Historical export did not print exactly one bundle path.' }
+    $historicalPath = [IO.Path]::GetFullPath($historicalLines[0].Trim())
+    if ([IO.Path]::GetDirectoryName($historicalPath) -ine [IO.Path]::GetFullPath((Join-Path $extract 'reports'))) { throw 'Historical bundle path is outside the owned reports folder.' }
+    if (-not $historicalPath.EndsWith('.json.zip') -or -not (Test-Path -LiteralPath $historicalPath) -or
+        @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File).Count -ne ($beforeHistorical + 1)) { throw 'Historical JSON did not produce exactly one labelled bundle.' }
+    $historicalArchive = [IO.Compression.ZipFile]::OpenRead($historicalPath)
+    try {
+        if ($historicalArchive.Entries.Count -ne 2) { throw 'Historical bundle must contain the original record and its limitation.' }
+        $originalEntry = $historicalArchive.GetEntry('report.json')
+        $noticeEntry = $historicalArchive.GetEntry('READ-ME.txt')
+        if ($null -eq $originalEntry -or $null -eq $noticeEntry) { throw 'Historical bundle is missing the original record or notice.' }
+        $originalStream = $originalEntry.Open(); $originalCopy = [IO.MemoryStream]::new()
+        try {
+            $originalStream.CopyTo($originalCopy)
+            if ([Convert]::ToBase64String($originalCopy.ToArray()) -cne [Convert]::ToBase64String($historicalBytes)) { throw 'Historical JSON changed the original bytes.' }
+        } finally { $originalStream.Dispose(); $originalCopy.Dispose() }
+        $noticeReader = [IO.StreamReader]::new($noticeEntry.Open())
+        try { if (-not $noticeReader.ReadToEnd().Contains($historicalNotice)) { throw 'Historical bundle notice is missing.' } }
+        finally { $noticeReader.Dispose() }
+    } finally { $historicalArchive.Dispose() }
+    $wrongHistoricalTenant = Invoke-OwnedCli $exe ('--cli report-evidence --input "' + $historicalFile + '" --tenant 22222222-2222-4222-8222-222222222222 --historical') 2
+    if ($wrongHistoricalTenant.Text -or $wrongHistoricalTenant.Error -notmatch 'Refused:.*Application report evidence belongs to another tenant' -or
+        @(Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File).Count -ne ($beforeHistorical + 1) -or
+        (Get-FileHash -LiteralPath $historicalFile -Algorithm SHA256).Hash -cne $historicalHash) { throw 'Historical wrong-tenant refusal wrote output or changed the original record.' }
+    Remove-Item -LiteralPath $historicalFile -Force
     if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
     if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'data') -File -Recurse | Where-Object { $_.Name -match 'cache|token|session' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
     # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
@@ -357,7 +400,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliHelp=$true; portableCliLauncher=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of bdit.cmd, WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

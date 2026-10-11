@@ -34,6 +34,7 @@ internal static class ApplicationReportUiFixtures
             report.Sources[section].Rows = count;
             var owners = report.Sources[section + 2]; owners.Status = ReportReadState.Partial; owners.Error = "Synthetic limited owner information.";
             owners.Rows = count * 2; owners.ObjectsAttempted = count;
+            owners.RetainedOwnerOutcomes = new() { Partial = count };
         }
         report.Status = ReportReadState.Partial;
         ApplicationReportEvidenceSchema.Seal(report); return report;
@@ -70,7 +71,8 @@ internal static class ApplicationReportUiFixtures
         var definition = ApplicationReportRegistry.Find(2, report.ReportId);
         report.Id = Guid.NewGuid().ToString("D"); report.TenantId = tenant; report.AccountObjectId = account;
         report.SourceMode = "historical"; report.StartedAt = At; report.EndedAt = At; report.ToolkitVersion = version;
-        report.ModuleVersion = ApplicationReportRegistry.AdapterVersion;
+        report.ModuleVersion = definition.RegisteredAdapter;
+        report.ReportSchemaVersion = definition.ReportSchemaVersion;
         report.Limitations = ["OFFLINE SYNTHETIC UI FIXTURE. No authentication or tenant calls.", definition.Limitations];
         report.Sections = definition.Sections.Select(s => new ReportSection { Id = s.Id, Status = ReportReadState.Collected }).ToList();
         report.Sources = definition.Routes.Select(r => new ApplicationReportSource { RegisteredRoute = r.Path, Reference = definition.Reference,

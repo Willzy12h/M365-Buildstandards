@@ -8,7 +8,7 @@
     <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
       <Grid Margin="28,24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <StackPanel><TextBlock Text="04 / RECORD AGREED EXCEPTIONS" Style="{StaticResource Eyebrow}"/><TextBlock Text="Deviation register" Style="{StaticResource H1}"/><TextBlock Text="Record an approved departure, its owner and review date. Failed reads and unknown data remain visible in the assessment." Style="{StaticResource Lead}"/></StackPanel>
+        <StackPanel><TextBlock Text="BUILD 3 / RECORD AGREED EXCEPTIONS" Style="{StaticResource Eyebrow}"/><TextBlock Text="Deviation register" Style="{StaticResource H1}"/><TextBlock Text="Record an approved departure, its owner and review date. Failed reads and unknown data remain visible in the assessment." Style="{StaticResource Lead}"/></StackPanel>
         <Grid Grid.Row="1">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="350"/></Grid.ColumnDefinitions>
           <DockPanel>

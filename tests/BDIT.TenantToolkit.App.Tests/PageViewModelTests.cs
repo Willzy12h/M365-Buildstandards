@@ -77,6 +77,39 @@ public sealed class PageViewModelTests : IDisposable
         Assert.False(_shell.Workspace.SnapshotIsLive);
     }
 
+    [Fact]
+    public void The_menu_follows_the_client_lifecycle_in_four_groups()
+    {
+        var groups = _shell.NavItems.Select(n => n.Group).Distinct().ToList();
+        Assert.Equal(new[] { "CLIENT", "BUILD", "OPERATE", "EVIDENCE & REFERENCE" }, groups);
+        // Each group is contiguous and its heading shows once, over its first page.
+        foreach (var group in groups)
+        {
+            var indexes = _shell.NavItems.Select((n, i) => (n, i)).Where(x => x.n.Group == group).Select(x => x.i).ToList();
+            Assert.Equal(indexes.Count - 1, indexes[^1] - indexes[0]);
+            Assert.True(_shell.NavItems[indexes[0]].IsGroupStart);
+            Assert.All(indexes.Skip(1), i => Assert.False(_shell.NavItems[i].IsGroupStart));
+        }
+        // Only Build is numbered, in order, and activation is part of it.
+        var numbered = _shell.NavItems.Where(n => n.Step.Length > 0).ToList();
+        Assert.All(numbered, n => Assert.Equal("BUILD", n.Group));
+        Assert.Equal(new[] { "1", "2", "3", "4", "5", "6" }, numbered.Select(n => n.Step));
+        Assert.Equal("automation", numbered[^1].Key);
+        Assert.Equal(21, _shell.NavItems.Select(n => n.Key).Distinct().Count());
+    }
+
+    [Fact]
+    public void Go_to_next_step_opens_the_page_the_next_step_names()
+    {
+        Assert.Equal("connect", _shell.NextActionKey);
+        _shell.NextStepCommand.Execute(null);
+        Assert.IsType<ConnectViewModel>(_shell.CurrentPage);
+        Assert.Contains(_shell.NavItems, n => n.Key == "connect" && n.IsActive);
+        _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        Assert.Equal("connect", _shell.NextActionKey);
+        Assert.Contains(_shell.NavItems, n => n.Key == _shell.NextActionKey);
+    }
+
     /// <summary>A refresh replaces the rows; the new rows must be followed too, not only the first set.</summary>
     [Fact]
     public void The_plan_page_count_follows_ticks_after_a_refresh()
