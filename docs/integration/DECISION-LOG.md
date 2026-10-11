@@ -606,3 +606,7 @@ The independent docs review identified an asynchronous restart gap: reading only
 ### INT-095 current-head review corrections — 10 October 2026, PR #82
 
 CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
+
+### Sign-in expiry and experimental opt-in wording — 11 October 2026, PR #80
+
+CLA-20261011-003: the connection details identify the original token expiry as the end of experimental opt-in and connection reuse, while explaining that read-only report tokens may silently renew. Keep the existing fail-closed guards and silent-provider boundaries unchanged. This is presentation wording only.
