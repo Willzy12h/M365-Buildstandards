@@ -37,6 +37,8 @@
 
 - Group the side menu into Client, Build, Operate and Evidence and reference; number only the six Build steps (Policy automation is step 6), match page headings, and add a Go to next step button under the next-step hint (#98).
 
+- Define versioned retained-parent owner outcome consistency and explicitly limited historical application-report inspection (#95; source repair follows).
+
 - Remove duplicate feature push builds while retaining full PR and integration/main validation; cancel obsolete review runs and use Linux for unchanged catalogue checks (PR #91, pending validation).
 
 - Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
