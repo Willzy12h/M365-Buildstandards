@@ -88,3 +88,9 @@ Other steps remain Not run unless explicitly listed above.
 ```
 
 Update the existing completion/feedback registers with attributed evidence after review. A passing journey is not approval to promote to main, tag, publish or deploy to another tenant. Keep unresolved human/live gates open and prepare the exact-source promotion record separately.
+
+### Authentication follow-up for the candidate (PR #73 review)
+
+William must run these checks in an explicitly approved disposable-tenant session. After more than one hour in the same verified session, once the original token is due for renewal, perform one approved read-only action without reconnecting first. Verify that silent renewal retains the same Graph tenant/account/operator and exact scopes, or that an interactive requirement stops with reconnect guidance. Renewal must not extend an expired experimental opt-in. Record elapsed session time, pass/fail, prompt count/reason and whether scope membership changed, without values, tokens or account/tenant identifiers. This live renewal check remains **Not run** until William supplies acceptance.
+
+Check Quick Connect/Connect with another account previews show an unknown account, known-account reconnect previews show the deliberate hint, and setup/consent closes any previous experimental opt-in. Time spent reading a slow access preview does not consume the cumulative silent/interactive acquisition budget; declining or cancelling remains cancellation. Acquisition-deadline expiry refuses the connection without a new prompt or retry. Deployment/setup request-approval expiry is separate and unchanged. These checks remain **Not run** until William supplies acceptance.

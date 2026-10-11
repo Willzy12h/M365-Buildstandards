@@ -1,12 +1,12 @@
 # Master repository instructions
 
+## Current goal
+
+Read [docs/GOAL.md](docs/GOAL.md) first. It sets the current goal, backlog, ownership and what may be done without asking.
+
 ## Purpose
 
 Build and maintain the integrated Microsoft 365 tenant build standard, assessment console and controlled deployment tooling.
-
-## Current orientation
-
-Start continuation work with `docs/integration/CURRENT-STATE.md`, then refresh integration and perform the mandatory AGENT-COORDINATION pre-flight. It indexes current work so old handover checkpoints need not be reread as current status; consult the relevant preserved contracts and evidence for the area being changed. This index does not waive any safeguard, review or required validation.
 
 ## Authoritative sources
 

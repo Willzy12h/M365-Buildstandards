@@ -78,6 +78,8 @@ try {
         $info = [Diagnostics.ProcessStartInfo]::new()
         $info.FileName = $FileName; $info.Arguments = $Arguments; $info.WorkingDirectory = $extract
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+        # The owned child must diagnose this fresh extraction, even if the CI caller set a toolkit root.
+        $info.EnvironmentVariables.Remove('BDIT_TOOLKIT_ROOT')
         $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
         $owned = [Diagnostics.Process]::new(); $owned.StartInfo = $info
         try {
@@ -97,6 +99,10 @@ try {
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
     if ($viaLauncher.Text -notmatch 'bdit inventory' -or $viaLauncher.Error) { throw 'bdit.cmd did not forward help and stdout.' }
+    # Real diagnostics from the fresh extracted host, before any synthetic evidence or native startup.
+    $doctor = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" doctor --format json"') 0
+    if ($doctor.Error) { throw 'Packaged doctor wrote unexpected standard error.' }
+    & (Join-Path $PSScriptRoot 'Test-DoctorResult.ps1') -Json $doctor.Text -ExpectedToolkitVersion $metadata.version -TestRejections
     $launcherFailure = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" inventory --snapshot "synthetic missing file.json""') 2
     if ($launcherFailure.Error -notmatch 'Refused:') { throw 'bdit.cmd lost the refusal or real exit code.' }
     # Mixed handles: stdout is a pipe owned by this test, stderr is NOT redirected, so the child inherits this
@@ -293,7 +299,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliHelp=$true; portableCliLauncher=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; noCliDesktopOrAuthInitialisation=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of bdit.cmd, WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
