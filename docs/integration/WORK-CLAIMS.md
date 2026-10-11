@@ -110,3 +110,5 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
+
+| 2026-10-11 | Astra/Codex | M365-Buildstandards | Decision-only INT-099: missing licence/device/MFA Copy library seeds over an already authorised SDK session; exact context/resource admission, bounded truthful outputs; no dependent source/sign-in/consent or Graph Run | `astra/graph-copy-library-contract-2026-10-11` (integration `724d9e0`, head `f449d23`) | #97 | Open |
