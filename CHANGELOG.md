@@ -1,6 +1,11 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
+### Pending source — mailbox capacity review, PR #94
+
+- Add an offline mailbox size/quota/100 GB eligibility page pairing strict original mailbox and assigned-licence evidence. Preserve unknowns, raw Unlimited/archive values, independent source histories and full HTML/CSV/JSON/Excel review exports.
+- Wire it alongside the separate read-only Run page; retain existing workflow/evidence/write safeguards. No quota/licence mutation, live read, new evidence schema, version change or publication. Source/synthetic checks and strict crossbuilds pass; Windows/native/independent/live gates remain.
+
 ### Pending source — read-only Run workflow, PR #93
 
 - Add a separate experimental Run reports page for registered schema-2 reads, with exact single-use review, owned cancellation, truthful outcomes and deliberate local outputs. Existing Copy/change items remain Copy/Save only.
