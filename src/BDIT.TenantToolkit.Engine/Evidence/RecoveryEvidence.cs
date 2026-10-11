@@ -6,13 +6,24 @@ namespace BDIT.TenantToolkit.Engine.Evidence;
 
 public sealed partial class EvidenceStore
 {
+    private const string TenantWriteLeaseRefusalCode = "BDIT.TenantWriteLeaseUnavailable";
+
+    /// <summary>Identifies only refusal to acquire the tenant lease; it does not establish a history-integrity failure.</summary>
+    public static bool IsTenantWriteLeaseRefusal(Exception exception) => exception is SafetyViolationException
+        && exception.Data[TenantWriteLeaseRefusalCode] is true;
+
     /// <summary>Serialises policy deployment and recovery across processes sharing this evidence root.</summary>
     public IDisposable AcquireTenantWriteLease(string tenantId)
     {
         var directory = TenantDirectory(tenantId);
         Directory.CreateDirectory(directory);
         try { return new FileStream(Path.Combine(directory, "policy-write.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
-        catch (IOException ex) { throw new SafetyViolationException("Another deployment or recovery is using this tenant's evidence store. Wait for it to finish. " + ex.Message); }
+        catch (IOException ex)
+        {
+            var refusal = new SafetyViolationException("Another deployment or recovery is using this tenant's evidence store. Wait for it to finish. " + ex.Message);
+            refusal.Data[TenantWriteLeaseRefusalCode] = true;
+            throw refusal;
+        }
     }
 
     public IReadOnlyList<DeploymentRun> RequireIntactRuns(string tenantId)
