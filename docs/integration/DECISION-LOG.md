@@ -507,6 +507,13 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
+### INT-082 runtime implementation — 10 October 2026, PR #73
+
+Implement the merged desktop guard as transient coordination authority, not another token cache or engine approval. Keep scope acquisition approval separate from verified operation opt-in. Reuse the existing explicit-connect and MSAL silent-renewal paths; add policy seams to prove prompt counts and refusal before token replacement. Unexpected renewal identity/scopes invalidate the operator and opt-in, with no interactive retry. Original expiry bounds the opt-in; explicit expired reconnect refreshes the verified session via silent-first acquisition. Manual setup/consent remains separately reviewed and invalidates deployment authority. Exact engine safeguards and historical schema meanings are unchanged. Evidence/status: [EXPERIMENTAL-RUNTIME-2026.10.10](EXPERIMENTAL-RUNTIME-2026.10.10.md). No live or human gate is closed.
+
+### INT-082 production-wiring review response — 10 October 2026, PR #73
+
+CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
@@ -535,6 +542,18 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
 
+### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
+
+CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
+
+### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
+
+AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.
+
+
+### INT-082 configured sign-in regression — 10 October 2026, PR #73
+
+CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around the existing public sign-in implementation, retaining production provider defaults and the existing acquisition policy. A valid one-minute configured budget accepts a thirty-second reply after a twenty-minute virtual permission preview but refuses a reply after one minute plus one tick. Removing timeout forwarding fails that regression; restored selected tests pass. No second authenticator/cache, renewal, scopes, approval-expiry or retry contract changes. Correct the run sheet to exclude permission-review time and require William's separate more-than-one-hour/due-token read-only renewal acceptance, still Not run.
 ### Report read-status review corrections — 10 October 2026, PR #78
 
 CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.
@@ -546,6 +565,9 @@ Complete the already proposed `bdit doctor` contract before dependent implementa
 
 Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
 
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
 ## INT-095 — Repository agent mailbox — 10 October 2026, PR #82 (proposed)
 
 William requested a permanent top-level `agent-comms/` GitHub folder for Astra/Claude handoffs and periodic checks. The folder becomes part of integration when #82 installs it through review, rather than introducing a PR directory or a second authoritative branch. [agent-comms/README](../../agent-comms/README.md) proposes author-owned append-only messages, explicit acknowledgements and safe-boundary checks during active sessions. Open PR message files are discoverable before merge; immutable commit links distinguish what was read. The initial request records current heads without declaring Claude has received or started the work. The original folder-only proposal added no global editable inbox. That delivery choice is superseded by the central issue #83 clarification below; no duplicated authoritative task register is added.

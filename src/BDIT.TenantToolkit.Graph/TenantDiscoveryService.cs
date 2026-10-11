@@ -38,12 +38,17 @@ public static class TenantDiscoveryService
     });
 
     public static async Task<DiscoveredTenant> DiscoverAsync(HttpClient http, ToolkitSettings settings,
-        IntPtr parentWindow, IToolkitLog log, CancellationToken ct)
+        IntPtr parentWindow, IToolkitLog log, CancellationToken ct) =>
+        await DiscoverAsync(http, settings, log, ct, (timeout, token) =>
+            MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser, timeout, log, token));
+
+    // Offline tests replace only acquisition; the configured budget and discovery guards remain shared.
+    internal static async Task<DiscoveredTenant> DiscoverAsync(HttpClient http, ToolkitSettings settings,
+        IToolkitLog log, CancellationToken ct, Func<TimeSpan, CancellationToken, Task<MsalAuthenticator>> discover)
     {
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the Microsoft Graph PowerShell assessment fallback, which is disabled here. Use a saved client or enter the tenant and dedicated assessment application details.");
-        var auth = await MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser,
-            TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct);
+        var auth = await discover(TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), ct);
         try
         {
             var graph = new GraphClient(http, auth, auth.Outcome.TenantId, SessionMode.Assessment, Routes(),
@@ -55,14 +60,22 @@ public static class TenantDiscoveryService
     }
 
     public static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
-        StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct)
+        StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct,
+        Func<CancellationToken, Task>? beforeInteractive = null) =>
+        await DiscoverRetainedAsync(http, settings, standard, readScopes, log, ct, (timeout, token) =>
+            MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser, timeout, log, token,
+                readScopes, beforeInteractive));
+
+    // The retained journey uses the same per-call seam, with no global authentication override.
+    internal static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
+        StandardCatalogue standard, IReadOnlyList<string> readScopes, IToolkitLog log, CancellationToken ct,
+        Func<TimeSpan, CancellationToken, Task<MsalAuthenticator>> discover)
     {
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
         if (readScopes.Any(s => s.Contains("Write", StringComparison.OrdinalIgnoreCase) || s.Contains("AccessAsUser", StringComparison.OrdinalIgnoreCase)))
             throw new ConfigurationException("Quick Connect cannot request write permissions.");
-        var auth = await MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser,
-            TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), log, ct, readScopes);
+        var auth = await discover(TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), ct);
         try
         {
             var graph = new GraphClient(http, auth, auth.Outcome.TenantId, SessionMode.Assessment, Routes(),

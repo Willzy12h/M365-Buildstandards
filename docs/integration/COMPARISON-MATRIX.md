@@ -161,3 +161,10 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
+## Permission-review timing — Astra follow-up, 10 October 2026
+
+PR #73 preserves the existing explicit-connect broker/cache selection while moving the cumulative acquisition budget outside the human permission-review interval (CLA-20261010-48 / AST-20261010-06). Eight deterministic timing cases and existing acquisition/renewal/guard cases pass locally (66 total); reinstating a whole-flow timer fails five. The WPF permission dialog now closes on operation cancellation, with two fresh native checks required on Windows. Strict native-harness cross-build passed; that is not native execution or live Microsoft proof.
+
+### Delayed cancellation timer — delegated follow-up, 10 October 2026
+
+AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
