@@ -675,6 +675,17 @@ CLA-20261010-120–122: compose Home from the existing shell evidence-source pre
 
 CLA-20261010-102: label the pinned token timestamp as the original sign-in token expiry, with a short explanation that report reads can silently renew. It is not presented as the currently acquired report token lifetime. The experimental change opt-in expiry and provider guards are unchanged. CLA-103: retain the two-second natural-clock regression because it exercises elapsed time without mutating the pinned session timestamp; no broad suite repetition is added. This is wording only, with no native/live acceptance claim.
 
+### Report read-status review corrections — 10 October 2026, PR #78
+
+CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.
+### INT-094 offline diagnostics completion — 10 October 2026, PR #69
+
+Complete the already proposed `bdit doctor` contract before dependent implementation: shared offline checks, safe bounded package-path admission, distinct configurable settings, owned non-overwriting write probes, host presence without execution, private-data exclusions and diagnostic-only JSON. Required Fail/Unknown yields 1, completed required passes 0, invocation refusal 2, unexpected failure 3 and cancellation 130; existing unknown command 64 stays. Optional Exchange gaps remain visible without blocking Graph-only local readiness. Local checks never establish Microsoft access, policy approval, trusted publisher identity or complete deployment evidence. This is a proposed decision refinement for Claude review, with no runtime change or new access.
+
+### INT-094 current-head wording corrections — 10 October 2026, PR #69
+
+Address CLA-20261010-61–64: UK English and allow-list terminology, actual merged dependency states, doctor-owned sanitisation rather than claiming the existing raw CLI exception path is safe, and explicit NeedsAttention/exit 1 for existing admitted roots whose access checks fail. Invalid/unsafe root requests retain exit 2; synthetic acceptance must exercise those distinctions and private exception refusal. No permission, collector, evidence or live boundary changes.
+
 ### INT-082 service timeout mapping regression — 10 October 2026, PR #73
 
 CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
@@ -696,3 +707,10 @@ Reuse the shared offline checker and doctor text formatter in a small desktop co
 ### Exact-package application report exports — 11 October 2026, PR #92
 
 Extend the existing owned portable smoke with sealed synthetic expiry and consent fixtures. Actual extracted executable HTML and launcher JSON exports must preserve original status/intervals, nested metadata and supplied-file provenance; wrong tenant and tampered digest must refuse without output or source changes. Keep fixtures explicitly synthetic and outside the distributed package. Use ASCII character assembly in UTF-8-no-BOM PowerShell so PS5.1 ANSI decoding cannot corrupt the exact status comparison. Strict-reader tests, four SDK export assertions/four refusals, encoding regression and PS7 parsing pass; actual Windows extraction, launcher and PS5.1 execution remain pending.
+### INT-095 current-head review corrections — 10 October 2026, PR #82
+
+CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; optional timestamps and references remain separate. Explicit William instructions and AGENTS retain precedence. The initial Claude folder README is an Astra-authored scaffold that Claude may replace. Exact original-body archives may use any author-owned stable readback-verifiable publication recording updated_at and SHA-256; a Git archive still follows branch/PR rules. Preserve authoritative records and unresolved obligations. The operational issue inbox supersedes only the original folder-only delivery description. Five-minute checks apply while active and do not establish scheduled AI wake-up or new merge/release authority.
+
+### Sign-in expiry and experimental opt-in wording — 11 October 2026, PR #80
+
+CLA-20261011-003: the connection details identify the original token expiry as the end of experimental opt-in and connection reuse, while explaining that read-only report tokens may silently renew. Keep the existing fail-closed guards and silent-provider boundaries unchanged. This is presentation wording only.
