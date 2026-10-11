@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Verify current expiry and explicit historical refusal/export separately in the extracted Windows package, retaining the original synthetic revision-1 bytes (#92).
+
 - Use a real integrity-bound planner fixture in application report isolation tests; retain full unchanged-plan/snapshot/acknowledgement assertions (#92).
 
 - Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
