@@ -15,6 +15,7 @@ using BDIT.TenantToolkit.App.Views;
 using BDIT.TenantToolkit.Core;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Json;
+using BDIT.TenantToolkit.Core.Diagnostics;
 using BDIT.TenantToolkit.Engine.Exchange;
 
 /// <summary>
@@ -244,6 +245,18 @@ internal static partial class Program
             c.Visibility == Visibility.Visible && c.ActualHeight > 0);
         if (VisibleBounds(field, content).Height < field.ActualHeight - 1)
             CrampedCurrentPages.Add($"  {where} · the first script input is below the first viewport; purpose/access details must not hide the form.");
+    }
+
+    private static int OfflineDiagnosticViewportsMeasured;
+    private static void RecordOfflineDiagnosticViewport(FrameworkElement content, string where)
+    {
+        OfflineDiagnosticViewportsMeasured++;
+        var output = Descendants(content).OfType<TextBox>().Single(t =>
+            System.Windows.Automation.AutomationProperties.GetName(t) == "Offline prerequisite findings and next steps");
+        var run = Descendants(content).OfType<Button>().Single(b =>
+            System.Windows.Automation.AutomationProperties.GetName(b) == "Run offline prerequisite checks");
+        if (VisibleBounds(output, content).Height < 100 || VisibleBounds(run, content).Height < run.ActualHeight - 1)
+            CrampedCurrentPages.Add($"  {where} · expanded offline checks must show the Run action and at least 100 pixels of readable result text.");
     }
 
     // ---- keyboard ------------------------------------------------------------------------------------------------
@@ -735,6 +748,9 @@ internal static partial class Program
         ("SettingsViewModel.OpenLastOutputCommand", Explorer),
         ("SettingsViewModel.CopyDigestCommand", Clipboard),
         ("SettingsViewModel.LoadDigestFileCommand", FilePicker),
+        ("SettingsViewModel.RunOfflineDiagnosticCommand", Press),
+        ("SettingsViewModel.CancelOfflineDiagnosticCommand", Disabled),
+        ("SettingsViewModel.CopyOfflineDiagnosticCommand", Clipboard),
     };
 
     private const string Press = "press";
@@ -1054,6 +1070,16 @@ internal static partial class Program
                         CommandProblems.Add($"  {label} showed an error that is not a refusal: {shell.ErrorMessage}");
                     if (shell.ErrorMessage.Length > 0) { CommandsRefused++; CommandLog.Add($"{label}: refused - {shell.ErrorMessage}"); }
                     else { CommandsCompleted++; CommandLog.Add($"{label}: completed"); }
+
+                    if (name == "SettingsViewModel.RunOfflineDiagnosticCommand")
+                    {
+                        var diagnostic = shell.Page<SettingsViewModel>().OfflineDiagnostic;
+                        // This harness's source-shaped fixture lacks published package metadata; it must never be Ready.
+                        if (diagnostic.Result?.Status != OfflinePrerequisiteStatus.NeedsAttention
+                            || !diagnostic.Result.Findings.Any(f => f.Id == "package.metadata" && f.Disposition == OfflineFindingDisposition.Unknown)
+                            || !diagnostic.Output.Contains("[Unknown] package.metadata (Required)", StringComparison.Ordinal))
+                            CommandProblems.Add("  Offline diagnostics did not preserve the source fixture's Unknown package readiness.");
+                    }
 
                     // The page must still draw after the command, with the state it left behind.
                     content.UpdateLayout(); Pump();

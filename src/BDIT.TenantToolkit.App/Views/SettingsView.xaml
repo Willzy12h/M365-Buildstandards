@@ -2,7 +2,22 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
       <TextBlock Text="WORKSPACE SETTINGS" Style="{StaticResource Eyebrow}"/><TextBlock Text="Settings and diagnostics" Style="{StaticResource H1}"/>
-      <TextBlock Text="Hand evidence to another engineer, receive it, send support metadata, and find this workspace's folders." Style="{StaticResource Lead}"/>
+      <TextBlock Text="Check offline prerequisites, hand evidence to another engineer, send support metadata, and find this workspace's folders." Style="{StaticResource Lead}"/>
+
+      <Border Style="{StaticResource Card}"><Expander Header="Offline prerequisite checks" AutomationProperties.Name="Offline prerequisite checks"><StackPanel Margin="0,10,0,0">
+        <TextBlock Text="Check local package files, settings, the default standard and write/delete probes, offline or connected. Optional PowerShell checks observe presence only. No sign-in, host execution, installation or repair." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+        <TextBlock Text="{Binding OfflineDiagnosticAvailability}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.Name="Offline check availability and cancellation scope"/>
+        <WrapPanel Margin="0,0,0,8">
+          <Button Content="Run offline checks" Command="{Binding RunOfflineDiagnosticCommand}" AutomationProperties.Name="Run offline prerequisite checks"/>
+          <Button Content="Cancel offline checks" Command="{Binding CancelOfflineDiagnosticCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Cancel only offline prerequisite checks"/>
+          <Button Content="Copy local result" Command="{Binding CopyOfflineDiagnosticCommand}" IsEnabled="{Binding OfflineDiagnostic.HasResult}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Copy offline prerequisite result"/>
+        </WrapPanel>
+        <TextBlock Text="{Binding OfflineDiagnostic.Message}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8" AutomationProperties.Name="Offline prerequisite status"/>
+        <StackPanel Visibility="{Binding OfflineDiagnostic.HasResult, Converter={StaticResource BoolToVis}}">
+          <TextBlock Text="Ready covers local prerequisites only. Publisher trust, tenant permissions and host policy remain unverified. Nothing is uploaded or automatically saved." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+          <TextBox Text="{Binding OfflineDiagnostic.Output, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="180" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Offline prerequisite findings and next steps"/>
+        </StackPanel>
+      </StackPanel></Expander></Border>
 
       <Border Style="{StaticResource WarnPanel}" Visibility="{Binding HasTransferBlock, Converter={StaticResource BoolToVis}}">
         <TextBlock Text="{Binding TransferBlockedReason}" TextWrapping="Wrap" AutomationProperties.Name="Why evidence transfer is unavailable"/>

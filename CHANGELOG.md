@@ -1,4 +1,5 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+- Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
 
 - Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
 
