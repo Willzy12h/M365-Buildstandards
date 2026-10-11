@@ -22,6 +22,12 @@
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
+### Pending source — read-only Run workflow, PR #93
+
+- Keep the complete Run outcome and local-output guidance reachable at smaller windows with a bounded scrolling panel; retain the native 120-pixel outcome and clipping checks.
+- Add a separate experimental Run reports page for registered schema-2 reads, with exact single-use review, owned cancellation, truthful outcomes and deliberate local outputs. Existing Copy/change items remain Copy/Save only.
+- Reuse the existing runner/catalogue/store and correct its runnable manifest limitation/pin. No authentication-cache, permission, write, version or publication change. Source/synthetic checks pass; independent review and actual Windows/native/live acceptance remain pending.
+
 
 - Keep connected read-only Reports usable after the original token expiry: the existing guarded provider owns silent renewal. Preserve malformed-context, identity/scope/selection refusals and the separate expiry of experimental write approval.
 

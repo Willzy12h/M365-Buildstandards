@@ -727,6 +727,10 @@ Extend the existing owned portable smoke with sealed synthetic expiry and consen
 
 CLA-20261011-031 remains a Windows Files On-Demand hypothesis, not a reproduced defect. Explain the existing local-path refusal and remedy: choose a fully downloaded copy in an ordinary local folder outside sync/link paths. Preserve original evidence and reparse/link guards; failed access is never empty success. No storage-host bypass, reader relaxation or claimed native acceptance.
 
+### INT-088 slice 4 — Desktop read-only Run — 11 October 2026, PR #93
+
+Complete Claude's explicitly unstarted handed-off screen using the existing catalogue/request/runner/store and a pure application workflow. A separate default-off read gate, exact consumed review, pinned context/input/output and owned cancellation preserve read/write separation; no new shared evidence contract/cache or generic script execution. The original Copy page's behaviour and all change items remain unchanged. Correct only the first runnable manifest's stale no-Run limitation and its pin. Actual save-refusal regression preserves existing immutable bytes and reports unconfirmed persistence rather than asserting no disk copy. [Slice record](READ-ONLY-RUN-WORKFLOW-2026.10.11.md) separates executed source tests/crossbuilds from pending independent/Windows/native/live gates.
+
 ### INT-096 offline CLI historical admission — 11 October 2026, PR #92
 
 Expose the shared limited historical expiry reader only through explicit `bdit report-evidence --historical`, with no value accepted and no fallback on the normal path. The CLI prints the assurance notice and every derived export carries it; historical JSON bundles byte-identical source bytes with its warning. Current expiry and consent cannot be downgraded through that flag. Migrate synthetic UI fixtures to the registered revision/counts without changing desktop implementation. Human/live acceptance remains separate.

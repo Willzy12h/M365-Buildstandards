@@ -95,7 +95,7 @@ public sealed class PageViewModelTests : IDisposable
         Assert.All(numbered, n => Assert.Equal("BUILD", n.Group));
         Assert.Equal(new[] { "1", "2", "3", "4", "5", "6" }, numbered.Select(n => n.Step));
         Assert.Equal("automation", numbered[^1].Key);
-        Assert.Equal(19, _shell.NavItems.Select(n => n.Key).Distinct().Count());
+        Assert.Equal(20, _shell.NavItems.Select(n => n.Key).Distinct().Count());
     }
 
     [Fact]

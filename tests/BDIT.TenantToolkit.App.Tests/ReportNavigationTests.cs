@@ -13,12 +13,12 @@ public sealed class ReportNavigationTests
         using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
         var originalKeys = new[] { "overview", "connect", "setup", "configuration", "assessment", "deviations", "plan", "deploy", "automation", "recovery", "history", "jobs", "checks", "scripts", "standard", "settings" };
         foreach (var key in originalKeys) Assert.Single(shell.NavItems, n => n.Key == key);
-        Assert.Equal(19, shell.NavItems.Count);
+        Assert.Equal(20, shell.NavItems.Count);
         Assert.Single(shell.NavItems, n => n.Key == "home");
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
         Assert.Equal(new[] { "CLIENT", "BUILD", "OPERATE", "EVIDENCE & REFERENCE" }, shell.NavItems.Select(n => n.Group).Distinct());
         Assert.Equal(new[] { "home", "connect", "overview", "setup" }, shell.NavItems.Where(n => n.Group == "CLIENT").Select(n => n.Key));
-        Assert.Equal(new[] { "reports", "naming", "scripts", "jobs" }, shell.NavItems.Where(n => n.Group == "OPERATE").Select(n => n.Key));
+        Assert.Equal(new[] { "reports", "naming", "scripts", "run-reports", "jobs" }, shell.NavItems.Where(n => n.Group == "OPERATE").Select(n => n.Key));
         foreach (var group in shell.NavItems.GroupBy(n => n.Group))
         {
             Assert.True(group.First().IsGroupStart);
@@ -37,6 +37,10 @@ public sealed class ReportNavigationTests
         shell.Navigate("reports"); Assert.Same(shell.Page<GraphReportsViewModel>(), shell.CurrentPage);
         shell.Navigate("naming"); Assert.Same(shell.Page<NamingAuditViewModel>(), shell.CurrentPage);
         shell.Navigate("scripts"); Assert.Same(shell.Page<ScriptsViewModel>(), shell.CurrentPage);
+        shell.Navigate("run-reports"); Assert.Same(shell.Page<RunReportsViewModel>(), shell.CurrentPage);
+        // Run reports sits directly after the Copy-only library it extends.
+        var operate = shell.NavItems.Where(n => n.Group == "OPERATE").Select(n => n.Key).ToList();
+        Assert.Equal(operate.IndexOf("scripts") + 1, operate.IndexOf("run-reports"));
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
 

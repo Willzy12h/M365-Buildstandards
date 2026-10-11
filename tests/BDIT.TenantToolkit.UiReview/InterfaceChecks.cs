@@ -259,6 +259,32 @@ internal static partial class Program
             CrampedCurrentPages.Add($"  {where} · expanded offline checks must show the Run action and at least 100 pixels of readable result text.");
     }
 
+    private static int ReadRunViewportsMeasured;
+    private static void RecordReadRunViewport(FrameworkElement content, string where)
+    {
+        ReadRunViewportsMeasured++;
+        var page = Descendants(content).OfType<RunReportsView>().Single();
+        var tabs = Descendants(page).OfType<TabControl>().Single();
+        var run = Descendants(page).OfType<Button>().Single(b =>
+            System.Windows.Automation.AutomationProperties.GetName(b) == "Run reviewed read-only report");
+        run.BringIntoView(); content.UpdateLayout(); Pump();
+        var review = Descendants(page).OfType<TextBox>().FirstOrDefault(t =>
+            System.Windows.Automation.AutomationProperties.GetName(t) == "Exact read-only run review");
+        if (VisibleBounds(tabs, content).Height < 160 || VisibleBounds(run, content).Height < run.ActualHeight - 1
+            || tabs.SelectedIndex == 1 && (review is null || VisibleBounds(review, content).Height < 120))
+            CrampedCurrentPages.Add($"  {where} · read-only Run needs visible review/Run actions and at least 120 pixels of exact review text.");
+    }
+    private static void SeedReadRun(ShellViewModel shell)
+    {
+        // Synthetic verified context only. Never press Run: it authenticates a separate Exchange connection.
+        shell.Workspace.Session!.TokenExpiresAt = Stamp;
+        var page = shell.Page<RunReportsViewModel>(); page.Selected = page.Items.Single(); page.SelectedTab = 0;
+        page.ExperimentalReadEnabled = false;
+        if (page.RunCommand.CanExecute(null)) throw new InvalidOperationException("Read-only Run is not default off.");
+        page.ExperimentalReadEnabled = true;
+        if (!page.CanReview || page.RunCommand.CanExecute(null)) throw new InvalidOperationException("Opt-in bypassed exact run approval, or did not allow review.");
+    }
+
     // ---- keyboard ------------------------------------------------------------------------------------------------
 
     private static readonly List<string> KeyboardProblems = new();
@@ -772,6 +798,12 @@ internal static partial class Program
         ("SettingsViewModel.RunOfflineDiagnosticCommand", Press),
         ("SettingsViewModel.CancelOfflineDiagnosticCommand", Disabled),
         ("SettingsViewModel.CopyOfflineDiagnosticCommand", Clipboard),
+        ("RunReportsViewModel.ReviewCommand", Press),
+        ("RunReportsViewModel.RunCommand", SignIn),
+        ("RunReportsViewModel.CancelCommand", Disabled),
+        ("RunReportsViewModel.SaveEvidenceCommand", Disabled),
+        ("RunReportsViewModel.CopyOutcomeCommand", Disabled),
+        ("RunReportsViewModel.CopyEvidenceCommand", Disabled),
     };
 
     private const string Press = "press";
@@ -806,6 +838,7 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["RunReportsViewModel.ReviewCommand"] = SeedReadRun,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
         ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,

@@ -86,6 +86,8 @@ public sealed class ShellViewModel : ObservableObject
         AddNav("OPERATE", "naming", "", "Naming and ownership");
         // Reviewed library scripts are copied to run outside the tool; nothing on the page reads or writes the tenant.
         AddNav("OPERATE", "scripts", "", "Scripts & Reports");
+        // Registered read-only reports run here only after a per-connection opt-in and an exact review and approval.
+        AddNav("OPERATE", "run-reports", "", "Run reports");
         AddNav("OPERATE", "jobs", "", "Jobs and completion");
         AddNav("EVIDENCE & REFERENCE", "history", "", "Evidence and drift");
         AddNav("EVIDENCE & REFERENCE", "recovery", "", "Undo and recovery");
@@ -107,6 +109,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["jobs"] = new JobsViewModel(this);
         _pages["checks"] = new ManualChecksViewModel(this);
         _pages["scripts"] = new ScriptsViewModel(this);
+        _pages["run-reports"] = new RunReportsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
