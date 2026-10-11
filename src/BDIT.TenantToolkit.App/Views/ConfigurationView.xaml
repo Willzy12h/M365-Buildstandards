@@ -9,7 +9,7 @@
       <Grid Margin="28,12">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel>
-          <TextBlock Text="02 / CAPTURE &amp; INSPECT" Style="{StaticResource Eyebrow}"/>
+          <TextBlock Text="BUILD 1 / CAPTURE &amp; INSPECT" Style="{StaticResource Eyebrow}"/>
           <TextBlock Text="Tenant configuration" Style="{StaticResource H1}"/>
           <TextBlock Text="Read-only: inspect existing tenant settings and save evidence locally. This never changes tenant objects, even with deployment access." Style="{StaticResource Lead}" Margin="0,0,0,8"/>
         </StackPanel>
