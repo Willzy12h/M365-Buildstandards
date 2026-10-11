@@ -31,6 +31,12 @@
 - Add registered application credential-expiry and observed-consent report engines: strict separate schema 2, metadata-only bounded collection, exact identity joins, immutable storage and HTML/CSV/JSON/Excel exports. Reuse existing authorised access; missing delegated-grant access stays NotAttempted. Desktop/CLI dispatch remains a separate integration slice.
 
 - Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
+- Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
+
+
+- Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
+
+- Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
@@ -396,3 +402,4 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
 
 - Export registered application report evidence through the existing offline CLI, preserving full original sections/provenance; refuse linked input parents consistently with the desktop reader (AST-20261010-25, #92).
+- Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).

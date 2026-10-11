@@ -215,3 +215,13 @@ PR #84's current presentation delta reuses the #81 evidence-source helper and di
 PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
 
 PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.
+
+## Offline prerequisite diagnostic source — PR #88 / INT-094
+
+| Surface | Implemented source | Remaining validation/integration |
+|---|---|---|
+| Shared local checks | Bounded package/hash/catalogue checks, existing settings validator, owned non-overwriting probes, safe unknown/error/cancellation states and optional host presence | Native Windows junction/ACL and actual extracted-package diagnostic acceptance; unsigned inventory never establishes publisher trust |
+| Callable doctor handler | Shared text/JSON findings; options/refusal, safe errors and 0/1/2/3/130 exits tested through the actual handler | Program dispatch and desktop wiring remain absent; no executable command/user-flow completion claimed |
+| Boundaries | No profiles/evidence/cache/log-content reads, host execution, module installation, policy repair, authentication, consent or tenant calls | Human/security-owner and live gates remain separate; diagnostic JSON cannot satisfy deployment before-evidence |
+
+PR #88 now exercises the real portable inventory layout: unchanged shipped catalogues/lineage validate through existing loaders and are admitted by the doctor. The original lineage case and private-guard-removal mutant both fail; 123 repaired focused cases pass. Actual extracted Windows package Ready and #90 composition remain unverified.
