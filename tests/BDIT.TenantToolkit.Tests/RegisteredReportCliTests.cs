@@ -22,7 +22,7 @@ public sealed class RegisteredReportCliTests
         Assert.Contains("Synthetic", Assert.Single(report.Limitations));
     }
 
-    private static ReportEvidence Report(string state = ReportReadState.Collected, bool rows = false)
+    internal static ReportEvidence Report(string state = ReportReadState.Collected, bool rows = false)
     {
         var definition = GraphReportRegistry.Find("intune-devices");
         var report = new ReportEvidence
@@ -41,7 +41,7 @@ public sealed class RegisteredReportCliTests
         return report;
     }
 
-    private static async Task<(int Exit, string Output, string Error)> Run(params string[] args)
+    internal static async Task<(int Exit, string Output, string Error)> Run(params string[] args)
     {
         var config = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
         var dll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "BDIT.TenantToolkit.Cli", "bin", config, "net10.0", "bdit.dll"));
@@ -72,7 +72,11 @@ public sealed class RegisteredReportCliTests
         Assert.Contains("Partial", result.Output); Assert.Contains("no live reads", result.Output);
         var file = Assert.Single(Directory.GetFiles(root.Paths.ReportsDirectory));
         Assert.Contains(file, result.Output); Assert.NotEmpty(File.ReadAllBytes(file));
-        if (format == "json") Assert.Equal(report.Id, ReportEvidenceSchema.Read(File.ReadAllText(file), TestData.TenantA).Id);
+        if (format == "json")
+        {
+            Assert.Equal(report.Id, ReportEvidenceSchema.Read(File.ReadAllText(file), TestData.TenantA).Id);
+            Assert.Equal(ReportEvidenceSchema.Serialize(report), File.ReadAllText(file).TrimStart('\uFEFF'));
+        }
         if (format == "html") { var html = File.ReadAllText(file); Assert.Contains("&lt;script&gt;", html); Assert.DoesNotContain("<script>", html); Assert.Contains("Partial", html); Assert.Contains(RegisteredReportDocuments.SuppliedFileNotice, html); }
         if (format == "csv")
         {
@@ -150,8 +154,8 @@ public sealed class RegisteredReportCliTests
         var result = await Run("report-evidence", "--input", input, "--tenant", scenario == "tenant" ? TestData.TenantB : TestData.TenantA, "--root", root.Root);
         Assert.Equal(2, result.Exit); Assert.Empty(result.Output); Assert.Contains("Refused:", result.Error);
         if (scenario == "utf8") Assert.Contains("not valid UTF-8", result.Error);
-        if (scenario == "oversize") Assert.Contains("exceeds the 32 MiB reader limit", result.Error);
-        if (scenario == "kind") Assert.Contains("Unsupported report evidence kind", result.Error);
+        if (scenario == "oversize") Assert.Contains("Report evidence exceeds its 32 MiB reader limit.", result.Error);
+        if (scenario == "kind") Assert.Contains("Unsupported Graph report envelope kind, schema or report ID.", result.Error);
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory)); Assert.Equal(bytes, File.ReadAllBytes(input));
         Assert.Empty(Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories));
     }

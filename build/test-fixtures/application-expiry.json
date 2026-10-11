@@ -1,0 +1,140 @@
+{
+  "parameters": {
+    "horizonDays": 45
+  },
+  "schemaVersion": 2,
+  "kind": "reportEvidence",
+  "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
+  "reportId": "application-expiry",
+  "reportSchemaVersion": 1,
+  "tenantId": "11111111-1111-4111-8111-111111111111",
+  "accountObjectId": "55555555-5555-4555-8555-555555555555",
+  "resource": "Graph",
+  "sourceMode": "live",
+  "startedAt": "2026-09-11T10:00:00.000Z",
+  "endedAt": "2026-09-11T10:00:00.000Z",
+  "toolkitVersion": "synthetic-package-fixture",
+  "moduleVersion": "registered-graph-application-report/1",
+  "sources": [
+    {
+      "api": "v1.0",
+      "registeredRoute": "/applications",
+      "reference": "https://learn.microsoft.com/en-us/graph/api/application-list?view=graph-rest-1.0",
+      "status": "Partial",
+      "error": "Some returned metadata/child reads are incomplete; inspect their explicit states and reasons.",
+      "startedAt": "2026-09-11T10:00:00.000Z",
+      "endedAt": "2026-09-11T10:00:00.000Z",
+      "rows": 1,
+      "objectsAttempted": 0
+    },
+    {
+      "api": "v1.0",
+      "registeredRoute": "/servicePrincipals",
+      "reference": "https://learn.microsoft.com/en-us/graph/api/application-list?view=graph-rest-1.0",
+      "status": "Collected",
+      "error": null,
+      "startedAt": "2026-09-11T10:00:00.000Z",
+      "endedAt": "2026-09-11T10:00:00.000Z",
+      "rows": 1,
+      "objectsAttempted": 0
+    },
+    {
+      "api": "v1.0",
+      "registeredRoute": "/applications/{id}/owners",
+      "reference": "https://learn.microsoft.com/en-us/graph/api/application-list?view=graph-rest-1.0",
+      "status": "Partial",
+      "error": "Some owners returned limited, malformed or duplicate identity/name metadata.",
+      "startedAt": "2026-09-11T10:00:00.000Z",
+      "endedAt": "2026-09-11T10:00:00.000Z",
+      "rows": 1,
+      "objectsAttempted": 1
+    },
+    {
+      "api": "v1.0",
+      "registeredRoute": "/servicePrincipals/{id}/owners",
+      "reference": "https://learn.microsoft.com/en-us/graph/api/application-list?view=graph-rest-1.0",
+      "status": "Collected",
+      "error": null,
+      "startedAt": "2026-09-11T10:00:00.000Z",
+      "endedAt": "2026-09-11T10:00:00.000Z",
+      "rows": 0,
+      "objectsAttempted": 1
+    }
+  ],
+  "status": "Partial",
+  "limitations": [
+    "Application registrations and enterprise applications are distinct exact objects. Metadata and owner names do not establish credential possession, trust or authority to rotate. No secret values or certificate/key bytes are retained. Classification uses the fixed collection end and visible horizon.",
+    "Unsigned report source claims and digests are not authentication or complete deployment before-evidence.",
+    "Reads have a five-minute maximum budget, 5000 rows per section, 256 credentials per object, 100 owners per object, 256 role definitions per principal and 256 assignments per principal.",
+    "At most 256 exact objects receive child reads per report. Metadata admission reserves envelope space within the existing 32 MiB limit. Omitted data remains partial/unknown, never absent.",
+    "Synthetic portable fixture only; no tenant queried."
+  ],
+  "sections": [
+    {
+      "id": "applications",
+      "status": "Partial",
+      "error": "Some returned metadata/child reads are incomplete; inspect their explicit states and reasons.",
+      "limitations": [],
+      "rows": [
+        {
+          "identityStatus": "Exact",
+          "objectKind": "application",
+          "applicationId": "77777777-7777-4777-8777-777777777777",
+          "credentialsReadStatus": "Collected",
+          "credentialReadReason": null,
+          "credentials": [
+            {
+              "kind": "password",
+              "keyId": "44444444-4444-4444-8444-444444444444",
+              "displayName": "Synthetic metadata",
+              "type": null,
+              "usage": null,
+              "start": "2026-01-01T00:00:00Z",
+              "end": "2026-09-20T00:00:00Z",
+              "classification": "ExpiringWithinHorizon",
+              "reason": null
+            }
+          ],
+          "ownersReadStatus": "Partial",
+          "ownerReadReason": "Some owners returned limited, malformed or duplicate identity/name metadata.",
+          "owners": [
+            {
+              "id": "33333333-3333-4333-8333-333333333333",
+              "name": null,
+              "readStatus": "Partial",
+              "reason": "Owner identity/name is missing or limited information; ownership remains unresolved."
+            }
+          ],
+          "id": "55555555-5555-4555-8555-555555555555",
+          "name": "Synthetic portable application",
+          "readStatus": "Partial",
+          "error": "Some owners returned limited, malformed or duplicate identity/name metadata."
+        }
+      ]
+    },
+    {
+      "id": "service-principals",
+      "status": "Collected",
+      "error": null,
+      "limitations": [],
+      "rows": [
+        {
+          "identityStatus": "Exact",
+          "objectKind": "servicePrincipal",
+          "applicationId": "77777777-7777-4777-8777-777777777777",
+          "credentialsReadStatus": "Collected",
+          "credentialReadReason": null,
+          "credentials": [],
+          "ownersReadStatus": "Collected",
+          "ownerReadReason": null,
+          "owners": [],
+          "id": "66666666-6666-4666-8666-666666666666",
+          "name": "Synthetic portable service principal",
+          "readStatus": "Collected",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "integrityDigest": "cf6b5dd9915a5217cec6d3c6c4908739e4e9eb9b936fcc08e5d33a0657029b18"
+}

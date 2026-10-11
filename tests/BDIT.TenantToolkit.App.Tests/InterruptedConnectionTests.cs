@@ -174,6 +174,23 @@ public sealed class InterruptedConnectionTests : IDisposable
         Assert.Equal(bytes, File.ReadAllBytes(file)); Assert.Single(_handler.Methods);
     }
 
+    [Theory]
+    [InlineData(SessionMode.Assessment)]
+    [InlineData(SessionMode.Deployment)]
+    public async Task Adopted_connection_retains_authorisation_invalidation_and_releases_the_old_subscription(SessionMode mode)
+    {
+        var first = Connection(mode); await Adopt(first, TestData.Profile());
+        Assert.True(first.Session.OperatorVerified);
+        typeof(ConnectedTenant).GetMethod("OnAuthorisationInvalidated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(first, null);
+        Assert.False(first.Session.OperatorVerified);
+        Assert.Contains("verified", new GraphReportsController(_workspace).ReadBlocker, StringComparison.OrdinalIgnoreCase);
+        var second = Connection(mode); await Adopt(second, TestData.Profile());
+        Assert.True(second.Session.OperatorVerified);
+        typeof(ConnectedTenant).GetMethod("OnAuthorisationInvalidated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(first, null);
+        Assert.True(second.Session.OperatorVerified);
+        Assert.All(_handler.Methods, method => Assert.Equal(HttpMethod.Get, method));
+    }
+
     private sealed class Tokens : IAccessTokenProvider
     {
         public int Calls { get; private set; }

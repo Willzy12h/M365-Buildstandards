@@ -19,8 +19,9 @@
             <StackPanel Margin="0,0,12,6"><TextBlock Text="Report"/><ComboBox ItemsSource="{Binding Reports}" SelectedItem="{Binding SelectedReport}" DisplayMemberPath="Name" Width="300" AutomationProperties.Name="Registered report"/></StackPanel>
             <StackPanel Margin="0,0,12,6"><TextBlock Text="Start UTC (logs only)"/><TextBox Text="{Binding StartUtc, UpdateSourceTrigger=PropertyChanged}" Width="200" IsEnabled="{Binding RequiresDates}" AutomationProperties.Name="Requested UTC start" ToolTip="UTC ISO timestamp, for example 2026-09-01T00:00:00Z. Clear dates for non-log reports."/></StackPanel>
             <StackPanel Margin="0,0,0,6"><TextBlock Text="End UTC (logs only)"/><TextBox Text="{Binding EndUtc, UpdateSourceTrigger=PropertyChanged}" Width="200" IsEnabled="{Binding RequiresDates}" AutomationProperties.Name="Requested UTC end" ToolTip="UTC ISO timestamp, after start, no later than now; maximum 31 days."/></StackPanel>
+            <StackPanel Margin="12,0,0,6"><TextBlock Text="Expiry horizon (days)"/><TextBox Text="{Binding HorizonDays, UpdateSourceTrigger=PropertyChanged}" Width="110" IsEnabled="{Binding RequiresHorizon}" AutomationProperties.Name="Application expiry horizon days" ToolTip="Whole number from 1 to 365; default 30. Applies only to application credential expiry."/></StackPanel>
           </WrapPanel>
-          <TextBlock Text="Dates apply only to log reports. Choose a log report to enter a UTC range of up to 31 days; the end cannot be in the future." TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,0,0,6"/>
+          <TextBlock Text="Dates apply only to logs (up to 31 days; no future end). Expiry uses a 1–365 day horizon from the fixed collection end. Consent uses neither dates nor horizon." TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,0,0,6"/>
           <Expander Header="Required permissions, limits and current access">
             <StackPanel><TextBlock Text="{Binding ScopeExplanation}" TextWrapping="Wrap" Margin="0,8,0,6"/><TextBlock Text="{Binding Limitations}" TextWrapping="Wrap"/></StackPanel>
           </Expander>
@@ -38,9 +39,9 @@
         <TextBlock Text="{Binding Outcome}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4"/>
         <TextBlock Text="{Binding SourceSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="12"/>
         <WrapPanel Margin="0,4,0,4">
-          <StackPanel Margin="0,0,12,0"><TextBlock Text="Section"/><ComboBox ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Width="180" Margin="0" AutomationProperties.Name="Report section"/></StackPanel>
+          <StackPanel Margin="0,0,12,0"><TextBlock Text="Table / section"/><ComboBox ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Width="180" Margin="0" AutomationProperties.Name="Report section"/></StackPanel>
           <StackPanel Margin="0,0,12,0"><TextBlock Text="Search visible values"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="270" Margin="0" AutomationProperties.Name="Report display search"/></StackPanel>
-          <StackPanel><TextBlock Text="Row read state"/><ComboBox ItemsSource="{Binding RowStates}" SelectedItem="{Binding RowState}" Width="150" Margin="0" AutomationProperties.Name="Row read state display filter"/></StackPanel>
+          <StackPanel><TextBlock Text="Row read state"/><ComboBox ItemsSource="{Binding RowStates}" SelectedItem="{Binding RowState}" IsEnabled="{Binding CanFilterReadState}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ReadStateFilterGuidance}" AutomationProperties.HelpText="{Binding ReadStateFilterGuidance}" Width="150" Margin="0" AutomationProperties.Name="Row read state display filter"/></StackPanel>
         </WrapPanel>
         <TextBlock Text="{Binding SectionSummary}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"/>
       </StackPanel>
@@ -80,7 +81,7 @@
             <TextBlock Text="{Binding StoredStatus}" TextWrapping="Wrap" Margin="0,4,0,4"/>
             <TextBlock Text="{Binding SelectedStored.Problem}" TextWrapping="Wrap"/>
             <WrapPanel><TextBox Text="{Binding SuppliedFile, UpdateSourceTrigger=PropertyChanged}" Width="460" AutomationProperties.Name="Supplied Graph report JSON path" Margin="0,0,8,0"/><Button Content="Choose JSON" Command="{Binding ChooseSuppliedCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open supplied JSON" Command="{Binding OpenSuppliedCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
-            <TextBlock Text="Strict schema 1 Graph evidence only, at most 32 MiB; the selected tenant is fixed. Invalid digest, wrong tenant, links, Exchange reports and configuration snapshots are refused." TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextMuted}"/>
+            <TextBlock Text="Registered Graph schema 1 and application schema 2 evidence only, at most 32 MiB; the selected tenant is fixed. Invalid digest, wrong tenant, links, Exchange reports and configuration snapshots are refused." TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextMuted}"/>
           </StackPanel>
         </StackPanel>
         </ScrollViewer></TabItem>

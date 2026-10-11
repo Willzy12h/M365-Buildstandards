@@ -699,3 +699,34 @@ CLA-20261011-030: distinguish diagnostic manual/incoming validation from the pub
 ### INT-096 source implementation — 11 October 2026, PR #87
 
 Following Claude's decision review and #95's merge (`84f91fd`), register expiry revision 2 with `registered-graph-application-expiry/2`; consent remains revision 1 with its original adapter. Capture the five effective exact-parent owner outcome counts after child metadata refinement; strict readers and every export check counts/rows, bounds and attempt intervals. Root-inventory failures stay independent. Revision-1 expiry evidence requires explicit limited historical admission; ordinary current loading refuses it. Historical JSON is a labelled ZIP carrying untouched source bytes and a warning; rendered/table views carry the same notice. No historical catalogue, permission, execution or software-version change. Counts establish consistency, not authenticity. The original CLA-010 red reproduction remains preserved; four current guard-deletion cases fail, and restored focused tests pass. Windows/human/live outcomes are separate.
+
+### Application report desktop composition — 10 October 2026, PR #92
+
+Compose existing own #80 presentation and repaired #87 engine source sequentially, preserving their independent review and merge gates. Extend the same Tenant Reports destination through exact schema/report-ID selection, typed expiry horizon and strict supplied-file envelope dispatch. Reuse verified context, shared engine collection/export and immutable stores; no additional authentication/cache, new scope/consent, Directory.Read.All or WPF collector. Parent code remains attributable and is not reimplemented. Claude retains Scripts/Run/mailbox presentation. Local validation and CI-skipped draft commits are not Windows/candidate evidence; parent reviews, real exact-head validation and release gates remain necessary.
+
+
+### INT-094 registered desktop report composition — PR #92
+
+Compose the existing five report choices with the two reviewed schema-2 registrations through a presentation registry and the existing strict dispatcher. Retain separate original schemas, full nested tables, immutable persistence, complete exports and shared verified read context. Parameters are typed and selection changes invalidate acknowledgement/results. No authentication implementation, new permission, consent or deployment authority is added. Windows execution and independent review remain outstanding.
+
+
+### Desktop connection composition — PR #92 over #73/#79
+
+The CompleteConnectionAsync extraction from #79 retains #73 authorisation-invalidation event subscription after adopting the connection. Replaced connections still unsubscribe through existing disconnect. Preserve strict whole-history admission, lease-specific unknown notices and read-only continuation. Two App regressions exercise actual adoption and event delivery, then verify an old connection cannot invalidate its replacement. They are authored/crosscompiled; Windows execution remains outstanding. No new approval, provider or evidence contract.
+
+
+### INT-089/094 paired offline report CLI — PR #92
+
+The existing report-evidence command dispatches registered Graph schema 1 and application schema 2 through the shared strict reader/exporter, with the existing option allow-list, exact expected tenant and headless boundary. Preserve original intervals/read states and supplied-file provenance; no conversion/resealing. This also closes AST-20261010-25 parent-link admission inconsistency. Fifty-two delegated actual-process/conformance cases pass; unchanged original CLI fails eleven selected integration/refusal cases. Windows package execution remains outstanding.
+
+### Exact-package application report exports — 11 October 2026, PR #92
+
+Extend the existing owned portable smoke with sealed synthetic expiry and consent fixtures. Actual extracted executable HTML and launcher JSON exports must preserve original status/intervals, nested metadata and supplied-file provenance; wrong tenant and tampered digest must refuse without output or source changes. Keep fixtures explicitly synthetic and outside the distributed package. Use ASCII character assembly in UTF-8-no-BOM PowerShell so PS5.1 ANSI decoding cannot corrupt the exact status comparison. Strict-reader tests, four SDK export assertions/four refusals, encoding regression and PS7 parsing pass; actual Windows extraction, launcher and PS5.1 execution remain pending.
+
+### Supplied report local-path guidance — 11 October 2026, PR #92
+
+CLA-20261011-031 remains a Windows Files On-Demand hypothesis, not a reproduced defect. Explain the existing local-path refusal and remedy: choose a fully downloaded copy in an ordinary local folder outside sync/link paths. Preserve original evidence and reparse/link guards; failed access is never empty success. No storage-host bypass, reader relaxation or claimed native acceptance.
+
+### INT-096 offline CLI historical admission — 11 October 2026, PR #92
+
+Expose the shared limited historical expiry reader only through explicit `bdit report-evidence --historical`, with no value accepted and no fallback on the normal path. The CLI prints the assurance notice and every derived export carries it; historical JSON bundles byte-identical source bytes with its warning. Current expiry and consent cannot be downgraded through that flag. Migrate synthetic UI fixtures to the registered revision/counts without changing desktop implementation. Human/live acceptance remains separate.

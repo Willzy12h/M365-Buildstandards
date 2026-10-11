@@ -20,6 +20,17 @@ CLA-126 is confirmed: filling the metadata admission budget exactly with an unre
 
 The original contradictory import/export and exact-budget collector cases both fail; two isolated honesty-guard deletion tests fail without digest or unrelated refusals masking them. The delegated strict related suite passes 144 cases; root independently passes 84 application/schema-dispatch cases, zero skipped. Strict Windows-targeted compilation passes. Actual Windows execution, desktop/CLI wiring and human/live acceptance remain distinct outstanding gates. Fresh remote CI is paused while William's Actions allowance is constrained; skipped commits provide no merge or candidate evidence.
 
+## PR #92: desktop report presentation
+
+The Reports page now offers the five existing Graph reports and two application metadata reports. Expiry uses a validated 1–365 day horizon; consent accepts neither log dates nor a horizon. Reads reuse the existing verified connection and read-only route provider, with explicit experimental acknowledgement and context/selection pinning. Missing access remains NotAttempted; no consent or permission is granted here.
+
+Saved and supplied report browsing dispatches the registered schema/ID pair through the shared strict reader. Every nested export table can be displayed; tables lacking a row-status column explain why that filter is unavailable. Display filters never alter the original JSON or complete HTML/CSV/Excel exports. Supplied-file source claims remain unverified.
+
+Delegated offline evidence: 13 browser/presentation tests passed, and the original schema-1-only browser fails the mixed-history regression. Thirty-seven additional Windows App cases and the three-size native journeys are authored and crosscompiled; execution is outstanding. Strict App/native crosscompilation passed with zero warnings/errors. This does not establish native usability or live Microsoft behaviour.
 ## Current owner-outcome repair — PR #87 / INT-096
 
 The subsequent confirmed CLA-20261011-010 gap is closed for current evidence by expiry revision 2 and a distinct registered adapter with required bounded retained-parent owner outcomes. Consent stays at its existing revision. ReadFile and all current exports refuse resealed contradictory counts/rows and silent revision downgrade. Original revision-1 expiry records are limited historical evidence only; HTML/CSV/XLSX show the assurance limitation, and JSON exports bundle untouched bytes with the warning. The original red reproduction is preserved in #95; 107 focused cases pass after repair, and disabling only the new consistency guard produces four expected failures. Fresh exact-head Windows validation remains required; previous billing constraints have ended. CLI integration is #92 and human/live acceptance remains unperformed.
+
+### Explicit offline historical inspection
+
+Use `bdit report-evidence --input <original-file> --tenant <expected-guid> --historical --format html` for limited revision-1 expiry inspection. The CLI and HTML/CSV/XLSX display “Historical owner outcome consistency unverified”. `--format json` creates `.json.zip` with untouched `report.json` and `READ-ME.txt`; keep them together. Normal loading refuses old expiry records; no auto-upgrade/reseal occurs. The flag cannot downgrade current expiry or consent. The desktop normal loader also refuses old expiry records; historical inspection uses this offline CLI route. No Graph read or sign-in takes place.

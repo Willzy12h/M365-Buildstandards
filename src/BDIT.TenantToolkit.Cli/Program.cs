@@ -123,7 +123,7 @@ public static class Program
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
 
-              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>]
+              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
                   Validates its recorded tenant, schema and integrity before writing an export.
                   Formats: html, json, csv (ZIP of sections), xlsx. Default html.
@@ -411,9 +411,11 @@ public static class Program
 
     private static int ReportEvidenceExport(IReadOnlyDictionary<string, string> options)
     {
-        var allowed = new[] { "input", "tenant", "format", "root" };
+        var allowed = new[] { "input", "tenant", "format", "root", "historical" };
         if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.OrdinalIgnoreCase)))
-            throw new ConfigurationException("Report evidence exports accept only --input, --tenant, --format and --root. No collection or execution is supported.");
+            throw new ConfigurationException("Report evidence exports accept only --input, --tenant, --format, --root and --historical. No collection or execution is supported.");
+        if (options.TryGetValue("historical", out var historicalValue) && historicalValue.Length != 0)
+            throw new ConfigurationException("--historical is an explicit flag without a value, for limited original expiry revision-1 inspection only.");
         var tenant = Require(options, "tenant");
         if (!ProfileValidator.IsGuid(tenant)) throw new ConfigurationException("--tenant must name the expected tenant GUID.");
         var file = Require(options, "input");
@@ -421,23 +423,15 @@ public static class Program
         var format = Format(options, ExportFormat.Html);
         if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
             throw new ConfigurationException("Report evidence exports as html, json, csv or xlsx.");
-        byte[] bytes;
-        using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            if (stream.Length > ReportEvidenceSchema.MaximumBytes)
-                throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-            using var reader = new BinaryReader(stream);
-            bytes = reader.ReadBytes(ReportEvidenceSchema.MaximumBytes + 1);
-        }
-        if (bytes.Length > ReportEvidenceSchema.MaximumBytes)
-            throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-        string json;
-        try { json = new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
-        catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
-        var report = ReportEvidenceSchema.Read(json, tenant);
+        var report = options.ContainsKey("historical") ? ReportEnvelopeDispatcher.ReadHistoricalFile(file, tenant) : ReportEnvelopeDispatcher.ReadFile(file, tenant);
         var context = Context.Open(options);
-        Console.WriteLine(context.Exporter.ExportReport(report, format, suppliedFile: true));
-        Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
+        if (report.AssuranceNotice.Length > 0)
+            Console.WriteLine(report.AssuranceNotice + ". Historical JSON exports bundle original bytes and a warning; current owner validation is unavailable for this revision.");
+        Console.WriteLine(report.Export(context.Exporter, format, suppliedFile: true));
+        var state = report.Schema1?.Status ?? report.Schema2!.Status;
+        var started = report.Schema1?.StartedAt ?? report.Schema2!.StartedAt;
+        var ended = report.Schema1?.EndedAt ?? report.Schema2!.EndedAt;
+        Console.WriteLine($"Offline export · read status {state} · recorded {started} to {ended} · no live reads or writes. Export success does not prove collection success.");
         return 0;
     }
 

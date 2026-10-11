@@ -64,6 +64,7 @@ internal static partial class Program
             ReportEvidenceSchema.Seal(report);
             SyntheticReportFiles.Add(label, workspace.Evidence.SaveReport(report));
         }
+        SeedApplicationReportEvidence(workspace);
         SyntheticPartialReport = SyntheticReportFiles["partial"];
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(SyntheticPartialReport)!, Id(605) + ".json"), "{}");
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(SyntheticPartialReport)!, Id(606) + ".json"), "{ damaged synthetic evidence");
@@ -72,7 +73,7 @@ internal static partial class Program
     private static void SeedGraphReportsPage(ShellViewModel shell)
     {
         var vm = shell.Page<GraphReportsViewModel>(); vm.Refresh();
-        vm.SelectedReport = GraphReportRegistry.Find("intune-devices"); vm.Search = ""; vm.RowState = "All";
+        vm.SelectedReport = GraphReportPresentation.Find(1, "intune-devices"); vm.Search = ""; vm.RowState = "All";
         vm.SuppliedFile = SyntheticPartialReport; vm.OpenSupplied(SyntheticPartialReport);
         vm.SelectedRow = vm.Rows![0];
     }
@@ -179,6 +180,7 @@ internal static partial class Program
                 vm.ReadAcknowledged = false;
                 session.TenantVerified = verified; NotifyFixture(workspace);
 
+                CheckApplicationReportNativeFlows(shell, content, output, size, traces);
                 traces.Context = "native naming " + size;
                 shell.Navigate("naming"); SeedNamingPage(shell); content.UpdateLayout(); Pump();
                 var naming = shell.Page<NamingAuditViewModel>();

@@ -286,3 +286,9 @@ First repaired Windows push38080373544 / PR38080376218 at1b4d3e1 executed all31 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-22 | Astra / Reports and existing silent renewal (P2, confirmed) | At 480634370203dff9307d738be4c954c4280bb0a8, GraphReportsController.cs:40–41 and :77 use stale connection-time expiry as read lifetime, preventing provider renewal or discarding a successful stable read | Remove natural elapsed-time gate; keep timestamp parsing/context mutation refusal, invalidated authority and independent write opt-in expiry | Unchanged exact-controller stub reproduces zero-read preflight and post-read result loss. Fixed real-controller portable cases 9/9 and actual MSAL renewal cases 11/11 pass; original controller fails both added temporal positives. Strict App compilation passes; exact-source Windows execution, Claude review and live acceptance remain open |
+
+## Astra application CLI integration — 10–11 October 2026, PR #92
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-25 | Delegated CLI implementation / Astra confirmation, Program.cs at `7f1f066`:411/423 (P2, confirmed) | The schema-1 offline export opened a valid report through a linked input parent without the intended link admission | Reuse ReportEnvelopeDispatcher.ReadFile for both registered schemas, preserving bounded UTF-8, tenant, integrity, full exports and supplied provenance | Original actual Linux CLI invocation exports with exit 0 through Directory.CreateSymbolicLink; repaired invocation exits 2 with parent-link refusal, no export and unchanged source bytes. Delegated 52 focused process/conformance cases pass. Windows junction/native and live acceptance remain outstanding |

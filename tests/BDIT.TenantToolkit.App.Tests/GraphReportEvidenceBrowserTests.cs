@@ -27,7 +27,7 @@ public sealed class GraphReportEvidenceBrowserTests
             .SetValue(browser, (Func<string, IEnumerable<string>>)VanishingEnumeration);
         var listing = browser.List(TestData.TenantA);
         Assert.False(listing.Complete);
-        var retained = Assert.Single(listing.Entries); Assert.Equal(saved.Evidence.Id, retained.Id); Assert.True(retained.CanOpen);
+        var retained = Assert.Single(listing.Entries); Assert.Equal(saved.Evidence.Schema1!.Id, retained.Id); Assert.True(retained.CanOpen);
         Assert.Contains("Listing incomplete:", listing.Detail); Assert.Contains("vanished during listing", listing.Detail);
         Assert.DoesNotContain("No report-evidence folder", listing.Detail);
         Assert.Equal(1, f.Handler.Calls); Assert.Equal(1, f.Tokens.Calls);
@@ -44,7 +44,7 @@ public sealed class GraphReportEvidenceBrowserTests
         Assert.True(listing.Complete); Assert.Equal(3, listing.Entries.Count);
         Assert.Single(listing.Entries, e => e.CanOpen);
         Assert.All(listing.Entries.Where(e => !e.CanOpen), e => Assert.NotEmpty(e.Problem));
-        Assert.Equal(saved.Evidence.IntegrityDigest, browser.OpenStored(TestData.TenantA, saved.Evidence.Id).IntegrityDigest);
+        Assert.Equal(saved.Evidence.Schema1!.IntegrityDigest, browser.OpenStored(TestData.TenantA, saved.Evidence.Schema1!.Id).Schema1!.IntegrityDigest);
         Assert.Equal(1, f.Handler.Calls); Assert.Equal(1, f.Tokens.Calls);
     }
 
@@ -72,7 +72,7 @@ public sealed class GraphReportEvidenceBrowserTests
         var paths = new List<string>();
         for (var i = 0; i < 3; i++)
         {
-            var report = ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(saved.Evidence), TestData.TenantA);
+            var report = ReportEvidenceSchema.Read(ReportEvidenceSchema.Serialize(saved.Evidence.Schema1!), TestData.TenantA);
             report.Id = Guid.NewGuid().ToString(); ReportEvidenceSchema.Seal(report);
             var path = f.Workspace.Evidence.SaveReport(report); paths.Add(path);
             using var stream = new FileStream(path, FileMode.Append);
@@ -112,7 +112,7 @@ public sealed class GraphReportEvidenceBrowserTests
     public async Task Supplied_evidence_strictly_refuses_wrong_identity_kind_schema_and_integrity(string fault)
     {
         using var f = new ConnectedReportsFixture(); var saved = await f.Read();
-        var text = ReportEvidenceSchema.Serialize(saved.Evidence); var json = JsonNode.Parse(text)!.AsObject();
+        var text = ReportEvidenceSchema.Serialize(saved.Evidence.Schema1!); var json = JsonNode.Parse(text)!.AsObject();
         if (fault == "wrongTenant") json["tenantId"] = TestData.TenantB;
         if (fault == "schema2") json["schemaVersion"] = 2;
         if (fault == "exchange") json["resource"] = "Exchange";
@@ -132,7 +132,7 @@ public sealed class GraphReportEvidenceBrowserTests
     {
         using var f = new ConnectedReportsFixture(); var saved = await f.Read(); var browser = new GraphReportEvidenceBrowser(f.Workspace.Evidence);
         var supplied = Path.Combine(f.Root.Root, "supplied.json"); File.WriteAllBytes(supplied, [0xff, 0xfe, 0xfd]);
-        Assert.Throws<DecoderFallbackException>(() => browser.OpenSupplied(supplied, TestData.TenantA));
+        Assert.Throws<ConfigurationException>(() => browser.OpenSupplied(supplied, TestData.TenantA));
         using (var stream = new FileStream(supplied, FileMode.Create)) stream.SetLength(GraphReportEvidenceBrowser.MaximumFileBytes + 1L);
         Assert.Throws<ConfigurationException>(() => browser.OpenSupplied(supplied, TestData.TenantA));
         Assert.Equal(ReportEvidenceSchema.MaximumBytes, GraphReportEvidenceBrowser.MaximumFileBytes);
@@ -171,7 +171,7 @@ public sealed class GraphReportEvidenceBrowserTests
         await process.WaitForExitAsync(); Assert.Equal(0, process.ExitCode);
         try
         {
-            Assert.Throws<ConfigurationException>(() => new GraphReportEvidenceBrowser(f.Workspace.Evidence).OpenSupplied(Path.Combine(junction, saved.Evidence.Id + ".json"), TestData.TenantA));
+            Assert.Throws<ConfigurationException>(() => new GraphReportEvidenceBrowser(f.Workspace.Evidence).OpenSupplied(Path.Combine(junction, saved.Evidence.Schema1!.Id + ".json"), TestData.TenantA));
             var tenantFolder = f.Root.Paths.TenantDirectory(TestData.TenantB); Directory.CreateDirectory(tenantFolder);
             var linkedListing = Path.Combine(tenantFolder, "report-evidence");
             using var second = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -184,7 +184,7 @@ public sealed class GraphReportEvidenceBrowserTests
             {
                 var listing = new GraphReportEvidenceBrowser(f.Workspace.Evidence).List(TestData.TenantB);
                 Assert.False(listing.Complete); Assert.Contains("links and reparse", listing.Detail);
-                Assert.Throws<ConfigurationException>(() => new GraphReportEvidenceBrowser(f.Workspace.Evidence).OpenStored(TestData.TenantB, saved.Evidence.Id));
+                Assert.Throws<ConfigurationException>(() => new GraphReportEvidenceBrowser(f.Workspace.Evidence).OpenStored(TestData.TenantB, saved.Evidence.Schema1!.Id));
             }
             finally { Directory.Delete(linkedListing); }
         }
