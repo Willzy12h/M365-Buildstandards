@@ -1,6 +1,6 @@
 # INT-096 — Versioned application owner outcome consistency
 
-Status: proposed, decision-only PR #95. No dependent source implementation before this decision is reviewed and merged. This amends the expiry report portion of INT-094/#69/#87, preserving the consent report, access scopes and all read-only boundaries.
+Status: accepted in decision PR #95, merged as `84f91fd0c13d9e1f503f3528c2350693129b5499` after [Claude's independent review](https://github.com/Willzy12h/M365-Buildstandards/pull/95#issuecomment-6110047006) of `ed03518`. Dependent source repair is PR #87; no source/live/release acceptance is implied by the decision. This amends the expiry report portion of INT-094/#69/#87, preserving the consent report, access scopes and all read-only boundaries.
 
 ## Proposed exact contract
 
@@ -19,6 +19,8 @@ Implementation must define distinct strict current and explicit historical admis
 Exact source: `0883a58f776a98c73edc9abf3231fe02515d8fa1` (#87). No production changes were made. The reproduction patch is test-only and deliberately leaves one red test; it is not a merge-ready fix.
 
 ## Executed evidence
+
+The activation script below is the author's local host setup, not a repository prerequisite. The portable command begins with `dotnet test`; SDK 10 is required. This preserves the exact earlier reproduction command (CLA-20261011-211).
 
 `source /workspace/bdit-validation/activate-dotnet.sh && dotnet test tests/BDIT.TenantToolkit.Tests/BDIT.TenantToolkit.Tests.csproj -c Release -warnaserror -m:1 -nodeReuse:false --filter FullyQualifiedName~ApplicationOwnerOutcomeReviewTests --logger 'trx;LogFileName=owner-outcomes-before.trx' --results-directory /tmp/application-owner-0883/proofs`
 
@@ -64,3 +66,7 @@ If the product instead requires all existing ReadFile/normal export paths to rej
 ## Acceptance after the decision merges
 
 Use the red capture/tamper test adapted to the new revision, and preserve the real partial-root positive control. Add missing/duplicate/negative/overflow/mismatched counts, wrong revision/adapter, silent downgrade, mixed successful/failed zero-owner queries, per-parent retained-page failure, malformed/duplicate owner metadata, bounded/unattempted fan-out, and cancellation before/during child reads. Confirm strict file admission and all four export formats enforce the same guarantee and historical policy. No live acceptance or Windows execution is established here. Windows CI is available again. Required exact-head checks still apply; no source, live or release acceptance is inferred from this decision. The explicit independent review of this shared contract remains pending under William's bounded-closeout instruction. No review or merge-authority waiver is inferred.
+
+## Implemented historical export shape — PR #87
+
+Strict current reads refuse expiry revision 1; explicit `ReadHistorical`/`ReadHistoricalFile` admit only its original registered adapter with the limitation notice. HTML/CSV/XLSX carry that notice. Historical JSON exports are a `.json.zip` bundle containing the byte-identical `report.json` (including original whitespace/BOM) and `READ-ME.txt` with the same limitation; this prevents silently exporting an unlabelled old record as current evidence. Existing source files are never rewritten or resealed. Normal current JSON exports remain raw JSON. CLI wiring belongs to #92; the desktop's normal loader refuses old expiry records rather than silently downgrading.

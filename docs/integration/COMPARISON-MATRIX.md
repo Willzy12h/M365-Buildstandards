@@ -171,6 +171,15 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
 
+## Application metadata report engine — PR #87 / INT-094
+
+| Surface | Implemented source | Remaining integration/acceptance |
+|---|---|---|
+| Expiry/observed consent | Typed metadata-only sections, fixed-end horizon classification, exact unique joins, independent read states, bounded nested lists/fan-out and existing guarded provider | Desktop/CLI report selection and real Microsoft property/RBAC/retention acceptance |
+| Evidence/export | Strict paired schema/ID dispatcher, immutable shared storage, full HTML/CSV/JSON/Excel, unchanged direct schema-1 refusal | Schema-2 saved-browser dispatch and native/user flows; unsigned digests are not authentication |
+| Access | Existing Application.Read.All purpose reused; absent actual Directory.Read.All leaves delegated grants NotAttempted | No new consent authorised; human/live and final release gates remain open |
+
+PR #87's application-report repair refuses resealed contradictory supplied evidence across import and all exports; exact metadata saturation remains Partial. Original cases and isolated guard deletions fail meaningfully. Delegated related tests pass 144; root application/schema-dispatch checks pass 84 with zero skipped. Fresh actual Windows validation remains budget-blocked; no human/live acceptance is inferred.
 ## Offline prerequisite diagnostic source — PR #88 / INT-094
 
 | Surface | Implemented source | Remaining validation/integration |

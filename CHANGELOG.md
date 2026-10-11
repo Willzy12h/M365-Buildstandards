@@ -1,4 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+- Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
+
+- Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
 - Reconcile Astra-owned merged work claims; use `docs/GOAL.md` for the current workflow instead of adding continuation and review documents (#76).
@@ -44,6 +48,10 @@
 - Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
 
 - Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
+
+- Refuse contradictory application-report source/section/owner outcomes and mark exact metadata-budget saturation Partial, keeping unread pages explicit (CLA-20261010-124–126).
+
+- Add registered application credential-expiry and observed-consent report engines: strict separate schema 2, metadata-only bounded collection, exact identity joins, immutable storage and HTML/CSV/JSON/Excel exports. Reuse existing authorised access; missing delegated-grant access stays NotAttempted. Desktop/CLI dispatch remains a separate integration slice.
 
 - Verify a successful throttled page-two retry preserves its nextLink, cancelled report collection retains explicit partial rows, and a renewed 401 fails the one-renewal count directly (PR #67 independent review corrections; production transport unchanged).
 
@@ -321,7 +329,6 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
-- Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
 
 - Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
 
