@@ -1,4 +1,10 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
+
+- Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
+
+- Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
+
+- Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
 - Reconcile Astra-owned merged work claims; use `docs/GOAL.md` for the current workflow instead of adding continuation and review documents (#76).
@@ -325,10 +331,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
-- Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
 
-- Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
-- Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
+
 
 - Expose the existing full captured-configuration HTML inventory on the desktop, retain exact capture details behind a clearer expander, put script form inputs ahead of lengthy requirements, and align current guides/sign-in wording with actual behaviour.
 
