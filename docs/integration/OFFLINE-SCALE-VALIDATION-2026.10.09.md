@@ -1,5 +1,9 @@
 # Offline report scale validation — 9 October 2026
 
+### Independent review follow-up — 10 October, PR #78
+
+CLA-20261009-01 remained open at #65's merge despite a contradictory ready comment. The follow-up verifies that an explicitly cap-reached Partial report retains its full truncation reason in JSON round-trip, HTML, CSV provenance and XLSX provenance. Removing the reason must fail the regression. Unknown last-sync rows now carry Partial and a read reason, matching collection semantics (CLA-02). The benchmark's `outputBytes` remains the measured return value size: seal returns the 64-byte digest text and read returns an object recorded as zero, not a measured document size (CLA-03). No machine-independent speed, memory or live-performance claim is made. The merged library contains 29 Copy/Save-only items; historical base descriptions below identify the original claim, not current source (CLA-04).
+
 PR #65 is the first additional optimisation/robustness slice William authorised on 9 October. It branches from integration `92cb07c`, after Claude's second Exchange pack merged. The script library now contains 21 Copy-only items. Existing review and release work remains separate.
 
 ## Run and interpret
@@ -33,3 +37,9 @@ Next independent slice: exercise real read back-off cancellation and pagination 
 3. Merge commits only under HANDOVER's delegation, then verify the actual merge-commit CI and record SHA/run.
 4. Dependent production optimisation follows the validated baseline; new report contracts merge before their implementation.
 5. Live acceptance, release promotion and publication keep their separate approval gates. These additions do not postpone an otherwise usable preview candidate.
+
+## Read-status headline and visible notice regression — PR #78
+
+CLA-20261010-95/96 add exact cap-reached Partial assertions for the HTML headline, CSV provenance and same-row XLSX field/value, plus the visible HTML warning paragraph. Existing error-text checks remain. A controlled exporter mutant hard-coding the report-level status to Collected passed the original 13 scale/export checks; with the strengthened test, all three independent status assertions fail. Removing only the warning paragraph fails its new visible-notice assertion. Restored exact production exporter/cap passes all 13 checks; no production behaviour changes.
+
+An optional wider Linux report filter produced 240 passes and 22 empty-PowerShell-runtime-data failures because the scratch host discovery did not include this environment's installed PowerShell path. That run is not a full-suite pass or a product regression proof. Fresh exact-head Windows CI still supplies full suite/native/package validation. CLA-20261009-42's two own claim rows now have a proper table header; other agents' rows are unchanged.

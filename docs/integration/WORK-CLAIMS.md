@@ -80,7 +80,11 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | INT-082 desktop experimental operation/permission boundaries, transient verified-context opt-in and direct-path safeguards; excludes Claude scripts/runner and #56 configuration/copy-dialog files; no live, version or publisher work | `astra/experimental-runtime-2026-10-10` (verified integration `8e9c323`) | #73 | Open |
 
+| Claimed | Agent | Repository | Feature area | Branch | Pull request | Status |
+|---|---|---|---|---|---|---|
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Open |
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Test-only follow-up for merged #65/#68: cap-reached truncation reason across HTML/CSV/XLSX, real partial-row fixture, CSV BOM and XLSX multiline assertions; no production/schema/permission/live changes; fresh all-three-repository pre-flight and #74/#75 narrowed overlap checked | `astra/report-validation-followup-2026-10-10` (integration `fa62b6d`) | #78 | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
 
