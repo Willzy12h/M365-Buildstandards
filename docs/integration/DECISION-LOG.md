@@ -535,6 +535,10 @@ Deliberately asynchronous synthetic token acquisition reproduces the independent
 
 CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.
 
+### Report regression evidence follow-up — 10 October 2026, PR #78
+
+CLA-20261009-01 remained an open test gap at #65 merge despite a contradictory ready comment. Add cap-reached Partial export regressions rather than treating a green suite as proof of a truncation marker. Use partial rows with read reasons for unknown last sync; pin CSV BOM and XLSX line breaks from #68 review. Clarify unkeyed-digest and validation-layer limits. No production code, bounds, schema, historical catalogue, live access or acceptance changes. Exact mutation/restoration and CI results belong on the PR; Claude owns independent re-review.
+
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
 After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
@@ -562,6 +566,9 @@ Refresh #67/#69/#73/#78 to actual integration 5ef5470 before their pending delta
 
 Record the xhigh continuation against actual integration `5ef5470`, preserving branch-only fixes and the unresolved independent-review gates. AST-20261010-05 stays with Claude's owned runner; -06 belongs to #73's Claude-attributed preview correction; -07 identifies #79 startup integrity, superseding its accidental reuse of -04 without erasing #77's earlier record. The candidate draft cites the tested baseline separately from unfilled future candidate fields and blank human approvals. It is not a publisher pin, live acceptance, version bump or authority to promote. Current source gaps remain explicit rather than reclassified as completed/deferred.
 
+### Report read-status review corrections — 10 October 2026, PR #78
+
+CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.
 ### INT-094 offline diagnostics completion — 10 October 2026, PR #69
 
 Complete the already proposed `bdit doctor` contract before dependent implementation: shared offline checks, safe bounded package-path admission, distinct configurable settings, owned non-overwriting write probes, host presence without execution, private-data exclusions and diagnostic-only JSON. Required Fail/Unknown yields 1, completed required passes 0, invocation refusal 2, unexpected failure 3 and cancellation 130; existing unknown command 64 stays. Optional Exchange gaps remain visible without blocking Graph-only local readiness. Local checks never establish Microsoft access, policy approval, trusted publisher identity or complete deployment evidence. This is a proposed decision refinement for Claude review, with no runtime change or new access.

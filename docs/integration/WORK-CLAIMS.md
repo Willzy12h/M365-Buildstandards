@@ -77,9 +77,8 @@ Never edit or remove another agent's row. Add your own, and update only your own
 | 2026-10-10 | Claude | M365-Buildstandards | evidence and reporting: INT-071 over INT-088, offline mailbox capacity and Plan 2 eligibility review of a sealed mailbox inventory against a sealed assigned-licence report; no read, record, UI, CLI, permission or tenant access | `claude/mailbox-capacity-report-2026-10-10` (from integration `4f35285`) | #89 | Open |
 
 | 2026-10-09 | Astra/Codex | M365-Buildstandards | INT-091 enrolment naming decision addressing CLA-20261008-34; no source/catalogue/live changes; pre-flight checked all three repositories and current overlapping naming/import claims | `astra/enrolment-name-contract-2026-10-09` (integration `f718f20`) | #71 | Merged |
-| Date | Agent | Repository | Scope | Branch / base | PR | State |
-|---|---|---|---|---|---|---|
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Compact continuation index, focused review/candidate draft and owner-authorised merged Astra branch cleanup; historical bytes/claims retained, no product or permission change; fresh three-repository pre-flight and #73/#74/#75 boundaries checked | `astra/workspace-hygiene-2026-10-10` (original `f03b995`, refreshed `5ef5470`; CLA-50–53 corrections) | #76 | Open |
+| 2026-10-10 | Astra/Codex | M365-Buildstandards | Test-only follow-up for merged #65/#68: cap-reached truncation reason across HTML/CSV/XLSX, real partial-row fixture, CSV BOM and XLSX multiline assertions; no production/schema/permission/live changes; fresh all-three-repository pre-flight and #74/#75 narrowed overlap checked | `astra/report-validation-followup-2026-10-10` (integration `fa62b6d`) | #78 | Open |
 
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.
