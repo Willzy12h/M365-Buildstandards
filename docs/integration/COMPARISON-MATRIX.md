@@ -192,3 +192,15 @@ AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed agai
 | Recovery register | Durable tenant history separate from transient connection/approval authority | Offline load/notification must retain rows; replacement identity/mode/scopes invalidates previews. Engine identity, evidence, lease and no-replay safeguards remain unchanged. |
 | Saved-client offline journey | Resolve the exact persisted validated profile through an explicit Connect action; clear old transient evidence/approval | Cold start, restart, adoption and active connection/setup refusal are separately tested. No auth/cache, tenant requests or consent; historical/scoped evidence cannot authorise writes. |
 | Evidence header | Evidence source, original time and incomplete state separate from access badge | Native three-size and keyboard/binding checks required. Newcomer/Narrator/physical scaling and live acceptance remain open. |
+
+
+## Engineer Home presentation — PR #84
+
+| Capability | Source state | Evidence and limits |
+|---|---|---|
+| Home task centre | Added on the owned #81 interface stack; current-context summary, next-step and existing-page shortcuts | 18 linked-source pure projection cases pass locally. Full App/native execution and independent review remain pending at this edit. |
+| Licence overview and workflows | Already present and preserved; every original navigation key and numbered workflow remains | Home adds its own destination; no engine, auth, evidence, permission or write contract changes. |
+| Evidence/readiness wording | Fixed during implementation: disconnected live flag does not imply a current connection; historical gaps stay explicit | Complete collection is not approval, scoped results are partial, and job presence is not completion. Human/live acceptance remains open. |
+| Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
+
+PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.

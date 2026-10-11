@@ -514,6 +514,8 @@ Implement the merged desktop guard as transient coordination authority, not anot
 ### INT-082 production-wiring review response — 10 October 2026, PR #73
 
 CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
+
+
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
@@ -578,9 +580,16 @@ Five executed Windows regressions on unchanged #73 product source (55ed373 test 
 Add an explicit saved-client offline action using persisted validated profile identity, no live/set-up connection, existing exclusive operation and pending-discovery release. Clear old client evidence/approval state; never authenticate, transfer cache/authority or make historical/scoped evidence eligible for writes. Authentication mode and selected evidence source are separate visible states. No persisted schema, engine deployment/recovery, cache, permission or historical-standard contract changes. Source slice is deliberately stacked on Astra’s own #80/#73 with one checkout writer and unchanged parent heads; each still requires independent review/exact checks.
 
 
+### Engineer Home presentation — 10 October 2026, PR #84
+
+William's B task-centre plus A persistent-working-context preference is implemented as a new Home destination on the owned #81 interface stack. Preserve Overview/licences, all existing keys, exact destination guards and engine workflows. A pure, cheap presentation projection supplies readable state and next-step routing; every action navigates only. Missing/mismatched/incomplete/historical/scoped evidence cannot become readiness, successful checking or job completion. No refresh scans stored jobs or invokes authentication/collection/consent/write paths. The current shell banner remains the persistent context; no new companion window, schema, permission or authority is introduced. See [scope and verification](HOME-TASK-CENTRE-2026.10.10.md); current exact-head independent/Windows/parent/merge validation remains required.
 ### INT-083 source and active-client removal follow-up — 10 October 2026, PR #81
 
 CLA-20261010-79/80: use one pure evidence-source presentation for the pinned header and assessment. A mixed Graph/Exchange result retains each actual source; the compact header identifies supplemental historical/tool capture and copied details retain original capture identities/times. Different-tenant observations are disclosed without copying their identifiers under the current client. This does not establish write eligibility. Deleting the active saved-client entry clears the selected profile and existing transient evidence/authority after saved-list persistence succeeds; durable evidence remains byte-identical. Deleting another saved client retains current state. Fourteen synthetic cases accompany the correction; native/human/live acceptance stays separate.
+
+### Home evidence labels and accessible actions — 10 October 2026, PR #84
+
+CLA-20261010-120–122: compose Home from the existing shell evidence-source presentation rather than interpreting supplemental Exchange origin separately. Bind presentation refusal to the displayed tenant, including application setup, and retain conservative collection guidance. Include each visible action label in its accessible name. No destination, evidence authority, authentication or persisted-schema change; validate native peers and mixed evidence at the existing three sizes.
 
 ### INT-071 invalidated-operator report guard — 10 October 2026, PR #80
 

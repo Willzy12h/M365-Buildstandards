@@ -7,6 +7,7 @@
         Background="{StaticResource BgWindow}" WindowStartupLocation="CenterScreen" Icon="Assets/buildstandard.png"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" Closing="OnClosing">
   <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:HomeViewModel}"><views:HomeView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><views:OverviewView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:RecoveryViewModel}"><views:RecoveryView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ConnectViewModel}"><views:ConnectView/></DataTemplate>

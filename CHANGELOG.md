@@ -6,6 +6,10 @@
 
 - Refuse desktop report reads when the existing verified operator context has been invalidated, with deliberate reconnect guidance and no token or tenant request (CLA-20261010-77).
 
+- Keep Graph/Exchange evidence origins consistent between Home and the shell, redact another client's capture details, and include visible button labels in Home's accessible names (CLA-20261010-120–122).
+
+- Add an engineer Home task centre with next-step guidance and new-tenant, legacy/backfill, repeat-review and handoff shortcuts. Retain Overview/licences and persistent client/access/evidence context. All Home actions navigate only; historical, incomplete and scoped evidence do not imply readiness or completion. Exact Windows/native and independent review remain required.
+
 - Keep mixed Graph/Exchange evidence sources explicit in assessment and copied context; remove an active saved client from transient selection while retaining its evidence files (CLA-20261010-79/80).
 
 - Bind manual-check and deviation drafts to the current client, verified standard and material client inputs; refuse stale rows before save/delete. Retain offline change-register history while clearing recovery approval when connection authority changes. Add explicit saved-client offline review and a separate persistent evidence-source header. No sign-in, new schema or write authority is introduced; exact Windows/native and independent review remain required.

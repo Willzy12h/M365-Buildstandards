@@ -13,8 +13,10 @@ public sealed class ReportNavigationTests
         using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
         var originalKeys = new[] { "overview", "connect", "setup", "configuration", "assessment", "deviations", "plan", "deploy", "automation", "recovery", "history", "jobs", "checks", "scripts", "standard", "settings" };
         foreach (var key in originalKeys) Assert.Single(shell.NavItems, n => n.Key == key);
-        Assert.Equal(18, shell.NavItems.Count);
-        Assert.Equal(new[] { "Tenant", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
+        Assert.Equal(19, shell.NavItems.Count);
+        Assert.Single(shell.NavItems, n => n.Key == "home");
+        Assert.IsType<HomeViewModel>(shell.CurrentPage);
+        Assert.Equal(new[] { "Workspace", "Tenant", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
         Assert.Equal(new[] { "overview", "connect", "configuration" }, shell.NavItems.Where(n => n.Group == "Tenant").Select(n => n.Key));
         Assert.Equal(new[] { "setup", "settings" }, shell.NavItems.Where(n => n.Group == "Settings").Select(n => n.Key));
         foreach (var group in shell.NavItems.GroupBy(n => n.Group))

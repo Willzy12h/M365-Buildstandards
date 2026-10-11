@@ -1,5 +1,7 @@
 # Engineer start guide
 
+The tool opens on **Home**. Choose a task or its suggested next step; every shortcut opens an existing page without signing in, collecting data or changing the tenant. The pinned header keeps the current client, account, access and evidence source visible. **Current client and evidence details** expands Home's full status text; connection/evidence details remain copyable in the header. **Overview and licences** retains the subscription and assigned-user tables. Historical or incomplete evidence and scoped checks do not establish readiness or job completion.
+
 This is an internal preview. Use the exact reviewed package and its trusted checksum reference. Available recipes are not live effectiveness acceptance. The release owner records approved scope using [controlled acceptance](CONTROLLED-ACCEPTANCE.md). A new client build and legacy backfill follow the same evidence and approval boundaries.
 
 ## Your first read-only assessment
