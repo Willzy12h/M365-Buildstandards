@@ -112,7 +112,7 @@ public sealed class Workspace : ObservableObject
         : CanEnableExperimentalChanges ? ExperimentalOperationGuard.ClosedReason
             : "Experimental changes need a current verified write-capable connection. Connect for deployment, or reconnect after an identity/permission/expiry problem. Read-only checks and local previews remain available.";
     public string ExperimentalContextText => Session is null ? "No verified deployment connection. Connect read-only first, then deliberately switch to deployment access."
-        : $"Tenant: {Session.TenantName} ({Session.TenantId})\nAccount: {Session.Account} ({Session.AccountObjectId})\nApplication: {Session.ClientLabel} ({Session.ClientId})\nMode: {Session.Mode} · Microsoft Graph\nActual returned scopes: {string.Join(", ", Session.Scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}\nToken expires: {Session.TokenExpiresAt}\nOpt-in is temporary, is never exported, and does not establish production acceptance.";
+        : $"Tenant: {Session.TenantName} ({Session.TenantId})\nAccount: {Session.Account} ({Session.AccountObjectId})\nApplication: {Session.ClientLabel} ({Session.ClientId})\nMode: {Session.Mode} · Microsoft Graph\nActual returned scopes: {string.Join(", ", Session.Scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}\nOriginal sign-in token expiry: {Session.TokenExpiresAt} (experimental opt-in and connection reuse end at this time; read-only report tokens may silently renew).\nOpt-in is temporary, is never exported, and does not establish production acceptance.";
     public void SetExperimentalChanges(bool approved)
     {
         if (!Idle) throw new ToolkitException("Wait for the active operation before changing experimental access.");
@@ -380,6 +380,38 @@ public sealed class Workspace : ObservableObject
 
     // ---- profiles ------------------------------------------------------------------------------------------------
 
+    /// <summary>Selects a persisted client for local evidence review. It never acquires or replaces authentication.</summary>
+    public Task SelectOfflineProfileAsync(string savedProfileId)
+    {
+        if (!Idle || Connection is not null || ApplicationSetup is not null)
+            throw new ToolkitException("Disconnect the active tenant and application setup sessions, and wait for the current operation before reviewing saved evidence offline.");
+        var matches = Evidence.LoadProfiles().Where(p => string.Equals(p.Id, savedProfileId, StringComparison.Ordinal)).ToList();
+        if (string.IsNullOrWhiteSpace(savedProfileId) || matches.Count != 1)
+            throw new ToolkitException("Select one saved client from this workspace before reviewing evidence offline.");
+        var profile = ProfileValidator.Validate(ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(matches[0])), DateTimeOffset.UtcNow);
+        return RunExclusiveAsync("Opening local client evidence", async _ =>
+        {
+            await CancelPendingDiscoveryAsync();
+            // Release pending discovery before changing the local target; keep durable write history untouched.
+            OperationToken.ThrowIfCancellationRequested();
+            ClearClientEvidence();
+            // Keep the visible saved-client entry consistent with the persisted target, using a separate edit copy.
+            var index = Profiles.ToList().FindIndex(p => string.Equals(p.Id, savedProfileId, StringComparison.Ordinal));
+            var listed = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(profile));
+            if (index >= 0) Profiles[index] = listed; else Profiles.Add(listed);
+            Profile = profile;
+        });
+    }
+
+    private void ClearClientEvidence()
+    {
+        ExperimentalGuard.Invalidate();
+        Snapshot = null; SnapshotIsLive = false;
+        ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false;
+        Assessment = null; Plan = null; AcknowledgedSnapshotId = null;
+        Access = null; Licences = null; LastRun = null; Control = null; InterruptedNotice = "";
+    }
+
     public TenantProfile SaveProfile(TenantProfile input)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
@@ -406,7 +438,7 @@ public sealed class Workspace : ObservableObject
         if (Profile?.Id == profile.Id)
         {
             if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
-            { ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false; Assessment = null; CancelPendingDiscovery(); }
+            { ClearClientEvidence(); CancelPendingDiscovery(); }
             Profile = profile;
             Plan = null;
             AcknowledgedSnapshotId = null;
@@ -422,6 +454,8 @@ public sealed class Workspace : ObservableObject
         if (Profile?.Id == id) await DisconnectAsync();
         var remaining = Profiles.Where(p => p.Id != id).ToList();
         Evidence.SaveProfiles(remaining);
+        // Removing the active saved client also removes its local target and transient authority; durable evidence stays.
+        if (Profile?.Id == id) { ClearClientEvidence(); Profile = null; }
         Profiles.Clear();
         foreach (var p in remaining) Profiles.Add(p);
         Logger.Info("Profiles", "Saved connection removed. Tenant objects and saved evidence are retained.");
@@ -514,18 +548,42 @@ public sealed class Workspace : ObservableObject
                 await CancelPendingDiscoveryAsync();
                 nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive);
             }
-            await DisconnectCoreAsync(releaseOnly: true);
-            await DisconnectSetupCoreAsync();
-            Profile = profile;
-            Connection = nextConnection;
-            nextConnection.AuthorisationInvalidated += OnAuthorisationInvalidated;
-            Evidence.MarkInterruptedRuns(profile.TenantId);
-            var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
-            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
-            progress.Report("Checking access (read-only).");
-            Access = await Connections.CheckAccessAsync(Connection, standard, progress, OperationToken);
-            await LoadLicencesCoreAsync(includeUsers: false);
+            await CompleteConnectionAsync(profile, nextConnection, standard, progress);
         });
+
+    /// <summary>Accepts an already authenticated connection and performs the existing read-only checks.</summary>
+    internal async Task CompleteConnectionAsync(TenantProfile profile, ConnectedTenant nextConnection,
+        StandardCatalogue standard, IProgress<string> progress)
+    {
+        await DisconnectCoreAsync(releaseOnly: true);
+        await DisconnectSetupCoreAsync();
+        Profile = profile;
+        Connection = nextConnection;
+        nextConnection.AuthorisationInvalidated += OnAuthorisationInvalidated;
+        InterruptedNotice = "Previous deployment history has not been verified. Preserve the original evidence before further changes.";
+        try
+        {
+            Evidence.MarkInterruptedRuns(profile.TenantId);
+            var interrupted = Evidence.RequireIntactRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
+            InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
+        }
+        catch (SafetyViolationException ex) when (EvidenceStore.IsTenantWriteLeaseRefusal(ex))
+        {
+            // Lease acquisition precedes history inspection. Its refusal establishes neither corruption nor integrity.
+            InterruptedNotice = "Previous deployment history has not been checked because exclusive access to this tenant's evidence store is unavailable; another operation may be active, or local file access may have failed. Wait for active work to finish, then retry; if this persists, check local storage access. Original files were retained and write guards remain unchanged; read-only access and licence checks can continue.";
+            Logger.Warn("App", "Previous deployment history was not checked because exclusive evidence-store access is unavailable; another operation may be active, or local file access may have failed. Wait for active work to finish, then retry; if this persists, check local storage access. Original files were retained and write guards remain unchanged.", profile.TenantId);
+        }
+        catch (Exception ex) when (ex is ToolkitException or IOException or UnauthorizedAccessException)
+        {
+            // Local refused history does not undo verified authentication or authorise a write. Keep it unknown,
+            // preserve every refused record, and continue the read-only checks needed to investigate the tenant.
+            InterruptedNotice = "Previous deployment history could not be verified and remains untrusted. Preserve the original files and reconcile the change register before any further changes. Strict history checks continue to block writes; read-only access and licence checks can continue.";
+            Logger.Warn("App", "Previous deployment history could not be verified. Original files were retained; review the change register before further changes.", profile.TenantId);
+        }
+        progress.Report("Checking access (read-only).");
+        Access = await Connections.CheckAccessAsync(nextConnection, standard, progress, OperationToken);
+        await LoadLicencesCoreAsync(includeUsers: false);
+    }
 
     public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
@@ -913,6 +971,7 @@ public sealed class Workspace : ObservableObject
 
     public void SaveDeviation(Deviation deviation)
     {
+        if (!Idle) throw new ToolkitException("Wait for the current operation before changing the exception register.");
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var standard = RequireStandard();
         if (ControlInstances.Find(standard, profile, deviation.ControlId) is null) throw new ConfigurationException($"'{deviation.ControlId}' is not a control in the loaded standard.");
@@ -935,6 +994,7 @@ public sealed class Workspace : ObservableObject
 
     public void DeleteDeviation(string controlId)
     {
+        if (!Idle) throw new ToolkitException("Wait for the current operation before changing the exception register.");
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         var list = Evidence.LoadDeviations(profile.TenantId).Where(d => !string.Equals(d.ControlId, controlId, StringComparison.OrdinalIgnoreCase)).ToList();
         Evidence.SaveDeviations(profile.TenantId, list);
@@ -948,6 +1008,7 @@ public sealed class Workspace : ObservableObject
 
     public void SaveManualCheck(string controlId, string status, string note)
     {
+        if (!Idle) throw new ToolkitException("Wait for the current operation before saving a manual check.");
         var profile = Profile ?? throw new ToolkitException("Select a client first.");
         if (ControlInstances.Find(RequireStandard(), profile, controlId) is null) throw new ConfigurationException("Unknown control.");
         if (status is not ("Pending" or "Pass" or "Fail" or "Unknown")) throw new ConfigurationException("Invalid outcome.");

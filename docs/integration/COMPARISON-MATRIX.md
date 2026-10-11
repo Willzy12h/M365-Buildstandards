@@ -1,3 +1,12 @@
+## Desktop Graph Reports and naming presentation — PR #80
+
+| Feature | Preserved engine/source | Added desktop slice and remaining proof |
+|---|---|---|
+| Registered Graph reports | Existing five typed collectors, guarded report routes, strict immutable records and HTML/JSON/CSV ZIP/Excel exports | Dedicated controller/page, current-access review, structured results and filters; exact source/synthetic/native proof recorded separately, live unverified |
+| Saved/supplied reports | Existing strict tenant/schema/identity/digest readers and supplied-file export notice | Bounded offline browser/open with explicit damaged/inaccessible/not-saved outcomes; report evidence never supplies deployment before-evidence |
+| Naming audit | Existing convention, exact corroborated ownership and historical names | Supplied-capture review with friendly names, exact IDs and unknown/partial explanations; no rename or new read |
+| Reachable engineer flow | Existing shell/auth/guard remains #73's own claim | Initial new-files slice needs explicitly sequential shell registration and three-size native journeys before the desktop capability is complete |
+
 ## Registered report implementation — PR #44
 
 | Feature | Source implementation | Evidence / remaining gate |
@@ -161,6 +170,21 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
+
+## Offline prerequisite diagnostic source — PR #88 / INT-094
+
+| Surface | Implemented source | Remaining validation/integration |
+|---|---|---|
+| Shared local checks | Bounded package/hash/catalogue checks, existing settings validator, owned non-overwriting probes, safe unknown/error/cancellation states and optional host presence | Native Windows junction/ACL and actual extracted-package diagnostic acceptance; unsigned inventory never establishes publisher trust |
+| Callable doctor handler | Shared text/JSON findings; options/refusal, safe errors and 0/1/2/3/130 exits tested through the actual handler | Program dispatch and desktop wiring remain absent; no executable command/user-flow completion claimed |
+| Boundaries | No profiles/evidence/cache/log-content reads, host execution, module installation, policy repair, authentication, consent or tenant calls | Human/security-owner and live gates remain separate; diagnostic JSON cannot satisfy deployment before-evidence |
+
+PR #88 now exercises the real portable inventory layout: unchanged shipped catalogues/lineage validate through existing loaders and are admitted by the doctor. The original lineage case and private-guard-removal mutant both fail; 123 repaired focused cases pass. Actual extracted Windows package Ready and #90 composition remain unverified.
+## Astra focused integrity follow-up — 10 October 2026
+
+PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
+
+PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.
 ## Permission-review timing — Astra follow-up, 10 October 2026
 
 PR #73 preserves the existing explicit-connect broker/cache selection while moving the cumulative acquisition budget outside the human permission-review interval (CLA-20261010-48 / AST-20261010-06). Eight deterministic timing cases and existing acquisition/renewal/guard cases pass locally (66 total); reinstating a whole-flow timer fails five. The WPF permission dialog now closes on operation cancellation, with two fresh native checks required on Windows. Strict native-harness cross-build passed; that is not native execution or live Microsoft proof.
@@ -168,3 +192,25 @@ PR #73 preserves the existing explicit-connect broker/cache selection while movi
 ### Delayed cancellation timer — delegated follow-up, 10 October 2026
 
 AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
+
+
+## Client-bound editors and offline review — PR #81
+
+| Surface | Choice | Evidence / limits |
+|---|---|---|
+| Manual and deviation drafts | Existing tenant, standard integrity and ReviewedClientScope digest; current-row membership and direct-handler refusal | Original product Windows run 38077676842 executes five failing defect cases and two passing same-context controls. Source repairs and extended regressions require fresh Windows proof. No persisted contract change. |
+| Recovery register | Durable tenant history separate from transient connection/approval authority | Offline load/notification must retain rows; replacement identity/mode/scopes invalidates previews. Engine identity, evidence, lease and no-replay safeguards remain unchanged. |
+| Saved-client offline journey | Resolve the exact persisted validated profile through an explicit Connect action; clear old transient evidence/approval | Cold start, restart, adoption and active connection/setup refusal are separately tested. No auth/cache, tenant requests or consent; historical/scoped evidence cannot authorise writes. |
+| Evidence header | Evidence source, original time and incomplete state separate from access badge | Native three-size and keyboard/binding checks required. Newcomer/Narrator/physical scaling and live acceptance remain open. |
+
+
+## Engineer Home presentation — PR #84
+
+| Capability | Source state | Evidence and limits |
+|---|---|---|
+| Home task centre | Added on the owned #81 interface stack; current-context summary, next-step and existing-page shortcuts | 18 linked-source pure projection cases pass locally. Full App/native execution and independent review remain pending at this edit. |
+| Licence overview and workflows | Already present and preserved; every original navigation key and numbered workflow remains | Home adds its own destination; no engine, auth, evidence, permission or write contract changes. |
+| Evidence/readiness wording | Fixed during implementation: disconnected live flag does not imply a current connection; historical gaps stay explicit | Complete collection is not approval, scoped results are partial, and job presence is not completion. Human/live acceptance remains open. |
+| Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
+
+PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.
