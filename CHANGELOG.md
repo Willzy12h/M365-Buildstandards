@@ -1,6 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
+- Reconcile Astra-owned merged work claims; use `docs/GOAL.md` for the current workflow instead of adding continuation and review documents (#76).
+
 - Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
 
 - Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
