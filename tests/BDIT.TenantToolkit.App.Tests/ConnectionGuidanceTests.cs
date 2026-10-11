@@ -103,6 +103,7 @@ public sealed class ConnectionGuidanceTests : IDisposable
     {
         var profile = TestData.Profile();
         var session = TestData.Session(mode: SessionMode.Assessment);
+        session.TokenExpiresAt = DateTimeOffset.UtcNow.AddHours(1).ToString("O");
         session.ClientId = ToolkitSettings.MicrosoftGraphPowerShellClientId;
         var graph = new FakeGraphClient(TestData.Standard()) { Mode = SessionMode.Assessment };
         var connection = new ConnectedTenant(session, graph, null);
@@ -121,6 +122,10 @@ public sealed class ConnectionGuidanceTests : IDisposable
         session.OperatorVerified = false;
         Assert.False(_workspace.CanReuseConnection(TestData.Profile(), SessionMode.Assessment));
         session.OperatorVerified = true;
+        session.TokenExpiresAt = DateTimeOffset.UtcNow.AddMinutes(-1).ToString("O");
+        Assert.False(_workspace.CanReuseConnection(TestData.Profile(), SessionMode.Assessment));
+        session.TokenExpiresAt = DateTimeOffset.UtcNow.AddHours(1).ToString("O");
+        Assert.True(_workspace.CanReuseConnection(TestData.Profile(), SessionMode.Assessment));
         foreach (var page in _shell.NavItems) _shell.Navigate(page.Key);
         Assert.Same(connection, _workspace.Connection);
         Assert.Empty(graph.Reads); Assert.Empty(graph.Writes);

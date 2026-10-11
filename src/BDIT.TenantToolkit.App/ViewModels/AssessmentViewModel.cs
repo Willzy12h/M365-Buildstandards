@@ -238,7 +238,8 @@ public sealed class AssessmentViewModel : PageViewModel
         get
         {
             var a = Workspace.Assessment;
-            if (a is null) return Workspace.Snapshot is null ? "Read the tenant configuration to run an assessment." : "No assessment yet.";
+            if (a is null) return Workspace.Profile is null ? "Choose a client on Connect. Use Review saved evidence offline for local history, or connect read-only."
+                : Workspace.Snapshot is null ? "No capture open. Choose a saved capture on Configuration for historical review, or connect and capture read-only." : "No assessment yet. Re-run assessment for the open capture.";
             var s = a.Summary;
             return $"{a.TenantName} · standard {a.Release} · assessed {a.AssessedAt} · snapshot {(a.SnapshotComplete ? "complete" : "INCOMPLETE")} · evidence integrity {MarkdownReports.IntegrityText(a.SnapshotIntegrity)}\n" +
                    $"Compliant {s.Compliant} (+{s.CompliantWithDeviation} with deviation) · Match not enforced {s.SettingsMatchNotEnforced} · Partial {s.PartialMatch} · Missing {s.Missing} · Manual review {s.RequiresManualReview} · Unable to assess {s.UnableToAssess} · Licence {s.LicenceUnavailable} · N/A {s.NotApplicable}\n" +
@@ -305,5 +306,18 @@ public sealed class AssessmentViewModel : PageViewModel
             Findings.Add(row);
         }
         if (Selected is not null && !Findings.Contains(Selected)) Selected = null;
+        OnPropertyChanged(nameof(ViewStateText));
+    }
+
+    public string ViewStateText
+    {
+        get
+        {
+            if (Workspace.Assessment is null) return SummaryText;
+            var source = Shell.EvidenceSource;
+            return source.Summary + (source.OriginalCaptureTime.Length > 0 ? " · original capture " + source.OriginalCaptureTime : "") + " · "
+                + (Findings.Count == 0 ? "No findings match these filters. Choose All results or change the area, category or search."
+                    : $"Showing {Findings.Count} of {_all.Count} findings with the current filters.");
+        }
     }
 }

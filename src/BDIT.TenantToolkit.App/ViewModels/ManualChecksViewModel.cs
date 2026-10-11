@@ -22,10 +22,12 @@ public sealed class ManualChecksViewModel : PageViewModel
     private ManualCheckRow? _selected;
     private string _editStatus = "Pending";
     private string _editNote = "";
+    private string _context = "";
+    private bool _refreshing;
 
     public ManualChecksViewModel(ShellViewModel shell) : base(shell, "Manual checks")
     {
-        SaveCommand = Sync(Save, () => Selected is not null && Workspace.Profile is not null && Workspace.Idle);
+        SaveCommand = Sync(Save, () => Selected is not null && CurrentContext && Workspace.Idle && Rows.Any(r => ReferenceEquals(r, Selected)));
         Refresh();
     }
 
@@ -38,9 +40,12 @@ public sealed class ManualChecksViewModel : PageViewModel
         get => _selected;
         set
         {
-            if (!SetProperty(ref _selected, value) || value is null) return;
-            EditStatus = value.Status;
-            EditNote = value.Note;
+            if (_refreshing) return;
+            if (value is not null && (!CurrentContext || !Rows.Any(r => ReferenceEquals(r, value)))) value = null;
+            if (ReferenceEquals(_selected, value)) return;
+            SetProperty(ref _selected, value);
+            EditStatus = value?.Status ?? "Pending";
+            EditNote = value?.Note ?? "";
             OnPropertyChanged(nameof(SelectedText));
         }
     }
@@ -52,39 +57,55 @@ public sealed class ManualChecksViewModel : PageViewModel
 
     private void Save()
     {
+        if (!Workspace.Idle || !CurrentContext) throw new ToolkitException("Select the current client and standard, and wait for the active operation before saving a check.");
         var row = Selected ?? throw new ToolkitException("Select a control first.");
+        if (!Rows.Any(r => ReferenceEquals(r, row))) throw new ToolkitException("Select this control again in the current client's register.");
         Workspace.SaveManualCheck(row.ControlId, EditStatus, EditNote);
         Selected = Rows.FirstOrDefault(r => r.ControlId == row.ControlId);
     }
 
     public override void Refresh()
     {
-        var selectedId = Selected?.ControlId;
-        Rows.Clear();
-        if (Workspace.Standard is null) return;
-        // A register that cannot be read - damaged, or recorded for another tenant - is reported, not thrown: this runs
-        // on every workspace change, so throwing would surface as a failure of whatever the engineer just did.
-        ManualCheckRegister register;
-        try { register = Workspace.LoadManualChecks(); }
-        catch (ToolkitException ex) { Shell.ShowError(ex); register = new ManualCheckRegister(); }
-        foreach (var c in ControlInstances.All(Workspace.Standard, Workspace.Profile))
+        var context = EvidenceReviewContext.For(Workspace);
+        var changed = context != _context;
+        var selectedId = changed ? null : Selected?.ControlId;
+        _context = context;
+        if (changed) { _selected = null; EditStatus = "Pending"; EditNote = ""; }
+        _refreshing = true;
+        try
         {
-            register.Checks.TryGetValue(c.Id, out var check);
-            Rows.Add(new ManualCheckRow
+            Rows.Clear();
+            if (Workspace.Standard is null) { _selected = null; return; }
+            // A register that cannot be read - damaged, or recorded for another tenant - is reported, not thrown: this runs
+            // on every workspace change, so throwing would surface as a failure of whatever the engineer just did.
+            ManualCheckRegister register;
+            try { register = Workspace.LoadManualChecks(); }
+            catch (ToolkitException ex) { Shell.ShowError(ex); register = new ManualCheckRegister(); }
+            foreach (var c in ControlInstances.All(Workspace.Standard, Workspace.Profile))
             {
-                ControlId = c.Id,
-                Name = c.Name,
-                Category = c.Category,
-                Status = check?.Status ?? "Pending",
-                Note = check?.Note ?? "",
-                RecordedAt = check?.RecordedAt ?? "",
-                RecordedBy = check?.RecordedBy ?? "",
-                Instructions = c.Assessment.ManualInstructions.Length > 0 ? c.Assessment.ManualInstructions : c.DesiredState
-            });
+                register.Checks.TryGetValue(c.Id, out var check);
+                Rows.Add(new ManualCheckRow
+                {
+                    ControlId = c.Id,
+                    Name = c.Name,
+                    Category = c.Category,
+                    Status = check?.Status ?? "Pending",
+                    Note = check?.Note ?? "",
+                    RecordedAt = check?.RecordedAt ?? "",
+                    RecordedBy = check?.RecordedBy ?? "",
+                    Instructions = c.Assessment.ManualInstructions.Length > 0 ? c.Assessment.ManualInstructions : c.DesiredState
+                });
+            }
+            _selected = selectedId is null ? null : Rows.FirstOrDefault(r => r.ControlId == selectedId);
         }
-        _selected = selectedId is null ? null : Rows.FirstOrDefault(r => r.ControlId == selectedId);
-        OnPropertyChanged(nameof(Selected));
-        OnPropertyChanged(nameof(SelectedText));
-        OnPropertyChanged(nameof(ContextText));
+        finally
+        {
+            _refreshing = false;
+            OnPropertyChanged(nameof(Selected));
+            OnPropertyChanged(nameof(SelectedText));
+            OnPropertyChanged(nameof(ContextText));
+        }
     }
+
+    private bool CurrentContext => _context.Length > 0 && _context == EvidenceReviewContext.For(Workspace);
 }

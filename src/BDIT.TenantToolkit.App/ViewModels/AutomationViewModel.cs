@@ -42,15 +42,15 @@ public sealed class AutomationViewModel : PageViewModel
         ChooseImportCommand = Sync(ChooseImport, () => Workspace.Idle);
         ImportCommand = Sync(Import, () => SelectedControl is not null && Workspace.Profile is not null && Workspace.Idle && !Workspace.IsConnected);
         PreviewCommand = Command(Preview, () => Workspace.IsConnected && Workspace.Idle);
-        ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.Idle && _plan is not null && Approved);
+        ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && _plan is not null && Approved);
         PreviewLapsCommand = Command(PreviewLaps, () => Workspace.IsConnected && Workspace.Idle);
-        ExecuteLapsCommand = Command(ExecuteLaps, () => Workspace.IsDeploymentSession && Workspace.Idle && _lapsPlan is not null && Approved);
+        ExecuteLapsCommand = Command(ExecuteLaps, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && _lapsPlan is not null && Approved);
         ReverifyCommand = Command(Reverify, () => Workspace.IsConnected && Workspace.Idle && _lastRunId.Length > 0);
         ReverifyLapsCommand = Command(ReverifyLaps, () => Workspace.IsConnected && Workspace.Idle && _lastLapsRunId.Length > 0);
         CaptureCommand = Command(Workspace.CaptureAsync, () => Workspace.IsConnected && Workspace.Idle);
         ChoosePackageCommand = Sync(() => { var d = new OpenFileDialog { Filter = "Intune Windows package (*.intunewin)|*.intunewin" }; if (d.ShowDialog() == true) PackageFile = d.FileName; }, () => Workspace.Idle);
         PreviewPackageCommand = Command(PreviewPackage, () => Workspace.IsConnected && Workspace.Idle && SelectedControl is not null);
-        PublishPackageCommand = Command(PublishPackage, () => Workspace.IsDeploymentSession && Workspace.Idle && _packagePlan is not null && Approved);
+        PublishPackageCommand = Command(PublishPackage, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && _packagePlan is not null && Approved);
         ReverifyPackageCommand = Command(ReverifyPackage, () => Workspace.IsConnected && Workspace.Idle && _lastPackageRunId.Length > 0);
         CheckReadinessCommand = Command(CheckReadiness, () => Workspace.IsConnected && Workspace.Idle);
         LoadCandidateCommand = Sync(() => Workspace.LoadLocalCandidate(SavedCandidate!), () => SavedCandidate is not null && Workspace.Idle && !Workspace.IsConnected);
@@ -207,6 +207,7 @@ public sealed class AutomationViewModel : PageViewModel
     }
     private async Task Execute()
     {
+        Workspace.RequireExperimentalChanges(BDIT.TenantToolkit.App.Services.ExperimentalOperation.ReviewedChange);
         var p = _plan ?? throw new ToolkitException("Preview first."); var typed = TypedTenant; ClearApproval();
         await Workspace.RunExclusiveAsync("Applying the approved policy change", async _ =>
         {
@@ -229,6 +230,7 @@ public sealed class AutomationViewModel : PageViewModel
     }
     private async Task ExecuteLaps()
     {
+        Workspace.RequireExperimentalChanges(BDIT.TenantToolkit.App.Services.ExperimentalOperation.EntraLaps);
         var p = _lapsPlan ?? throw new ToolkitException("Preview LAPS first.");
         if (!BDIT.TenantToolkit.Core.Safety.TenantConfirmation.Matches(TypedTenant, p.TenantId)) throw new SafetyViolationException("Type the exact tenant ID from the preview.");
         ClearApproval();
@@ -264,6 +266,7 @@ public sealed class AutomationViewModel : PageViewModel
     }
     private async Task PublishPackage()
     {
+        Workspace.RequireExperimentalChanges(BDIT.TenantToolkit.App.Services.ExperimentalOperation.PublishPackage);
         var p = _packagePlan ?? throw new ToolkitException("Preview the package first."); var typed = TypedTenant; var file = PackageFile; ClearApproval();
         await Workspace.RunExclusiveAsync("Publishing the reviewed application package", async _ =>
         {
