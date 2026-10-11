@@ -112,7 +112,7 @@ In Settings and diagnostics, expand Offline prerequisite checks and choose Run o
 
 ## Run a registered read-only Exchange report
 
-Under **Scripts → Run reports**, select the registered mailbox report and an approved installed PowerShell runtime. Connect to the selected client first, review **Verified connection and prerequisites**, then deliberately enable **experimental read-only runs for this connection**. This starts off and is separate from deployment access; no consent or module installation is granted here.
+Under **OPERATE → Run reports**, select the registered mailbox report and an approved installed PowerShell runtime. Connect to the selected client first, review **Verified connection and prerequisites**, then deliberately enable **experimental read-only runs for this connection**. This starts off and is separate from deployment access; no consent or module installation is granted here.
 
 Fill in the typed values and choose **Review run**. Read **Exact review**, tick its separate approval and choose **Run**. Changing the client, account, runtime or values requires a new review. Exchange sign-in is separate from Graph and may require Microsoft CA/MFA/consent. Page navigation does not sign in. If application control blocks execution, ask the security owner; do not change policy or switch hosts to evade the block.
 
@@ -122,7 +122,7 @@ Choose **Open mailbox capacity** in Outcome to continue to quota and eligibility
 
 ## Review mailbox size, quotas and 100 GB eligibility
 
-Under **Reports → Mailbox capacity**, select the client for historical review. In **Choose sources**, choose saved records or supplied JSON separately for the registered mailbox inventory and **users/licences** report, then **Review selected source pair**. You can collect mailbox evidence deliberately through **Run reports** and licensing through **Tenant reports**; this review page makes no tenant call or sign-in. Source times and limitations stay separate.
+Under **OPERATE → Mailbox capacity**, select the client for historical review. In **Choose sources**, choose saved records or supplied JSON separately for the registered mailbox inventory and **users/licences** report, then **Review selected source pair**. You can collect mailbox evidence deliberately through **Run reports** and licensing through **Tenant reports**; this review page makes no tenant call or sign-in. Source times and limitations stay separate.
 
 If either source is missing, **Open mailbox collection** opens Run reports and **Open users/licences collection** opens Tenant reports. Connect and review the intended report on that page before deliberately collecting it; these shortcuts do not sign in, enable experimental access or start a read. Return to Mailbox capacity, choose **Refresh saved source lists**, and select both original records. Navigation never guesses which source pair to use.
 
