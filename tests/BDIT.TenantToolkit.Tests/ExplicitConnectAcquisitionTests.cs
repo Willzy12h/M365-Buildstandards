@@ -15,8 +15,8 @@ public sealed class ExplicitConnectAcquisitionTests
     {
         var silent = 0; var prompts = 0;
         var result = await ExplicitConnectAcquisition.AcquireAsync(known, Enumerable.Range(0, accounts).ToArray(),
-            account => { silent++; return Task.FromResult("cached"); },
-            reason => { prompts++; return Task.FromResult("selected"); }, CancellationToken.None);
+            (account, token) => { silent++; return Task.FromResult("cached"); },
+            (reason, token) => { prompts++; return Task.FromResult("selected"); }, CancellationToken.None);
         Assert.Equal(expectedSilent, silent); Assert.Equal(expectedInteractive, prompts);
         Assert.Equal(expectedSilent > 0 ? "cached" : "selected", result);
     }
@@ -26,8 +26,8 @@ public sealed class ExplicitConnectAcquisitionTests
     {
         var silent = 0; var prompts = 0;
         var result = await ExplicitConnectAcquisition.AcquireAsync(true, new[] { "confirmed" },
-            account => { silent++; throw new MsalUiRequiredException("interaction_required", "synthetic"); },
-            reason => { prompts++; Assert.Equal(ConnectInteractionReason.MicrosoftInteractionRequired, reason); return Task.FromResult("selected"); }, CancellationToken.None);
+            (account, token) => { silent++; throw new MsalUiRequiredException("interaction_required", "synthetic"); },
+            (reason, token) => { prompts++; Assert.Equal(ConnectInteractionReason.MicrosoftInteractionRequired, reason); return Task.FromResult("selected"); }, CancellationToken.None);
         Assert.Equal("selected", result); Assert.Equal(1, silent); Assert.Equal(1, prompts);
     }
 
@@ -36,8 +36,8 @@ public sealed class ExplicitConnectAcquisitionTests
     {
         using var stop = new CancellationTokenSource(); var prompts = 0;
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(true, new[] { "confirmed" },
-            account => { stop.Cancel(); throw new MsalUiRequiredException("interaction_required", "synthetic"); },
-            reason => { prompts++; return Task.FromResult("selected"); }, stop.Token));
+            (account, token) => { stop.Cancel(); throw new MsalUiRequiredException("interaction_required", "synthetic"); },
+            (reason, token) => { prompts++; return Task.FromResult("selected"); }, stop.Token));
         Assert.Equal(0, prompts);
     }
 
@@ -46,8 +46,8 @@ public sealed class ExplicitConnectAcquisitionTests
     {
         var prompts = 0;
         await Assert.ThrowsAsync<MsalServiceException>(() => ExplicitConnectAcquisition.AcquireAsync(true, new[] { "confirmed" },
-            account => throw new MsalServiceException("service_unavailable", "synthetic"),
-            reason => { prompts++; return Task.FromResult("selected"); }, CancellationToken.None));
+            (account, token) => throw new MsalServiceException("service_unavailable", "synthetic"),
+            (reason, token) => { prompts++; return Task.FromResult("selected"); }, CancellationToken.None));
         Assert.Equal(0, prompts);
     }
 
@@ -56,8 +56,8 @@ public sealed class ExplicitConnectAcquisitionTests
     {
         var prompts = 0;
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExplicitConnectAcquisition.AcquireAsync(false, Array.Empty<string>(),
-            account => Task.FromResult("unused"),
-            reason => { prompts++; throw new OperationCanceledException(); }, CancellationToken.None));
+            (account, token) => Task.FromResult("unused"),
+            (reason, token) => { prompts++; throw new OperationCanceledException(); }, CancellationToken.None));
         Assert.Equal(1, prompts);
     }
 }

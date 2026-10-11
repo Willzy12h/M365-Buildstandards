@@ -1,5 +1,9 @@
 # Master repository instructions
 
+## Current goal
+
+Read [docs/GOAL.md](docs/GOAL.md) first. It sets the current goal, backlog, ownership and what may be done without asking.
+
 ## Purpose
 
 Build and maintain the integrated Microsoft 365 tenant build standard, assessment console and controlled deployment tooling.

@@ -77,12 +77,13 @@ internal static partial class Program
             content.DataContext = shell;
             SeedWorkspace(workspace);
             SeedStoredEvidence(workspace, fixtureRoot);
+            SeedGraphReportEvidence(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "reports", "naming" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -281,6 +282,7 @@ internal static partial class Program
                 throw new InvalidOperationException("The Plan page tables were not measured: " + string.Join(", ", GridsInspected));
             CheckConfirmationDialog(workspace, output);
             CheckScriptCopyDialog(shell, output);
+            CheckPermissionRequestDialog(output);
 
             // Keyboard and command checks need a real window: focus only moves inside one that has been shown.
             window.ShowInTaskbar = false; window.ShowActivated = true;
@@ -289,6 +291,12 @@ internal static partial class Program
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
             VerifyQuickConnectScroll(shell, window, content);
+            using (new NativeHarnessTrackBounds(window, content, PageSizes))
+            {
+                CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
+                CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+                CheckHomeNativeJourneys(source, output, shell, window, content, traces);
+            }
             foreach (var nav in shell.NavItems)
             {
                 traces.Context = "keyboard " + nav.Key;
@@ -328,6 +336,14 @@ internal static partial class Program
                 ("Configuration object viewport at all three sizes", ConfigurationViewportsMeasured == 3),
                 ("First script input at all three sizes", ScriptFormViewportsMeasured == 3),
                 ("Expanded offline diagnostic action/result viewport at all three sizes", OfflineDiagnosticViewportsMeasured == 3),
+                ("Reports row viewport at all three sizes", GraphReportViewportsMeasured == 3),
+                ("Naming object viewport at all three sizes", NamingViewportsMeasured == 3),
+                ("Reports deliberate read refusals at all three sizes", GraphReportReadRefusals == 3),
+                ("Reports complete exports in all four formats at all three sizes", GraphReportExportsChecked == 12),
+                ("Cold-start saved-client historical journeys at all three sizes", OfflineClientJourneySizes == 3 && OfflineClientJourneyPresses == 9),
+                ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 45),
+                ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
+                ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
@@ -550,6 +566,8 @@ internal static partial class Program
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
         if (key == "scripts") SeedScripts(shell);
+        if (key == "reports") SeedGraphReportsPage(shell);
+        if (key == "naming") SeedNamingPage(shell);
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();
         if (key == "history")
