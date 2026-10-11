@@ -88,13 +88,78 @@ public sealed class Workspace : ObservableObject
     public DeploymentRun? LastRun { get; private set; }
     public DeploymentControl? Control { get; private set; }
 
-    public bool Busy { get => _busy; private set { if (SetProperty(ref _busy, value)) OnPropertyChanged(nameof(Idle)); } }
+    public bool Busy { get => _busy; private set { if (SetProperty(ref _busy, value)) OnPropertyChanged(nameof(Idle)); OnPropertyChanged(nameof(CanEnableExperimentalChanges)); } }
     public bool Idle => !_busy;
     public string BusyMessage { get => _busyMessage; private set => SetProperty(ref _busyMessage, value); }
     public string ProgressDetail { get => _progressDetail; private set => SetProperty(ref _progressDetail, value); }
 
     public bool IsConnected => Connection is not null;
     public bool IsDeploymentSession => Session?.Mode == SessionMode.Deployment;
+    public ExperimentalOperationGuard ExperimentalGuard { get; } = new();
+    public bool ExperimentalChangesEnabled
+    {
+        get
+        {
+            if (!string.Equals(Settings.ResolveClient(SessionMode.Deployment, Profile)?.ClientId, Session?.ClientId, StringComparison.OrdinalIgnoreCase))
+                ExperimentalGuard.Invalidate();
+            return ExperimentalGuard.IsEnabled(Connection, Session, Standard, Profile);
+        }
+    }
+    public bool CanEnableExperimentalChanges => Idle && ExperimentalGuard.CanEnable(Session, Standard, Profile)
+        && string.Equals(Settings.ResolveClient(SessionMode.Deployment, Profile)?.ClientId, Session?.ClientId, StringComparison.OrdinalIgnoreCase);
+    public string ExperimentalChangeGuidance => ExperimentalChangesEnabled
+        ? "Experimental changes enabled for this verified session only. Review and approve every exact operation. Live service behaviour is unverified."
+        : CanEnableExperimentalChanges ? ExperimentalOperationGuard.ClosedReason
+            : "Experimental changes need a current verified write-capable connection. Connect for deployment, or reconnect after an identity/permission/expiry problem. Read-only checks and local previews remain available.";
+    public string ExperimentalContextText => Session is null ? "No verified deployment connection. Connect read-only first, then deliberately switch to deployment access."
+        : $"Tenant: {Session.TenantName} ({Session.TenantId})\nAccount: {Session.Account} ({Session.AccountObjectId})\nApplication: {Session.ClientLabel} ({Session.ClientId})\nMode: {Session.Mode} · Microsoft Graph\nActual returned scopes: {string.Join(", ", Session.Scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}\nToken expires: {Session.TokenExpiresAt}\nOpt-in is temporary, is never exported, and does not establish production acceptance.";
+    public void SetExperimentalChanges(bool approved)
+    {
+        if (!Idle) throw new ToolkitException("Wait for the active operation before changing experimental access.");
+        if (approved)
+        {
+            if (!CanEnableExperimentalChanges) throw new SafetyViolationException("Connect with current verified deployment access before enabling experimental changes.");
+            ExperimentalGuard.Enable(RequireConnection(), Session!, RequireStandard(), Profile!, true);
+        }
+        else ExperimentalGuard.Invalidate();
+        Notify();
+    }
+    public void RequireExperimentalChanges(ExperimentalOperation operation)
+    {
+        if (!ExperimentalChangesEnabled) { ExperimentalGuard.Invalidate(); throw new SafetyViolationException(ExperimentalOperationGuard.ClosedReason); }
+        ExperimentalGuard.Require(operation, Connection, Session, Standard, Profile);
+    }
+    public void InvalidateExperimentalChanges() { ExperimentalGuard.Invalidate(); Notify(); }
+
+    public async Task ReviewPermissionRequestAsync(string tenant, string clientId, IReadOnlyList<string> scopes, string purpose, CancellationToken ct, string? knownAccount = null)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!ProfileValidator.IsGuid(clientId) || scopes.Count == 0 || scopes.Any(string.IsNullOrWhiteSpace))
+            throw new SafetyViolationException("An exact application ID and non-empty permission list are required before an access request can be approved.");
+        var app = System.Windows.Application.Current;
+        if (app is null) throw new SafetyViolationException("This Microsoft access request requires visible, deliberate desktop approval. No request was sent.");
+        var details = PermissionRequestDetails(tenant, clientId, scopes, purpose, knownAccount);
+        var confirmed = await app.Dispatcher.InvokeAsync(() =>
+        {
+            var dialog = new BDIT.TenantToolkit.App.Views.PermissionRequestDialog(details) { Owner = app.MainWindow };
+            return dialog.ShowForReview(ct);
+        });
+        ct.ThrowIfCancellationRequested();
+        if (!confirmed)
+        { CancelOperation(); throw new OperationCanceledException("The displayed Microsoft access request was not approved. No request was sent.", ct); }
+    }
+
+    private static string PermissionRequestDetails(string tenant, string clientId, IReadOnlyList<string> scopes, string purpose, string? knownAccount) =>
+        $"Purpose: {purpose}\nTarget tenant: {tenant} (target of this exact request)\nApplication (client) ID: {clientId}\nResource: Microsoft Graph — https://graph.microsoft.com\nAccount context: {(string.IsNullOrWhiteSpace(knownAccount) ? "Not known; Microsoft will ask you to choose" : knownAccount)}\nInteractive identity is verified after sign-in. Consent grants are checked separately; browser success is not verification.\nMSAL also uses the standard sign-in protocol scopes openid, profile and offline_access; these are separate from Graph API permissions.\n\nExact requested permissions:\n" + string.Join("\n", scopes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+
+    private void OnAuthorisationInvalidated()
+    {
+        ExperimentalGuard.Invalidate();
+        if (Session is { } session) session.OperatorVerified = false;
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(Notify);
+    }
+
+
 
     public event Action? StateChanged;
 
@@ -203,6 +268,10 @@ public sealed class Workspace : ObservableObject
         OnPropertyChanged(nameof(ApplicationSetup));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(IsDeploymentSession));
+        OnPropertyChanged(nameof(ExperimentalChangesEnabled));
+        OnPropertyChanged(nameof(ExperimentalChangeGuidance));
+        OnPropertyChanged(nameof(CanEnableExperimentalChanges));
+        OnPropertyChanged(nameof(ExperimentalContextText));
         StateChanged?.Invoke();
     }
 
@@ -367,10 +436,13 @@ public sealed class Workspace : ObservableObject
         await RunExclusiveAsync("Finding the signed-in organisation", async progress =>
         {
             progress.Report("Choose the client's own work or school account in Microsoft sign-in.");
+            var discoveryScopes = Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
+                ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" };
             await CancelPendingDiscoveryAsync();
             var result = await TenantDiscoveryService.DiscoverRetainedAsync(_http, Settings, RequireStandard(),
                 Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
-                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken);
+                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken,
+                ct => ReviewPermissionRequestAsync("Not selected — Microsoft will ask you to choose", ToolkitSettings.MicrosoftGraphPowerShellClientId, discoveryScopes, "Quick Connect: read-only discovery; possible Microsoft consent", ct));
             _pendingDiscovery = result;
             if (OperationToken.IsCancellationRequested) { await CancelPendingDiscoveryAsync(); OperationToken.ThrowIfCancellationRequested(); }
             discovered = result.Identity;
@@ -403,6 +475,30 @@ public sealed class Workspace : ObservableObject
                 await LoadLicencesCoreAsync(includeUsers: false);
                 return;
             }
+            ExperimentalGuard.Invalidate();
+            var requestedClient = Settings.ResolveClient(mode, profile) ?? throw new ConfigurationException("No application is configured for this access mode.");
+            var requestedScopes = Connections.ScopesFor(mode, standard).ToArray();
+            var requestedAccount = Connections.LoginHint;
+            var approvedUntil = DateTimeOffset.MinValue;
+            if (mode == SessionMode.Deployment)
+            {
+                await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
+                    "Request deployment access — experimental tenant changes stay off until separately approved", OperationToken, requestedAccount);
+                approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+            }
+            async Task BeforeInteractive(CancellationToken ct)
+            {
+                if (!string.Equals(Settings.ResolveClient(mode, profile)?.ClientId, requestedClient.ClientId, StringComparison.OrdinalIgnoreCase)
+                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard)))
+                    throw new SafetyViolationException("The displayed application or permissions changed. Review a new request; no sign-in request was sent.");
+                if (mode == SessionMode.Deployment)
+                {
+                    if (approvedUntil <= DateTimeOffset.UtcNow) throw new SafetyViolationException("Access-request approval expired. Review the request again.");
+                    ct.ThrowIfCancellationRequested();
+                }
+                else await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
+                    "Read-only assessment access; possible Microsoft consent", ct, requestedAccount);
+            }
             Plan = null; AcknowledgedSnapshotId = null;
             ConnectedTenant nextConnection;
             if (expectedIdentity is not null)
@@ -410,18 +506,19 @@ public sealed class Workspace : ObservableObject
                 var pending = _pendingDiscovery ?? throw new AuthenticationRequiredException("Quick Connect was cancelled. Start it again.");
                 if (pending.Identity != expectedIdentity) throw new TenantMismatchException("Quick Connect account changed.");
                 _pendingDiscovery = null;
-                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken); }
+                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken, BeforeInteractive); }
                 finally { await pending.DisposeAsync(); }
             }
             else
             {
                 await CancelPendingDiscoveryAsync();
-                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken);
+                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive);
             }
             await DisconnectCoreAsync(releaseOnly: true);
             await DisconnectSetupCoreAsync();
             Profile = profile;
             Connection = nextConnection;
+            nextConnection.AuthorisationInvalidated += OnAuthorisationInvalidated;
             Evidence.MarkInterruptedRuns(profile.TenantId);
             var interrupted = Evidence.LoadRuns(profile.TenantId).Count(r => r.Status == RunStatus.Interrupted);
             InterruptedNotice = interrupted == 0 ? "" : $"{interrupted} interrupted deployment run(s) need review in the change register. Preserve the original evidence; uncertain requests must not be replayed.";
@@ -432,6 +529,8 @@ public sealed class Workspace : ObservableObject
 
     public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
+        && DateTimeOffset.TryParse(session.TokenExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var expires) && expires > DateTimeOffset.UtcNow
         && string.Equals(session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
         && string.Equals(session.ClientId, Settings.ResolveClient(mode, profile)?.ClientId, StringComparison.OrdinalIgnoreCase)
         && ConnectionProfileDigest(Profile) == ConnectionProfileDigest(profile);
@@ -464,6 +563,7 @@ public sealed class Workspace : ObservableObject
 
     private async Task DisconnectCoreAsync(bool releaseOnly = false)
     {
+        ExperimentalGuard.Invalidate();
         var connection = Connection;
         Connection = null;
         Licences = null;
@@ -477,16 +577,26 @@ public sealed class Workspace : ObservableObject
         AcknowledgedSnapshotId = null;
         Control = null;
         if (connection is not null)
-        { if (releaseOnly) await connection.ReleaseAsync(); else await connection.DisposeAsync(); }
+        { connection.AuthorisationInvalidated -= OnAuthorisationInvalidated; if (releaseOnly) await connection.ReleaseAsync(); else await connection.DisposeAsync(); }
     }
 
     public Task ConnectApplicationSetupAsync(string tenantId) => RunExclusiveAsync("Signing in for application setup", async progress =>
     {
         if (ApplicationSetup is { } existing && string.Equals(existing.Identity.TenantId, tenantId.Trim(), StringComparison.OrdinalIgnoreCase))
             return;
+        ExperimentalGuard.Invalidate();
+        await ReviewPermissionRequestAsync(tenantId.Trim(), ApplicationSetupService.BootstrapClientId, ApplicationSetupService.SetupScopes,
+            "Temporary administrator setup access — experimental application registration/configuration and grant inspection", OperationToken, Session?.Account);
+        var approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+        Task BeforeSetupInteractive(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (approvedUntil <= DateTimeOffset.UtcNow) throw new SafetyViolationException("Setup access-request approval expired. Review it again.");
+            return Task.CompletedTask;
+        }
         Plan = null; AcknowledgedSnapshotId = null;
         var nextSetup = await ApplicationSetupService.ConnectAsync(_http, tenantId.Trim(), Logger, OperationToken,
-            AuthenticationWindow(), Settings.UseSystemBrowser, Session?.Account ?? "");
+            AuthenticationWindow(), Settings.UseSystemBrowser, Session?.Account ?? "", BeforeSetupInteractive);
         await CancelPendingDiscoveryAsync();
         await DisconnectSetupCoreAsync();
         ApplicationSetup = nextSetup;
@@ -761,6 +871,7 @@ public sealed class Workspace : ObservableObject
 
     public Task DeployAsync(string typedTenantId) => RunExclusiveAsync("Deploying reviewed changes", async progress =>
     {
+        RequireExperimentalChanges(ExperimentalOperation.Deploy);
         var connection = RequireConnection();
         var profile = Profile!;
         if (!TenantConfirmation.Matches(typedTenantId, profile.TenantId))
@@ -996,6 +1107,7 @@ public sealed class Workspace : ObservableObject
     /// </summary>
     public async Task<RecoveryRun?> ExecuteRecoveryAsync(RecoveryPlan plan, string tenantConfirmation, bool approved, bool reviewedDrift)
     {
+        RequireExperimentalChanges(ExperimentalOperation.Recovery);
         RecoveryRun? result = null;
         await RunExclusiveAsync("Applying reviewed recovery", async _ =>
         {
