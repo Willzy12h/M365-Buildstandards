@@ -618,3 +618,7 @@ Claude explicitly handed off unstarted Run, further adapter and capacity present
 ### Actual Actions start blocker — 11 October 2026, PR #76
 
 Read integration run 38134379280 check annotations for standard/build/secrets (114455131107 / 114455131268 / 114455131272). Each says the job was not started because recent account payments failed or the spending limit needs increasing, and directs the owner to Billing & plans. This supersedes the earlier unknown-start-cause observation without inventing which billing alternative occurred or claiming access to payment details/minutes. No rerun, spending/settings change, check removal or merge is performed. Offline source work continues; actual Windows/integration evidence remains required.
+
+### Verified merged branch cleanup — 11 October 2026, PR #76
+
+After fresh #78 MERGED/724d9e0 verification, confirm exact local/remote head 9fc317fb69e39a966469e4204e523ffa72a5de33 is reachable from integration and has no open PR head/base dependency. Create/verify a complete recovery bundle at `/workspace/bdit-validation/recovery/merged-astra-report-validation-2026-10-11.bundle`, SHA-256 `41fa162bb6ad7ad76aa4661adaada1c4b7d576588c3b0d340c6c8dc54e78866a`, then remove only that merged Astra local/remote ref. Commit/PR/integration history and test evidence remain; all active and Claude refs are untouched. This cleanup does not validate the failed integration run or alter approvals.
