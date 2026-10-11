@@ -23,3 +23,8 @@ Current source review corrections (CLA-20261010-130/131): an independent recursi
 ## Fresh package gate
 
 Test-Portable invokes the actual extracted bdit.cmd doctor JSON command before seeding evidence or launching WPF. It requires exit zero, clean standard error, the exact diagnostic kind/schema/version, Ready, every named mandatory check Required/Pass and every additional Required check Pass. The owned child drops an inherited BDIT_TOOLKIT_ROOT so it checks the extraction. Synthetic negative controls exercise the assertion separately; they never replace actual package output. The PowerShell 7 parser/assertion checks pass, including twelve refusal controls and two removed-guard failures. Actual Windows PowerShell 5.1 and extracted-package execution remain outstanding.
+## Desktop Settings checks — PR #88
+
+Expand Offline prerequisite checks in Settings and diagnostics, then choose Run offline checks. The local check uses the same engine as the doctor command. Cancel stops only this operation; closing waits for probe cleanup. Copy local result becomes available when a result completes. Required Unknown or failure prevents Ready. No tenant connection, host execution, installer or repair runs. Results remain separate from deployment evidence and publisher trust.
+
+Validation: 102 focused portable tests passed; three removed safeguards failed their regressions. App.Tests and the native harness compile with zero warnings/errors. Actual Windows command, clipboard, geometry and keyboard execution remain pending.
