@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Use a real integrity-bound planner fixture in application report isolation tests; retain full unchanged-plan/snapshot/acknowledgement assertions (#92).
+
 - Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
 
 - Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
