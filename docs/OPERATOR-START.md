@@ -103,3 +103,7 @@ On **Connect**, select a saved client and choose **Review saved evidence offline
 Use **Undo and recovery → Load change register** to inspect local history offline. Re-verification requires a fresh verified read connection; recovery preview/execution requires the separate deployment context and exact approval. Disabled-action guidance states the next step. Switching clients, standards or material client inputs clears unfinished manual-check/exception drafts. Ordinary refreshes and label-only changes preserve a draft for the same context. Restart or workspace adoption requires explicit saved-client selection again; authentication and approval are never transferred.
 
 The offline command `bdit.cmd report-evidence --input "report.json" --tenant <expected-tenant-id> --format html` uses the same strict registered schema dispatcher for existing Graph and application reports. JSON/CSV/Excel preserve original sections, nested entries, source times and limitations. It never collects new data or grants access.
+
+### Check this portable folder offline
+
+In Settings and diagnostics, expand Offline prerequisite checks and choose Run offline checks. Read each finding and next step; Required Unknown or Fail means local readiness is unconfirmed. Cancel stops only this check, and Copy local result copies the completed findings. These local checks do not sign in, run scripts, repair the computer or certify deployment authority. The equivalent command is `bdit doctor`.
