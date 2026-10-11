@@ -117,7 +117,9 @@ public sealed class InterruptedConnectionTests : IDisposable
             Assert.Contains("exclusive access", _workspace.InterruptedNotice);
             Assert.Contains("unavailable", _workspace.InterruptedNotice);
             Assert.Contains("another operation may be active", _workspace.InterruptedNotice);
-            Assert.Contains("Wait for it to finish, then retry", _workspace.InterruptedNotice);
+            Assert.Contains("Wait for active work to finish, then retry", _workspace.InterruptedNotice);
+            Assert.Contains("local file access may have failed", _workspace.InterruptedNotice);
+            Assert.Contains("check local storage access", _workspace.InterruptedNotice);
             Assert.Contains("write guards remain unchanged", _workspace.InterruptedNotice);
             Assert.DoesNotContain("untrusted", _workspace.InterruptedNotice);
             Assert.DoesNotContain("reconcile", _workspace.InterruptedNotice);
