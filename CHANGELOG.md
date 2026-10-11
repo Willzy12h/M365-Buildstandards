@@ -404,3 +404,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 
 - Export registered application report evidence through the existing offline CLI, preserving full original sections/provenance; refuse linked input parents consistently with the desktop reader (AST-20261010-25, #92).
 - Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
+
+- Verify both application-report families and their refusal paths through the actual extracted executable and launcher during portable validation (#92); Windows execution remains pending.

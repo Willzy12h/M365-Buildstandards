@@ -692,3 +692,7 @@ Extend existing Test-Portable owned process validation to require the fresh extr
 ### INT-094 Settings diagnostic presentation — 11 October 2026, PR #88
 
 Reuse the shared offline checker and doctor text formatter in a small desktop coordinator; retain inspection outside WPF. The existing workspace owns exclusivity and shutdown, while one operation owns cancellation and its registration. Clear prior success before reruns, sanitise input/unexpected failures, and refuse late Ready after cancellation. The compact collapsed Settings panel preserves existing controls, explains disabled actions and provides selectable/copyable local output. No automatic file export, host execution, permission or tenant action. Portable regression and three mutation checks pass; Windows execution remains required.
+
+### Exact-package application report exports — 11 October 2026, PR #92
+
+Extend the existing owned portable smoke with sealed synthetic expiry and consent fixtures. Actual extracted executable HTML and launcher JSON exports must preserve original status/intervals, nested metadata and supplied-file provenance; wrong tenant and tampered digest must refuse without output or source changes. Keep fixtures explicitly synthetic and outside the distributed package. Use ASCII character assembly in UTF-8-no-BOM PowerShell so PS5.1 ANSI decoding cannot corrupt the exact status comparison. Strict-reader tests, four SDK export assertions/four refusals, encoding regression and PS7 parsing pass; actual Windows extraction, launcher and PS5.1 execution remain pending.
