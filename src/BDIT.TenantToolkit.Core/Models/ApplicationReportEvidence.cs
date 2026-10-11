@@ -27,7 +27,7 @@ public abstract class ApplicationReportEvidence
 
 public sealed class ApplicationExpiryEvidence : ApplicationReportEvidence
 {
-    public ApplicationExpiryEvidence() { ReportId = "application-expiry"; }
+    public ApplicationExpiryEvidence() { ReportId = "application-expiry"; ReportSchemaVersion = 2; }
     [JsonRequired] public ApplicationExpiryParameters Parameters { get; set; } = new();
 }
 public sealed class ApplicationConsentEvidence : ApplicationReportEvidence
@@ -53,6 +53,17 @@ public sealed class ApplicationReportSource
     [JsonRequired] public string EndedAt { get; set; } = "";
     [JsonRequired] public int Rows { get; set; }
     [JsonRequired] public int ObjectsAttempted { get; set; }
+    // Absent in immutable revision-1 records and non-owner sources. Revision 2 requires this on owner sources.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ApplicationOwnerOutcomes? RetainedOwnerOutcomes { get; set; }
+}
+
+public sealed class ApplicationOwnerOutcomes
+{
+    [JsonRequired] public int Collected { get; set; }
+    [JsonRequired] public int Partial { get; set; }
+    [JsonRequired] public int Failed { get; set; }
+    [JsonRequired] public int Cancelled { get; set; }
+    [JsonRequired] public int NotAttempted { get; set; }
 }
 
 public sealed class ApplicationExpiryRow : GraphReportRow

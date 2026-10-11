@@ -335,6 +335,7 @@ internal static partial class Program
                 ("Jobs requirement viewport at all three sizes", JobRequirementViewportsMeasured == 3),
                 ("Configuration object viewport at all three sizes", ConfigurationViewportsMeasured == 3),
                 ("First script input at all three sizes", ScriptFormViewportsMeasured == 3),
+                ("Expanded offline diagnostic action/result viewport at all three sizes", OfflineDiagnosticViewportsMeasured == 3),
                 ("Reports row viewport at all three sizes", GraphReportViewportsMeasured == 3),
                 ("Naming object viewport at all three sizes", NamingViewportsMeasured == 3),
                 ("Reports deliberate read refusals at all three sizes", GraphReportReadRefusals == 3),
@@ -343,7 +344,6 @@ internal static partial class Program
                 ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 45),
                 ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
                 ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
-                ("Expanded offline diagnostic action/result viewport at all three sizes", OfflineDiagnosticViewportsMeasured == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };

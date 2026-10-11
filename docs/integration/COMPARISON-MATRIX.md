@@ -170,14 +170,6 @@ See [QoL goal](QOL-GOAL-2026.10.01.md) for the full acceptance contract.
 | Scoped evidence | Strict separate partial wrapper, immutable atomic store, original historical source/time retained | Malformed/tampered/complete-claim/import-refusal tests; no new deployment authority |
 | Desktop | Area/requirement picker and separate partial result; explicit stored-evidence option | App state-preservation tests and three-size native harness added; actual Windows outcome recorded on exact head |
 | CLI | Offline `check --snapshot --area/--control`, same evaluator, JSON stdout | Real subprocess parity/refusal tests; portable hosting remains unimplemented |
-## Permission-review timing — Astra follow-up, 10 October 2026
-
-PR #73 preserves the existing explicit-connect broker/cache selection while moving the cumulative acquisition budget outside the human permission-review interval (CLA-20261010-48 / AST-20261010-06). Eight deterministic timing cases and existing acquisition/renewal/guard cases pass locally (66 total); reinstating a whole-flow timer fails five. The WPF permission dialog now closes on operation cancellation, with two fresh native checks required on Windows. Strict native-harness cross-build passed; that is not native execution or live Microsoft proof.
-
-### Delayed cancellation timer — delegated follow-up, 10 October 2026
-
-AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
-
 
 ## Application metadata report engine — PR #87 / INT-094
 
@@ -188,6 +180,28 @@ AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed agai
 | Access | Existing Application.Read.All purpose reused; absent actual Directory.Read.All leaves delegated grants NotAttempted | No new consent authorised; human/live and final release gates remain open |
 
 PR #87's application-report repair refuses resealed contradictory supplied evidence across import and all exports; exact metadata saturation remains Partial. Original cases and isolated guard deletions fail meaningfully. Delegated related tests pass 144; root application/schema-dispatch checks pass 84 with zero skipped. Fresh actual Windows validation remains budget-blocked; no human/live acceptance is inferred.
+## Offline prerequisite diagnostic source — PR #88 / INT-094
+
+| Surface | Implemented source | Remaining validation/integration |
+|---|---|---|
+| Shared local checks | Bounded package/hash/catalogue checks, existing settings validator, owned non-overwriting probes, safe unknown/error/cancellation states and optional host presence | Native Windows junction/ACL and actual extracted-package diagnostic acceptance; unsigned inventory never establishes publisher trust |
+| Callable doctor handler | Shared text/JSON findings; options/refusal, safe errors and 0/1/2/3/130 exits tested through the actual handler | Program dispatch and desktop wiring remain absent; no executable command/user-flow completion claimed |
+| Boundaries | No profiles/evidence/cache/log-content reads, host execution, module installation, policy repair, authentication, consent or tenant calls | Human/security-owner and live gates remain separate; diagnostic JSON cannot satisfy deployment before-evidence |
+
+PR #88 now exercises the real portable inventory layout: unchanged shipped catalogues/lineage validate through existing loaders and are admitted by the doctor. The original lineage case and private-guard-removal mutant both fail; 123 repaired focused cases pass. Actual extracted Windows package Ready and #90 composition remain unverified.
+## Astra focused integrity follow-up — 10 October 2026
+
+PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
+
+PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.
+## Permission-review timing — Astra follow-up, 10 October 2026
+
+PR #73 preserves the existing explicit-connect broker/cache selection while moving the cumulative acquisition budget outside the human permission-review interval (CLA-20261010-48 / AST-20261010-06). Eight deterministic timing cases and existing acquisition/renewal/guard cases pass locally (66 total); reinstating a whole-flow timer fails five. The WPF permission dialog now closes on operation cancellation, with two fresh native checks required on Windows. Strict native-harness cross-build passed; that is not native execution or live Microsoft proof.
+
+### Delayed cancellation timer — delegated follow-up, 10 October 2026
+
+AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed against `dc2f5de`. Elapsed-time admission now refuses a successful reply at or past the acquisition deadline even when its cancellation timer has not fired. Six deterministic negative cases fail on original production bytes; 71 focused controls pass. In-budget replies, cumulative fallback time, excluded preview time and caller cancellation have distinct controls. Repaired source passes all 77 focused cases. Required independent review and fresh Windows full-suite checks remain separate from this failing-first evidence; no live Microsoft behaviour or reliable per-agent token count is claimed.
+
 
 ## Client-bound editors and offline review — PR #81
 
@@ -209,19 +223,3 @@ PR #87's application-report repair refuses resealed contradictory supplied evide
 | Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
 
 PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.
-
-## Astra focused integrity follow-up — 10 October 2026
-
-PR #79 replaces startup's use of the tolerant display loader with the existing strict deployment-history requirements. Original `5ef5470` re-seals an edited Pending result and loses its unresolved-write refusal; the corrected path preserves invalid bytes and refuses before changing any record. Five negative cases fail first and a valid-history control passes; 138 related local regressions pass after correction. No schema, catalogue, permissions or live behaviour is changed. Independent review and exact-head Windows validation remain separate gates; see `INTERRUPTED-RUN-INTEGRITY-2026.10.10.md`.
-
-PR #79's CLA-20261010-110 correction changes only notice classification for an actual competing tenant lease. Twenty-eight engine checks pass; the actual App project compiles strictly, and two held-lease App cases await Windows execution. Damaged history still follows the strict refusal/reconciliation path. See the interrupted-run integrity record for the failing-first portable-method evidence and its limits.
-
-## Offline prerequisite diagnostic source — PR #88 / INT-094
-
-| Surface | Implemented source | Remaining validation/integration |
-|---|---|---|
-| Shared local checks | Bounded package/hash/catalogue checks, existing settings validator, owned non-overwriting probes, safe unknown/error/cancellation states and optional host presence | Native Windows junction/ACL and actual extracted-package diagnostic acceptance; unsigned inventory never establishes publisher trust |
-| Callable doctor handler | Shared text/JSON findings; options/refusal, safe errors and 0/1/2/3/130 exits tested through the actual handler | Program dispatch and desktop wiring remain absent; no executable command/user-flow completion claimed |
-| Boundaries | No profiles/evidence/cache/log-content reads, host execution, module installation, policy repair, authentication, consent or tenant calls | Human/security-owner and live gates remain separate; diagnostic JSON cannot satisfy deployment before-evidence |
-
-PR #88 now exercises the real portable inventory layout: unchanged shipped catalogues/lineage validate through existing loaders and are admitted by the doctor. The original lineage case and private-guard-removal mutant both fail; 123 repaired focused cases pass. Actual extracted Windows package Ready and #90 composition remain unverified.
