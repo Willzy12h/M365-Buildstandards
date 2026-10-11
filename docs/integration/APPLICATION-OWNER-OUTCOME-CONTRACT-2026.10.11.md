@@ -12,6 +12,8 @@ Revision-1 expiry evidence is available only through explicitly labelled limited
 
 Implementation must define distinct strict current and explicit historical admission paths and carry their assurance limitation to every presentation/export. Merely allowing the previous revision through the old unlabelled path does not close CLA-20261011-010. No derivation, resealing, automatic rewrite, source substitution or release/version change is authorised.
 
+[Published inert reproduction and actual results](release-readiness/proofs/CLA-20261011-010.md).
+
 ## Evidence and rationale
 
 Exact source: `0883a58f776a98c73edc9abf3231fe02515d8fa1` (#87). No production changes were made. The reproduction patch is test-only and deliberately leaves one red test; it is not a merge-ready fix.
