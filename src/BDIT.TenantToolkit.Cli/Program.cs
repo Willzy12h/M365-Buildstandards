@@ -407,23 +407,13 @@ public static class Program
         var format = Format(options, ExportFormat.Html);
         if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
             throw new ConfigurationException("Report evidence exports as html, json, csv or xlsx.");
-        byte[] bytes;
-        using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            if (stream.Length > ReportEvidenceSchema.MaximumBytes)
-                throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-            using var reader = new BinaryReader(stream);
-            bytes = reader.ReadBytes(ReportEvidenceSchema.MaximumBytes + 1);
-        }
-        if (bytes.Length > ReportEvidenceSchema.MaximumBytes)
-            throw new ConfigurationException("Report evidence exceeds the 32 MiB reader limit.");
-        string json;
-        try { json = new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
-        catch (System.Text.DecoderFallbackException) { throw new ConfigurationException("Report evidence is not valid UTF-8."); }
-        var report = ReportEvidenceSchema.Read(json, tenant);
+        var report = ReportEnvelopeDispatcher.ReadFile(file, tenant);
         var context = Context.Open(options);
-        Console.WriteLine(context.Exporter.ExportReport(report, format, suppliedFile: true));
-        Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
+        Console.WriteLine(report.Export(context.Exporter, format, suppliedFile: true));
+        var state = report.Schema1?.Status ?? report.Schema2!.Status;
+        var started = report.Schema1?.StartedAt ?? report.Schema2!.StartedAt;
+        var ended = report.Schema1?.EndedAt ?? report.Schema2!.EndedAt;
+        Console.WriteLine($"Offline export · read status {state} · recorded {started} to {ended} · no live reads or writes. Export success does not prove collection success.");
         return 0;
     }
 

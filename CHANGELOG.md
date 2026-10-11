@@ -394,3 +394,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Add application credential expiry and observed consent choices to Tenant reports, with typed horizon, strict saved/supplied evidence browsing, nested tables and complete original-evidence exports. Offline synthetic validation and Windows-targeted compilation are separate from pending native/live acceptance.
 
 - Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
+
+- Export registered application report evidence through the existing offline CLI, preserving full original sections/provenance; refuse linked input parents consistently with the desktop reader (AST-20261010-25, #92).

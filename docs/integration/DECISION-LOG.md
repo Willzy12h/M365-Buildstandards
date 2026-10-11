@@ -668,3 +668,7 @@ CLA-20261010-101: add per-call internal acquisition delegates at the existing sa
 ### Desktop connection composition — PR #92 over #73/#79
 
 The CompleteConnectionAsync extraction from #79 retains #73 authorisation-invalidation event subscription after adopting the connection. Replaced connections still unsubscribe through existing disconnect. Preserve strict whole-history admission, lease-specific unknown notices and read-only continuation. Two App regressions exercise actual adoption and event delivery, then verify an old connection cannot invalidate its replacement. They are authored/crosscompiled; Windows execution remains outstanding. No new approval, provider or evidence contract.
+
+### INT-089/094 paired offline report CLI — PR #92
+
+The existing report-evidence command dispatches registered Graph schema 1 and application schema 2 through the shared strict reader/exporter, with the existing option allow-list, exact expected tenant and headless boundary. Preserve original intervals/read states and supplied-file provenance; no conversion/resealing. This also closes AST-20261010-25 parent-link admission inconsistency. Fifty-two delegated actual-process/conformance cases pass; unchanged original CLI fails eleven selected integration/refusal cases. Windows package execution remains outstanding.
