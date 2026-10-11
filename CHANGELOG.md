@@ -33,6 +33,7 @@
 - Explain unavailable exclusive evidence-store access separately from damaged deployment history during connection; retain original evidence, existing write guards and read-only checks (CLA-20261010-110).
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
+- Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
 
 - Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
 

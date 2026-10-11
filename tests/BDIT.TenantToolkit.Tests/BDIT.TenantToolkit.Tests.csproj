@@ -24,6 +24,10 @@
     <!-- Exercise the actual isolated doctor handler before sequential CLI dispatch wiring. -->
     <Compile Include="..\..\src\BDIT.TenantToolkit.Cli\DoctorCommand.cs" Link="Cli\DoctorCommand.cs" />
     <Compile Include="..\..\src\BDIT.TenantToolkit.Cli\DoctorConsoleCancellation.cs" Link="Cli\DoctorConsoleCancellation.cs" />
+    <!-- Portable execution of the exact desktop coordinator; WPF command/binding cases remain in App.Tests. -->
+    <Compile Include="..\..\src\BDIT.TenantToolkit.App\Services\OfflinePrerequisiteDiagnostic.cs" Link="App\OfflinePrerequisiteDiagnostic.cs" />
+    <Compile Include="..\..\src\BDIT.TenantToolkit.App\Infrastructure\ObservableObject.cs" Link="App\ObservableObject.cs" />
+    <Compile Include="..\BDIT.TenantToolkit.App.Tests\OfflinePrerequisiteDiagnosticTests.cs" Link="App\OfflinePrerequisiteDiagnosticTests.cs" />
     <!-- Synthetic runner fixtures: a stand-in Exchange module and a schema 2 body. Never Microsoft code. -->
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -689,3 +689,6 @@ The existing report-evidence command dispatches registered Graph schema 1 and ap
 ### INT-094 exact-package doctor gate — PR #90
 
 Extend existing Test-Portable owned process validation to require the fresh extracted launcher to report local Ready before native startup. Preserve original ZIP/hash and startup checks. Reject weakened/omitted mandatory findings and required unknown/fail outcomes; synthetic assertion controls cannot satisfy the real smoke. No publisher, workflow, package-format, permission or live boundary changes. Exact Windows execution remains required.
+### INT-094 Settings diagnostic presentation — 11 October 2026, PR #88
+
+Reuse the shared offline checker and doctor text formatter in a small desktop coordinator; retain inspection outside WPF. The existing workspace owns exclusivity and shutdown, while one operation owns cancellation and its registration. Clear prior success before reruns, sanitise input/unexpected failures, and refuse late Ready after cancellation. The compact collapsed Settings panel preserves existing controls, explains disabled actions and provides selectable/copyable local output. No automatic file export, host execution, permission or tenant action. Portable regression and three mutation checks pass; Windows execution remains required.

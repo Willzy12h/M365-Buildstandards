@@ -164,6 +164,24 @@ internal static partial class Program
                         typeof(SettingsViewModel).GetProperty(nameof(SettingsViewModel.CreatedDigest))!.SetValue(settings, "");
                         settings.TrustedDigest = "";
                         content.UpdateLayout(); Pump();
+                        var offline = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Offline prerequisite checks");
+                        offline.IsExpanded = true;
+                        var check = (BDIT.TenantToolkit.App.Infrastructure.AsyncCommand)settings.RunOfflineDiagnosticCommand;
+                        check.Execute(null);
+                        var offlineClock = Stopwatch.StartNew();
+                        while (check.IsRunning)
+                        {
+                            if (offlineClock.Elapsed > TimeSpan.FromSeconds(60)) throw new InvalidOperationException("Offline fixture checks did not complete.");
+                            Pump();
+                        }
+                        if (settings.OfflineDiagnostic.Result?.Status != OfflinePrerequisiteStatus.NeedsAttention)
+                            throw new InvalidOperationException("The unpublished UI fixture must retain NeedsAttention.");
+                        content.UpdateLayout(); Pump(); offline.BringIntoView(); Pump();
+                        var offlineLabel = "settings-offline-checks " + (int)size.Width + "x" + (int)size.Height;
+                        RecordUnnamedControls(content, offlineLabel); RecordClipping(content, offlineLabel); RecordLowContrast(content, offlineLabel);
+                        RecordOfflineDiagnosticViewport(content, offlineLabel);
+                        SaveImage(content, size, Path.Combine(output, "settings-offline-checks-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+                        offline.IsExpanded = false; content.UpdateLayout(); Pump();
                     }
                     if (nav.Key == "jobs")
                     {
@@ -298,6 +316,13 @@ internal static partial class Program
                     CheckKeyboardReach(window, content, "standard with definition formats expanded");
                     definitions.IsExpanded = false; more.IsExpanded = false; content.UpdateLayout(); Pump();
                 }
+                if (nav.Key == "settings")
+                {
+                    var offline = Descendants(content).OfType<Expander>().Single(e => e.Header?.ToString() == "Offline prerequisite checks");
+                    offline.IsExpanded = true; content.UpdateLayout(); Pump();
+                    CheckKeyboardReach(window, content, "settings with offline checks expanded");
+                    offline.IsExpanded = false; content.UpdateLayout(); Pump();
+                }
             }
             PressCommands(shell, content, traces);
             WriteReviewNotes(output);
@@ -318,6 +343,7 @@ internal static partial class Program
                 ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 45),
                 ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
                 ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
+                ("Expanded offline diagnostic action/result viewport at all three sizes", OfflineDiagnosticViewportsMeasured == 3),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };
