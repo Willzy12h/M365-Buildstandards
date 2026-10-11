@@ -4,6 +4,7 @@
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28,24">
   <TextBlock Text="POLICY AUTOMATION" Style="{StaticResource Eyebrow}"/>
   <TextBlock Text="Prepare, create, then activate" Style="{StaticResource H1}"/>
+      <TextBlock Text="{Binding Workspace.ExperimentalChangeGuidance}" TextWrapping="Wrap" Margin="0,8,0,12" AutomationProperties.Name="Experimental tenant change status and next step"/>
   <TextBlock Text="Creation remains disabled or unassigned. Tenant settings and activation use a separate preview, exact target review and approval. No changes are sent by previewing." Style="{StaticResource Lead}"/>
   <TextBlock Text="Control" Style="{StaticResource FieldLabel}"/>
   <ComboBox ItemsSource="{Binding Controls}" SelectedItem="{Binding SelectedControl}" DisplayMemberPath="Name" AutomationProperties.Name="Automation control"/>

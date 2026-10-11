@@ -507,6 +507,15 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
+### INT-082 runtime implementation — 10 October 2026, PR #73
+
+Implement the merged desktop guard as transient coordination authority, not another token cache or engine approval. Keep scope acquisition approval separate from verified operation opt-in. Reuse the existing explicit-connect and MSAL silent-renewal paths; add policy seams to prove prompt counts and refusal before token replacement. Unexpected renewal identity/scopes invalidate the operator and opt-in, with no interactive retry. Original expiry bounds the opt-in; explicit expired reconnect refreshes the verified session via silent-first acquisition. Manual setup/consent remains separately reviewed and invalidates deployment authority. Exact engine safeguards and historical schema meanings are unchanged. Evidence/status: [EXPERIMENTAL-RUNTIME-2026.10.10](EXPERIMENTAL-RUNTIME-2026.10.10.md). No live or human gate is closed.
+
+### INT-082 production-wiring review response — 10 October 2026, PR #73
+
+CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
+
+
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
@@ -523,6 +532,10 @@ Deliberately asynchronous synthetic token acquisition reproduces the independent
 
 CLA-20261009-05–07 add an actual successful retry of a throttled second page, report-service cancellation retaining the observed row as Cancelled, and a fallback 401 so an extra renewal is detected by its count rather than queue exhaustion. Correct the accidental INT-093 label for this refinement (CLA-20261010-03); INT-093 remains #68. Earlier conflicting ready comments do not close these test gaps. Production Graph/authentication/evidence code is unchanged; mutation proof and fresh exact-head Windows results are recorded on the PR.
 
+### Report regression evidence follow-up — 10 October 2026, PR #78
+
+CLA-20261009-01 remained an open test gap at #65 merge despite a contradictory ready comment. Add cap-reached Partial export regressions rather than treating a green suite as proof of a truncation marker. Use partial rows with read reasons for unknown last sync; pin CSV BOM and XLSX line breaks from #68 review. Clarify unkeyed-digest and validation-layer limits. No production code, bounds, schema, historical catalogue, live access or acceptance changes. Exact mutation/restoration and CI results belong on the PR; Claude owns independent re-review.
+
 ### INT-084 / INT-091 source correction — 10 October 2026, PR #57
 
 After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph family with unknown service maximum and no inferred platform suffix. CLA-20261008-34 is addressed without bypassing required authored-name checks or changing historical standards. The positive test uses actual 2026.09.30 ENR-002 rather than the older device-import fixture; that fixture remains unchanged for its historical controls. Current-catalogue import and rule/route checks fail before the addition, then pass with unchanged baseline/other controls. Source/synthetic proof is separate from beta live acceptance; independent re-review of this delta is required.
@@ -531,6 +544,72 @@ After decision #71 merged (`195e1a8`), add ENR for the existing enrolment Graph 
 
 After Claude resolved CLA-20261008-34, document CLA-20261010-01: historical ENR-003 Autopilot candidate imports now refuse without a registered naming family. Loading/assessing historical catalogues is unchanged. CLA-20261010-02 remains a hypothesis about Microsoft default-object presentation; observed names never prove default ownership or justify ignoring/renaming them. Both historical INT-091 decisions are referenced by PR (#65 scale, #71 enrolment), without erasing either allocation. Source remains the independently reviewed ENR/import correction; only the base and compatibility wording change.
 
+### INT-071 desktop Reports presentation — 10 October 2026, PR #80
+
+Extend the existing registered Graph report services, strict schema 1 store and exporters through a dedicated desktop page. The presentation/controller uses the verified current connection's restricted `ForReports()` client; opening pages, saved files and exports never authenticates or requests consent. Missing authorised scopes stay NotAttempted with a next step. A transient read-access acknowledgement describes the experimental/live-unverified report and exact context; it is not tenant-change opt-in or Microsoft consent. A different connection, profile, account, registration or scope context invalidates the current result and acknowledgement before saving or exporting. Reports remain separate from complete configuration before-evidence.
+
+Reuse registered sheet projections for structured tables and all existing export formats; display filters never silently reduce the full exported evidence. Local supplied files retain their original source claims and the supplied-file notice, with strict UTF-8/tenant/schema/digest checks and no resealing. The bounded local browser surfaces damaged/inaccessible entries and incomplete enumeration rather than reporting an empty successful inventory. Naming review reuses supplied configuration, exact mapping/history proof and `NamingAudit`, without collection, inferred ownership or renaming.
+
+Initial source claim is new files only. Astra explicitly coordinates sequential shared-shell wiring with its own #73 claim: no concurrent checkout writer, no changes to #73's reviewed head, and a stacked target while that parent remains open. HANDOVER permits stacked targets; no shared evidence/schema/permission contract changes are proposed here. Both changed heads still require independent review and exact Windows checks before integration. Claude's Exchange/library/Run/mailbox ownership remains. Source, synthetic, native, human and live evidence are separate; this decision closes none of the latter gates.
+
+### Evidence-integrity enforcement correction — 10 October 2026, PR #79
+
+AST-20261010-07: startup recovery must consume the same strictly verified deployment history as completion and write guards, validating the whole inventory before changing any run. A modified Running record must never gain a fresh integrity digest merely because a new session starts. Invalid/missing digests, malformed/empty records and tenant mismatches refuse while preserving every file; valid interrupted runs retain unknown write acceptance and single-use-plan refusal. This enforces the existing integrity and no-replay contracts, with no schema or authority change. The display-only loader remains tolerant, but is no longer an input to automatic recovery. Digests detect unsealed edits; they are not signatures or protection against deliberately recomputed digests. See [the reproduction and validation record](INTERRUPTED-RUN-INTEGRITY-2026.10.10.md).
+
+### Interrupted-history connect and lease review corrections — 10 October 2026, PR #79
+
+CLA-20261010-97–99: keep verified read-only connection/access/licence checking usable when local history is refused, with an explicit blocking-history explanation and unchanged strict write guards. Validate the full run history before marking; deterministic order fixtures catch a lazy-marking mutation. Reuse the existing tenant lease for all startup marking so cooperating active runs are not reclassified. No tenant request/retry, evidence resealing of refused files, new schema or permission is added. Historical original findings and unexecuted external-editor races remain accurately attributed.
+### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
+
+CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
+
+### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
+
+AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.
+
+
+### Desktop Reports navigation and truthful failure presentation — 10 October 2026, PR #80
+
+The completed desktop slice groups existing pages without removing keys or changing numbered workflow/approval steps, and separates registered Graph reports and supplied-capture naming review from Claude’s script library/Exchange ownership. Application setup is in Settings. Opening and exporting remain local; registered live report reads deliberately reuse the existing verified restricted connection and require their transient experimental acknowledgement. Unknown/partial/unattempted results and damaged local records remain visible. AST-20261010-13/14 correct property notifications after damaged selection and failed repeat review; attached ComboBox null filtering is separately covered as a hypothesis. No schema, registration, permission, historical catalogue or write contract changes. New native paths supplement unchanged generic geometry and permission-dialog checks; compiled, portable-fixture, Windows-native, human and live results stay distinct.
+
+
+### Client-bound editor context and explicit offline selection — 10 October 2026, PR #81
+
+Five executed Windows regressions on unchanged #73 product source (55ed373 test head) confirm cross-client manual/deviation editor persistence and disappearing offline Recovery rows; two same-context preservation controls pass. App-only draft context is the normalised tenant, verified standard integrity digest and existing reviewed-client-scope digest. Clear material context changes; preserve same-context drafts. Stale objects and direct commands must be refused before local persistence/modal prompts. Recovery separates inspectable local history from connection-bound approval authority; a disconnect/replaced context clears previews and approvals without hiding same-tenant history.
+
+Add an explicit saved-client offline action using persisted validated profile identity, no live/set-up connection, existing exclusive operation and pending-discovery release. Clear old client evidence/approval state; never authenticate, transfer cache/authority or make historical/scoped evidence eligible for writes. Authentication mode and selected evidence source are separate visible states. No persisted schema, engine deployment/recovery, cache, permission or historical-standard contract changes. Source slice is deliberately stacked on Astra’s own #80/#73 with one checkout writer and unchanged parent heads; each still requires independent review/exact checks.
+
+
+### Engineer Home presentation — 10 October 2026, PR #84
+
+William's B task-centre plus A persistent-working-context preference is implemented as a new Home destination on the owned #81 interface stack. Preserve Overview/licences, all existing keys, exact destination guards and engine workflows. A pure, cheap presentation projection supplies readable state and next-step routing; every action navigates only. Missing/mismatched/incomplete/historical/scoped evidence cannot become readiness, successful checking or job completion. No refresh scans stored jobs or invokes authentication/collection/consent/write paths. The current shell banner remains the persistent context; no new companion window, schema, permission or authority is introduced. See [scope and verification](HOME-TASK-CENTRE-2026.10.10.md); current exact-head independent/Windows/parent/merge validation remains required.
+### INT-083 source and active-client removal follow-up — 10 October 2026, PR #81
+
+CLA-20261010-79/80: use one pure evidence-source presentation for the pinned header and assessment. A mixed Graph/Exchange result retains each actual source; the compact header identifies supplemental historical/tool capture and copied details retain original capture identities/times. Different-tenant observations are disclosed without copying their identifiers under the current client. This does not establish write eligibility. Deleting the active saved-client entry clears the selected profile and existing transient evidence/authority after saved-list persistence succeeds; durable evidence remains byte-identical. Deleting another saved client retains current state. Fourteen synthetic cases accompany the correction; native/human/live acceptance stays separate.
+
+### Home evidence labels and accessible actions — 10 October 2026, PR #84
+
+CLA-20261010-120–122: compose Home from the existing shell evidence-source presentation rather than interpreting supplemental Exchange origin separately. Bind presentation refusal to the displayed tenant, including application setup, and retain conservative collection guidance. Include each visible action label in its accessible name. No destination, evidence authority, authentication or persisted-schema change; validate native peers and mixed evidence at the existing three sizes.
+
+### INT-071 invalidated-operator report guard — 10 October 2026, PR #80
+
+CLA-20261010-77: report reads require the existing OperatorVerified flag as well as tenant, Graph-mode, identity and expiry guards. After authorisation invalidation, opening Reports does not reconnect or request tokens; a direct read refuses before any token/HTTP/evidence action and explains deliberate reconnect. This preserves the existing reconnect policy without new authentication or consent. The added invalid-operator case compiles and requires exact-head Windows execution. CLA-20261010-78 remains a disclosed, unmeasured naming-preview serialisation cost hypothesis; no reference-only cache replaces mutable evidence binding.
+
+### INT-082 configured sign-in regression — 10 October 2026, PR #73
+
+CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around the existing public sign-in implementation, retaining production provider defaults and the existing acquisition policy. A valid one-minute configured budget accepts a thirty-second reply after a twenty-minute virtual permission preview but refuses a reply after one minute plus one tick. Removing timeout forwarding fails that regression; restored selected tests pass. No second authenticator/cache, renewal, scopes, approval-expiry or retry contract changes. Correct the run sheet to exclude permission-review time and require William's separate more-than-one-hour/due-token read-only renewal acceptance, still Not run.
+
+### INT-082/INT-094 Reports lifetime correction — 10 October 2026, PR #80
+
+AST-20261010-22 identifies an implementation conflict with the established silent-renewal contract: GraphReportsController treated the original connection-time TokenExpiresAt as a hard read-only session lifetime, even though MSAL renewal updates private token state only. Remove that elapsed-time refusal while retaining parseable provenance, exact context/operator/tenant/account/scope/selection checks and the existing guarded provider. Do not rewrite Session timestamps or extend experimental write/setup opt-in expiry. An ordinary interaction-required read remains truthful Failed evidence without HTTP/retry; invalidated authority/context still blocks saving. This repairs read-only reuse without changing permissions, authentication/cache ownership, approval, evidence schema or write policy.
+
+### INT-094 original sign-in timestamp wording — PR #80
+
+CLA-20261010-102: label the pinned token timestamp as the original sign-in token expiry, with a short explanation that report reads can silently renew. It is not presented as the currently acquired report token lifetime. The experimental change opt-in expiry and provider guards are unchanged. CLA-103: retain the two-second natural-clock regression because it exercises elapsed time without mutating the pinned session timestamp; no broad suite repetition is added. This is wording only, with no native/live acceptance claim.
+
+### Report read-status review corrections — 10 October 2026, PR #78
+
+CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.
 ### INT-094 offline diagnostics completion — 10 October 2026, PR #69
 
 Complete the already proposed `bdit doctor` contract before dependent implementation: shared offline checks, safe bounded package-path admission, distinct configurable settings, owned non-overwriting write probes, host presence without execution, private-data exclusions and diagnostic-only JSON. Required Fail/Unknown yields 1, completed required passes 0, invocation refusal 2, unexpected failure 3 and cancellation 130; existing unknown command 64 stays. Optional Exchange gaps remain visible without blocking Graph-only local readiness. Local checks never establish Microsoft access, policy approval, trusted publisher identity or complete deployment evidence. This is a proposed decision refinement for Claude review, with no runtime change or new access.
@@ -549,6 +628,12 @@ Admission permits the actual named portable files and package areas, rejects pri
 
 CLA-20261010-130/131: admit the actual portable builder's bounded one-level standards lineage files without changing the package format or historical bytes. Separate safe out-of-scope inventory entries from unsafe/private/link refusal. Build synthetic inventories independently of the checker predicate, and prove private read refusal with a complete otherwise-valid inventory. No link, ancestor, byte/entry or private-path limit is weakened; fresh actual Windows package Ready remains an integration gate after #90.
 
+### Unavailable evidence-store access wording — 10 October 2026, PR #79
+
+CLA-20261010-110: distinguish only a marked tenant-lease acquisition refusal from integrity failures in the connection notice. History is uninspected while exclusive access is unavailable; advise waiting and retrying, preserve original files and existing write guards. Keep all other refused-history errors on the untrusted/reconciliation path. No lease, evidence schema, authentication or write-authority change. Actual engine checks and strict App compilation pass; native execution and independent delta review remain separate gates.
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
 ## INT-095 — Repository agent mailbox — 10 October 2026, PR #82 (proposed)
 
 William requested a permanent top-level `agent-comms/` GitHub folder for Astra/Claude handoffs and periodic checks. The folder becomes part of integration when #82 installs it through review, rather than introducing a PR directory or a second authoritative branch. [agent-comms/README](../../agent-comms/README.md) proposes author-owned append-only messages, explicit acknowledgements and safe-boundary checks during active sessions. Open PR message files are discoverable before merge; immutable commit links distinguish what was read. The initial request records current heads without declaring Claude has received or started the work. The original folder-only proposal added no global editable inbox. That delivery choice is superseded by the central issue #83 clarification below; no duplicated authoritative task register is added.
@@ -572,3 +657,18 @@ CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; op
 ### INT-094 Settings diagnostic presentation — 11 October 2026, PR #88
 
 Reuse the shared offline checker and doctor text formatter in a small desktop coordinator; retain inspection outside WPF. The existing workspace owns exclusivity and shutdown, while one operation owns cancellation and its registration. Clear prior success before reruns, sanitise input/unexpected failures, and refuse late Ready after cancellation. The compact collapsed Settings panel preserves existing controls, explains disabled actions and provides selectable/copyable local output. No automatic file export, host execution, permission or tenant action. Portable regression and three mutation checks pass; Windows execution remains required.
+### Sign-in expiry and experimental opt-in wording — 11 October 2026, PR #80
+
+CLA-20261011-003: the connection details identify the original token expiry as the end of experimental opt-in and connection reuse, while explaining that read-only report tokens may silently renew. Keep the existing fail-closed guards and silent-provider boundaries unchanged. This is presentation wording only.
+### Lease access wording clarification — 11 October 2026, PR #79
+
+CLA-20261011-002 remains a hypothesis about the underlying IOException cause. Explain both competing work and local file-access failure without claiming either cause was established. History remains uninspected and all original strict write guards/file preservation remain. No exception classification or schema changes.
+### GitHub Actions budget preservation — 10 October 2026, PR #91
+
+William reported constrained Actions minutes. The latest 100 observed runs comprised 52 push and 48 pull-request executions; feature pushes and PR updates duplicated the full Windows suite, as did integration pushes with draft promotion #77. Defer the promotion placeholder until an exact-source candidate is ready; retain its history and William's main/release approval gate.
+
+Keep full PR checks for every target (including stacked branches), full integration/main push checks, incoming review-upload push checks and manual dispatch. Cancel obsolete PR/incoming runs while preserving each integration/main/manual evidence run. Move only the platform-independent catalogue assertions to Ubuntu's existing PowerShell host; retain their exact scripts, job/check names, all Windows build/test/native/PS5.1/package checks and the secret/publisher guard. No path-based test skipping, required-check removal, protected-setting change or publisher modification. Feature work without a PR requires an incoming review upload or manual run before claiming source validation. Those runs are diagnostic source checks only: the protected publisher accepts a successful push run from the reviewed pinned integration/main branch. A manual dispatch or incoming upload is not releasable candidate proof, and neither bypasses the publisher or exact integration-push merge gate.
+
+Claim/implementation commits explicitly skip CI to avoid spending further minutes while preparing this draft. A skipped or pending check is never green or merge authority; independent review and an actual required validation run remain necessary before merging. Current billing details and the immediate-start Actions failure reason are inaccessible to this session; do not label them code regressions or assert remaining paid minutes. Actual savings depend on future branch/update patterns.
+
+CLA-20261011-030: distinguish diagnostic manual/incoming validation from the publisher’s successful pinned-branch push requirement. No workflow, publisher, action pin or check gate changes in this correction.

@@ -578,6 +578,8 @@ internal static partial class Program
     private static readonly (string Command, string Handling)[] CommandRegister =
     {
         ("ShellViewModel.NavigateCommand", Press),
+        ("HomeViewModel.NextStepCommand", Press),
+        ("HomeViewModel.OpenTaskCommand", Press),
         ("ShellViewModel.ClearErrorCommand", Press),
         ("ShellViewModel.CopyCommand", Clipboard),
         ("ShellViewModel.CopyDetailsCommand", Clipboard),
@@ -602,6 +604,7 @@ internal static partial class Program
         ("ConnectViewModel.ConnectPartnerCommand", SignIn),
         ("ConnectViewModel.ConnectDeploymentCommand", SignIn),
         ("ConnectViewModel.ConnectSelectedCommand", SignIn),
+        ("ConnectViewModel.ReviewOfflineCommand", "pressed by the separate cold-start offline journey at all three sizes"),
         ("ConnectViewModel.CheckAccessCommand", TenantRead),
         ("ConnectViewModel.SearchAccountsCommand", TenantRead),
         ("ConnectViewModel.CopyApplicationCommand", Clipboard),
@@ -704,6 +707,23 @@ internal static partial class Program
         ("ScriptsViewModel.CopyScriptCommand", Press),
         ("ScriptsViewModel.SaveScriptCommand", Press),
 
+        ("GraphReportsViewModel.ReadCommand", TenantRead),
+        ("GraphReportsViewModel.StopReadCommand", Disabled),
+        ("GraphReportsViewModel.RefreshStoredCommand", Press),
+        ("GraphReportsViewModel.OpenStoredCommand", Press),
+        ("GraphReportsViewModel.ChooseSuppliedCommand", FilePicker),
+        ("GraphReportsViewModel.OpenSuppliedCommand", Press),
+        ("GraphReportsViewModel.ExportHtmlCommand", Press),
+        ("GraphReportsViewModel.ExportJsonCommand", Press),
+        ("GraphReportsViewModel.ExportCsvCommand", Press),
+        ("GraphReportsViewModel.ExportXlsxCommand", Press),
+        ("GraphReportsViewModel.OpenExportCommand", Explorer),
+        ("GraphReportsViewModel.CopyDetailsCommand", Clipboard),
+        ("GraphReportsViewModel.CopyRowCommand", Clipboard),
+        ("NamingAuditViewModel.ReviewCommand", Press),
+        ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
+        ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
+
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
         ("StandardViewModel.ExportDocumentMarkdownCommand", Press),
@@ -785,6 +805,14 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
+        ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportHtmlCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportJsonCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportCsvCommand"] = SeedGraphReportsPage,
+        ["GraphReportsViewModel.ExportXlsxCommand"] = SeedGraphReportsPage,
+        ["NamingAuditViewModel.ReviewCommand"] = SeedNamingPage,
         ["AssessmentViewModel.CheckAreaCommand"] = shell =>
         {
             var vm = shell.Page<AssessmentViewModel>(); vm.Refresh(); vm.CheckStored = true; vm.CheckArea = "Entra";
@@ -1019,7 +1047,9 @@ internal static partial class Program
                 }
                 if (handling != Press) { CommandLog.Add($"{name}: not pressed - {handling}"); continue; }
 
-                var parameters = name == "ShellViewModel.NavigateCommand" ? shell.NavItems.Cast<object?>().ToArray() : new object?[] { null };
+                var parameters = name == "ShellViewModel.NavigateCommand" ? shell.NavItems.Cast<object?>().ToArray()
+                    : name == "HomeViewModel.OpenTaskCommand" ? shell.Page<HomeViewModel>().Tasks.Concat(shell.Page<HomeViewModel>().Shortcuts).Cast<object?>().ToArray()
+                    : new object?[] { null };
                 foreach (var parameter in parameters)
                 {
                     var label = parameter is NavItem item ? $"{name}({item.Key})" : name;

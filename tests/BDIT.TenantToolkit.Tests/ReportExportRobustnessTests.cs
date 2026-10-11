@@ -58,6 +58,10 @@ public sealed class ReportExportRobustnessTests
                 {
                     using var metadata = new StreamReader(zip.GetEntry("01_Report_provenance.csv")!.Open());
                     Assert.Contains(Detail, metadata.ReadToEnd());
+                    using var bomStream = zip.GetEntry("02_devices.csv")!.Open();
+                    var bom = new byte[3];
+                    bomStream.ReadExactly(bom);
+                    Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, bom);
                     using var reader = new StreamReader(zip.GetEntry("02_devices.csv")!.Open());
                     using var parser = new TextFieldParser(reader) { TextFieldType = FieldType.Delimited, HasFieldsEnclosedInQuotes = true, TrimWhiteSpace = false };
                     parser.SetDelimiters(",");
@@ -84,6 +88,7 @@ public sealed class ReportExportRobustnessTests
                     var data = rows[1].Descendants(ns + "t").Select(cell => cell.Value).ToArray();
                     var name = data[Array.IndexOf(header, "Name")];
                     Assert.StartsWith("Jos\u00e9 e\u0301 \U0001F600, \"quoted\"", name, StringComparison.Ordinal);
+                    Assert.Contains("\nsecond line", name.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
                     Assert.Contains("TRUNCATED FOR EXCEL", name);
                     Assert.InRange(name.Length, 1, 32767); // Excel's cell limit; no dependency on the writer's private cutoff.
                     Assert.Equal("=1+1", data[Array.IndexOf(header, "Operating system")]);
@@ -101,7 +106,7 @@ public sealed class ReportExportRobustnessTests
     [InlineData(ExportFormat.Json)]
     [InlineData(ExportFormat.Csv)]
     [InlineData(ExportFormat.Xlsx)]
-    public void Modified_evidence_is_refused_before_any_output_or_existing_file_change(ExportFormat format)
+    public void An_unsealed_edit_is_refused_before_any_output_or_existing_file_change(ExportFormat format)
     {
         using var root = new TempRoot();
         var sentinel = Path.Combine(root.Paths.ReportsDirectory, "existing-synthetic-report.txt");
