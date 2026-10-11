@@ -106,5 +106,7 @@ Never edit or remove another agent's row. Add your own, and update only your own
 
 | 2026-10-10 | Astra/Codex | M365-Buildstandards | Reduce duplicate Actions triggers, preserve required Windows/standards/secrets checks and merge-run evidence; three-repository pre-flight at `0c963e2`; no publisher/protection/product change | `astra/actions-budget-2026-10-10` | #91 | Open |
 
+| 2026-10-11 | Astra/Codex | M365-Buildstandards | Decision-only INT-097 next single-mailbox Full Access adapter; bounded registered identity/semantic contract, no dependent source, live read or permission change | `astra/full-access-report-contract-2026-10-11` (integration `724d9e0`) | #96 | Open |
+
 Status values: Open, Merged, Abandoned, Blocked.
 Feature areas: authentication, collection and snapshots, comparison, planning, deployment, evidence and reporting, interface, packaging, build standard data, documentation.

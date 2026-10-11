@@ -622,3 +622,7 @@ Read integration run 38134379280 check annotations for standard/build/secrets (1
 ### Verified merged branch cleanup — 11 October 2026, PR #76
 
 After fresh #78 MERGED/724d9e0 verification, confirm exact local/remote head 9fc317fb69e39a966469e4204e523ffa72a5de33 is reachable from integration and has no open PR head/base dependency. Create/verify a complete recovery bundle at `/workspace/bdit-validation/recovery/merged-astra-report-validation-2026-10-11.bundle`, SHA-256 `41fa162bb6ad7ad76aa4661adaada1c4b7d576588c3b0d340c6c8dc54e78866a`, then remove only that merged Astra local/remote ref. Commit/PR/integration history and test evidence remain; all active and Claude refs are untouched. This cleanup does not validate the failed integration run or alter approvals.
+
+### New source completion and review packet — 11 October 2026, PR #76
+
+Record source-complete Run #93 and mailbox review #94 at their actual heads, without marking integrated/native/live gates complete. Temporarily stack #93 on #92 and #94 on #93 to make independent reviews narrow; normal parent/retarget/merge checks remain required. Root validates one final composed source 6d4f1bc with unmodified full-suite failures retained, explicit available filter and sequential strict crossbuilds. Further adapter decision #96 remains before dependent implementation; owner-outcome decision #95 remains before CLA-010 repair. Preserve every Claude claim row and original findings, including its stale #89 row for owner reconciliation.

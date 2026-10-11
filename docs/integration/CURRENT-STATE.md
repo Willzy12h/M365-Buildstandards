@@ -8,7 +8,7 @@ Integration **724d9e05cfd486c4af8fed733fac8f31ecccbfd3**, unpublished **1.1.0-pr
 
 Last fully verified integration: **0c963e2e649d219a026f62fb8bc5f2a97b77fb3b**, actual push 38094369170. Original CI ZIP SHA-256 `479fc88bc54a9f46741939754aeba8af7472e71a755047b839f0b87cb869ba00`: proof for those older bytes only. [MERGE-EVIDENCE](MERGE-EVIDENCE-2026.10.10.md) retains package/check identities. No new candidate package or version change exists.
 
-Existing assessment/deployment, jobs/completion/backfill, lineage, strict evidence, protected publishing, 29 Copy items, owned runner and registered mailbox adapter remain implemented. #89's strict mailbox/licence derived review is merged. Run UI, capacity presentation and further registered runnable adapters are source gaps being completed; the runner alone does not deliver them.
+Existing assessment/deployment, jobs/completion/backfill, lineage, strict evidence, protected publishing, 29 Copy items, owned runner and registered mailbox adapter remain implemented. #89's strict mailbox/licence derived review is merged. Run UI and capacity presentation are now implemented on #93/#94 and awaiting independent/Windows/live checks. Further registered runnable adapters remain source gaps; the runner alone does not deliver them.
 
 ## Actual PR queue and Claude dispositions
 
@@ -27,17 +27,18 @@ All three repositories were checked on 11 October. Claude has **no open implemen
 | #91 | 5620676; prior ready (6104863854), CLA-030 wording corrected: manual/incoming diagnostics cannot supply publisher's pinned push evidence. No check/publisher/protection removal. |
 | #92 | 5f4666a; prior ready (6104863954); refreshed composition of #84/#79 plus application desktop/CLI/Settings. Depends on fixing #87; linked/cloud-placeholder evidence remains refused, with ordinary-local-folder guidance (CLA-031). |
 | #76 | Own records reconciled; prior ready (6104864078). Only Astra rows changed; Claude #89 Open row is left for Claude. CLA-032 spacing/current Next corrected. |
-| #93 | Draft, root takes Claude's explicitly unstarted Run slice. Shared read-only controller and desktop typed-form Run page in isolated development; no integrated source/candidate claim yet. |
-| #94 | Draft, root takes unstarted mailbox capacity presentation. Strict supplied paired evidence and original review exports; no quota/licence changes, live reads or new persisted evidence contract. |
-| #95 | Draft decision INT-096. Required owner-outcome counts in expiry revision 2 and explicit limited historical inspection; no dependent source work before reviewed decision merge. |
+| #93 | c58d89b; implemented separate default-off exact-reviewed Run page, existing owned runner/store and typed forms. Six guard mutants caught; final 62 pure workflow cases pass. Temporarily targets #92; Claude review/Windows/native/live remain. |
+| #94 | c15c47c; reachable offline mailbox capacity page, strict saved/supplied paired sources and full original review exports. 27 focused cases pass. Temporarily targets #93; composed source 6d4f1bc validated as below. No quota/licence changes or new evidence contract. |
+| #95 | 5d1ac22; decision INT-096 and published failing synthetic proof. Required owner-outcome counts in expiry revision 2 and explicit limited historical inspection; no dependent source work before reviewed decision merge. |
+| #96 | d1d739d; decision INT-097 for one-mailbox Full Access registration. Existing manual permissions/calendar/log scripts remain; new strict grant identity requires this reviewed shared contract before source. |
 
 #78 is merged; #82/#85/#86/#89 are already merged. #77 promotion placeholder remains closed/deferred until an exact-source candidate. No older historical checklist resurrects these tasks.
 
 ## Continue
 
 1. Review the narrow #95 contract and then implement its confirmed repair after the decision merges. Do not infer machine provenance from English errors or reject legitimate partial-root captures silently.
-2. Finish #93/#94 and remaining registered adapters, with meaningful negative/cancellation/export tests. Exchange changes stay Copy/Save only. Preserve default-off experimental gates, verified context, exact input review and explicit failed/unknown results.
-3. Validate one composed source after new implementation; use targeted repair checks rather than repeating unchanged full reviews. Existing full Linux result (1,945 pass/30 fixed-host discovery failures) and sequential available result (1,891 pass) are historical source proof, not fresh Windows/candidate proof.
+2. Independently review #93/#94's new source, then complete registered adapters after their shared contract decisions merge. Exchange changes stay Copy/Save only. Preserve default-off experimental gates, verified context, exact input review and explicit failed/unknown results.
+3. New composed source **6d4f1bc** full unmodified suite: **2,026 pass/30 fixed-host discovery failures/0 skip**; available suite **1,972 pass/0 fail/0 skip**, explicitly excludes ExchangeReportRunnerTests. Strict App.Tests/harness crossbuilds pass zero warnings/errors; actual Windows/native/package execution unrun. #94 final head changes docs only. Use targeted repair checks, not unchanged broad re-review; the confirmed #87 defect remains open despite passing source tests.
 4. Once actual Windows execution and required checks permit, independently reviewed eligible branches merge sequentially with merge commits and actual integration-push proof. Prepare authorised next-preview version/source/original ZIP/hash/pin/acceptance records afterwards; blank approvals stay blank.
 
 Working transport: [issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83), with [top-level rules](../../agent-comms/README.md). Temporary GitHub authentication failure on 11 October was resolved and API/push access rechecked; it is not a current blocker. Active checks cannot wake an inactive AI session.
