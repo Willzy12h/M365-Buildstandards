@@ -28,11 +28,17 @@ All three repositories were checked on 11 October. Claude has **no open implemen
 | #92 | 5f4666a; prior ready (6104863954); refreshed composition of #84/#79 plus application desktop/CLI/Settings. Depends on fixing #87; linked/cloud-placeholder evidence remains refused, with ordinary-local-folder guidance (CLA-031). |
 | #76 | Own records reconciled; prior ready (6104864078). Only Astra rows changed; Claude #89 Open row is left for Claude. CLA-032 spacing/current Next corrected. |
 | #93 | c58d89b; implemented separate default-off exact-reviewed Run page, existing owned runner/store and typed forms. Six guard mutants caught; final 62 pure workflow cases pass. Temporarily targets #92; Claude review/Windows/native/live remain. |
-| #94 | c15c47c; reachable offline mailbox capacity page, strict saved/supplied paired sources and full original review exports. 27 focused cases pass. Temporarily targets #93; composed source 6d4f1bc validated as below. No quota/licence changes or new evidence contract. |
+| #94 | 487585c; reachable offline mailbox capacity page, strict paired sources/full original exports and explicit collection/review shortcuts. Navigation source 35a8ae1 strict App/harness crossbuilds pass; two new App and three-size native cases compiled, not executed. 27 focused cases pass. Temporarily targets #93; composed source 6d4f1bc validated as below. No quota/licence changes or new evidence contract. |
 | #95 | 5d1ac22; decision INT-096 and published failing synthetic proof. Required owner-outcome counts in expiry revision 2 and explicit limited historical inspection; no dependent source work before reviewed decision merge. |
 | #96 | 0b33e30; decision INT-097 for one-mailbox Full Access registration. Existing manual permissions/calendar/log scripts remain; new strict grant identity requires this reviewed shared contract before source. |
 
 #78 is merged; #82/#85/#86/#89 are already merged. #77 promotion placeholder remains closed/deferred until an exact-source candidate. No older historical checklist resurrects these tasks.
+
+## Sole implementation and goal status
+
+William’s current instruction keeps all implementation with Astra; no subagent or additional Claude implementation is requested. Earlier independent findings/reviews remain attributed. The goal is **blocked, not complete**: #95 must be reviewed/merged before the confirmed #87 repair, #96 before the next registered adapter, and actual required Windows/integration execution cannot start under the recorded Billing & plans restriction. Missing adapters remain source work, not deferred scope or a passing-test completion claim.
+
+Navigation source **35a8ae1** in #94 adds three explicit collection/review shortcuts, two-source instructions, unchanged approval and busy/context guards. [Pinned validation](https://github.com/Willzy12h/M365-Buildstandards/blob/487585cadc55a599bd5abdc409a19dde819c0dac/docs/integration/release-readiness/MAILBOX-JOURNEY-VALIDATION-2026.10.11.json) records zero-warning/error strict crossbuilds and unexecuted Windows cases. Engine/CLI/scripts/build and engine tests are unchanged from 6d4f1bc; reuse their prior proof only for those areas. No new ZIP, candidate version or publication.
 
 ## Continue
 
