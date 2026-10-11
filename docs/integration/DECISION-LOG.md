@@ -717,3 +717,7 @@ CLA-20261011-003: the connection details identify the original token expiry as t
 ### Lease access wording clarification — 11 October 2026, PR #79
 
 CLA-20261011-002 remains a hypothesis about the underlying IOException cause. Explain both competing work and local file-access failure without claiming either cause was established. History remains uninspected and all original strict write guards/file preservation remain. No exception classification or schema changes.
+
+### Supplied report local-path guidance — 11 October 2026, PR #92
+
+CLA-20261011-031 remains a Windows Files On-Demand hypothesis, not a reproduced defect. Explain the existing local-path refusal and remedy: choose a fully downloaded copy in an ordinary local folder outside sync/link paths. Preserve original evidence and reparse/link guards; failed access is never empty success. No storage-host bypass, reader relaxation or claimed native acceptance.

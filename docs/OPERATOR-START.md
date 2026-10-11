@@ -93,6 +93,8 @@ Use **Results** to inspect section/read status, original time, unknown fields an
 
 Use **Saved evidence → Refresh saved reports → Open saved report**, or **Choose JSON → Open supplied JSON**, for offline review of the selected tenant’s registered Graph schema 1 or application schema 2 report evidence. Damaged records explain why they cannot open; an incomplete listing does not imply there are no other files. Supplied-file claims keep their original times and provenance and never establish a new sign-in. Opening a report does not overwrite a configuration capture or authorise writes.
 
+If an evidence path is refused, use a fully downloaded copy in an ordinary local folder outside OneDrive or other sync/link locations, then choose that JSON again. Evidence readers refuse linked/reparse paths and never relax that guard for a cloud placeholder. A file-access refusal does not mean an empty report; preserve the original and investigate storage access. Actual Windows Files On-Demand behaviour still needs human acceptance.
+
 On **Naming and ownership**, choose **Review selected capture** after opening or deliberately collecting configuration in **Configuration**. Review names, collection completeness, exact IDs and ownership reasons. A matching name cannot establish toolkit ownership; overlapping collections and missing corroboration remain unknown. The audit makes no tenant request and never renames an object.
 
 
