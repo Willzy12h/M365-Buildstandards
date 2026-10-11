@@ -134,6 +134,8 @@ public sealed class SettingsOfflineDiagnosticTests : IDisposable
     public async Task A_private_engine_failure_is_not_sent_to_shell_error_or_workspace_log()
     {
         const string privateError = "synthetic-private-machine private-user profile@example.invalid token-private";
+        const string publicControl = "Public diagnostic-test control.";
+        _logger.Log(LogLevel.Information, "Tests", publicControl);
         var page = new SettingsViewModel(_shell, new OfflinePrerequisiteDiagnostic((_, _) => throw new InvalidOperationException(privateError)));
         var command = Assert.IsType<AsyncCommand>(page.RunOfflineDiagnosticCommand);
         command.Execute(null); await Finish(command);
@@ -147,7 +149,7 @@ public sealed class SettingsOfflineDiagnosticTests : IDisposable
         using var stream = new FileStream(logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var reader = new StreamReader(stream);
         var log = reader.ReadToEnd();
-        Assert.Contains("Checking offline prerequisites", log);
+        Assert.Contains(publicControl, log);
         Assert.DoesNotContain(privateError, log);
         Assert.DoesNotContain("synthetic-private-machine", log);
         Assert.DoesNotContain("private-user", log);
