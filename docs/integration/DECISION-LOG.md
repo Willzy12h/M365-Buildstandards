@@ -726,3 +726,7 @@ Extend the existing owned portable smoke with sealed synthetic expiry and consen
 ### Supplied report local-path guidance — 11 October 2026, PR #92
 
 CLA-20261011-031 remains a Windows Files On-Demand hypothesis, not a reproduced defect. Explain the existing local-path refusal and remedy: choose a fully downloaded copy in an ordinary local folder outside sync/link paths. Preserve original evidence and reparse/link guards; failed access is never empty success. No storage-host bypass, reader relaxation or claimed native acceptance.
+
+### INT-096 offline CLI historical admission — 11 October 2026, PR #92
+
+Expose the shared limited historical expiry reader only through explicit `bdit report-evidence --historical`, with no value accepted and no fallback on the normal path. The CLI prints the assurance notice and every derived export carries it; historical JSON bundles byte-identical source bytes with its warning. Current expiry and consent cannot be downgraded through that flag. Migrate synthetic UI fixtures to the registered revision/counts without changing desktop implementation. Human/live acceptance remains separate.

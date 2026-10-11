@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
 using BDIT.TenantToolkit.Core.Models;
+using BDIT.TenantToolkit.Core.Reporting;
 using BDIT.TenantToolkit.Engine.Evidence;
 using BDIT.TenantToolkit.Engine.Reports;
 using Xunit;
@@ -11,6 +12,42 @@ namespace BDIT.TenantToolkit.Tests;
 
 public sealed class ApplicationReportCliTests
 {
+    [Theory]
+    [InlineData("html")][InlineData("json")][InlineData("csv")][InlineData("xlsx")]
+    public async Task Explicit_historical_cli_preserves_original_bytes_and_warns_in_every_export(string format)
+    {
+        using var fixture = new ApplicationReportFixture(); var report = await Report(fixture, "expiry");
+        report.ReportSchemaVersion = 1; report.ModuleVersion = ApplicationReportRegistry.AdapterVersion;
+        foreach (var source in report.Sources) source.RetainedOwnerOutcomes = null;
+        report.IntegrityDigest = EvidenceIntegrity.Compute<object>(report);
+        var input = Path.Combine(fixture.Root.Root, "original expiry.json");
+        File.WriteAllText(input, "\n" + ApplicationReportEvidenceSchema.Serialise(report) + "\n", new UTF8Encoding(true));
+        var original = File.ReadAllBytes(input);
+        var refused = await RegisteredReportCliTests.Run("report-evidence", "--input", input, "--tenant", TestData.TenantA, "--root", fixture.Root.Root);
+        Assert.Equal(2, refused.Exit); Assert.Contains(ApplicationReportEvidenceSchema.HistoricalOwnerNotice, refused.Error);
+        Assert.Empty(Directory.GetFiles(fixture.Root.Paths.ReportsDirectory));
+        var result = await RegisteredReportCliTests.Run("report-evidence", "--input", input, "--tenant", TestData.TenantA, "--root", fixture.Root.Root, "--format", format, "--historical");
+        Assert.True(result.Exit == 0, result.Error); Assert.Contains(ApplicationReportEvidenceSchema.HistoricalOwnerNotice, result.Output);
+        var export = Assert.Single(Directory.GetFiles(fixture.Root.Paths.ReportsDirectory));
+        Assert.Contains(ApplicationReportEvidenceSchema.HistoricalOwnerNotice, Text(export));
+        if (format == "json")
+        {
+            using var zip = ZipFile.OpenRead(export); using var payload = zip.GetEntry("report.json")!.Open();
+            using var bytes = new MemoryStream(); payload.CopyTo(bytes); Assert.Equal(original, bytes.ToArray());
+        }
+        Assert.Equal(original, File.ReadAllBytes(input));
+    }
+    [Theory]
+    [InlineData("current")][InlineData("consent")][InlineData("value")]
+    public async Task Historical_flag_cannot_downgrade_current_or_consent_records_or_take_a_value(string fault)
+    {
+        using var fixture = new ApplicationReportFixture(); var report = await Report(fixture, fault == "consent" ? "consent" : "expiry");
+        var input = Path.Combine(fixture.Root.Root, "record.json"); File.WriteAllText(input, ApplicationReportEvidenceSchema.Serialise(report));
+        var args = new List<string> { "report-evidence", "--input", input, "--tenant", TestData.TenantA, "--root", fixture.Root.Root, "--historical" };
+        if (fault == "value") args.Add("false");
+        var result = await RegisteredReportCliTests.Run(args.ToArray());
+        Assert.Equal(2, result.Exit); Assert.Empty(result.Output); Assert.Empty(Directory.GetFiles(fixture.Root.Paths.ReportsDirectory));
+    }
     private static Task<ApplicationReportEvidence> Report(ApplicationReportFixture fixture, string kind)
     {
         if (kind == "consent")

@@ -325,6 +325,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
+- Add explicit, labelled offline historical expiry inspection to report-evidence; preserve original bytes and refuse silent downgrade (#92).
+
 - Reject contradictory application owner outcomes with versioned counts; keep original expiry records behind labelled historical inspection/export (#87).
 - Record William's temporary bounded closeout and review-only pause in the existing goal (#111).
 
