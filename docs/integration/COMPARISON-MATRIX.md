@@ -223,3 +223,8 @@ AST-20261010-08 was discovered by Sol 6.1 xhigh and independently confirmed agai
 | Pinned companion window | Not implemented in this slice | Existing shell context remains visible across pages. No duplicate authenticated window or persisted authority. |
 
 PR #84's current presentation delta reuses the #81 evidence-source helper and displayed-tenant pin. Twenty-three pure projection cases pass, with five prior-source failing cases. App/native compilation passes; fresh Windows native peers, mixed Graph/Exchange evidence and all three sizes require exact-head execution. Earlier #84 renders remain historical, not proof for these changed bytes.
+
+
+## BuildStandard phase T0 — 11 October 2026
+
+The approved specification/plan in PR #114 selects native WPF + preserved shared engine + one contained catalogue reader. The proposed target starts from exact frozen `4a7425f55385e84462975bcc5bdde5644815ca8f`; fresh integration has no source delta. Existing build/standard/secrets jobs, pinned actions and publisher boundaries remain unchanged; only exact phase push admission/concurrency preservation is proposed. This is decision/source inspection evidence, not a new native/reader/package pass. Independent review, final-head checks and owner confirmation of phase controls remain pending; no framework comparison or whole-product audit is reopened.

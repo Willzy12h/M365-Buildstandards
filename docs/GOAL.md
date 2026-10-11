@@ -1,5 +1,19 @@
 # Current goal
 
+## Approved BuildStandard phase — 11 October 2026
+
+William approved implementation of the [BuildStandard plan](superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md), governed by [design specification v0.2](superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md). This finite phase supersedes the older closeout/take-next and permanent desktop-ownership instructions below **only within T0–T10**. The original frozen source remains `4a7425f55385e84462975bcc5bdde5644815ca8f`.
+
+- GPT/Codex is the initial implementer across the application, engine, reader, neutralisation and tests, using executing-plans and isolated worktrees. Claude is an optional later explicitly assigned participant; no work is assigned or acknowledged on his behalf.
+- Target `phase/wpf-webview2` through bounded `astra/bs-*` PRs. Preserve main/integration, history, all prior findings and the existing inbox/claims/acknowledgements. Do not push to another agent's branch or take the historical backlog.
+- T0 is the decision/validation contract in [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114); dependent implementation waits for its accepted merge. The approved plan requires owner confirmation of phase merge controls. This is pending; do not infer it from approval to implement.
+- Every completed branch needs fresh independent review and actual applicable Windows checks. Existing other-agent gates for execution/recovery/Graph writes/tenant confirmation/app registration/permissions remain. A different named reviewer or a waived gate needs William's explicit decision. No self-review substitutes for independent review.
+- Preserve human/live and release/protection gates. No tenant action, new access, main promotion, publication, protection change or test deletion is authorised. Scope ends at the exact-source package/handoff point; human acceptance is separate.
+
+Keep durable task/commit/check evidence in the existing COMPLETION-REGISTER and PR, with compact material updates in issue #83. Local scratch/ledgers are not remotely shared handoffs. Historical/conditional/deferred items remain attributed and are not automatically resumed or closed.
+
+### Preserved previous goal and closeout history
+
 Set by William on 11 October 2026. This file replaces long per-session prompts: read it, then work the backlog.
 
 ## Temporary closeout and review pause — 11 October 2026
