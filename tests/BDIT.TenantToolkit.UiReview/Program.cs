@@ -76,6 +76,7 @@ internal static partial class Program
             if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
             content.DataContext = shell;
             SeedWorkspace(workspace);
+            SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
             SeedGraphReportEvidence(workspace);
             SeedConnect(shell.Page<ConnectViewModel>());
@@ -295,6 +296,7 @@ internal static partial class Program
             {
                 CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+                CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }
             foreach (var nav in shell.NavItems)
@@ -523,6 +525,7 @@ internal static partial class Program
 
     private static void SeedPage(ShellViewModel shell, string key)
     {
+        if (key == "mailbox-capacity") SeedMailboxCapacityPage(shell);
         if (key == "connect" && shell.Page<ConnectViewModel>().AccountMatches.Count == 0) SeedConnect(shell.Page<ConnectViewModel>());
         if (key == "recovery")
         {

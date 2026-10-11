@@ -25,6 +25,7 @@
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ScriptsViewModel}"><views:ScriptsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:GraphReportsViewModel}"><views:GraphReportsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MailboxCapacityViewModel}"><views:MailboxCapacityView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:NamingAuditViewModel}"><views:NamingAuditView/></DataTemplate>
   </Window.Resources>
   <Grid Background="{StaticResource BgWindow}">

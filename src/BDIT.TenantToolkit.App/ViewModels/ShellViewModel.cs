@@ -73,7 +73,7 @@ public sealed class ShellViewModel : ObservableObject
             ("automation", "Policy automation", "+"), ("recovery", "Undo and recovery", ""),
             ("jobs", "Jobs and completion", ""), ("checks", "Manual checks", ""));
         AddNavigationGroup("Reports", ("reports", "Tenant reports", ""), ("naming", "Naming and ownership", ""),
-            ("history", "Evidence and drift", ""));
+            ("history", "Evidence and drift", ""), ("mailbox-capacity", "Mailbox capacity", ""));
         // Preserve the existing reviewed library page and its key; the new Graph pages have separate navigation.
         AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""));
         AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
@@ -94,6 +94,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["checks"] = new ManualChecksViewModel(this);
         _pages["scripts"] = new ScriptsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
+        _pages["mailbox-capacity"] = new MailboxCapacityViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);
         _pages["settings"] = new SettingsViewModel(this);

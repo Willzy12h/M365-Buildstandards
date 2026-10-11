@@ -707,6 +707,17 @@ internal static partial class Program
         ("ScriptsViewModel.CopyScriptCommand", Press),
         ("ScriptsViewModel.SaveScriptCommand", Press),
 
+        ("MailboxCapacityViewModel.RefreshSourcesCommand", Press),
+        ("MailboxCapacityViewModel.ReviewCommand", Press),
+        ("MailboxCapacityViewModel.ChooseMailboxCommand", FilePicker),
+        ("MailboxCapacityViewModel.ChooseLicenceCommand", FilePicker),
+        ("MailboxCapacityViewModel.ExportHtmlCommand", Press),
+        ("MailboxCapacityViewModel.ExportJsonCommand", Press),
+        ("MailboxCapacityViewModel.ExportCsvCommand", Press),
+        ("MailboxCapacityViewModel.ExportXlsxCommand", Press),
+        ("MailboxCapacityViewModel.CopyRowCommand", Clipboard),
+        ("MailboxCapacityViewModel.CopyProvenanceCommand", Clipboard),
+
         ("GraphReportsViewModel.ReadCommand", TenantRead),
         ("GraphReportsViewModel.StopReadCommand", Disabled),
         ("GraphReportsViewModel.RefreshStoredCommand", Press),
@@ -805,6 +816,12 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["MailboxCapacityViewModel.RefreshSourcesCommand"] = SeedMailboxCapacityPage,
+        ["MailboxCapacityViewModel.ReviewCommand"] = SeedMailboxCapacityPage,
+        ["MailboxCapacityViewModel.ExportHtmlCommand"] = SeedMailboxCapacityPage,
+        ["MailboxCapacityViewModel.ExportJsonCommand"] = SeedMailboxCapacityPage,
+        ["MailboxCapacityViewModel.ExportCsvCommand"] = SeedMailboxCapacityPage,
+        ["MailboxCapacityViewModel.ExportXlsxCommand"] = SeedMailboxCapacityPage,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
         ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,

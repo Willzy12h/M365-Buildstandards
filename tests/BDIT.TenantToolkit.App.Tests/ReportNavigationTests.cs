@@ -13,7 +13,8 @@ public sealed class ReportNavigationTests
         using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
         var originalKeys = new[] { "overview", "connect", "setup", "configuration", "assessment", "deviations", "plan", "deploy", "automation", "recovery", "history", "jobs", "checks", "scripts", "standard", "settings" };
         foreach (var key in originalKeys) Assert.Single(shell.NavItems, n => n.Key == key);
-        Assert.Equal(19, shell.NavItems.Count);
+        Assert.Equal(20, shell.NavItems.Count);
+        Assert.Single(shell.NavItems, n => n.Key == "mailbox-capacity" && n.Group == "Reports");
         Assert.Single(shell.NavItems, n => n.Key == "home");
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
         Assert.Equal(new[] { "Workspace", "Tenant", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
@@ -36,6 +37,7 @@ public sealed class ReportNavigationTests
         }
         shell.Navigate("reports"); Assert.Same(shell.Page<GraphReportsViewModel>(), shell.CurrentPage);
         shell.Navigate("naming"); Assert.Same(shell.Page<NamingAuditViewModel>(), shell.CurrentPage);
+        shell.Navigate("mailbox-capacity"); Assert.Same(shell.Page<MailboxCapacityViewModel>(), shell.CurrentPage);
         shell.Navigate("scripts"); Assert.Same(shell.Page<ScriptsViewModel>(), shell.CurrentPage);
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
@@ -47,7 +49,7 @@ public sealed class ReportNavigationTests
         var capture = TestData.Snapshot(f.Workspace.RequireStandard());
         f.Set(nameof(Workspace.Snapshot), capture); f.Set(nameof(Workspace.AcknowledgedSnapshotId), capture.Id);
         var shell = new ShellViewModel(f.Workspace); var before = ToolkitJson.Serialize(f.Workspace.Snapshot); var plan = f.Workspace.Plan;
-        foreach (var key in new[] { "reports", "naming", "configuration", "reports", "naming" }) shell.Navigate(key);
+        foreach (var key in new[] { "reports", "naming", "mailbox-capacity", "configuration", "reports", "mailbox-capacity", "naming" }) shell.Navigate(key);
         Assert.Empty(shell.Page<NamingAuditViewModel>().Rows);
         Assert.Equal(before, ToolkitJson.Serialize(f.Workspace.Snapshot)); Assert.Same(plan, f.Workspace.Plan);
         Assert.Equal(capture.Id, f.Workspace.AcknowledgedSnapshotId);

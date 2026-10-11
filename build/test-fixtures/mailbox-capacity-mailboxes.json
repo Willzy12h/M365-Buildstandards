@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "exchangeReportEvidence",
+  "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+  "runId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9",
+  "reportId": "exo-mailbox-inventory",
+  "reportSchemaVersion": 1,
+  "tenantId": "11111111-1111-4111-8111-111111111111",
+  "initiatingAccountObjectId": "55555555-5555-4555-8555-555555555555",
+  "observedAccountUpn": "operator@synthetic.example",
+  "resource": "ExchangeOnline",
+  "sourceMode": "live",
+  "startedAt": "2026-10-10T01:00:00Z",
+  "endedAt": "2026-10-10T01:05:00Z",
+  "toolkitVersion": "0.0.0-test",
+  "adapterVersion": "registered-exchange-report/1",
+  "moduleVersion": "3.9.0",
+  "runtimeVersion": "7.4.6",
+  "scriptSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "manifestSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "runnerTemplateSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "parameters": [
+    {
+      "name": "IncludeArchive",
+      "type": "Boolean",
+      "value": "true"
+    }
+  ],
+  "sourceCommands": [
+    "Get-EXOMailbox",
+    "Get-EXOMailboxStatistics"
+  ],
+  "status": "Collected",
+  "limitations": [
+    "Mailbox identity is the exact Exchange mailbox GUID; the reported Entra object ID is kept separately and may be absent. Shared, room and equipment mailboxes are listed as mailboxes even without a joinable user or licence. Sizes and quotas are Exchange's own text, read separately: a read that failed is unknown, never zero, and Unlimited stays Unlimited. Primary mailbox, archive and Recoverable Items are separate; no OST or PST claim is made. Live behaviour, required roles and module output are unverified until accepted in a test tenant.",
+    "Synthetic mailbox review fixture only; no tenant queried."
+  ],
+  "sections": [
+    {
+      "id": "mailboxes",
+      "status": "Collected",
+      "error": null,
+      "limitations": [],
+      "rows": [
+        {
+          "externalDirectoryObjectId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          "primarySmtpAddress": "user@synthetic.example",
+          "mailboxType": "UserMailbox",
+          "primarySizeReadStatus": "Collected",
+          "primarySizeRaw": "1.2 GB (1,288,490,189 bytes)",
+          "quotaReadStatus": "Collected",
+          "issueWarningQuotaRaw": "98 GB (105,226,698,752 bytes)",
+          "prohibitSendQuotaRaw": "99 GB (106,300,440,576 bytes)",
+          "prohibitSendReceiveQuotaRaw": "100 GB (107,374,182,400 bytes)",
+          "archiveReadStatus": "Collected",
+          "hasArchive": true,
+          "archiveSizeReadStatus": "Collected",
+          "archiveSizeRaw": "300 MB (314,572,800 bytes)",
+          "archiveQuotaRaw": "100 GB (107,374,182,400 bytes)",
+          "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          "name": "Synthetic user",
+          "readStatus": "Collected",
+          "error": null
+        },
+        {
+          "externalDirectoryObjectId": null,
+          "primarySmtpAddress": "shared@synthetic.example",
+          "mailboxType": "SharedMailbox",
+          "primarySizeReadStatus": "Collected",
+          "primarySizeRaw": "0 B (0 bytes)",
+          "quotaReadStatus": "Collected",
+          "issueWarningQuotaRaw": "Unlimited",
+          "prohibitSendQuotaRaw": "Unlimited",
+          "prohibitSendReceiveQuotaRaw": "Unlimited",
+          "archiveReadStatus": "Collected",
+          "hasArchive": false,
+          "archiveSizeReadStatus": "NotAttempted",
+          "archiveSizeRaw": null,
+          "archiveQuotaRaw": null,
+          "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          "name": "Synthetic shared",
+          "readStatus": "Collected",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "integrityDigest": "5feb44c09abaafb225f73e7ad312e14097467148fc3a4380fb5d66cf8ff0721e"
+}
