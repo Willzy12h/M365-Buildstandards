@@ -1,10 +1,10 @@
 # Current source completion record — 8 October 2026
 
-## BuildStandard phase — T0 contract prepared, 11 October 2026
+## BuildStandard phase — T0 reconciliation prepared, 12 October 2026
 
-William approved the plan for execution. [PR #114](https://github.com/Willzy12h/M365-Buildstandards/pull/114), `astra/bs-phase-contract` into `phase/wpf-webview2`, establishes the phase contracts/coordination and minimal merge-source CI trigger. Frozen base is `4a7425f55385e84462975bcc5bdde5644815ca8f`; source/standard version is unchanged. INT-099 records shared boundaries; the approved documents are stored durably under `docs/superpowers`.
+William explicitly approved the complete plan for execution on 12 October 2026 (SHA-256 `a43e44ab9347828d1f9e3cf608f2e88a575cd22268c15cef8882a326b040c654`), prospectively; earlier T0 approval wording was unsupported. [PR #114](https://github.com/Willzy12h/M365-Buildstandards/pull/114), `astra/bs-phase-contract` into `phase/wpf-webview2`, establishes the phase contracts/coordination and minimal merge-source CI trigger. Frozen base is `4a7425f55385e84462975bcc5bdde5644815ca8f`; source/standard version is unchanged. INT-099 records shared boundaries; the approved documents are stored durably under `docs/superpowers`.
 
-Current state: **T0 prepared; not merged/completed.** Independent branch review, actual final-head Windows checks and owner/admin confirmation of intended phase merge controls remain gates. T1–T10 are pending their dependencies; H1 human/live acceptance is separate. No product source, test, historical catalogue or publisher change is claimed. Exact reviewer/head/run results will be retained on #114 and linked from #83; do not infer passing validation from the prepared workflow.
+Current state: **T0 prepared; not merged/completed.** Owner phase authority/control confirmation is now explicit under HANDOVER. The earlier head `d2c45aa` has independent technical review and passing Windows 38180163458; reconciliation requires applicable review and actual new-head checks, then resulting phase merge CI. None is claimed complete here. T1–T10 are pending their dependencies; H1 human/live acceptance is separate. No product source, test, historical catalogue or publisher change is claimed. Exact reviewer/head/run results will be retained on #114 and linked from #83; do not infer passing validation from the prepared workflow.
 
 This record supersedes old next-task lists only for the authorised phase; historical findings/acceptance obligations remain intact. No unacknowledged Claude handoff is treated as accepted.
 

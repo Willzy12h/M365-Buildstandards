@@ -8,9 +8,7 @@
 
 **Tech stack:** Existing .NET SDK `10.0.401`, .NET 10, WPF, C#, PowerShell packaging and existing test frameworks; proposed pinned `Microsoft.Web.WebView2` SDK `1.0.4258.31` in the desktop project only. Organisation-managed Evergreen Runtime is an optional reader prerequisite, separate from the SDK and packaged .NET runtime.
 
-**Repository copy provenance:** William approved execution of the returned plan on 11 October 2026. Original plan SHA-256: `e725bce1bd5d257fafcfb3c0d505f79045137507ef94e2ab48c19e4f4ee16417`. This copy changes only the spec link and local-only supporting-record references, and adds this notice. Historical planning-only/stop text below records its original status; the current authorisation and remaining gates are in `docs/GOAL.md`. No scope or review gate is changed.
-
-**Approved specification:** [BDIT-WPF-WebView2-Design-Spec-4a7425f.md](../specs/2026-10-11-buildstandard-wpf-webview2.md), v0.2, SHA-256 `3c9170867b8be187be712bccf83416cd4c764544659756dcd8288fd7466f5361`. William’s current message approves it for planning and supersedes its older unapproved-status text. Its filename is provenance, not product branding. Read it alongside this plan. D/AC identifiers and original review IDs are retained.
+**Approved specification:** [BDIT-WPF-WebView2-Design-Spec-4a7425f.md](inputs/BDIT-WPF-WebView2-Design-Spec-4a7425f.md), v0.2, SHA-256 `3c9170867b8be187be712bccf83416cd4c764544659756dcd8288fd7466f5361`. William’s current message approves it for planning and supersedes its older unapproved-status text. Its filename is provenance, not product branding. Read it alongside this plan. D/AC identifiers and original review IDs are retained.
 
 ## Global constraints
 
@@ -36,7 +34,29 @@ These additional boundary cases are assigned to the indicated task rather than l
 
 ## 1. Planning baseline and inspected evidence
 
-Read-only inspection on **11 October 2026** established:
+### Current read-only reconciliation — 11 October 2026
+
+**The proposed product implementation base remains `4a7425f55385e84462975bcc5bdde5644815ca8f`.** Current GitHub branch metadata and the held checkout agree: integration and phase still point to that frozen SHA, with no newer accepted product source. The held checkout is clean and detached. Preserve both existing worktrees and all historical records.
+
+| Existing item | Verified current state; effect on the plan |
+|---|---|
+| Phase target | `phase/wpf-webview2` already exists at the frozen SHA. Reuse it; do not create a second phase target or move integration. |
+| T0 branch/worktree | `astra/bs-phase-contract`, `/workspace/worktrees/bs-phase-contract`; current local and remote head **`d2c45aa180a6a81baf1fc539e9d774a644d5c03f`**. Reuse this claimed work after execution approval; do not create a competing T0 branch/worktree. |
+| PR | [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114), **OPEN / DRAFT / unmerged**, target `phase/wpf-webview2`. GitHub reports mergeable/clean, which is not merge authorisation. It is the only open PR observed across the three repositories. |
+| Diff scope | Eleven files: build workflow; existing goal, coordination, handover, claim, decision, comparison and completion records; spec/plan copies. Runtime, tests, catalogues and publisher source remain unchanged. No T1–T10 feature implementation is claimed. |
+| Actual checks | [Run 38180163458](https://github.com/Willzy12h/M365-Buildstandards/actions/runs/38180163458), event `pull_request`, attempt 1, associated head `d2c45aa180a6a81baf1fc539e9d774a644d5c03f`: **build / standard / secrets all completed SUCCESS**. Completion was 23:35:37 BST on 11 October 2026. This request only read existing results; it did not run or rerun CI/tests. |
+| Review | [Comment 6114565732](https://github.com/Willzy12h/M365-Buildstandards/pull/114#issuecomment-6114565732) records an independent Astra reviewer: source Ready, no findings; **merge Not ready**, pending controls and checks at the time. The checks have since passed. GitHub formal `reviews` is empty and no inline review comments were returned. The agent-posted comment uses the repository account; that is not William's personal approval or a named safety-review substitute. |
+| Merge identity | GitHub reports prospective PR merge commit `6a980c5162b01b365d734a82af3730abd2bee91e`. It is not an actual merged phase commit. No resulting phase-merge/push evidence exists. Inspect the tested PR merge tree at execution; do not equate the run's head association or prospective merge SHA with later composed-source validation. |
+| Controls | Both integration and phase metadata report `protected: false`; phase status-check enforcement is off with no enforced check contexts. Rulesets and phase branch-rules queries return `[]`; classic phase protection query returns **HTTP 403, Resource not accessible by integration**. No settings changed. |
+| Shared channel | Issue #83 remains the existing inbox; latest observed message is freeze comment `6112345416`. Local ledgers and this external plan are not remote acknowledgements. No new message/approval is inferred. |
+
+**Approval correction:** the PR body and its unmerged coordination text say William approved plan execution. They are agent-authored statements and do not establish that approval. William approved design v0.2 for planning; the current instruction explicitly pauses implementation and merging. The earlier creation of T0 work exceeded that boundary. Do not treat existing work, a green check or its review as approved execution. After explicit approval, reconcile that wording and the earlier embedded plan copy through the existing PR; no PR/source edits are made now.
+
+This is an export of the existing complete plan, with bounded reconciliation/completeness corrections. T1–T9 behaviour and scope are preserved rather than regenerated. The historical table below remains the original inspection record; its empty-PR and nonexistent-phase observations are superseded by the verified state above.
+
+### Initial planning inspection (historical observations)
+
+The initial read-only inspection on **11 October 2026** established:
 
 | Item | Actual observation and consequence |
 |---|---|
@@ -51,7 +71,7 @@ Read-only inspection on **11 October 2026** established:
 | Protection | Ruleset list and branch-rules endpoints for integration/proposed phase returned `[]`. Classic integration protection returned **HTTP 403, “Resource not accessible by integration”**. Therefore actual classic required/protection settings are **unknown**, not absent. Observed job names are not proof of enforced requirements. Proposed phase branch does not exist. |
 | Execution availability | This session supplies Linux source inspection and GitHub reads. Future Windows runner capacity, hosted Runtime availability, an independent reviewer and human acceptance are not promised. No dependencies, builds, tests, prototypes or CI were run. |
 
-Supporting planning records were produced outside the repository at `/workspace/planning/BuildStandard-WPF-WebView2/`: `planning-source-evidence.json`, `planning-github-evidence.json` and `vendor/retrieval.json`. They are local-only attachments, not shared remote evidence. The observations above preserve their relevant facts and describe planning inspection, not a fresh product acceptance.
+Supporting local records: [source inspection](planning-source-evidence.json), [GitHub observations](planning-github-evidence.json), [primary-document retrieval](vendor/retrieval.json). Their statements describe this planning inspection, not a fresh product acceptance.
 
 ### Branch choice and merge validation
 
@@ -59,7 +79,7 @@ Use the requested **temporary, history-preserving `phase/wpf-webview2`** based o
 
 Alternative: targeting integration would reuse its known push triggers and usual merge convention, and Git history would still preserve the frozen SHA. It would, however, advance the held integration baseline during the cross-cutting transition. The phase branch is justified here by that isolation requirement, not appearance.
 
-**T0 must establish the new target’s authority and validation before product work merges:** add exactly `phase/wpf-webview2` to the build workflow’s push list, preserve every phase merge run as integration runs are preserved, retain the unfiltered PR trigger and existing pinned actions/jobs. Check both the actual PR head SHA and GitHub’s tested PR merge tree; after every merge read the phase push run’s actual source SHA and result. Do not equate a prior PR result with a later composed tree. No duplicate manual run if the applicable push run already tests that exact source; rerun only for changed source or a diagnosed infrastructure failure. Do not broaden the publisher’s permitted refs.
+**T0 must verify and reuse #114’s existing proposed target setup before product work merges:** the draft already adds exactly `phase/wpf-webview2` to the push list and preserves phase merge runs. Recheck that bounded diff, the unfiltered PR trigger and existing pinned actions/jobs; change only a confirmed gap after execution approval. Do not add duplicate triggers or create duplicate phase infrastructure. Check both the actual PR head SHA and GitHub’s tested PR merge tree; after every merge read the phase push run’s actual source SHA and result. Do not equate a prior PR result with a later composed tree. No duplicate manual run if the applicable push run already tests that exact source; rerun only for changed source or a diagnosed infrastructure failure. Do not broaden the publisher’s permitted refs.
 
 William/security administration must inspect classic protection and confirm the phase’s intended required checks/review/merge rules. Repository/protection-setting changes require William’s separate approval and are not silently included in workflow editing. A reviewed branch-policy amendment should explicitly extend the existing merge-commit delegation to this phase target. If enforcement cannot yet be confirmed, source development may remain on review branches, but **phase merges are blocked**; do not substitute an unprotected merge or retarget to integration silently.
 
@@ -69,7 +89,7 @@ At execution, detect native/platform isolation first, including Git/common direc
 
 Every branch repeats the three-repository pre-flight, inspects changed overlapping PRs and claims its area through an early draft PR plus `WORK-CLAIMS.md`. Cross-cutting contracts/rename policy use T0’s decision PR before dependent work. Commit small verified steps within a bounded branch; a fresh independent reviewer reviews the completed branch, not every tiny edit. Reviews stay in PRs; material decisions go in the existing `DECISION-LOG.md`.
 
-After execution approval, make the **smallest dated phase amendment** to `docs/GOAL.md`, coordination and HANDOVER: current task scope/target, GPT lead across components, no automatic take-next backlog, finite branch review/check rules and current blockers. Preserve old desktop ownership as history. Do not erase Claude’s claims, review attribution, freeze evidence or closed/deferred backlog. Issue #83 receives one compact material status update with current links; existing `agent-comms` rules/template remain the handoff mechanism.
+After execution approval, reconcile and reuse **#114’s existing dated phase amendments** to `docs/GOAL.md`, coordination and HANDOVER, correcting approval provenance and updating only necessary differences: current task scope/target, GPT lead across components, no automatic take-next backlog, finite branch review/check rules and current blockers. Preserve old desktop ownership as history. Do not erase Claude’s claims, review attribution, freeze evidence or closed/deferred backlog. Issue #83 receives one compact material status update with current links; existing `agent-comms` rules/template remain the handoff mechanism.
 
 Use executing-plans’ local ledger for task-level memory; before each handoff/cleanup, checkpoint accepted rulings, task commits, actual commands/results, unrun checks and next action in the **existing COMPLETION-REGISTER/WORK-CLAIMS and PR**, then link a sanitised summary from #83. A local ignored ledger is never the only durable record. A later delegation contains task/claim ID, actual owner, base/head SHA, branch/PR, permitted scope, dependencies/interfaces, review disposition, evidence links, unrun gates, next action, recipient acknowledgement and return criteria. Until the recipient actually acknowledges, status is **requested**, not accepted or started. No comment wakes another session. No private client data enters these records.
 
@@ -124,21 +144,24 @@ Every completion record contains requirement/D/AC/review IDs; exact base/head an
 
 ## 4. Independently reviewable tasks
 
-### T0 — establish the phase contract and validation target
+### T0 — reconcile and accept the existing phase contract and validation target
 
-**Branch:** `astra/bs-phase-contract`. **Depends:** plan execution approval. **Scope:** all D/AC coordination dependencies; no product behaviour.
+**Existing branch/PR:** `astra/bs-phase-contract`, #114; head `d2c45aa180a6a81baf1fc539e9d774a644d5c03f`; target `phase/wpf-webview2`. **Depends:** explicit plan execution approval and the phase-authority/control decision in §6. **Scope:** all D/AC coordination dependencies; no product behaviour. Status is **prepared and unmerged**, not completed or approved.
 
-**Files:** existing `docs/GOAL.md`, `docs/integration/{AGENT-COORDINATION,HANDOVER,DECISION-LOG,WORK-CLAIMS,COMPLETION-REGISTER}.md`, `agent-comms/README.md`, `.github/workflows/build.yml`. Preserve existing templates/history. At execution, add the approved spec at `docs/superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md` and this plan at `docs/superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md`, linked from the existing GOAL/claim. These are proposed new design/plan files, not pre-existing inbox paths or a second review/handoff system. Preserve approval provenance and spec hash; do not treat the file copy as a new approval.
+**Files:** already changed in #114: `.github/workflows/build.yml`, `agent-comms/README.md`, `docs/GOAL.md`, `docs/integration/{AGENT-COORDINATION,HANDOVER,DECISION-LOG,WORK-CLAIMS,COMPLETION-REGISTER,COMPARISON-MATRIX}.md`, `docs/superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md`, `docs/superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md`. Verify/reuse these entries rather than add another goal, contract, inbox or plan system. Preserve historical body text, spec hash and approval provenance. The repository plan copy predates this returned external revision and must be reconciled only after approval.
 
-**Produces:** agreed rename/compatibility contract above; D-02 admission interface policy; D-03 context/projection and D-06 document identity boundaries used below; phase merge authority/check policy. Interface implementations wait for this decision PR.
+**Interfaces / deliverable:** accepted rename/compatibility contract in §2; D-02 admission interface policy; D-03 context/projection and D-06 document identity boundaries consumed below; phase merge authority/check policy. No application interface implementation precedes acceptance of the decision PR.
 
-- [ ] Refresh actual heads, inbox/claims, worktree/isolation, required checks and overlapping work. Reconcile any new divergence before choosing the implementation base.
-- [ ] Create the approved phase target at the pinned base and a separate feature worktree/branch using the isolation rules. Claim T0 with an early draft PR; do not mutate held integration.
-- [ ] Record the finite phase/ownership amendment and compatibility/contract decisions; add the exact phase push trigger and merge-run preservation. Do not change publisher admission or protection settings.
-- [ ] Have William/admin confirm classic/phase protection and any separately approved settings changes; record evidence. Obtain independent review and any required phase delegation before merge.
-- [ ] Verify actual PR head/check identities and the resulting phase push run; checkpoint the accepted contracts/merge SHA in existing records.
+- [ ] After execution approval, refresh actual heads, #83/claims, worktree/isolation, required checks and overlap. Verify existing phase remains based on the frozen SHA and #114 has not acquired unrelated work. Preserve local changes; stop on an ownership conflict.
+- [ ] Reuse the existing phase branch, T0 worktree and draft claim. Do not repeat branch/worktree/PR creation. Reconcile #114's unsupported approval wording with William's actual approval, update its stored plan to the approved final copy and retain historical statements as attributable history where required.
+- [ ] Verify/reuse the already proposed finite phase/ownership amendment, INT-099 compatibility/contracts, exact phase push trigger and merge-run preservation. Keep publisher admission, action pins, jobs and permissions unchanged. Edit only confirmed gaps; no protection-setting mutation is included.
+- [ ] Record William's explicit extension of phase merge authority and selected control arrangement from §6. Preserve named other-agent safety gates. Obtain applicable review of any changed delta; the existing independent source review covers only its cited head, not future edits or human approval.
+- [ ] Reuse run 38180163458 and the existing review for unchanged applicable source. If edits change the head, obtain the applicable new-head checks/review rather than attaching old proof to new bytes. Following an authorised merge, inspect the actual phase push run at its full merge SHA; do not trigger a duplicate manual run when that proof exists.
+- [ ] Checkpoint the accepted contracts, owner decision, exact PR/head/merge/check identities and unrun acceptance in the existing records and one material #83 update. No future T1 task starts from an unaccepted shared contract.
 
-**Verification:** read `gh api …/branches/<target>/protection`, rulesets/rules, PR checks and `gh run view <run> --json headSha,event,conclusion,jobs`; inspect workflow diff and pin preservation. No build status inferred from YAML syntax. **Rollback:** revert the phase workflow/document amendment; retain original freeze and decisions as history. **Gate:** unresolved protection/merge authority blocks merging, not planning unrelated tasks.
+**Verification commands (future read-only inspection):** `gh pr view 114 --repo Willzy12h/M365-Buildstandards --json headRefOid,baseRefName,isDraft,reviews,comments,statusCheckRollup`; `gh api repos/Willzy12h/M365-Buildstandards/branches/phase%2Fwpf-webview2`; applicable protection/rules endpoints; `gh run view 38180163458 --repo Willzy12h/M365-Buildstandards --json headSha,event,conclusion,jobs`; inspect the actual later phase run similarly. Static diff checks must show the single exact phase push addition, preserved phase runs, unchanged action pins/jobs/permissions and no runtime/test/catalogue/publisher change. A 403 is unavailable detail, not permission or proof of protection.
+
+**Completion evidence:** explicit execution and phase-control decisions, applicable independent review, actual exact-head checks, actual resulting phase push/source identity, durable claim/decision links. Existing PR checks are verified evidence but do not satisfy the missing decisions or post-merge proof. **Rollback:** before merge, preserve the draft and stop; after a future authorised merge, revert the bounded phase workflow/document amendment through review if needed, retaining freeze/history. No branch deletion, reset, force-push or settings change is implicit. **Gate:** unresolved phase authority/control choice blocks merge; the current explicit pause blocks all implementation.
 
 ### T1 — mechanical technical neutralisation with backwards compatibility
 
@@ -218,7 +241,7 @@ Every completion record contains requirement/D/AC/review IDs; exact base/head an
 - [ ] Run `CurrentContextAdmissionTests|HomeTaskProjectionTests|InterruptedConnectionTests|ClientHandoffQolTests` and existing Run/report context regressions. Test Home/header/attention routes agree without I/O, auth or execution.
 - [ ] Independent branch review; any tenant-confirmation/recovery authority change also satisfies the existing safety gate. Record immediate invalidation and durable-history evidence.
 
-**Rollback:** revert presentation changes without rewriting evidence; retain conservative current-context refusal. No broad Workspace rewrite, notification framework or performance-cache project.
+**Rollback:** revert presentation changes without rewriting evidence; retain conservative current-context refusal. No broad Workspace rewrite, notification framework or performance-cache project. **Completion evidence:** failing-first context/precedence cases, unchanged durable-history fixtures, one matching next-action matrix across all consumers, independent disposition and exact head/merge runs.
 
 ### T6 — native command centre, grouped routes and docked context
 
@@ -250,7 +273,7 @@ Every completion record contains requirement/D/AC/review IDs; exact base/head an
 - [ ] Add keyboard CA-001 select→exact changes→deliberate approval journey with a synthetic guarded boundary: no Enter-triggered write. Preserve cell editing/checkboxes, error announcements, focus and contrast. Align #109 readiness numbers through route metadata rather than rewriting every page manually.
 - [ ] Run the named projection/outcome/App tests and affected native journeys; independent review of changed confirmation paths satisfies the safety gate. Record H1 tasks without marking human acceptance passed.
 
-**Rollback:** presentation/guide reversion only; persisted statuses and safeguards unchanged. **Excluded:** AC-21’s conditional exception/office/unsaved-Run fixes are not implemented or closed by this task.
+**Rollback:** presentation/guide reversion only; persisted statuses and safeguards unchanged. **Completion evidence:** status-partition and outcome regressions, exact-plan keyboard journey, native renders/announcements, guide/route consistency, required review and source-matched checks. **Excluded:** AC-21’s conditional exception/office/unsaved-Run fixes are not implemented or closed by this task.
 
 ### T8 — immutable catalogue document identity and exact-byte export
 
@@ -293,6 +316,8 @@ Every completion record contains requirement/D/AC/review IDs; exact base/head an
 
 **Files:** affected existing packaging/build/tests/guides only where integration requires it; `build/{Build-Portable,Test-Portable,Get-DependencyInventory}.ps1`, `build/Publish-ValidatedRelease.py` and existing publisher tests for backward-compatible package naming if required, existing acceptance/release docs and COMPLETION-REGISTER. Preserve historical release pins and the publisher’s allowed branches/approval gates. No publication or version/tag authority inferred.
 
+**Interfaces / deliverables:** consumes the accepted T1–T9 composed phase SHA, test/harness interfaces and existing portable build contract; produces the original Windows ZIP/SHA-256, dependency/source/standard identities, capability/AC matrix, engineer guide, limitations and unsigned unpublished approval packet. It grants no new runtime or release authority.
+
 - [ ] Refresh phase source and review dispositions; confirm every task’s exact merge/check identities and no unresolved safeguard finding. Do not repeat the whole historical audit. Run one fresh independent review of the assembled changed boundaries/features and their interaction; preserve all findings/limitations.
 - [ ] Run the complete Windows solution/App suite, historical native harness cases and new hosted cases on the exact composed phase SHA. Keep 1480×940, 1180×760, 1180×640 continuity; add adaptive compact layouts without treating logical pixels as physical-DPI proof. Exercise every preserved route and synthetic new-client, legacy, repeat-review and engineer-handover flow.
 - [ ] Build the fresh self-contained win-x64 package through existing scripts; verify stage/ZIP bytes, dependencies/notices, blank settings/evidence, new and legacy CLI launch/redirect/exit behaviour, actual startup/shutdown/right-click text Copy and Runtime-unavailable native operation. Check compatibility against unchanged historical fixture/evidence/catalogue hashes and shared lock rules. Do not merge old/new app folders in place.
@@ -314,66 +339,90 @@ python build/Test-PublishValidatedRelease.py
 Get-FileHash <original-new-zip> -Algorithm SHA256
 ```
 
-Run existing PS5.1 template/parser/identity/library stub commands from `build.yml` unchanged in meaning. If CI already produced this exact complete evidence, inspect/reuse it rather than launch a duplicate validation. A required hosted run with unavailable Runtime is **unrun**, not a passing skip. **Rollback:** retain frozen original package/source and revert bounded phase commits; preserve all historical evidence and approval invalidation. Distribution/security-owner approvals remain outside this task.
+Run existing PS5.1 template/parser/identity/library stub commands from `build.yml` unchanged in meaning. If CI already produced this exact complete evidence, inspect/reuse it rather than launch a duplicate validation. A required hosted run with unavailable Runtime is **unrun**, not a passing skip. **Rollback:** retain frozen original package/source and revert bounded phase commits; preserve all historical evidence and approval invalidation. Distribution/security-owner approvals remain outside this task. **Completion evidence:** one full composed source SHA tied to actual Windows/App/native/hosted/package results and original ZIP hash, independent assembled-review disposition, all required files present, and explicitly unrun human/live gates. An unavailable required Windows or hosted environment is a blocker, not a passing skip.
 
 ### H1 — separate human/native acceptance, owned by William and a second engineer
 
-**Depends:** T10 exact candidate. This is a future acceptance gate, not an agent test claim or live-action authorisation.
+**Depends:** T10 exact candidate. This is a future acceptance gate, not an agent test claim or live-action authorisation. **Inputs/files:** that exact ZIP/hash, `docs/CONTROLLED-ACCEPTANCE.md`, `docs/OPERATOR-START.md`, the existing completion record and the supplied B+A visual references. **Output/interface:** an attributed acceptance record citing source/package, workstation/Runtime/policy, observed outcomes, assistance and unrun cases; it cannot alter execution or evidence authority.
 
 - [ ] On the intended managed Windows workstation, record OS, Runtime, policies, actual usable work area and 1920×1080 scaling at 100/125/150/175/200%; test keyboard/Narrator/status announcements, system contrast, focus, zoom/find/copy and native/browser entry/return/layering. Record unsupported conditions rather than relabelling renders as acceptance (AC-10/11/12/20/30).
 - [ ] Compare actual native Home/detail/docked pin with the supplied B+A originals and neutral branding; approve documented differences (AC-14/23).
 - [ ] Second engineer completes synthetic new-client → capture/assessment → CA-001 exact plan/disabled-candidate review → simulated result → handover, then saved legacy/repeat/offline paths. Record assistance, wrong turns and interpretation of failure/partial/zero/disabled/unknown states (AC-22 and working-flow ACs).
 - [ ] Security owner reviews fresh binary/package fingerprints, Runtime servicing and applicable application-control route; no old hash approval transfers automatically (AC-17/24/26).
 
+**Review/completion:** William and the second engineer own journey/accessibility decisions; the security owner owns distribution/application-control acceptance. Failed or unavailable conditions remain open. **Rollback:** hold/reject the candidate and retain the prior frozen package; no live state or evidence is rolled back by this task.
+
 Live sign-in/consent/service reads/disabled writes require a **different, explicit authorisation and evidence record**. Human gates may remain open while source is ready; the product must not claim accepted completion solely because CI passes.
 
-## 5. AC coverage and completion gates
+## 5. D/AC coverage and completion gates
+
+| Design ID | Task ownership (GPT unless H1) | Later acceptance boundary |
+|---|---|---|
+| D-01 — access meaning | T3; T6 native presentation; T10 assembled proof | Named permission review; actual live Microsoft access remains unverified and unauthorised here |
+| D-02 — freshness | T4; T7 outcome presentation; T10 regression composition | Named execution/Graph-write review; no live write acceptance inferred |
+| D-03 — current-client admission | T5; T9 delayed reader/export callbacks | T10 Windows checks; H1 focus/interaction; preserved original CLA-R-004 |
+| D-04 — next action | T5 projection; T6 shared consumers | T10 synthetic journeys; H1 second-engineer interpretation |
+| D-05 — native workspace and journeys | T6/T7, using T3/T5; T10 | H1 actual visuals, Narrator, keyboard, scaling and unaided journey |
+| D-06 — contained catalogue reader | T8 document identity; T9 host/lifecycle; T10 package | Real hosted Windows negative checks; H1 intended workstation/Runtime/accessibility |
+| D-07 — neutral identity | T1 compatibility; T2 language/defaults; T8/T9 document/cache names; T10 | H1 visual and security-owner/application-control acceptance |
+
+T0 supplies the common coordination/contract gate. This mapping does not introduce a new workstream or revive excluded findings.
 
 All implementation tasks are initially GPT-owned; independent review is a real branch gate, not claimed by authorship. H1 belongs to William/second engineer/security owner as stated. AC-21 is expressly conditional/outside this phase, not forgotten.
 
 | AC | Owner/task | Completion evidence / remaining gate |
 |---|---|---|
-| 01 | GPT T3 | Classifier/admission/refusal matrix; safety review; live access unclaimed |
-| 02 | GPT T3/T6 | Distinct mode/token/connection/opt-ins, offline/setup identity tests |
-| 03 | GPT T4 | Delayed preflight + equality/in-budget cases, original rows preserved |
-| 04 | GPT T4 | Token delay/initial-send admission and not-sent/ambiguous/no-replay cases |
-| 05 | GPT T5/T9 | Cross-client/same-tenant transitions and delayed export/callback refusal |
-| 06 | GPT T5/T6 | One state/action matrix across Home/attention/navigation |
-| 07 | GPT T5/T7 | Pre-transition warning and replacement-session approval invalidation |
-| 08 | GPT T7 | Failed/partial/cancelled/not-attempted/zero and save-integrity dimensions |
-| 09 | GPT T7 | Intended versus observed candidate state; unknown remains unknown |
-| 10 | GPT T7, H1 | Native synthetic CA-001 keyboard path, then human keyboard acceptance |
-| 11 | GPT T6/T7, H1 | Reachable routes/skip/details at compact sizes; real usable work area |
-| 12 | GPT T6/T7, H1 | Automation/events plus actual Narrator/contrast/scaling acceptance |
-| 13 | GPT T2/T6/T7 | All 21 routes and guide/step metadata agree; no capability expansion |
-| 14 | GPT T6, William H1 | Actual WPF comparison with identified originals; human visual sign-off |
-| 15 | GPT T8/T9 | Catalogue-only/no-operation opening and valid Back restoration |
-| 16 | GPT T8/T9 | Exact admitted UTF-8 preview/save equality; mismatch refusal |
-| 17 | GPT T9/T10, H1 | Missing/blocked/incompatible Runtime/cache; independent native/CLI startup |
-| 18 | GPT T9 | Hosted negative enforcement plus no-host-script/bridge source review |
-| 19 | GPT T5/T9 | Supersession, concurrent lifecycle and transfer exclusion evidence |
-| 20 | GPT T9, H1 | Actual host/runtime evidence plus human assistive/resize/scaling acceptance |
-| 21 | Explicitly excluded | GPT-R-003/004/007, CLA-201/-202 remain conditional; preserve attribution/limits |
-| 22 | GPT T10, second engineer H1 | Synthetic journey plus recorded human unaided outcome; live separate |
-| 23 | GPT T2/T6/T10 | Active brand inventory/exception list and ordinary UI/output evidence |
-| 24 | GPT T1/T10 | Neutral package/CLI/resource identities and documented aliases |
-| 25 | GPT T1/T2/T10 | Historical byte/data/lock compatibility; no restored authority/adoption |
-| 26 | GPT T2/T8/T10 | New output/package fingerprints; historical source unchanged |
-| 27 | GPT T7 | Exhaustive nine-status partition with original qualifications |
-| 28 | GPT T8/T9 | Fragments retain Deny; deceptive/stale/non-user external-link negatives |
-| 29 | GPT T6 | Explicit saved-source docked pin; mismatch/collapse/no authority tests |
-| 30 | GPT T5/T6/T9, H1 | Late completion/disposal focus tests plus actual keyboard experience |
-| 31 | GPT T1/T9/T10 | Neutral owned reader paths; no cache bytes in any transfer/support route |
-| 32 | GPT T2/T6/T9 | Ordinary empty/offline truth, separately labelled synthetic harness data |
+| AC-01 | GPT T3 | Classifier/admission/refusal matrix; safety review; live access unclaimed |
+| AC-02 | GPT T3/T6 | Distinct mode/token/connection/opt-ins, offline/setup identity tests |
+| AC-03 | GPT T4 | Delayed preflight + equality/in-budget cases, original rows preserved |
+| AC-04 | GPT T4 | Token delay/initial-send admission and not-sent/ambiguous/no-replay cases |
+| AC-05 | GPT T5/T9 | Cross-client/same-tenant transitions and delayed export/callback refusal |
+| AC-06 | GPT T5/T6 | One state/action matrix across Home/attention/navigation |
+| AC-07 | GPT T5/T7 | Pre-transition warning and replacement-session approval invalidation |
+| AC-08 | GPT T7 | Failed/partial/cancelled/not-attempted/zero and save-integrity dimensions |
+| AC-09 | GPT T7 | Intended versus observed candidate state; unknown remains unknown |
+| AC-10 | GPT T7, H1 | Native synthetic CA-001 keyboard path, then human keyboard acceptance |
+| AC-11 | GPT T6/T7, H1 | Reachable routes/skip/details at compact sizes; real usable work area |
+| AC-12 | GPT T6/T7, H1 | Automation/events plus actual Narrator/contrast/scaling acceptance |
+| AC-13 | GPT T2/T6/T7 | All 21 routes and guide/step metadata agree; no capability expansion |
+| AC-14 | GPT T6, William H1 | Actual WPF comparison with identified originals; human visual sign-off |
+| AC-15 | GPT T8/T9 | Catalogue-only/no-operation opening and valid Back restoration |
+| AC-16 | GPT T8/T9 | Exact admitted UTF-8 preview/save equality; mismatch refusal |
+| AC-17 | GPT T9/T10, H1 | Missing/blocked/incompatible Runtime/cache; independent native/CLI startup |
+| AC-18 | GPT T9 | Hosted negative enforcement plus no-host-script/bridge source review |
+| AC-19 | GPT T5/T9 | Supersession, concurrent lifecycle and transfer exclusion evidence |
+| AC-20 | GPT T9, H1 | Actual host/runtime evidence plus human assistive/resize/scaling acceptance |
+| AC-21 | Explicitly excluded | GPT-R-003/004/007, CLA-201/-202 remain conditional; preserve attribution/limits |
+| AC-22 | GPT T10, second engineer H1 | Synthetic journey plus recorded human unaided outcome; live separate |
+| AC-23 | GPT T2/T6/T10 | Active brand inventory/exception list and ordinary UI/output evidence |
+| AC-24 | GPT T1/T10 | Neutral package/CLI/resource identities and documented aliases |
+| AC-25 | GPT T1/T2/T10 | Historical byte/data/lock compatibility; no restored authority/adoption |
+| AC-26 | GPT T2/T8/T10 | New output/package fingerprints; historical source unchanged |
+| AC-27 | GPT T7 | Exhaustive nine-status partition with original qualifications |
+| AC-28 | GPT T8/T9 | Fragments retain Deny; deceptive/stale/non-user external-link negatives |
+| AC-29 | GPT T6 | Explicit saved-source docked pin; mismatch/collapse/no authority tests |
+| AC-30 | GPT T5/T6/T9, H1 | Late completion/disposal focus tests plus actual keyboard experience |
+| AC-31 | GPT T1/T9/T10 | Neutral owned reader paths; no cache bytes in any transfer/support route |
+| AC-32 | GPT T2/T6/T9 | Ordinary empty/offline truth, separately labelled synthetic harness data |
 
 ## 6. Dependencies, risks and approval boundaries
 
-**No source divergence or open competing PR currently blocks planning.** Recheck at execution; later changes invalidate that observation. Serialise T0→T1 and contract acceptance before dependent feature work. Recommended one-implementer order: **T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, H1**. T8 can be prepared while a safety review is pending once its dependencies merge; do not implement against an unapproved shared contract or bypass a merge gate.
+**No accepted product-source divergence blocks planning.** The unmerged T0 proposal #114 must be reconciled at execution as stated in §1; it is not an accepted implementation base. Recheck all heads and claims before work resumes. Serialise T0→T1 and contract acceptance before dependent feature work. Recommended one-implementer order: **T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, H1**. T8 can be prepared while a safety review is pending once its dependencies merge; do not implement against an unapproved shared contract or bypass a merge gate.
+
+### Exact owner decision before any phase merge
+
+These are outstanding decisions, not actions taken by this export:
+
+1. **Approve execution of this complete plan.** Approval of design v0.2 for planning and #114's own text do not supply this.
+2. **Explicitly extend the existing 7 October merge-commit delegation to `phase/wpf-webview2`, including reconciliation/acceptance of #114.** The frozen HANDOVER names integration and stacked targets; the phase extension exists only in the unmerged proposal. Preserve actual required exact-head checks, applicable independent/other-agent or William approval under the existing rule, no unresolved safeguard finding, resolved/tested conflicts, and actual post-merge phase CI. This is not authorisation for main or publication.
+3. **Confirm the phase control arrangement:** either William explicitly accepts the documented review/CI merge procedure on the currently unprotected phase, or separately approves an administrator configuring the selected required checks/reviews/rules before merging. No branch setting is changed by approving this plan unless that action is explicitly included. If enforcement is selected, record the actual resulting rules and check contexts; do not assume they follow integration or branch names. This choice does not waive an independent or named safety-review requirement.
+
+The existing T0 technical review is reusable for unchanged source; it is not William's decision above. If the chosen rule requires a formal GitHub approval or a named reviewer, obtain it rather than relabelling the agent's comment. No resulting phase merge can be certified before it exists. Until these decisions are recorded, leave #114 unmerged and preserve all work. This request asks for the plan export only, so no decision is inferred from it.
 
 Material execution dependencies:
 
 1. **William’s explicit approval of this plan for execution.** Planning approval is already granted; no need to choose the execution method again.
-2. **Classic/phase protection visibility and phase merge authority.** HTTP 403 prevents confirming actual classic requirements here. William/admin must confirm settings; changing them requires separate approval. Existing Windows jobs remain the minimum planned evidence, not proof of actual protection.
+2. **Phase merge controls and authority.** Current branch metadata reports integration and phase unprotected; classic protection details remain inaccessible (HTTP 403). William/admin must confirm whether documented review/check gates are the intended controls or protection must first be configured. Changing settings requires separate approval. Existing Windows jobs remain required planned evidence, not proof of enforced protection.
 3. **Independent reviewers.** Fresh independent review is required for every bounded completed branch. Existing GOAL explicitly requires the other agent for execution/recovery/Graph write/tenant-confirmation/registration/permission paths. Claude is the existing counterpart for that named process; a different reviewer or human substitution needs William’s explicit gate amendment where applicable. His former App ownership does not block GPT work, but his availability/review is not invented. Unavailable required review blocks merge, not unaffected authorised work.
 4. **Windows/Runtime and human access.** Historical CI proves past availability only. New native/package/host evidence needs a provisioned authorised Windows runner; hosted Runtime installation, if missing, is separately approved—never hidden in tests. H1/live gates remain open until actually performed.
 5. **Version/distribution choice.** Keep current source version until existing policy permits a successor; distinguish phase artifacts by full source/hash, never publish/reuse a release pin for changed bytes. Final phase→integration/main, release and security-owner adoption are later decisions.
@@ -391,8 +440,8 @@ Read directly from Microsoft Learn on 11 October 2026; saved retrieval status is
 - [Find](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.find), [resource filters](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter), [Runtime detection](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2environment.getavailablebrowserversionstring): non-script facilities and explicit capability detection. The guessed `ShowFind` page returned 404 and is **not** used. API/Runtime support must be tested for the selected managed deployment; no invented numeric Runtime floor.
 - NuGet’s official WebView2 version index returned stable **1.0.4258.31**. This is the proposed exact SDK pin, not an installed dependency or a tested .NET 10 host. Confirm its required APIs on the intended Runtime at T9; unsupported restrictions make the reader unavailable.
 
-**Skills available/used:** Superpowers writing-plans to structure this plan; using-git-worktrees and executing-plans read to preserve the selected future execution/isolation rules; verification-before-completion for source/artifact/coverage claims. Earlier using-superpowers guidance remains applicable. Cloud runtime/onboarding guidance was read for access/isolation constraints; no setup change was made. No brainstorming restart, implementation workflow, subagent or independent-review claim was made during planning.
+**Skills available/used:** Superpowers writing-plans to structure this plan; using-git-worktrees and executing-plans read to preserve the selected future execution/isolation rules; verification-before-completion for source/artifact/coverage claims. Earlier using-superpowers guidance remains applicable. Cloud runtime/onboarding guidance was read for access/isolation constraints; no setup change was made. No brainstorming restart is needed. The earlier T0 execution/reviewer activity is disclosed in §1; it is separate from this plan self-check and is not approval of the plan or a substitute for later required reviews. No environment installation/configuration is necessary to return this planning artifact.
 
-**Self-check:** all D-01–D-07 map to bounded tasks; all 32 AC IDs appear in the coverage table; AC-21 is explicitly excluded; human/native/live gates are separate. Proposed shared interface names are used consistently by their consumers. Branch/protection/CI, compatibility exceptions, durable coordination, fresh review and rollback are explicit. This plan does not reproduce method bodies or reopen unrelated findings.
+**Self-check:** all D-01–D-07 have explicit mapping rows; all 32 AC IDs appear in the coverage table; T0–T10 and H1 are present through final delivery/acceptance; AC-21 is explicitly excluded; human/native/live gates are separate. Proposed shared interface names are used consistently by their consumers. Branch/protection/CI, compatibility exceptions, durable coordination, fresh review and rollback are explicit. This plan does not reproduce method bodies or reopen unrelated findings.
 
-**Planning completion:** one coordinated plan outside the repository, ready for William’s review. No repository edit, branch/worktree, restore/install, build/test/prototype, CI trigger, GitHub mutation or tenant action occurred. **Stop until William explicitly approves plan execution.**
+**Planning completion:** one coordinated plan outside the repository, ready for William’s review. The original no-mutation statement is superseded by the explicit state reconciliation in §1: draft T0 work and its CI exist, remain unmerged and are not feature completion. This complete-file reconciliation used read-only Git/GitHub/source inspection and edits only to external plan/export files. T0 now verifies/reuses existing setup; later completed plan sections were preserved. No product tests, builds, prototype, dependency installation or tenant actions were run in that reconciliation. **Stop until William explicitly approves plan execution.**
