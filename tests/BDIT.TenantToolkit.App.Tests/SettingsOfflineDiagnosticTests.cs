@@ -143,7 +143,15 @@ public sealed class SettingsOfflineDiagnosticTests : IDisposable
         Assert.Empty(_shell.ErrorMessage);
         _logger.Flush();
         var logFile = Assert.IsType<string>(_logger.FilePath);
-        Assert.DoesNotContain(privateError, File.ReadAllText(logFile));
+        // The synchronous logger keeps its write handle open. A Windows reader must permit that access too.
+        using var stream = new FileStream(logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        var log = reader.ReadToEnd();
+        Assert.Contains("Checking offline prerequisites", log);
+        Assert.DoesNotContain(privateError, log);
+        Assert.DoesNotContain("synthetic-private-machine", log);
+        Assert.DoesNotContain("private-user", log);
+        Assert.DoesNotContain("token-private", log);
     }
 
     public void Dispose() { _logger.Dispose(); _root.Dispose(); GC.SuppressFinalize(this); }
