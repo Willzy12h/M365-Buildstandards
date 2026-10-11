@@ -1,6 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 - Wire the existing offline prerequisite engine into `bdit doctor` before general argument parsing, with owned Ctrl+C handling and sanitised output. Diagnostics stay separate from tenant/deployment evidence; Windows interactive cancellation remains unaccepted.
 
+- Reconcile Astra-owned merged work claims; use `docs/GOAL.md` for the current workflow instead of adding continuation and review documents (#76).
+
 - Expose offline prerequisite checks in Settings with owned cancellation, sanitised findings/next steps and local copy support (#88).
 
 - Check the portable package's standards lineage inventory in offline diagnostics and distinguish unsupported inspection scope from unsafe paths; strengthen complete-inventory private-content refusal tests (CLA-20261010-130/131).
@@ -32,6 +34,8 @@
 - Add production-path authentication and setup/consent refusal regressions; show an unknown account for explicit account-choice previews instead of the previous identity.
 
 - Keep unaccepted desktop tenant changes off until a transient verified-context experimental opt-in; expose exact access requests and refuse changed identity/scopes during silent renewal. Preserve all engine approvals and evidence safeguards.
+
+- Define versioned retained-parent owner outcome consistency and explicitly limited historical application-report inspection (#95; source repair follows).
 
 - Remove duplicate feature push builds while retaining full PR and integration/main validation; cancel obsolete review runs and use Linux for unchanged catalogue checks (PR #91, pending validation).
 - Add `docs/GOAL.md`: the current usability goal, issue backlog (#98–#107), agent ownership and standing permissions; AGENTS.md points to it. Documentation only.
