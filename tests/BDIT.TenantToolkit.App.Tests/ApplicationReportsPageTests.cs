@@ -8,6 +8,7 @@ using BDIT.TenantToolkit.Core.Json;
 using BDIT.TenantToolkit.Core.Models;
 using BDIT.TenantToolkit.Core.Reporting;
 using BDIT.TenantToolkit.Engine.Reports;
+using BDIT.TenantToolkit.Engine.Planning;
 using Xunit;
 
 namespace BDIT.TenantToolkit.Tests;
@@ -26,7 +27,16 @@ public sealed class ApplicationReportsPageTests
         using var f = new ConnectedReportsFixture(); f.Workspace.Session!.Scopes.Add(ApplicationReportRegistry.DirectoryScope);
         var snapshot = TestData.Snapshot(f.Workspace.RequireStandard());
         f.Set(nameof(BDIT.TenantToolkit.App.Services.Workspace.Snapshot), snapshot); f.Set(nameof(BDIT.TenantToolkit.App.Services.Workspace.AcknowledgedSnapshotId), snapshot.Id);
-        f.Set(nameof(BDIT.TenantToolkit.App.Services.Workspace.Plan), new DeploymentPlan { TenantId = TestData.TenantA, Id = Guid.NewGuid().ToString() });
+        // Use the same integrity-bound shape as a real plan; the deployment summary displays its digest.
+        var plan = f.Workspace.Planner.Build(new PlanRequest
+        {
+            Profile = f.Workspace.Profile!, Standard = f.Workspace.RequireStandard(), Snapshot = snapshot,
+            Mappings = f.Workspace.Evidence.LoadMappings(TestData.TenantA), Deviations = [],
+            SelectedControlIds = [], Session = f.Workspace.Session!
+        });
+        Assert.Equal(64, plan.PlanDigest.Length);
+        Assert.Equal(DeploymentPlanner.ComputeDigest(plan), plan.PlanDigest);
+        f.Set(nameof(BDIT.TenantToolkit.App.Services.Workspace.Plan), plan);
         var state = ToolkitJson.Serialize(new { f.Workspace.Snapshot, f.Workspace.Plan, f.Workspace.AcknowledgedSnapshotId });
         var page = Page(f, id); page.OnNavigatedTo(); page.RefreshStored(); Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
         Assert.Equal(7, page.Reports.Count); Assert.Equal("30", page.HorizonDays); Assert.False(page.RequiresDates);

@@ -14,8 +14,10 @@ public sealed class NavItem : ObservableObject
     public string Key { get; init; } = "";
     public string Title { get; init; } = "";
     public string Step { get; init; } = "";
+    /// <summary>The menu heading this page sits under: Client, Build, Operate or Evidence and reference.</summary>
     public string Group { get; init; } = "";
-    public string GroupHeading { get; init; } = "";
+    /// <summary>True for the first page of its group, where the menu shows the group heading.</summary>
+    public bool IsGroupStart { get; init; }
     public bool IsActive { get => _isActive; set => SetProperty(ref _isActive, value); }
 }
 
@@ -61,22 +63,36 @@ public sealed class ShellViewModel : ObservableObject
     public ICommand CopyCommand { get; }
     public ICommand CopyDetailsCommand { get; }
     public ICommand CancelOperationCommand { get; }
+    /// <summary>Opens the page where the current next step is done.</summary>
+    public ICommand NextStepCommand { get; }
 
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
-        AddNavigationGroup("Workspace", ("home", "Home", ""));
-        AddNavigationGroup("Tenant", ("overview", "Overview and licences", ""), ("connect", "Connect", "1"),
-            ("configuration", "Configuration", "2"));
-        AddNavigationGroup("Build standard", ("standard", "Build Standard", ""), ("assessment", "Assessment", "3"),
-            ("deviations", "Deviations", "4"), ("plan", "Plan changes", "5"), ("deploy", "Deploy", "6"),
-            ("automation", "Policy automation", "+"), ("recovery", "Undo and recovery", ""),
-            ("jobs", "Jobs and completion", ""), ("checks", "Manual checks", ""));
-        AddNavigationGroup("Reports", ("reports", "Tenant reports", ""), ("naming", "Naming and ownership", ""),
-            ("history", "Evidence and drift", ""));
-        // Preserve the existing reviewed library page and its key; the new Graph pages have separate navigation.
-        AddNavigationGroup("Scripts", ("scripts", "Scripts & Reports", ""), ("run-reports", "Run reports", ""));
-        AddNavigationGroup("Settings", ("setup", "Application setup", "+"), ("settings", "Settings and diagnostics", ""));
+        // Four groups that follow the client lifecycle. Only the Build pages are numbered, because only they are a sequence.
+        AddNav("CLIENT", "home", "", "Home");
+        AddNav("CLIENT", "connect", "", "Connect");
+        AddNav("CLIENT", "overview", "", "Overview and licences");
+        AddNav("CLIENT", "setup", "", "Application setup");
+        AddNav("BUILD", "configuration", "1", "Configuration");
+        AddNav("BUILD", "assessment", "2", "Assessment");
+        AddNav("BUILD", "deviations", "3", "Deviations");
+        AddNav("BUILD", "plan", "4", "Plan changes");
+        AddNav("BUILD", "deploy", "5", "Deploy");
+        // Activation, assignment and the other reviewed tenant changes follow deployment; this is the step that enforces anything.
+        AddNav("BUILD", "automation", "6", "Policy automation");
+        AddNav("BUILD", "checks", "", "Manual checks");
+        AddNav("OPERATE", "reports", "", "Tenant reports");
+        AddNav("OPERATE", "naming", "", "Naming and ownership");
+        // Reviewed library scripts are copied to run outside the tool; nothing on the page reads or writes the tenant.
+        AddNav("OPERATE", "scripts", "", "Scripts & Reports");
+        // Registered read-only reports run here only after a per-connection opt-in and an exact review and approval.
+        AddNav("OPERATE", "run-reports", "", "Run reports");
+        AddNav("OPERATE", "jobs", "", "Jobs and completion");
+        AddNav("EVIDENCE & REFERENCE", "history", "", "Evidence and drift");
+        AddNav("EVIDENCE & REFERENCE", "recovery", "", "Undo and recovery");
+        AddNav("EVIDENCE & REFERENCE", "standard", "", "Build Standard");
+        AddNav("EVIDENCE & REFERENCE", "settings", "", "Settings and diagnostics");
 
         _pages["home"] = new HomeViewModel(this);
         _pages["overview"] = new OverviewViewModel(this);
@@ -104,6 +120,7 @@ public sealed class ShellViewModel : ObservableObject
         CopyDetailsCommand = new RelayCommand(() => CopyToClipboard(DetailsText));
         DisconnectCommand = new AsyncCommand(Workspace.DisconnectAsync, ShowError, () => (Workspace.IsConnected || Workspace.ApplicationSetup is not null) && Workspace.Idle);
         ClearErrorCommand = new RelayCommand(() => ErrorMessage = "");
+        NextStepCommand = new RelayCommand(() => Navigate(NextActionKey), () => NextActionKey.Length > 0);
         CancelOperationCommand = new RelayCommand(Workspace.CancelOperation, () => Workspace.Busy);
 
         workspace.StateChanged += () => RaiseHeader();
@@ -114,6 +131,7 @@ public sealed class ShellViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(BusyMessage));
                 OnPropertyChanged(nameof(NextAction));
+                OnPropertyChanged(nameof(NextActionKey));
                 OnPropertyChanged(nameof(ProgressDetail));
             }
         };
@@ -121,14 +139,10 @@ public sealed class ShellViewModel : ObservableObject
         Navigate("home");
     }
 
-    public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
+    private void AddNav(string group, string key, string step, string title) =>
+        NavItems.Add(new NavItem { Group = group, Key = key, Step = step, Title = title, IsGroupStart = NavItems.LastOrDefault()?.Group != group });
 
-    private void AddNavigationGroup(string group, params (string Key, string Title, string Step)[] items)
-    {
-        for (var i = 0; i < items.Length; i++)
-            NavItems.Add(new NavItem { Key = items[i].Key, Title = items[i].Title, Step = items[i].Step,
-                Group = group, GroupHeading = i == 0 ? group : "" });
-    }
+    public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
 
     public void Navigate(string key)
     {
@@ -195,30 +209,32 @@ public sealed class ShellViewModel : ObservableObject
         : Workspace.Profile is { } profile ? (profile.Domain.Length > 0 ? profile.Domain + " · saved reference domain" : "Saved client · no reference domain")
         : "Choose or create a client on the Connect page";
     public string StandardText => Workspace.Standard is null ? "No Build Standard loaded" : $"Build Standard {Workspace.Standard.Release} · {Workspace.Standard.IntegrityDigest[..Math.Min(12, Workspace.Standard.IntegrityDigest.Length)]}";
-    public string NextAction
+    public string NextAction => NextStep().Text;
+    /// <summary>The page the next step is done on; empty while an operation runs.</summary>
+    public string NextActionKey => NextStep().Key;
+
+    private (string Text, string Key) NextStep()
     {
-        get
-        {
-            if (Workspace.Busy) return "Operation in progress. Review its status before starting another action.";
-            if (Workspace.Standard is null) return "Load a valid Build Standard in Settings.";
-            if (Workspace.ApplicationSetup is not null) return "Finish application setup validation, then connect with assessment access.";
-            if (Workspace.Profile is null) return "Choose a client in Connect, or export the engineer guide offline.";
-            if (!Workspace.IsConnected) return "Open Configuration's saved captures, or review local reports, jobs and the change register. Connect read-only and capture fresh evidence before planning changes.";
-            if (Workspace.Snapshot is null) return "Capture this tenant in Configuration.";
-            if (!Workspace.SnapshotIsLive) return "Stored evidence is for review. Capture again before planning a change.";
-            if (!Workspace.Snapshot.Complete) return "Review failed collections and capture again. Incomplete evidence blocks writes.";
-            if (Workspace.LastRun is { } run && run.BeforeSnapshotId == Workspace.Snapshot.Id) return run.Status == RunStatus.Completed
-                ? "Review recorded outcomes and complete the separate functional checks."
-                : "Review incomplete outcomes in Evidence and recovery. Reconcile uncertain writes before planning again.";
-            if (Workspace.Assessment is null) return "Assess the capture, then inspect findings and prerequisites.";
-            if (Workspace.Plan is null) return "Select eligible controls in Plan changes and review the exact proposal.";
-            if (!Workspace.Plan.WriteRows.Any()) return "The plan has no writes. Review manual steps and blocked rows.";
-            if (!Workspace.IsDeploymentSession) return "Deployment access requires a new capture and reviewed plan.";
-            if (!Workspace.ExperimentalChangesEnabled) return Workspace.ExperimentalChangeGuidance;
-            if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return "Export and acknowledge before evidence in Deploy, then review confirmation.";
-            return "Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.";
-        }
+        if (Workspace.Busy) return ("Operation in progress. Review its status before starting another action.", "");
+        if (Workspace.Standard is null) return ("Load a valid Build Standard in Settings.", "settings");
+        if (Workspace.ApplicationSetup is not null) return ("Finish application setup validation, then connect with assessment access.", "setup");
+        if (Workspace.Profile is null) return ("Choose a client in Connect, or export the engineer guide offline.", "connect");
+        if (!Workspace.IsConnected) return ("Open Configuration's saved captures, or review local reports, jobs and the change register. Connect read-only and capture fresh evidence before planning changes.", "connect");
+        if (Workspace.Snapshot is null) return ("Capture this tenant in Configuration.", "configuration");
+        if (!Workspace.SnapshotIsLive) return ("Stored evidence is for review. Capture again before planning a change.", "configuration");
+        if (!Workspace.Snapshot.Complete) return ("Review failed collections and capture again. Incomplete evidence blocks writes.", "configuration");
+        if (Workspace.LastRun is { } run && run.BeforeSnapshotId == Workspace.Snapshot.Id) return run.Status == RunStatus.Completed
+            ? ("Review recorded outcomes and complete the separate functional checks.", "deploy")
+            : ("Review incomplete outcomes in Evidence and recovery. Reconcile uncertain writes before planning again.", "recovery");
+        if (Workspace.Assessment is null) return ("Assess the capture, then inspect findings and prerequisites.", "assessment");
+        if (Workspace.Plan is null) return ("Select eligible controls in Plan changes and review the exact proposal.", "plan");
+        if (!Workspace.Plan.WriteRows.Any()) return ("The plan has no writes. Review manual steps and blocked rows.", "plan");
+        if (!Workspace.IsDeploymentSession) return ("Deployment access requires a new capture and reviewed plan.", "connect");
+        if (!Workspace.ExperimentalChangesEnabled) return (Workspace.ExperimentalChangeGuidance, "connect");
+        if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return ("Export and acknowledge before evidence in Deploy, then review confirmation.", "deploy");
+        return ("Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.", "deploy");
     }
+
     public string VersionText => $"{Workspace.Settings.ProductName} {Workspace.Version} · Evidence: {Workspace.Paths.DataDirectory}";
 
     public string DetailsText
@@ -262,6 +278,7 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(TenantSubtitle));
         OnPropertyChanged(nameof(StandardText));
         OnPropertyChanged(nameof(NextAction));
+        OnPropertyChanged(nameof(NextActionKey));
         OnPropertyChanged(nameof(DetailsText));
         OnPropertyChanged(nameof(IsBusy));
         if (Workspace.StandardError is not null && ErrorMessage.Length == 0) ErrorMessage = Workspace.StandardError;

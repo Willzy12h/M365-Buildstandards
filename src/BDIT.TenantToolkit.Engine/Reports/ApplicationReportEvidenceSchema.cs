@@ -12,11 +12,16 @@ namespace BDIT.TenantToolkit.Engine.Reports;
 public static class ApplicationReportEvidenceSchema
 {
     public const int MaximumBytes = ReportEvidenceSchema.MaximumBytes;
+    public const string HistoricalOwnerNotice = "Historical owner outcome consistency unverified";
+    public static bool IsHistoricalExpiry(ApplicationReportEvidence e) => e is ApplicationExpiryEvidence
+        && e.ReportSchemaVersion == 1 && e.ModuleVersion == ApplicationReportRegistry.AdapterVersion;
     public static string Serialise(ApplicationReportEvidence evidence) => JsonSerializer.Serialize(evidence, evidence.GetType(), RegisteredReportJson.Strict);
     public static JsonObject Row(GraphReportRow row) => JsonSerializer.SerializeToNode(row, row.GetType(), RegisteredReportJson.Strict)!.AsObject();
     public static T ReadRow<T>(JsonObject row) where T : GraphReportRow =>
         JsonSerializer.Deserialize<T>(row.ToJsonString(), RegisteredReportJson.Strict) ?? throw Bad("Empty application report row.");
-    public static ApplicationReportEvidence Read(string json, string expectedTenantId)
+    public static ApplicationReportEvidence Read(string json, string expectedTenantId) => ReadCore(json, expectedTenantId, false);
+    public static ApplicationReportEvidence ReadHistorical(string json, string expectedTenantId) => ReadCore(json, expectedTenantId, true);
+    private static ApplicationReportEvidence ReadCore(string json, string expectedTenantId, bool historical)
     {
         using var document = RegisteredReportJson.Parse(json);
         var (schema, id) = RegisteredReportJson.Inspect(document.RootElement);
@@ -25,7 +30,18 @@ public static class ApplicationReportEvidenceSchema
         {
             var report = (ApplicationReportEvidence)(JsonSerializer.Deserialize(json, definition.EnvelopeType, RegisteredReportJson.Strict)
                 ?? throw Bad("Empty application report envelope."));
-            Validate(report, expectedTenantId); return report;
+            var sourceNodes = document.RootElement.GetProperty("sources");
+            if (sourceNodes.ValueKind != JsonValueKind.Array) throw Bad("Invalid application sources.");
+            foreach (var source in sourceNodes.EnumerateArray())
+            {
+                if (source.ValueKind != JsonValueKind.Object) throw Bad("Invalid application source.");
+                if (source.TryGetProperty("retainedOwnerOutcomes", out _) && (report is not ApplicationExpiryEvidence
+                    || report.ReportSchemaVersion != 2 || !source.TryGetProperty("registeredRoute", out var route)
+                    || route.GetString() is not ("/applications/{id}/owners" or "/servicePrincipals/{id}/owners")))
+                    throw Bad("Owner outcomes are not registered for this source/revision, including explicit null fields.");
+            }
+            if (historical) ValidateHistorical(report, expectedTenantId); else Validate(report, expectedTenantId);
+            return report;
         }
         catch (JsonException) { throw Bad("Invalid registered application report fields or parameters."); }
     }
@@ -35,10 +51,21 @@ public static class ApplicationReportEvidenceSchema
         evidence.IntegrityDigest = EvidenceIntegrity.Compute<object>(evidence); Validate(evidence, evidence.TenantId);
     }
     public static void Validate(ApplicationReportEvidence e, string expectedTenantId)
+        => ValidateCore(e, expectedTenantId, false);
+    public static void ValidateHistorical(ApplicationReportEvidence e, string expectedTenantId)
     {
-        if (e.SchemaVersion != 2 || e.Kind != "reportEvidence" || e.Resource != "Graph" || e.ReportSchemaVersion != 1)
+        if (!IsHistoricalExpiry(e)) throw Bad("Historical inspection requires original expiry report revision 1 and its registered adapter.");
+        ValidateCore(e, expectedTenantId, true);
+    }
+    private static void ValidateCore(ApplicationReportEvidence e, string expectedTenantId, bool historical)
+    {
+        if (e.SchemaVersion != 2 || e.Kind != "reportEvidence" || e.Resource != "Graph")
             throw Bad("Unsupported application report kind, resource or schema.");
         var definition = ApplicationReportRegistry.Find(e.SchemaVersion, e.ReportId);
+        if (IsHistoricalExpiry(e) && !historical)
+            throw Bad(HistoricalOwnerNotice + "; use explicit limited historical inspection/export. This record cannot enter current-revision owner validation.");
+        if (!historical && (e.ReportSchemaVersion != definition.ReportSchemaVersion || e.ModuleVersion != definition.RegisteredAdapter))
+            throw Bad("Unregistered application report revision/adapter pair.");
         if (e.GetType() != definition.EnvelopeType) throw Bad("Report ID and typed envelope do not match.");
         Guid(e.Id); Guid(e.TenantId);
         if (!ReportValues.TryGuid(expectedTenantId, out var expected) || e.TenantId != expected)
@@ -49,7 +76,6 @@ public static class ApplicationReportEvidenceSchema
         if (!Utc(e.StartedAt, out var started) || !Utc(e.EndedAt, out var ended) || ended < started)
             throw Bad("Invalid report collection interval.");
         Text(e.ToolkitVersion, 128, true);
-        if (e.ModuleVersion != ApplicationReportRegistry.AdapterVersion) throw Bad("Unregistered application report adapter version.");
         switch (e)
         {
             case ApplicationExpiryEvidence expiry: ValidateParameters(expiry.Parameters); break;
@@ -62,6 +88,11 @@ public static class ApplicationReportEvidenceSchema
             throw Bad("Application report sources do not match the schema/ID registration.");
         foreach (var source in e.Sources)
         {
+            var ownerSource = e is ApplicationExpiryEvidence && source.RegisteredRoute.EndsWith("/owners", StringComparison.Ordinal);
+            if (ownerSource && !historical && source.RetainedOwnerOutcomes is null)
+                throw Bad("Current expiry owner sources require retainedOwnerOutcomes.");
+            if ((!ownerSource || historical) && source.RetainedOwnerOutcomes is not null)
+                throw Bad("Owner outcomes cannot be added to historical or non-owner sources.");
             if (source.Api != "v1.0" || source.Reference != definition.Reference || source.Rows < 0 || source.Rows > (source.RegisteredRoute.EndsWith("/owners", StringComparison.Ordinal) ? ApplicationReportRegistry.MaximumChildObjects * ApplicationReportRegistry.MaximumOwners : ApplicationReportRegistry.MaximumRows)
                 || source.ObjectsAttempted < 0 || source.ObjectsAttempted > ApplicationReportRegistry.MaximumChildObjects)
                 throw Bad("Invalid application report source provenance or bounds.");
@@ -105,7 +136,7 @@ public static class ApplicationReportEvidenceSchema
                 }
             }
         }
-        ValidateSourceAccounting(e);
+        ValidateSourceAccounting(e, historical);
         if (e is ApplicationConsentEvidence) ValidateResolutions(e);
         State(e.Status);
         if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("Report state does not match its sections.");
@@ -115,7 +146,7 @@ public static class ApplicationReportEvidenceSchema
             throw Bad("Application report integrity check failed; unsigned digests do not authenticate source claims.");
         if (Encoding.UTF8.GetByteCount(Serialise(e)) > MaximumBytes) throw Bad("Application evidence exceeds the 32 MiB limit.");
     }
-    private static void ValidateSourceAccounting(ApplicationReportEvidence e)
+    private static void ValidateSourceAccounting(ApplicationReportEvidence e, bool historical)
     {
         // The validated paired registration fixes the source/section order. Expiry has two extra owner sources.
         for (var i = 0; i < e.Sections.Count; i++)
@@ -134,6 +165,15 @@ public static class ApplicationReportEvidenceSchema
         {
             var parents = e.Sections[i].Rows.Select(ReadRow<ApplicationExpiryRow>).ToList();
             var eligible = parents.Where(r => r.IdentityStatus == "Exact").ToList(); var source = e.Sources[i + 2];
+            if (!historical)
+            {
+                var counts = source.RetainedOwnerOutcomes!;
+                var values = new[] { counts.Collected, counts.Partial, counts.Failed, counts.Cancelled, counts.NotAttempted };
+                var states = new[] { ReportReadState.Collected, ReportReadState.Partial, ReportReadState.Failed, ReportReadState.Cancelled, ReportReadState.NotAttempted };
+                if (values.Any(v => v < 0 || v > ApplicationReportRegistry.MaximumRows) || values.Sum() != eligible.Count
+                    || values.Where((v, index) => v != eligible.Count(r => r.OwnersReadStatus == states[index])).Any())
+                    throw Bad("Retained owner outcomes contradict the exact parent rows or their bounds.");
+            }
             if (source.Rows != parents.Sum(r => r.Owners.Count))
                 throw Bad("Retained owners do not match their registered source count.");
             var requiredAttempts = eligible.Count(r => r.OwnersReadStatus is ReportReadState.Collected or ReportReadState.Partial or ReportReadState.Failed);

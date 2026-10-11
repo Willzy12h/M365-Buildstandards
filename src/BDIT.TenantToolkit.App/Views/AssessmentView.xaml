@@ -9,7 +9,7 @@
       <Grid Margin="28,24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel>
-          <TextBlock Text="03 / COMPARE WITH THE STANDARD" Style="{StaticResource Eyebrow}"/>
+          <TextBlock Text="BUILD 2 / COMPARE WITH THE STANDARD" Style="{StaticResource Eyebrow}"/>
           <DockPanel><Button DockPanel.Dock="Right" Content="Re-run assessment" Command="{Binding ReassessCommand}" VerticalAlignment="Top" Margin="20,0,0,0"/><TextBlock Text="Assessment" Style="{StaticResource H1}"/></DockPanel>
           <TextBlock Text="Review property-level matches, gaps and unknown results. Select a finding to inspect the supporting evidence." Style="{StaticResource Lead}"/>
         </StackPanel>
