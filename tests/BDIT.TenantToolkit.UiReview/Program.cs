@@ -263,6 +263,7 @@ internal static partial class Program
                 throw new InvalidOperationException("The Plan page tables were not measured: " + string.Join(", ", GridsInspected));
             CheckConfirmationDialog(workspace, output);
             CheckScriptCopyDialog(shell, output);
+            CheckPermissionRequestDialog(output);
 
             // Keyboard and command checks need a real window: focus only moves inside one that has been shown.
             window.ShowInTaskbar = false; window.ShowActivated = true;

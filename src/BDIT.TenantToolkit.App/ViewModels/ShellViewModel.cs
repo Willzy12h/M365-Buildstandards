@@ -174,7 +174,7 @@ public sealed class ShellViewModel : ObservableObject
     public string HeaderTenantId => Workspace.ApplicationSetup?.Identity.TenantId ?? Workspace.Session?.TenantId ?? "—";
     public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session?.HasWriteScopes == true || Workspace.ApplicationSetup is not null;
     public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.HasWriteScopes == false;
-    public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? "DEPLOYMENT ACCESS — WRITES POSSIBLE" : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
+    public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "WRITE ACCESS · EXPERIMENTAL ON" : "WRITE ACCESS · EXPERIMENTAL OFF") : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
     public string TenantTitle => Workspace.ApplicationSetup is not null ? "Application setup tenant" : Workspace.Session?.TenantName is { Length: > 0 } name ? name : Workspace.Profile?.Company ?? "No client selected";
     public string TenantSubtitle => Workspace.ApplicationSetup is { } setup ? setup.Identity.TenantId + " · setup identity verified" : Workspace.Session is not null
         ? (Workspace.Session.PrimaryDomain.Length > 0 ? Workspace.Session.PrimaryDomain : Workspace.Session.TenantId) + (Workspace.Session.TenantVerified ? " · verified" : " · NOT verified")
@@ -199,6 +199,7 @@ public sealed class ShellViewModel : ObservableObject
             if (Workspace.Plan is null) return "Select eligible controls in Plan changes and review the exact proposal.";
             if (!Workspace.Plan.WriteRows.Any()) return "The plan has no writes. Review manual steps and blocked rows.";
             if (!Workspace.IsDeploymentSession) return "Deployment access requires a new capture and reviewed plan.";
+            if (!Workspace.ExperimentalChangesEnabled) return Workspace.ExperimentalChangeGuidance;
             if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return "Export and acknowledge before evidence in Deploy, then review confirmation.";
             return "Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.";
         }

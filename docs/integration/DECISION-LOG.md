@@ -507,6 +507,13 @@ Pin both conflicting-disposition cases to the actual identity guard message and 
 
 Add full-template empty-account refusal cases before module lookup, connection or output creation, with a failing negative control. Production authentication/template behaviour is unchanged by this review response (CLA-20261008-35).
 
+### INT-082 runtime implementation — 10 October 2026, PR #73
+
+Implement the merged desktop guard as transient coordination authority, not another token cache or engine approval. Keep scope acquisition approval separate from verified operation opt-in. Reuse the existing explicit-connect and MSAL silent-renewal paths; add policy seams to prove prompt counts and refusal before token replacement. Unexpected renewal identity/scopes invalidate the operator and opt-in, with no interactive retry. Original expiry bounds the opt-in; explicit expired reconnect refreshes the verified session via silent-first acquisition. Manual setup/consent remains separately reviewed and invalidates deployment authority. Exact engine safeguards and historical schema meanings are unchanged. Evidence/status: [EXPERIMENTAL-RUNTIME-2026.10.10](EXPERIMENTAL-RUNTIME-2026.10.10.md). No live or human gate is closed.
+
+### INT-082 production-wiring review response — 10 October 2026, PR #73
+
+CLA-20261010-40/41 add actual MsalAuthenticator token-replacement/identity/scope/event tests via an internal offline-only transport seam, and real desktop setup/deployment/consent refusal/invalidation regressions. CLA-42/44/46 correct unknown-account preview context, the manual-setup test's name and direct default-off evidence with a validated synthetic write plan. Public guard names, actual identity/scopes/expiry binding, cache/registration separation, exact approvals and all write uncertainty safeguards stay unchanged. Document existing MSAL protocol scopes and retain unverified live/slow-preview/concurrency hypotheses separately. No added consent or tenant access.
 ### INT-094 owner acknowledgement — 10 October 2026, PR #69
 
 William acknowledged the tenant-wide Application.Read.All metadata inventory purpose, with no credential values/writes or new Directory.Read.All consent. Keep missing delegated-grant access NotAttempted and reuse verified report contexts without navigation sign-ins. The future-feature paragraph stays in the contract until source/UI exists, preserving the current operator guide's accuracy. This grants no tenant action, live consent or publication.
@@ -542,6 +549,18 @@ AST-20261010-07: startup recovery must consume the same strictly verified deploy
 ### Interrupted-history connect and lease review corrections — 10 October 2026, PR #79
 
 CLA-20261010-97–99: keep verified read-only connection/access/licence checking usable when local history is refused, with an explicit blocking-history explanation and unchanged strict write guards. Validate the full run history before marking; deterministic order fixtures catch a lazy-marking mutation. Reuse the existing tenant lease for all startup marking so cooperating active runs are not reclassified. No tenant request/retry, evidence resealing of refused files, new schema or permission is added. Historical original findings and unexecuted external-editor races remain accurately attributed.
+### INT-082 explicit-connect timeout correction — 10 October 2026, PR #73
+
+CLA-20261010-48 / AST-20261010-06: permission-review time is outside the existing cumulative Microsoft acquisition budget. Both silent acquisition and its permitted explicit interactive fallback consume the same remaining budget; late results refuse and there is no additional retry. The preview uses the operation cancellation token and closes when cancelled. This clarifies the existing explicit-connect boundary without changing scope/identity checks, approval expiry, caches, operation renewal or any tenant-write contract. Deterministic time regressions and two native cancellation checks accompany the change; fresh Windows and independent review are required.
+
+### INT-082 delayed-timer deadline admission — 10 October 2026, PR #73
+
+AST-20261010-08 corrects enforcement of the existing acquisition deadline. Check monotonic elapsed time before admitting a successful silent or interactive reply, after checking caller cancellation. Timer callback delivery alone is insufficient: at `dc2f5de`, delayed delivery admitted a reply after the budget. The same cumulative budget and excluded permission-preview time remain; there is no extra retry, cache, permission, schema or approval authority. Deterministic regressions cover exact and exceeded deadlines, remaining fallback time, cancellation and in-budget controls. Source implementation does not establish live MSAL/WAM frequency or close independent review.
+
+
+### INT-082 configured sign-in regression — 10 October 2026, PR #73
+
+CLA-20261010-75/76: add a minimal internal explicit-acquisition/time seam around the existing public sign-in implementation, retaining production provider defaults and the existing acquisition policy. A valid one-minute configured budget accepts a thirty-second reply after a twenty-minute virtual permission preview but refuses a reply after one minute plus one tick. Removing timeout forwarding fails that regression; restored selected tests pass. No second authenticator/cache, renewal, scopes, approval-expiry or retry contract changes. Correct the run sheet to exclude permission-review time and require William's separate more-than-one-hour/due-token read-only renewal acceptance, still Not run.
 ### Report read-status review corrections — 10 October 2026, PR #78
 
 CLA-20261010-95/96: require the visible Partial headline and warning plus exact CSV/XLSX provenance status, preserving previous truncation-reason checks and production caps/exporters. Grouped assertions distinguish all three false-Collected paths. Retain original conflicting review dispositions and optional Linux host-discovery failure rather than claiming complete validation. Repair own claim-table structure without editing Claude records.
@@ -556,6 +575,9 @@ Address CLA-20261010-61–64: UK English and allow-list terminology, actual merg
 ### Unavailable evidence-store access wording — 10 October 2026, PR #79
 
 CLA-20261010-110: distinguish only a marked tenant-lease acquisition refusal from integrity failures in the connection notice. History is uninspected while exclusive access is unavailable; advise waiting and retrying, preserve original files and existing write guards. Keep all other refused-history errors on the untrusted/reconciliation path. No lease, evidence schema, authentication or write-authority change. Actual engine checks and strict App compilation pass; native execution and independent delta review remain separate gates.
+### INT-082 service timeout mapping regression — 10 October 2026, PR #73
+
+CLA-20261010-101: add per-call internal acquisition delegates at the existing saved-client and discovery call sites, with unchanged public production defaults and no global override/cache implementation. Six assessment/deployment and six discovery cases capture actual requests for one/nine/fifteen-minute settings and stop before MSAL/HTTP/cache attachment; four existing refusal boundaries are covered. Hard-coding five minutes fails all twelve mapping cases; restored 56 selected isolated checks pass, root 36 focused checks pass. Rename the request-level regression to match its actual scope. No auth/scopes/retry/expiry/write-authority contract changes; fresh Windows checks and narrow Claude review remain.
 ## INT-095 — Repository agent mailbox — 10 October 2026, PR #82 (proposed)
 
 William requested a permanent top-level `agent-comms/` GitHub folder for Astra/Claude handoffs and periodic checks. The folder becomes part of integration when #82 installs it through review, rather than introducing a PR directory or a second authoritative branch. [agent-comms/README](../../agent-comms/README.md) proposes author-owned append-only messages, explicit acknowledgements and safe-boundary checks during active sessions. Open PR message files are discoverable before merge; immutable commit links distinguish what was read. The initial request records current heads without declaring Claude has received or started the work. The original folder-only proposal added no global editable inbox. That delivery choice is superseded by the central issue #83 clarification below; no duplicated authoritative task register is added.
@@ -579,3 +601,12 @@ CLA-20261010-67–71: require William's From/To/ID/In reply to/Status header; op
 ### Lease access wording clarification — 11 October 2026, PR #79
 
 CLA-20261011-002 remains a hypothesis about the underlying IOException cause. Explain both competing work and local file-access failure without claiming either cause was established. History remains uninspected and all original strict write guards/file preservation remain. No exception classification or schema changes.
+### GitHub Actions budget preservation — 10 October 2026, PR #91
+
+William reported constrained Actions minutes. The latest 100 observed runs comprised 52 push and 48 pull-request executions; feature pushes and PR updates duplicated the full Windows suite, as did integration pushes with draft promotion #77. Defer the promotion placeholder until an exact-source candidate is ready; retain its history and William's main/release approval gate.
+
+Keep full PR checks for every target (including stacked branches), full integration/main push checks, incoming review-upload push checks and manual dispatch. Cancel obsolete PR/incoming runs while preserving each integration/main/manual evidence run. Move only the platform-independent catalogue assertions to Ubuntu's existing PowerShell host; retain their exact scripts, job/check names, all Windows build/test/native/PS5.1/package checks and the secret/publisher guard. No path-based test skipping, required-check removal, protected-setting change or publisher modification. Feature work without a PR requires an incoming review upload or manual run before claiming source validation. Those runs are diagnostic source checks only: the protected publisher accepts a successful push run from the reviewed pinned integration/main branch. A manual dispatch or incoming upload is not releasable candidate proof, and neither bypasses the publisher or exact integration-push merge gate.
+
+Claim/implementation commits explicitly skip CI to avoid spending further minutes while preparing this draft. A skipped or pending check is never green or merge authority; independent review and an actual required validation run remain necessary before merging. Current billing details and the immediate-start Actions failure reason are inaccessible to this session; do not label them code regressions or assert remaining paid minutes. Actual savings depend on future branch/update patterns.
+
+CLA-20261011-030: distinguish diagnostic manual/incoming validation from the publisher’s successful pinned-branch push requirement. No workflow, publisher, action pin or check gate changes in this correction.
