@@ -274,7 +274,10 @@ internal static partial class Program
             window.Show(); Pump();
             VerifyQuickConnectScroll(shell, window, content);
             using (new NativeHarnessTrackBounds(window, content, PageSizes))
+            {
+                CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            }
             foreach (var nav in shell.NavItems)
             {
                 traces.Context = "keyboard " + nav.Key;
@@ -310,6 +313,7 @@ internal static partial class Program
                 ("Naming object viewport at all three sizes", NamingViewportsMeasured == 3),
                 ("Reports deliberate read refusals at all three sizes", GraphReportReadRefusals == 3),
                 ("Reports complete exports in all four formats at all three sizes", GraphReportExportsChecked == 12),
+                ("Cold-start saved-client historical journeys at all three sizes", OfflineClientJourneySizes == 3 && OfflineClientJourneyPresses == 9),
                 ("keyboard", KeyboardPagesWalked > shell.NavItems.Count && KeyboardStopsReached > shell.NavItems.Count),
                 ("commands", ExercisedCommands.Count == CommandRegister.Count(c => c.Handling == Press))
             };

@@ -18,19 +18,22 @@
       </DataGrid>
       <TextBlock Text="{Binding Selected.RecoveryStatus}" Style="{StaticResource Muted}" Margin="0,10,0,10"/>
       <WrapPanel>
-        <Button Content="Preview removal" Command="{Binding PreviewDeleteCommand}" Style="{StaticResource SecondaryButton}"/>
-        <Button Content="Preview restore update" Command="{Binding PreviewRestoreCommand}" Style="{StaticResource SecondaryButton}"/>
-        <Button Content="Preview disable CA" Command="{Binding PreviewDisableCommand}" Style="{StaticResource WarningButton}"/>
+        <Button Content="Preview removal" Command="{Binding PreviewDeleteCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.HelpText="{Binding PreviewGuidance}"/>
+        <Button Content="Preview restore update" Command="{Binding PreviewRestoreCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.HelpText="{Binding PreviewGuidance}"/>
+        <Button Content="Preview disable CA" Command="{Binding PreviewDisableCommand}" Style="{StaticResource WarningButton}" AutomationProperties.HelpText="{Binding PreviewGuidance}"/>
       </WrapPanel>
+      <TextBlock Text="{Binding PreviewGuidance}" Style="{StaticResource Muted}" AutomationProperties.Name="Recovery preview prerequisites"/>
     </StackPanel></Border>
     <Border Style="{StaticResource Card}"><StackPanel>
       <TextBlock Text="Re-verify an accepted write" Style="{StaticResource H2}"/>
       <TextBlock Text="Uses fresh GET requests only. Keeps the original write record and adds verification evidence. A successful recovery check finalises the local ownership entry. Unknown modern writes remain blocked." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
       <CheckBox Content="For a completed 1.0.0 record, I acknowledge its historical completion and request current ownership/settings verification." IsChecked="{Binding HistoricalAcknowledged}" Margin="0,0,0,12"/>
-      <Button Content="Re-verify selected deployment" Command="{Binding ReverifyDeploymentCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+      <Button Content="Re-verify selected deployment" Command="{Binding ReverifyDeploymentCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" AutomationProperties.HelpText="{Binding DeploymentReverifyGuidance}"/>
+      <TextBlock Text="{Binding DeploymentReverifyGuidance}" Style="{StaticResource Muted}" AutomationProperties.Name="Deployment re-verification prerequisites"/>
       <TextBlock Text="Accepted recovery attempt" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
       <ComboBox ItemsSource="{Binding RecoveryAttempts}" SelectedItem="{Binding SelectedRecovery}" DisplayMemberPath="Summary" AutomationProperties.Name="Accepted recovery attempt to re-verify"/>
-      <Button Content="Re-verify selected recovery" Command="{Binding ReverifyRecoveryCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+      <Button Content="Re-verify selected recovery" Command="{Binding ReverifyRecoveryCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" AutomationProperties.HelpText="{Binding RecoveryReverifyGuidance}"/>
+      <TextBlock Text="{Binding RecoveryReverifyGuidance}" Style="{StaticResource Muted}" AutomationProperties.Name="Recovery re-verification prerequisites"/>
     </StackPanel></Border>
     <Border Style="{StaticResource WarnPanel}"><StackPanel>
       <TextBlock Text="Review the recovery action" Style="{StaticResource H2}"/>
@@ -44,7 +47,8 @@
         <CheckBox Content="Where drift is shown, I explicitly approve acting on the displayed current state." IsChecked="{Binding ReviewedDrift}" Margin="0,8,0,12"/>
         <TextBlock Text="Type the tenant ID to confirm" Style="{StaticResource FieldLabel}"/>
         <TextBox Text="{Binding TypedTenant, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Recovery tenant confirmation"/>
-        <Button Content="Apply reviewed recovery" Command="{Binding ExecuteCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+        <Button Content="Apply reviewed recovery" Command="{Binding ExecuteCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,12,0,0" AutomationProperties.HelpText="{Binding ExecuteGuidance}"/>
+        <TextBlock Text="{Binding ExecuteGuidance}" Style="{StaticResource Muted}" AutomationProperties.Name="Recovery apply prerequisites"/>
       </StackPanel>
     </StackPanel></Border>
     <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Recovery result" Style="{StaticResource H2}"/><TextBlock Text="{Binding Result}"/><TextBlock Text="A snapshot cannot reverse device settings, sign-in effects or other administrators' changes. Accepted writes and verified outcomes are recorded separately; uncertain writes are never retried automatically." Style="{StaticResource Muted}" Margin="0,12,0,0"/></StackPanel></Border>

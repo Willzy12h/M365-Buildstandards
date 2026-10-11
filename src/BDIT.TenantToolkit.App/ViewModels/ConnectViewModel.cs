@@ -34,6 +34,7 @@ public sealed class ConnectViewModel : PageViewModel
         ConnectPartnerCommand = Command(() => ConnectAsync(SessionMode.Assessment, chooseAccount: true),
             () => Workspace.Idle && ProfileValidator.IsGuid(EditTenantId.Trim()) && !string.IsNullOrWhiteSpace(EditCompany));
         ConnectSelectedCommand = Command(ConnectSelectedAsync, () => Selected is not null && Workspace.Idle);
+        ReviewOfflineCommand = Command(ReviewOfflineAsync, () => Selected is not null && Workspace.Idle && !Workspace.IsConnected && Workspace.ApplicationSetup is null);
         CopyApplicationCommand = CopyText(() => ApplicationText);
         CopyAccessCommand = CopyText(AccessReportText);
         ConnectDeploymentCommand = Command(() => ConnectAsync(SessionMode.Deployment), () => Workspace.Idle);
@@ -100,6 +101,11 @@ public sealed class ConnectViewModel : PageViewModel
     public ICommand ConnectPartnerCommand { get; }
     public ICommand ConnectDeploymentCommand { get; }
     public ICommand ConnectSelectedCommand { get; }
+    public ICommand ReviewOfflineCommand { get; }
+    public string OfflineReviewGuidance => !Workspace.Idle ? "Wait for the current operation to finish."
+        : Workspace.IsConnected || Workspace.ApplicationSetup is not null ? "Disconnect tenant and application setup sessions before opening saved evidence offline."
+        : Selected is null ? "Choose a saved client to review local captures, reports, jobs and the change register without sign-in."
+        : "Review saved evidence offline uses this saved client, not unsaved details below. It makes no tenant calls and does not verify current access, roles or modules. Capture fresh evidence after connecting before planning a change.";
     public ICommand CheckAccessCommand { get; }
     public ICommand CopyApplicationCommand { get; }
     public ICommand CopyAccessCommand { get; }
@@ -192,6 +198,7 @@ public sealed class ConnectViewModel : PageViewModel
             SetDiscovery(null);
             SetProperty(ref _selected, value);
             LoadForm(value);
+            OnPropertyChanged(nameof(OfflineReviewGuidance));
         }
     }
 
@@ -330,6 +337,16 @@ public sealed class ConnectViewModel : PageViewModel
         Shell.Navigate("overview");
     }
 
+    private async Task ReviewOfflineAsync()
+    {
+        var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
+        await Workspace.SelectOfflineProfileAsync(profile.Id);
+        if (!string.Equals(Workspace.Profile?.Id, profile.Id, StringComparison.OrdinalIgnoreCase)) return;
+        SetDiscovery(null);
+        if (Workspace.Profile is { } current) { Selected = Profiles.FirstOrDefault(p => p.Id == current.Id); LoadForm(current); }
+        Shell.Navigate("configuration");
+    }
+
     public async Task ConnectAsync(SessionMode mode, bool chooseAccount = false)
     {
         SetDiscovery(null);
@@ -353,6 +370,7 @@ public sealed class ConnectViewModel : PageViewModel
 
     public override void Refresh()
     {
+        OnPropertyChanged(nameof(OfflineReviewGuidance));
         OnPropertyChanged(nameof(ExperimentalChangesEnabled));
         OnPropertyChanged(nameof(CanEnableExperimentalChanges));
         OnPropertyChanged(nameof(ExperimentalChangeGuidance));

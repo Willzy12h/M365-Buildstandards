@@ -249,6 +249,19 @@ State at 8 October 2026 (after #42, #44, #43 and #45 merged): the Response colum
 | AST-20261010-14 | Astra xhigh internal review / naming failure provenance, #80 (P2) | fe1b830 NamingAuditViewModel.cs:67–73 cleared accepted data before mapping review, but a subsequent exception skipped Summary/Provenance notification and could leave old accepted text visible | Implemented failure-finally notifications and prior-success/corrupt-mapping App/native regressions; Windows execution pending | Source-confirmed failure/notification path; attached ComboBox null selection is a separate unexecuted hypothesis. Windows/current-head independent review pending |
 
 
+## Astra executed client/offline journey regressions — 10 October 2026, PR #81
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-09 | Delegated product-flow review / manual editor (P2) | 6d70d1d ManualChecksViewModel.cs:36–88 retained client A note/status after switching to B and direct Save could persist it under B | Context reset, stale object membership and direct-handler guards implemented in #81; Windows/native review pending | Two defect cases fail in actual Windows run38077676842 at55ed373 unchanged product source; same-context preservation passes. Fix/native/review pending |
+| AST-20261010-10 | Delegated product-flow review / deviation editor (P2) | 6d70d1d DeviationsViewModel.cs:34–103 retained A reason/approver through B refresh, including a native-null-selection equivalent; Save could replace B’s exception | Context-bound drafts and pre-persistence/pre-modal current-record guards implemented in #81; Windows/native review pending | Two defect cases fail in the same original Windows run; same-context preservation passes. Native oldID retention is UI-dependent and not the asserted cross-client field finding. Fix/native/review pending |
+| AST-20261010-11 | Delegated product-flow review / offline Recovery (P2) | 6d70d1d RecoveryViewModel.cs:106–109 cleared local rows on every disconnected Refresh, including Notify after successful Load register | Local history retained independently of connection-bound preview/approval authority in #81 | Original Windows case validates one sealed stored run, then fails because rows vanish after complete actual command return. Fix/offline native/review pending |
+| AST-20261010-15 | Delegated independent client/offline review / profile edit (P2) | Active saved client A with its Graph capture open can be edited to a new tenant C through SaveProfileCommand; the existing SaveProfile tenant-change path clears Exchange/Assessment but retains A’s Graph snapshot, allowing the new header/copy details to combine C identity with A evidence | Old-tenant transient-state invalidation and defensive header attribution implemented in #81; Windows/native review pending; durable evidence is retained | Source-confirmed normal command composition at a062eed plus the uncommitted #81 slice; actual command regression and fresh Windows/native review required. No executed original failure is claimed for this additional finding. |
+
+Original source test head55ed373: five failed/172passed/zero skipped,177App total, Windows push38077676842 / PR38077679357. Initialbc6b451 fixture import compilation failure is retained separately and supplies no regression-execution proof. Offline cold-start selection is a missing engineer journey, not claimed as one of these executed defects; its local-only action and negative connection/setup cases are part of #81. No live/human acceptance is closed.
+
+First repaired Windows push38080373544 / PR38080376218 at1b4d3e1 executed all31 new client/offline cases successfully (257 passed overall); one pre-existing next-step wording case failed. The wording is corrected without weakening its assertion; fresh full-suite/native and independent review remain required.
+
 ## Astra populated Reports native follow-up — 10 October 2026
 
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
@@ -260,6 +273,12 @@ State at 8 October 2026 (after #42, #44, #43 and #45 merged): the Response colum
 | ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
 |---|---|---|---|---|
 | AST-20261010-17 | Native UI harness / Naming (P2) | At e4ab3cd,1180×640 table bounds are179 high but only76 visible, with no complete populated rows | Local compact spacing/filter margins and150-DIP table minimum implemented in #80; all guidance/provenance retained | Actual failing push38081012364. Strict compile passes; new exact-head Windows/native/package and Claude review remain required. Reports passes its unchanged >=2 assertion at all3 sizes in this failed overall run. |
+
+## Astra persistent evidence placement follow-up — 10 October 2026
+
+| ID | Reviewer / scope | Finding | Response | Evidence / remaining gate |
+|---|---|---|---|---|
+| AST-20261010-18 | Native UI harness / shell layout (P2) | b0c34f3 narrow tenant-header evidence status consumes page height:24 unneeded-scroll cases at1180×760 and one fully visible Configuration object row at1180×640 | Full evidence status moved to pinned navigation footer; top identity/mode and all original thresholds retained | Actual failing push38081873273; all3 offline native journeys pass first. Fresh exact-head layout/package and Claude review remain required. |
 
 ## Astra Reports authentication interaction review — 10 October 2026, PR #80
 
