@@ -6,7 +6,7 @@ Use [CURRENT-STATE](CURRENT-STATE.md) for the actual queue. Claude completed all
 
 **Next:** fix confirmed CLA-20261011-010 after decision #95 is independently reviewed and merged; finish handed-off Run #93 and mailbox presentation #94; complete further runnable adapters. #92's connected application presentation is implemented on its branch, with the engine defect still blocking integration. Existing authentication/Home/evidence/diagnostic work is preserved and independently reviewed; refresh only changed compositions. #91 reduces duplicate Actions work without weakening checks, and its publisher evidence wording is corrected.
 
-Do not merge further until real required Windows execution and integration-push proof are available. Claude's stale #89 claim remains for its owner to reconcile. New Windows renders, PS5.1/package checks, acceptance and William's release/live stop points remain open. The sections below are preserved historical checkpoints, not the current Next list.
+GitHub annotations for integration run 38134379280 identify failed recent payments or the spending limit as the start blocker; William must check Billing & plans. Do not merge further until real required Windows execution and integration-push proof are available. Claude's stale #89 claim remains for its owner to reconcile. New Windows renders, PS5.1/package checks, acceptance and William's release/live stop points remain open. The sections below are preserved historical checkpoints, not the current Next list.
 
 ## Start here — current continuation
 

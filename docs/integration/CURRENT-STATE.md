@@ -4,7 +4,7 @@ Read this compact index, then fetch actual integration/PR heads and follow AGENT
 
 ## Baseline and real validation
 
-Integration **724d9e05cfd486c4af8fed733fac8f31ecccbfd3**, unpublished **1.1.0-preview.19**, standard **2026.09.30**. Claude merged reviewed #78 as 724d9e0. Actual integration push **38134379280 failed before any step executed**; #89's preceding integration push 38095690739 also failed with zero steps. Further integration merges remain blocked by actual Windows execution, without blind reruns or a fabricated billing diagnosis.
+Integration **724d9e05cfd486c4af8fed733fac8f31ecccbfd3**, unpublished **1.1.0-preview.19**, standard **2026.09.30**. Claude merged reviewed #78 as 724d9e0. Actual integration push **38134379280 failed before any step executed**; #89's preceding integration push 38095690739 also failed with zero steps. Further integration merges remain blocked by actual Windows execution, without blind reruns. GitHub check annotations explicitly say jobs were not started because recent account payments failed or the spending limit needs increasing; William must review Billing & plans. No account payment details or actual remaining minutes were accessed.
 
 Last fully verified integration: **0c963e2e649d219a026f62fb8bc5f2a97b77fb3b**, actual push 38094369170. Original CI ZIP SHA-256 `479fc88bc54a9f46741939754aeba8af7472e71a755047b839f0b87cb869ba00`: proof for those older bytes only. [MERGE-EVIDENCE](MERGE-EVIDENCE-2026.10.10.md) retains package/check identities. No new candidate package or version change exists.
 
@@ -25,7 +25,7 @@ All three repositories were checked on 11 October. Claude has **no open implemen
 | #88 | aa0fe00; ready review (6104905529); shared offline diagnostics and Settings implemented. Exact Windows/native checks outstanding. |
 | #90 | 822525f; ready review (6104905724); offline CLI/mandatory doctor Ready package gate. Temporarily targets #88. Exact Windows/package checks outstanding. |
 | #91 | 5620676; prior ready (6104863854), CLA-030 wording corrected: manual/incoming diagnostics cannot supply publisher's pinned push evidence. No check/publisher/protection removal. |
-| #92 | d5b3bbaf; prior ready (6104863954); refreshed composition of #84/#79 plus application desktop/CLI/Settings. Depends on fixing #87; linked/cloud-placeholder evidence remains refused. |
+| #92 | 5f4666a; prior ready (6104863954); refreshed composition of #84/#79 plus application desktop/CLI/Settings. Depends on fixing #87; linked/cloud-placeholder evidence remains refused, with ordinary-local-folder guidance (CLA-031). |
 | #76 | Own records reconciled; prior ready (6104864078). Only Astra rows changed; Claude #89 Open row is left for Claude. CLA-032 spacing/current Next corrected. |
 | #93 | Draft, root takes Claude's explicitly unstarted Run slice. Shared read-only controller and desktop typed-form Run page in isolated development; no integrated source/candidate claim yet. |
 | #94 | Draft, root takes unstarted mailbox capacity presentation. Strict supplied paired evidence and original review exports; no quota/licence changes, live reads or new persisted evidence contract. |
