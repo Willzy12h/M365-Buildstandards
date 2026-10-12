@@ -110,7 +110,8 @@ public sealed class HomeNavigationTests : IDisposable
         {
             Assert.Contains("operation is in progress", home.Projection.Guidance);
             Assert.Contains("Synthetic read awaiting cancellation", home.Projection.Guidance);
-            home.NextStepCommand.Execute(null); Assert.IsType<OverviewViewModel>(_shell.CurrentPage);
+            var originalPage = _shell.CurrentPage; Assert.False(home.NextStepCommand.CanExecute(null));
+            home.NextStepCommand.Execute(null); Assert.Same(originalPage, _shell.CurrentPage);
             Assert.True(_workspace.Busy); _workspace.CancelOperation();
             Assert.True(_workspace.OperationToken.IsCancellationRequested);
             return Task.CompletedTask;

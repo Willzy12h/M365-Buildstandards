@@ -171,7 +171,8 @@ public sealed class Workspace : ObservableObject
     {
         lock (_presentationGate)
         {
-            var signature = PresentationContextKey.Capture(Profile, Session, Connection, Standard, Snapshot, SnapshotIsLive, ExchangeSnapshot, Assessment, Plan, LastRun);
+            var signature = PresentationContextKey.Capture(Profile, Session, Connection, Standard, Snapshot, SnapshotIsLive, ExchangeSnapshot, Assessment, Plan, LastRun)
+                with { SetupInstance = ApplicationSetup, PrivilegedIdentity = ApplicationSetup is null ? "" : ToolkitJson.Serialize(ApplicationSetup.Identity) };
             if (_presentationSignature != signature) { _presentationSignature = signature; _presentationGeneration++; }
             return signature with { Generation = _presentationGeneration };
         }
@@ -182,10 +183,10 @@ public sealed class Workspace : ObservableObject
     {
         Profile = Profile, Session = Session, Standard = Standard, Snapshot = Snapshot, SnapshotIsLive = SnapshotIsLive,
         ExchangeSnapshot = ExchangeSnapshot, ExchangeCapturedByTool = ExchangeCapturedByTool,
-        DisplayedTenantId = Session?.TenantId ?? Profile?.TenantId, ApplicationSetupActive = ApplicationSetup is not null,
+        DisplayedTenantId = ApplicationSetup?.Identity.TenantId ?? Session?.TenantId ?? Profile?.TenantId, ApplicationSetupActive = ApplicationSetup is not null,
         Busy = Busy, BusyMessage = BusyMessage, InterruptedNotice = InterruptedNotice, Assessment = Assessment,
         Plan = Plan, LastRun = LastRun, RunReviewed = LastRun is not null && ReferenceEquals(_viewedRun, LastRun) && _viewedRunContent == ToolkitJson.Serialize(LastRun),
-        ExperimentalEnabled = ExperimentalChangesEnabled, AcknowledgedSnapshotId = AcknowledgedSnapshotId
+        ExperimentalEnabled = ExperimentalGuard.ApprovalRecordedFor(Connection), AcknowledgedSnapshotId = AcknowledgedSnapshotId
     };
 
     public event Action? StateChanged;

@@ -5,7 +5,7 @@ namespace BuildStandard.App.Services;
 /// <summary>Transient display/copy/export identity; never authorises a tenant operation.</summary>
 public sealed record PresentationContextKey(object? ProfileInstance, object? ConnectionInstance, object? SessionInstance,
     string ProfileIdentity, string AccountContext, string StandardDigest, string EvidenceIdentity, long Generation = 0,
-    object? SelectedOutcome = null, string OutcomeIdentity = "")
+    object? SelectedOutcome = null, string OutcomeIdentity = "", object? SetupInstance = null, string PrivilegedIdentity = "")
 {
     public static PresentationContextKey Capture(TenantProfile? profile, TenantSession? session,
         object? connection, StandardCatalogue? standard, TenantSnapshot? snapshot, bool live, TenantSnapshot? exchange,
