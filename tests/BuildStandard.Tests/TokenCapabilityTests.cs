@@ -5,6 +5,8 @@ using BuildStandard.Core.Models;
 using BuildStandard.Core.Safety;
 using System.Text.Json;
 using BuildStandard.Graph;
+using BuildStandard.Graph.Setup;
+using BuildStandard.Engine.Standards;
 using Xunit;
 
 namespace BuildStandard.Tests;
@@ -95,5 +97,46 @@ public sealed class TokenCapabilityTests
         Assert.Equal(TokenCapability.Unclassified, TokenCapabilityClassifier.Classify(Array.Empty<string>()).Classification);
         Assert.Equal(TokenCapability.Unclassified, TokenCapabilityClassifier.Classify(new[] { "User.Read", null! }).Classification);
         Assert.DoesNotContain("TokenCapabilities", JsonSerializer.Serialize(new TenantSession { Scopes = new() { "User.Read" } }), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("User.Invite.All")]
+    [InlineData("Mail.Send")]
+    [InlineData("Future.Read.All")]
+    public void Assessment_registration_requests_use_the_same_conservative_classification(string scope)
+    {
+        var standard = TestData.Standard(); standard.Collections.Values.First().Scope = scope;
+        Assert.Throws<ConfigurationException>(() => ApplicationSetupService.RequiredScopes(standard, SessionMode.Assessment));
+    }
+
+    [Fact]
+    public void Every_existing_catalogue_request_is_classified_without_adding_or_removing_permissions()
+    {
+        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards"));
+        foreach (var file in Directory.EnumerateFiles(directory, "*.json").Where(f => Path.GetFileName(f) != "manifest.json"))
+        {
+            var standard = StandardsLoader.Parse(File.ReadAllText(file), Path.GetFileName(file));
+            var assessment = ApplicationSetupService.RequiredScopes(standard, SessionMode.Assessment);
+            var deployment = ApplicationSetupService.RequiredScopes(standard, SessionMode.Deployment);
+            Assert.Equal(TokenCapability.ReadOnlyVerified, TokenCapabilityClassifier.Classify(assessment).Classification);
+            Assert.Empty(TokenCapabilityClassifier.Classify(deployment).UnclassifiedScopes);
+            Assert.Equal(TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase), assessment);
+            Assert.Equal(TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes()).Concat(standard.WriteScopes()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase), deployment);
+        }
+    }
+
+    [Theory]
+    [InlineData("User.Invite.All")]
+    [InlineData("Mail.Send")]
+    [InlineData("Future.Read.All")]
+    public async Task Explicit_assessment_connection_refuses_broader_or_unknown_requests_before_acquisition(string scope)
+    {
+        using var root = new TempRoot(); using var http = new HttpClient(); var calls = 0;
+        var standard = TestData.Standard(); standard.Collections.Values.First().Scope = scope;
+        var service = new TenantConnectionService(new ToolkitSettings(), root.Paths, http, NullLog.Instance, "synthetic");
+        await Assert.ThrowsAsync<ConfigurationException>(() => service.ConnectAsync(TestData.Profile(), SessionMode.Assessment,
+            standard, null, CancellationToken.None, null, null,
+            (_, _, _) => { calls++; throw new InvalidOperationException("Synthetic acquisition must not run"); }));
+        Assert.Equal(0, calls);
     }
 }

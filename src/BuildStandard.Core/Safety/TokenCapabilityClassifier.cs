@@ -33,6 +33,7 @@ public static class TokenCapabilityClassifier
         "Directory.AccessAsUser.All", "User.Invite.All", "Mail.Send", "Directory.Write.All",
         "Directory.ReadWrite.All", "Application.ReadWrite.All", "Application.ReadWrite.OwnedBy",
         "AppRoleAssignment.ReadWrite.All", "DelegatedPermissionGrant.ReadWrite.All", "Group.ReadWrite.All",
+        "WindowsUpdates.ReadWrite.All",
         "DeviceManagementApps.ReadWrite.All", "DeviceManagementConfiguration.ReadWrite.All",
         "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All",
         "Policy.ReadWrite.AuthenticationMethod", "Policy.ReadWrite.Authorization",

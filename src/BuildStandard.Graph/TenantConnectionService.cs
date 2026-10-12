@@ -75,7 +75,10 @@ public sealed class TenantConnectionService
         var scopes = new List<string>(DiagnosticScopes);
         scopes.AddRange(standard.ReadScopes());
         if (mode == SessionMode.Deployment) scopes.AddRange(standard.WriteScopes());
-        return scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
+        var requested = scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
+        if (mode == SessionMode.Assessment && TokenCapabilityClassifier.Classify(requested).Classification != TokenCapability.ReadOnlyVerified)
+            throw new ConfigurationException("Assessment cannot request broader or unclassified capabilities. Correct and review the standard's read permissions before connecting.");
+        return requested;
     }
 
     public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
