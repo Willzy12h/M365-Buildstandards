@@ -362,7 +362,7 @@ internal static partial class Program
                 ("Reports deliberate read refusals at all three sizes", GraphReportReadRefusals == 3),
                 ("Reports complete exports in all four formats at all three sizes", GraphReportExportsChecked == 12),
                 ("Cold-start saved-client historical journeys at all three sizes", OfflineClientJourneySizes == 3 && OfflineClientJourneyPresses == 9),
-                ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 45),
+                ("Home cold/historical navigation at all three sizes", HomeJourneySizes == 3 && HomeJourneyPresses == 57),
                 ("Home accessible actual status at all three sizes", HomeAccessibleStatuses == 9),
                 ("Home next-step text contrast at all three sizes", HomePrimaryContrastChecks == 3),
                 ("Read-only Run setup/review viewport at all three sizes", ReadRunViewportsMeasured == 6),
