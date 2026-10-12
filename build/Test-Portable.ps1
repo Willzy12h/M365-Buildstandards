@@ -344,16 +344,36 @@ public static class PortableTextMenu {
 '@
     $window = [Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
     $descendants = [Windows.Automation.TreeScope]::Descendants
-    function Find-Named([string]$Name) {
+    function Find-Named([string]$Name, [object]$ControlType = $null) {
         $condition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, $Name)
+        if ($ControlType) {
+            $condition = [Windows.Automation.AndCondition]::new($condition, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, $ControlType))
+        }
         $element = $window.FindFirst($descendants, $condition)
         if (-not $element) { throw "Packaged UI did not expose: $Name" }
         return $element
     }
     # Use the visible catalogue search editor. Client details are below the connection cards and require page
     # scrolling; TextPattern.ScrollIntoView scrolls the text editor itself, not that outer page.
-    $standard = Find-Named 'Build Standard'
-    $standard.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $buildGroup = Find-Named 'Build standard' ([Windows.Automation.ControlType]::Button)
+    $buildGroup.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Start-Sleep -Milliseconds 200
+    $pages = Find-Named 'Page in the selected navigation group' ([Windows.Automation.ControlType]::ComboBox)
+    $pageExpansion = $pages.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $pageExpansion.Expand()
+    $catalogueCondition = [Windows.Automation.AndCondition]::new(
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, 'Catalogue reference'),
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem),
+        [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$process.Id))
+    $catalogueDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    do {
+        $catalogue = $pages.FindFirst($descendants, $catalogueCondition)
+        if (-not $catalogue) { $catalogue = [Windows.Automation.AutomationElement]::RootElement.FindFirst($descendants, $catalogueCondition) }
+        if (-not $catalogue) { Start-Sleep -Milliseconds 100 }
+    } while (-not $catalogue -and [DateTime]::UtcNow -lt $catalogueDeadline)
+    if (-not $catalogue) { throw 'Packaged page selector did not expose its catalogue route.' }
+    $catalogue.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    $pageExpansion.Collapse()
     Start-Sleep -Milliseconds 500
     $field = Find-Named 'Search standard controls'
     $testText = 'Synthetic text check'

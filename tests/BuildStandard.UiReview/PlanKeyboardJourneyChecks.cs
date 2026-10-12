@@ -16,6 +16,15 @@ internal static partial class Program
         var finding = shell.Workspace.Assessment!.Findings.Single(f => f.ControlId == "CA-001");
         var originalStatus = finding.Status;
         var plan = shell.Workspace.Plan!;
+        // The generic harness seeds the first four recipes (prerequisite groups). This dedicated
+        // journey needs its explicit synthetic CA row; it must not rely on catalogue ordering.
+        var added = plan.Rows.Any(r => r.ControlId == "CA-001") ? null : new PlanRow
+        {
+            ControlId = "CA-001", Name = "Synthetic CA-001 keyboard candidate", Collection = "conditionalAccess",
+            Action = PlanAction.Create, SafeState = "disabled", Reason = "Dedicated offline keyboard fixture; no execution is possible.",
+            Payload = plan.Rows.First().Payload!.DeepClone().AsObject()
+        };
+        if (added is not null) plan.Rows.Add(added);
         try
         {
             finding.Status = FindingStatus.Missing; // Explicit synthetic candidate, not live evidence or write approval.
@@ -49,6 +58,6 @@ internal static partial class Program
             { source = "synthetic owned WPF window", control = "CA-001", spaceSelectionBinding = "passed", exactDisabledPayload = "passed",
               preservedExclusions = "passed", explicitConfirmation = "passed", tenantCalls = 0, deploymentExecuted = false, humanAcceptance = "unrun" }));
         }
-        finally { finding.Status = originalStatus; shell.Page<PlanViewModel>().Refresh(); }
+        finally { if (added is not null) plan.Rows.Remove(added); finding.Status = originalStatus; shell.Page<PlanViewModel>().Refresh(); }
     }
 }
