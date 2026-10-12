@@ -133,7 +133,8 @@ public sealed class DoctorCliDispatchTests
     {
         var result = await Run(new[] { "--help" });
         Assert.Equal(0, result.Exit);
-        Assert.Contains("buildstandard — offline reports", result.Output);
+        Assert.StartsWith("buildstandard ", result.Output);
+        Assert.Contains("offline reports and local prerequisite diagnostics. Never connects to a tenant.", result.Output);
         Assert.Contains("buildstandard doctor", result.Output);
         Assert.Contains("bdit.cmd remains a compatible alias", result.Output);
         Assert.Contains("BUILDSTANDARD_ROOT", result.Output);
