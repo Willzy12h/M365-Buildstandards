@@ -1,3 +1,4 @@
+using BuildStandard.Core.Safety;
 using System.Text.Json.Nodes;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
@@ -74,7 +75,10 @@ public sealed class TenantConnectionService
         var scopes = new List<string>(DiagnosticScopes);
         scopes.AddRange(standard.ReadScopes());
         if (mode == SessionMode.Deployment) scopes.AddRange(standard.WriteScopes());
-        return scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
+        var requested = scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
+        if (mode == SessionMode.Assessment && TokenCapabilityClassifier.Classify(requested).Classification != TokenCapability.ReadOnlyVerified)
+            throw new ConfigurationException("Assessment cannot request broader or unclassified capabilities. Correct and review the standard's read permissions before connecting.");
+        return requested;
     }
 
     public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
@@ -198,12 +202,7 @@ public sealed class TenantConnectionService
                 session.Notices.Add("The signed-in user's object ID could not be resolved from /me. Conditional Access creation is blocked.");
             }
 
-            if (mode == SessionMode.Assessment && session.HasWriteScopes)
-            {
-                if (!client.IsSharedFallback)
-                    throw new ConfigurationException("The assessment application's token contains write permissions. Assessment must use a registration with read scopes only; remove the write permissions from that registration or use a separate deployment registration.");
-                session.Notices.Add("The shared Microsoft Graph PowerShell application returned previously consented write scopes. The toolkit blocks every write in assessment mode, but the token itself is not read-only. Register a dedicated BuildStandard Assessment Tool application for token-level isolation.");
-            }
+            ApplyAssessmentCapabilityPolicy(session, client.IsSharedFallback);
             if (client.IsSharedFallback)
                 session.Notices.Add("Connected through the shared Microsoft Graph PowerShell application. This is acceptable for read-only assessment only.");
 
@@ -217,6 +216,16 @@ public sealed class TenantConnectionService
             await authenticator.ReleaseAsync();
             throw;
         }
+    }
+
+    internal static void ApplyAssessmentCapabilityPolicy(TenantSession session, bool sharedFallback)
+    {
+        if (session.Mode != SessionMode.Assessment) return;
+        var capabilities = session.TokenCapabilities;
+        if (capabilities.Classification == TokenCapability.ReadOnlyVerified) return;
+        if (!sharedFallback)
+            throw new ConfigurationException("The dedicated assessment application's returned token is broader or not fully classified. Assessment needs verified supported read capabilities; review that registration's permissions or use the documented shared assessment fallback.");
+        session.Notices.Add(capabilities.Description + ". Assessment mode — toolkit changes blocked. The shared registration does not guarantee token-level read-only isolation; use a dedicated assessment registration for verified supported read capabilities.");
     }
 
     /// <summary>Read-only access verification: role observations and a $top=1 probe per collection. Creates nothing.</summary>

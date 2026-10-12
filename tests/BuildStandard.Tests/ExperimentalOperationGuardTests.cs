@@ -74,4 +74,16 @@ public sealed class ExperimentalOperationGuardTests
         Assert.Throws<SafetyViolationException>(() => ExperimentalOperationGuard.RequireManualSetup(true, "dddddddd-dddd-dddd-dddd-dddddddddddd", Tenant, c.Session.AccountObjectId));
         ExperimentalOperationGuard.RequireManualSetup(true, Tenant, Tenant, c.Session.AccountObjectId);
     }
+
+    [Theory]
+    [InlineData("User.Read")]
+    [InlineData("Future.Write.All")]
+    [InlineData("Policy.ReadWrite.ConditionalAccess,Future.Read.All")]
+    public void Unknown_or_read_only_capabilities_never_open_experimental_tenant_changes(string scopes)
+    {
+        var c = Context(); c.Session.Scopes = scopes.Split(',').ToList();
+        var guard = new ExperimentalOperationGuard(() => Now);
+        Assert.False(guard.CanEnable(c.Session, c.Standard, c.Profile));
+        Assert.Throws<SafetyViolationException>(() => guard.Enable(c.Connection, c.Session, c.Standard, c.Profile, true));
+    }
 }

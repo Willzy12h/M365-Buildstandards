@@ -8,6 +8,10 @@ T0 [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) must settle
 
 Use the existing issue #83 and `agent-comms/templates/message.md` for a future bounded handoff. Include claim/task, actual owner, base/head SHA, branch/PR, scope/interfaces/dependencies, review status, evidence/unrun checks, next action, acknowledgement and return criteria. A request remains requested until the recipient actually acknowledges. Preserve accepted rulings/task commits/check evidence in the existing records before scratch cleanup. Do not create another coordination system or resume take-next backlog work.
 
+### Revised implementation/review sequence — 12 October 2026
+
+William subsequently authorised GPT to complete T0–T10 continuously, deferring named and independent reviews to the assembled candidate. Completed branches may merge provisionally to phase/wpf-webview2 after source-matched required checks pass and blocking defects are resolved. Preserve original dispositions and exact source identities; label provisional integration **independent review pending**. No enforced protection/check bypass, final source acceptance, live use, promotion or publication is authorised. Final T10 handoff must enumerate every deferred named safety requirement. This prospective instruction supersedes the between-task review gate above, not runtime safeguards.
+
 ### Preserved protocol (apply the phase override above)
 
 This is the operating protocol for Claude and Astra/Codex working the same product at the same time. It applies to all three repositories, not just this one.
