@@ -436,6 +436,10 @@ public sealed class GraphReportTests
         }
         public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Reports must use the bounded read.");
         public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No singleton report requests expected.");
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("Reports cannot write.");
     }
 
@@ -457,6 +461,10 @@ public sealed class GraphReportTests
             return Responses.GetValueOrDefault(path.Split('?')[0], []).Select(r => (JsonObject)r.DeepClone()).ToList();
         }
         public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No singleton report requests expected.");
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) { Writes++; throw new InvalidOperationException("Reports cannot write."); }
     }
 }

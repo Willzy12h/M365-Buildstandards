@@ -28,6 +28,8 @@
 
 - Approved phase T2: neutral BuildStandard titles/defaults/new reports and output names, optional retained organisation, versioned catalogue presentation and explicit old/new root guidance; historical identity and protocols retained.
 
+- Approved phase T4: preserve original candidate-plan/before-evidence lifetime after preflight and at final Graph dispatch; refuse expired/changed/stopped input before sending and preserve earlier accepted rows/no-replay semantics.
+
 - Keep Run outcome, local-output and mailbox-capacity guidance reachable at smaller windows with a bounded scrolling panel and a shared action row; retain the native viewport, clipping and keyboard checks.
 
 - Add explicit collection/review shortcuts between mailbox capacity, Run reports and Tenant reports, with two-source guidance and idle guards. Page navigation starts no read, signs in nobody, changes no Run approval and selects no evidence. Add App/native cases for these boundaries; actual Windows execution remains pending.
