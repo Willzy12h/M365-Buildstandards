@@ -13,9 +13,10 @@ public sealed class CatalogueDocumentService(ToolkitPaths paths, Func<DateTimeOf
 {
     public CatalogueDocument Create(StandardCatalogue standard)
     {
+        var fileName = standard.SourceFileName;
         var bytes = VerifiedCatalogueSource.Read(paths, standard);
         // Render these exact verified bytes, not the caller's mutable model after admission.
-        var snapshot = StandardsLoader.Parse(new UTF8Encoding(false, true).GetString(bytes), standard.SourceFileName);
+        var snapshot = StandardsLoader.Parse(VerifiedCatalogueSource.Decode(bytes), fileName);
         snapshot.IntegrityDigest = CanonicalJson.Sha256Hex(bytes);
         var generated = (now?.Invoke() ?? DateTimeOffset.UtcNow).ToUniversalTime();
         var html = EngineerStandardDocuments.Html(snapshot, EngineerDocumentKind.BuildStandard, generated);

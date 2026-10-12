@@ -5,6 +5,8 @@ using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Engine.Standards;
 using BuildStandard.Engine.Reports;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -140,5 +142,54 @@ public sealed class CatalogueDocumentTests(ITestOutputHelper output)
         Assert.Contains(before, html, StringComparison.Ordinal);
         Assert.NotEqual(document.HtmlSha256, CanonicalJson.Sha256Hex(Encoding.UTF8.GetBytes(html.Replace(before, after, StringComparison.Ordinal))));
         Assert.Equal(document.HtmlSha256, CanonicalJson.Sha256Hex(document.CopyHtmlBytes()));
+    }
+
+    private sealed class SwitchIdentityOnSerialisation(Action onRead)
+    {
+        [JsonPropertyName("value")]
+        public int Value { get { onRead(); return 1; } }
+    }
+
+    [Fact]
+    public void Caller_identity_replacement_during_admission_cannot_import_an_unmanifested_file()
+    {
+        using var root = new TempRoot();
+        StandardCatalogue? current = null; var armed = false; var switches = 0; string alternateDigest = "";
+        var trigger = JsonValue.Create(new SwitchIdentityOnSerialisation(() =>
+        {
+            if (!armed) return;
+            switches++; current!.SourceFileName = "alternate.json"; current.IntegrityDigest = alternateDigest;
+        }))!;
+        var source = ToolkitJson.ParseObject(TestData.StandardJson);
+        source["controls"]![0]!["payload"]!["probe"] = System.Text.Json.JsonSerializer.SerializeToNode(new SwitchIdentityOnSerialisation(() => { }), ToolkitJson.Options);
+        current = Load(root, source.ToJsonString()); var originalDigest = current.IntegrityDigest;
+        var alternate = ToolkitJson.ParseObject(source.ToJsonString()); alternate["description"] = "UNMANIFESTED SOURCE";
+        var alternateFile = root.WriteStandard("alternate.json", alternate.ToJsonString());
+        alternateDigest = CanonicalJson.Sha256Hex(File.ReadAllBytes(alternateFile));
+        // This serialises exactly like the admitted JSON. Its getter provides a deterministic interleaving,
+        // replacing only JsonIgnored caller identity fields during canonical model comparison.
+        current.Controls[0].Payload!["probe"] = trigger; armed = true;
+        var document = new CatalogueDocumentService(root.Paths, () => Now).Create(current);
+        Assert.True(switches > 0); Assert.Equal(originalDigest, document.CatalogueDigest);
+        Assert.DoesNotContain("UNMANIFESTED SOURCE", Encoding.UTF8.GetString(document.CopyHtmlBytes()), StringComparison.Ordinal);
+        Assert.DoesNotContain("alternate.json", File.ReadAllText(Path.Combine(root.Paths.StandardsDirectory, "manifest.json")), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Loader_accepted_BOM_sources_keep_their_raw_digest_and_generate_BOM_free_UTF8(bool utf16)
+    {
+        using var root = new TempRoot();
+        Encoding encoding = utf16 ? new UnicodeEncoding(false, true) : new UTF8Encoding(true);
+        var original = encoding.GetPreamble().Concat(encoding.GetBytes(TestData.StandardJson)).ToArray();
+        File.WriteAllBytes(Path.Combine(root.Paths.StandardsDirectory, "bom.json"), original); root.WriteManifest();
+        var loaded = new StandardsLoader(root.Paths, NullLog.Instance).Load("bom.json");
+        var document = new CatalogueDocumentService(root.Paths, () => Now).Create(loaded);
+        Assert.Equal(CanonicalJson.Sha256Hex(original), document.CatalogueDigest);
+        var html = document.CopyHtmlBytes(); Assert.False(html.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }));
+        Assert.StartsWith("<!doctype html>", new UTF8Encoding(false, true).GetString(html), StringComparison.Ordinal);
+        Assert.Equal(original, File.ReadAllBytes(Path.Combine(root.Paths.StandardsDirectory, "bom.json")));
+        Assert.Equal(html, File.ReadAllBytes(new ReportExporter(root.Paths, "").SaveHtml(document)));
     }
 }
