@@ -30,5 +30,10 @@ public static class RouteCatalog
         new("Settings", "setup", "", "Application setup"),
         new("Settings", "settings", "", "Settings and diagnostics")
     });
+    public static string PrerequisiteLabel(string key, string purpose)
+    {
+        var route = Items.Single(r => r.Key == key);
+        return (route.Step.Length == 0 ? "" : route.Step + " · ") + route.Title + ": " + purpose;
+    }
     public static IReadOnlyList<string> Groups { get; } = Array.AsReadOnly(Items.Select(r => r.Group).Distinct(StringComparer.Ordinal).ToArray());
 }

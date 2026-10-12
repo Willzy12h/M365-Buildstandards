@@ -182,6 +182,7 @@ public sealed class AssessmentViewModel : PageViewModel
             SelectedCandidate = Candidates.FirstOrDefault();
             OnPropertyChanged(nameof(SelectedDetail));
             OnPropertyChanged(nameof(ProposedJson));
+            OnPropertyChanged(nameof(HiddenSelectionText));
         }
     }
 

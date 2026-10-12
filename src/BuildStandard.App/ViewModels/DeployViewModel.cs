@@ -150,32 +150,32 @@ public sealed class DeployViewModel : PageViewModel
         var session = Workspace.Session;
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "1 · Connect: deployment access", PageKey = "connect",
+            Step = RouteCatalog.PrerequisiteLabel("connect", "deployment access"), PageKey = "connect",
             Status = session is null ? "Not connected" : session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "Ready for exact review" : "Experimental changes off") : "Read-only session",
             Detail = session is null ? "Connect on the Connect page first." : session.Mode == SessionMode.Deployment ? $"{session.Account} via {session.ClientLabel}. {Workspace.ExperimentalChangeGuidance}" : DeploymentApplicationText
         });
         var missingScopes = Workspace.Access?.Writes.Where(w => w.Status == "Missing scope").Select(w => w.Label).ToList() ?? new List<string>();
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "1 · Connect: permissions", PageKey = "connect",
+            Step = RouteCatalog.PrerequisiteLabel("connect", "permissions"), PageKey = "connect",
             Status = session?.Mode != SessionMode.Deployment ? "Pending" : Workspace.Access is null ? "Unknown" : missingScopes.Count == 0 ? "Observed" : "Missing",
             Detail = Workspace.Access is null ? "Run the access check before relying on scope observations." : missingScopes.Count == 0 ? "Scope observation does not prove API acceptance." : "Missing: " + string.Join(", ", missingScopes)
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "2 · Configuration: live capture", PageKey = "configuration",
+            Step = RouteCatalog.PrerequisiteLabel("configuration", "live capture"), PageKey = "configuration",
             Status = Workspace.Snapshot is null ? "Pending" : Workspace.SnapshotIsLive ? (Workspace.Snapshot.Complete ? "Ready" : "Incomplete") : "Stored capture",
             Detail = CaptureReadinessDetail()
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "5 · Plan changes: reviewed plan", PageKey = "plan",
+            Step = RouteCatalog.PrerequisiteLabel("plan", "reviewed plan"), PageKey = "plan",
             Status = Workspace.Plan is null ? "Pending" : Workspace.Plan.WriteRows.Any() ? "Ready" : "No changes",
             Detail = Workspace.Plan is null ? "Build a plan on the Plan changes page." : $"{Workspace.Plan.WriteRows.Count()} write(s) · digest {Workspace.Plan.PlanDigest[..12]}…"
         });
         Prerequisites.Add(new PrerequisiteRow
         {
-            Step = "6 · Deploy: preserve evidence", PageKey = "deploy",
+            Step = RouteCatalog.PrerequisiteLabel("deploy", "preserve evidence"), PageKey = "deploy",
             Status = Workspace.Snapshot is not null && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot.Id ? "Ready" : "Pending",
             Detail = "Export the before-change capture and acknowledge it. Plans expire with their snapshot after " + Workspace.Settings.SnapshotMaxAgeMinutes + " minutes."
         });

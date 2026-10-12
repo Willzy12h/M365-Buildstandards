@@ -310,6 +310,7 @@ internal static partial class Program
             window.Left = -10000; window.Top = -10000; window.Width = 1480; window.Height = 940;
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
+            CheckCaPlanKeyboardJourney(shell, window, content, output);
             VerifyQuickConnectScroll(shell, window, content);
             using (new NativeHarnessTrackBounds(window, content, PageSizes))
             {

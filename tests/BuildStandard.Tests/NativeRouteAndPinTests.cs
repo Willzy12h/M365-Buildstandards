@@ -12,6 +12,14 @@ public sealed class NativeRouteAndPinTests
         Assert.Equal(21, RouteCatalog.Items.Select(r => r.Key).Distinct().Count());
         Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, RouteCatalog.Groups);
     }
+    [Theory]
+    [InlineData("connect", "deployment access", "Client and connection: deployment access")]
+    [InlineData("configuration", "live capture", "1 · Configuration: live capture")]
+    [InlineData("plan", "reviewed plan", "4 · Plan changes: reviewed plan")]
+    [InlineData("deploy", "preserve evidence", "5 · Deploy and outcomes: preserve evidence")]
+    public void Readiness_labels_use_the_actual_navigation_sequence(string key, string purpose, string expected)
+    { Assert.Equal(expected, RouteCatalog.PrerequisiteLabel(key, purpose)); }
+
     [Fact]
     public void Pin_is_immutable_original_provenance_and_context_change_collapses_sensitive_details()
     {
