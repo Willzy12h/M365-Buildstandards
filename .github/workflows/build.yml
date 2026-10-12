@@ -42,24 +42,24 @@ jobs:
           restore-keys: nuget-
 
       - name: Restore
-        run: dotnet restore BDIT.TenantToolkit.sln
+        run: dotnet restore BuildStandard.sln
 
       # Warnings are fatal here and nowhere else: a developer can still build with a warning while working, but
       # nothing reaches integration carrying one. Nullability warnings are fixed, never suppressed.
       - name: Build
-        run: dotnet build BDIT.TenantToolkit.sln -c Release --no-restore -warnaserror
+        run: dotnet build BuildStandard.sln -c Release --no-restore -warnaserror
 
       # The review harness is not in the solution, so it would otherwise gain warnings unseen.
       - name: Build the interface review harness
-        run: dotnet build tests/BDIT.TenantToolkit.UiReview -c Release -warnaserror
+        run: dotnet build tests/BuildStandard.UiReview -c Release -warnaserror
 
       - name: Test
-        run: dotnet test tests/BDIT.TenantToolkit.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+        run: dotnet test tests/BuildStandard.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
 
       # The application's own logic - which client is selected, whether a capture may be deployed from - lives in a
       # WPF assembly the engine test project cannot reference, so it has its own project on the Windows runner.
       - name: Test the application
-        run: dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release --no-build --logger "trx;LogFileName=app-tests.trx" --results-directory TestResults
+        run: dotnet test tests/BuildStandard.App.Tests -c Release --no-build --logger "trx;LogFileName=app-tests.trx" --results-directory TestResults
 
       - name: Build portable Windows package
         shell: pwsh
@@ -69,7 +69,7 @@ jobs:
       - name: Render offline WPF workflows and check bindings
         shell: pwsh
         run: |
-          dotnet run --project tests/BDIT.TenantToolkit.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
+          dotnet run --project tests/BuildStandard.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/ui-review"
           $reviewExit = $LASTEXITCODE
           if ($reviewExit -ne 0) {
             $errorFile = Join-Path $pwd 'dist/ui-review/harness-error.txt'
@@ -106,7 +106,7 @@ jobs:
       - name: Script library parse, Copy literals and synthetic run (PowerShell 5.1)
         shell: powershell
         run: |
-          ./build/Test-ScriptLibraryStubs.ps1 -Bdit src/BDIT.TenantToolkit.Cli/bin/Release/net10.0/bdit.dll -Library scripts
+          ./build/Test-ScriptLibraryStubs.ps1 -Bdit src/BuildStandard.Cli/bin/Release/net10.0/BuildStandard.Cli.dll -Library scripts
           $copy = Join-Path $env:RUNNER_TEMP ('library-' + [guid]::NewGuid().ToString('N'))
           Copy-Item -Recurse scripts $copy
           try {
@@ -259,9 +259,9 @@ jobs:
         shell: bash
         run: |
           for file in ReportExporter CsvWriter XlsxWriter HtmlReports MarkdownReports TabularReports; do
-            git ls-files --error-unmatch "src/BDIT.TenantToolkit.Engine/Reports/$file.cs" || exit 1
+            git ls-files --error-unmatch "src/BuildStandard.Engine/Reports/$file.cs" || exit 1
           done
-          git ls-files --error-unmatch src/BDIT.TenantToolkit.Engine/Evidence/EvidenceStore.cs
+          git ls-files --error-unmatch src/BuildStandard.Engine/Evidence/EvidenceStore.cs
 
       - name: Script library pins are current
         run: python3 build/Update-ScriptRegistry.py --check

@@ -42,7 +42,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="bdit-report-scale-") as temporary:
         for repeat in range(args.repeats):
             results = Path(temporary) / str(repeat)
-            invocation = ["dotnet", "test", "tests/BDIT.TenantToolkit.Tests", "-c", "Release", "--no-restore",
+            invocation = ["dotnet", "test", "tests/BuildStandard.Tests", "-c", "Release", "--no-restore",
                           "-p:EnableWindowsTargeting=true", "-warnaserror", "--filter", "FullyQualifiedName~ReportScaleValidationTests",
                           "--logger", "trx;LogFileName=scale.trx", "--results-directory", str(results)]
             completed = subprocess.run(invocation, cwd=REPO)

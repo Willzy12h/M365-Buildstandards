@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$PackageRoot, [switch]$TestRejections)
 $ErrorActionPreference = 'Stop'
-$deps = Get-Content -LiteralPath (Join-Path $PackageRoot 'app/BDIT.TenantToolkit.App.deps.json') -Raw | ConvertFrom-Json
+$deps = Get-Content -LiteralPath (Join-Path $PackageRoot 'app/BuildStandard.App.deps.json') -Raw | ConvertFrom-Json
 # Windows PowerShell 5.1 returns a JSON array as one pipeline object; @() would wrap it in another array.
 # Assignment preserves its elements on 5.1 and collects the enumerated output on PowerShell 7.
 $entries = (Get-Content -LiteralPath (Join-Path $PackageRoot 'DEPENDENCIES.json') -Raw | ConvertFrom-Json)

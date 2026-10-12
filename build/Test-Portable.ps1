@@ -61,9 +61,9 @@ try {
     if (-not (Test-Path -LiteralPath $accessibility -PathType Leaf)) { throw 'Portable package is missing Accessibility.dll, required by text-box context menus.' }
     $accessibilityIdentity = [Reflection.AssemblyName]::GetAssemblyName($accessibility)
     if ($accessibilityIdentity.Name -ne 'Accessibility' -or $accessibilityIdentity.Version.ToString() -ne '4.0.0.0') { throw 'Unexpected Accessibility assembly identity.' }
-    $deps = Get-Content -LiteralPath (Join-Path $extract 'app\BDIT.TenantToolkit.App.deps.json') -Raw
+    $deps = Get-Content -LiteralPath (Join-Path $extract 'app\BuildStandard.App.deps.json') -Raw
     if (-not $deps.Contains('"Accessibility.dll"')) { throw 'Accessibility.dll is missing from the runtime dependency manifest.' }
-    $exe = Join-Path $extract 'app\BDIT.TenantToolkit.App.exe'
+    $exe = Join-Path $extract 'app\BuildStandard.App.exe'
     # Exercise the same self-contained executable in offline CLI mode before desktop startup.
     $executables = @(Get-ChildItem -LiteralPath $extract -Filter '*.exe' -File -Recurse | ForEach-Object { [IO.Path]::GetFullPath($_.FullName) })
     # Preserve the SDK's existing runtime crash diagnostic beside the runtime; it is not a second toolkit application
@@ -71,8 +71,10 @@ try {
     $allowedExecutables = @([IO.Path]::GetFullPath($exe), [IO.Path]::GetFullPath((Join-Path $extract 'app\createdump.exe')))
     if (@($executables | Where-Object { $_ -ieq $allowedExecutables[0] }).Count -ne 1 -or
         @($executables | Where-Object { $allowedExecutables -notcontains $_ }).Count -gt 0) { throw 'Unexpected second application executable in the portable toolkit.' }
-    if (-not (Test-Path -LiteralPath (Join-Path $extract 'app\bdit.dll')) -or -not $deps.Contains('"bdit/')) { throw 'Portable CLI managed dependency is missing.' }
-    $launcher = Join-Path $extract 'bdit.cmd'
+    if (-not (Test-Path -LiteralPath (Join-Path $extract 'app\BuildStandard.Cli.dll')) -or -not $deps.Contains('"BuildStandard.Cli/')) { throw 'Portable CLI managed dependency is missing.' }
+    $launcher = Join-Path $extract 'buildstandard.cmd'
+    $legacyLauncher = Join-Path $extract 'bdit.cmd'
+    if (-not (Test-Path -LiteralPath $legacyLauncher)) { throw 'Legacy CLI compatibility launcher is missing.' }
     if (-not (Test-Path -LiteralPath $launcher)) { throw 'Portable CLI launcher is missing.' }
     function Invoke-OwnedCli([string]$FileName, [string]$Arguments, [int]$ExpectedExit) {
         $info = [Diagnostics.ProcessStartInfo]::new()
@@ -80,6 +82,7 @@ try {
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
         # The owned child must diagnose this fresh extraction, even if the CI caller set a toolkit root.
         $info.EnvironmentVariables.Remove('BDIT_TOOLKIT_ROOT')
+        $info.EnvironmentVariables.Remove('BUILDSTANDARD_ROOT')
         $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
         $owned = [Diagnostics.Process]::new(); $owned.StartInfo = $info
         try {
@@ -98,7 +101,11 @@ try {
     $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
-    if ($viaLauncher.Text -notmatch 'bdit inventory' -or $viaLauncher.Error) { throw 'bdit.cmd did not forward help and stdout.' }
+    if ($viaLauncher.Text -notmatch 'bdit inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
+    $viaLegacy = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" --help"') 0
+    if ($viaLegacy.Text -ne $viaLauncher.Text -or $viaLegacy.Error) { throw 'The legacy CLI alias did not reach the same dispatcher/output.' }
+    $legacyFailure = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" inventory --snapshot "synthetic missing file.json""') 2
+    if ($legacyFailure.Error -notmatch 'Refused:' -or $legacyFailure.Text) { throw 'The legacy CLI alias lost the refusal/exit code.' }
     # Real diagnostics from the fresh extracted host, before any synthetic evidence or native startup.
     $doctor = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" doctor --format json"') 0
     if ($doctor.Error) { throw 'Packaged doctor wrote unexpected standard error.' }
@@ -400,7 +407,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of bdit.cmd, WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

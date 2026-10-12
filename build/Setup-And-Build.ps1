@@ -85,7 +85,7 @@ if ($LASTEXITCODE -ne 0) {
 [xml]$props = Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props')
 $version = ($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ }) | Select-Object -First 1
 # Must match $stageName in Build-Portable.ps1, or the paths printed below point at a folder that does not exist.
-$stage = Join-Path $root "dist\M365-BuildStandard-Tool-$version-win-x64"
+$stage = Join-Path $root "dist\BuildStandard-$version-win-x64"
 Write-Host ""
 Write-Host "Ready. Portable folder: $stage" -ForegroundColor Green
 Write-Host "Run:   $stage\Start.cmd"

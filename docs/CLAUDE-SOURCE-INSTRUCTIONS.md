@@ -39,20 +39,20 @@ These are enforced in code and covered by tests. Do not weaken one to make somet
 ## Build and test
 
 ```
-dotnet build BDIT.TenantToolkit.sln -c Release
-dotnet test tests/BDIT.TenantToolkit.Tests -c Release
+dotnet build BuildStandard.sln -c Release
+dotnet test tests/BuildStandard.Tests -c Release
 ```
 
 ### Working in a Linux cloud session
 
-The whole solution except the WPF app targets `net8.0` and builds anywhere. `BDIT.TenantToolkit.App` targets `net8.0-windows` with WPF and needs Windows. The test project does **not** reference the app, so every safety invariant, the Graph client, the assessment engine, the planner, the executor and all the tests run on Linux:
+The whole solution except the WPF app targets `net8.0` and builds anywhere. `BuildStandard.App` targets `net8.0-windows` with WPF and needs Windows. The test project does **not** reference the app, so every safety invariant, the Graph client, the assessment engine, the planner, the executor and all the tests run on Linux:
 
 ```
-dotnet build src/BDIT.TenantToolkit.Core src/BDIT.TenantToolkit.Graph src/BDIT.TenantToolkit.Engine -c Release
-dotnet test tests/BDIT.TenantToolkit.Tests -c Release
+dotnet build src/BuildStandard.Core src/BuildStandard.Graph src/BuildStandard.Engine -c Release
+dotnet test tests/BuildStandard.Tests -c Release
 ```
 
-That covers almost all of the work. Changes to the WPF app (`src/BDIT.TenantToolkit.App`, views, view models, XAML) cannot be compiled there — CI builds them on `windows-latest`, so open the pull request and let it verify. Do not claim a UI change builds if you could not build it.
+That covers almost all of the work. Changes to the WPF app (`src/BuildStandard.App`, views, view models, XAML) cannot be compiled there — CI builds them on `windows-latest`, so open the pull request and let it verify. Do not claim a UI change builds if you could not build it.
 
 No SDK? Run `BUILD-ME-FIRST.cmd`, which installs a user-local .NET 8 SDK into `.dotnet\` without administrator rights and runs the full pipeline, logging to `build\last-build.log`.
 

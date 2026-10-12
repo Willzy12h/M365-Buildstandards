@@ -4,7 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationCore, WindowsBase
 $root = Split-Path -Parent $PSScriptRoot
-$target = Join-Path $root 'src\BDIT.TenantToolkit.Graph\Assets'
+$target = Join-Path $root 'src\BuildStandard.Graph\Assets'
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 $visual = [System.Windows.Media.DrawingVisual]::new()
 $draw = $visual.RenderOpen()

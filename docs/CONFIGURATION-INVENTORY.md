@@ -5,7 +5,7 @@ Use this to inspect all data returned in a configuration capture: collection sta
 Current source/build usage (the existing portable ZIP deliberately does not ship a CLI executable):
 
 ```powershell
-dotnet .\src\BDIT.TenantToolkit.Cli\bin\Release\net10.0\bdit.dll inventory --snapshot "C:\approved-evidence\configuration.json" --root "."
+dotnet .\src\BuildStandard.Cli\bin\Release\net10.0\BuildStandard.Cli.dll inventory --snapshot "C:\approved-evidence\configuration.json" --root "."
 ```
 
 Run this from a built source checkout with its development SDK. It is not an instruction for field engineers to install an SDK. Portable CLI exposure is a separate reviewed hosting/package contract; desktop Reports/navigation integration is also pending. The command prints the local report path. Open the HTML in a browser; use Print to keep a document copy. The capture's recorded tenant, primary domain, time, collector identity, permission mode, toolkit version and standard release stay visible. A different `--release` cannot relabel observed data. This command does not need a saved client profile because it exports observed data without assessing client inputs.

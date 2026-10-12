@@ -48,23 +48,23 @@ if ((Test-Path -LiteralPath (Join-Path $root '.git')) -and (Get-Command git -Err
 }
 
 $dist = if ($OutputDirectory) { $OutputDirectory } else { Join-Path $root 'dist' }
-$stageName = "M365-BuildStandard-Tool-$version-$Runtime"
+$stageName = "BuildStandard-$version-$Runtime"
 $stage = Join-Path $dist $stageName
 $zip = Join-Path $dist "$stageName.zip"
 if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-Invoke-Step 'Restore' { & dotnet restore BDIT.TenantToolkit.sln }
-Invoke-Step 'Build' { & dotnet build BDIT.TenantToolkit.sln -c $Configuration --no-restore -warnaserror }
+Invoke-Step 'Restore' { & dotnet restore BuildStandard.sln }
+Invoke-Step 'Build' { & dotnet build BuildStandard.sln -c $Configuration --no-restore -warnaserror }
 if (-not $SkipTests) {
-    Invoke-Step 'Test' { & dotnet test tests\BDIT.TenantToolkit.Tests\BDIT.TenantToolkit.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=test-results.trx' --results-directory (Join-Path $dist 'test-results') }
-    Invoke-Step 'Test the application' { & dotnet test tests\BDIT.TenantToolkit.App.Tests\BDIT.TenantToolkit.App.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=app-test-results.trx' --results-directory (Join-Path $dist 'test-results') }
+    Invoke-Step 'Test' { & dotnet test tests\BuildStandard.Tests\BuildStandard.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=test-results.trx' --results-directory (Join-Path $dist 'test-results') }
+    Invoke-Step 'Test the application' { & dotnet test tests\BuildStandard.App.Tests\BuildStandard.App.Tests.csproj -c $Configuration --no-build --nologo --logger 'trx;LogFileName=app-test-results.trx' --results-directory (Join-Path $dist 'test-results') }
 }
 # Verify, never regenerate: the package ships the committed manifest bytes, and a changed catalogue fails the build.
 Invoke-Step 'Standards manifest' { & (Join-Path $PSScriptRoot 'Test-StandardsManifest.ps1') -StandardsDirectory (Join-Path $root 'standards') }
 Invoke-Step 'Publish application (self-contained)' {
-    & dotnet publish src\BDIT.TenantToolkit.App\BDIT.TenantToolkit.App.csproj -c $Configuration -r $Runtime --self-contained true `
+    & dotnet publish src\BuildStandard.App\BuildStandard.App.csproj -c $Configuration -r $Runtime --self-contained true `
         -p:PublishSingleFile=false -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -o (Join-Path $stage 'app')
 }
 
@@ -97,7 +97,7 @@ Invoke-Step 'Stage package contents' {
     Copy-Item -LiteralPath (Join-Path $root 'CHANGELOG.md') -Destination $stage -Force
 
     $runtimeVersion = (Get-ChildItem -LiteralPath (Join-Path $stage 'app') -Filter 'System.Private.CoreLib.dll' -Recurse | Select-Object -First 1).VersionInfo.ProductVersion
-    $dependencies = @(& (Join-Path $PSScriptRoot 'Get-DependencyInventory.ps1') -DepsFile (Join-Path $stage 'app/BDIT.TenantToolkit.App.deps.json') -NoticesDirectory (Join-Path $stage 'licenses'))
+    $dependencies = @(& (Join-Path $PSScriptRoot 'Get-DependencyInventory.ps1') -DepsFile (Join-Path $stage 'app/BuildStandard.App.deps.json') -NoticesDirectory (Join-Path $stage 'licenses'))
     [IO.File]::WriteAllText((Join-Path $stage 'DEPENDENCIES.json'), (($dependencies | ConvertTo-Json -Depth 5) + "`n"), [Text.UTF8Encoding]::new($false))
     $sourceCommit = 'unavailable (source archive)'
     if ((Test-Path -LiteralPath (Join-Path $root '.git')) -and (Get-Command git -ErrorAction SilentlyContinue)) {

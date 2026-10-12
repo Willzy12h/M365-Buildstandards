@@ -1,5 +1,21 @@
 # Current source completion record — 8 October 2026
 
+## BuildStandard phase — T1 source prepared, 12 October 2026
+
+Requirement D-07 / AC-24/25/26/31: neutral technical identity with existing root/evidence/cache/lock compatibility. #115 targets the accepted phase from `2343e9ea65e632145a62bb914a64baff3eb95f05`. Source/projects/resources/managed CLI and launchers use `BuildStandard.*`; the legacy CLI alias remains the same host. Root aliases refuse conflicts and invalid explicit selection; no automatic migration/adoption or new authority. INT-100 and ARCHITECTURE enumerate compatibility exceptions.
+
+Observed local evidence: initial root suite 5 failures/5 passes, followed by 10 passes; post-rename compatibility/collection 16 passes. Broad platform-available suite 2012 passes, zero failures, one explicit Windows-DPAPI skip; `ExchangeReportRunnerTests` host cases excluded on Linux and required on Windows. Seventeen initial diagnostic regressions were traced to omitted exact launcher admission; corrected bounded allowlist, focused 89/89 pass. Final affected doctor/root cases 23/23 pass after building current Release source. Strict Windows-targeted solution compilation succeeds with zero warnings/errors; this is not native Windows execution. Registry pins and historical release pins validate unchanged.
+
+**T1 not complete or merged:** actual Windows/App/native/package/DPAPI validation and named Claude safety review remain required, followed by actual phase-merge CI. No test deletion/weakened assertion, catalogue/evidence/publisher/permission/version change, tenant action or H1 acceptance is claimed. Exact final head/run/disposition will be retained on #115; local scratch alone is not the handoff. T2–T10 remain dependent work.
+
+## BuildStandard phase — T0 accepted and verified, 12 October 2026
+
+Requirement: preserve the frozen baseline and coordination, accept prospective authority/shared contracts, store the exact approved complete plan, and validate each composed phase source. #114 reconciled the earlier unsupported approval wording without backdating. Head `bb97da01f474b53e6aaa61496c15f3af319b718e` has independent source Ready review (comment 6115042541) and passing PR run 38183885109. Its tested synthetic merge `87a3ea3fcad4f7dda31e2f14dbc7af8f60764a6f` has the same tree as the reviewed head and actual phase merge.
+
+**T0 complete:** actual phase merge `2343e9ea65e632145a62bb914a64baff3eb95f05`, actual push run 38184685001 passed build/standard/secrets. Native/package annotations cite that exact full source. Main/integration remain frozen at `4a7425f55385e84462975bcc5bdde5644815ca8f`; no product code, historical standard, publisher, permission, version or protection change occurred in T0. Human/live/reader/new-UI acceptance remain outstanding. Subsequent finite work is T1, not the old backlog.
+
+The prepared reconciliation entry below is retained as the earlier state and superseded by this verified result.
+
 ## BuildStandard phase — T0 reconciliation prepared, 12 October 2026
 
 William explicitly approved the complete plan for execution on 12 October 2026 (SHA-256 `a43e44ab9347828d1f9e3cf608f2e88a575cd22268c15cef8882a326b040c654`), prospectively; earlier T0 approval wording was unsupported. [PR #114](https://github.com/Willzy12h/M365-Buildstandards/pull/114), `astra/bs-phase-contract` into `phase/wpf-webview2`, establishes the phase contracts/coordination and minimal merge-source CI trigger. Frozen base is `4a7425f55385e84462975bcc5bdde5644815ca8f`; source/standard version is unchanged. INT-099 records shared boundaries; the approved documents are stored durably under `docs/superpowers`.
