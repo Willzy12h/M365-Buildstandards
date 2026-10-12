@@ -321,9 +321,22 @@ internal static partial class Program
 
     private static void CheckIdentityHeader(ShellViewModel shell, FrameworkElement content, string where)
     {
-        foreach (var value in new[] { shell.TenantTitle, shell.TenantSubtitle, shell.HeaderAccount, shell.HeaderTenantId, shell.ModeBadge })
+        foreach (var value in new[] { shell.TenantTitle, shell.TenantSubtitle, shell.HeaderAccount, shell.ModeBadge })
             if (!Descendants(content).OfType<TextBlock>().Any(t => t.Text == value && IsShown(t, content)))
                 throw new InvalidOperationException(where + ": persistent tenant/domain/account/access header is not visible: " + value);
+        // D-05: friendly context stays visible; exact identifiers remain selectable in native details.
+        var expander = Descendants(content).OfType<Expander>().Single(e => e.Name == "ConnectionDetailsExpander");
+        var wasExpanded = expander.IsExpanded;
+        try
+        {
+            expander.IsExpanded = true; content.UpdateLayout(); Pump();
+            var details = Descendants(content).OfType<TextBox>().Single(t =>
+                System.Windows.Automation.AutomationProperties.GetName(t) == "Connection details");
+            if (!details.IsReadOnly || !IsShown(details, content) || details.Text != shell.DetailsText
+                || !details.Text.Contains(shell.HeaderTenantId, StringComparison.Ordinal))
+                throw new InvalidOperationException(where + ": exact current tenant ID is not visible and copyable in connection details.");
+        }
+        finally { expander.IsExpanded = wasExpanded; content.UpdateLayout(); Pump(); }
     }
 
     private static void CheckExactDetail(FrameworkElement content, string name, string expected)

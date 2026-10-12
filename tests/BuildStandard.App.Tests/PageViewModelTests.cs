@@ -78,10 +78,10 @@ public sealed class PageViewModelTests : IDisposable
     }
 
     [Fact]
-    public void The_menu_follows_the_client_lifecycle_in_four_groups()
+    public void The_menu_preserves_the_client_lifecycle_in_five_native_groups()
     {
         var groups = _shell.NavItems.Select(n => n.Group).Distinct().ToList();
-        Assert.Equal(new[] { "CLIENT", "BUILD", "OPERATE", "EVIDENCE & REFERENCE" }, groups);
+        Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, groups);
         // Each group is contiguous and its heading shows once, over its first page.
         foreach (var group in groups)
         {
@@ -92,7 +92,7 @@ public sealed class PageViewModelTests : IDisposable
         }
         // Only Build is numbered, in order, and activation is part of it.
         var numbered = _shell.NavItems.Where(n => n.Step.Length > 0).ToList();
-        Assert.All(numbered, n => Assert.Equal("BUILD", n.Group));
+        Assert.All(numbered, n => Assert.Equal("Build standard", n.Group));
         Assert.Equal(new[] { "1", "2", "3", "4", "5", "6" }, numbered.Select(n => n.Step));
         Assert.Equal("automation", numbered[^1].Key);
         Assert.Equal(21, _shell.NavItems.Select(n => n.Key).Distinct().Count());

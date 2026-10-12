@@ -39,4 +39,8 @@
   </ItemGroup>
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\PresentationContext.cs" Link="App\PresentationContext.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\BuildStandard.App.Tests\HomeTaskProjectionTests.cs" Link="App\HomeTaskProjectionTests.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\BuildStandard.App\ViewModels\RouteCatalog.cs" Link="App\RouteCatalog.cs" />
+    <Compile Include="..\..\src\BuildStandard.App\ViewModels\PinnedReferenceViewModel.cs" Link="App\PinnedReferenceViewModel.cs" />
+  </ItemGroup>
 </Project>
