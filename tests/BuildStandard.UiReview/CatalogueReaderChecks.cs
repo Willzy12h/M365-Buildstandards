@@ -51,7 +51,7 @@ internal static partial class Program
             {
                 var before=host.DeniedRequests; core.Navigate(url); Pump();
                 var timer=Stopwatch.StartNew(); while(host.DeniedRequests==before && timer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
-                if(host.DeniedRequests<=before || pending.Length!=0) throw new InvalidOperationException("Unexpected/programmatic navigation was not refused without external-link admission.");
+                if(host.DeniedRequests<=before || pending.Length!=0) throw new InvalidOperationException($"Unexpected/programmatic navigation was not refused without external-link admission: requested={url}; denials={before}->{host.DeniedRequests}; pending={pending}; source={core.Source}.");
             }
             core.Navigate(ReaderNavigationPolicy.DocumentUrl+"#index");
             var anchorTimer=Stopwatch.StartNew(); while(observed!="index" && anchorTimer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
