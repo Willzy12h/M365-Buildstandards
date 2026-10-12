@@ -72,7 +72,8 @@ internal static partial class Program
             // The production host has no process-termination API. The environment owns a fresh GUID profile and one controller.
             var infos=core.Environment.GetProcessExtendedInfosAsync(); AwaitReader(infos);
             var renderer=infos.Result.Single(info => info.ProcessInfo.Kind==CoreWebView2ProcessKind.Renderer
-                && info.AssociatedFrameInfos.Any(frame=>frame.ParentFrameInfo is null && frame.Source==core.Source)).ProcessInfo;
+                && info.AssociatedFrameInfos.Any(frame=>frame.ParentFrameInfo is null && frame.FrameId==core.FrameId
+                    && new ReaderNavigationPolicy(["CA-001", "index"], []).AllowsDocument(frame.Source))).ProcessInfo;
             if(renderer.ProcessId==core.BrowserProcessId) throw new InvalidOperationException("Refusing to terminate the browser process.");
             using(var process=Process.GetProcessById(checked((int)renderer.ProcessId)))
             {
