@@ -202,4 +202,34 @@ public sealed class ConnectionGuidanceTests : IDisposable
         Assert.Equal(expected, row.State);
         Assert.Contains("not a compliance result", row.StateExplanation, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("User.Read", "read-only capabilities verified", false)]
+    [InlineData("Mail.Send", "broader permissions present", true)]
+    [InlineData("Future.Read.All", "not fully classified", true)]
+    [InlineData("", "not fully classified", true)]
+    public void Header_separates_assessment_write_refusal_from_observed_token_meaning(string scope, string meaning, bool warning)
+    {
+        var session = TestData.Session(mode: SessionMode.Assessment); session.Scopes = new() { scope };
+        var graph = new FakeGraphClient(TestData.Standard()) { Mode = SessionMode.Assessment };
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace, new ConnectedTenant(session, graph, null));
+        Assert.Contains("Assessment mode — toolkit changes blocked", _shell.ModeBadge, StringComparison.Ordinal);
+        Assert.Contains(meaning, _shell.ModeBadge, StringComparison.Ordinal);
+        Assert.Equal(warning, _shell.IsDeploymentSession);
+        Assert.Equal(!warning, _shell.IsAssessmentSession);
+        foreach (var page in _shell.NavItems) _shell.Navigate(page.Key);
+        Assert.Empty(graph.Reads); Assert.Empty(graph.Writes);
+    }
+
+    [Fact]
+    public void Offline_header_does_not_make_a_token_claim_and_unclassified_discovery_is_explained()
+    {
+        Assert.Equal("No live connection", _shell.ModeBadge);
+        var vm = _shell.Page<ConnectViewModel>();
+        typeof(ConnectViewModel).GetField("_discovered", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(vm,
+            new DiscoveredTenant(TestData.TenantA, "Synthetic client", "synthetic.example", "engineer@synthetic.example", TestData.Operator, false));
+        Assert.Contains("not fully classified", vm.DiscoveredTenantText, StringComparison.Ordinal);
+        Assert.Contains("toolkit changes blocked", vm.DiscoveredTenantText, StringComparison.Ordinal);
+        Assert.Null(_workspace.Connection);
+    }
 }

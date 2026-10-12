@@ -66,9 +66,8 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         var scopes = TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes())
             .Concat(mode == SessionMode.Deployment ? standard.WriteScopes() : Array.Empty<string>())
             .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
-        if (mode == SessionMode.Assessment && scopes.Any(s => s.Contains("ReadWrite", StringComparison.OrdinalIgnoreCase)
-            || s.Contains(".Write", StringComparison.OrdinalIgnoreCase) || s.Contains("AccessAsUser", StringComparison.OrdinalIgnoreCase)))
-            throw new ConfigurationException("The standard contains a write-capable assessment scope. Correct and review the standard before application setup.");
+        if (mode == SessionMode.Assessment && TokenCapabilityClassifier.Classify(scopes).Classification != TokenCapability.ReadOnlyVerified)
+            throw new ConfigurationException("The standard contains a write-capable or unclassified assessment scope. Correct and review the standard before application setup.");
         return scopes;
     }
 

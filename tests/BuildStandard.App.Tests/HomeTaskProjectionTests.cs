@@ -141,7 +141,8 @@ public sealed class HomeTaskProjectionTests
         var first = HomeTaskProjection.Create(context); var second = HomeTaskProjection.Create(context);
         Assert.Equal(first, second); Assert.Equal(before, ToolkitJson.Serialize(context));
         Assert.Equal("assessment", first.NextPageKey); Assert.Contains("review findings", first.EvidenceText);
-        Assert.Contains("separate review and approval", first.Guidance); Assert.Contains("Read-only assessment", first.ConnectionText);
+        Assert.Contains("separate review and approval", first.Guidance); Assert.Contains("Assessment mode — toolkit changes blocked", first.ConnectionText);
+        Assert.Contains("Token: read-only capabilities verified", first.ConnectionText);
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public sealed class HomeTaskProjectionTests
     {
         var context = Current(); context.Session!.Scopes.Add("Policy.ReadWrite.ConditionalAccess");
         var result = HomeTaskProjection.Create(context);
-        Assert.Contains("Write-capable access", result.ConnectionText); Assert.Equal("assessment", result.NextPageKey);
+        Assert.Contains("broader permissions present", result.ConnectionText); Assert.Equal("assessment", result.NextPageKey);
         Assert.Contains("session-specific opt-in", HomeTaskProjection.BoundaryText);
         Assert.Contains("Scoped checks cover their selected requirements only", HomeTaskProjection.BoundaryText);
         Assert.Contains("Job completion needs reviewed evidence", HomeTaskProjection.BoundaryText);

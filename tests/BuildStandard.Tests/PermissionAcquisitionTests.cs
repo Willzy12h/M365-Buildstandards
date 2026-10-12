@@ -1,3 +1,11 @@
+using System.Net;
+using System.Text.Json.Nodes;
+using BuildStandard.Core;
+using BuildStandard.Core.Graph;
+using BuildStandard.Core.Configuration;
+using BuildStandard.Core.Diagnostics;
+using BuildStandard.Core.Models;
+using BuildStandard.Graph;
 using BuildStandard.Graph.Auth;
 using Microsoft.Identity.Client;
 using Xunit;
@@ -44,5 +52,71 @@ public sealed class PermissionAcquisitionTests
     {
         Assert.Equal(same, MsalAuthenticator.SameAuthorisationScopes(new[] { "User.Read" },
             actual.Length == 0 ? Array.Empty<string>() : actual.Split(',')));
+    }
+
+    private sealed class ReturnedAccount : IAccount
+    {
+        public string Username => "engineer@synthetic.example";
+        public string Environment => "login.microsoftonline.com";
+        public AccountId HomeAccountId { get; } = new("synthetic-account", TestData.Operator, TestData.TenantA);
+    }
+
+    private sealed class IdentityReads : HttpMessageHandler
+    {
+        public int Reads { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Assert.Equal(HttpMethod.Get, request.Method); Reads++;
+            var path = request.RequestUri!.AbsolutePath;
+            var body = path switch
+            {
+                "/v1.0/organization" => new JsonObject { ["value"] = new JsonArray(new JsonObject { ["id"] = TestData.TenantA, ["displayName"] = "Synthetic client" }) },
+                "/v1.0/me" => new JsonObject { ["id"] = TestData.Operator, ["userPrincipalName"] = "engineer@synthetic.example" },
+                _ => throw new InvalidOperationException("Unregistered synthetic read: " + path)
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body.ToJsonString()) });
+        }
+    }
+
+    [Theory]
+    [InlineData("User.Read", false, true)]
+    [InlineData("User.Invite.All", false, false)]
+    [InlineData("Mail.Send", false, false)]
+    [InlineData("Future.Read.All", false, false)]
+    [InlineData("User.Read", true, true)]
+    [InlineData("User.Invite.All", true, true)]
+    [InlineData("Future.Read.All", true, true)]
+    public async Task Verified_connection_enforces_returned_capability_policy_without_new_requests(string returnedScope, bool shared, bool accepted)
+    {
+        using var root = new TempRoot(); using var handler = new IdentityReads(); using var http = new HttpClient(handler);
+        var settings = new ToolkitSettings { AssessmentClientId = shared ? "" : TestData.ClientId };
+        var service = new TenantConnectionService(settings, root.Paths, http, NullLog.Instance, "synthetic");
+        var standard = TestData.Standard(); var acquisitions = 0;
+        Task<MsalAuthenticator> Acquire(SignInRequest request, IToolkitLog log, CancellationToken token)
+        {
+            acquisitions++; Assert.Equal(service.ScopesFor(SessionMode.Assessment, standard), request.Scopes);
+            Assert.DoesNotContain("User.Invite.All", request.Scopes); Assert.DoesNotContain("Mail.Send", request.Scopes);
+            Assert.DoesNotContain("Future.Read.All", request.Scopes);
+            var result = new AuthenticationResult("synthetic-token", false, TestData.Operator,
+                DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddHours(1), TestData.TenantA,
+                new ReturnedAccount(), "", new[] { returnedScope }, Guid.Empty);
+            var app = PublicClientApplicationBuilder.Create(request.ClientId).WithAuthority("https://login.microsoftonline.com/" + TestData.TenantA).Build();
+            return Task.FromResult(new MsalAuthenticator(app, request.Scopes.ToArray(), TestData.TenantA, "", log,
+                result, request.ClientId, (_, _) => throw new InvalidOperationException("No renewal in this test")));
+        }
+        Task<ConnectedTenant> Connect() => service.ConnectAsync(TestData.Profile(), SessionMode.Assessment, standard,
+            null, CancellationToken.None, null, null, Acquire);
+        if (!accepted) await Assert.ThrowsAsync<ConfigurationException>(Connect);
+        else
+        {
+            var connected = await Connect();
+            Assert.True(connected.Session.TenantVerified); Assert.True(connected.Session.OperatorVerified);
+            Assert.Equal(SessionMode.Assessment, connected.Session.Mode);
+            if (returnedScope != "User.Read") Assert.Contains(connected.Session.Notices, n => n.Contains("toolkit changes blocked", StringComparison.Ordinal));
+            await Assert.ThrowsAsync<WriteDeniedException>(() => connected.Graph.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+                "/identity/conditionalAccess/policies", new JsonObject(), CancellationToken.None));
+            await connected.ReleaseAsync();
+        }
+        Assert.Equal(1, acquisitions); Assert.Equal(2, handler.Reads);
     }
 }

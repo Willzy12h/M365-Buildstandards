@@ -1,3 +1,4 @@
+using BuildStandard.Core.Safety;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows.Input;
@@ -197,9 +198,12 @@ public sealed class ShellViewModel : ObservableObject
     public bool HeaderHasDetails => HeaderHasConnection || Workspace.Profile is not null;
     public string HeaderAccount => Workspace.ApplicationSetup?.Identity.Account ?? Workspace.Session?.Account ?? "No active connection";
     public string HeaderTenantId => Workspace.ApplicationSetup?.Identity.TenantId ?? Workspace.Session?.TenantId ?? Workspace.Profile?.TenantId ?? "—";
-    public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session?.HasWriteScopes == true || Workspace.ApplicationSetup is not null;
-    public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.HasWriteScopes == false;
-    public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS" : Workspace.Session is null ? "NOT CONNECTED" : Workspace.Session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "WRITE ACCESS · EXPERIMENTAL ON" : "WRITE ACCESS · EXPERIMENTAL OFF") : Workspace.Session.HasWriteScopes ? "ASSESSMENT ONLY — TOKEN HAS WRITE SCOPES" : "READ-ONLY ASSESSMENT";
+    public bool IsDeploymentSession => Workspace.Session?.Mode == SessionMode.Deployment || Workspace.Session is { } s && s.TokenCapabilities.Classification != TokenCapability.ReadOnlyVerified || Workspace.ApplicationSetup is not null;
+    public bool IsAssessmentSession => Workspace.Session?.Mode == SessionMode.Assessment && Workspace.Session.TokenCapabilities.Classification == TokenCapability.ReadOnlyVerified;
+    public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS"
+        : Workspace.Session is not { } session ? "No live connection"
+        : (session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "Deployment mode · tenant changes enabled" : "Deployment mode · tenant changes off")
+            : "Assessment mode — toolkit changes blocked") + "\n" + session.TokenCapabilities.Description;
     public EvidenceSourcePresentation EvidenceSource => EvidenceSourcePresentation.Create(Workspace.Snapshot,
         Workspace.SnapshotIsLive, Workspace.ExchangeSnapshot, Workspace.ExchangeCapturedByTool, Workspace.Profile?.TenantId, HeaderTenantId);
     public string EvidenceStatus => EvidenceSource.Summary;

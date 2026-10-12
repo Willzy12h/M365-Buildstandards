@@ -65,7 +65,7 @@ without selecting or connecting a client.
 
 ## What it will not do
 
-Assessment holds no write permission at the token level. Conditional Access policies are created disabled, Intune
+Assessment mode blocks toolkit changes independently of the returned token. A dedicated assessment connection requires verified supported read capabilities; the documented shared-registration fallback may return broader or unclassified capabilities and is visibly qualified. Classification is not proof of role sufficiency or successful API access. Conditional Access policies are created disabled, Intune
 policies unassigned, groups empty and named locations untrusted — activating or assigning any of them is a separate
 decision you make explicitly. The toolkit never adopts an existing object because its name matches, never modifies
 an unowned policy object, and never retries a write whose outcome it could not confirm. Separately reviewed tenant-wide
