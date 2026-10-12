@@ -85,6 +85,14 @@ def package_name(version):
     return f"M365-BuildStandard-Tool-{version}-win-x64.zip"
 
 
+def resolve_package(version, portable):
+    # Legacy naming is a compatibility alias, not an alternative fingerprint authority.
+    names = (f"BuildStandard-{version}-win-x64.zip", package_name(version))
+    matches = [portable / name for name in names if (portable / name).is_file()]
+    require(len(matches) == 1, "Expected exactly one recognised portable ZIP for the pinned version.")
+    return matches[0]
+
+
 def gh(*arguments, missing_ok=False):
     result = subprocess.run(["gh", *arguments, "--repo", REPOSITORY]
                             if arguments[0] == "release" else ["gh", *arguments],
@@ -138,7 +146,7 @@ def digest(path):
 
 def validate_package(pin, portable):
     version, source, expected = pin["version"], pin["sourceCommit"], pin["packageSha256"]
-    package = portable / package_name(version)
+    package = resolve_package(version, portable)
     require(package.is_file() and digest(package) == expected,
             "Portable ZIP does not match the independently recorded tested SHA-256.")
     sidecar = portable / (package.name + ".sha256")
@@ -200,7 +208,7 @@ def prepare(pin):
     output = Path("release-output")
     require(not output.exists(), "Release staging already exists; use a fresh job.")
     metadata, catalogue_digest = validate_package(pin, inputs / "portable")
-    package = package_name(pin["version"])
+    package = resolve_package(pin["version"], inputs / "portable").name
     output.mkdir()
     for name in (package, package + ".sha256", "portable-verification.json"):
         shutil.copyfile(inputs / "portable" / name, output / name)
@@ -215,7 +223,7 @@ def prepare(pin):
     if "reviewPrompt" in pin:
         shutil.copyfile(pin["reviewPrompt"], output / "CLAUDE-REVIEW-PROMPT.md")
     record = {
-        "product": "M365 BuildStandard Tool", "version": pin["version"], "prerelease": prerelease(pin),
+        "product": "BuildStandard", "version": pin["version"], "prerelease": prerelease(pin),
         "sourceCommit": pin["sourceCommit"], "validatedRun": pin["validatedRun"], "package": package,
         "packageBytes": (output / package).stat().st_size, "packageSha256": pin["packageSha256"],
         "standard": pin["standard"], "catalogueSha256": catalogue_digest,
@@ -256,7 +264,7 @@ def publish(pin, output):
                     "An existing tag cannot be repointed by this publisher.")
         kind = ["--prerelease"] if prerelease(pin) else []
         gh("release", "create", tag, "--draft", *kind, "--verify-tag", "--target", source,
-           "--title", f"M365 BuildStandard Tool {pin['version']}", "--notes-file", "release-notes.md")
+           "--title", f"BuildStandard {pin['version']}", "--notes-file", "release-notes.md")
     for path in sorted(output.iterdir()):
         release = find_release(tag)
         matches = [asset for asset in release["assets"] if asset["name"] == path.name]

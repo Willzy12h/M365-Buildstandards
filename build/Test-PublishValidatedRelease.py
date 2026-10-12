@@ -123,8 +123,9 @@ class PackageTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def build(self, version=VERSION, dirty=False):
-        package = self.portable / publisher.package_name(VERSION)
+    def build(self, version=VERSION, dirty=False, neutral=False):
+        name = f"BuildStandard-{VERSION}-win-x64.zip" if neutral else publisher.package_name(VERSION)
+        package = self.portable / name
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("VERSION.json", json.dumps({
                 "sourceCommit": SOURCE, "version": version, "sourceTreeDirty": dirty,
@@ -148,6 +149,62 @@ class PackageTests(unittest.TestCase):
         metadata, catalogue = publisher.validate_package(pin, self.portable)
         self.assertEqual(metadata["version"], VERSION)
         self.assertEqual(catalogue, hashlib.sha256(b"{}").hexdigest())
+
+    def test_neutral_named_tested_package_accepted_without_changing_old_pins(self):
+        pin = self.build(neutral=True)
+        metadata, catalogue = publisher.validate_package(pin, self.portable)
+        self.assertEqual(metadata["version"], VERSION)
+        self.assertEqual(catalogue, hashlib.sha256(b"{}").hexdigest())
+
+    def test_two_recognised_package_names_are_refused_as_ambiguous(self):
+        pin = self.build()
+        (self.portable / f"BuildStandard-{VERSION}-win-x64.zip").write_bytes(b"ambiguous duplicate")
+        with self.assertRaisesRegex(ValueError, "exactly one recognised portable ZIP"):
+            publisher.validate_package(pin, self.portable)
+
+    def test_neutral_name_does_not_weaken_pinned_bytes_or_sidecar(self):
+        pin = self.build(neutral=True)
+        pin["packageSha256"] = "c" * 64
+        with self.assertRaisesRegex(ValueError, "independently recorded"):
+            publisher.validate_package(pin, self.portable)
+        pin = self.build(neutral=True)
+        (self.portable / f"BuildStandard-{VERSION}-win-x64.zip.sha256").write_text("wrong")
+        with self.assertRaisesRegex(ValueError, "sidecar"):
+            publisher.validate_package(pin, self.portable)
+
+    def test_unrecognised_neutral_filename_is_not_discovered(self):
+        pin = self.build(neutral=True)
+        package = self.portable / f"BuildStandard-{VERSION}-win-x64.zip"
+        package.rename(self.portable / "BuildStandard-arbitrary.zip")
+        with self.assertRaisesRegex(ValueError, "exactly one recognised portable ZIP"):
+            publisher.validate_package(pin, self.portable)
+
+    def test_prepare_keeps_the_actual_neutral_filename_and_its_verified_bytes(self):
+        import shutil
+        pin = self.build(neutral=True)
+        with tempfile.TemporaryDirectory() as job:
+            root = Path(job)
+            full_pin = write_pin(root)
+            full_pin.update(pin)
+            pin = full_pin
+            pin.update({"notes": "build/releases/notes.md", "validatedRun": "123", "pending": ["Synthetic live acceptance unrun"]})
+            shutil.copytree(self.portable, root / "release-input/portable")
+            for folder in ("ui", "standards"):
+                target = root / "release-input" / folder
+                target.mkdir()
+                (target / "synthetic.txt").write_text("Synthetic fixture only.")
+            previous = os.getcwd()
+            try:
+                os.chdir(root)
+                output = publisher.prepare(pin)
+                name = f"BuildStandard-{VERSION}-win-x64.zip"
+                self.assertEqual(publisher.digest(output / name), pin["packageSha256"])
+                record = json.loads((output / "RELEASE-RECORD.json").read_text())
+                self.assertEqual(record["package"], name)
+                self.assertEqual(record["product"], "BuildStandard")
+                self.assertIn(name, (output / "SHA256SUMS.txt").read_text())
+            finally:
+                os.chdir(previous)
 
     def test_changed_bytes_refused(self):
         pin = self.build()

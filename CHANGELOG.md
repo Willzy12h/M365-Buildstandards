@@ -375,6 +375,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
+- Approved phase T10: recognise neutral and historical portable ZIP names with exact pinned-source/hash checks; refuse ambiguous names. No publication or historical release change.
+
 
 
 
