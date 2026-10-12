@@ -25,6 +25,8 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+- T5: bind native result/export admission to current client/session/catalogue/evidence generations and share one next-action projection; preserve original history and unresolved-write safeguards. Independent acceptance remains pending.
+
 
 - Approved phase T2: neutral BuildStandard titles/defaults/new reports and output names, optional retained organisation, versioned catalogue presentation and explicit old/new root guidance; historical identity and protocols retained.
 

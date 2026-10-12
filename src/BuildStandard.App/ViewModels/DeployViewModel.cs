@@ -18,6 +18,7 @@ public sealed class PrerequisiteRow
 public sealed class DeployViewModel : PageViewModel
 {
     private string _lastExport = "";
+    private BuildStandard.App.Services.PresentationContextKey? _displayContext;
     private RunResult? _selectedResult;
 
     public DeployViewModel(ShellViewModel shell) : base(shell, "Deploy")
@@ -98,7 +99,9 @@ public sealed class DeployViewModel : PageViewModel
     {
         var snapshot = Workspace.Snapshot ?? throw new ToolkitException("Capture the tenant first.");
         var standard = Workspace.Standard;
-        LastExport = "Exported before-change capture: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, standard, ExportFormat.Json));
+        var context = Workspace.CapturePresentationContext();
+        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, standard, ExportFormat.Json));
+        if (Workspace.IsCurrent(context)) LastExport = "Exported before-change capture: " + file;
     }
 
     private async Task DeployAsync()
@@ -118,7 +121,9 @@ public sealed class DeployViewModel : PageViewModel
     {
         var run = Workspace.LastRun ?? throw new ToolkitException("No run to export.");
         var journal = Workspace.Evidence.ReadJournal(run.TenantId, run.Id);
-        LastExport = "Exported: " + await Workspace.ExportAsync(() => Workspace.Exporter.ExportRun(run, journal, format));
+        var context = Workspace.CapturePresentationContext();
+        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportRun(run, journal, format));
+        if (Workspace.IsCurrent(context)) LastExport = "Exported: " + file;
     }
 
     private string CaptureReadinessDetail()
@@ -135,6 +140,8 @@ public sealed class DeployViewModel : PageViewModel
 
     public override void Refresh()
     {
+        var context = Workspace.CapturePresentationContext();
+        if (_displayContext != context) { _displayContext = context; LastExport = ""; SelectedResult = null; }
         Prerequisites.Clear();
         var session = Workspace.Session;
         Prerequisites.Add(new PrerequisiteRow

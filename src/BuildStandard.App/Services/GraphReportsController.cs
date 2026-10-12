@@ -16,6 +16,8 @@ public sealed class GraphReportsController(Workspace workspace)
     public string ContextKey => ToolkitJson.Serialize(new
     {
         workspace.Profile, Session = workspace.Session,
+        Presentation = workspace.CapturePresentationContext().Generation,
+        Standard = workspace.Standard?.IntegrityDigest, Evidence = workspace.Snapshot?.Id,
         ProfileReference = workspace.Profile is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(workspace.Profile),
         ConnectionReference = workspace.Connection is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(workspace.Connection),
         GraphTenant = workspace.Connection?.Graph.TenantId, GraphMode = workspace.Connection?.Graph.Mode
@@ -131,11 +133,13 @@ public sealed class GraphReportsController(Workspace workspace)
     {
         RequireIdle(expectedContext);
         GraphReportPresentation.Validate(report, workspace.Profile!.TenantId);
-        return await workspace.ExportAsync(() =>
+        var file = await workspace.ExportAsync(() =>
         {
             RequireContext(expectedContext);
             GraphReportPresentation.Validate(report, workspace.Profile!.TenantId);
             return report.Export(workspace.Exporter, format, suppliedFile);
         }, "Exporting the complete report", "Visual filters do not limit this export; preserving all original rows and read states.");
+        RequireContext(expectedContext);
+        return file;
     }
 }
