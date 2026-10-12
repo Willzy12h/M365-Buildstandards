@@ -26,7 +26,7 @@ internal static partial class Program
         var records = new List<object>();
         // Private construction is confined to this hostile synthetic fixture. Production consumes T8's verified descriptor.
         var html = Encoding.UTF8.GetBytes("""
-            <!doctype html><html><body><h1 id="CA-001">Safe catalogue fixture</h1><h2 id="index">Index</h2>
+            <!doctype html><html><head><meta http-equiv="refresh" content="1;url=https://learn.microsoft.com/en-us/entra/"></head><body><h1 id="CA-001">Safe catalogue fixture</h1><h2 id="index">Index</h2>
             <script>document.body.innerText='SCRIPT EXECUTED MARKER';</script>
             <iframe src="https://reader.buildstandard.example/catalogue.html"></iframe>
             <img src="https://blocked.buildstandard.example/never.png">
@@ -47,20 +47,27 @@ internal static partial class Program
             AwaitReader(host.FindAsync("Safe catalogue fixture"));
             if (core.Find.MatchCount != 1) throw new InvalidOperationException("Safe fixture text was not rendered/searchable through native Find.");
             if (host.DeniedRequests < 2) throw new InvalidOperationException("Injected frame/resource refusal was not observed.");
+            // Native Core.Navigate is itself classified user-initiated by the Runtime. Exercise the
+            // host-owned programmatic admission, not a false assumption about that SDK flag.
             foreach (var url in new[] { "file:///C:/not-a-reader-document", "data:text/html,blocked", "https://reader.buildstandard.example/catalogue.html?extra=1", "https://learn.microsoft.com/en-us/entra/" })
             {
-                var before=host.DeniedRequests; core.Navigate(url); Pump();
-                var timer=Stopwatch.StartNew(); while(host.DeniedRequests==before && timer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
+                var before=host.DeniedRequests;
+                if (host.TryNavigateDocument(url)) throw new InvalidOperationException("Host admitted a forbidden programmatic document target.");
+                Pump();
                 if(host.DeniedRequests<=before || pending.Length!=0) throw new InvalidOperationException($"Unexpected/programmatic navigation was not refused without external-link admission: requested={url}; denials={before}->{host.DeniedRequests}; pending={pending}; source={core.Source}.");
             }
-            core.Navigate(ReaderNavigationPolicy.DocumentUrl+"#index");
+            // A script-free meta refresh originates inside browser content without a user gesture.
+            var refreshTimer=Stopwatch.StartNew(); while(host.DeniedNonUserNavigations == 0 && refreshTimer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
+            if (host.DeniedNonUserNavigations == 0 || pending.Length != 0 || !new ReaderNavigationPolicy(["CA-001", "index"], []).AllowsDocument(core.Source))
+                throw new InvalidOperationException($"Non-user browser refresh was not observed refused: nonUserDenials={host.DeniedNonUserNavigations}; pending={pending}; source={core.Source}.");
+            if (!host.TryNavigateDocument(ReaderNavigationPolicy.DocumentUrl+"#index")) throw new InvalidOperationException("Valid same-document anchor was refused.");
             var anchorTimer=Stopwatch.StartNew(); while(observed!="index" && anchorTimer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
             if(observed!="index") throw new InvalidOperationException("Same-document SourceChanged did not report the observed anchor.");
             var exact=workspace.Exporter.SaveHtml(fixture);
             if(!File.ReadAllBytes(exact).SequenceEqual(html) || CanonicalJson.Sha256Hex(File.ReadAllBytes(exact))!=fixture.HtmlSha256)
                 throw new InvalidOperationException("Hosted document's explicit save was not the admitted bytes.");
             using(var image=File.Create(Path.Combine(output,"reader-negative-fixture.png"))) AwaitReader(core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image));
-            records.Add(new { Case="hostile synthetic fixture", ScriptMutation="refused", FrameAndResource="refused", ProgrammaticExternalLink="refused", Fragment="observed", ExactSave="passed", host.RuntimeVersion, host.DeniedRequests });
+            records.Add(new { Case="hostile synthetic fixture", ScriptMutation="refused", FrameAndResource="refused", ProgrammaticExternalLink="refused", Fragment="observed", ExactSave="passed", host.RuntimeVersion, host.DeniedRequests, host.DeniedNonUserNavigations });
             // Terminate only this isolated fixture's main renderer, never a browser/shared process or process tree.
             // The production host has no process-termination API. The environment owns a fresh GUID profile and one controller.
             var infos=core.Environment.GetProcessExtendedInfosAsync(); AwaitReader(infos);

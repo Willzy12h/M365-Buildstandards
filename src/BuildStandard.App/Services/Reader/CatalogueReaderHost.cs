@@ -24,9 +24,18 @@ public sealed class CatalogueReaderHost : IDisposable
     private TaskCompletionSource<bool>? _navigation;
     public WebView2? Control => _web;
     public int DeniedRequests { get; private set; }
+    public int DeniedNonUserNavigations { get; private set; }
     public string Stage { get; private set; } = "Closed";
     public string RuntimeVersion { get; private set; } = "Not initialised";
     public string CleanupStatus { get; private set; } = "No reader cache created";
+    /// <summary>All host-originated navigation is admitted before calling the SDK. The SDK can
+    /// classify Core.Navigate as user-initiated; that flag is not proof of a native engineer gesture.</summary>
+    public bool TryNavigateDocument(string uri)
+    {
+        if (_web?.CoreWebView2 is not { } core || _retiring || _current?.Invoke() != true || _policy?.AllowsDocument(uri) != true)
+        { DeniedRequests++; return false; }
+        core.Navigate(uri); return true;
+    }
     public async Task OpenAsync(CatalogueDocument document, string anchor, Func<bool> current,
         Action<WebView2> attach, Action<string> notice, Action<string> pendingReference, Action<string> observedAnchor)
     {
@@ -88,6 +97,7 @@ public sealed class CatalogueReaderHost : IDisposable
         {
             if (current() && !_retiring && _policy.AllowsDocument(e.Uri) && !e.IsRedirected) return;
             e.Cancel = true; DeniedRequests++;
+            if (!e.IsUserInitiated) DeniedNonUserNavigations++;
             if (!_retiring && _policy.AllowsReference(e.Uri, e.IsUserInitiated && !e.IsRedirected, current())) pendingReference(e.Uri);
         };
         core.FrameNavigationStarting += (_, e) => { e.Cancel = true; DeniedRequests++; };
@@ -118,7 +128,7 @@ public sealed class CatalogueReaderHost : IDisposable
             else { _web.Visibility = Visibility.Hidden; _navigation?.TrySetException(new IOException("Catalogue document navigation failed.")); }
         };
         Stage = "Navigation";
-        core.Navigate(ReaderNavigationPolicy.DocumentUrl + fragment);
+        if (!TryNavigateDocument(ReaderNavigationPolicy.DocumentUrl + fragment)) throw new IOException("Admitted catalogue navigation became unavailable.");
         await _navigation.Task.WaitAsync(TimeSpan.FromSeconds(30));
         if (!current() || _retiring) Dispose();
         }
