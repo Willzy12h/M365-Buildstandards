@@ -84,17 +84,6 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
     private static void WriteDigest(string file) =>
         File.WriteAllText(file + ".sha256", CanonicalJson.Sha256Hex(File.ReadAllBytes(file)) + "  " + Path.GetFileName(file) + "\n", new UTF8Encoding(false));
 
-    private byte[] VerifiedSource(StandardCatalogue standard)
-    {
-        if (string.IsNullOrWhiteSpace(standard.IntegrityDigest))
-            throw new IntegrityException("A default/settings export requires a manifest-verified catalogue. Load a verified release first.");
-        var reloaded = new StandardsLoader(paths, NullLog.Instance).Load(standard.SourceFileName);
-        if (!string.Equals(reloaded.IntegrityDigest, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(CanonicalJson.Sha256Value(reloaded), CanonicalJson.Sha256Value(standard), StringComparison.Ordinal))
-            throw new IntegrityException("The catalogue changed after loading. Reload it before exporting its definition.");
-        var bytes = File.ReadAllBytes(Path.Combine(paths.StandardsDirectory, standard.SourceFileName));
-        if (!string.Equals(CanonicalJson.Sha256Hex(bytes), standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase))
-            throw new IntegrityException("The catalogue changed during export. No definition was exported.");
-        return bytes;
-    }
+    private byte[] VerifiedSource(StandardCatalogue standard) => VerifiedCatalogueSource.Read(paths, standard);
+
 }
