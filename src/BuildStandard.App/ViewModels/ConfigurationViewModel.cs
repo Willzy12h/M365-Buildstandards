@@ -68,7 +68,8 @@ public sealed class ConfigurationViewModel : PageViewModel
         ExportExchangeEvidenceCommand = Command(async () =>
         {
             var snapshot = Workspace.ExchangeSnapshot ?? throw new ToolkitException("Capture or import Exchange observations first.");
-            _lastExportFile = await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, Workspace.Standard, ExportFormat.Json));
+            var standard = Workspace.Standard;
+            _lastExportFile = await Workspace.ExportAsync(() => Workspace.Exporter.ExportSnapshot(snapshot, standard, ExportFormat.Json));
             LastExport = "Exported separate read-only Exchange/Purview observations: " + _lastExportFile;
             OnPropertyChanged(nameof(LastExport));
         }, () => Workspace.ExchangeSnapshot is not null && Workspace.Idle);
