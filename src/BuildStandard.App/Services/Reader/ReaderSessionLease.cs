@@ -21,6 +21,15 @@ public sealed class ReaderSessionLease : IDisposable
         File.WriteAllText(Path.Combine(SessionDirectory, ".owner"), _owner);
         Directory.CreateDirectory(ContentDirectory); Directory.CreateDirectory(ProfileDirectory);
     }
+    public void ValidateBeforeUse()
+    {
+        AssertNoReparseAncestors(SessionDirectory);
+        AssertNoReparseAncestors(ContentDirectory); AssertNoReparseAncestors(ProfileDirectory);
+        AssertNoReparseAncestors(Path.Combine(SessionDirectory, ".owner"));
+        if (_deleted || _lock is null || !Directory.Exists(ContentDirectory) || !Directory.Exists(ProfileDirectory)
+            || File.ReadAllText(Path.Combine(SessionDirectory, ".owner")) != _owner)
+            throw new IOException("Reader session ownership is no longer valid.");
+    }
     public bool Retire(bool browserExited)
     {
         if (_deleted) return true;

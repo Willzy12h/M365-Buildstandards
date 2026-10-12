@@ -39,8 +39,8 @@ internal static partial class Program
         var grid = new Grid(); window.Content = grid; window.Width = 1180; window.Height = 760; window.Show(); Pump();
         using (var host = new CatalogueReaderHost())
         {
-            var current = true; var pending = ""; var observed = "";
-            AwaitReader(host.OpenAsync(fixture, "CA-001", () => current, c => grid.Children.Add(c), _ => { }, u => pending=u, a => observed=a));
+            var current = true; var pending = ""; var observed = ""; var failure = "";
+            AwaitReader(host.OpenAsync(fixture, "CA-001", () => current, c => grid.Children.Add(c), n => failure=n, u => pending=u, a => observed=a));
             if (host.Control?.CoreWebView2 is not { } core) throw new InvalidOperationException("Hosted reader has no ready browser.");
             AwaitReader(host.FindAsync("SCRIPT EXECUTED MARKER"));
             if (core.Find.MatchCount != 0) throw new InvalidOperationException("Host allowed injected page script to change the document.");
@@ -61,6 +61,23 @@ internal static partial class Program
                 throw new InvalidOperationException("Hosted document's explicit save was not the admitted bytes.");
             using(var image=File.Create(Path.Combine(output,"reader-negative-fixture.png"))) AwaitReader(core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image));
             records.Add(new { Case="hostile synthetic fixture", ScriptMutation="refused", FrameAndResource="refused", ProgrammaticExternalLink="refused", Fragment="observed", ExactSave="passed", host.RuntimeVersion, host.DeniedRequests });
+            // Terminate only this isolated fixture's main renderer, never a browser/shared process or process tree.
+            // The production host has no process-termination API. The environment owns a fresh GUID profile and one controller.
+            var infos=core.Environment.GetProcessExtendedInfosAsync(); AwaitReader(infos);
+            var renderer=infos.Result.Single(info => info.ProcessInfo.Kind==CoreWebView2ProcessKind.Renderer
+                && info.AssociatedFrameInfos.Any(frame=>frame.ParentFrameInfo is null && frame.Source==core.Source)).ProcessInfo;
+            if(renderer.ProcessId==core.BrowserProcessId) throw new InvalidOperationException("Refusing to terminate the browser process.");
+            using(var process=Process.GetProcessById(checked((int)renderer.ProcessId)))
+            {
+                _=process.StartTime; // Resolve the exact owned process before the final environment membership check.
+                if(!core.Environment.GetProcessInfos().Any(info=>info.ProcessId==renderer.ProcessId && info.Kind==CoreWebView2ProcessKind.Renderer))
+                    throw new InvalidOperationException("Owned renderer changed; no process was terminated.");
+                process.Kill();
+            }
+            var failureTimer=Stopwatch.StartNew(); while(failure.Length==0 && failureTimer.Elapsed<TimeSpan.FromSeconds(10)){Pump();Thread.Sleep(10);}
+            if(!failure.Contains("render/process failed",StringComparison.Ordinal) || host.Control.Visibility==Visibility.Visible)
+                throw new InvalidOperationException("Owned renderer failure did not hide content and announce its native failure.");
+            records.Add(new { Case="isolated synthetic main-renderer failure", HiddenAndAnnounced="passed", BrowserOrSharedProcessTerminated=false });
             current=false; host.Dispose(); grid.Children.Clear();
             var exitTimer=Stopwatch.StartNew(); while(host.CleanupStatus!="Reader cache retired" && exitTimer.Elapsed<TimeSpan.FromSeconds(15)){Pump();Thread.Sleep(10);}
             records.Add(new { Case="superseded owned reader retirement", host.CleanupStatus });

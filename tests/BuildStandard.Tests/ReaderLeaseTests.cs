@@ -25,10 +25,23 @@ public sealed class ReaderLeaseTests
         {
             using var lease = new ReaderSessionLease(root, Guid.NewGuid());
             Directory.Delete(lease.ProfileDirectory); Directory.CreateSymbolicLink(lease.ProfileDirectory, outside);
+            Assert.Throws<IOException>(() => lease.ValidateBeforeUse());
             Assert.False(lease.Retire(true)); Assert.Equal("synthetic retained", File.ReadAllText(Path.Combine(outside, "keep.txt")));
             Directory.Delete(lease.ProfileDirectory);
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); Directory.Delete(outside, true); }
+    }
+    [Fact] public void Disposal_without_browser_exit_preserves_unknown_crash_data_and_a_new_session_cannot_sweep_it()
+    {
+        var root=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N"));
+        try
+        {
+            var instance=Guid.NewGuid(); var abandoned=new ReaderSessionLease(root,instance);
+            var original=abandoned.SessionDirectory; abandoned.Dispose();
+            using var next=new ReaderSessionLease(root,instance); Assert.True(next.Retire(true));
+            Assert.True(Directory.Exists(original)); Assert.NotEqual(original,next.SessionDirectory);
+        }
+        finally { if(Directory.Exists(root)) Directory.Delete(root,true); }
     }
     [Fact] public void Missing_ownership_marker_refuses_cleanup()
     {

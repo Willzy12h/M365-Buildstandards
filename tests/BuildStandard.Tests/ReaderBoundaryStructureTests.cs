@@ -9,6 +9,6 @@ public sealed class ReaderBoundaryStructureTests
         var source=File.ReadAllText(file);
         foreach(var forbidden in new[]{"ExecuteScript", "AddScriptToExecuteOnDocumentCreated", "CallDevToolsProtocol", "AddHostObjectToScript", "WebMessageReceived"}) Assert.DoesNotContain(forbidden,source,StringComparison.Ordinal);
         Assert.Contains("CoreWebView2HostResourceAccessKind.Deny",source,StringComparison.Ordinal);
-        foreach(var setting in new[]{"IsScriptEnabled = false","AreHostObjectsAllowed = false","IsWebMessageEnabled = false","AreDevToolsEnabled = false"}) Assert.Contains(setting,source,StringComparison.Ordinal);
+        foreach(var setting in new[]{"IsScriptEnabled = false","AreHostObjectsAllowed = false","IsWebMessageEnabled = false","AreDevToolsEnabled = false","AreBrowserAcceleratorKeysEnabled = false"}) Assert.Contains(setting,source,StringComparison.Ordinal);
     }
 }

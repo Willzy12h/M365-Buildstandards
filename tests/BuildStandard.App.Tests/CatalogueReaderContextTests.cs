@@ -32,6 +32,14 @@ public sealed class CatalogueReaderContextTests : IDisposable
         Assert.Null(_workspace.Connection); Assert.Null(_workspace.ApplicationSetup); Assert.Null(_workspace.Plan);
         reader.Close();
     }
+    [Fact] public async Task A_late_generation_does_not_replace_the_engineers_new_route_in_the_same_client()
+    {
+        var document=new CatalogueDocumentService(_root.Paths).Create(_workspace.RequireStandard());
+        _shell.Navigate("standard"); var epoch=_shell.NavigationEpoch;
+        _shell.Navigate("reports"); var current=_shell.CurrentPage;
+        await _shell.ShowCatalogueReferenceAsync(document,"CA-001",_workspace.CapturePresentationContext(),epoch);
+        Assert.Same(current,_shell.CurrentPage); Assert.Null(_workspace.Connection);
+    }
     [Fact] public async Task Returning_without_a_context_change_reuses_the_native_control_and_filters()
     {
         var standard=_shell.Page<StandardViewModel>(); standard.Search="CA-001"; standard.Selected=Assert.Single(standard.Controls);

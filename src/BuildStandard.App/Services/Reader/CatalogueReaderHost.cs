@@ -42,13 +42,14 @@ public sealed class CatalogueReaderHost : IDisposable
         // Runtime detection is deliberately after the native View reference action, never application startup.
         Stage = "Configuration";
         ReaderRuntimeConfiguration.RequireCompatible(Environment.GetEnvironmentVariable, ApplicableRegistryOverride);
-        var options = new CoreWebView2EnvironmentOptions { ReleaseChannels = CoreWebView2ReleaseChannels.Stable };
+        var options = new CoreWebView2EnvironmentOptions { ReleaseChannels = CoreWebView2ReleaseChannels.Stable, AllowSingleSignOnUsingOSPrimaryAccount = false, ExclusiveUserDataFolderAccess = true };
         Stage = "Runtime";
         RuntimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString(null, options);
         if (!current()) return;
         Stage = "Cache";
         var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BuildStandard", "Reader");
         _lease = new(root, Instance);
+        _lease.ValidateBeforeUse();
         var html = Path.Combine(_lease.ContentDirectory, "catalogue.html");
         using (var stream = new FileStream(html, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
         {
@@ -58,12 +59,14 @@ public sealed class CatalogueReaderHost : IDisposable
         Stage = "Host";
         _web = new WebView2 { Visibility = Visibility.Hidden };
         attach(_web);
+        _lease.ValidateBeforeUse();
         _environmentRequested = true;
         _environment = await CoreWebView2Environment.CreateAsync(userDataFolder: _lease.ProfileDirectory, options: options);
         if (!string.Equals(Path.GetFullPath(_environment.UserDataFolder), Path.GetFullPath(_lease.ProfileDirectory), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Runtime selected a different profile folder. Reader remains unavailable.");
         _environment.BrowserProcessExited += BrowserExited;
         if (!current() || _retiring) { Dispose(); return; }
+        _lease.ValidateBeforeUse();
         await _web.EnsureCoreWebView2Async(_environment);
         if (!current() || _retiring) { Dispose(); return; }
         var core = _web.CoreWebView2;
@@ -76,7 +79,7 @@ public sealed class CatalogueReaderHost : IDisposable
         settings.AreDefaultContextMenusEnabled = false;
         settings.IsGeneralAutofillEnabled = false;
         settings.IsPasswordAutosaveEnabled = false;
-        settings.AreBrowserAcceleratorKeysEnabled = true;
+        settings.AreBrowserAcceleratorKeysEnabled = false;
         // Required API probe. Unsupported Runtime restrictions/Find must fail closed.
         _ = core.Find;
         core.SetVirtualHostNameToFolderMapping("reader.buildstandard.example", _lease.ContentDirectory, CoreWebView2HostResourceAccessKind.Deny);
