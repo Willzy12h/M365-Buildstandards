@@ -3,6 +3,8 @@ using BuildStandard.App.Infrastructure;
 
 namespace BuildStandard.App.ViewModels;
 
+public sealed record HomeEvidenceRow(string Title, string CapturedAt, string Status, string PageKey, string Provenance);
+
 public sealed record HomeTaskCard(string Title, string Description, string ActionLabel, string PageKey, string AccessibleName);
 
 public sealed class HomeViewModel : PageViewModel
@@ -26,6 +28,15 @@ public sealed class HomeViewModel : PageViewModel
     public HomeTaskProjection Projection { get; private set; } = HomeTaskProjection.Create(new());
     public string BoundaryText => HomeTaskProjection.BoundaryText;
 
+    public IReadOnlyList<HomeTaskCard> PrimaryTasks { get; } = Array.AsReadOnly(new[]
+    {
+        new HomeTaskCard("Discover the tenant", "Choose and verify a client before collecting read-only configuration.", "Open client connection", "connect", "Open client connection · discover the tenant"),
+        new HomeTaskCard("Assess saved evidence", "Review captured settings, gaps and unknowns against the selected standard.", "Open assessment", "assessment", "Open assessment · assess saved evidence"),
+        new HomeTaskCard("Backfill a legacy build", "Record the existing build and its evidence before proposing changes.", "Open jobs and backfill", "jobs", "Open jobs and backfill · legacy build"),
+        new HomeTaskCard("Review a change plan", "Inspect the exact proposal and its prerequisites before any approval.", "Open plan changes", "plan", "Open plan changes · review a change plan")
+    });
+    public IReadOnlyList<HomeEvidenceRow> RecentEvidence { get; private set; } = Array.Empty<HomeEvidenceRow>();
+    public bool HasRecentEvidence => RecentEvidence.Count > 0;
     public IReadOnlyList<HomeTaskCard> Tasks { get; } = Array.AsReadOnly(new[]
     {
         new HomeTaskCard("Start a new tenant", "Choose the client and verify its identity. Begin with a read-only capture, then review the build requirements.", "Open Connect", "connect", "Open Connect · Home new tenant workflow"),
@@ -48,11 +59,28 @@ public sealed class HomeViewModel : PageViewModel
         new HomeTaskCard("Build Standard", "Review the loaded catalogue and requirements.", "", "standard", "Build Standard · Home build standard shortcut")
     });
 
-    private bool IsHomeTask(HomeTaskCard task) => Tasks.Concat(Shortcuts).Any(item => ReferenceEquals(item, task));
+    private bool IsHomeTask(HomeTaskCard task) => PrimaryTasks.Concat(Tasks).Concat(Shortcuts).Any(item => ReferenceEquals(item, task));
 
     public override void Refresh()
     {
         Projection = HomeTaskProjection.Create(Workspace.CaptureHomeTaskContext());
+        var rows = new List<HomeEvidenceRow>();
+        var tenant = Workspace.Profile?.TenantId;
+        bool Current(string id) => !string.IsNullOrWhiteSpace(tenant) && string.Equals(id, tenant, StringComparison.OrdinalIgnoreCase);
+        if (Workspace.Snapshot is { } capture && Current(capture.TenantId))
+            rows.Add(new("Configuration capture", capture.CapturedAt, capture.Complete ? "Recorded complete · review sources" : "Incomplete · review sources",
+                "configuration", $"Original capture {capture.Id} · standard {capture.StandardRelease} · captured by {capture.CapturedBy}"));
+        if (Workspace.Assessment is { } assessment && Current(assessment.TenantId))
+            rows.Add(new("Build standard assessment", assessment.AssessedAt, "Review findings and limitations", "assessment",
+                $"Original assessment {assessment.Id} · snapshot {assessment.SnapshotId} · standard {assessment.Release}"));
+        if (Workspace.ExchangeSnapshot is { } exchange && Current(exchange.TenantId))
+            rows.Add(new("Exchange/Purview evidence", exchange.CapturedAt, "Supplemental · separate access", "configuration",
+                $"Original Exchange capture {exchange.Id} · captured by {exchange.CapturedBy}"));
+        if (Workspace.LastRun is { } run && Current(run.TenantId))
+            rows.Add(new("Recorded deployment outcomes", run.StartedAt, run.Status + " · functional checks remain separate", "deploy",
+                $"Original run {run.Id} · before snapshot {run.BeforeSnapshotId}"));
+        RecentEvidence = rows.AsReadOnly();
+        OnPropertyChanged(nameof(RecentEvidence)); OnPropertyChanged(nameof(HasRecentEvidence));
         OnPropertyChanged(nameof(Projection));
     }
 }

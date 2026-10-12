@@ -113,7 +113,7 @@ internal static partial class Program
                 NotifyFixture(workspace); home.Refresh(); content.UpdateLayout(); Pump();
                 details.IsExpanded = false; content.UpdateLayout(); Pump();
                 var before = ToolkitJson.Serialize(snapshot);
-                var cards = home.Tasks.Concat(home.Shortcuts).ToArray();
+                var cards = home.PrimaryTasks.Concat(home.Tasks).Concat(home.Shortcuts).ToArray();
                 foreach (var card in cards)
                 {
                     shell.Navigate("home"); content.UpdateLayout(); Pump();
@@ -130,6 +130,26 @@ internal static partial class Program
                         || !ReferenceEquals(workspace.Profile, profile) || ToolkitJson.Serialize(workspace.Snapshot) != before)
                         throw new InvalidOperationException("Home navigation changed evidence or authority: " + card.Title);
                 }
+                // New docked reference uses only the saved original; no auth/run or current-client approval.
+                var savedFile = workspace.Evidence.SaveSnapshot(snapshot);
+                var savedBytes = File.ReadAllBytes(savedFile);
+                shell.PinCurrentReferenceCommand.Execute(null); content.UpdateLayout(); Pump();
+                if (!shell.PinnedReference.HasReference) throw new InvalidOperationException("Saved reference did not pin.");
+                if (size.Width >= 1360 ? !shell.UseSideReference : !shell.UseDrawerReference)
+                    throw new InvalidOperationException("Reference did not adapt to the actual window width.");
+                CaptureReportState(content, output, "home-pinned-original", size, checkPageScrolling: false);
+                shell.PinnedReference.DetailsExpanded = true;
+                var nextClient = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(profile));
+                nextClient.Id = Guid.NewGuid().ToString(); nextClient.TenantId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+                nextClient.Company = "Synthetic second client";
+                workspace.ApplyProfileToSession(nextClient, save: false); content.UpdateLayout(); Pump();
+                if (!shell.PinnedReference.HasMismatch || shell.PinnedReference.DetailsExpanded
+                    || workspace.Plan is not null || workspace.AcknowledgedSnapshotId is not null
+                    || !savedBytes.SequenceEqual(File.ReadAllBytes(savedFile)))
+                    throw new InvalidOperationException("Reference context change lost provenance, exposed details or changed authority/evidence.");
+                CaptureReportState(content, output, "home-pinned-different-context", size, checkPageScrolling: false);
+                shell.ClosePinnedReferenceCommand.Execute(null); content.UpdateLayout(); Pump();
+                if (shell.HasPinnedReference) throw new InvalidOperationException("Reference did not close.");
                 HomeJourneySizes++;
             }
         }

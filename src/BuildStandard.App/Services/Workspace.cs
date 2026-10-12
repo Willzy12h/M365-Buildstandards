@@ -172,7 +172,7 @@ public sealed class Workspace : ObservableObject
         lock (_presentationGate)
         {
             var signature = PresentationContextKey.Capture(Profile, Session, Connection, Standard, Snapshot, SnapshotIsLive, ExchangeSnapshot, Assessment, Plan, LastRun)
-                with { SetupInstance = ApplicationSetup, PrivilegedIdentity = ApplicationSetup is null ? "" : ToolkitJson.Serialize(ApplicationSetup.Identity) };
+                with { SetupInstance = PresentationContextKey.IdentityFor(ApplicationSetup), PrivilegedIdentity = ApplicationSetup is null ? "" : ToolkitJson.Serialize(ApplicationSetup.Identity) };
             if (_presentationSignature != signature) { _presentationSignature = signature; _presentationGeneration++; }
             return signature with { Generation = _presentationGeneration };
         }

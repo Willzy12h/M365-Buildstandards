@@ -1,3 +1,5 @@
+using BuildStandard.Core;
+using System.Windows;
 using BuildStandard.Core.Safety;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -51,6 +53,57 @@ public abstract class PageViewModel : ObservableObject
 
 public sealed class ShellViewModel : ObservableObject
 {
+    private string _activeGroup = "Workspace";
+    private double _viewportWidth = 1480;
+    public PinnedReferenceViewModel PinnedReference { get; } = new();
+    public IEnumerable<NativeNavigationGroup> NavigationGroups => RouteCatalog.Groups.Select(g => new NativeNavigationGroup(g, g == _activeGroup));
+    public IEnumerable<NavItem> VisibleNavItems => NavItems.Where(n => n.Group == _activeGroup);
+    public NavItem? ActiveNavItem
+    {
+        get => NavItems.FirstOrDefault(n => n.IsActive);
+        set { if (value is not null && !value.IsActive) Navigate(value.Key); }
+    }
+    public string IdentityContextLabel => Workspace.ApplicationSetup is not null ? "Privileged application setup context"
+        : Workspace.Session is null ? "No signed-in tenant session"
+        : Workspace.Session.OperatorVerified ? "Verified Microsoft Graph identity" : "Identity verification required";
+    public string CurrentPageTitle => ActiveNavItem?.Title ?? "Command centre";
+    public bool HasPinnedReference => PinnedReference.HasReference;
+    public bool UseSideReference => HasPinnedReference && _viewportWidth >= 1360;
+    public bool UseDrawerReference => HasPinnedReference && !UseSideReference;
+    public GridLength PinnedColumnWidth => new(UseSideReference ? 300 : 0);
+    public ICommand SelectGroupCommand { get; private set; } = null!;
+    public ICommand PinCurrentReferenceCommand { get; private set; } = null!;
+    public ICommand ClosePinnedReferenceCommand { get; private set; } = null!;
+    public ICommand CopyPinnedReferenceCommand { get; private set; } = null!;
+    public string PinUnavailableReason => CanPinCurrentReference ? "Pin an immutable copy of this saved capture’s provenance." : "Open or capture this client’s saved configuration first. Wait for any active operation.";
+    private bool CanPinCurrentReference => Workspace.Idle && Workspace.Profile is not null && Workspace.Snapshot is not null
+        && string.Equals(Workspace.Profile.TenantId, Workspace.Snapshot.TenantId, StringComparison.OrdinalIgnoreCase);
+    public void SetViewportWidth(double width) { _viewportWidth = width; NotifyReferenceLayout(); }
+    private void NotifyReferenceLayout()
+    {
+        OnPropertyChanged(nameof(HasPinnedReference)); OnPropertyChanged(nameof(UseSideReference));
+        OnPropertyChanged(nameof(UseDrawerReference)); OnPropertyChanged(nameof(PinnedColumnWidth));
+        OnPropertyChanged(nameof(PinUnavailableReason));
+    }
+    private void SelectGroup(string group)
+    {
+        var first = NavItems.FirstOrDefault(n => n.Group == group);
+        if (first is not null && group != _activeGroup) Navigate(first.Key);
+    }
+    private void PinCurrentReference()
+    {
+        if (!CanPinCurrentReference) { ErrorMessage = PinUnavailableReason; return; }
+        try
+        {
+            var current = Workspace.Snapshot!;
+            var saved = Workspace.Evidence.LoadSnapshot(current.TenantId, current.Id)
+                ?? throw new ToolkitException("This capture has no readable saved evidence. Preserve the original record and review History.");
+            PinnedReference.Pin(PinnedReferenceRecord.FromSnapshot(saved, Workspace.CapturePresentationContext()));
+            PinnedReference.UpdateContext(Workspace.CapturePresentationContext(), Workspace.Standard?.Release);
+        }
+        catch (Exception ex) when (ex is ToolkitException or System.IO.IOException or UnauthorizedAccessException) { ErrorMessage = ex.Message; }
+    }
+
     private readonly Dictionary<string, PageViewModel> _pages = new(StringComparer.Ordinal);
     private object? _currentPage;
     private string _errorMessage = "";
@@ -70,32 +123,14 @@ public sealed class ShellViewModel : ObservableObject
     public ShellViewModel(Workspace workspace)
     {
         Workspace = workspace;
-        // Four groups that follow the client lifecycle. Only the Build pages are numbered, because only they are a sequence.
-        AddNav("CLIENT", "home", "", "Home");
-        AddNav("CLIENT", "connect", "", "Connect");
-        AddNav("CLIENT", "overview", "", "Overview and licences");
-        AddNav("CLIENT", "setup", "", "Application setup");
-        AddNav("BUILD", "configuration", "1", "Configuration");
-        AddNav("BUILD", "assessment", "2", "Assessment");
-        AddNav("BUILD", "deviations", "3", "Deviations");
-        AddNav("BUILD", "plan", "4", "Plan changes");
-        AddNav("BUILD", "deploy", "5", "Deploy");
-        // Activation, assignment and the other reviewed tenant changes follow deployment; this is the step that enforces anything.
-        AddNav("BUILD", "automation", "6", "Policy automation");
-        AddNav("BUILD", "checks", "", "Manual checks");
-        AddNav("OPERATE", "reports", "", "Tenant reports");
-        AddNav("OPERATE", "naming", "", "Naming and ownership");
-        // Reviewed library scripts are copied to run outside the tool; nothing on the page reads or writes the tenant.
-        AddNav("OPERATE", "scripts", "", "Scripts & Reports");
-        // Registered read-only reports run here only after a per-connection opt-in and an exact review and approval.
-        AddNav("OPERATE", "run-reports", "", "Run reports");
-        // Offline review of saved mailbox and licence evidence; it reads nothing from the tenant.
-        AddNav("OPERATE", "mailbox-capacity", "", "Mailbox capacity");
-        AddNav("OPERATE", "jobs", "", "Jobs and completion");
-        AddNav("EVIDENCE & REFERENCE", "history", "", "Evidence and drift");
-        AddNav("EVIDENCE & REFERENCE", "recovery", "", "Undo and recovery");
-        AddNav("EVIDENCE & REFERENCE", "standard", "", "Build Standard");
-        AddNav("EVIDENCE & REFERENCE", "settings", "", "Settings and diagnostics");
+        SelectGroupCommand = new RelayCommand(value => { if (value is string group) SelectGroup(group); });
+        PinCurrentReferenceCommand = new RelayCommand(PinCurrentReference, () => CanPinCurrentReference);
+        ClosePinnedReferenceCommand = new RelayCommand(PinnedReference.Close, () => HasPinnedReference);
+        CopyPinnedReferenceCommand = new RelayCommand(() => CopyToClipboard(PinnedReference.OriginalDetails), () => HasPinnedReference);
+        PinnedReference.PropertyChanged += (_, _) => NotifyReferenceLayout();
+        Workspace.StateChanged += () => PinnedReference.UpdateContext(Workspace.CapturePresentationContext(), Workspace.Standard?.Release);
+
+        foreach (var route in RouteCatalog.Items) AddNav(route.Group, route.Key, route.Step, route.Title);
 
         _pages["home"] = new HomeViewModel(this);
         _pages["overview"] = new OverviewViewModel(this);
@@ -152,6 +187,8 @@ public sealed class ShellViewModel : ObservableObject
     {
         if (!_pages.TryGetValue(key, out var page)) return;
         foreach (var item in NavItems) item.IsActive = item.Key == key;
+        _activeGroup = NavItems.Single(n => n.Key == key).Group;
+        OnPropertyChanged(nameof(NavigationGroups)); OnPropertyChanged(nameof(VisibleNavItems)); OnPropertyChanged(nameof(ActiveNavItem)); OnPropertyChanged(nameof(CurrentPageTitle));
         if (key == "deploy") Workspace.MarkRunViewed();
         CurrentPage = page;
         page.OnNavigatedTo();

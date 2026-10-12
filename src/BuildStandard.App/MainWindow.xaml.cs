@@ -12,6 +12,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SizeChanged += (_, _) => { if (DataContext is BuildStandard.App.ViewModels.ShellViewModel shell) shell.SetViewportWidth(ActualWidth); };
+        DataContextChanged += (_, _) => { if (DataContext is BuildStandard.App.ViewModels.ShellViewModel shell) shell.SetViewportWidth(ActualWidth > 0 ? ActualWidth : Width); };
         FitToWorkArea(SystemParameters.WorkArea);
     }
 
