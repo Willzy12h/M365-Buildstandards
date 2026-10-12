@@ -16,7 +16,10 @@
         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14" Margin="0,0,0,12">
           <StackPanel>
             <TextBlock Text="{Binding SummaryText}" FontSize="12"/>
-            <ItemsControl ItemsSource="{Binding Limitations}" Margin="0,8,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" FontSize="12" Margin="0,3,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            <ItemsControl ItemsSource="{Binding Summary.Groups}" Margin="0,8,0,0"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Border Background="{StaticResource BgPanel}" Padding="8,5" Margin="0,0,8,6" ToolTip="{Binding Meaning}"><TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Count, Mode=OneWay}"/></TextBlock></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            <Expander Header="Needs review · partial, missing, manual and licence breakdown" Margin="0,4,0,4"><ItemsControl ItemsSource="{Binding Summary.ReviewBreakdown}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock ToolTip="{Binding Meaning}"><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Count, Mode=OneWay}"/></TextBlock></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Expander>
+            <TextBlock Text="{Binding HiddenSelectionText}" Foreground="{StaticResource Warn}" FontSize="12"/>
+            <Expander Header="Collection gaps and limitations" Margin="0,6,0,0"><ItemsControl ItemsSource="{Binding Limitations}" Margin="0,8,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" FontSize="12" Margin="0,3,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Expander>
             <Expander Header="Export assessment reports" Margin="0,6,0,0">
               <StackPanel Margin="0,8,0,0">
                 <WrapPanel>

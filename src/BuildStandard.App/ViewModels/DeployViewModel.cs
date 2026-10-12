@@ -51,7 +51,7 @@ public sealed class DeployViewModel : PageViewModel
     public RunResult? SelectedResult
     {
         get => _selectedResult;
-        set { if (SetProperty(ref _selectedResult, value)) OnPropertyChanged(nameof(SelectedEvidence)); }
+        set { if (SetProperty(ref _selectedResult, value)) { OnPropertyChanged(nameof(SelectedEvidence)); OnPropertyChanged(nameof(OutcomeProtectionText)); } }
     }
     public ResultEvidence SelectedEvidence => new(SelectedResult, Shell.CopyCommand);
 
@@ -68,6 +68,10 @@ public sealed class DeployViewModel : PageViewModel
     public bool CanDeploy => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Plan is not null && Workspace.SnapshotIsLive
                              && Workspace.Snapshot?.Complete == true && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot?.Id && Workspace.Idle && Workspace.Plan.WriteRows.Any();
 
+    public string OutcomeSummaryText => Workspace.LastRun is { } run ? OutcomePresentation.ForRun(run, Workspace.LastRunSaved)
+        : "No recorded deployment outcomes are open. No write or protection claim is implied.";
+    public string OutcomeProtectionText => SelectedResult is { } result ? OutcomePresentation.ForResult(result).Protection
+        : "Select an outcome to review its recorded acceptance, readback and protection evidence.";
     public string RunText
     {
         get
@@ -175,6 +179,7 @@ public sealed class DeployViewModel : PageViewModel
             Status = Workspace.Snapshot is not null && Workspace.AcknowledgedSnapshotId == Workspace.Snapshot.Id ? "Ready" : "Pending",
             Detail = "Export the before-change capture and acknowledge it. Plans expire with their snapshot after " + Workspace.Settings.SnapshotMaxAgeMinutes + " minutes."
         });
+        OnPropertyChanged(nameof(OutcomeSummaryText));
         var selectedId = SelectedResult?.ControlId;
         Results.Clear();
         if (Workspace.LastRun is not null) foreach (var r in Workspace.LastRun.Results) Results.Add(r);

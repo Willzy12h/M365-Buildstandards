@@ -16,7 +16,8 @@
         </StackPanel>
         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Margin="0,0,0,8">
           <StackPanel>
-            <DockPanel><Button DockPanel.Dock="Right" Content="Build plan" Command="{Binding BuildPlanCommand}" VerticalAlignment="Top" Margin="20,0,0,0"/><StackPanel><TextBlock Text="{Binding PlanText}" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="{Binding ContextText}" Style="{StaticResource Muted}" Margin="0,6,0,0"/></StackPanel></DockPanel>
+            <DockPanel><Button DockPanel.Dock="Right" Content="Build plan" Command="{Binding BuildPlanCommand}" VerticalAlignment="Top" Margin="20,0,0,0"/><StackPanel><TextBlock Text="{Binding LastBuiltPlanText}" Foreground="{StaticResource Warn}" FontSize="12" Margin="0,0,0,6"/>
+          <TextBlock Text="{Binding PlanText}" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="{Binding ContextText}" Style="{StaticResource Muted}" Margin="0,6,0,0"/></StackPanel></DockPanel>
             <Expander Header="Candidate safeguards and plan identity" Margin="0,4,0,0"><StackPanel Margin="0,8,0,0">
               <TextBlock FontSize="12" Text="Conditional Access stays disabled with configured targeting and exclusions. Intune stays unassigned. Matching names do not establish ownership; updates require ownership and drift checks." Margin="0,0,0,8"/>
               <TextBlock Text="{Binding Workspace.Plan.Id, StringFormat='Plan ID: {0}'}" Style="{StaticResource Mono}"/>

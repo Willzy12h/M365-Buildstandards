@@ -43,4 +43,6 @@
     <Compile Include="..\..\src\BuildStandard.App\ViewModels\RouteCatalog.cs" Link="App\RouteCatalog.cs" />
     <Compile Include="..\..\src\BuildStandard.App\ViewModels\PinnedReferenceViewModel.cs" Link="App\PinnedReferenceViewModel.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\ViewModels\AssessmentSummaryProjection.cs" Link="App\AssessmentSummaryProjection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\ViewModels\OutcomePresentation.cs" Link="App\OutcomePresentation.cs" /></ItemGroup>
 </Project>
