@@ -359,6 +359,11 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 # Changelog
 
+### Approved BuildStandard phase — T8 catalogue document identity
+
+- Generate an immutable Engineer Build Standard reference from manifest-verified source bytes, with separate catalogue/document digests, presentation version, generation time and emitted anchors/references. Static content uses encoded values and a restrictive no-script CSP.
+- Save the exact admitted UTF-8 bytes with readback verification and a fresh owned destination. Later source changes cannot silently replace the viewed reference; unverified catalogue HTML export is refused. Manual/default document routes remain separate. No browser host or runtime validation is claimed here.
+
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
 

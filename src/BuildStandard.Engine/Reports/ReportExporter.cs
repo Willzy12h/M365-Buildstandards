@@ -161,6 +161,8 @@ public sealed partial class ReportExporter
 
     public string ExportEngineerStandard(StandardCatalogue standard, EngineerDocumentKind kind, ExportFormat format)
     {
+        if (kind == EngineerDocumentKind.BuildStandard && format == ExportFormat.Html)
+            return SaveHtml(new CatalogueDocumentService(_paths).Create(standard));
         var name = kind == EngineerDocumentKind.BuildStandard ? "engineer-build-standard" : "manual-implementation-guide";
         var content = format switch
         {
@@ -169,6 +171,34 @@ public sealed partial class ReportExporter
             _ => throw new ArgumentOutOfRangeException(nameof(format), "Engineer documents export as HTML or Markdown.")
         };
         return WriteText(Target(name, standard.Release, standard.PublishedOn, format == ExportFormat.Html ? "html" : "md"), content);
+    }
+
+    /// <summary>Save exactly the admitted reader bytes. Never regenerate from the currently selected catalogue.</summary>
+    public string SaveHtml(CatalogueDocument document)
+    {
+        var bytes = document.CopyHtmlBytes();
+        if (CanonicalJson.Sha256Hex(bytes) != document.HtmlSha256)
+            throw new IntegrityException("The generated reference no longer matches its document identity. Nothing was saved.");
+        var file = Target("engineer-build-standard", document.CatalogueRelease,
+            document.GeneratedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture), "html");
+        // A fresh owned destination avoids overwriting an earlier saved reference (including same-second exports).
+        file = Path.Combine(Path.GetDirectoryName(file)!, Path.GetFileNameWithoutExtension(file) + "-" + Guid.NewGuid().ToString("N")[..8] + ".html");
+        var created = false;
+        try
+        {
+            using var output = new FileStream(file, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+            created = true; output.Write(bytes); output.Flush(flushToDisk: true); output.Position = 0;
+            var savedDigest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(output)).ToLowerInvariant();
+            if (savedDigest != document.HtmlSha256)
+                throw new IntegrityException("Saved HTML does not match the generated reference. Save failed.");
+            return file;
+        }
+        catch
+        {
+            // Only this method's fresh file is owned; no catalogue, historical export or directory cleanup.
+            if (created) { try { File.Delete(file); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+            throw;
+        }
     }
 
     private static string WriteBytes(string file, byte[] content)
