@@ -102,7 +102,25 @@ internal static partial class Program
             && readyTimer.Elapsed<TimeSpan.FromSeconds(45)){Pump();Thread.Sleep(10);}
         if(shell.CurrentPage is not BuildStandard.App.ViewModels.CatalogueReaderViewModel reader || reader.State!="Ready")
             throw new InvalidOperationException("Native catalogue reader did not reach Ready: "+(shell.CurrentPage as BuildStandard.App.ViewModels.CatalogueReaderViewModel)?.Status);
-        var browser=Descendants((FrameworkElement)window.Content).OfType<Microsoft.Web.WebView2.Wpf.WebView2>().Single();
+        var pageRoot=(FrameworkElement)window.Content;
+        Pump();
+        var nativeProblems=new List<string>();
+        foreach(var label in new[]{"Find","Zoom in","Zoom out"})
+        {
+            var button=Descendants(pageRoot).OfType<Button>().Single(b=>b.Content?.ToString()==label);
+            if(!button.IsEnabled) nativeProblems.Add("Ready reader native control remained disabled: "+label);
+        }
+        var selector=Descendants(pageRoot).OfType<ComboBox>().Single(c=>System.Windows.Automation.AutomationProperties.GetName(c)=="Page in the selected navigation group");
+        if(selector.SelectedItem is not BuildStandard.App.ViewModels.NavItem {Key:"standard"})
+            nativeProblems.Add($"Reader route selector is empty or different: shell={shell.ActiveNavItem?.Key}; selected={selector.SelectedItem}; items={selector.Items.Count}.");
+        if(nativeProblems.Count>0) throw new InvalidOperationException(string.Join(" | ",nativeProblems));
+        var browser=Descendants(pageRoot).OfType<Microsoft.Web.WebView2.Wpf.WebView2>().Single();
+        reader.FindText="Require MFA"; reader.FindCommand.Execute(null);
+        var findTimer=Stopwatch.StartNew(); while(browser.CoreWebView2.Find.MatchCount==0 && findTimer.Elapsed<TimeSpan.FromSeconds(5)){Pump();Thread.Sleep(10);}
+        if(browser.CoreWebView2.Find.MatchCount==0) throw new InvalidOperationException("Native Find command did not reach the displayed catalogue.");
+        var originalZoom=browser.ZoomFactor; reader.ZoomInCommand.Execute(null); Pump();
+        if(browser.ZoomFactor<=originalZoom) throw new InvalidOperationException("Native zoom command did not reach the current browser.");
+        reader.ZoomOutCommand.Execute(null); Pump();
         using(var image=File.Create(Path.Combine(output,"reader-engineer-catalogue.png"))) AwaitReader(browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image));
         SaveWindowImage((FrameworkElement)window.Content,Path.Combine(output,"reader-native-chrome.png")); // HWND content is separately captured above; never claim a combined browser bitmap.
         var beforeFiles=Directory.GetFiles(workspace.Paths.ReportsDirectory,"*.html").ToHashSet(StringComparer.OrdinalIgnoreCase);
