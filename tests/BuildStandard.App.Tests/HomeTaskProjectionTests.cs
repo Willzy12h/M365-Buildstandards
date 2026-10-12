@@ -141,7 +141,8 @@ public sealed class HomeTaskProjectionTests
         var first = HomeTaskProjection.Create(context); var second = HomeTaskProjection.Create(context);
         Assert.Equal(first, second); Assert.Equal(before, ToolkitJson.Serialize(context));
         Assert.Equal("assessment", first.NextPageKey); Assert.Contains("review findings", first.EvidenceText);
-        Assert.Contains("separate review and approval", first.Guidance); Assert.Contains("Read-only assessment", first.ConnectionText);
+        Assert.Contains("separate review and approval", first.Guidance); Assert.Contains("Assessment mode — toolkit changes blocked", first.ConnectionText);
+        Assert.Contains("Token: read-only capabilities verified", first.ConnectionText);
     }
 
     [Fact]
