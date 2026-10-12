@@ -47,6 +47,8 @@ internal static partial class Program
             var tabs = Descendants(content).OfType<TabControl>().First(t => t.Items.OfType<TabItem>().Any(i => i.Header?.ToString() == "2  Review exact changes"));
             tabs.SelectedIndex = 1; vm.SelectedRow = vm.Rows.Single(r => r.ControlId == "CA-001");
             content.UpdateLayout(); Pump();
+            var payloadTab = Descendants(content).OfType<TabItem>().Single(t => t.Header?.ToString() == "Exact payload");
+            payloadTab.IsSelected = true; content.UpdateLayout(); Pump();
             var payload = Descendants(content).OfType<TextBox>().Single(t => System.Windows.Automation.AutomationProperties.GetName(t) == "Payload to be written");
             var exact = vm.SelectedRow.Payload!.ToJsonString(BuildStandard.Core.Json.ToolkitJson.Options);
             if (!payload.IsReadOnly || !payload.Focusable || payload.Text != exact || !exact.Contains("disabled", StringComparison.Ordinal)
