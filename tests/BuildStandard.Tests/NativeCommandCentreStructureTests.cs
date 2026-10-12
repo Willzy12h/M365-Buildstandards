@@ -36,4 +36,13 @@ public sealed class NativeCommandCentreStructureTests
             if (match.Success) Assert.Contains(match.Groups[1].Value, names);
         }
     }
+
+    [Fact]
+    public void Working_shell_keeps_the_evidence_origin_and_original_capture_time_visible_across_pages()
+    {
+        var name = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + "Name";
+        var evidence = Source("MainWindow.xaml").Descendants().SingleOrDefault(e => (string?)e.Attribute(name) == "EvidenceSourceStatus");
+        Assert.NotNull(evidence); Assert.Equal("{Binding EvidenceStatus}", (string?)evidence.Attribute("Text"));
+        Assert.DoesNotContain(evidence.Ancestors(), e => e.Name.LocalName == "DataTemplate");
+    }
 }
