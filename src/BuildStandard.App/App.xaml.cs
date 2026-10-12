@@ -60,7 +60,7 @@ public partial class App : Application
             StartupNote("FATAL " + ex.GetType().Name + ": " + ex.Message);
             _logger?.Error("App", "Start-up failed.", ex);
             MessageBox.Show(
-                "The BuildStandard could not start.\n\n" + ex.Message + "\n\n" +
+                "BuildStandard could not start.\n\n" + ex.Message + "\n\n" +
                 (_startupLog is null ? "" : "Details: " + _startupLog + "\n") +
                 "Run Start-Diagnostics.cmd for verbose logging.",
                 "BuildStandard", MessageBoxButton.OK, MessageBoxImage.Error);
