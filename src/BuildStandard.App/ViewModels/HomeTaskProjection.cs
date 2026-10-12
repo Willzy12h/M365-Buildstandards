@@ -83,7 +83,7 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             evidence += $"\nCaptured against standard {Name(snapshot.StandardRelease, "unknown")}; current standard {standard.Release}.";
 
         var headline = profile is null ? "What would you like to work on?" : $"Your next steps for {Name(profile.Company, "this client")}";
-        var next = (Page: "connect", Label: "Open Connect", Reason: "Choose a saved client for local evidence review, or connect read-only to confirm the tenant and collect its configuration.");
+        var next = (Page: "connect", Label: "Open Connect", Reason: "Choose a saved client for local evidence review, or connect read-only to confirm the tenant and collect its configuration, or export the engineer guide offline.");
         if (context.Busy)
             next = ("", "Operation in progress", $"An operation is in progress. {context.BusyMessage} Review its pinned status and wait before starting another operation.");
         else if (context.InterruptedNotice.Length > 0 || context.LastRun is { } uncertain
@@ -105,7 +105,7 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
                 next = ("configuration", "Open this client's evidence", "The open capture belongs to a different client. Reopen this client's saved evidence or collect a fresh read-only capture.");
             else if (snapshot is null)
                 next = ("configuration", "Open Configuration", session is null
-                    ? "Open a saved capture for historical review. To collect current settings, deliberately connect read-only first."
+                    ? "Open a saved capture for historical review. Connect read-only to collect current settings before planning changes."
                     : "Review Configuration and capture the tenant read-only. Supplemental or scoped observations do not establish full before-change evidence.");
             else if (!liveCapture)
                 next = ("assessment", "Review original findings", (complete ? "Review the original evidence and its limitations. "
