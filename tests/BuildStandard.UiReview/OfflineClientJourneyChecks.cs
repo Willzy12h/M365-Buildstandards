@@ -102,7 +102,7 @@ internal static partial class Program
                 shell.Navigate("overview"); content.UpdateLayout(); Pump();
                 var evidence = Descendants(content).OfType<TextBlock>().Single(t => t.Name == "EvidenceSourceStatus");
                 if (evidence.Text != shell.EvidenceStatus || !evidence.Text.Contains("Historical evidence", StringComparison.Ordinal)
-                    || !IsShown(evidence, content) || shell.ModeBadge != "NOT CONNECTED" || !shell.HeaderHasDetails || shell.HeaderHasConnection)
+                    || !IsShown(evidence, content) || shell.ModeBadge != "No live connection" || !shell.HeaderHasDetails || shell.HeaderHasConnection)
                     throw new InvalidOperationException("Persistent historical evidence status or independent access badge failed after navigation.");
                 if (!shell.DetailsText.Contains(profile.Id, StringComparison.Ordinal) || !shell.DetailsText.Contains(profile.TenantId, StringComparison.Ordinal))
                     throw new InvalidOperationException("Offline copyable identity details lost saved profile/tenant identity.");

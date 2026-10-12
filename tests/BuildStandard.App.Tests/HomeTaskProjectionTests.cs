@@ -149,7 +149,7 @@ public sealed class HomeTaskProjectionTests
     {
         var context = Current(); context.Session!.Scopes.Add("Policy.ReadWrite.ConditionalAccess");
         var result = HomeTaskProjection.Create(context);
-        Assert.Contains("Write-capable access", result.ConnectionText); Assert.Equal("assessment", result.NextPageKey);
+        Assert.Contains("broader permissions present", result.ConnectionText); Assert.Equal("assessment", result.NextPageKey);
         Assert.Contains("session-specific opt-in", HomeTaskProjection.BoundaryText);
         Assert.Contains("Scoped checks cover their selected requirements only", HomeTaskProjection.BoundaryText);
         Assert.Contains("Job completion needs reviewed evidence", HomeTaskProjection.BoundaryText);

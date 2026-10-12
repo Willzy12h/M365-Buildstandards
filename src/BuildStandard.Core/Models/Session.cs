@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using BuildStandard.Core.Safety;
+
 namespace BuildStandard.Core.Models;
 
 public enum SessionMode
@@ -30,7 +33,11 @@ public sealed class TenantSession
     public string TokenExpiresAt { get; set; } = "";
     public List<string> Notices { get; set; } = new();
 
-    public bool HasWriteScopes => Scopes.Any(s => s.Contains("ReadWrite", StringComparison.OrdinalIgnoreCase) || s.Contains(".Write.", StringComparison.OrdinalIgnoreCase));
+    [JsonIgnore]
+    public TokenCapabilityResult TokenCapabilities => TokenCapabilityClassifier.Classify(Scopes);
+
+    // Legacy informational member, retained for consumers/evidence; false is not a read-only assurance.
+    public bool HasWriteScopes => TokenCapabilities.Classification == TokenCapability.BroaderPresent;
 }
 
 public sealed class AccessCheck

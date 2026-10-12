@@ -70,7 +70,7 @@ public sealed class ReadOnlyRunWorkflow
             try
             {
                 var (_, _, s) = Live();
-                return $"Verified Graph tenant: {s.TenantName} ({s.TenantId})\nSigned-in account: {s.Account}\nGraph-verified object ID: {s.AccountObjectId}\nConfirmed UPN for Exchange: {s.OperatorUpn}\nGraph application: {s.ClientLabel} ({s.ClientId})\nGraph permission mode: {s.Mode} · token has write scopes: {(s.HasWriteScopes ? "yes" : "no")}. Run uses separate ExchangeOnline authentication; it receives no Graph token/cache.";
+                return $"Verified Graph tenant: {s.TenantName} ({s.TenantId})\nSigned-in account: {s.Account}\nGraph-verified object ID: {s.AccountObjectId}\nConfirmed UPN for Exchange: {s.OperatorUpn}\nGraph application: {s.ClientLabel} ({s.ClientId})\nGraph permission mode: {s.Mode} · {s.TokenCapabilities.Description}. Run uses separate ExchangeOnline authentication; it receives no Graph token/cache.";
             }
             catch (ToolkitException) { return "Connect deliberately with a verified tenant, account object ID and confirmed UPN. A saved profile or historical report cannot enable Run."; }
         }

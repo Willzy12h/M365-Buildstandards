@@ -119,7 +119,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     public string ContextSummary => Workspace.Profile is null ? "Select a client in Connect to read or open its report evidence."
         : Workspace.Session is not { } s ? Workspace.Profile.Company + " · offline review · no authenticated account"
         : Workspace.Profile.Company + " · " + s.PrimaryDomain + " · " + s.Account + " · " + (s.TenantVerified ? "verified tenant" : "UNVERIFIED tenant")
-            + " · " + (s.Mode == SessionMode.Deployment || s.HasWriteScopes ? "WRITE-CAPABLE TOKEN — report routes remain read-only" : "read-only assessment access");
+            + " · " + s.TokenCapabilities.Description + " — report routes remain read-only";
     private ReportParameters Parameters() => new() { Start = StartUtc.Length == 0 ? null : StartUtc, End = EndUtc.Length == 0 ? null : EndUtc };
     public string ReadGuidance
     {

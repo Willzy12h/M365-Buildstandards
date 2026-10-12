@@ -1,3 +1,4 @@
+using BuildStandard.Core.Safety;
 using System.Globalization;
 using BuildStandard.Core;
 using BuildStandard.Core.Json;
@@ -66,7 +67,7 @@ public sealed class ExperimentalOperationGuard
             || !string.Equals(session.AccountObjectId, session.OperatorObjectId, StringComparison.OrdinalIgnoreCase)
             || !ProfileValidator.IsGuid(session.ClientId) || string.IsNullOrWhiteSpace(standard.IntegrityDigest)
             || !string.Equals(profile.TenantId, session.TenantId, StringComparison.OrdinalIgnoreCase)
-            || !session.HasWriteScopes || session.Scopes.Any(string.IsNullOrWhiteSpace)) return false;
+            || session.TokenCapabilities.Classification != TokenCapability.BroaderPresent || session.TokenCapabilities.UnclassifiedScopes.Count > 0) return false;
         binding = CanonicalJson.Sha256(new JsonObject
         {
             ["tenant"] = session.TenantId.ToLowerInvariant(), ["account"] = session.AccountObjectId.ToLowerInvariant(),

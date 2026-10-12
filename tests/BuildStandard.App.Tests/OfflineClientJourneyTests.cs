@@ -85,7 +85,7 @@ public sealed class OfflineClientJourneyTests : IDisposable
         Assert.NotNull(_workspace.Assessment); Assert.False(_workspace.SnapshotIsLive);
         Assert.Contains("offline", _shell.Page<ConfigurationViewModel>().SnapshotSummary, StringComparison.OrdinalIgnoreCase);
         _shell.Navigate("jobs"); Assert.Contains("Historical evidence", _shell.EvidenceStatus, StringComparison.Ordinal);
-        Assert.Equal("NOT CONNECTED", _shell.ModeBadge); Assert.True(_shell.HeaderHasDetails); Assert.False(_shell.HeaderHasConnection);
+        Assert.Equal("No live connection", _shell.ModeBadge); Assert.True(_shell.HeaderHasDetails); Assert.False(_shell.HeaderHasConnection);
         Assert.Equal(TestData.TenantA, _shell.HeaderTenantId);
         Assert.Contains(_a.Domain, _shell.TenantSubtitle, StringComparison.Ordinal);
         Assert.Contains("saved reference", _shell.TenantSubtitle, StringComparison.Ordinal);
@@ -212,7 +212,7 @@ public sealed class OfflineClientJourneyTests : IDisposable
     public async Task Historical_evidence_does_not_hide_an_active_token_with_write_scopes()
     {
         await SelectA(); OpenA(); Set(nameof(Workspace.Connection), new ConnectedTenant(TestData.Session(mode: SessionMode.Assessment), new FakeGraphClient(_workspace.RequireStandard()), null));
-        Assert.True(_shell.IsDeploymentSession); Assert.Contains("TOKEN HAS WRITE SCOPES", _shell.ModeBadge, StringComparison.Ordinal);
+        Assert.True(_shell.IsDeploymentSession); Assert.Contains("broader permissions present", _shell.ModeBadge, StringComparison.Ordinal);
         Assert.Contains("Historical evidence", _shell.EvidenceStatus, StringComparison.Ordinal);
         var assessment = _shell.Page<AssessmentViewModel>(); assessment.Search = "synthetic unmatched search";
         Assert.Empty(assessment.Findings); Assert.Contains("No findings match", assessment.ViewStateText, StringComparison.Ordinal);

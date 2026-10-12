@@ -357,6 +357,11 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 # Changelog
 
+### Approved BuildStandard phase — T3 access truth
+
+- Separate assessment's independent write refusal from returned Graph token capability. Explicit known read/broader/protocol classification keeps unknown, empty and other-resource capabilities unclassified; dedicated assessment rejects them and the reviewed shared fallback warns.
+- Native connection/header/Home/report/registered-Run context uses the same capability meaning; offline text does not imply sign-in. Experimental change opt-in still requires the verified deployment context and exact-operation safeguards. No new permission request or authentication/cache path.
+
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
 

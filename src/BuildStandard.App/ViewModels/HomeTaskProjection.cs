@@ -41,7 +41,7 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             : session is null ? "Offline · no active connection. Saved client details are local references."
             : !SameTenant(session.TenantId, profile?.TenantId) ? "Connection belongs to another client · return to Connect and verify the target."
             : !session.TenantVerified || !session.OperatorVerified ? "Connection identity needs verification · return to Connect."
-            : (session.Mode == SessionMode.Deployment || session.HasWriteScopes ? "Write-capable access" : "Read-only assessment access")
+            : (session.Mode == SessionMode.Deployment ? "Deployment mode" : "Assessment mode — toolkit changes blocked") + " · " + session.TokenCapabilities.Description
                 + "\nReview the signed-in identity and exact access in the pinned header.";
         var standardText = standard is null ? "No valid Build Standard loaded · review Settings and diagnostics."
             : $"Build Standard {standard.Release}\nLocal catalogue · exact version details are in the pinned header.";

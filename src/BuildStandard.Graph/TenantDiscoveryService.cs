@@ -1,3 +1,4 @@
+using BuildStandard.Core.Safety;
 using System.Text.Json.Nodes;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
@@ -12,6 +13,8 @@ namespace BuildStandard.Graph;
 public sealed record DiscoveredTenant(string TenantId, string Name, string Domain, string Account,
     string OperatorObjectId, bool TokenHasWriteScopes)
 {
+    public TokenCapabilityResult TokenCapabilities { get; init; } = TokenCapabilityClassifier.Classify(Array.Empty<string>());
+
     public TenantProfile NewProfile() => ProfileValidator.Validate(new TenantProfile
     {
         Company = Name, TenantId = TenantId, Domain = Domain
@@ -73,8 +76,8 @@ public static class TenantDiscoveryService
     {
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
-        if (readScopes.Any(s => s.Contains("Write", StringComparison.OrdinalIgnoreCase) || s.Contains("AccessAsUser", StringComparison.OrdinalIgnoreCase)))
-            throw new ConfigurationException("Quick Connect cannot request write permissions.");
+        if (TokenCapabilityClassifier.Classify(readScopes).Classification != TokenCapability.ReadOnlyVerified)
+            throw new ConfigurationException("Quick Connect cannot request write or unclassified permissions; select supported read capabilities.");
         var auth = await discover(TimeSpan.FromMinutes(settings.SignInTimeoutMinutes), ct);
         try
         {
@@ -110,7 +113,8 @@ public static class TenantDiscoveryService
         if (string.IsNullOrWhiteSpace(account)) throw new ConfigurationException("Microsoft did not return the signed-in account name. Use the manual connection details.");
         ct.ThrowIfCancellationRequested();
         return new DiscoveredTenant(token.TenantId, name, domain, account, token.AccountObjectId,
-            new TenantSession { Scopes = token.Scopes.ToList() }.HasWriteScopes);
+            TokenCapabilityClassifier.Classify(token.Scopes).Classification == TokenCapability.BroaderPresent)
+        { TokenCapabilities = TokenCapabilityClassifier.Classify(token.Scopes) };
     }
 }
 
