@@ -8,7 +8,7 @@ William explicitly approved the complete [implementation plan](../superpowers/pl
 
 Phase merges require actual applicable head checks, fresh independent bounded-branch review, no unresolved safeguard finding, conflicts resolved/tested on the owner's branch, then the actual resulting phase push check and durable merge/source/run evidence. Main/integration promotion, publication, tags, tenant actions, access and protection changes remain separately prohibited/unapproved. T0's older head `d2c45aa180a6a81baf1fc539e9d774a644d5c03f` passed Windows run 38180163458 and independent technical review; its reconciliation head still needs applicable review/checks. Do not transfer earlier proof to changed bytes.
 
-**Next:** T0 is merged/verified at `2343e9ea65e632145a62bb914a64baff3eb95f05`, actual phase push 38184685001 passed. T1 #115 implements serial technical neutralisation/compatibility; require its exact Windows proof and named Claude safety review before merging. T2–T10 wait for dependencies; no final product/H1 acceptance is claimed. Existing #83/templates/claims/completion/decision records are retained; a local ledger is not a remote handoff.
+**Next:** T1 #115 is verified at actual merge 381999b / phase push 38213707152. T2 #116 awaits named registration review and latest Windows checks; T4 #117 is the independent final-dispatch source slice on verified T1. T3 overlaps T2 and waits; all remaining work follows approved dependencies. No old backlog/H1/live/release acceptance is authorised.
 
 ## Current Astra continuation — reviewed merges and pending source, 8 October 2026
 

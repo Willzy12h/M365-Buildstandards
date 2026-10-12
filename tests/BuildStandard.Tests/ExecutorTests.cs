@@ -484,4 +484,63 @@ public class ExecutorTests
         Assert.Equal(ResultStatus.NotRun, loaded.Results[1].Status);
         Assert.Equal(0, h.Evidence.MarkInterruptedRuns(TestData.TenantA));
     }
+    [Theory]
+    [InlineData(1201, false)][InlineData(1200, true)][InlineData(1199, true)]
+    public async Task Post_preflight_freshness_keeps_original_limit_and_equality(int seconds, bool allowed)
+    {
+        using var h = new Harness();
+        var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        var advanced = false;
+        h.Graph.BeforeRead = (path, ct) =>
+        {
+            if (!advanced && path.StartsWith("/identity/conditionalAccess/policies", StringComparison.Ordinal))
+            {
+                advanced = true;
+                h.Clock.UtcNow = h.Clock.UtcNow.AddSeconds(seconds);
+            }
+            return Task.CompletedTask;
+        };
+        var run = await h.RunAsync(plan, snapshot);
+        Assert.True(advanced);
+        Assert.Equal(allowed ? 1 : 0, h.Graph.Writes.Count);
+        var row = Assert.Single(run.Results);
+        Assert.Equal(allowed ? WriteAcceptance.Accepted : WriteAcceptance.NotAttempted, row.WriteAcceptance);
+    }
+
+    [Fact]
+    public async Task Context_changed_during_preflight_refuses_the_initial_write()
+    {
+        using var h = new Harness();
+        var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        h.Graph.BeforeRead = (path, ct) =>
+        {
+            if (path.StartsWith("/identity/conditionalAccess/policies", StringComparison.Ordinal)) h.Graph.TenantId = TestData.TenantB;
+            return Task.CompletedTask;
+        };
+        var run = await h.RunAsync(plan, snapshot);
+        Assert.Empty(h.Graph.Writes);
+        Assert.Equal(WriteAcceptance.NotAttempted, Assert.Single(run.Results).WriteAcceptance);
+    }
+
+    [Fact]
+    public async Task Later_preflight_expiry_preserves_earlier_accepted_row_without_second_send()
+    {
+        using var h = new Harness();
+        var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001", "CA-003");
+        var advanced = false;
+        h.Graph.BeforeRead = (path, ct) =>
+        {
+            if (!advanced && h.Graph.Writes.Count == 1 && path.StartsWith("/identity/conditionalAccess/policies", StringComparison.Ordinal))
+            {
+                advanced = true;
+                h.Clock.UtcNow = h.Clock.UtcNow.AddMinutes(21);
+            }
+            return Task.CompletedTask;
+        };
+        var run = await h.RunAsync(plan, snapshot);
+        Assert.True(advanced);
+        Assert.Single(h.Graph.Writes);
+        Assert.Equal(WriteAcceptance.Accepted, run.Results.Single(r => r.ControlId == "CA-001").WriteAcceptance);
+        Assert.Equal(WriteAcceptance.NotAttempted, run.Results.Single(r => r.ControlId == "CA-003").WriteAcceptance);
+    }
 }

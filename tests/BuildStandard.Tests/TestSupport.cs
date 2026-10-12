@@ -351,6 +351,15 @@ internal sealed class FakeGraphClient : IGraphClient
         var single = await GetAsync(api, path, ct);
         return single["value"] is JsonArray v ? v.OfType<JsonObject>().Select(x => (JsonObject)x.DeepClone()).ToList() : new List<JsonObject>();
     }
+    public async Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+        BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct)
+    {
+        try { ct.ThrowIfCancellationRequested(); admission.AssertAllowed(); }
+        catch (Exception ex) { throw new WriteNotSentException("Synthetic final admission refused before write entry.", ex); }
+        // BeforeWrite models the transport entry, not token preparation; failures there remain possibly sent.
+        return await WriteAsync(api, method, path, payload, ct);
+    }
+
 
     public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
     {

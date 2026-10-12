@@ -36,6 +36,10 @@ public interface IGraphClient
     /// <summary>Creates or updates an object. Never retried. Only WriteNotSentException confirms no request was sent; arbitrary exceptions remain uncertain.</summary>
     Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct);
 
+    /// <summary>Candidate write with mandatory original review admission at initial dispatch. No default unguarded forwarder.</summary>
+    Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+        Safety.ReviewedWriteAdmission admission, CancellationToken ct);
+
     /// <summary>Dedicated full PUT preserving a reviewed device registration policy. Never retries or disables LAPS.</summary>
     Task EnableEntraLapsAsync(JsonObject reviewedBefore, CancellationToken ct) =>
         throw new WriteDeniedException("This Graph implementation does not support Entra LAPS enablement.");

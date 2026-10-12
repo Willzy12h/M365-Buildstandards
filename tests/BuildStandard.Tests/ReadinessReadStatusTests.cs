@@ -190,6 +190,10 @@ public sealed class ReadinessReadStatusTests
             if (Error is not null) throw Error;
             return Task.FromResult(Roles);
         }
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
         {
             Writes.Add(path); throw new InvalidOperationException("Readiness must never write.");

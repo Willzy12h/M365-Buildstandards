@@ -96,6 +96,11 @@ public sealed class DeploymentExecutor
         var profile = request.Profile;
         var session = request.Session;
         var graph = request.Graph;
+        if (!Timestamps.TryParse(request.Snapshot.CapturedAt, out var originalSnapshotAt)
+            || !Timestamps.TryParse(request.Plan.CreatedAt, out var originalPlanAt))
+            throw new PlanValidationException("The reviewed expiry inputs are invalid.");
+        var admission = new ReviewedWriteAdmission(originalSnapshotAt, originalPlanAt, request.MaxSnapshotAge, request.MaxPlanAge,
+            _clock, () => AssertInputsStillCurrent(request), () => control.StopRequested);
         if (graph.Mode != SessionMode.Deployment) throw new WriteDeniedException("The Graph session is read-only; deployment refused.");
         if (!string.Equals(graph.TenantId, plan.TenantId, StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The Graph session is connected to a different tenant than the plan.");
 
@@ -155,6 +160,7 @@ public sealed class DeploymentExecutor
                     WritePayloadGuard.Assert(def, payload);
                     AssertTenantConfirmation(request);
                     if (control.StopRequested) { stopped = true; break; }
+                    admission.AssertAllowed(); // Preflight must not extend the original reviewed lifetime.
 
                     result.Status = ResultStatus.InProgress;
                     result.PayloadDigest = CanonicalJson.Sha256(payload);
@@ -170,7 +176,7 @@ public sealed class DeploymentExecutor
                     try
                     {
                         writeInvoked = true;
-                        response = await graph.WriteAsync(def.ApiVersion, method, path, payload, CancellationToken.None);
+                        response = await graph.WriteReviewedAsync(def.ApiVersion, method, path, payload, admission, CancellationToken.None);
                     }
                     catch (AmbiguousWriteException ex)
                     {

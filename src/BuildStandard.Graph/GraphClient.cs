@@ -161,7 +161,18 @@ public sealed class GraphClient : IGraphClient
         }
     }
 
-    public async Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct)
+    public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) =>
+        WriteCandidateAsync(api, method, path, payload, null, ct);
+
+    public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+        ReviewedWriteAdmission admission, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(admission);
+        return WriteCandidateAsync(api, method, path, payload, admission, ct);
+    }
+
+    private async Task<JsonObject> WriteCandidateAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+        ReviewedWriteAdmission? admission, CancellationToken ct)
     {
         ValidateWritePath(path);
         if (path.Equals("/deviceManagement", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/policies/authenticationMethodsPolicy", StringComparison.OrdinalIgnoreCase)
@@ -182,7 +193,7 @@ public sealed class GraphClient : IGraphClient
         try { WritePayloadGuard.Assert(definition, payload); }
         catch (SafetyViolationException ex) { throw new WriteNotSentException(ex.Message, ex); }
 
-        return await SendWriteAsync(api, method == GraphWriteMethod.Post ? HttpMethod.Post : HttpMethod.Patch, path, payload, route, ct);
+        return await SendWriteAsync(api, method == GraphWriteMethod.Post ? HttpMethod.Post : HttpMethod.Patch, path, payload, route, ct, admission);
     }
 
     public async Task RecoverAsync(GraphApi api, RecoveryAction action, string path, JsonObject? payload, CancellationToken ct)
@@ -294,7 +305,7 @@ public sealed class GraphClient : IGraphClient
         await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
-    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct)
+    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct, ReviewedWriteAdmission? admission = null)
     {
         var sw = Stopwatch.StartNew();
         HttpResponseMessage response;
@@ -319,6 +330,16 @@ public sealed class GraphClient : IGraphClient
             throw new WriteNotSentException("No Graph write request was sent. Reconnect or correct the inputs, then review a fresh plan. " + SensitiveDataScrubber.Scrub(ex.Message), ex);
         }
         using var preparedRequest = request;
+        try
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            admission?.AssertAllowed();
+        }
+        catch (Exception ex)
+        {
+            throw new WriteNotSentException("No Graph write request was sent: final dispatch admission refused. " + SensitiveDataScrubber.Scrub(ex.Message), ex);
+        }
+        // No awaited work between admission and this initial transport handoff. Once invoked, outcome can be uncertain.
         try
         {
             response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);

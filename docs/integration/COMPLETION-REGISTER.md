@@ -1,5 +1,14 @@
 # Current source completion record — 8 October 2026
 
+## BuildStandard phase — T4 source prepared, 12 October 2026
+
+Approved T4 / D-02 / AC-03/04 / GPT-R-002, [#117](https://github.com/Willzy12h/M365-Buildstandards/pull/117), based on verified T1 `381999b3d0fe70c93f00481fde2978e56c787b94`; unmerged T2 source is not imported. Immutable original plan/snapshot expiry and trusted binding/stop admission are checked after preflight and through a mandatory reviewed-write contract immediately before initial Graph transport. Other write contracts, historical data, scopes and schemas remain separate/unchanged. Initial existing-path regressions: 3 failed/2 boundary cases passed; real final-barrier removal: 3 failed/1 cancellation case passed. Restored current Release suite: 2031 passed/0 failed/1 explicit Windows DPAPI skip; unavailable Linux ExchangeReportRunnerTests remain required on Windows. Focused cases 25/25; strict solution and native-harness source crossbuilds zero warnings/errors. Cross-compilation is not native execution. Named execution/Graph-write review and final-head Windows/native/package then actual phase merge proof remain required; no source-readiness/acceptance claim.
+
+## BuildStandard phase — T1 accepted and verified, 12 October 2026
+
+[#115](https://github.com/Willzy12h/M365-Buildstandards/pull/115), source `f75d1c3c10c561e39516d78667645618dd4276cf`, named Claude READY 6119071116, PR Windows 38187405588 successful. Actual merge `381999b3d0fe70c93f00481fde2978e56c787b94`, phase push 38213707152 successful, matching reviewed Git tree. Native Windows 2217 Engine/CLI and 468 App tests passed with zero failures/skips; 63 renders/129 commands, zero bindings/tenant calls; fresh 303-file package startup/shutdown/Copy/both launchers verified. Actual-source ZIP SHA-256 `0d808d4100826ff5fbb3ce095d67693ccc13ec76563e0e450ba88e8f93959033`. Intermediate proof, not T10/H1/live/distribution acceptance. Main/integration remain frozen; no historical standard/version/permission/publication change.
+
+
 ## BuildStandard phase — T1 source prepared, 12 October 2026
 
 Requirement D-07 / AC-24/25/26/31: neutral technical identity with existing root/evidence/cache/lock compatibility. #115 targets the accepted phase from `2343e9ea65e632145a62bb914a64baff3eb95f05`. Source/projects/resources/managed CLI and launchers use `BuildStandard.*`; the legacy CLI alias remains the same host. Root aliases refuse conflicts and invalid explicit selection; no automatic migration/adoption or new authority. INT-100 and ARCHITECTURE enumerate compatibility exceptions.
