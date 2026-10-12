@@ -411,7 +411,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         ["displayName"] = row.DisplayName, ["signInAudience"] = "AzureADMyOrg",
         ["publicClient"] = SetupRegistration.PublicClient(row.ClientId.Length == 0 ? null : row.ClientId),
         ["web"] = SetupRegistration.Web(), ["isFallbackPublicClient"] = true,
-        ["description"] = "M365 BuildStandard Tool: " + row.Mode + ". Delegated engineer access; no unattended credentials.",
+        ["description"] = "BuildStandard: " + row.Mode + ". Delegated engineer access; no unattended credentials.",
         ["info"] = new JsonObject { ["marketingUrl"] = SetupRegistration.HomePage, ["supportUrl"] = SetupRegistration.HomePage + "/issues" },
         ["requiredResourceAccess"] = new JsonArray(new JsonObject
         {

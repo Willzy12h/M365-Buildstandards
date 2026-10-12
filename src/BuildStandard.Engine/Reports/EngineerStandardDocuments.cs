@@ -12,6 +12,7 @@ public enum EngineerDocumentKind { BuildStandard, ManualGuide }
 /// <summary>Catalogue-only documents: no client profile, snapshot, tenant context or connection is accepted.</summary>
 public static class EngineerStandardDocuments
 {
+    public const string PresentationVersion = "buildstandard-native-reader-v1";
     public static string Title(EngineerDocumentKind kind) => kind switch
     {
         EngineerDocumentKind.BuildStandard => "The Build Standard",
@@ -66,7 +67,7 @@ public static class EngineerStandardDocuments
     {
         Validate(standard, kind);
         var text = new StringBuilder().Append("# ").Append(Title(kind)).Append("\n\n");
-        text.Append("Release **").Append(M(standard.Release)).Append("** · ").Append(standard.Controls.Count).Append(" controls · catalogue SHA-256 ").Append(M(standard.IntegrityDigest)).Append("\n\n");
+        text.Append("Release **").Append(M(standard.Release)).Append("** · ").Append(standard.Controls.Count).Append(" controls · catalogue SHA-256 ").Append(M(standard.IntegrityDigest)).Append("\n\nPresentation: ").Append(PresentationVersion).Append("\n\n");
         text.Append(M(Intro)).Append("\n\n");
         if (kind == EngineerDocumentKind.ManualGuide)
         {
@@ -103,9 +104,9 @@ public static class EngineerStandardDocuments
     {
         Validate(standard, kind);
         var text = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
-        text.Append(H(Title(kind))).Append("</title>").Append(Css).Append("</head><body><header><p class=\"eyebrow\">M365 BUILDSTANDARD · ENGINEER REFERENCE</p><h1>")
+        text.Append(H(Title(kind))).Append("</title>").Append(Css).Append("</head><body><header><p class=\"eyebrow\">BUILDSTANDARD · ENGINEER REFERENCE</p><h1>")
             .Append(H(Title(kind))).Append("</h1><p>Release ").Append(H(standard.Release)).Append(" · ").Append(standard.Controls.Count)
-            .Append(" controls</p><p>Catalogue SHA-256: <code>").Append(H(standard.IntegrityDigest)).Append("</code></p><p>").Append(H(Intro)).Append("</p></header>");
+            .Append(" controls · Presentation ").Append(PresentationVersion).Append("</p><p>Catalogue SHA-256: <code>").Append(H(standard.IntegrityDigest)).Append("</code></p><p>").Append(H(Intro)).Append("</p></header>");
         text.Append("<nav aria-label=\"Document areas\">");
         foreach (var area in ControlAreas.Names) text.Append("<a href=\"#").Append(area).Append("\">").Append(area).Append("</a> ");
         text.Append("</nav><main>");

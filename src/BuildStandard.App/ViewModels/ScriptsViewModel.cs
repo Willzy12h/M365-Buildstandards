@@ -468,7 +468,7 @@ public sealed class ScriptsViewModel : PageViewModel
         Workspace.Logger.Info("Scripts", $"Saved library item {review.ItemId} for tenant {review.TenantId} to a .ps1 file. Nothing was run.");
     }
 
-    public static string SuggestedFileName(ScriptCopyReview review) => $"BDIT-{review.ItemId}-{review.TenantId[..8]}.ps1";
+    public static string SuggestedFileName(ScriptCopyReview review) => $"BuildStandard-{review.ItemId}-{review.TenantId[..8]}.ps1";
 
     /// <summary>
     /// Writes a copied script as UTF-8 with a byte order mark, which Windows PowerShell 5.1 needs to read anything beyond

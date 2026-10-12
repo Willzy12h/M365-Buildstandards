@@ -1,3 +1,7 @@
+## BuildStandard phase — T2 source prepared, 12 October 2026
+
+Approved T2 / D-07 / AC-23/25/26/32, [#116](https://github.com/Willzy12h/M365-Buildstandards/pull/116): neutral fixed working title, blank optional organisation with saved values retained, new report/Copy/output/probe naming, versioned catalogue presentation and old/new root guidance. Raw evidence, historical catalogue/manual/scripts/pins, DPAPI/lock/schema/marker contracts and agent coordination are preserved. New regression RED 6 failures → GREEN; related catalogue/report/diagnostic tests 113/113; platform-available current Release suite 2018 pass, zero failures, one explicit Windows DPAPI skip. ExchangeReportRunnerTests require the Windows host and were excluded on Linux; no live behaviour is certified. Exact Windows/native/package and fresh independent review still pending; T2 is not complete/merged. Publisher compatibility CLA-T1-02 remains pre-T10.
+
 # Current source completion record — 8 October 2026
 
 ## BuildStandard phase — T1 source prepared, 12 October 2026

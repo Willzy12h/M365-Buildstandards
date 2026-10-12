@@ -43,7 +43,7 @@ public static class PolicyImporter
         foreach (var key in obj.Select(p => p.Key).ToArray())
             if (Metadata.Contains(key)) { obj.Remove(key); removed.Add(key); }
         obj[def.NameProperty] = name.Trim();
-        obj["description"] = "M365 BuildStandard imported candidate; explicit review required.";
+        obj["description"] = "BuildStandard imported candidate; explicit review required.";
         if (def.BasePath == "/deviceManagement/configurationPolicies")
         {
             if (obj["settings"] is not JsonArray settings) throw new ConfigurationException("Include the separate settings collection in the export.");

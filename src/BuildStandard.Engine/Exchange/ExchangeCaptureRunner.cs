@@ -25,7 +25,7 @@ public sealed class ExchangeCaptureRunner : IExchangeCaptureRunner
         var script = ExchangeCaptureScripts.ReadOnlyCapture(tenantId, referenceDomain);
         var executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
         if (!File.Exists(executable)) throw new ConfigurationException("Windows PowerShell 5.1 is unavailable. " + DependencyGuidance);
-        var directory = Path.Combine(Path.GetTempPath(), "BDIT-Exchange-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), "BuildStandard-Exchange-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
         {

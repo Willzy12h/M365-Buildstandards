@@ -176,7 +176,8 @@ public static class Program
 
             Common options:
               --root <dir>     Toolkit root holding standards/, config/ and reports/.
-                               Defaults to BDIT_TOOLKIT_ROOT or the installation directory.
+                               Defaults to BUILDSTANDARD_ROOT (legacy BDIT_TOOLKIT_ROOT also supported)
+                               or the installation directory. Conflicting aliases refuse.
               --release <r>    Standard release, for example 2026.09.11. Defaults to the configured release.
 
             Exit codes: 0 success, 2 refused, 3 failed, 64 usage.

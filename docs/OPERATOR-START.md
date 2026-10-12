@@ -9,7 +9,7 @@ This is an internal preview. Use the exact reviewed package and its trusted chec
 Nothing in these steps changes the client's tenant.
 
 1. **Download** the application ZIP from the release you were told to use ([testing this build](TESTING-THIS-BUILD.md) shows where).
-2. **Check** its SHA-256 against the one you were given: `Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256`.
+2. **Check** its SHA-256 against the one you were given: `Get-FileHash .\BuildStandard-*.zip -Algorithm SHA256`.
 3. **Extract** the whole ZIP to a secure local folder and run `Start.cmd`.
 4. **Connect** → **Quick Connect with Microsoft**, sign in with the client's account, check the organisation, then **Connect to this tenant read-only**.
 5. **Configuration → Capture configuration (read-only)**. A collection that could not be read is unknown, not absent.
@@ -129,3 +129,9 @@ If either source is missing, **Open mailbox collection** opens Run reports and *
 **Results** distinguishes observed 100 GB capacity, actual assigned-plan eligibility and unable-to-check cases. Select a mailbox for exact IDs and raw primary/archive values; Unlimited or failed reads are never converted to zero. A licence name alone does not prove configured quota. Use **Source provenance and limits** to inspect both source histories; an incomplete list is not evidence of no mailboxes. Historical eligibility may change and does not authorise a quota increase.
 
 **Export HTML**, **Export JSON**, **Export CSV ZIP** and **Export Excel** export every review row and original source provenance, even after a display filter. Derived JSON includes the two original records and is clearly labelled as review, not importable deployment evidence. Changing source/client/context clears the old review and requires a new selection. No quota, archive or licence setting is changed.
+
+## Running old and new portable copies
+
+Use `buildstandard.cmd` for new offline commands; `bdit.cmd` is a compatible alias to the same host. New executables use `BUILDSTANDARD_ROOT` and accept the older `BDIT_TOOLKIT_ROOT`; conflicting root aliases refuse. While an old and new copy coexist, set **`BDIT_TOOLKIT_ROOT` to the same intended root for both**, or pass an explicit `--root` to each CLI command. An older executable does not understand `BUILDSTANDARD_ROOT`. The shared write lock protects one tenant in one resolved root; it does not coordinate separate roots. Do not duplicate a workspace to work around a refused lock or use a renamed executable as renewed approval. Loading settings/evidence performs no automatic path or cache migration.
+
+For new installations the product title is BuildStandard. Organisation text in client reports is optional and blank by default; any previously saved organisation remains yours to review. An existing tenant application's observed name and ID remain unchanged. A new neutral setup suggestion does not find, rename or recreate an existing registration by display name.

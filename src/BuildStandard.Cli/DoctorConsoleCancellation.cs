@@ -82,7 +82,7 @@ internal sealed class DoctorConsoleCancellation : IDisposable
 
     private static int Failure(TextWriter error)
     {
-        try { error.WriteLine("Doctor failed unexpectedly. No readiness was certified. Review the offline failure with the toolkit maintainer; if a probe started, review temporary .bdit-doctor- files in the portable folder."); }
+        try { error.WriteLine("Doctor failed unexpectedly. No readiness was certified. Review the offline failure with the toolkit maintainer; if a probe started, review temporary .buildstandard-doctor- files in the portable folder."); }
         catch (Exception) { /* An unusable stderr must not expose its exception through the general CLI catch. */ }
         return 3;
     }

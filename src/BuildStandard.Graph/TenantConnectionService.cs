@@ -92,7 +92,7 @@ public sealed class TenantConnectionService
             throw new TenantMismatchException("Quick Connect confirmation belongs to another tenant or permission mode.");
         var client = _settings.ResolveClient(mode, profile)
             ?? throw new ConfigurationException(mode == SessionMode.Deployment
-                ? "No deployment application is configured. Register the M365 BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
+                ? "No deployment application is configured. Register the BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
                 : "No assessment application is configured and the Microsoft Graph PowerShell fallback is disabled. Record an assessment client ID in config/toolkit.settings.json.");
 
         var scopes = ScopesFor(mode, standard);
@@ -202,7 +202,7 @@ public sealed class TenantConnectionService
             {
                 if (!client.IsSharedFallback)
                     throw new ConfigurationException("The assessment application's token contains write permissions. Assessment must use a registration with read scopes only; remove the write permissions from that registration or use a separate deployment registration.");
-                session.Notices.Add("The shared Microsoft Graph PowerShell application returned previously consented write scopes. The toolkit blocks every write in assessment mode, but the token itself is not read-only. Register a dedicated M365 BuildStandard Assessment Tool application for token-level isolation.");
+                session.Notices.Add("The shared Microsoft Graph PowerShell application returned previously consented write scopes. The toolkit blocks every write in assessment mode, but the token itself is not read-only. Register a dedicated BuildStandard Assessment Tool application for token-level isolation.");
             }
             if (client.IsSharedFallback)
                 session.Notices.Add("Connected through the shared Microsoft Graph PowerShell application. This is acceptable for read-only assessment only.");
