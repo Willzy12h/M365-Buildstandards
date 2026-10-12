@@ -4,12 +4,12 @@ cd /d "%~dp0"
 echo M365 BuildStandard Tool - diagnostics start.
 echo Verbose logging is enabled for this session. This window stays open and shows the start-up log when the toolkit closes.
 echo.
-if not exist "app\BDIT.TenantToolkit.App.exe" (
+if not exist "app\BuildStandard.App.exe" (
   echo The toolkit application was not found. Extract the complete portable ZIP and try again.
   pause
   exit /b 1
 )
-"app\BDIT.TenantToolkit.App.exe" --diagnostics
+"app\BuildStandard.App.exe" --diagnostics
 echo.
 echo Toolkit exited with code %ERRORLEVEL%.
 if exist "logs\startup.log" (

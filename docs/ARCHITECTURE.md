@@ -10,11 +10,11 @@
 
 | Project | Responsibility |
 |---|---|
-| `BDIT.TenantToolkit.Core` | Models (profile, standard, snapshot, assessment, deviation, plan, run, mapping, drift, session), the `IGraphClient` contract, canonical JSON (`CanonicalJson`), the safety rules (`ConditionalAccessSafety`, `WritePayloadGuard`), paths, settings, logging and secret scrubbing. No I/O beyond files and no network. |
-| `BDIT.TenantToolkit.Graph` | `MsalAuthenticator` (Windows WAM pop-up with system-browser fallback, tenant-pinned authority, DPAPI cache), `GraphRouteAllowList`, `GraphClient` (v1.0/beta roots, bounded read retries, no write retries, payload guard), `TenantConnectionService` (verify organisation and operator, access check). |
-| `BDIT.TenantToolkit.Engine` | `StandardsLoader` and `StandardsManifest`, `TenantCollector`, `AssessmentEngine` and `NameResolver`, `DeploymentPlanner`, `DeploymentExecutor`, `DriftAnalyser`, `EvidenceStore`, reports (`HtmlReports`, `MarkdownReports`, `TabularReports`, `CsvWriter`, `XlsxWriter`, `ReportExporter`). |
-| `BDIT.TenantToolkit.App` | WPF shell. `Workspace` is the composition root and state machine; page view models are thin; views are XAML only. |
-| `BDIT.TenantToolkit.Tests` | xUnit tests around every safety boundary with a scripted `FakeGraphClient` and a scripted `HttpMessageHandler`. |
+| `BuildStandard.Core` | Models (profile, standard, snapshot, assessment, deviation, plan, run, mapping, drift, session), the `IGraphClient` contract, canonical JSON (`CanonicalJson`), the safety rules (`ConditionalAccessSafety`, `WritePayloadGuard`), paths, settings, logging and secret scrubbing. No I/O beyond files and no network. |
+| `BuildStandard.Graph` | `MsalAuthenticator` (Windows WAM pop-up with system-browser fallback, tenant-pinned authority, DPAPI cache), `GraphRouteAllowList`, `GraphClient` (v1.0/beta roots, bounded read retries, no write retries, payload guard), `TenantConnectionService` (verify organisation and operator, access check). |
+| `BuildStandard.Engine` | `StandardsLoader` and `StandardsManifest`, `TenantCollector`, `AssessmentEngine` and `NameResolver`, `DeploymentPlanner`, `DeploymentExecutor`, `DriftAnalyser`, `EvidenceStore`, reports (`HtmlReports`, `MarkdownReports`, `TabularReports`, `CsvWriter`, `XlsxWriter`, `ReportExporter`). |
+| `BuildStandard.App` | WPF shell. `Workspace` is the composition root and state machine; page view models are thin; views are XAML only. |
+| `BuildStandard.Tests` | xUnit tests around every safety boundary with a scripted `FakeGraphClient` and a scripted `HttpMessageHandler`. |
 
 Dependency direction: App → Engine → Graph → Core. Tests reference Core, Graph and Engine.
 
@@ -127,7 +127,7 @@ Every load checks the embedded tenant ID against the requested tenant folder.
 
 ## Testing
 
-`dotnet test tests\BDIT.TenantToolkit.Tests -c Release` covers canonical JSON, catalogue validation and integrity, tenant binding, assessment statuses, planner safety, plan integrity, Graph client retry and guard behaviour, executor reconciliation, idempotency, ambiguous failures, stop and shutdown, evidence integrity, secret scrubbing, formula-safe exports, deterministic reports and drift classification. Tests never touch the network.
+`dotnet test tests\BuildStandard.Tests -c Release` covers canonical JSON, catalogue validation and integrity, tenant binding, assessment statuses, planner safety, plan integrity, Graph client retry and guard behaviour, executor reconciliation, idempotency, ambiguous failures, stop and shutdown, evidence integrity, secret scrubbing, formula-safe exports, deterministic reports and drift classification. Tests never touch the network.
 
 ## Packaging
 
@@ -146,6 +146,23 @@ To add a report, review any new shared contract/access first, register its stabl
 
 ## Portable offline CLI host (INT-074 / PR #45)
 
-The App references the existing CLI assembly (`bdit.dll`, `UseAppHost=false`; compiled as a library when the parent publishes self-contained, from the same CLI source), so the self-contained ZIP keeps one application executable. `App.OnStartup` recognises `--cli` only as the first argument and returns through the existing CLI before Workspace/settings/logger/broker/cache initialisation. `PortableCliHost` preserves inherited standard handles, attaches to an existing parent console only when necessary, writes UTF-8 and returns the CLI exit code. Only stdout is required: without stderr, error text shares stdout. The handle choice sits behind `IStandardHandles` and is unit-tested for every stdout/stderr combination. It creates no new console or alternate process host. `bdit.cmd` forwards arguments without changing the working directory. Developer `dotnet bdit.dll` usage and offline conformance safeguards remain unchanged.
+The App references the existing CLI assembly (`BuildStandard.Cli.dll`, `UseAppHost=false`; compiled as a library when the parent publishes self-contained, from the same CLI source), so the self-contained ZIP keeps one application executable. `App.OnStartup` recognises `--cli` only as the first argument and returns through the existing CLI before Workspace/settings/logger/broker/cache initialisation. `PortableCliHost` preserves inherited standard handles, attaches to an existing parent console only when necessary, writes UTF-8 and returns the CLI exit code. Only stdout is required: without stderr, error text shares stdout. The handle choice sits behind `IStandardHandles` and is unit-tested for every stdout/stderr combination. It creates no new console or alternate process host. `bdit.cmd` forwards arguments without changing the working directory. Developer `dotnet BuildStandard.Cli.dll` usage and offline conformance safeguards remain unchanged.
 
 `Test-Portable.ps1` verifies the extracted dependency, sole executable, help, pipe/file redirection, launcher failures, exact codes, spaced evidence paths and actual synthetic inventory/jobs/assessment reports, before existing desktop startup/shutdown checks. It refuses desktop startup-log/auth-cache side effects in CLI mode. It also runs piped stdout with stderr inherited from the calling process and records that handle's type. These native package tests run on Windows; Linux cross-build is not runtime proof. CI has no interactive console, so an interactive `bdit.cmd` run (help, a refusal and `| findstr`) remains a manual Windows gate. The protected publisher and reviewed historical pins remain unchanged.
+
+## BuildStandard technical compatibility (phase T1)
+
+The successor assemblies are `BuildStandard.*`; the sole application host is `BuildStandard.App.exe`, with managed `BuildStandard.Cli.dll`. Both `buildstandard.cmd` and legacy `bdit.cmd` invoke that same executable directly with `--cli`; neither adds another application host or CALL argument expansion. Historical package names and release pins remain historical. New binary hashes/names need the organisation's security-owner approval; existing application-control acceptance does not transfer automatically.
+
+Finite compatibility exceptions:
+
+| Path/interface | Retained value and reason |
+|---|---|
+| `Core/Configuration/ToolkitPaths.cs` | `BDIT_TOOLKIT_ROOT` remains a legacy alias. Explicit nonblank `--root` wins; otherwise neutral/legacy aliases must identify the same lexically canonical root, respecting platform case rules. Different aliases or invalid/blank explicit selection refuse; no root discovery/migration repairs them. Symlink equivalence is not inferred. |
+| `Graph/Auth/TokenCacheProtection.cs` | Exact DPAPI entropy `BDIT.TenantToolkit.TokenCache.v1` and `msal-<mode>.cache` identity remain; a namespace rename must not move/re-encrypt caches or make restored evidence a live session. |
+| `Engine/Evidence/RecoveryEvidence.cs` | `policy-write.lock` and stable programmatic lease-refusal key `BDIT.TenantWriteLeaseUnavailable` preserve existing same-root refusal/recovery classification. |
+| Evidence/settings/standards | `config/toolkit.settings.json`, `data/tenants`, JSON/schema/discriminator fields, IDs, mappings, digests and all published catalogue/lineage bytes remain unchanged. Old captures/approvals gain no authority from rebranding. |
+| Registered scripts | Stable script IDs and externally consumed `BDIT:` wire markers remain; T1 does not change pinned script bytes, protocols or runtime/permission requirements. |
+| Coordination/provenance | Repository names/URLs, historical source references, GPT/Claude identities, `astra/*`/`claude/*`, inbox routing and original notices remain. |
+
+Active language/default/header generalisation is T2; the final native redesign is T6/T7. T1 alone does not establish completed branding, human acceptance or live Microsoft behaviour.

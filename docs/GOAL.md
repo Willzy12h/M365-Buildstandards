@@ -45,7 +45,7 @@ GitHub issues labelled `usability`, lowest number first unless an issue says oth
 
 | Area | Owner |
 | --- | --- |
-| Desktop interface (`src/BDIT.TenantToolkit.App`) | Claude |
+| Desktop interface (`src/BuildStandard.App`) | Claude |
 | Engine, standard, scripts and CLI | Astra |
 
 Need a change in the other agent's area? Open an issue for them; do not edit it.

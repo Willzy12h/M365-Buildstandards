@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- BuildStandard phase T1: neutral project, assembly, resource, manifest and portable CLI identities; preserve `bdit.cmd`, historical evidence/catalogues, cache entropy and tenant write locks. Support `BUILDSTANDARD_ROOT`; conflicting aliases and blank explicit roots refuse instead of adopting another evidence folder. Source version remains unchanged and unpublished.
+
 - Compare current packaged JSON fully across platform newline formatting while retaining byte-exact historical bundle checks (#92).
 
 - Verify current expiry and explicit historical refusal/export separately in the extracted Windows package, retaining the original synthetic revision-1 bytes (#92).

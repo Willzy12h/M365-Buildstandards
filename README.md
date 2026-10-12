@@ -37,9 +37,9 @@ The Graph client blocks assessment writes. The executor independently validates 
 Requires .NET 10 SDK on the build machine:
 
 ```powershell
-dotnet build BDIT.TenantToolkit.sln -c Release -warnaserror
-dotnet test tests/BDIT.TenantToolkit.Tests -c Release
-dotnet test tests/BDIT.TenantToolkit.App.Tests -c Release
+dotnet build BuildStandard.sln -c Release -warnaserror
+dotnet test tests/BuildStandard.Tests -c Release
+dotnet test tests/BuildStandard.App.Tests -c Release
 ./build/Build-Portable.ps1
 ```
 

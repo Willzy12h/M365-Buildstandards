@@ -61,11 +61,11 @@ This is a new implementation, not a fork of `main`. It exists because the compar
 
 Four projects plus tests. Dependencies point one way: App → Engine → Graph → Core.
 
-- `BDIT.TenantToolkit.Core` — models, canonical JSON, exceptions, safety guards, settings, paths, scrubbing logger. No I/O beyond files.
-- `BDIT.TenantToolkit.Graph` — MSAL authentication, token-cache protection, route allow-list, guarded `HttpClient` Graph client, connection service.
-- `BDIT.TenantToolkit.Engine` — standards loader/validator, evidence store, collector, assessment, equivalence, name resolution, planner, executor, drift, reports.
-- `BDIT.TenantToolkit.App` — WPF shell, `Workspace` composition root, ten page view models and views.
-- `BDIT.TenantToolkit.Tests` — xunit; scripted `FakeGraphClient`; no reference to the App project, so everything but the UI builds and tests on Linux.
+- `BuildStandard.Core` — models, canonical JSON, exceptions, safety guards, settings, paths, scrubbing logger. No I/O beyond files.
+- `BuildStandard.Graph` — MSAL authentication, token-cache protection, route allow-list, guarded `HttpClient` Graph client, connection service.
+- `BuildStandard.Engine` — standards loader/validator, evidence store, collector, assessment, equivalence, name resolution, planner, executor, drift, reports.
+- `BuildStandard.App` — WPF shell, `Workspace` composition root, ten page view models and views.
+- `BuildStandard.Tests` — xunit; scripted `FakeGraphClient`; no reference to the App project, so everything but the UI builds and tests on Linux.
 
 Full detail: `docs/ARCHITECTURE.md`.
 
@@ -157,10 +157,10 @@ Build: .NET 8 SDK (or `BUILD-ME-FIRST.cmd`, which installs a user-local one).
 ## 21. Test instructions
 
 ```
-dotnet test tests/BDIT.TenantToolkit.Tests -c Release
+dotnet test tests/BuildStandard.Tests -c Release
 ```
 
-On Linux, build only `src/BDIT.TenantToolkit.Core`, `Graph` and `Engine` first; the App project needs Windows and is covered by CI.
+On Linux, build only `src/BuildStandard.Core`, `Graph` and `Engine` first; the App project needs Windows and is covered by CI.
 
 ## 22. Automated test results
 

@@ -24,9 +24,9 @@ Unblock-File .\M365-BuildStandard-Tool-<version>-win-x64.zip
 
 ## Run it
 
-Extract the whole folder and run `Start.cmd`, or `app\BDIT.TenantToolkit.App.exe` directly. Nothing needs
+Extract the whole folder and run `Start.cmd`, or `app\BuildStandard.App.exe` directly. Nothing needs
 installing — the .NET runtime is included. If application control is enforced on the machine, allow
-`app\BDIT.TenantToolkit.App.exe` by path or hash; this package contains exactly one executable.
+`app\BuildStandard.App.exe` by path or hash; this package contains exactly one executable.
 
 `Start-Diagnostics.cmd` runs the same application with diagnostic logging. `Open-Evidence.cmd` and
 `Open-Reports.cmd` open the folders where captures and reports are written.

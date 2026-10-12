@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>BuildStandard.Tests</AssemblyName>
+    <RootNamespace>BuildStandard.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1861;CA1305</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Desktop guard is pure coordination logic; run the same source on Linux as well as Windows App tests. -->
+    <Compile Include="..\..\src\BuildStandard.App\Services\ExperimentalOperationGuard.cs" Link="Desktop/ExperimentalOperationGuard.cs" />
+    <ProjectReference Include="..\..\src\BuildStandard.Core\BuildStandard.Core.csproj" />
+    <ProjectReference Include="..\..\src\BuildStandard.Graph\BuildStandard.Graph.csproj" />
+    <ProjectReference Include="..\..\src\BuildStandard.Engine\BuildStandard.Engine.csproj" />
+    <ProjectReference Include="..\..\src\BuildStandard.Cli\BuildStandard.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Exercise the actual isolated doctor handler before sequential CLI dispatch wiring. -->
+    <Compile Include="..\..\src\BuildStandard.Cli\DoctorCommand.cs" Link="Cli\DoctorCommand.cs" />
+    <Compile Include="..\..\src\BuildStandard.Cli\DoctorConsoleCancellation.cs" Link="Cli\DoctorConsoleCancellation.cs" />
+    <!-- Portable execution of the exact desktop coordinator; WPF command/binding cases remain in App.Tests. -->
+    <Compile Include="..\..\src\BuildStandard.App\Services\OfflinePrerequisiteDiagnostic.cs" Link="App\OfflinePrerequisiteDiagnostic.cs" />
+    <Compile Include="..\..\src\BuildStandard.App\Infrastructure\ObservableObject.cs" Link="App\ObservableObject.cs" />
+    <Compile Include="..\BuildStandard.App.Tests\OfflinePrerequisiteDiagnosticTests.cs" Link="App\OfflinePrerequisiteDiagnosticTests.cs" />
+    <Compile Include="..\..\src\BuildStandard.App\Services\ReadOnlyRunWorkflow.cs" Link="App\ReadOnlyRunWorkflow.cs" />
+    <Compile Include="..\BuildStandard.App.Tests\ReadOnlyRunWorkflowTests.cs" Link="App\ReadOnlyRunWorkflowTests.cs" />
+    <!-- Synthetic runner fixtures: a stand-in Exchange module and a schema 2 body. Never Microsoft code. -->
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

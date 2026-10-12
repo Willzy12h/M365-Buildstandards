@@ -11,7 +11,7 @@ Reviewers checking an unreleased change use the CI artifact instead. It is not a
 1. Open the repository's **Actions** tab and select the successful run for the exact PR head under review. After merge, use the reviewed `integration` run. Check the commit, not only the green badge on an older run.
 2. Download the **portable-windows-review** artifact. It contains the application ZIP and its `.sha256` checksum.
 3. Verify the original ZIP against the independently trusted fingerprint, then extract it normally. If organisation application control or Windows security blocks it, use your security owner's approval route for that exact application. Do not unblock, change execution policy, rename it or use another host to evade the block; there is no broad writable-path exception.
-4. Run `Start.cmd`, or `app\BDIT.TenantToolkit.App.exe` directly.
+4. Run `Start.cmd`, or `app\BuildStandard.App.exe` directly.
 
 To check the download, compare the `.sha256` file with:
 

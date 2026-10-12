@@ -117,7 +117,7 @@ Evidence stays local under `data\tenants\<tenantId>\` (snapshots, assessments, p
 
 | Symptom | Action |
 |---|---|
-| Window does not appear | Run `Start-Diagnostics.cmd`; read `logs\startup.log`. Most causes are an incomplete extraction or a blocked `app\BDIT.TenantToolkit.App.exe` under application control. |
+| Window does not appear | Run `Start-Diagnostics.cmd`; read `logs\startup.log`. Most causes are an incomplete extraction or a blocked `app\BuildStandard.App.exe` under application control. |
 | SmartScreen "unknown publisher" on first launch | Expected: the tool is internal and unsigned. Verify the ZIP against its `.sha256` file, unblock the ZIP (Properties, Unblock) before extracting, or choose Run anyway. |
 | "Build Standard could not be loaded" | `standards\manifest.json` is missing or the standard was edited after release. Use the released package or run `build\Update-StandardsManifest.ps1` on a maintained checkout. |
 | Sign-in never returns | The browser tab may have been closed. Wait for the timeout (5 minutes by default) and try again. |
@@ -141,7 +141,7 @@ No SDK installed? Double-click `BUILD-ME-FIRST.cmd` in the repository root. It i
 See `docs\ARCHITECTURE.md` for project structure, the catalogue schema, how to add a control or collector, testing and packaging. Build with the .NET 8 SDK:
 
 ```bash
-dotnet build BDIT.TenantToolkit.sln -c Release
-dotnet test tests/BDIT.TenantToolkit.Tests -c Release
+dotnet build BuildStandard.sln -c Release
+dotnet test tests/BuildStandard.Tests -c Release
 build\Build-Portable.cmd
 ```
