@@ -45,4 +45,20 @@ public sealed class NativeCommandCentreStructureTests
         Assert.NotNull(evidence); Assert.Equal("{Binding EvidenceStatus}", (string?)evidence.Attribute("Text"));
         Assert.DoesNotContain(evidence.Ancestors(), e => e.Name.LocalName == "DataTemplate");
     }
+    [Fact]
+    public void Teal_accent_meets_AA_on_white_and_the_observed_native_expander_header()
+    {
+        var key=XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml")+"Key";
+        var colour=(string)Source("App.xaml").Descendants().Single(e=>(string?)e.Attribute(key)=="Accent").Attribute("Color")!;
+        static double Linear(double value) => value <= .04045 ? value/12.92 : Math.Pow((value+.055)/1.055,2.4);
+        var luminance=.2126*Linear(Convert.ToInt32(colour.Substring(1,2),16)/255d)
+            +.7152*Linear(Convert.ToInt32(colour.Substring(3,2),16)/255d)
+            +.0722*Linear(Convert.ToInt32(colour.Substring(5,2),16)/255d);
+        foreach(var surface in new[]{255d,221d}) // #DDDDDD measured by Windows38317966833; thresholds are unchanged.
+        {
+            var background=Linear(surface/255d);
+            Assert.True((background+.05)/(luminance+.05)>=4.5,"Ordinary native text must meet WCAG AA on its observed surface.");
+        }
+    }
+
 }
