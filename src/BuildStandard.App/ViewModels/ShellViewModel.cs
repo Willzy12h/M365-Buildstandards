@@ -203,7 +203,7 @@ public sealed class ShellViewModel : ObservableObject
     public string ModeBadge => Workspace.ApplicationSetup is not null ? "APPLICATION SETUP — WRITE ACCESS"
         : Workspace.Session is not { } session ? "No live connection"
         : (session.Mode == SessionMode.Deployment ? (Workspace.ExperimentalChangesEnabled ? "Deployment mode · tenant changes enabled" : "Deployment mode · tenant changes off")
-            : "Assessment mode — toolkit changes blocked") + " · " + session.TokenCapabilities.Description;
+            : "Assessment mode — toolkit changes blocked") + "\n" + session.TokenCapabilities.Description;
     public EvidenceSourcePresentation EvidenceSource => EvidenceSourcePresentation.Create(Workspace.Snapshot,
         Workspace.SnapshotIsLive, Workspace.ExchangeSnapshot, Workspace.ExchangeCapturedByTool, Workspace.Profile?.TenantId, HeaderTenantId);
     public string EvidenceStatus => EvidenceSource.Summary;
