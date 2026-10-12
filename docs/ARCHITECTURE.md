@@ -85,7 +85,7 @@ Integrity: `standards\manifest.json` lists a SHA-256 digest per release file. `S
 
 `ScopedCheckService` binds live results to the verified tenant/account, or derives historical reviews without inventing an account or refreshing capture time. The INT-070 `scopedCheck` wrapper is stored immutably under `data/tenants/<tenantId>/scoped-checks/<id>.json`, outside the snapshot/assessment/plan stores. Its strict bounded reader validates identity, registered dependencies, partial flags and digests. Digests detect changes, not authenticity. Ordinary snapshot readers reject wrappers; deployment still requires complete ordinary before-evidence. Desktop and offline CLI hosts must use this service rather than filtering a completed live capture and calling it scoped collection.
 
-The Assessment page exposes live scoped reads and explicitly selected historical filtering without replacing the full workspace assessment, snapshot or plan. Its requirement picker uses the shared control-instance registry; older releases reuse `ControlAreas.For` without changing catalogue bytes. Offline `bdit check --snapshot <file> --area <area>` (or `--control <id>`, with optional `--exchange-snapshot <file>` as for `report`) writes the strict historical wrapper to standard output; it does not write installation evidence, authenticate or acquire live data. The portable CLI host remains a separate INT-074 implementation gate.
+The Assessment page exposes live scoped reads and explicitly selected historical filtering without replacing the full workspace assessment, snapshot or plan. Its requirement picker uses the shared control-instance registry; older releases reuse `ControlAreas.For` without changing catalogue bytes. Offline `buildstandard check --snapshot <file> --area <area>` (or `--control <id>`, with optional `--exchange-snapshot <file>` as for `report`) writes the strict historical wrapper to standard output; it does not write installation evidence, authenticate or acquire live data. The portable CLI host remains a separate INT-074 implementation gate.
 
 ## Planning and execution
 
@@ -166,3 +166,13 @@ Finite compatibility exceptions:
 | Coordination/provenance | Repository names/URLs, historical source references, GPT/Claude identities, `astra/*`/`claude/*`, inbox routing and original notices remain. |
 
 Active language/default/header generalisation is T2; the final native redesign is T6/T7. T1 alone does not establish completed branding, human acceptance or live Microsoft behaviour.
+
+## Neutral product content and preserved identity (T2)
+
+The current product is **BuildStandard**, with **Engineer workspace** as its subtitle. `productName` remains a readable legacy setting but the working product title is fixed; loading settings does not rewrite the file. `companyName` is optional, blank for a new installation and retained when explicitly saved. Client reports omit an empty author instead of inventing an organisation. Existing tenant/object names and raw exports remain exact evidence, including historical branding.
+
+New engineer catalogue documents identify their presentation as `buildstandard-native-reader-v1`, separately from the unchanged catalogue release/digest. This is regenerated presentation, not a new standard or authority to rebind published mappings. Historical HTML and catalogue bytes are untouched.
+
+Remaining legacy strings are finite compatibility/provenance exceptions: `BDIT_TOOLKIT_ROOT` and `bdit.cmd` (root/CLI compatibility); `BDIT.TenantToolkit.TokenCache.v1` (DPAPI entropy); `BDIT.TenantWriteLeaseUnavailable` (stable refusal code); the Exchange v1 source discriminator; fixed `BDIT:` process/warning markers and script helper names that pair with existing parsers; catalogue/manual/policy content, historical publication pins/notices/source citations and developer-only GPT/Claude coordination. None is a company title. Active current UI/help/new report headers, registration suggestions and new temporary/output filenames are neutral. The reusable publisher's historical-pin/package naming reconciliation (CLA-T1-02) remains a pre-T10 requirement, not completed by this slice.
+
+Offline doctor probes now use `.buildstandard-doctor-` for both creation and exact owned-name admission. Cleanup deletes only the current probe the process created; it never sweeps old `.bdit-doctor-` files. New Exchange staging folders use neutral names without moving historical captures or changing marker/schema protocols.

@@ -16,7 +16,7 @@ Reviewers checking an unreleased change use the CI artifact instead. It is not a
 To check the download, compare the `.sha256` file with:
 
 ```powershell
-Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256
+Get-FileHash .\BuildStandard-*.zip -Algorithm SHA256
 ```
 
 The same run also publishes **standard-definition-exports** containing catalogue-only default/settings documents and reusable JSON with integrity metadata. Use [the engineer start guide](OPERATOR-START.md) and [continuity guide](WORKSPACE-CONTINUITY.md) to exercise standard exports, support metadata and separate backup/restore.

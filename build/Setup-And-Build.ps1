@@ -19,7 +19,7 @@ Set-Location $root
 # Everything shown on screen is also written to build\last-build.log so the output can be read back without copying it.
 $logFile = Join-Path $PSScriptRoot 'last-build.log'
 try { Start-Transcript -Path $logFile -Force | Out-Null } catch { }
-Write-Host "M365 BuildStandard Tool - first build in $root" -ForegroundColor Cyan
+Write-Host "BuildStandard - first build in $root" -ForegroundColor Cyan
 Write-Host "Full output is being written to $logFile"
 
 $sdkPin = (Get-Content -LiteralPath (Join-Path $root 'global.json') -Raw | ConvertFrom-Json).sdk.version

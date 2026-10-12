@@ -236,7 +236,7 @@ public sealed class AssessmentRule
     public double PartialMatchThreshold { get; set; } = 0.5;
 }
 
-/// <summary>What a correctly configured BDIT tenant should ultimately look like. Documentation and assessment only; never written.</summary>
+/// <summary>What a correctly configured client tenant should ultimately look like. Documentation and assessment only; never written.</summary>
 public sealed class ExpectedProduction
 {
     /// <summary>For Conditional Access: enabled. For Intune objects: assigned.</summary>

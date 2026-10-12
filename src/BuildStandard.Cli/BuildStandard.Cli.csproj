@@ -21,6 +21,6 @@
        only when this project itself is published self-contained. That would otherwise silently produce a library
        with no entry point or host. The portable CLI ships only through the App (INT-074/INT-079). -->
   <Target Name="RefuseStandaloneSelfContainedPublish" BeforeTargets="PrepareForPublish" Condition="'$(SelfContained)' == 'true'">
-    <Error Text="bdit cannot be published self-contained on its own: it would be a library with no entry point. Publish BuildStandard.App, which hosts it through bdit.cmd, or publish this project framework-dependent for dotnet BuildStandard.Cli.dll." />
+    <Error Text="BuildStandard CLI cannot be published self-contained on its own: it would be a library with no entry point. Publish BuildStandard.App, which hosts it through buildstandard.cmd (bdit.cmd is the legacy alias), or publish this project framework-dependent for dotnet BuildStandard.Cli.dll." />
   </Target>
 </Project>

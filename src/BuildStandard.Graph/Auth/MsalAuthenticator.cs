@@ -25,7 +25,7 @@ public sealed class SignInRequest
     public string CacheFile { get; init; } = "";
     /// <summary>Total silent/interactive acquisition budget, excluding the engineer's permission review.</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
-    public string ClientName { get; init; } = "M365 BuildStandard Tool";
+    public string ClientName { get; init; } = "BuildStandard";
     public string ClientVersion { get; init; } = "1.0.0";
     public string Purpose { get; init; } = "";
     public IntPtr ParentWindowHandle { get; init; }
@@ -173,8 +173,8 @@ public sealed class MsalAuthenticator : IAccessTokenProvider
                 if (!string.IsNullOrWhiteSpace(request.LoginHint)) interactive.WithLoginHint(request.LoginHint);
                 if (!broker) interactive.WithUseEmbeddedWebView(false).WithSystemWebViewOptions(new SystemWebViewOptions
                     {
-                        HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to M365 BuildStandard Tool. This temporary sign-in page can now be closed.</p></body></html>",
-                        HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to M365 BuildStandard Tool to review the error.</p></body></html>"
+                        HtmlMessageSuccess = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in complete</h2><p>Return to BuildStandard. This temporary sign-in page can now be closed.</p></body></html>",
+                        HtmlMessageError = "<html><body style='font-family:Segoe UI,sans-serif;padding:40px'><h2>Sign-in failed</h2><p>Return to BuildStandard to review the error.</p></body></html>"
                     });
                 return await interactive.ExecuteAsync(token);
             }, ct, request.BeforeInteractive, request.Timeout, timeProvider);

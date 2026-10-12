@@ -34,7 +34,7 @@ internal sealed class OfflineDiagnosticIo
     public Func<string, Stream> CreateProbe { get; init; } = path => new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
     public Action<string> DeleteProbe { get; init; } = File.Delete;
     public Func<string, IEnumerable<string>> Entries { get; init; } = Directory.EnumerateFileSystemEntries;
-    public Func<string> ProbeName { get; init; } = () => ".bdit-doctor-" + Guid.NewGuid().ToString("N") + ".tmp";
+    public Func<string> ProbeName { get; init; } = () => ".buildstandard-doctor-" + Guid.NewGuid().ToString("N") + ".tmp";
 }
 
 internal sealed class UnsafeOfflinePathException : Exception;

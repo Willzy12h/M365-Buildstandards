@@ -79,7 +79,7 @@ public sealed class OfflinePrerequisiteDiagnosticTests
         Assert.Contains(diagnostic.Result.Findings, f => f.Id == "package.metadata" && f.Disposition == OfflineFindingDisposition.Unknown);
         Assert.Contains("[Unknown] package.metadata (Required)", diagnostic.Output);
         Assert.DoesNotContain(root.Root, diagnostic.Output);
-        Assert.Empty(Directory.EnumerateFiles(root.Root, ".bdit-doctor-*", SearchOption.AllDirectories));
+        Assert.Empty(Directory.EnumerateFiles(root.Root, ".buildstandard-doctor-*", SearchOption.AllDirectories));
     }
 
     [Fact]

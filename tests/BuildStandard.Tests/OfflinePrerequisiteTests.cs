@@ -74,7 +74,7 @@ internal sealed class OfflinePackageFixture : IDisposable
     internal OfflinePrerequisiteService Service(OfflineDiagnosticIo? io = null, OfflineDiagnosticLimits? limits = null,
         IClock? clock = null, OfflineDiagnosticHost? host = null) =>
         new(limits ?? new(), clock ?? new FixedClock(), io ?? new(), host ?? new(true, _ => FilePath("absent-host.exe")));
-    internal void NoProbes() => Assert.Empty(Directory.EnumerateFiles(Root, ".bdit-doctor-*", SearchOption.AllDirectories));
+    internal void NoProbes() => Assert.Empty(Directory.EnumerateFiles(Root, ".buildstandard-doctor-*", SearchOption.AllDirectories));
     public void Dispose() => _root.Dispose();
 }
 
@@ -434,7 +434,7 @@ public sealed class OfflinePrerequisiteTests
     public void Existing_probe_collision_is_neither_overwritten_nor_deleted()
     {
         using var fixture = new OfflinePackageFixture();
-        const string name = ".bdit-doctor-collision.tmp";
+        const string name = ".buildstandard-doctor-collision.tmp";
         foreach (var component in new[] { "config", "data", "logs", "reports" }) fixture.Write(component + "/" + name, OfflinePackageFixture.Private);
         var result = fixture.Service(new() { ProbeName = () => name }).Check(fixture.Root);
         Assert.Equal(OfflinePrerequisiteStatus.NeedsAttention, result.Status);
@@ -470,7 +470,7 @@ public sealed class OfflinePrerequisiteTests
         var result = fixture.Service(io).Check(fixture.Root);
         Assert.Equal(OfflinePrerequisiteStatus.NeedsAttention, result.Status);
         Assert.Equal(OfflineFindingDisposition.Fail, Finding(result, "cleanup.config").Disposition);
-        Assert.NotEmpty(Directory.EnumerateFiles(fixture.Root, ".bdit-doctor-*", SearchOption.AllDirectories));
+        Assert.NotEmpty(Directory.EnumerateFiles(fixture.Root, ".buildstandard-doctor-*", SearchOption.AllDirectories));
         Assert.DoesNotContain(OfflinePackageFixture.Private, ToolkitJson.Serialize(result));
     }
 

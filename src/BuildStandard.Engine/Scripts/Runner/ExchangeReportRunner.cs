@@ -89,7 +89,7 @@ public sealed class ExchangeReportRunner
         if (Sha256(body) != m.ScriptSha256) throw new IntegrityException("The library script no longer matches its pinned SHA-256.");
         var request = ScriptReadRequest.Create(runId, entry, context, parameters);
 
-        var staging = Path.Combine(_host.StagingRoot, "BDIT-Run-" + Guid.Parse(runId).ToString("N"));
+        var staging = Path.Combine(_host.StagingRoot, "BuildStandard-Run-" + Guid.Parse(runId).ToString("N"));
         if (Directory.Exists(staging) || File.Exists(staging)) throw new ConfigurationException("The run's staging folder already exists.");
         Directory.CreateDirectory(staging);
         try

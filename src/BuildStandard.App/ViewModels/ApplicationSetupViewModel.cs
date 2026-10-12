@@ -22,7 +22,7 @@ public sealed record ExistingApplicationChoice(SessionMode Mode, string Name, st
 
 public sealed class ApplicationSetupViewModel : PageViewModel
 {
-    private string _tenantId = "", _namePrefix = "M365 BuildStandard", _assessmentId = "", _deploymentId = "",
+    private string _tenantId = "", _namePrefix = "BuildStandard", _assessmentId = "", _deploymentId = "",
         _outcome = "Enter the client's tenant ID and sign in as an administrator. The toolkit then shows both applications and their permissions for you to approve.";
     private bool _permissionsApproved, _assignOperator = true;
     private ApplicationSetupPlan? _plan;
