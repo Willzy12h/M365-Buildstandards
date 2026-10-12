@@ -52,7 +52,7 @@
             <DataGridTextColumn Header="Object" Binding="{Binding Name}" Width="180"/>
             <DataGridTextColumn Header="Change" Binding="{Binding Change}" Width="80"/>
             <DataGridTextColumn Header="Classification" Binding="{Binding Classification}" Width="200"/>
-            <DataGridCheckBoxColumn Header="Toolkit" Binding="{Binding ToolkitManaged}" Width="60"/>
+            <DataGridCheckBoxColumn Header="Toolkit" Binding="{Binding ToolkitManaged}" Width="90"/>
           </DataGrid.Columns>
         </DataGrid>
         <DataGrid AutomationProperties.Name="Property differences for the selected object" Grid.Column="1" ItemsSource="{Binding DriftDifferences}" MaxHeight="260">

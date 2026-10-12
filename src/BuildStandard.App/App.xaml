@@ -17,7 +17,7 @@
       <SolidColorBrush x:Key="Danger" Color="#AD282F"/>
       <SolidColorBrush x:Key="DangerBg" Color="#FFF0F0"/>
       <SolidColorBrush x:Key="WarnBg" Color="#FFF5E1"/>
-      <SolidColorBrush x:Key="Warn" Color="#865A00"/>
+      <SolidColorBrush x:Key="Warn" Color="#805500"/>
       <SolidColorBrush x:Key="GoodBg" Color="#EAF5EF"/>
       <SolidColorBrush x:Key="Good" Color="#176B49"/>
       <SolidColorBrush x:Key="TextPrimary" Color="#183740"/>

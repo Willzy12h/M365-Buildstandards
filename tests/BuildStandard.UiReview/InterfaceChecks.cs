@@ -604,6 +604,10 @@ internal static partial class Program
     private static readonly (string Command, string Handling)[] CommandRegister =
     {
         ("ShellViewModel.NavigateCommand", Press),
+        ("ShellViewModel.SelectGroupCommand", Press),
+        ("ShellViewModel.PinCurrentReferenceCommand", "strict saved-source pin exercised by native Home journeys at all three sizes"),
+        ("ShellViewModel.ClosePinnedReferenceCommand", "pin close exercised by native Home journeys at all three sizes"),
+        ("ShellViewModel.CopyPinnedReferenceCommand", Clipboard),
         ("HomeViewModel.NextStepCommand", Press),
         ("HomeViewModel.OpenTaskCommand", Press),
         ("ShellViewModel.ClearErrorCommand", Press),
@@ -1102,6 +1106,7 @@ internal static partial class Program
                 if (handling != Press) { CommandLog.Add($"{name}: not pressed - {handling}"); continue; }
 
                 var parameters = name == "ShellViewModel.NavigateCommand" ? shell.NavItems.Cast<object?>().ToArray()
+                    : name == "ShellViewModel.SelectGroupCommand" ? RouteCatalog.Items.Select(item => item.Group).Distinct().Cast<object?>().ToArray()
                     : name == "HomeViewModel.OpenTaskCommand" ? shell.Page<HomeViewModel>().Tasks.Concat(shell.Page<HomeViewModel>().Shortcuts).Cast<object?>().ToArray()
                     : new object?[] { null };
                 foreach (var parameter in parameters)
