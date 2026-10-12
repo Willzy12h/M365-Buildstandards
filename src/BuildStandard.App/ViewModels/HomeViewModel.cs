@@ -9,7 +9,7 @@ public sealed class HomeViewModel : PageViewModel
 {
     public HomeViewModel(ShellViewModel shell) : base(shell, "Home")
     {
-        NextStepCommand = new RelayCommand(() => Shell.Navigate(Projection.NextPageKey));
+        NextStepCommand = new RelayCommand(() => Shell.Navigate(Projection.NextPageKey), () => Projection.CanTakeNextAction);
         OpenTaskCommand = new RelayCommand(value =>
         {
             if (value is HomeTaskCard task && IsHomeTask(task)) Shell.Navigate(task.PageKey);
@@ -52,15 +52,7 @@ public sealed class HomeViewModel : PageViewModel
 
     public override void Refresh()
     {
-        Projection = HomeTaskProjection.Create(new HomeTaskContext
-        {
-            Profile = Workspace.Profile, Session = Workspace.Session, Standard = Workspace.Standard,
-            Snapshot = Workspace.Snapshot, SnapshotIsLive = Workspace.SnapshotIsLive,
-            ExchangeSnapshot = Workspace.ExchangeSnapshot, ExchangeCapturedByTool = Workspace.ExchangeCapturedByTool,
-            DisplayedTenantId = Shell.HeaderTenantId,
-            ApplicationSetupActive = Workspace.ApplicationSetup is not null, Busy = Workspace.Busy,
-            BusyMessage = Workspace.BusyMessage, InterruptedNotice = Workspace.InterruptedNotice
-        });
+        Projection = HomeTaskProjection.Create(Workspace.CaptureHomeTaskContext());
         OnPropertyChanged(nameof(Projection));
     }
 }

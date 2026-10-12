@@ -172,7 +172,7 @@ public sealed class HomeTaskProjectionTests
     {
         var context = Current();
         var busy = HomeTaskProjection.Create(context with { Busy = true, BusyMessage = "Synthetic read in progress" });
-        Assert.Equal("overview", busy.NextPageKey); Assert.Contains("Synthetic read in progress", busy.Guidance);
+        Assert.Equal("", busy.NextPageKey); Assert.False(busy.CanTakeNextAction); Assert.Equal(busy.Guidance, busy.DisabledReason); Assert.Contains("Synthetic read in progress", busy.Guidance);
         var setup = HomeTaskProjection.Create(context with { ApplicationSetupActive = true });
         Assert.Equal("setup", setup.NextPageKey); Assert.Contains("write-capable", setup.ConnectionText);
         var stopped = HomeTaskProjection.Create(context with { InterruptedNotice = "Synthetic cancelled operation; write acceptance unknown." });

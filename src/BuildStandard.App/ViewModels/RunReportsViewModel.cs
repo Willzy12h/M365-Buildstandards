@@ -21,7 +21,7 @@ public sealed class RunReportsViewModel : PageViewModel
     {
         try
         {
-            Workflow = workflow ?? new ReadOnlyRunWorkflow(() => (Workspace.Connection, Workspace.Profile), Workspace.Evidence);
+            Workflow = workflow ?? new ReadOnlyRunWorkflow(() => (Workspace.Connection, Workspace.Profile), Workspace.Evidence, () => Workspace.CapturePresentationContext().Generation);
             foreach (var entry in Workflow.Items) Items.Add(new ScriptLibraryItem(entry));
         }
         catch (Exception) { _localMessage = "The pinned script library could not be verified. Run is unavailable; use a complete verified toolkit package."; }

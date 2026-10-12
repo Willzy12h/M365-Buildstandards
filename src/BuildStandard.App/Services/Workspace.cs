@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Windows;
 using BuildStandard.App.Infrastructure;
+using BuildStandard.App.ViewModels;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
 using BuildStandard.Core.Diagnostics;
@@ -161,6 +162,33 @@ public sealed class Workspace : ObservableObject
 
 
 
+    private readonly object _presentationGate = new();
+    private PresentationContextKey? _presentationSignature;
+    private long _presentationGeneration;
+    private DeploymentRun? _viewedRun;
+    private string? _viewedRunContent;
+    public PresentationContextKey CapturePresentationContext()
+    {
+        lock (_presentationGate)
+        {
+            var signature = PresentationContextKey.Capture(Profile, Session, Connection, Standard, Snapshot, SnapshotIsLive, ExchangeSnapshot, Assessment, Plan, LastRun)
+                with { SetupInstance = ApplicationSetup, PrivilegedIdentity = ApplicationSetup is null ? "" : ToolkitJson.Serialize(ApplicationSetup.Identity) };
+            if (_presentationSignature != signature) { _presentationSignature = signature; _presentationGeneration++; }
+            return signature with { Generation = _presentationGeneration };
+        }
+    }
+    public bool IsCurrent(PresentationContextKey context) => context == CapturePresentationContext();
+    public void MarkRunViewed() { _viewedRun = LastRun; _viewedRunContent = LastRun is null ? null : ToolkitJson.Serialize(LastRun); }
+    public HomeTaskContext CaptureHomeTaskContext() => new()
+    {
+        Profile = Profile, Session = Session, Standard = Standard, Snapshot = Snapshot, SnapshotIsLive = SnapshotIsLive,
+        ExchangeSnapshot = ExchangeSnapshot, ExchangeCapturedByTool = ExchangeCapturedByTool,
+        DisplayedTenantId = ApplicationSetup?.Identity.TenantId ?? Session?.TenantId ?? Profile?.TenantId, ApplicationSetupActive = ApplicationSetup is not null,
+        Busy = Busy, BusyMessage = BusyMessage, InterruptedNotice = InterruptedNotice, Assessment = Assessment,
+        Plan = Plan, LastRun = LastRun, RunReviewed = LastRun is not null && ReferenceEquals(_viewedRun, LastRun) && _viewedRunContent == ToolkitJson.Serialize(LastRun),
+        ExperimentalEnabled = ExperimentalGuard.ApprovalRecordedFor(Connection), AcknowledgedSnapshotId = AcknowledgedSnapshotId
+    };
+
     public event Action? StateChanged;
 
     public Workspace(ToolkitPaths paths, ToolkitSettings settings, ToolkitLogger logger, bool diagnostics)
@@ -264,6 +292,7 @@ public sealed class Workspace : ObservableObject
 
     private void Notify()
     {
+        _ = CapturePresentationContext();
         OnPropertyChanged(nameof(Session));
         OnPropertyChanged(nameof(ApplicationSetup));
         OnPropertyChanged(nameof(IsConnected));

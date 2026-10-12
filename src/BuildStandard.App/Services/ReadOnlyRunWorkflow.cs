@@ -28,6 +28,7 @@ public sealed class ReadOnlyRunWorkflow
 
     private readonly Func<(ConnectedTenant? Connection, TenantProfile? Profile)> _current;
     private readonly ScriptCatalogue _catalogue;
+    private Func<long> _presentationGeneration = () => 0;
     private readonly IClock _clock;
     private readonly Func<ScriptEntry, ReadRunContext, IReadOnlyDictionary<string, string?>, string, IProgress<string>?, CancellationToken, Task<ReadRunResult>> _run;
     private readonly Func<ExchangeReportEvidence, string> _save;
@@ -43,8 +44,9 @@ public sealed class ReadOnlyRunWorkflow
     private string? _reviewKey;
     private string _evidenceJson = "";
 
-    public ReadOnlyRunWorkflow(Func<(ConnectedTenant? Connection, TenantProfile? Profile)> current, EvidenceStore store)
-        : this(current, ScriptCatalogue.Shipped, SystemClock.Instance, new ExchangeReportRunner(SystemClock.Instance).RunAsync, store.SaveExchangeReport) { }
+    public ReadOnlyRunWorkflow(Func<(ConnectedTenant? Connection, TenantProfile? Profile)> current, EvidenceStore store, Func<long>? presentationGeneration = null)
+        : this(current, ScriptCatalogue.Shipped, SystemClock.Instance, new ExchangeReportRunner(SystemClock.Instance).RunAsync, store.SaveExchangeReport)
+    { _presentationGeneration = presentationGeneration ?? (() => 0); }
 
     internal ReadOnlyRunWorkflow(Func<(ConnectedTenant? Connection, TenantProfile? Profile)> current, ScriptCatalogue catalogue, IClock clock,
         Func<ScriptEntry, ReadRunContext, IReadOnlyDictionary<string, string?>, string, IProgress<string>?, CancellationToken, Task<ReadRunResult>> run,
@@ -109,7 +111,7 @@ public sealed class ReadOnlyRunWorkflow
     private string ContextKey()
     {
         var (_, profile, session) = Live();
-        return ToolkitJson.Serialize(new { profile, session });
+        return ToolkitJson.Serialize(new { profile, session, Presentation = _presentationGeneration() });
     }
 
     public void RefreshContext()

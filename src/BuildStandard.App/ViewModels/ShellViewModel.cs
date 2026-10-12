@@ -152,8 +152,11 @@ public sealed class ShellViewModel : ObservableObject
     {
         if (!_pages.TryGetValue(key, out var page)) return;
         foreach (var item in NavItems) item.IsActive = item.Key == key;
+        if (key == "deploy") Workspace.MarkRunViewed();
         CurrentPage = page;
         page.OnNavigatedTo();
+        OnPropertyChanged(nameof(NextAction));
+        OnPropertyChanged(nameof(NextActionKey));
     }
 
     public T Page<T>() where T : PageViewModel => _pages.Values.OfType<T>().First();
@@ -222,24 +225,8 @@ public sealed class ShellViewModel : ObservableObject
 
     private (string Text, string Key) NextStep()
     {
-        if (Workspace.Busy) return ("Operation in progress. Review its status before starting another action.", "");
-        if (Workspace.Standard is null) return ("Load a valid Build Standard in Settings.", "settings");
-        if (Workspace.ApplicationSetup is not null) return ("Finish application setup validation, then connect with assessment access.", "setup");
-        if (Workspace.Profile is null) return ("Choose a client in Connect, or export the engineer guide offline.", "connect");
-        if (!Workspace.IsConnected) return ("Open Configuration's saved captures, or review local reports, jobs and the change register. Connect read-only and capture fresh evidence before planning changes.", "connect");
-        if (Workspace.Snapshot is null) return ("Capture this tenant in Configuration.", "configuration");
-        if (!Workspace.SnapshotIsLive) return ("Stored evidence is for review. Capture again before planning a change.", "configuration");
-        if (!Workspace.Snapshot.Complete) return ("Review failed collections and capture again. Incomplete evidence blocks writes.", "configuration");
-        if (Workspace.LastRun is { } run && run.BeforeSnapshotId == Workspace.Snapshot.Id) return run.Status == RunStatus.Completed
-            ? ("Review recorded outcomes and complete the separate functional checks.", "deploy")
-            : ("Review incomplete outcomes in Evidence and recovery. Reconcile uncertain writes before planning again.", "recovery");
-        if (Workspace.Assessment is null) return ("Assess the capture, then inspect findings and prerequisites.", "assessment");
-        if (Workspace.Plan is null) return ("Select eligible controls in Plan changes and review the exact proposal.", "plan");
-        if (!Workspace.Plan.WriteRows.Any()) return ("The plan has no writes. Review manual steps and blocked rows.", "plan");
-        if (!Workspace.IsDeploymentSession) return ("Deployment access requires a new capture and reviewed plan.", "connect");
-        if (!Workspace.ExperimentalChangesEnabled) return (Workspace.ExperimentalChangeGuidance, "connect");
-        if (Workspace.AcknowledgedSnapshotId != Workspace.Snapshot.Id) return ("Export and acknowledge before evidence in Deploy, then review confirmation.", "deploy");
-        return ("Review the queued actions and explicitly approve the verified tenant and exact changes. Engine checks still apply.", "deploy");
+        var guidance = HomeTaskProjection.Create(Workspace.CaptureHomeTaskContext());
+        return (guidance.Guidance, guidance.NextPageKey);
     }
 
     public string VersionText => $"{Workspace.Settings.ProductName} {Workspace.Version} · Evidence: {Workspace.Paths.DataDirectory}";

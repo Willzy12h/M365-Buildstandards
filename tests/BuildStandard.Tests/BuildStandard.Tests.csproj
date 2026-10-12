@@ -33,4 +33,10 @@
     <!-- Synthetic runner fixtures: a stand-in Exchange module and a schema 2 body. Never Microsoft code. -->
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\BuildStandard.App\ViewModels\HomeTaskProjection.cs" Link="App\HomeTaskProjection.cs" />
+    <Compile Include="..\..\src\BuildStandard.App\ViewModels\EvidenceSourcePresentation.cs" Link="App\EvidenceSourcePresentation.cs" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\PresentationContext.cs" Link="App\PresentationContext.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\BuildStandard.App.Tests\HomeTaskProjectionTests.cs" Link="App\HomeTaskProjectionTests.cs" /></ItemGroup>
 </Project>

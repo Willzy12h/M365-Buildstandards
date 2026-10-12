@@ -20,6 +20,9 @@ public sealed class ExperimentalOperationGuard
 
     public ExperimentalOperationGuard(Func<DateTimeOffset>? now = null) => _now = now ?? (() => DateTimeOffset.UtcNow);
 
+    /// <summary>Recorded UI opt-in only; never validates expiry/binding or grants execution authority.</summary>
+    public bool ApprovalRecordedFor(object? connection) => _binding is not null && _connection is not null && ReferenceEquals(_connection, connection);
+
     public void Invalidate() { _connection = null; _binding = null; _expires = default; }
 
     public bool IsEnabled(object? connection, TenantSession? session, StandardCatalogue? standard, TenantProfile? profile)

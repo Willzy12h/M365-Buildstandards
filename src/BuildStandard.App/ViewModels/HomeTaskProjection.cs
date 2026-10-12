@@ -17,12 +17,22 @@ public sealed record HomeTaskContext
     public bool Busy { get; init; }
     public string BusyMessage { get; init; } = "";
     public string InterruptedNotice { get; init; } = "";
+    public AssessmentResult? Assessment { get; init; }
+    public DeploymentPlan? Plan { get; init; }
+    public DeploymentRun? LastRun { get; init; }
+    public bool RunReviewed { get; init; }
+    public bool ExperimentalEnabled { get; init; }
+    public string? AcknowledgedSnapshotId { get; init; }
+
 }
 
 /// <summary>Presentation guidance, never an assessment, completion claim or permission to execute.</summary>
 public sealed record HomeTaskProjection(string Headline, string Guidance, string NextPageKey, string NextActionLabel,
     string ClientText, string ConnectionText, string EvidenceText, string StandardText)
 {
+    public bool CanTakeNextAction => NextPageKey.Length > 0;
+    public string DisabledReason => CanTakeNextAction ? "" : Guidance;
+    public int Priority { get; init; }
     public string ContextSummary => string.Join(" · ", ClientText.Split('\n')[0], ConnectionText.Split('\n')[0],
         EvidenceText.Split('\n')[0], StandardText.Split('\n')[0]);
     public const string BoundaryText = "Scoped checks cover their selected requirements only. Job completion needs reviewed evidence and engineer checks. "
@@ -73,9 +83,14 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             evidence += $"\nCaptured against standard {Name(snapshot.StandardRelease, "unknown")}; current standard {standard.Release}.";
 
         var headline = profile is null ? "What would you like to work on?" : $"Your next steps for {Name(profile.Company, "this client")}";
-        var next = (Page: "connect", Label: "Open Connect", Reason: "Choose a saved client for local evidence review, or connect read-only to confirm the tenant and collect its configuration.");
+        var next = (Page: "connect", Label: "Open Connect", Reason: "Choose a saved client for local evidence review, or connect read-only to confirm the tenant and collect its configuration, or export the engineer guide offline.");
         if (context.Busy)
-            next = ("overview", "Open client overview", $"An operation is in progress. {context.BusyMessage} Review its pinned status and wait before starting another operation.");
+            next = ("", "Operation in progress", $"An operation is in progress. {context.BusyMessage} Review its pinned status and wait before starting another operation.");
+        else if (context.InterruptedNotice.Length > 0 || context.LastRun is { } uncertain
+            && SameTenant(uncertain.TenantId, profile?.TenantId)
+            && (uncertain.Status is RunStatus.Running or RunStatus.Interrupted || uncertain.Results.Any(r => r.WriteAcceptance == WriteAcceptance.Unknown)))
+            next = ("recovery", "Review uncertain work", (context.InterruptedNotice.Length > 0 ? context.InterruptedNotice : "This client's run contains uncertain outcomes.")
+                + " Preserve evidence and reconcile uncertainty before repeating any action; viewing a result does not resolve it.");
         else if (standard is null)
             next = ("settings", "Open Settings and diagnostics", "Load a valid Build Standard before assessing client evidence. Your saved work remains available in its existing pages.");
         else if (context.ApplicationSetupActive)
@@ -84,13 +99,13 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             next = ("connect", "Review connection identity", "Confirm the selected client, tenant and signed-in engineer on Connect before collecting or interpreting evidence.");
         else if (profile is not null)
         {
-            if (context.InterruptedNotice.Length > 0)
-                next = ("recovery", "Review interrupted work", context.InterruptedNotice + " Review the local change register and recorded outcomes before repeating an action.");
+            if (context.LastRun is { } run && SameTenant(run.TenantId, profile.TenantId) && !context.RunReviewed)
+                next = ("deploy", "Review recorded outcomes", "Review what was accepted, read back and saved. A completed run does not establish functional acceptance.");
             else if (capture is not null && !captureMatches)
                 next = ("configuration", "Open this client's evidence", "The open capture belongs to a different client. Reopen this client's saved evidence or collect a fresh read-only capture.");
             else if (snapshot is null)
                 next = ("configuration", "Open Configuration", session is null
-                    ? "Open a saved capture for historical review. To collect current settings, deliberately connect read-only first."
+                    ? "Open a saved capture for historical review. Connect read-only to collect current settings before planning changes."
                     : "Review Configuration and capture the tenant read-only. Supplemental or scoped observations do not establish full before-change evidence.");
             else if (!liveCapture)
                 next = ("assessment", "Review original findings", (complete ? "Review the original evidence and its limitations. "
@@ -102,10 +117,26 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
                 next = ("history", "Review evidence and standard changes", "This capture refers to a different Build Standard. Review version differences and recapture against the current catalogue before planning.");
             else if (session is null)
                 next = ("configuration", "Review saved evidence", "No connection is active. Review original evidence locally and reconnect read-only for a fresh capture before planning changes.");
+            else if (context.Assessment is not null && context.Plan is null)
+                next = ("plan", "Review planned changes", "Select eligible controls and inspect prerequisites and the exact proposal. Manual steps remain engineer actions.");
+            else if (context.Plan is not null && !context.Plan.WriteRows.Any())
+                next = ("plan", "Review manual and blocked rows", "This plan has no writes. Review manual steps, blocked controls and their next actions.");
+            else if (context.Plan is not null && (session.Mode != SessionMode.Deployment || !context.ExperimentalEnabled))
+                next = ("connect", "Review deployment access", "Deliberately switch permission mode and review session-specific experimental access. Fresh evidence and exact approval still apply.");
+            else if (context.Plan is not null)
+                next = ("deploy", "Review exact approval", context.AcknowledgedSnapshotId != snapshot.Id
+                    ? "Export and acknowledge the complete before-evidence, then inspect the exact confirmation."
+                    : "Review the exact tenant and proposed actions. Only explicit approval and execution-layer checks permit changes.");
             else
                 next = ("assessment", "Review assessment findings", "Inspect findings, unknowns, prerequisites and manual checks. Complete collection is an evidence status; every planned change still needs separate review and approval.");
         }
-        return new(headline, next.Reason, next.Page, next.Label, client, connection, evidence, standardText);
+        return new(headline, next.Reason, next.Page, next.Label, client, connection, evidence, standardText)
+        {
+            Priority = next.Page switch { "" => 0, "recovery" => 1, "settings" => 2,
+                "connect" => profile is null ? 2 : 7, "setup" => 3,
+                "deploy" => context.LastRun is not null && !context.RunReviewed ? 4 : 8,
+                "configuration" or "history" => 5, "assessment" => 6, _ => 7 }
+        };
     }
 
     private static bool SameTenant(string? left, string? right) => !string.IsNullOrWhiteSpace(left)

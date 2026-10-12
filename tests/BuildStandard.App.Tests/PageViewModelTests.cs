@@ -106,7 +106,7 @@ public sealed class PageViewModelTests : IDisposable
         Assert.IsType<ConnectViewModel>(_shell.CurrentPage);
         Assert.Contains(_shell.NavItems, n => n.Key == "connect" && n.IsActive);
         _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
-        Assert.Equal("connect", _shell.NextActionKey);
+        Assert.Equal("configuration", _shell.NextActionKey);
         Assert.Contains(_shell.NavItems, n => n.Key == _shell.NextActionKey);
     }
 
