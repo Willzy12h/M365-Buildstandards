@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.Services;
 using BuildStandard.App.ViewModels;
@@ -326,16 +325,13 @@ internal static partial class Program
             if (!Descendants(content).OfType<TextBlock>().Any(t => t.Text == value && IsShown(t, content)))
                 throw new InvalidOperationException(where + ": persistent tenant/domain/account/access header is not visible: " + value);
         // D-05: friendly context stays visible; exact identifiers remain selectable in native details.
-        var details = Descendants(content).OfType<TextBox>().Single(t =>
-            System.Windows.Automation.AutomationProperties.GetName(t) == "Connection details");
-        DependencyObject? parent = details;
-        while (parent is not null && parent is not Expander) parent = VisualTreeHelper.GetParent(parent);
-        var expander = parent as Expander
-            ?? throw new InvalidOperationException(where + ": connection details have no accessible expander.");
+        var expander = Descendants(content).OfType<Expander>().Single(e => e.Name == "ConnectionDetailsExpander");
         var wasExpanded = expander.IsExpanded;
         try
         {
             expander.IsExpanded = true; content.UpdateLayout(); Pump();
+            var details = Descendants(content).OfType<TextBox>().Single(t =>
+                System.Windows.Automation.AutomationProperties.GetName(t) == "Connection details");
             if (!details.IsReadOnly || !IsShown(details, content) || details.Text != shell.DetailsText
                 || !details.Text.Contains(shell.HeaderTenantId, StringComparison.Ordinal))
                 throw new InvalidOperationException(where + ": exact current tenant ID is not visible and copyable in connection details.");
