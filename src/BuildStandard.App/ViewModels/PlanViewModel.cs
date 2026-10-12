@@ -236,9 +236,9 @@ public sealed class PlanViewModel : PageViewModel
                 {
                     status = StatusLabels.For(finding.Status);
                     explanation = finding.Reason + (finding.Status == FindingStatus.UnableToAssess
-                        ? " Next: resolve collection errors in 2 · Configuration, re-capture and assess."
-                        : finding.Owned ? " Next: review the finding and supporting evidence in 3 · Assessment."
-                        : " Next: review this existing object in 3 · Assessment. The tool does not adopt or change it by name.");
+                        ? " Next: resolve collection errors in 1 · Configuration, re-capture and assess."
+                        : finding.Owned ? " Next: review the finding and supporting evidence in 2 · Assessment."
+                        : " Next: review this existing object in 2 · Assessment. The tool does not adopt or change it by name.");
                 }
                 var selection = new ControlSelection
                 {
