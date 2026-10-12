@@ -36,6 +36,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if (args.Length > 3 || args.Take(2).Any(a => a.StartsWith("--", StringComparison.Ordinal))
+            || (args.Length == 3 && args[2] != "--reader-hosted"))
+        { Console.Error.WriteLine("Usage: BuildStandard.UiReview [source] [output] [--reader-hosted]"); return 2; }
+        var readerHosted = args.Length == 3;
         var source = Path.GetFullPath(args.Length > 0 ? args[0] : Environment.CurrentDirectory);
         var output = Path.GetFullPath(args.Length > 1 ? args[1] : Path.Combine(Environment.CurrentDirectory, "dist", "ui-review"));
         Directory.CreateDirectory(output);
@@ -75,6 +79,7 @@ internal static partial class Program
             var window = new BuildStandard.App.MainWindow { DataContext = shell };
             if (window.Content is not FrameworkElement content) throw new InvalidOperationException("MainWindow has no root FrameworkElement.");
             content.DataContext = shell;
+            if (readerHosted) return CheckHostedCatalogueReader(workspace, shell, window, output);
             SeedWorkspace(workspace);
             SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
