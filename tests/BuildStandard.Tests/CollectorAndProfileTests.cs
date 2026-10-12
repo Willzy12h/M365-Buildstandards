@@ -20,6 +20,10 @@ public class CollectorAndProfileTests
         public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => _inner.GetAsync(api, path, ct);
         public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) =>
             path.EndsWith("/assignments", StringComparison.Ordinal) ? throw new PermissionException("GET", path, "Forbidden", "denied", "x") : _inner.GetAllAsync(api, path, ct);
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => _inner.WriteAsync(api, method, path, payload, ct);
     }
 

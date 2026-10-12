@@ -82,6 +82,10 @@ internal sealed class ReadRunFixture : IDisposable
         public string TenantId => tenant; public SessionMode Mode => mode;
         public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Graph transport is forbidden.");
         public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("Graph transport is forbidden.");
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("Tenant writes are forbidden.");
     }
 }

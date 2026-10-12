@@ -6,6 +6,7 @@ using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Graph;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Safety;
 using BuildStandard.Graph;
 using BuildStandard.Graph.Auth;
 using Xunit;
@@ -88,6 +89,10 @@ public class GraphClientTests
         public SessionMode Mode => SessionMode.Assessment;
         public Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
         public Task<IReadOnlyList<JsonObject>> GetAllAsync(GraphApi api, string path, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("No request expected.");
     }
 
@@ -189,7 +194,14 @@ public class GraphClientTests
         public int Calls;
         public int ForceRefreshes;
         public Exception? Failure;
-        public Task<string> GetAccessTokenAsync(CancellationToken ct) { Calls++; return Failure is null ? Task.FromResult("token-" + Calls) : Task.FromException<string>(Failure); }
+        public Func<CancellationToken, Task>? BeforeReturn;
+        public async Task<string> GetAccessTokenAsync(CancellationToken ct)
+        {
+            Calls++;
+            if (BeforeReturn is not null) await BeforeReturn(ct);
+            if (Failure is not null) throw Failure;
+            return "token-" + Calls;
+        }
         public Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken ct) { if (forceRefresh) ForceRefreshes++; return GetAccessTokenAsync(ct); }
     }
 
@@ -428,5 +440,62 @@ public class GraphClientTests
     {
         var scopes = MsalAuthenticator.NormaliseScopes(new[] { "https://graph.microsoft.com/User.Read", "policy.read.all", "User.Read" });
         Assert.Equal(new[] { "policy.read.all", "User.Read" }, scopes);
+    }
+    [Theory]
+    [InlineData("expired")][InlineData("binding")][InlineData("stopped")][InlineData("cancelled")]
+    public async Task Reviewed_write_rechecks_after_pending_token_acquisition_without_a_send(string failure)
+    {
+        var (client, handler, tokens) = Create();
+        var clock = new FixedClock(); var original = clock.UtcNow;
+        var current = true; var stopped = false;
+        using var cancellation = new CancellationTokenSource();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        tokens.BeforeReturn = ct => release.Task;
+        var admission = new ReviewedWriteAdmission(original, original, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20), clock,
+            () => { if (!current) throw new PlanValidationException("Reviewed context changed"); }, () => stopped);
+        var pending = client.WriteReviewedAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies",
+            new JsonObject { ["displayName"] = "Synthetic", ["state"] = "disabled" }, admission, cancellation.Token);
+        Assert.False(pending.IsCompleted); Assert.Equal(1, tokens.Calls);
+        if (failure == "expired") clock.UtcNow = original.AddMinutes(21);
+        if (failure == "binding") current = false;
+        if (failure == "stopped") stopped = true;
+        if (failure == "cancelled") cancellation.Cancel();
+        release.SetResult();
+        await Assert.ThrowsAsync<WriteNotSentException>(() => pending);
+        Assert.Empty(handler.Requests); Assert.Equal(1, tokens.Calls); Assert.Equal(0, tokens.ForceRefreshes);
+    }
+
+    [Fact]
+    public async Task Reviewed_write_inside_limit_is_sent_once_after_its_binding_check()
+    {
+        var (client, handler, tokens) = Create();
+        var clock = new FixedClock(); var original = clock.UtcNow; var checkedBinding = false;
+        tokens.BeforeReturn = ct => { clock.UtcNow = original.AddMinutes(20); return Task.CompletedTask; };
+        handler.Enqueue(HttpStatusCode.Created, "{\"id\":\"" + TestData.Operator + "\"}");
+        var admission = new ReviewedWriteAdmission(original, original, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20), clock,
+            () => checkedBinding = true, () => false);
+        var result = await client.WriteReviewedAsync(GraphApi.V1, GraphWriteMethod.Post, "/identity/conditionalAccess/policies",
+            new JsonObject { ["displayName"] = "Synthetic", ["state"] = "disabled" }, admission, default);
+        Assert.True(checkedBinding); Assert.Equal(TestData.Operator, result["id"]!.GetValue<string>());
+        Assert.Single(handler.Requests); Assert.Equal(1, tokens.Calls);
+    }
+
+    [Fact]
+    public async Task Reviewed_write_failure_after_transport_handoff_remains_ambiguous_and_unretried()
+    {
+        var (client, handler, tokens) = Create();
+        var clock = new FixedClock(); var original = clock.UtcNow;
+        handler.EnqueueTimeout();
+        var admission = new ReviewedWriteAdmission(original, original, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20), clock, () => { }, () => false);
+        await Assert.ThrowsAsync<AmbiguousWriteException>(() => client.WriteReviewedAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/identity/conditionalAccess/policies", new JsonObject { ["displayName"] = "Synthetic", ["state"] = "disabled" }, admission, default));
+        Assert.Single(handler.Requests); Assert.Equal(1, tokens.Calls); Assert.Equal(0, tokens.ForceRefreshes);
+    }
+
+    [Fact]
+    public void Reviewed_write_is_a_required_contract_without_a_default_forwarder()
+    {
+        var method = typeof(IGraphClient).GetMethod(nameof(IGraphClient.WriteReviewedAsync));
+        Assert.NotNull(method); Assert.Null(method.GetMethodBody());
     }
 }

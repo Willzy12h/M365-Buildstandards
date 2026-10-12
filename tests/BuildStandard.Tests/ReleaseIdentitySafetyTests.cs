@@ -78,6 +78,10 @@ public sealed class ReleaseIdentitySafetyTests
             : path.EndsWith("/passkeyProfiles", StringComparison.Ordinal) ? (State["passkeyProfiles"] as JsonArray ?? new()).OfType<JsonObject>().Select(o => (JsonObject)o.DeepClone()).ToArray()
             : path.Contains("/members?", StringComparison.Ordinal) ? (State["_members"] as JsonArray ?? new()).OfType<JsonObject>().Select(o => (JsonObject)o.DeepClone()).ToArray()
             : State["_owners"]!.AsArray().OfType<JsonObject>().Select(o => (JsonObject)o.DeepClone()).ToArray());
+        public Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
+            BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+            throw new BuildStandard.Core.WriteDeniedException("This synthetic read-only adapter does not support reviewed writes.");
+
         public Task<JsonObject> WriteAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload, CancellationToken ct) => throw new InvalidOperationException("Generic write forbidden");
         public Task ApplyReviewedChangeAsync(ReviewedChangePlan p, CancellationToken ct)
         {

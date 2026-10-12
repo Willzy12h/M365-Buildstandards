@@ -8,6 +8,15 @@ Approved T2 / D-07 / AC-23/25/26/32, [#116](https://github.com/Willzy12h/M365-Bu
 
 # Current source completion record — 8 October 2026
 
+## BuildStandard phase — T4 source prepared, 12 October 2026
+
+Approved T4 / D-02 / AC-03/04 / GPT-R-002, [#117](https://github.com/Willzy12h/M365-Buildstandards/pull/117), based on verified T1 `381999b3d0fe70c93f00481fde2978e56c787b94`; unmerged T2 source is not imported. Immutable original plan/snapshot expiry and trusted binding/stop admission are checked after preflight and through a mandatory reviewed-write contract immediately before initial Graph transport. Other write contracts, historical data, scopes and schemas remain separate/unchanged. Initial existing-path regressions: 3 failed/2 boundary cases passed; real final-barrier removal: 3 failed/1 cancellation case passed. Restored current Release suite: 2031 passed/0 failed/1 explicit Windows DPAPI skip; unavailable Linux ExchangeReportRunnerTests remain required on Windows. Focused cases 25/25; strict solution and native-harness source crossbuilds zero warnings/errors. Cross-compilation is not native execution. Named execution/Graph-write review and final-head Windows/native/package then actual phase merge proof remain required; no source-readiness/acceptance claim.
+
+## BuildStandard phase — T1 accepted and verified, 12 October 2026
+
+[#115](https://github.com/Willzy12h/M365-Buildstandards/pull/115), source `f75d1c3c10c561e39516d78667645618dd4276cf`, named Claude READY 6119071116, PR Windows 38187405588 successful. Actual merge `381999b3d0fe70c93f00481fde2978e56c787b94`, phase push 38213707152 successful, matching reviewed Git tree. Native Windows 2217 Engine/CLI and 468 App tests passed with zero failures/skips; 63 renders/129 commands, zero bindings/tenant calls; fresh 303-file package startup/shutdown/Copy/both launchers verified. Actual-source ZIP SHA-256 `0d808d4100826ff5fbb3ce095d67693ccc13ec76563e0e450ba88e8f93959033`. Intermediate proof, not T10/H1/live/distribution acceptance. Main/integration remain frozen; no historical standard/version/permission/publication change.
+
+
 ## BuildStandard phase — T1 source prepared, 12 October 2026
 
 Requirement D-07 / AC-24/25/26/31: neutral technical identity with existing root/evidence/cache/lock compatibility. #115 targets the accepted phase from `2343e9ea65e632145a62bb914a64baff3eb95f05`. Source/projects/resources/managed CLI and launchers use `BuildStandard.*`; the legacy CLI alias remains the same host. Root aliases refuse conflicts and invalid explicit selection; no automatic migration/adoption or new authority. INT-100 and ARCHITECTURE enumerate compatibility exceptions.
@@ -229,3 +238,9 @@ Integration now includes Claude #70 as `f718f20c84d1f1839a27fdb416dc88ab38b0c1bf
 ### Approved phase T8 merge checkpoint — 12 October 2026
 
 #119 repaired head `b3f32003e4fbfbd45e1b81cb0f87d848fc32c95a`, independent bounded repair READY, ASTRA-T8-01/02 resolved with author failing/passing regressions. Exact-head Windows38245567641 succeeded:2246+468tests/0fail/0skip,63renders/129commands/0bindings/tenantcalls,PS5.1/fresh303package. Tested synthetic source678f909ce25fa8fd5cc5c8a78d1531a8f18e8866 and reviewed/phase tree2fc7efe05dd4a7683830ed19495b971d51ef95e1 match; intermediate ZIP1267c4485339b90b185edae0b41a9d1d06cdc30f57d2cf6fcb9053aca4365e97 is not actual merge ZIP proof. Actual merge `cbc4a883d0f71343f3026bba043256fbb642b668` / phase run38247486775 now verified SUCCESS, same source tree,2246+468Windows tests/zero failure or skip,63native renders/129commands/zero bindings or tenant calls,PS5.1/fresh303package/startup/Copy/both CLI launchers. Actual phase ZIP SHA256 `5f7c3c9c699e63e7cf518f1e9264aef9450252a94a2ad256876badd92610e49e`, recording this exact merge source. Descriptor/content/exact export implemented; no browser Runtime/host/H1/live/human acceptance. Partial-write/readback/collision cleanup coverage limit retained. Local artifact download denied, not claimed held.
+
+### Provisional T3/T4 implementation — 12 October 2026
+
+Owner revised review sequencing: named/independent review deferred to assembled T10, not waived. T3 #118 head5207d08948d78f11dfc32c20031d844865bb5c30 provisionally mergeda52bef0e05c7e0931a720bc9bd7d42d37fb37292; actual phase38279513328 SUCCESS2296+473/zero fail or skip,63renders129commands/zero bindings or tenantcalls; fresh303package ZIPa6b4644eb196bd1dcbbe3466bea0a787a758b361e1cba2d25c165f627e118731.
+
+T4 #117 composed head85478a67eaeb11f01781889e313c817b9c2d1038 provisionally merged77671b91d3005418148310dd65b45d6538478668; actual phase38281176411 SUCCESS2315+473/zero fail or skip,63renders129commands/zero bindings or tenantcalls; fresh303package ZIP901016ff2c67cbad25c604a93507b50f29055182c1fdeffaf88d5f6776a22abe. Original named Claude READY8d1bc0a and CLA-T4-01–03 retained; final composition/safety disposition remains deferred. Neither provisional merge is final source/H1/live acceptance. Original ZIPs not locally downloaded; artifact403 limitation retained.
