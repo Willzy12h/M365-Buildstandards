@@ -23,4 +23,17 @@ public sealed class NativeCommandCentreStructureTests
         Assert.NotNull(groups);
         Assert.Contains(groups.Descendants(), e => e.Name.LocalName == "StackPanel" && (string?)e.Attribute("Orientation") == "Horizontal");
     }
+
+    [Fact]
+    public void Command_centre_named_static_resources_are_defined_before_native_loading()
+    {
+        var key = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + "Key";
+        var names = Source("App.xaml").Descendants().Select(e => (string?)e.Attribute(key)).Where(k => k is not null).ToHashSet(StringComparer.Ordinal);
+        var attributes = Source("Views/HomeView.xaml").Descendants().Attributes().Select(a => a.Value);
+        foreach (var value in attributes)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(value, @"^\{StaticResource ([A-Za-z][A-Za-z0-9]*)\}$");
+            if (match.Success) Assert.Contains(match.Groups[1].Value, names);
+        }
+    }
 }

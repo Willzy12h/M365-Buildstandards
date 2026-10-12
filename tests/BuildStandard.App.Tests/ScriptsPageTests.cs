@@ -63,8 +63,8 @@ public sealed class ScriptsPageTests : IDisposable
     [Fact]
     public void The_page_is_in_the_navigation_and_lists_the_whole_library_grouped_by_area()
     {
-        Assert.Contains(_shell.NavItems, n => n.Key == "scripts" && n.Title == "Scripts & Reports");
-        // The page lists the Copy library: a schema 2 item runs only through the runner, which this build does not offer.
+        Assert.Contains(_shell.NavItems, n => n.Key == "scripts" && n.Title == "Script library");
+        // The page lists the Copy library: a schema 2 item runs only through the separately reviewed registered-run page.
         Assert.Equal(ScriptCatalogue.Shipped.Entries.Count(e => e.Manifest.SchemaVersion == 1), _page.Items.Count);
         Assert.DoesNotContain(_page.Items, i => i.Id == "exo.mailbox-size-quota");
         var groups = _page.ItemsView.Groups.Cast<CollectionViewGroup>().ToList();
