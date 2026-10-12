@@ -122,10 +122,21 @@ public sealed class DoctorCliDispatchTests
     public async Task Existing_help_and_unknown_command_exits_are_preserved_and_doctor_limits_are_visible()
     {
         var help = await Run(["--help"]); Assert.Equal(0, help.Exit); Assert.Empty(help.Error);
-        Assert.Contains("bdit doctor [--root <folder>] [--format text|json]", help.Output);
+        Assert.Contains("buildstandard doctor [--root <folder>] [--format text|json]", help.Output);
         Assert.Contains("No repair, installation, sign-in or script execution", help.Output);
         Assert.Contains("130 cancelled", help.Output);
         var unknown = await Run(["unknown-safe-command"]);
         Assert.Equal(64, unknown.Exit); Assert.Contains("Unknown command", unknown.Error);
+    }
+    [Fact]
+    public async Task Help_names_neutral_primary_entry_and_describes_legacy_alias()
+    {
+        var result = await Run(new[] { "--help" });
+        Assert.Equal(0, result.Exit);
+        Assert.Contains("buildstandard — offline reports", result.Output);
+        Assert.Contains("buildstandard doctor", result.Output);
+        Assert.Contains("bdit.cmd remains a compatible alias", result.Output);
+        Assert.Contains("BUILDSTANDARD_ROOT", result.Output);
+        Assert.Empty(result.Error);
     }
 }

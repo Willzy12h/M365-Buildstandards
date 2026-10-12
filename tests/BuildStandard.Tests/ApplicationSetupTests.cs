@@ -421,4 +421,39 @@ public sealed class ApplicationSetupTests
         Assert.DoesNotContain("client_secret", uri.Query, StringComparison.Ordinal);
         Assert.Throws<ConfigurationException>(() => ApplicationSetupService.AdminConsentUri("common", Operator));
     }
+    [Fact]
+    public async Task Existing_id_repair_preserves_distinct_observed_application_and_enterprise_names()
+    {
+        using var f = new Fixture();
+        var original = await f.Execute(await f.Preview());
+        var appNames = new[] { "BDIT historical assessment", "Client-owned deployment name" };
+        var principalNames = new[] { "Tenant enterprise assessment", "BDIT historical enterprise deployment" };
+        for (var i = 0; i < 2; i++)
+        {
+            f.Handler.Applications[i]["displayName"] = appNames[i];
+            f.Handler.Principals[i]["displayName"] = principalNames[i];
+        }
+        f.Handler.Writes.Clear();
+        var plan = await f.Service.PreviewAsync(f.Standard, "BuildStandard", default, original.Rows[0].ClientId, original.Rows[1].ClientId);
+        Assert.Equal(appNames, plan.Rows.Select(r => r.DisplayName));
+        var result = await f.Execute(plan);
+        Assert.All(result.Rows, r => Assert.Equal("Passed", r.ConfigurationVerification));
+        Assert.Equal(appNames, f.Handler.Applications.Select(a => a["displayName"]!.GetValue<string>()));
+        Assert.Equal(principalNames, f.Handler.Principals.Select(a => a["displayName"]!.GetValue<string>()));
+        Assert.DoesNotContain(f.Handler.Writes, p => p is "/applications" or "/servicePrincipals");
+    }
+
+    [Theory]
+    [InlineData("application", true)][InlineData("application", false)]
+    [InlineData("principal", true)][InlineData("principal", false)]
+    public async Task Existing_id_repair_refuses_unknown_observed_name_before_any_write(string objectKind, bool missing)
+    {
+        using var f = new Fixture();
+        var original = await f.Execute(await f.Preview());
+        var item = objectKind == "application" ? f.Handler.Applications[0] : f.Handler.Principals[0];
+        if (missing) item.Remove("displayName"); else item["displayName"] = null;
+        f.Handler.Writes.Clear();
+        await Assert.ThrowsAsync<ConfigurationException>(() => f.Service.PreviewAsync(f.Standard, "BuildStandard", default, original.Rows[0].ClientId, original.Rows[1].ClientId));
+        Assert.Empty(f.Handler.Writes);
+    }
 }

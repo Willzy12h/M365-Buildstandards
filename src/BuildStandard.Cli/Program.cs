@@ -97,25 +97,25 @@ public static class Program
     private static int Help()
     {
         Console.WriteLine("""
-            bdit — offline reports and local prerequisite diagnostics. Never connects to a tenant.
+            buildstandard — offline reports and local prerequisite diagnostics. Never connects to a tenant.
 
-              bdit doctor [--root <folder>] [--format text|json]
+              buildstandard doctor [--root <folder>] [--format text|json]
                   Check local portable prerequisites; text is the default, JSON is a separate diagnostic result.
                   Checks package/catalogue/settings and uses temporary owned write/delete probes.
                   No repair, installation, sign-in or script execution. Optional limitations stay visible.
                   Ctrl+C requests cancellation and owned probe cleanup; remaining required checks are Unknown.
                   Local readiness does not certify publisher trust, tenant readiness or write approval.
 
-              bdit check --snapshot <file> (--area <area> | --control <id>) [--exchange-snapshot <file>] [--release <r>] [--root <dir>]
+              buildstandard check --snapshot <file> (--area <area> | --control <id>) [--exchange-snapshot <file>] [--release <r>] [--root <dir>]
                   Review selected controls from stored evidence, using the saved client inputs.
                   --exchange-snapshot adds separate Exchange/Purview evidence, as report does.
                   Writes a separate partial scoped-check JSON wrapper to standard output.
                   Historical filtering only: no new collection, sign-in or complete before-evidence.
 
-              bdit releases
+              buildstandard releases
                   List the Build Standard releases available to this installation.
 
-              bdit report --snapshot <file> [--exchange-snapshot <file>] [--release <r>] [--format <f>] [--root <dir>]
+              buildstandard report --snapshot <file> [--exchange-snapshot <file>] [--release <r>] [--format <f>] [--root <dir>]
                   Assess a captured snapshot against a standard and write the engineer report.
                   Requires this installation's client record for the snapshot's tenant, because the
                   client inputs, ownership records and accepted deviations change the result.
@@ -123,46 +123,46 @@ public static class Program
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
 
-              bdit report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
+              buildstandard report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
                   Validates its recorded tenant, schema and integrity before writing an export.
                   Formats: html, json, csv (ZIP of sections), xlsx. Default html.
                   No client record or standard is required. Failed/partial reads retain their status;
                   a successful export does not mean the original collection succeeded.
 
-              bdit document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
+              buildstandard document --client "<name>" [--release <r>] [--format <f>] [--root <dir>]
                   Write the client-facing build standard document.
                   Formats: html, markdown. Default html.
 
-              bdit inventory --snapshot <file> [--format <f>] [--root <dir>]
+              buildstandard inventory --snapshot <file> [--format <f>] [--root <dir>]
                   Export all captured configuration and collection states; no assessment or live reads.
                   Formats: html, json, csv, xlsx. Default html. No client record is required.
                   Uses the capture's recorded release; --release is not an override for observed data.
 
-              bdit standard [--release <r>] [--format <f>] [--root <dir>]
+              buildstandard standard [--release <r>] [--format <f>] [--root <dir>]
                   Export all standard defaults/settings, with no client data.
                   No format: full ZIP set with exact catalogue JSON/manifest, HTML and Markdown.
                   Individual formats: html, markdown, json. JSON retains original placeholders.
 
-              bdit upgrade-impact --snapshot <file> --from <r> --to <r> [--format <f>] [--root <dir>]
+              buildstandard upgrade-impact --snapshot <file> --from <r> --to <r> [--format <f>] [--root <dir>]
                   Assess one stored capture under two releases and show how each requirement changed,
                   traced through the shipped release lineage. Describes the standard, not the tenant.
                   Needs this installation's client record for the snapshot's tenant.
                   Formats: html, markdown, json, csv, xlsx. Default html.
 
-              bdit jobs --tenant <id> [--snapshot <file>] [--release <r>] [--root <dir>]
+              buildstandard jobs --tenant <id> [--snapshot <file>] [--release <r>] [--root <dir>]
                   List the tenant's jobs with their completion claim. Read-only: never records anything.
 
-              bdit job --tenant <id> --job <id> [--snapshot <file>] [--release <r>] [--root <dir>]
+              buildstandard job --tenant <id> --job <id> [--snapshot <file>] [--release <r>] [--root <dir>]
                   Show one job: each requirement's state and reasons, decisions, cutover cases and any
                   unattached or unreadable records. A complete job grants no authority to change a tenant.
                   --snapshot names the current capture the recorded objects are checked against;
                   without it that check is skipped and the output says so.
 
-              bdit scripts [--search "<words>"]
+              buildstandard scripts [--search "<words>"]
                   List the reviewed script library by area, or the items matching every word.
 
-              bdit script --id <id> [--copy] [--tenant <id>] [--tenant-name "<name>"] [--account <upn>]
+              buildstandard script --id <id> [--copy] [--tenant <id>] [--tenant-name "<name>"] [--account <upn>]
                           [--out <file>] [--<Field> <value> ...]
                   Without --copy, show the item's purpose, needs and form fields.
                   With --copy, check the fields and print the standalone Copy script, or save it with --out
@@ -170,9 +170,11 @@ public static class Program
                   with commas. The script signs in to Exchange Online itself and refuses another tenant.
                   Nothing is run here.
 
-              bdit verify-restore --folder <dir>
+              buildstandard verify-restore --folder <dir>
                   Re-check a separately restored evidence folder against its recorded checksums.
                   Read-only: refuses changed, missing or unlisted files and writes nothing.
+
+            bdit.cmd remains a compatible alias to the same application host.
 
             Common options:
               --root <dir>     Toolkit root holding standards/, config/ and reports/.
@@ -260,7 +262,7 @@ public static class Program
             supplemental = AssessmentContext.ReadSupplement(exchangeFile, profile.TenantId, DateTimeOffset.UtcNow);
         }
         var result = AssessmentContext.Assess(new AssessmentEngine(SystemClock.Instance, ToolkitVersion.Current),
-            context.Evidence, snapshot, standard, profile, "bdit (headless)", supplemental,
+            context.Evidence, snapshot, standard, profile, "BuildStandard CLI (headless)", supplemental,
             // A headless report always reads stored evidence, so freshness is judged as of that evidence.
             Timestamps.TryParse(snapshot.CapturedAt, out var capturedAt) ? capturedAt : null);
 

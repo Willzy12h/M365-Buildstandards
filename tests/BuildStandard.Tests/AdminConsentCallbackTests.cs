@@ -108,7 +108,7 @@ public sealed class AdminConsentCallbackTests
             Assert.Contains("Cache-Control: no-store, no-transform", response);
             Assert.Contains("Referrer-Policy: no-referrer", response);
             Assert.Contains("X-Content-Type-Options: nosniff", response);
-            Assert.Contains("M365 BUILDSTANDARD", response);
+            Assert.Contains("BUILDSTANDARD", response);
             Assert.Contains("Segoe UI", response);
         }
     }
@@ -199,5 +199,17 @@ public sealed class AdminConsentCallbackTests
         request.Headers.ConnectionClose = true;
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
         return $"HTTP/{response.Version} {(int)response.StatusCode} {response.ReasonPhrase}\r\n{response.Headers}{response.Content.Headers}\r\n{await response.Content.ReadAsStringAsync(ct)}";
+    }
+    [Fact]
+    public async Task Neutral_return_page_retains_approval_readback_instruction_and_security_headers()
+    {
+        using var stream = new MemoryStream();
+        await AdminConsentCallback.RespondAsync(stream, new(true, ""), CancellationToken.None);
+        var response = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains("Return to BuildStandard", response);
+        Assert.DoesNotContain("M365 TOOLKIT", response);
+        Assert.Contains("checks the actual permissions in Microsoft Graph", response);
+        Assert.Contains("Content-Security-Policy: default-src 'none'", response);
+        Assert.Contains("Cache-Control: no-store, no-transform", response);
     }
 }

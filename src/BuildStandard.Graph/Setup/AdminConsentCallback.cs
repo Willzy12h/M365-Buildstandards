@@ -165,12 +165,12 @@ public sealed class AdminConsentCallback : IDisposable
 
     internal static async Task RespondAsync(Stream stream, AdminConsentCallbackResult? result, CancellationToken ct)
     {
-        var title = result is null ? "Approval response not accepted" : "Return to the M365 Toolkit";
+        var title = result is null ? "Approval response not accepted" : "Return to BuildStandard";
         var message = result is null ? "This local request did not match the active approval request. Continue in the Microsoft approval window."
             : result.ApprovalReported ? "The approval response has been received. Return to the toolkit while it checks the actual permissions in Microsoft Graph."
             : "Microsoft did not report successful approval. Return to the toolkit to review the next step.";
         const string style = "*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:32px;background:#0b1930;color:#14243a;font-family:Segoe UI,Arial,sans-serif;line-height:1.6}main{width:100%;max-width:640px;border-top:6px solid #2196dc;border-radius:12px;background:#fff;padding:40px;box-shadow:0 20px 60px #0004}.brand{margin:0 0 24px;color:#126caa;font-size:13px;font-weight:700;letter-spacing:1.8px}h1{margin:0 0 18px;font-size:28px;line-height:1.25}p{margin:0 0 18px}.foot{margin:28px 0 0;padding-top:18px;border-top:1px solid #dce5ee;color:#536478;font-size:14px}@media(max-width:480px){body{padding:16px}main{padding:28px}h1{font-size:24px}}";
-        var body = Encoding.UTF8.GetBytes($"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{title}</title><style>{style}</style></head><body><main><p class=\"brand\">M365 BUILDSTANDARD · M365 TOOLKIT</p><h1>{title}</h1><p>{message}</p><p class=\"foot\">You can close this browser tab.</p></main></body></html>");
+        var body = Encoding.UTF8.GetBytes($"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{title}</title><style>{style}</style></head><body><main><p class=\"brand\">BUILDSTANDARD · ENGINEER WORKSPACE</p><h1>{title}</h1><p>{message}</p><p class=\"foot\">You can close this browser tab.</p></main></body></html>");
         var status = result is null ? "400 Bad Request" : "200 OK";
         var header = Encoding.ASCII.GetBytes($"HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {body.Length}\r\nCache-Control: no-store, no-transform\r\nPragma: no-cache\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n");
         await stream.WriteAsync(header, ct).ConfigureAwait(false);

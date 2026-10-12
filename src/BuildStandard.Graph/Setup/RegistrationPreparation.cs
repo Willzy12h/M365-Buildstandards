@@ -18,6 +18,11 @@ public sealed partial class ApplicationSetupService
             || !Same(Text(apps[0], "appId"), clientId) || !Same(Text(principals[0], "appId"), clientId))
             throw new ConfigurationException("Expected one local registration and enterprise app owned by this tenant for the explicit client ID.");
         var app = apps[0];
+        var appName = Text(app, "displayName");
+        var principalName = Text(principals[0], "displayName");
+        if (string.IsNullOrWhiteSpace(appName) || string.IsNullOrWhiteSpace(principalName))
+            throw new ConfigurationException("Existing application or enterprise app name was not returned. Setup cannot preserve an unknown name; no configuration write was sent.");
+        row.DisplayName = appName;
         if (Text(app, "signInAudience") != "AzureADMyOrg" || new[] { "passwordCredentials", "keyCredentials", "appRoles" }.Any(k => app[k] is not JsonArray { Count: 0 })
             || app["requiredResourceAccess"] is not JsonArray access
             || access.Any(entry => entry is not JsonObject a || Text(a, "resourceAppId") != GraphApplicationId
@@ -28,7 +33,7 @@ public sealed partial class ApplicationSetupService
             throw new ConfigurationException("This enterprise application has application permissions. Existing-ID setup supports delegated-only tools.");
         row.ExistingApplication = app; row.ExistingPrincipal = principals[0];
         row.ApplicationPayload = ApplicationPayload(row); row.Status = "Configure existing";
-        row.Reason = "Explicit ID selected: review replacement name, delegated permission configuration, Windows/browser/consent redirects, GitHub URLs and custom logo. Consent grants are not silently changed.";
+        row.Reason = "Explicit ID selected: preserve each observed name; review delegated permission configuration, Windows/browser/consent redirects, GitHub URLs and custom logo. Consent grants are not silently changed.";
     }
 
     public async Task ValidateConsentRedirectAsync(string clientId, CancellationToken ct)
@@ -63,7 +68,7 @@ public sealed partial class ApplicationSetupService
             () => _graph.ConfigureApplicationAsync(item.ApplicationObjectId, item.ClientId, appPayload, ct));
         await AdditionalWriteAsync(result, item, "Set original tool icon", new JsonObject { ["sha256"] = ProductLogo.Digest },
             () => _graph.UploadLogoAsync(item.ApplicationObjectId, ProductLogo.Read(), ct));
-        var spPayload = new JsonObject { ["displayName"] = row.DisplayName, ["homepage"] = SetupRegistration.HomePage, ["appRoleAssignmentRequired"] = true };
+        var spPayload = new JsonObject { ["displayName"] = PrincipalDisplayName(row), ["homepage"] = SetupRegistration.HomePage, ["appRoleAssignmentRequired"] = true };
         await AdditionalWriteAsync(result, item, "Configure enterprise app", spPayload,
             () => _graph.ConfigurePrincipalAsync(item.ServicePrincipalId, spPayload, ct));
         if (assignOperator)
@@ -77,6 +82,10 @@ public sealed partial class ApplicationSetupService
             }
         }
     }
+
+    // Existing application and enterprise app names may differ; preserve each reviewed observation.
+    private static string PrincipalDisplayName(ApplicationSetupRow row) => row.ExistingPrincipal is { } principal
+        ? Text(principal, "displayName") : row.DisplayName;
 
     private static async Task AdditionalWriteAsync(ApplicationSetupResult result, ApplicationSetupItemResult item, string action, JsonObject payload, Func<Task> send)
     {
