@@ -51,8 +51,11 @@ public sealed class AreaFilterTests : IDisposable
         Assert.Contains("EX-SYN-09999", vm.SelectedDetail);
         vm.Search = "absent-value";
         Assert.Empty(vm.Findings);
-        Assert.Null(vm.Selected);
+        Assert.NotNull(vm.Selected);
+        Assert.Equal("EX-SYN-09999", vm.Selected.ControlId);
+        Assert.NotEmpty(vm.HiddenSelectionText); // D-05: a retained filtered selection must be explicit.
         vm.Search = ""; vm.FilterStatus = "All";
+        Assert.Empty(vm.HiddenSelectionText);
         Assert.Equal(10_000, vm.Findings.Select(f => f.ControlId).Distinct().Count());
         Assert.Equal(10_000, _shell.Workspace.Assessment!.Findings.Count);
         Assert.Same(findings[^1], _shell.Workspace.Assessment.Findings[^1]);
