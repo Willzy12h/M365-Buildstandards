@@ -91,7 +91,7 @@
             <TextBlock Text="{Binding HeaderTenantId}" Style="{StaticResource Mono}" Foreground="{StaticResource TextMuted}" Margin="0,6,0,0" FontSize="11"/>
           </StackPanel>
           <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="240">
-            <Border CornerRadius="5" Padding="10,7">
+            <Border CornerRadius="5" Padding="10,5">
               <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{StaticResource BgPanel}"/>
                 <Style.Triggers>
                   <DataTrigger Binding="{Binding IsAssessmentSession}" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}"/></DataTrigger>

@@ -137,7 +137,10 @@ public sealed class EngineerStandardDocumentsTests
     public void Four_distinct_local_exports_use_only_the_catalogue_and_refuse_other_formats()
     {
         using var root = new TempRoot();
-        var exporter = new ReportExporter(root.Paths, "SYNTHETIC CLIENT SENTINEL"); var standard = ExchangeTestData.Standard();
+        var exporter = new ReportExporter(root.Paths, "SYNTHETIC CLIENT SENTINEL");
+        var source = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.09.12.json"));
+        root.WriteStandard("2026.09.12.json", File.ReadAllText(source)); root.WriteManifest();
+        var standard = new StandardsLoader(root.Paths, BuildStandard.Core.Diagnostics.NullLog.Instance).Load("2026.09.12.json");
         var files = new List<string>();
         foreach (var kind in Enum.GetValues<EngineerDocumentKind>())
             foreach (var format in new[] { ExportFormat.Html, ExportFormat.Markdown })

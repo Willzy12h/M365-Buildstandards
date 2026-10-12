@@ -58,7 +58,8 @@ public sealed class ProductIdentityTests
         var standard = ExchangeTestData.Standard();
         var original = ToolkitJson.Serialize(standard);
         var html = EngineerStandardDocuments.Html(standard, EngineerDocumentKind.BuildStandard);
-        Assert.Contains("buildstandard-native-reader-v1", html);
+        Assert.Contains("Presentation " + EngineerStandardDocuments.PresentationVersion, html);
+        Assert.StartsWith("buildstandard-native-reader-v", EngineerStandardDocuments.PresentationVersion, StringComparison.Ordinal);
         Assert.Contains("BUILDSTANDARD · ENGINEER REFERENCE", html);
         Assert.DoesNotContain("M365 BUILDSTANDARD · ENGINEER REFERENCE", html);
         Assert.Equal(original, ToolkitJson.Serialize(standard));
