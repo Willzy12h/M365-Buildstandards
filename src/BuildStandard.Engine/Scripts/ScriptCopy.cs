@@ -37,7 +37,7 @@ public static class ScriptCopy
         var b = new StringBuilder();
         void Line(string text = "") => b.Append(text).Append('\n');
 
-        Line("# M365 BuildStandard Tool - copied library script");
+        Line("# BuildStandard - copied library script");
         Line("# Item:        " + Comment(m.Name) + " (" + m.Id + ")");
         Line("# Type:        " + (m.Mode == ScriptMode.ReadOnly ? "Read only. Makes no changes." : "CHANGE. Review every line before running."));
         Line("# Purpose:     " + Comment(m.Description));
@@ -90,7 +90,7 @@ public static class ScriptCopy
         Line("    $rows = @(& $library @arguments)");
         Line("    $rows | Format-Table -AutoSize | Out-String -Width 4096 | Write-Host");
         Line("    if (-not $OutputCsv) {");
-        Line("        $OutputCsv = Join-Path ([Environment]::GetFolderPath('MyDocuments')) (" + Quote("BDIT-" + m.Id + "-") + " + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')");
+        Line("        $OutputCsv = Join-Path ([Environment]::GetFolderPath('MyDocuments')) (" + Quote("BuildStandard-" + m.Id + "-") + " + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')");
         Line("    }");
         Line("    $rows | Select-Object " + string.Join(", ", m.OutputSchema.Columns.Select(Quote)) + " | Export-Csv -LiteralPath $OutputCsv -NoTypeInformation -NoClobber -Encoding UTF8");
         Line("    Write-Host ('Saved ' + $rows.Count + ' row(s) to ' + $OutputCsv)");

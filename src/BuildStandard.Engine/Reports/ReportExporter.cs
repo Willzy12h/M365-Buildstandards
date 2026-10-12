@@ -24,7 +24,7 @@ public sealed partial class ReportExporter
     public ReportExporter(ToolkitPaths paths, string companyName)
     {
         _paths = paths;
-        _companyName = string.IsNullOrWhiteSpace(companyName) ? "M365 BuildStandard" : companyName;
+        _companyName = (companyName ?? "").Trim();
     }
 
     public static string SafeName(string value)

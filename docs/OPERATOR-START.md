@@ -9,7 +9,7 @@ This is an internal preview. Use the exact reviewed package and its trusted chec
 Nothing in these steps changes the client's tenant.
 
 1. **Download** the application ZIP from the release you were told to use ([testing this build](TESTING-THIS-BUILD.md) shows where).
-2. **Check** its SHA-256 against the one you were given: `Get-FileHash .\M365-BuildStandard-Tool-*.zip -Algorithm SHA256`.
+2. **Check** its SHA-256 against the one you were given: `Get-FileHash .\BuildStandard-*.zip -Algorithm SHA256`.
 3. **Extract** the whole ZIP to a secure local folder and run `Start.cmd`.
 4. **Connect** → **Quick Connect with Microsoft**, sign in with the client's account, check the organisation, then **Connect to this tenant read-only**.
 5. **Configuration → Capture configuration (read-only)**. A collection that could not be read is unknown, not absent.
@@ -59,7 +59,7 @@ On **Assessment**, open **Check an area or requirement**. Select an area or a na
 
 Read the separate **Partial check result and evidence** field, including any unable-to-check reasons. **Copy partial result** includes the saved evidence location. Partial results never replace the full assessment or plan and cannot satisfy complete before-evidence for deployment. Missing read permissions, failed reads and unsupported Exchange/Purview evidence remain unknown; this button does not perform separate Exchange authentication or turn Graph access into Exchange access.
 
-For offline automation on a development/CI installation, `bdit check --snapshot <file> --area Entra` (or `--control <id>`, optionally with `--exchange-snapshot <file>` as for `report`) emits a separate historical scoped-check JSON wrapper to stdout, using the installation's saved client and verified standard. It never connects or writes installation evidence. The portable ZIP includes the same offline commands through `bdit.cmd`; see **Offline command line in the portable ZIP** below.
+For offline automation on a development/CI installation, `buildstandard check --snapshot <file> --area Entra` (or `--control <id>`, optionally with `--exchange-snapshot <file>` as for `report`) emits a separate historical scoped-check JSON wrapper to stdout, using the installation's saved client and verified standard. It never connects or writes installation evidence. The portable ZIP includes the same offline commands through `buildstandard.cmd`; see **Offline command line in the portable ZIP** below.
 
 ## Handoff checklist
 
@@ -68,11 +68,11 @@ Record tenant/job intention, responsible engineer/reviewer, package and standard
 
 ## Offline command line in the portable ZIP
 
-Open Command Prompt or PowerShell in the extracted toolkit folder and run `bdit.cmd --help` (PowerShell: `.\bdit.cmd --help`). The launcher uses the same packaged application; no SDK or additional executable is needed. It preserves the current working directory, so quote input paths containing spaces. For example: `bdit.cmd inventory --snapshot "C:\Engineer work\configuration.json" --format html`. `--root` optionally selects an existing toolkit root. Reporting commands consume stored evidence; doctor checks local portable prerequisites. Offline commands never connect, request consent or deploy.
+Open Command Prompt or PowerShell in the extracted toolkit folder and run `buildstandard.cmd --help` (PowerShell: `.\buildstandard.cmd --help`). The launcher uses the same packaged application; no SDK or additional executable is needed. It preserves the current working directory, so quote input paths containing spaces. For example: `buildstandard.cmd inventory --snapshot "C:\Engineer work\configuration.json" --format html`. `--root` optionally selects an existing toolkit root. Reporting commands consume stored evidence; doctor checks local portable prerequisites. Offline commands never connect, request consent or deploy.
 
-Run `bdit.cmd doctor` for readable local package/catalogue/settings, writable-folder and optional PowerShell-host findings. Use `--format json` for a separate diagnostic JSON result and `--root "C:\Engineer work\toolkit"` to select another existing portable folder. Doctor uses temporary owned probes; it offers no repair, installation, sign-in or script execution. Local Ready is not publisher trust, tenant readiness or write approval. Exit 0 means required local checks pass, 1 means required Fail/Unknown, 2 refuses invocation/root input, 3 is a sanitised unexpected failure and 130 is cancellation. Ctrl+C requests cancellation and probe cleanup; incomplete required checks remain Unknown. Native interactive Windows Ctrl+C remains an acceptance step.
+Run `buildstandard.cmd doctor` for readable local package/catalogue/settings, writable-folder and optional PowerShell-host findings. Use `--format json` for a separate diagnostic JSON result and `--root "C:\Engineer work\toolkit"` to select another existing portable folder. Doctor uses temporary owned probes; it offers no repair, installation, sign-in or script execution. Local Ready is not publisher trust, tenant readiness or write approval. Exit 0 means required local checks pass, 1 means required Fail/Unknown, 2 refuses invocation/root input, 3 is a sanitised unexpected failure and 130 is cancellation. Ctrl+C requests cancellation and probe cleanup; incomplete required checks remain Unknown. Native interactive Windows Ctrl+C remains an acceptance step.
 
-Help and report paths go to standard output; refusals/errors go to standard error with a non-zero exit code. Redirection is supported (`bdit.cmd --help > help.txt 2> errors.txt`). A blocked application stays blocked: follow your security owner's application-control approval route, using the independently trusted fingerprint. Do not switch hosts or bypass controls. Source implementation and fresh Windows package verification do not establish live Microsoft or human accessibility acceptance.
+Help and report paths go to standard output; refusals/errors go to standard error with a non-zero exit code. Redirection is supported (`buildstandard.cmd --help > help.txt 2> errors.txt`). A blocked application stays blocked: follow your security owner's application-control approval route, using the independently trusted fingerprint. Do not switch hosts or bypass controls. Source implementation and fresh Windows package verification do not establish live Microsoft or human accessibility acceptance.
 
 ## Captured configuration and the reviewed script library
 
@@ -80,7 +80,7 @@ On **Configuration**, the short capture summary identifies live or stored/offlin
 
 Under **Scripts**, open **Scripts & Reports** and select a library item, read its purpose and tenant banner, fill in the typed form and open **Requirements and limitations · review before copying**. **Copy script…** or **Save as .ps1…** presents the target/account/values for unticked review. The page runs nothing, installs nothing and makes no tenant call. The copied script is for a separately authorised manual run with the declared runtime/module/RBAC. Its tenant/account checks refuse a different reviewed context. Exchange changes remain copy-only; unknown or partial output is not a successful check.
 
-The portable **bdit.cmd** uses the same executable for offline commands, including `bdit.cmd scripts` and `bdit.cmd script --id <id> --copy`. It needs no .NET SDK. Follow command help for required inputs; offline evidence never becomes fresh deployment evidence. An interactive Windows console run remains an acceptance step even though CI verifies redirected output and exit codes.
+The portable **bdit.cmd** uses the same executable for offline commands, including `buildstandard.cmd scripts` and `buildstandard.cmd script --id <id> --copy`. It needs no .NET SDK. Follow command help for required inputs; offline evidence never becomes fresh deployment evidence. An interactive Windows console run remains an acceptance step even though CI verifies redirected output and exit codes.
 
 
 ## Tenant reports and naming audit
@@ -104,11 +104,11 @@ On **Connect**, select a saved client and choose **Review saved evidence offline
 
 Use **Undo and recovery → Load change register** to inspect local history offline. Re-verification requires a fresh verified read connection; recovery preview/execution requires the separate deployment context and exact approval. Disabled-action guidance states the next step. Switching clients, standards or material client inputs clears unfinished manual-check/exception drafts. Ordinary refreshes and label-only changes preserve a draft for the same context. Restart or workspace adoption requires explicit saved-client selection again; authentication and approval are never transferred.
 
-The offline command `bdit.cmd report-evidence --input "report.json" --tenant <expected-tenant-id> --format html` uses the same strict registered schema dispatcher for existing Graph and application reports. JSON/CSV/Excel preserve original sections, nested entries, source times and limitations. It never collects new data or grants access.
+The offline command `buildstandard.cmd report-evidence --input "report.json" --tenant <expected-tenant-id> --format html` uses the same strict registered schema dispatcher for existing Graph and application reports. JSON/CSV/Excel preserve original sections, nested entries, source times and limitations. It never collects new data or grants access.
 
 ### Check this portable folder offline
 
-In Settings and diagnostics, expand Offline prerequisite checks and choose Run offline checks. Read each finding and next step; Required Unknown or Fail means local readiness is unconfirmed. Cancel stops only this check, and Copy local result copies the completed findings. These local checks do not sign in, run scripts, repair the computer or certify deployment authority. The equivalent command is `bdit doctor`.
+In Settings and diagnostics, expand Offline prerequisite checks and choose Run offline checks. Read each finding and next step; Required Unknown or Fail means local readiness is unconfirmed. Cancel stops only this check, and Copy local result copies the completed findings. These local checks do not sign in, run scripts, repair the computer or certify deployment authority. The equivalent command is `buildstandard doctor`.
 
 ## Run a registered read-only Exchange report
 
@@ -129,3 +129,9 @@ If either source is missing, **Open mailbox collection** opens Run reports and *
 **Results** distinguishes observed 100 GB capacity, actual assigned-plan eligibility and unable-to-check cases. Select a mailbox for exact IDs and raw primary/archive values; Unlimited or failed reads are never converted to zero. A licence name alone does not prove configured quota. Use **Source provenance and limits** to inspect both source histories; an incomplete list is not evidence of no mailboxes. Historical eligibility may change and does not authorise a quota increase.
 
 **Export HTML**, **Export JSON**, **Export CSV ZIP** and **Export Excel** export every review row and original source provenance, even after a display filter. Derived JSON includes the two original records and is clearly labelled as review, not importable deployment evidence. Changing source/client/context clears the old review and requires a new selection. No quota, archive or licence setting is changed.
+
+## Running old and new portable copies
+
+Use `buildstandard.cmd` for new offline commands; `bdit.cmd` is a compatible alias to the same host. New executables use `BUILDSTANDARD_ROOT` and accept the older `BDIT_TOOLKIT_ROOT`; conflicting root aliases refuse. While an old and new copy coexist, set **`BDIT_TOOLKIT_ROOT` to the same intended root for both**, or pass an explicit `--root` to each CLI command. An older executable does not understand `BUILDSTANDARD_ROOT`. The shared write lock protects one tenant in one resolved root; it does not coordinate separate roots. Do not duplicate a workspace to work around a refused lock or use a renamed executable as renewed approval. Loading settings/evidence performs no automatic path or cache migration.
+
+For new installations the product title is BuildStandard. Organisation text in client reports is optional and blank by default; any previously saved organisation remains yours to review. An existing tenant application's observed name and ID remain unchanged. A new neutral setup suggestion does not find, rename or recreate an existing registration by display name.

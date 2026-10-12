@@ -190,7 +190,7 @@ public sealed class ShellViewModel : ObservableObject
     public string BusyMessage => Workspace.BusyMessage;
     public string ProgressDetail => Workspace.ProgressDetail;
 
-    public string ProductName => Workspace.Settings.ProductName.ToUpperInvariant();
+    public string ProductName => Workspace.Settings.ProductName;
     public string WindowTitle => $"{Workspace.Settings.ProductName} {Workspace.Version}";
     public bool IsConnected => Workspace.IsConnected;
     public bool HeaderHasConnection => Workspace.IsConnected || Workspace.ApplicationSetup is not null;

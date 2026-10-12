@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo M365 BuildStandard Tool - diagnostics start.
+echo BuildStandard - diagnostics start.
 echo Verbose logging is enabled for this session. This window stays open and shows the start-up log when the toolkit closes.
 echo.
 if not exist "app\BuildStandard.App.exe" (

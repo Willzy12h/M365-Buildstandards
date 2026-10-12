@@ -41,7 +41,7 @@ public sealed class StandardDefinitionExporter(ToolkitPaths paths)
             var catalogues = Path.Combine(staging, "standards");
             Directory.CreateDirectory(catalogues);
             File.WriteAllBytes(Path.Combine(catalogues, standard.SourceFileName), bytes);
-            StandardsManifest.Write(catalogues, StandardsManifest.Generate(catalogues, "M365 BuildStandard definition export " + ToolkitVersion.Current, now));
+            StandardsManifest.Write(catalogues, StandardsManifest.Generate(catalogues, "BuildStandard definition export " + ToolkitVersion.Current, now));
             Write("defaults-and-settings.html", StandardSpecificationDocuments.Html(standard, now));
             Write("defaults-and-settings.md", StandardSpecificationDocuments.Markdown(standard, now));
             Write("capability-and-access-matrix.md", CapabilityDocuments.Markdown(standard));

@@ -52,8 +52,8 @@ public static class HtmlReports
     public static string Engineer(AssessmentResult r)
     {
         var sb = new StringBuilder();
-        Head(sb, $"M365 BuildStandard Assessment Tool - {r.TenantName}");
-        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Engineer report</div>");
+        Head(sb, $"BuildStandard Assessment Tool - {r.TenantName}");
+        sb.Append("<div class=\"brand\">BuildStandard · Engineer report</div>");
         sb.Append("<h1>Tenant assessment: ").Append(H(r.TenantName)).Append("</h1>");
         sb.Append("<dl class=\"meta\">");
         Meta(sb, "Primary domain", r.PrimaryDomain); Meta(sb, "Tenant ID", r.TenantId); Meta(sb, "Client label", r.ClientLabel);
@@ -169,7 +169,7 @@ public static class HtmlReports
         Head(sb, $"Microsoft 365 Security Review - {r.TenantName}");
         sb.Append("<div class=\"brand\">").Append(H(companyName)).Append("</div><h1>Microsoft 365 configuration review</h1>");
         sb.Append("<dl class=\"meta\">");
-        Meta(sb, "Prepared for", r.TenantName); Meta(sb, "Prepared by", companyName); Meta(sb, "Review date", r.AssessedAt.Length >= 10 ? r.AssessedAt[..10] : r.AssessedAt); Meta(sb, "Reference", r.Id);
+        Meta(sb, "Prepared for", r.TenantName); if (!string.IsNullOrWhiteSpace(companyName)) Meta(sb, "Prepared by", companyName); Meta(sb, "Review date", r.AssessedAt.Length >= 10 ? r.AssessedAt[..10] : r.AssessedAt); Meta(sb, "Reference", r.Id);
         sb.Append("</dl>");
         if (r.SnapshotIntegrity == SnapshotIntegrityState.Modified)
             sb.Append("<div class=\"note warn\"><b>Not for issue.</b> The configuration evidence behind this review changed after it was captured. A fresh review is required before these results are shared.</div>");
@@ -178,7 +178,7 @@ public static class HtmlReports
         var inPlace = s.Compliant + s.CompliantWithDeviation;
         var needsAttention = s.Missing + s.PartialMatch + s.SettingsMatchNotEnforced;
         sb.Append("<h2>Overall position</h2>");
-        sb.Append("<p>This review compared your Microsoft 365 configuration with the ").Append(H(companyName)).Append(" build standard (release ").Append(H(r.Release)).Append("). ")
+        sb.Append("<p>This review compared your Microsoft 365 configuration with the agreed build standard (release ").Append(H(r.Release)).Append("). ")
           .Append("It looked at ").Append(assessed).Append(" controls. ").Append(inPlace).Append(" are in place");
         if (s.CompliantWithDeviation > 0) sb.Append(" (").Append(s.CompliantWithDeviation).Append(" through an agreed exception)");
         sb.Append(", ").Append(needsAttention).Append(" need attention, ").Append(s.RequiresManualReview).Append(" require an engineer's manual review");
@@ -214,7 +214,7 @@ public static class HtmlReports
             foreach (var f in incomplete) sb.Append("<li>").Append(H(f.Name)).Append(": ").Append(H(f.Status == FindingStatus.LicenceUnavailable ? "requires a licence that is not present in your subscription." : "could not be read during this review and will be checked at the next visit.")).Append("</li>");
             sb.Append("</ul>");
         }
-        sb.Append("<h2>Next steps</h2><p>").Append(H(companyName)).Append(" recommends agreeing the priority items first. Changes are introduced in stages, tested with a pilot group, and only enforced after validation, so day-to-day work is not disrupted.</p>");
+        sb.Append("<h2>Next steps</h2><p>Agree the priority items first. Changes are introduced in stages, tested with a pilot group, and only enforced after validation, so day-to-day work is not disrupted.</p>");
         sb.Append("<footer><p>This review compares configuration captured at ").Append(H(r.CapturedAt)).Append(" with the agreed standard. Any implementation changes are recorded separately. This is not a security certification.</p></footer></body></html>");
         return sb.ToString();
     }
@@ -238,7 +238,7 @@ public static class HtmlReports
     {
         var sb = new StringBuilder();
         Head(sb, $"M365 Deployment Run - {run.TenantName}");
-        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
+        sb.Append("<div class=\"brand\">BuildStandard · Deployment run</div><h1>Deployment run: ").Append(H(run.TenantName)).Append("</h1>");
         var sheets = TabularReports.RunSheets(run, journal);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);
@@ -256,7 +256,7 @@ public static class HtmlReports
     {
         var sb = new StringBuilder();
         Head(sb, $"M365 Tenant Drift - {d.TenantName}");
-        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
+        sb.Append("<div class=\"brand\">BuildStandard · Drift</div><h1>Configuration drift: ").Append(H(d.TenantName)).Append("</h1>");
         var sheets = TabularReports.DriftSheets(d);
         sb.Append("<dl class=\"meta\">");
         foreach (var row in sheets[0].Rows.Skip(1)) Meta(sb, row[0], row[1]);
@@ -287,7 +287,7 @@ public static class HtmlReports
     {
         var sb = new StringBuilder();
         Head(sb, $"M365 Upgrade Impact - {r.TenantName}");
-        sb.Append("<div class=\"brand\">M365 BuildStandard Tool · Upgrade impact</div><h1>Upgrade impact: ").Append(H(r.TenantName))
+        sb.Append("<div class=\"brand\">BuildStandard · Upgrade impact</div><h1>Upgrade impact: ").Append(H(r.TenantName))
             .Append(" · ").Append(H(r.SourceRelease)).Append(" → ").Append(H(r.TargetRelease)).Append("</h1>");
         var sheets = TabularReports.UpgradeImpactSheets(r);
         sb.Append("<dl class=\"meta\">");

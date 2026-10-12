@@ -15,7 +15,7 @@
         <StackPanel Grid.Row="0">
           <TextBlock Text="STANDARD &amp; REFERENCE" Style="{StaticResource Eyebrow}"/>
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="M365 Build Standard" Style="{StaticResource H1}"/>
+            <TextBlock Text="Build standard" Style="{StaticResource H1}"/>
             <Button Grid.Column="1" Content="Export full standard set" Command="{Binding ExportDefinitionSetCommand}" AutomationProperties.Name="Export complete build standard defaults and settings set" Style="{StaticResource PrimaryButton}" VerticalAlignment="Top" Margin="12,4,0,8"/>
           </Grid>
           <TextBlock Style="{StaticResource Lead}" Text="Review each control, its expected production state and candidate creation recipe. Manual controls remain visible alongside automation."/>

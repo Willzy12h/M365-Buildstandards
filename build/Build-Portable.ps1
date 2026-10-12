@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Restores, builds, tests, publishes and packages the M365 BuildStandard Tool as a portable ZIP.
+  Restores, builds, tests, publishes and packages the BuildStandard as a portable ZIP.
 .DESCRIPTION
   Steps: dotnet restore -> dotnet build -c Release -> dotnet test -> verify committed standards manifest ->
   dotnet publish (self-contained win-x64, framework-dependent runtime NOT required on the engineer's PC) ->
@@ -105,7 +105,7 @@ Invoke-Step 'Stage package contents' {
         if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the Git source commit.' }
     }
     $manifest = [ordered]@{
-        product        = 'M365 BuildStandard Tool'
+        product        = 'BuildStandard'
         version        = $version
         runtime        = $Runtime
         selfContained  = $true

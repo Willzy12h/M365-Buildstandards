@@ -95,13 +95,13 @@ try {
         } finally { if (-not $owned.HasExited) { $owned.Kill() }; $owned.Dispose() }
     }
     $help = Invoke-OwnedCli $exe '--cli --help' 0
-    if ($help.Text -notmatch 'bdit inventory' -or $help.Error) { throw 'CLI help did not preserve redirected stdout/stderr.' }
+    if ($help.Text -notmatch 'buildstandard inventory' -or $help.Error) { throw 'CLI help did not preserve redirected stdout/stderr.' }
     $failure = Invoke-OwnedCli $exe '--cli inventory --snapshot "synthetic missing file.json"' 2
     if ($failure.Error -notmatch 'Refused:' -or $failure.Text) { throw 'CLI refusal did not preserve stderr or exit code.' }
     $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
-    if ($viaLauncher.Text -notmatch 'bdit inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
+    if ($viaLauncher.Text -notmatch 'buildstandard inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
     $viaLegacy = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" --help"') 0
     if ($viaLegacy.Text -ne $viaLauncher.Text -or $viaLegacy.Error) { throw 'The legacy CLI alias did not reach the same dispatcher/output.' }
     $legacyFailure = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" inventory --snapshot "synthetic missing file.json""') 2
@@ -111,7 +111,7 @@ try {
     if ($doctor.Error) { throw 'Packaged doctor wrote unexpected standard error.' }
     & (Join-Path $PSScriptRoot 'Test-DoctorResult.ps1') -Json $doctor.Text -ExpectedToolkitVersion $metadata.version -TestRejections
     $launcherFailure = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" inventory --snapshot "synthetic missing file.json""') 2
-    if ($launcherFailure.Error -notmatch 'Refused:') { throw 'bdit.cmd lost the refusal or real exit code.' }
+    if ($launcherFailure.Error -notmatch 'Refused:') { throw 'buildstandard.cmd lost the refusal or real exit code.' }
     # Mixed handles: stdout is a pipe owned by this test, stderr is NOT redirected, so the child inherits this
     # script's own standard error. This is the "| findstr" shape, where only stdout is redirected. It proves the
     # host keeps a piped stdout and the exit code when stderr is whatever the caller provides. CI hosts usually give
@@ -148,7 +148,7 @@ public static class PortableCliStandardHandles {
         } finally { if (-not $owned.HasExited) { $owned.Kill() }; $owned.Dispose() }
     }
     $mixedHelp = Invoke-InheritedErrorCli '--cli --help' 0
-    if ($mixedHelp -notmatch 'bdit inventory') { throw "CLI help was not captured on piped stdout with inherited stderr ($inheritedErrorType)." }
+    if ($mixedHelp -notmatch 'buildstandard inventory') { throw "CLI help was not captured on piped stdout with inherited stderr ($inheritedErrorType)." }
     Write-Host "Expected synthetic refusal follows on the inherited standard error ($inheritedErrorType):"
     $mixedFailure = Invoke-InheritedErrorCli '--cli inventory --snapshot "synthetic missing file.json"' 2
     # A usable inherited stderr receives the refusal, so stdout stays clean. With no stderr at all, the host routes
@@ -160,7 +160,7 @@ public static class PortableCliStandardHandles {
     New-Item -ItemType Directory -Path $synthetic | Out-Null
     $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
     $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
-    if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'bdit inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
+    if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'buildstandard inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
     Remove-Item -LiteralPath $outFile, $errFile -Force
     $snapshotFile = Join-Path $synthetic 'synthetic configuration.json'
     $snapshot = [ordered]@{ id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; tenantId='11111111-1111-4111-8111-111111111111';
@@ -408,7 +408,7 @@ public static class PortableTextMenu {
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
         portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
-        tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of bdit.cmd, WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
+        tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
     [IO.File]::WriteAllText([IO.Path]::GetFullPath($ResultPath), (($result | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))

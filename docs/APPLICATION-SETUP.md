@@ -12,7 +12,7 @@ Navigating pages does not authenticate. An unchanged verified connection can be 
 
 ### Identify, approve and use an existing enterprise application
 
-Default names are **M365 BuildStandard Assessment Tool** and **M365 BuildStandard Deployment Tool** (the name prefix is configurable). The page shows application IDs, observed creation names or clearly labelled configured names, and verified enterprise-app object IDs when available. Copy the identities and next steps for a local ticket.
+Default names are **BuildStandard Assessment Tool** and **BuildStandard Deployment Tool** (the name prefix is configurable). The page shows application IDs, observed creation names or clearly labelled configured names, and verified enterprise-app object IDs when available. Copy the identities and next steps for a local ticket.
 
 1. In Entra, switch to the verified client tenant. Open **Entra ID → Enterprise applications → All applications**, search by the **Application ID**, and compare it with the tool's Application (client) ID. An enterprise application's **Object ID** is different.
 2. Use **Approve assessment/deployment permissions in browser**. Check Microsoft's application name and permission list, select **Accept** as an authorised administrator, and return to the tool. WAM handles desktop sign-in; the browser handles this tenant-wide administrator-consent endpoint. They are different steps.
@@ -60,7 +60,7 @@ If a stage does not finish, the page says which and why, and nothing is retried 
 
 **Existing applications.** Tool applications found by name block creation, because names never establish ownership. Enter their exact client IDs under *Existing applications and manual steps* and select **Preview again**; approval of the displayed verified tenant and reviewed plan can then repair them.
 
-Two registrations preserve a token-level read-only boundary: **M365 BuildStandard Assessment Tool** has read scopes; **M365 BuildStandard Deployment Tool** also has the required write scopes. The normal client never grants its own access. Both are delegated, single-tenant public clients, with assignment required and no secrets. Admin consent does not itself prove directory roles, Intune RBAC, licences or successful deployment.
+Two registrations preserve a token-level read-only boundary: **BuildStandard Assessment Tool** has read scopes; **BuildStandard Deployment Tool** also has the required write scopes. The normal client never grants its own access. Both are delegated, single-tenant public clients, with assignment required and no secrets. Admin consent does not itself prove directory roles, Intune RBAC, licences or successful deployment.
 
 ## Setup permissions and delegated administrators
 

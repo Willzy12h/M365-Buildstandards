@@ -223,7 +223,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                         var expectedApp = ApplicationPayload(row); expectedApp["publicClient"] = SetupRegistration.PublicClient(item.ClientId);
                         if (!CanonicalJson.IsSubset(readApp, expectedApp) || !Same(Text(readSp, "appId"), item.ClientId)
                             || readSp["appRoleAssignmentRequired"]?.GetValue<bool>() != true
-                            || Text(readSp, "displayName") != row.DisplayName || Text(readSp, "homepage") != SetupRegistration.HomePage)
+                            || Text(readSp, "displayName") != PrincipalDisplayName(row) || Text(readSp, "homepage") != SetupRegistration.HomePage)
                             throw new ConfigurationException("Registration writes were accepted, but readback did not confirm the reviewed settings.");
                         item.ConfigurationVerification = "Passed";
                         item.Status = "Configured — consent pending";
@@ -411,7 +411,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         ["displayName"] = row.DisplayName, ["signInAudience"] = "AzureADMyOrg",
         ["publicClient"] = SetupRegistration.PublicClient(row.ClientId.Length == 0 ? null : row.ClientId),
         ["web"] = SetupRegistration.Web(), ["isFallbackPublicClient"] = true,
-        ["description"] = "M365 BuildStandard Tool: " + row.Mode + ". Delegated engineer access; no unattended credentials.",
+        ["description"] = "BuildStandard: " + row.Mode + ". Delegated engineer access; no unattended credentials.",
         ["info"] = new JsonObject { ["marketingUrl"] = SetupRegistration.HomePage, ["supportUrl"] = SetupRegistration.HomePage + "/issues" },
         ["requiredResourceAccess"] = new JsonArray(new JsonObject
         {

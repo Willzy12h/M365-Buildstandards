@@ -1,6 +1,6 @@
-# M365 BuildStandard Tool
+# BuildStandard
 
-The Blue Diamond IT Build Standard, applied to a Microsoft 365 tenant by an engineer at a desktop. It reads a
+The BuildStandard catalogue, applied to a Microsoft 365 tenant by an engineer at a desktop. It reads a
 tenant's configuration, reports it against the standard, and — only when you explicitly approve each change —
 creates the missing policies as inert candidates for you to review before anything takes effect.
 
@@ -13,13 +13,13 @@ creates the missing policies as inert candidates for you to review before anythi
 they are what tells you the package reached you unmodified.
 
 ```powershell
-Get-FileHash .\M365-BuildStandard-Tool-<version>-win-x64.zip -Algorithm SHA256
+Get-FileHash .\BuildStandard-<version>-win-x64.zip -Algorithm SHA256
 ```
 
 Windows marks downloaded archives as blocked. Unblock the ZIP before extracting, or the application will not start:
 
 ```powershell
-Unblock-File .\M365-BuildStandard-Tool-<version>-win-x64.zip
+Unblock-File .\BuildStandard-<version>-win-x64.zip
 ```
 
 ## Run it
@@ -83,4 +83,6 @@ Use `docs\WORKSPACE-CONTINUITY.md` for sensitive local backup and separate resto
 
 ## Offline command line
 
-`bdit.cmd --help` runs the same application executable in offline CLI mode before desktop startup. In PowerShell use `.\bdit.cmd --help`. No .NET SDK or second executable is required. It reads stored evidence, produces local reports and never signs in or deploys. Quote paths with spaces; stdout/stderr redirection and actual exit codes are preserved. If application control blocks the host, use the security-owner approval route above; there is no alternate host or bypass.
+`buildstandard.cmd --help` runs the same application executable in offline CLI mode before desktop startup. In PowerShell use `.\buildstandard.cmd --help`. No .NET SDK or second executable is required. It reads stored evidence, produces local reports and never signs in or deploys. Quote paths with spaces; stdout/stderr redirection and actual exit codes are preserved. If application control blocks the host, use the security-owner approval route above; there is no alternate host or bypass.
+
+Use `buildstandard.cmd` for offline commands; `bdit.cmd` invokes the same host for compatibility. While old and new binaries coexist, give both the same explicit `--root` or `BDIT_TOOLKIT_ROOT`. Old binaries ignore `BUILDSTANDARD_ROOT`; locks only coordinate the same resolved tenant directory. New executable/package bytes require a new independently trusted fingerprint and security-owner application-control approval; old hash/path approvals do not transfer.

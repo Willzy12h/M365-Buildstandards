@@ -10,7 +10,7 @@ namespace BuildStandard.App.Services;
 /// <summary>Desktop state for the shared offline checks. The caller owns workspace exclusivity; this owns cancellation.</summary>
 public sealed class OfflinePrerequisiteDiagnostic : ObservableObject
 {
-    public const string UnexpectedFailure = "Offline checks failed unexpectedly. No readiness was certified. Ask the toolkit maintainer to review this offline failure; review any .bdit-doctor- temporary files in the portable folder.";
+    public const string UnexpectedFailure = "Offline checks failed unexpectedly. No readiness was certified. Ask the toolkit maintainer to review this offline failure; review any .buildstandard-doctor- temporary files in the portable folder.";
     private readonly Func<string, CancellationToken, OfflinePrerequisiteResult> _check;
     private readonly object _gate = new();
     private CancellationTokenSource? _active;

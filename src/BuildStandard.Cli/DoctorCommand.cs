@@ -63,7 +63,7 @@ public static class DoctorCommand
 
     private static int Unexpected(TextWriter error)
     {
-        try { error.WriteLine("Doctor failed unexpectedly. No readiness was certified. Ask the toolkit maintainer to review this offline failure. If a probe started, review temporary .bdit-doctor- files in the portable folder."); }
+        try { error.WriteLine("Doctor failed unexpectedly. No readiness was certified. Ask the toolkit maintainer to review this offline failure. If a probe started, review temporary .buildstandard-doctor- files in the portable folder."); }
         catch (Exception) { /* An unusable output stream must not send its private error to the general CLI catch. */ }
         return 3;
     }

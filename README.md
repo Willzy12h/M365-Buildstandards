@@ -1,4 +1,4 @@
-# M365 BuildStandard Tool
+# BuildStandard
 
 A Windows application for engineers to capture tenant configuration, compare it with a versioned build standard, and prepare controlled deployment candidates.
 

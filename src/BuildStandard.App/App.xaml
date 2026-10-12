@@ -5,7 +5,7 @@
              ShutdownMode="OnMainWindowClose">
   <Application.Resources>
     <ResourceDictionary>
-      <!-- Shared BDIT tokens. Semantic colour always accompanies a readable status. -->
+      <!-- Shared application tokens. Semantic colour always accompanies a readable status. -->
       <SolidColorBrush x:Key="BgWindow" Color="#F3F6FA"/>
       <SolidColorBrush x:Key="BgNav" Color="#102B45"/>
       <SolidColorBrush x:Key="BgNavHeader" Color="#0C2238"/>

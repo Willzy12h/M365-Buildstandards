@@ -298,7 +298,7 @@ public sealed partial class OfflinePrerequisiteService
             }
             files.CheckDirectory(parent);
             var name = _io.ProbeName();
-            if (!name.StartsWith(".bdit-doctor-", StringComparison.Ordinal) || !OfflinePackageFiles.SafeRelative(name) || name.Contains('/'))
+            if (!name.StartsWith(".buildstandard-doctor-", StringComparison.Ordinal) || !OfflinePackageFiles.SafeRelative(name) || name.Contains('/'))
                 throw new UnsafeOfflinePathException();
             var path = Path.Combine(parent, name);
             using (var stream = _io.CreateProbe(path))
@@ -332,7 +332,7 @@ public sealed partial class OfflinePrerequisiteService
             findings.Add(new("cleanup." + component, OfflineFindingApplicability.Required, cleanup,
                 cleanup == OfflineFindingDisposition.Pass ? "No owned probe remains from the completed cleanup attempt."
                     : "Owned probe cleanup could not be completed; a temporary diagnostic file may remain in " + component + ".",
-                "Review only temporary files beginning .bdit-doctor- in the reported component; do not delete existing working files."));
+                "Review only temporary files beginning .buildstandard-doctor- in the reported component; do not delete existing working files."));
         }
         if (cancel) ct.ThrowIfCancellationRequested();
     }
