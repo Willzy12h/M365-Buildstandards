@@ -75,7 +75,9 @@ public sealed class StandardViewModel : PageViewModel
     private async Task ExportEngineer(EngineerDocumentKind kind, ExportFormat format)
     {
         var standard = Workspace.RequireStandard();
-        var file = await Workspace.ExportAsync(() => Workspace.Exporter.ExportEngineerStandard(standard, kind, format));
+        var file = await Workspace.ExportAsync(() => kind == EngineerDocumentKind.BuildStandard && format == ExportFormat.Html
+            ? Workspace.Exporter.SaveHtml(new CatalogueDocumentService(Workspace.Paths).Create(standard))
+            : Workspace.Exporter.ExportEngineerStandard(standard, kind, format));
         LastExport = EngineerStandardDocuments.Title(kind) + " written: " + file;
     }
     private async Task ExportDefinitionSet()

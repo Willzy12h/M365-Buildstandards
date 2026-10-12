@@ -12,7 +12,7 @@ public enum EngineerDocumentKind { BuildStandard, ManualGuide }
 /// <summary>Catalogue-only documents: no client profile, snapshot, tenant context or connection is accepted.</summary>
 public static class EngineerStandardDocuments
 {
-    public const string PresentationVersion = "buildstandard-native-reader-v1";
+    public const string PresentationVersion = "buildstandard-native-reader-v2";
     public static string Title(EngineerDocumentKind kind) => kind switch
     {
         EngineerDocumentKind.BuildStandard => "The Build Standard",
@@ -100,11 +100,14 @@ public static class EngineerStandardDocuments
         return text.ToString();
     }
 
-    public static string Html(StandardCatalogue standard, EngineerDocumentKind kind)
+    public static string Html(StandardCatalogue standard, EngineerDocumentKind kind, DateTimeOffset? generatedAt = null)
     {
         Validate(standard, kind);
         var text = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
-        text.Append(H(Title(kind))).Append("</title>").Append(Css).Append("</head><body><header><p class=\"eyebrow\">BUILDSTANDARD · ENGINEER REFERENCE</p><h1>")
+        text.Append(H(Title(kind))).Append("</title>").Append(ContentPolicy);
+        if (generatedAt is { } generated)
+            text.Append("<meta name=\"buildstandard-generated-at\" content=\"").Append(H(generated.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture))).Append("\">");
+        text.Append(Css).Append("</head><body><header><p class=\"eyebrow\">BUILDSTANDARD · ENGINEER REFERENCE</p><h1>")
             .Append(H(Title(kind))).Append("</h1><p>Release ").Append(H(standard.Release)).Append(" · ").Append(standard.Controls.Count)
             .Append(" controls · Presentation ").Append(PresentationVersion).Append("</p><p>Catalogue SHA-256: <code>").Append(H(standard.IntegrityDigest)).Append("</code></p><p>").Append(H(Intro)).Append("</p></header>");
         text.Append("<nav aria-label=\"Document areas\">");
@@ -184,6 +187,10 @@ public static class EngineerStandardDocuments
             # The engineer must have saved complete before evidence and durable intent for this exact request.
             # Stop on save failure or changed settings; this function is not a deployment transaction.
         }
+        """;
+    // Meta CSP is defence in depth; the later native host must independently deny navigation/resources/privileged actions.
+    private const string ContentPolicy = """
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; script-src-elem 'none'; script-src-attr 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; img-src 'none'; font-src 'none'; media-src 'none'; style-src 'unsafe-inline'">
         """;
     private const string Css = """
         <style>
