@@ -18,6 +18,11 @@ Keep durable task/commit/check evidence in the existing COMPLETION-REGISTER and 
 
 Set by William on 11 October 2026. This file replaces long per-session prompts: read it, then work the backlog.
 
+### Owner sequencing update — 12 October 2026
+
+William subsequently directs GPT to finish all approved T0–T10 implementation, integration and available source-matched validation continuously. Named/independent reviews are deferred to one assembled T10 handoff; provisional phase merges after required checks are permitted and must be labelled independent review pending. Final source acceptance, live use, promotion and release still require the outstanding reviews/approvals. Do not let a deferred review stop coding, bypass enforced checks or resume the historical backlog. No second Goal/plan is created.
+
+
 ## Temporary closeout and review pause — 11 October 2026
 
 William has suspended taking the next backlog item. GPT/Astra/Codex coordinates a **bounded closeout** of the finite work already under way, as identified in issue [#83](https://github.com/Willzy12h/M365-Buildstandards/issues/83). This notice takes precedence over the take-next instructions below; it preserves the underlying goal, ownership and safety rules.
