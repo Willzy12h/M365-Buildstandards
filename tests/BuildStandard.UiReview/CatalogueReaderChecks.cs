@@ -23,6 +23,8 @@ internal static partial class Program
     private static int CheckHostedCatalogueReader(BuildStandard.App.Services.Workspace workspace, BuildStandard.App.ViewModels.ShellViewModel shell, Window window, string output)
     {
         Directory.CreateDirectory(output);
+        window.ShowInTaskbar=false; window.ShowActivated=true;
+        window.WindowStartupLocation=WindowStartupLocation.Manual; window.Left=-10000; window.Top=-10000;
         var records = new List<object>();
         // Private construction is confined to this hostile synthetic fixture. Production consumes T8's verified descriptor.
         var html = Encoding.UTF8.GetBytes("""
@@ -125,7 +127,7 @@ internal static partial class Program
         {
         foreach(var size in PageSizes)
         {
-            window.Width=size.Width; window.Height=size.Height; window.UpdateLayout(); Pump();
+            FitNativeReportClientSize(window,pageRoot,size);
             var where=$"hosted-reader {(int)size.Width}x{(int)size.Height}";
             RecordUnnamedControls(pageRoot,where); RecordLowContrast(pageRoot,where); RecordClipping(pageRoot,where);
             CheckKeyboardReach(window,pageRoot,where);
@@ -150,7 +152,7 @@ internal static partial class Program
         if(!ReferenceEquals(shell.CurrentPage,standard) || standard.Selected?.Id!="CA-001" || standard.Search!="CA-001" || reader.IsCurrent)
             throw new InvalidOperationException("Back failed to preserve unchanged native control/filter or invalidate the reader.");
         records.Add(new { Case="native unchanged-context Back", SelectionAndFilter="preserved", Authentication="not invoked" });
-        File.WriteAllText(Path.Combine(output,"reader-verification.json"),JsonSerializer.Serialize(new { Source="exact checked-out CI source", SyntheticOnly=true, TenantCalls=0, Records=records },new JsonSerializerOptions{WriteIndented=true}));
+        File.WriteAllText(Path.Combine(output,"reader-verification.json"),JsonSerializer.Serialize(new { Source="exact checked-out CI source", SourceCommit=Environment.GetEnvironmentVariable("GITHUB_SHA") ?? "not supplied", SyntheticOnly=true, TenantCalls=0, Records=records },new JsonSerializerOptions{WriteIndented=true}));
         window.Close(); return 0;
     }
 }
