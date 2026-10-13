@@ -91,7 +91,8 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             next = ("", "Operation in progress", $"An operation is in progress. {context.BusyMessage} Review its pinned status and wait before starting another operation.");
         else if (context.InterruptedNotice.Length > 0 || context.LastRun is { } uncertain
             && SameTenant(uncertain.TenantId, profile?.TenantId)
-            && (uncertain.Status is RunStatus.Running or RunStatus.Interrupted || uncertain.Results.Any(r => r.WriteAcceptance == WriteAcceptance.Unknown)))
+            && (uncertain.Status is RunStatus.Running or RunStatus.Interrupted
+                || uncertain.Results.Any(r => r.WriteAcceptance is not WriteAcceptance.Accepted and not WriteAcceptance.Rejected and not WriteAcceptance.NotAttempted)))
             next = ("recovery", "Review uncertain work", (context.InterruptedNotice.Length > 0 ? context.InterruptedNotice : "This client's run contains uncertain outcomes.")
                 + " Preserve evidence and reconcile uncertainty before repeating any action; viewing a result does not resolve it.");
         else if (standard is null)
