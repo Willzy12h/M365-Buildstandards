@@ -148,6 +148,20 @@ internal static partial class Program
         var saved=Directory.GetFiles(workspace.Paths.ReportsDirectory,"*.html").Except(beforeFiles,StringComparer.OrdinalIgnoreCase).Single();
         if(!File.ReadAllBytes(saved).SequenceEqual(reader.Document!.CopyHtmlBytes())) throw new InvalidOperationException("Native Save HTML differed from the displayed descriptor.");
         records.Add(new { Case="native View reference and actual T8 Engineer catalogue", reader.Document.CatalogueRelease,reader.Document.CatalogueDigest,reader.Document.HtmlSha256,reader.Document.PresentationVersion, Runtime=browser.CoreWebView2.Environment.BrowserVersionString, ExactNativeSave="passed" });
+        // Retry is a deliberate new owned session, even when WPF reuses the same data-template view.
+        var previousReader=reader; var previousBrowser=browser;
+        reader.Failed("Failed","Synthetic native retry scenario; no tenant operation.");
+        if(!reader.RetryCommand.CanExecute(null)) throw new InvalidOperationException("Current failed reader cannot offer deliberate Retry.");
+        reader.RetryCommand.Execute(null);
+        var retryTimer=Stopwatch.StartNew();
+        while((shell.CurrentPage is not BuildStandard.App.ViewModels.CatalogueReaderViewModel replacement || ReferenceEquals(replacement,previousReader) || replacement.State is "Preparing" or "Loading")
+            && retryTimer.Elapsed<TimeSpan.FromSeconds(45)){Pump();Thread.Sleep(10);}
+        reader=shell.CurrentPage as BuildStandard.App.ViewModels.CatalogueReaderViewModel ?? throw new InvalidOperationException("Retry left the native reader route.");
+        if(ReferenceEquals(reader,previousReader) || reader.State!="Ready" || previousReader.IsCurrent)
+            throw new InvalidOperationException("Deliberate native Retry did not display a fresh current session: "+reader.State+" · "+reader.Status);
+        browser=Descendants((FrameworkElement)window.Content).OfType<Microsoft.Web.WebView2.Wpf.WebView2>().Single();
+        if(ReferenceEquals(browser,previousBrowser)) throw new InvalidOperationException("Retry reused the retired controller.");
+        records.Add(new { Case="deliberate native Retry", FreshController="passed", PreviousTicket="invalidated", Authentication="not invoked" });
         reader.BackCommand.Execute(null); Pump();
         if(!ReferenceEquals(shell.CurrentPage,standard) || standard.Selected?.Id!="CA-001" || standard.Search!="CA-001" || reader.IsCurrent)
             throw new InvalidOperationException("Back failed to preserve unchanged native control/filter or invalidate the reader.");
