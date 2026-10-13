@@ -243,6 +243,17 @@ public sealed class DeploymentExecutor
                     }
                     Journal(run, "Completed", $"{row.ControlId} completed and configuration readback passed.", row.ControlId);
                 }
+                catch (WriteNotSentException ex) when (control.StopRequested && ex.InnerException is OperationCanceledException)
+                {
+                    // A proven pre-send operator cancellation is distinct from authentication failure or uncertain transport.
+                    result.WriteAcceptance = WriteAcceptance.NotAttempted;
+                    result.Status = ResultStatus.NotRun;
+                    result.Configuration = ConfigurationVerification.NotRun;
+                    result.Reason = "Stopped before Graph dispatch; no write request was sent.";
+                    stopped = true;
+                    Journal(run, "Info", $"{row.ControlId}: {result.Reason}", row.ControlId);
+                    break;
+                }
                 catch (Exception ex)
                 {
                     if (!writeInvoked || (result.WriteAcceptance != WriteAcceptance.Accepted && ex is WriteNotSentException))
@@ -292,7 +303,9 @@ public sealed class DeploymentExecutor
                 run.AfterComplete = after.Complete;
                 if (!after.Complete)
                 {
-                    failed = true;
+                    // Retain partial evidence, but an expected cancelled read after a proven entirely unsent stop
+                    // does not turn that stop into a write failure. Earlier sent/uncertain rows still require review.
+                    failed |= !stopped || !control.StopRequested || run.Results.Any(r => r.WriteAcceptance != WriteAcceptance.NotAttempted);
                     run.AfterError = control.StopRequested ? "After-change capture cancelled by operator; partial evidence retained."
                         : afterBudget.IsCancellationRequested ? "After-change capture reached its time budget; partial evidence retained." : "After-change capture is incomplete.";
                 }

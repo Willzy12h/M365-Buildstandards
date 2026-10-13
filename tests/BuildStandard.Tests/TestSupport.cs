@@ -273,6 +273,7 @@ internal sealed class FakeGraphClient : IGraphClient
     public Exception? RecoveryError { get; set; }
     public bool IgnoreRecovery { get; set; }
     public Func<string, JsonObject, Task>? BeforeWrite { get; set; }
+    public Func<Task>? BeforeReviewedAdmission { get; set; }
     public Exception? ThrowOnWrite { get; set; }
     public Func<JsonObject, JsonObject>? MutateReadback { get; set; }
     public Func<string, CancellationToken, Task>? BeforeRead { get; set; }
@@ -354,7 +355,12 @@ internal sealed class FakeGraphClient : IGraphClient
     public async Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
         BuildStandard.Core.Safety.ReviewedWriteAdmission admission, CancellationToken ct)
     {
-        try { ct.ThrowIfCancellationRequested(); admission.AssertAllowed(); }
+        try
+        {
+            // Models awaited token preparation before the real final admission; BeforeWrite remains transport entry.
+            if (BeforeReviewedAdmission is not null) await BeforeReviewedAdmission();
+            ct.ThrowIfCancellationRequested(); admission.AssertAllowed();
+        }
         catch (Exception ex) { throw new WriteNotSentException("Synthetic final admission refused before write entry.", ex); }
         // BeforeWrite models the transport entry, not token preparation; failures there remain possibly sent.
         return await WriteAsync(api, method, path, payload, ct);

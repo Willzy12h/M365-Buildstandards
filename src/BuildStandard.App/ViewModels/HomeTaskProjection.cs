@@ -23,6 +23,9 @@ public sealed record HomeTaskContext
     public bool RunReviewed { get; init; }
     public bool ExperimentalEnabled { get; init; }
     public string? AcknowledgedSnapshotId { get; init; }
+    public DateTimeOffset ObservedAt { get; init; } = DateTimeOffset.UtcNow;
+    public TimeSpan MaxSnapshotAge { get; init; } = TimeSpan.FromMinutes(20);
+    public TimeSpan MaxPlanAge { get; init; } = TimeSpan.FromMinutes(20);
 
 }
 
@@ -88,7 +91,8 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
             next = ("", "Operation in progress", $"An operation is in progress. {context.BusyMessage} Review its pinned status and wait before starting another operation.");
         else if (context.InterruptedNotice.Length > 0 || context.LastRun is { } uncertain
             && SameTenant(uncertain.TenantId, profile?.TenantId)
-            && (uncertain.Status is RunStatus.Running or RunStatus.Interrupted || uncertain.Results.Any(r => r.WriteAcceptance == WriteAcceptance.Unknown)))
+            && (uncertain.Status is RunStatus.Running or RunStatus.Interrupted
+                || uncertain.Results.Any(r => r.WriteAcceptance is not WriteAcceptance.Accepted and not WriteAcceptance.Rejected and not WriteAcceptance.NotAttempted)))
             next = ("recovery", "Review uncertain work", (context.InterruptedNotice.Length > 0 ? context.InterruptedNotice : "This client's run contains uncertain outcomes.")
                 + " Preserve evidence and reconcile uncertainty before repeating any action; viewing a result does not resolve it.");
         else if (standard is null)
@@ -121,6 +125,12 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
                 next = ("plan", "Review planned changes", "Select eligible controls and inspect prerequisites and the exact proposal. Manual steps remain engineer actions.");
             else if (context.Plan is not null && !context.Plan.WriteRows.Any())
                 next = ("plan", "Review manual and blocked rows", "This plan has no writes. Review manual steps, blocked controls and their next actions.");
+            else if (context.Plan is not null && (!BuildStandard.Core.Timestamps.TryParse(snapshot.CapturedAt, out var capturedAt)
+                || context.ObservedAt - capturedAt > context.MaxSnapshotAge))
+                next = ("configuration", "Recapture before-change evidence", "Before-change evidence is expired or its recorded time is invalid. Collect a fresh read-only capture, then rebuild and review the exact plan; previous approval cannot authorise it.");
+            else if (context.Plan is not null && (!BuildStandard.Core.Timestamps.TryParse(context.Plan.CreatedAt, out var plannedAt)
+                || context.ObservedAt - plannedAt > context.MaxPlanAge))
+                next = ("plan", "Rebuild the expired plan", "The plan is expired or its recorded time is invalid. Rebuild and review the exact proposal; previous approval cannot authorise a new plan.");
             else if (context.Plan is not null && (session.Mode != SessionMode.Deployment || !context.ExperimentalEnabled))
                 next = ("connect", "Review deployment access", "Deliberately switch permission mode and review session-specific experimental access. Fresh evidence and exact approval still apply.");
             else if (context.Plan is not null)

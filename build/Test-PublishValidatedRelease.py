@@ -206,6 +206,42 @@ class PackageTests(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
+    def test_prepare_refuses_package_corrupted_during_staging(self):
+        import shutil
+        from unittest.mock import patch
+        pin = self.build(neutral=True)
+        with tempfile.TemporaryDirectory() as job:
+            root = Path(job); full_pin = write_pin(root); full_pin.update(pin); pin = full_pin
+            shutil.copytree(self.portable, root / "release-input/portable")
+            for folder in ("ui", "standards"):
+                target = root / "release-input" / folder; target.mkdir()
+                (target / "synthetic.txt").write_text("Synthetic fixture only.")
+            original_copy = shutil.copyfile
+            def corrupt_copy(source, destination, *args, **kwargs):
+                result = original_copy(source, destination, *args, **kwargs)
+                if Path(destination).name == f"BuildStandard-{VERSION}-win-x64.zip":
+                    with Path(destination).open("ab") as stream: stream.write(b"changed during staging")
+                return result
+            previous = os.getcwd()
+            try:
+                os.chdir(root)
+                with patch("shutil.copyfile", side_effect=corrupt_copy):
+                    with self.assertRaisesRegex(ValueError, "independently recorded tested SHA-256"):
+                        publisher.prepare(pin)
+                self.assertFalse((root / "release-output/RELEASE-RECORD.json").exists())
+            finally:
+                os.chdir(previous)
+
+    def test_publish_refuses_changed_staged_package_before_any_github_operation(self):
+        from unittest.mock import patch
+        pin = self.build(neutral=True)
+        package = self.portable / f"BuildStandard-{VERSION}-win-x64.zip"
+        with package.open("ab") as stream: stream.write(b"changed after preparation")
+        with patch.object(publisher, "api", side_effect=AssertionError("GitHub must not be called")), \
+                patch.object(publisher, "gh", side_effect=AssertionError("GitHub must not be called")):
+            with self.assertRaisesRegex(ValueError, "independently recorded tested SHA-256"):
+                publisher.publish(pin, self.portable)
+
     def test_changed_bytes_refused(self):
         pin = self.build()
         pin["packageSha256"] = "c" * 64

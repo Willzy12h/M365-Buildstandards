@@ -80,6 +80,28 @@ public sealed class ExperimentalDesktopBoundaryTests : IDisposable
     }
 
     [Fact]
+    public void Home_and_header_use_current_experimental_expiry_without_mutating_the_recorded_opt_in()
+    {
+        var graph = SetVerifiedDeployment(false);
+        var now = DateTimeOffset.UtcNow;
+        var guard = new ExperimentalOperationGuard(() => now);
+        typeof(Workspace).GetField("<ExperimentalGuard>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_workspace, guard);
+        _workspace.SetExperimentalChanges(true);
+        var home = _shell.Page<HomeViewModel>(); home.Refresh();
+        Assert.Equal("deploy", home.Projection.NextPageKey);
+        now = DateTimeOffset.Parse(_workspace.Session!.TokenExpiresAt).AddSeconds(1);
+        home.Refresh();
+        Assert.Equal("connect", home.Projection.NextPageKey);
+        Assert.Equal("connect", _shell.NextActionKey);
+        Assert.False(_workspace.CaptureHomeTaskContext().ExperimentalEnabled);
+        // Guidance remains a read-only projection; the authoritative gate invalidates only when actually queried.
+        Assert.True(guard.ApprovalRecordedFor(_workspace.Connection));
+        Assert.False(_workspace.ExperimentalChangesEnabled);
+        Assert.False(guard.ApprovalRecordedFor(_workspace.Connection));
+        Assert.Empty(graph.Writes);
+    }
+
+    [Fact]
     public async Task Write_capable_connection_and_reviewable_plan_do_not_bypass_the_off_gate()
     {
         var graph = SetVerifiedDeployment(optIn: false); var plan = _workspace.Plan;

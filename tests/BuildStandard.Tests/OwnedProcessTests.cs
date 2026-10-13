@@ -36,9 +36,11 @@ public sealed class OwnedProcessTests
 
         public async Task ReadAsync(StreamReader reader)
         {
-            var first = await reader.ReadLineAsync();
+            // Synchronous-failure fixtures wait for this PID. Do not marshal its continuation back to
+            // xUnit's bounded context while that context is deliberately blocked by the fixture.
+            var first = await reader.ReadLineAsync().ConfigureAwait(false);
             if (int.TryParse(first?.Trim(), out var pid)) _pid.TrySetResult(pid); else _pid.TrySetException(new InvalidOperationException("No process id."));
-            await reader.ReadToEndAsync();
+            await reader.ReadToEndAsync().ConfigureAwait(false);
         }
 
         public async Task<int> StartedAsync() => await Pid.WaitAsync(TimeSpan.FromSeconds(30));
@@ -107,7 +109,7 @@ public sealed class OwnedProcessTests
         {
             // The output reader records the id; the error reader then fails synchronously, after the child started.
             var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync,
-                _ => { child.Pid.Wait(TimeSpan.FromSeconds(30)); throw new InvalidOperationException("Reader failed."); },
+                _ => { child.Pid.WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult(); throw new InvalidOperationException("Reader failed."); },
                 Long, () => false, () => { }, Grace, CancellationToken.None);
             await Assert.ThrowsAsync<InvalidOperationException>(() => run);
             Assert.True(await child.GoneAsync(), "The child was still running after the error was returned.");
@@ -166,7 +168,7 @@ public sealed class OwnedProcessTests
         try
         {
             var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync,
-                _ => { child.Pid.Wait(TimeSpan.FromSeconds(30)); throw new InvalidOperationException("Reader failed."); },
+                _ => { child.Pid.WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult(); throw new InvalidOperationException("Reader failed."); },
                 Long, () => false, () => { }, Grace, CancellationToken.None, terminate: Refuse, terminationWait: TimeSpan.FromMilliseconds(500));
             var outcome = await run.WaitAsync(TimeSpan.FromSeconds(20));
             Assert.Equal(OwnedProcessEnd.NotStopped, outcome.End);

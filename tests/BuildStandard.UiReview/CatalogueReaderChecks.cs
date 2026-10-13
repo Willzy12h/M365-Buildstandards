@@ -95,6 +95,64 @@ internal static partial class Program
         }
         window.Content=nativeContent;
         shell.Navigate("standard"); Pump();
+        // Exercise the real native view's exception boundary before any Runtime/browser is needed.
+        // Corruption is injected into a private synthetic descriptor, never through a production mutation API.
+        var damaged = new CatalogueDocumentService(workspace.Paths).Create(workspace.RequireStandard());
+        var backing = (byte[])typeof(CatalogueDocument).GetField("_html", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(damaged)!;
+        backing[0] ^= 1;
+        Exception? invalidUnhandled = null;
+        System.Windows.Threading.DispatcherUnhandledExceptionEventHandler invalidTrap = (_, e) =>
+        {
+            if (e.Exception is InvalidDataException) { invalidUnhandled = e.Exception; e.Handled = true; }
+        };
+        window.Dispatcher.UnhandledException += invalidTrap;
+        try
+        {
+            AwaitReader(shell.ShowCatalogueReferenceAsync(damaged, "CA-001", workspace.CapturePresentationContext()));
+            var invalidTimer = Stopwatch.StartNew();
+            while (shell.CurrentPage is BuildStandard.App.ViewModels.CatalogueReaderViewModel pendingInvalid
+                && pendingInvalid.State is "Preparing" or "Loading" && invalidUnhandled is null
+                && invalidTimer.Elapsed < TimeSpan.FromSeconds(10)) { Pump(); Thread.Sleep(10); }
+            if (shell.CurrentPage is not BuildStandard.App.ViewModels.CatalogueReaderViewModel invalidReader
+                || invalidReader.State != "Invalid" || invalidUnhandled is not null)
+                throw new InvalidOperationException("Invalid catalogue was not contained in the native reader: state="
+                    + (shell.CurrentPage as BuildStandard.App.ViewModels.CatalogueReaderViewModel)?.State
+                    + "; dispatcher exception=" + invalidUnhandled?.GetType().Name);
+            var invalidView = Descendants((FrameworkElement)window.Content).OfType<BuildStandard.App.Views.CatalogueReaderView>().Single();
+            var retired = typeof(BuildStandard.App.Views.CatalogueReaderView).GetField("_host", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(invalidView) is null;
+            if (!retired || invalidReader.SaveCommand.CanExecute(null)
+                || Descendants(invalidView).OfType<Microsoft.Web.WebView2.Wpf.WebView2>().Any())
+                throw new InvalidOperationException("Invalid document retained its host, browser or Save authority.");
+            SaveWindowImage((FrameworkElement)window.Content, Path.Combine(output, "reader-invalid-document.png"));
+            records.Add(new { Case = "native invalid catalogue document", InvalidState = "passed", GenericDispatcherError = false, BrowserCreated = false, HostRetired = true });
+        }
+        finally { window.Dispatcher.UnhandledException -= invalidTrap; shell.Navigate("standard"); Pump(); }
+        // Also contain the exact ConfigurationException emitted by RequireAnchor at host entry.
+        var anchorDocument = new CatalogueDocumentService(workspace.Paths).Create(workspace.RequireStandard());
+        var anchorReader = new BuildStandard.App.ViewModels.CatalogueReaderViewModel(shell);
+        AwaitReader(anchorReader.OpenAsync(anchorDocument, "CA-001", workspace.CapturePresentationContext(), CancellationToken.None));
+        var anchors = (IList<string>)typeof(System.Collections.ObjectModel.ReadOnlyCollection<string>)
+            .GetProperty("Items", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(anchorDocument.Anchors)!;
+        anchors[anchors.IndexOf("CA-001")] = "synthetic-corrupted-anchor";
+        var anchorView = new BuildStandard.App.Views.CatalogueReaderView { DataContext = anchorReader };
+        Exception? anchorUnhandled = null;
+        System.Windows.Threading.DispatcherUnhandledExceptionEventHandler anchorTrap = (_, e) =>
+        {
+            if (e.Exception is BuildStandard.Core.ConfigurationException) { anchorUnhandled = e.Exception; e.Handled = true; }
+        };
+        window.Dispatcher.UnhandledException += anchorTrap;
+        try
+        {
+            window.Content = anchorView; Pump();
+            if (anchorReader.State != "Invalid" || anchorUnhandled is not null)
+                throw new InvalidOperationException("Invalid catalogue anchor was not contained: state=" + anchorReader.State
+                    + "; dispatcher exception=" + anchorUnhandled?.GetType().Name);
+            if (anchorReader.SaveCommand.CanExecute(null)
+                || typeof(BuildStandard.App.Views.CatalogueReaderView).GetField("_host", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(anchorView) is not null)
+                throw new InvalidOperationException("Invalid anchor retained host or Save authority.");
+            records.Add(new { Case = "native invalid catalogue anchor", InvalidState = "passed", GenericDispatcherError = false, HostRetired = true });
+        }
+        finally { window.Dispatcher.UnhandledException -= anchorTrap; window.Content = nativeContent; anchorReader.Close(); Pump(); }
         var standard=shell.Page<BuildStandard.App.ViewModels.StandardViewModel>();
         standard.Search="CA-001"; standard.Selected=standard.Controls.Single(c=>c.Id=="CA-001");
         if(!standard.ViewReferenceCommand.CanExecute(null)) throw new InvalidOperationException("Native selected-control reference entry is unavailable.");

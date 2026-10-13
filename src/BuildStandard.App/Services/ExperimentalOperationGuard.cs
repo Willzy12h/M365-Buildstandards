@@ -28,11 +28,15 @@ public sealed class ExperimentalOperationGuard
     public bool IsEnabled(object? connection, TenantSession? session, StandardCatalogue? standard, TenantProfile? profile)
     {
         if (_binding is null) return false;
-        if (!ReferenceEquals(_connection, connection) || _expires <= _now()
-            || !TryBinding(session, standard, profile, out var current) || current != _binding)
+        if (!IsApprovalCurrent(connection, session, standard, profile))
         { Invalidate(); return false; }
         return true;
     }
+
+    /// <summary>The same expiry/binding decision as IsEnabled, without changing recorded UI intent or granting authority.</summary>
+    public bool IsApprovalCurrent(object? connection, TenantSession? session, StandardCatalogue? standard, TenantProfile? profile) =>
+        _binding is not null && ReferenceEquals(_connection, connection) && _expires > _now()
+        && TryBinding(session, standard, profile, out var current) && current == _binding;
 
     public bool CanEnable(TenantSession? session, StandardCatalogue? standard, TenantProfile? profile) =>
         TryBinding(session, standard, profile, out _) && DateTimeOffset.TryParse(session!.TokenExpiresAt,

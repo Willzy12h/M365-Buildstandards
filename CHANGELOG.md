@@ -25,6 +25,7 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+- Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
 - T6: native teal command centre, five horizontal navigation groups and docked original-provenance reference; all21 existing routes preserved. Independent/human acceptance pending.
