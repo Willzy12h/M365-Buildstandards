@@ -31,7 +31,7 @@ public partial class CatalogueReaderView : UserControl
                 anchor => { if (Current()) vm.ObserveAnchor(anchor); }).WaitAsync(TimeSpan.FromSeconds(45));
             if (Current()) vm.Ready(host.RuntimeVersion); else host.Dispose();
         }
-        catch (InvalidDataException)
+        catch (Exception ex) when (ex is InvalidDataException or BuildStandard.Core.ConfigurationException)
         {
             if (Current()) vm.Failed("Invalid", "Catalogue document identity could not be verified. Return to the native catalogue and regenerate its reference; this document cannot be saved or displayed.");
             Retire(host);

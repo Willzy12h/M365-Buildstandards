@@ -98,6 +98,9 @@ public sealed class Workspace : ObservableObject
     public bool IsConnected => Connection is not null;
     public bool IsDeploymentSession => Session?.Mode == SessionMode.Deployment;
     public ExperimentalOperationGuard ExperimentalGuard { get; } = new();
+    public bool ExperimentalApprovalCurrent =>
+        string.Equals(Settings.ResolveClient(SessionMode.Deployment, Profile)?.ClientId, Session?.ClientId, StringComparison.OrdinalIgnoreCase)
+        && ExperimentalGuard.IsApprovalCurrent(Connection, Session, Standard, Profile);
     public bool ExperimentalChangesEnabled
     {
         get
@@ -187,7 +190,7 @@ public sealed class Workspace : ObservableObject
         DisplayedTenantId = ApplicationSetup?.Identity.TenantId ?? Session?.TenantId ?? Profile?.TenantId, ApplicationSetupActive = ApplicationSetup is not null,
         Busy = Busy, BusyMessage = BusyMessage, InterruptedNotice = InterruptedNotice, Assessment = Assessment,
         Plan = Plan, LastRun = LastRun, RunReviewed = LastRun is not null && ReferenceEquals(_viewedRun, LastRun) && _viewedRunContent == ToolkitJson.Serialize(LastRun),
-        ExperimentalEnabled = ExperimentalGuard.ApprovalRecordedFor(Connection), AcknowledgedSnapshotId = AcknowledgedSnapshotId,
+        ExperimentalEnabled = ExperimentalApprovalCurrent, AcknowledgedSnapshotId = AcknowledgedSnapshotId,
         ObservedAt = SystemClock.Instance.UtcNow, MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
         MaxPlanAge = TimeSpan.FromMinutes(Settings.PlanMaxAgeMinutes)
     };
