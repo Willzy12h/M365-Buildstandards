@@ -8,13 +8,45 @@ public partial class MainWindow : Window
 {
     private bool _closeApproved;
     private bool _closing;
+    private ShellViewModel? _navigationShell;
+    private long _routeSelectionRevision;
 
     public MainWindow()
     {
         InitializeComponent();
         SizeChanged += (_, _) => { if (DataContext is BuildStandard.App.ViewModels.ShellViewModel shell) shell.SetViewportWidth(ActualWidth); };
         DataContextChanged += (_, _) => { if (DataContext is BuildStandard.App.ViewModels.ShellViewModel shell) shell.SetViewportWidth(ActualWidth > 0 ? ActualWidth : Width); };
+        DataContextChanged += (_, e) =>
+        {
+            if (_navigationShell is not null) _navigationShell.PropertyChanged -= NavigationChanged;
+            _navigationShell = e.NewValue as ShellViewModel;
+            if (_navigationShell is not null) _navigationShell.PropertyChanged += NavigationChanged;
+            QueueRouteSelection();
+        };
+        Closed += (_, _) =>
+        {
+            _routeSelectionRevision++;
+            if (_navigationShell is not null) _navigationShell.PropertyChanged -= NavigationChanged;
+            _navigationShell = null;
+        };
         FitToWorkArea(SystemParameters.WorkArea);
+    }
+
+    private void NavigationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ShellViewModel.ActiveRouteKey)) QueueRouteSelection();
+    }
+    private void QueueRouteSelection()
+    {
+        if (DataContext is not ShellViewModel shell) return;
+        var key = shell.ActiveRouteKey;
+        var revision = ++_routeSelectionRevision;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (_closing || revision != _routeSelectionRevision || !ReferenceEquals(DataContext, shell) || shell.ActiveRouteKey != key) return;
+            if (shell.ActiveNavItem is { } item && PageSelector.Items.Contains(item))
+                PageSelector.SetCurrentValue(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, item);
+        }));
     }
 
     /// <summary>
