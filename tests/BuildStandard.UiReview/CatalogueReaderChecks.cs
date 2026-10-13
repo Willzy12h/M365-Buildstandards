@@ -121,6 +121,23 @@ internal static partial class Program
         var originalZoom=browser.ZoomFactor; reader.ZoomInCommand.Execute(null); Pump();
         if(browser.ZoomFactor<=originalZoom) throw new InvalidOperationException("Native zoom command did not reach the current browser.");
         reader.ZoomOutCommand.Execute(null); Pump();
+        using(var sizing=new NativeHarnessTrackBounds(window,pageRoot,PageSizes))
+        {
+        foreach(var size in PageSizes)
+        {
+            window.Width=size.Width; window.Height=size.Height; window.UpdateLayout(); Pump();
+            var where=$"hosted-reader {(int)size.Width}x{(int)size.Height}";
+            RecordUnnamedControls(pageRoot,where); RecordLowContrast(pageRoot,where); RecordClipping(pageRoot,where);
+            CheckKeyboardReach(window,pageRoot,where);
+            if(browser.ActualHeight<120) throw new InvalidOperationException($"Contained reader work area is cramped at {where}: {browser.ActualHeight}px.");
+            SaveWindowImage(pageRoot,Path.Combine(output,$"reader-native-chrome-{(int)size.Width}x{(int)size.Height}.png"));
+            using(var capture=File.Create(Path.Combine(output,$"reader-document-{(int)size.Width}x{(int)size.Height}.png")))
+                AwaitReader(browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,capture));
+        }
+        }
+        if(UnnamedControls.Count+LowContrast.Count+ClippedElements.Count+KeyboardProblems.Count>0)
+            throw new InvalidOperationException("Hosted native presentation failures: "+string.Join(" | ",UnnamedControls.Concat(LowContrast).Concat(ClippedElements).Concat(KeyboardProblems)));
+        records.Add(new { Case="native reader presentation at all three logical sizes", AccessibleNames="passed", Contrast="passed", Clipping="passed", NativeKeyboardReach="passed", HumanNarratorAndPhysicalScaling="unrun" });
         using(var image=File.Create(Path.Combine(output,"reader-engineer-catalogue.png"))) AwaitReader(browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image));
         SaveWindowImage((FrameworkElement)window.Content,Path.Combine(output,"reader-native-chrome.png")); // HWND content is separately captured above; never claim a combined browser bitmap.
         var beforeFiles=Directory.GetFiles(workspace.Paths.ReportsDirectory,"*.html").ToHashSet(StringComparer.OrdinalIgnoreCase);

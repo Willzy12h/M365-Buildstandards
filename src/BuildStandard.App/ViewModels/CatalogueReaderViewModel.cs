@@ -20,7 +20,7 @@ public sealed class CatalogueReaderViewModel : PageViewModel
         RetryCommand = Command(() => Shell.ShowCatalogueReferenceAsync(Document!, ControlId, Workspace.CapturePresentationContext()),
             () => Document is not null && IsCurrent && Workspace.Idle && State is "Unavailable" or "CacheUnavailable" or "Failed");
         SaveCommand = Command(SaveAsync, () => Document is not null && State != "Invalid" && IsCurrent && Workspace.Idle);
-        OpenReferenceCommand = Sync(OpenReference, () => PendingReference.Length > 0 && IsCurrent);
+        OpenReferenceCommand = Sync(OpenReference, () => IsReady && PendingReference.Length > 0);
         FindCommand = Sync(() => FindRequested?.Invoke(FindText), () => State == "Ready" && IsCurrent);
         ZoomInCommand = Sync(() => ZoomRequested?.Invoke(.25), () => State == "Ready" && IsCurrent);
         ZoomOutCommand = Sync(() => ZoomRequested?.Invoke(-.25), () => State == "Ready" && IsCurrent);
@@ -31,9 +31,15 @@ public sealed class CatalogueReaderViewModel : PageViewModel
     public CatalogueDocument? Document { get; private set; }
     public string ControlId { get; private set; } = "";
     public bool IsCurrent => _ticket is not null && _admission.IsCurrent(_ticket, Workspace.CapturePresentationContext(), Shell.NavigationEpoch);
-    public string State { get => _state; private set => SetProperty(ref _state, value); }
+    public string State { get => _state; private set
+    {
+        if (SetProperty(ref _state, value))
+        { OnPropertyChanged(nameof(IsReady)); CommandManager.InvalidateRequerySuggested(); }
+    } }
+    public bool IsReady => State == "Ready" && IsCurrent;
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
-    public string PendingReference { get => _pending; private set { if (SetProperty(ref _pending, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public string PendingReference { get => _pending; private set { if (SetProperty(ref _pending, value)) { OnPropertyChanged(nameof(HasPendingReference)); CommandManager.InvalidateRequerySuggested(); } } }
+    public bool HasPendingReference => PendingReference.Length > 0;
     public string OpenedAt { get => _openedAt; private set => SetProperty(ref _openedAt, value); }
     public string FindText { get => _find; set => SetProperty(ref _find, value); }
     public string Saved { get => _saved; private set => SetProperty(ref _saved, value); }
@@ -65,7 +71,7 @@ public sealed class CatalogueReaderViewModel : PageViewModel
     public void Ready(string version) { if (IsCurrent) { State = "Ready"; Status = "Document displayed · Runtime " + version + ". Select/copy text, find or zoom; no commands run from this document."; } }
     public void Failed(string state, string notice) { if (IsCurrent) { State = state; Status = notice; PendingReference = ""; } }
     public void ObserveAnchor(string anchor) { if (IsCurrent) OpenedAt = "Opened at " + anchor; }
-    public void SetPendingReference(string url) { if (_policy?.AllowsReference(url, true, IsCurrent) == true) PendingReference = url; }
+    public void SetPendingReference(string url) { if (IsReady && _policy?.AllowsReference(url, true, IsCurrent) == true) PendingReference = url; }
     private async Task SaveAsync()
     {
         var document = Document ?? throw new InvalidOperationException("No valid catalogue document to save.");
@@ -76,7 +82,7 @@ public sealed class CatalogueReaderViewModel : PageViewModel
     private void OpenReference()
     {
         var url = PendingReference;
-        if (_policy?.AllowsReference(url, true, IsCurrent) != true) throw new InvalidOperationException("Select a current Microsoft reference again.");
+        if (!IsReady || _policy?.AllowsReference(url, true, IsCurrent) != true) throw new InvalidOperationException("Select a current Microsoft reference again.");
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); PendingReference = "";
     }
     public void Close()

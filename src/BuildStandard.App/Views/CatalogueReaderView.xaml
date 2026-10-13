@@ -10,13 +10,15 @@
    <WrapPanel Margin="0,6">
     <Button Content="Retry reader" Command="{Binding RetryCommand}" Style="{StaticResource QuietButton}" AutomationProperties.HelpText="Available after a reader failure in the same current context. No sign-in, installation or policy bypass."/>
     <Button Content="Save HTML" Command="{Binding SaveCommand}" Style="{StaticResource SecondaryButton}"/>
-    <TextBox Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="180" AutomationProperties.Name="Find text in catalogue" Margin="8,0"/>
-    <Button Content="Find" Command="{Binding FindCommand}" Style="{StaticResource QuietButton}"/>
-    <Button Content="Zoom in" Command="{Binding ZoomInCommand}" Style="{StaticResource QuietButton}"/><Button Content="Zoom out" Command="{Binding ZoomOutCommand}" Style="{StaticResource QuietButton}"/>
+    <TextBox Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="180" AutomationProperties.Name="Find text in catalogue" Margin="8,0" IsEnabled="{Binding IsReady}" ToolTip="Find is available after the current catalogue is displayed. Use Save HTML or Back if the reader is unavailable."/>
+    <Button Content="Find" ToolTipService.ShowOnDisabled="True" ToolTip="Available after the current catalogue is displayed. Use Save HTML or Back if the reader is unavailable." AutomationProperties.HelpText="Available when the current catalogue is displayed." Command="{Binding FindCommand}" Style="{StaticResource QuietButton}"/>
+    <Button Content="Zoom in" ToolTipService.ShowOnDisabled="True" ToolTip="Available after the current catalogue is displayed. Use Save HTML or Back if the reader is unavailable." AutomationProperties.HelpText="Available when the current catalogue is displayed." Command="{Binding ZoomInCommand}" Style="{StaticResource QuietButton}"/><Button Content="Zoom out" ToolTipService.ShowOnDisabled="True" ToolTip="Available after the current catalogue is displayed. Use Save HTML or Back if the reader is unavailable." AutomationProperties.HelpText="Available when the current catalogue is displayed." Command="{Binding ZoomOutCommand}" Style="{StaticResource QuietButton}"/>
    </WrapPanel>
    <TextBlock Text="Select a Microsoft reference in the document to review its destination here. It remains blocked in the reader until you choose Open Microsoft reference." FontSize="11" TextWrapping="Wrap"/>
+   <StackPanel Visibility="{Binding HasPendingReference, Converter={StaticResource BoolToVis}}">
    <TextBox Text="{Binding PendingReference, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Selected Microsoft reference destination"/>
    <Button Content="Open Microsoft reference" Command="{Binding OpenReferenceCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
+   </StackPanel>
    <TextBlock Text="{Binding Saved}" TextWrapping="Wrap"/>
   </StackPanel>
   <!-- Native controls never overlay the hosted browser rectangle. -->

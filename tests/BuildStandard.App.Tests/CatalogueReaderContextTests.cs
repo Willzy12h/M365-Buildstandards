@@ -23,7 +23,9 @@ public sealed class CatalogueReaderContextTests : IDisposable
         var document=new CatalogueDocumentService(_root.Paths).Create(_workspace.RequireStandard());
         var reader=new CatalogueReaderViewModel(_shell); var closed=0; reader.Closing+=()=>closed++;
         await reader.OpenAsync(document,"CA-001",_workspace.CapturePresentationContext(),CancellationToken.None);
-        reader.SetPendingReference(document.RendererReferences.FirstOrDefault() ?? "");
+        reader.Ready("synthetic unit Runtime");
+        reader.SetPendingReference(document.RendererReferences.First(u=>new Uri(u).Host=="learn.microsoft.com"));
+        Assert.NotEmpty(reader.PendingReference);
         _workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB),false);
         Assert.Equal("Superseded",reader.State); Assert.False(reader.IsCurrent); Assert.Equal(1,closed);
         Assert.Empty(reader.PendingReference); Assert.False(reader.SaveCommand.CanExecute(null));
@@ -31,6 +33,19 @@ public sealed class CatalogueReaderContextTests : IDisposable
         Assert.Equal("Superseded",reader.State); Assert.Empty(reader.OpenedAt);
         Assert.Null(_workspace.Connection); Assert.Null(_workspace.ApplicationSetup); Assert.Null(_workspace.Plan);
         reader.Close();
+    }
+    [Fact] public async Task Failed_reader_refuses_a_late_reference_and_has_no_launch_authority()
+    {
+        var document=new CatalogueDocumentService(_root.Paths).Create(_workspace.RequireStandard());
+        var reader=new CatalogueReaderViewModel(_shell);
+        await reader.OpenAsync(document,"CA-001",_workspace.CapturePresentationContext(),CancellationToken.None);
+        reader.Ready("synthetic unit Runtime");
+        var link=document.RendererReferences.First(u=>new Uri(u).Host=="learn.microsoft.com");
+        reader.SetPendingReference(link); Assert.True(reader.OpenReferenceCommand.CanExecute(null));
+        reader.Failed("Failed","Synthetic renderer failure"); reader.SetPendingReference(link);
+        Assert.Empty(reader.PendingReference); Assert.False(reader.OpenReferenceCommand.CanExecute(null));
+        Assert.False(reader.FindCommand.CanExecute(null)); Assert.False(reader.ZoomInCommand.CanExecute(null));
+        reader.Close(); Assert.Null(_workspace.Connection);
     }
     [Fact] public async Task A_late_generation_does_not_replace_the_engineers_new_route_in_the_same_client()
     {

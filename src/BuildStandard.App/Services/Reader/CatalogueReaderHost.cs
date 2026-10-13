@@ -67,6 +67,7 @@ public sealed class CatalogueReaderHost : IDisposable
         }
         Stage = "Host";
         _web = new WebView2 { Visibility = Visibility.Hidden };
+        System.Windows.Automation.AutomationProperties.SetName(_web, "Catalogue reference document");
         attach(_web);
         _lease.ValidateBeforeUse();
         _environmentRequested = true;
