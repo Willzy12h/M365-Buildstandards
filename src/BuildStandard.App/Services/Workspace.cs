@@ -1106,13 +1106,20 @@ public sealed class Workspace : ObservableObject
     /// Stored assessments an outcome may cite: of the saved capture in view, under the loaded standard. Empty when no saved capture is in view,
     /// since a citation pins the capture it assessed.
     /// </summary>
-    public IReadOnlyList<StoredAssessment> CitableAssessments()
+    public IReadOnlyList<StoredAssessment> CitableAssessments() => CitableAssessmentHistory().Assessments;
+
+    /// <summary>Current-context citations plus history failures and readable records excluded by capture/standard filtering.</summary>
+    public (IReadOnlyList<StoredAssessment> Assessments, IReadOnlyList<UnreadableRecord> Unreadable, int OtherCount) CitableAssessmentHistory()
     {
-        if (Profile is null || Standard is not { } standard || SavedCapture() is not { } capture) return Array.Empty<StoredAssessment>();
-        return Evidence.LoadAssessments(Profile.TenantId)
+        if (Profile is null) return (Array.Empty<StoredAssessment>(), Array.Empty<UnreadableRecord>(), 0);
+        var history = Evidence.LoadAssessmentHistory(Profile.TenantId);
+        if (Standard is not { } standard || SavedCapture() is not { } capture)
+            return (Array.Empty<StoredAssessment>(), history.Unreadable, history.Assessments.Count);
+        var matches = history.Assessments
             .Where(a => string.Equals(a.Result.SnapshotId, capture.Id, StringComparison.OrdinalIgnoreCase) && a.Result.Release == standard.Release
                 && string.Equals(a.Result.StandardDigest, standard.IntegrityDigest, StringComparison.OrdinalIgnoreCase))
             .ToList();
+        return (matches, history.Unreadable, history.Assessments.Count - matches.Count);
     }
 
     /// <summary>The stable requirement identity for a new record: the existing line's, else shipped lineage's, else the control ID.</summary>

@@ -37,6 +37,50 @@ public sealed class JobsPageTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    [Fact]
+    public void Unreadable_assessment_history_is_visible_without_hiding_healthy_citations()
+    {
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        var assessment = new AssessmentEngine(new FixedClock(), "test").Assess(capture, standard, TestData.Profile(),
+            TestData.Mappings(), [], "engineer@test.example");
+        _shell.Workspace.Evidence.SaveAssessment(assessment);
+        var file = Path.Combine(_shell.Workspace.Evidence.TenantDirectory(TestData.TenantA), "assessments", "synthetic-corrupt.json");
+        File.WriteAllText(file, "{broken");
+        _page.Refresh();
+        Assert.True(_page.HasProblems);
+        Assert.Contains("assessment", _page.ProblemsText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("synthetic-corrupt.json", _page.ProblemsText);
+        Assert.Contains(_page.Assessments, a => a.Key == assessment.Id);
+        Assert.Equal("{broken", File.ReadAllText(file));
+    }
+
+    [Fact]
+    public void History_guidance_distinguishes_no_capture_from_no_matching_assessment()
+    {
+        _page.Refresh();
+        Assert.Contains("capture", _page.AssessmentHistoryGuidance, StringComparison.OrdinalIgnoreCase);
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        _shell.Workspace.Evidence.SaveAssessment(new AssessmentResult { Id = Guid.NewGuid().ToString(),
+            TenantId = TestData.TenantA, AssessedAt = "2026-10-13T12:00:00Z", SnapshotId = Guid.NewGuid().ToString(),
+            Release = standard.Release, StandardDigest = standard.IntegrityDigest });
+        // Reopening automatically saves a matching offline assessment. Select another synthetic
+        // catalogue to make both saved records genuinely ineligible rather than erase that evidence.
+        _root.WriteStandard("other.json", TestData.StandardJson.Replace("test.1", "test.2", StringComparison.Ordinal));
+        _root.WriteManifest();
+        _shell.Workspace.SelectRelease("other.json");
+        _page.Refresh();
+        Assert.Single(_page.Assessments);
+        Assert.Contains("No readable saved assessments match", _page.AssessmentHistoryGuidance);
+        Assert.Contains("2 readable assessment(s)", _page.AssessmentHistoryGuidance);
+        Assert.False(_page.HasProblems);
+    }
+
     private void OpenJob()
     {
         _page.NewOwner = "Owner Name";

@@ -4,6 +4,7 @@ using System.Text;
 using System.Windows.Input;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.Core;
+using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Models;
 using BuildStandard.Engine.Workflow;
 
@@ -32,6 +33,8 @@ public sealed class JobsViewModel : PageViewModel
     private string _recordKind = OutcomeKind, _status = ObservationStatus.Pass, _decision = DispositionDecision.Investigate;
     private string _decisionOwner = "", _reason = "", _reviewDue = "", _objectIds = "", _deviationId = "";
     private string _problems = "";
+    private string _assessmentProblems = "";
+    private string _assessmentHistoryGuidance = "";
     private string _selectedCase = NewCase, _stage = CutoverStage.Review, _newObjectIds = "", _runId = "", _overlaps = "", _recoveryLimits = "";
     private string _pilotGroupIds = "", _pilotApprovedBy = "", _pilotReference = "", _prerequisites = "", _criteria = "";
     private string _retirement = "", _retirementApprovedBy = "", _retirementReference = "", _residualDeviationIds = "";
@@ -166,8 +169,9 @@ public sealed class JobsViewModel : PageViewModel
 
     public string ClaimText => _completion?.Claim ?? (Workspace.Profile is null ? "" : Jobs.Count == 0 ? "No jobs yet. Open one to start recording outcomes." : "Select a job to see where each requirement stands.");
 
-    public bool HasProblems => _problems.Length > 0;
-    public string ProblemsText => _problems;
+    public bool HasProblems => _problems.Length > 0 || _assessmentProblems.Length > 0;
+    public string ProblemsText => string.Join("\n", new[] { _problems, _assessmentProblems }.Where(s => s.Length > 0));
+    public string AssessmentHistoryGuidance => _assessmentHistoryGuidance;
 
     public string RequirementText
     {
@@ -401,17 +405,36 @@ public sealed class JobsViewModel : PageViewModel
     {
         var keep = AssessmentId;
         Assessments.Clear();
-        Assessments.Add(new FilterOption("", "None"));
+        Assessments.Add(new FilterOption("", "Do not cite an assessment"));
+        _assessmentProblems = "";
+        _assessmentHistoryGuidance = "";
         try
         {
-            foreach (var stored in Workspace.CitableAssessments())
+            var history = Workspace.CitableAssessmentHistory();
+            _assessmentProblems = string.Join("\n", history.Unreadable.Select(u =>
+                $"Assessment history needs review ({System.IO.Path.GetFileName(u.File)}): {u.Problem}"));
+            _assessmentHistoryGuidance = Workspace.Profile is null ? "Select a client to see its saved assessment history."
+                : Workspace.SavedCapture() is null ? "Open or save a capture in Configuration before citing an assessment."
+                : history.Assessments.Count == 0 ? "No readable saved assessments match this capture and Build Standard. Run an assessment or open matching evidence."
+                : $"{history.Assessments.Count} saved assessment(s) match this capture and Build Standard. Selecting one cites evidence; it does not rerun a check.";
+            if (history.OtherCount > 0) _assessmentHistoryGuidance += $" {history.OtherCount} readable assessment(s) belong to a different capture or standard and are excluded.";
+            if (history.Unreadable.Count > 0) _assessmentHistoryGuidance += $" {history.Unreadable.Count} history record(s) could not be used; review the details above.";
+            foreach (var stored in history.Assessments)
             {
                 var finding = SelectedRequirement is { } r ? stored.Result.Findings.FirstOrDefault(f => Same(f.ControlId, r.InstanceKey)) : null;
                 Assessments.Add(new FilterOption(stored.Result.Id,
                     $"{stored.Result.AssessedAt} · {stored.Result.AssessedBy}{(finding is null ? "" : " · " + WordsConverter.Words(finding.Status.ToString()))}"));
             }
         }
-        catch (ToolkitException ex) { Shell.ShowError(ex); }
+        catch (ToolkitException ex)
+        {
+            _assessmentProblems = "Assessment history could not be checked. Preserve the original evidence and review local diagnostics.";
+            Workspace.Logger.Warn("Jobs", "Assessment history could not be checked: " + ex.Message);
+            _assessmentHistoryGuidance = "No assessment citation is available until the history can be checked.";
+        }
+        OnPropertyChanged(nameof(AssessmentHistoryGuidance));
+        OnPropertyChanged(nameof(HasProblems));
+        OnPropertyChanged(nameof(ProblemsText));
         _assessmentId = Assessments.Any(a => a.Key == keep) ? keep : "";
         OnPropertyChanged(nameof(AssessmentId));
     }
