@@ -79,7 +79,7 @@ public sealed partial class EvidenceStore
             var result = ToolkitJson.Deserialize<AssessmentResult>(text);
             return new StoredAssessment(result, CanonicalJson.Sha256(JsonNode.Parse(text)));
         }
-        catch (Exception ex) when (ex is JsonException or ConfigurationException)
+        catch (Exception ex) when (ex is JsonException or ConfigurationException or ArgumentException)
         {
             throw new ConfigurationException($"Stored data is invalid: {Path.GetFileName(file)} ({ex.Message})", ex);
         }

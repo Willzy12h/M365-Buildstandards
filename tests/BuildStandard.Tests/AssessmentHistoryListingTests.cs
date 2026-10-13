@@ -33,6 +33,24 @@ public sealed class AssessmentHistoryListingTests
     }
 
     [Fact]
+    public void Duplicate_json_members_are_reported_without_escaping_history_loading()
+    {
+        using var root = new TempRoot(); var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var id = Guid.NewGuid().ToString();
+        var directory = Path.Combine(store.TenantDirectory(TestData.TenantA), "assessments");
+        Directory.CreateDirectory(directory);
+        var file = Path.Combine(directory, "synthetic-duplicate-" + id + ".json");
+        var json = $"{{\"id\":\"{id}\",\"tenantId\":\"{TestData.TenantA}\",\"tenantId\":\"{TestData.TenantA}\"}}";
+        File.WriteAllText(file, json);
+        (IReadOnlyList<StoredAssessment> Assessments, IReadOnlyList<UnreadableRecord> Unreadable) history = ([], []);
+        var error = Record.Exception(() => history = store.LoadAssessmentHistory(TestData.TenantA));
+        Assert.Null(error);
+        Assert.Empty(history.Assessments); Assert.Single(history.Unreadable);
+        Assert.Throws<ConfigurationException>(() => store.LoadAssessment(TestData.TenantA, id));
+        Assert.Equal(json, File.ReadAllText(file));
+    }
+
+    [Fact]
     public void Empty_history_has_no_read_failure_and_legacy_listing_retains_healthy_records()
     {
         using var root = new TempRoot(); var store = new EvidenceStore(root.Paths, NullLog.Instance);
