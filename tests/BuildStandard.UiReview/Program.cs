@@ -596,6 +596,13 @@ internal static partial class Program
                 });
                 vm.Refresh();
             }
+            // Exercise the actual copyable unreadable-history warning at all three render sizes.
+            var assessmentDirectory = Path.Combine(shell.Workspace.Evidence.TenantDirectory(shell.Workspace.Profile!.TenantId), "assessments");
+            Directory.CreateDirectory(assessmentDirectory);
+            File.WriteAllText(Path.Combine(assessmentDirectory, "synthetic-unreadable-assessment.json"), "{broken");
+            vm.Refresh();
+            if (!vm.HasProblems || !vm.ProblemsText.Contains("synthetic-unreadable-assessment.json", StringComparison.Ordinal))
+                throw new InvalidOperationException("Jobs must visibly distinguish unreadable assessment history.");
             vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }

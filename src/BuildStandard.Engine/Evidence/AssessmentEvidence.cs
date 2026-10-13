@@ -32,22 +32,43 @@ public sealed partial class EvidenceStore
         return stored;
     }
 
-    /// <summary>The tenant's stored assessments, newest first. A file that cannot be read is logged and left out.</summary>
-    public IReadOnlyList<StoredAssessment> LoadAssessments(string tenantId)
+    /// <summary>Compatibility listing. Use LoadAssessmentHistory when presenting history so unreadable files remain visible.</summary>
+    public IReadOnlyList<StoredAssessment> LoadAssessments(string tenantId) => LoadAssessmentHistory(tenantId).Assessments;
+
+    /// <summary>Read-only history with explicit failures; it never repairs or removes original evidence.</summary>
+    public (IReadOnlyList<StoredAssessment> Assessments, IReadOnlyList<UnreadableRecord> Unreadable) LoadAssessmentHistory(string tenantId)
     {
         var dir = AssessmentsDirectory(tenantId);
         var list = new List<StoredAssessment>();
-        if (!Directory.Exists(dir)) return list;
-        foreach (var file in Directory.EnumerateFiles(dir, "*.json"))
+        var unreadable = new List<UnreadableRecord>();
+        if (!Directory.Exists(dir)) return (list, unreadable);
+        string[] files;
+        try { files = Directory.GetFiles(dir, "*.json"); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            unreadable.Add(new(dir, "Assessment history could not be listed. Check local access and preserve the original evidence."));
+            _log.Warn("Evidence", "Assessment history could not be listed.", tenantId);
+            return (list, unreadable);
+        }
+        foreach (var file in files)
         {
             try
             {
                 var stored = ReadAssessment(file);
-                if (string.Equals(stored.Result.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)) list.Add(stored);
+                if (!string.Equals(stored.Result.TenantId, tenantId, StringComparison.OrdinalIgnoreCase))
+                {
+                    unreadable.Add(new(file, "Stored assessment belongs to another client and cannot be cited here."));
+                    _log.Warn("Evidence", "Assessment history contains another client's record.", tenantId);
+                }
+                else list.Add(stored);
             }
-            catch (ConfigurationException ex) { _log.Warn("Evidence", ex.Message, tenantId); }
+            catch (Exception ex) when (ex is ConfigurationException or IOException or UnauthorizedAccessException)
+            {
+                unreadable.Add(new(file, "Assessment file could not be read. Preserve it and inspect the original locally."));
+                _log.Warn("Evidence", "Assessment history contains an unreadable record.", tenantId);
+            }
         }
-        return list.OrderByDescending(a => a.Result.AssessedAt, StringComparer.Ordinal).ToList();
+        return (list.OrderByDescending(a => a.Result.AssessedAt, StringComparer.Ordinal).ToList(), unreadable);
     }
 
     private static StoredAssessment ReadAssessment(string file)

@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Show unreadable or wrong-client assessment history in copyable Jobs review details; keep healthy citations and explain missing capture, unmatched history and optional citation (#127).
+
 - BuildStandard phase T1: neutral project, assembly, resource, manifest and portable CLI identities; preserve `bdit.cmd`, historical evidence/catalogues, cache entropy and tenant write locks. Support `BUILDSTANDARD_ROOT`; conflicting aliases and blank explicit roots refuse instead of adopting another evidence folder. Source version remains unchanged and unpublished.
 
 - Compare current packaged JSON fully across platform newline formatting while retaining byte-exact historical bundle checks (#92).

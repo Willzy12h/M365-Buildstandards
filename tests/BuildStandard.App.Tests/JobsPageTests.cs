@@ -57,6 +57,25 @@ public sealed class JobsPageTests : IDisposable
         Assert.Equal("{broken", File.ReadAllText(file));
     }
 
+    [Fact]
+    public void History_guidance_distinguishes_no_capture_from_no_matching_assessment()
+    {
+        _page.Refresh();
+        Assert.Contains("capture", _page.AssessmentHistoryGuidance, StringComparison.OrdinalIgnoreCase);
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        _shell.Workspace.Evidence.SaveAssessment(new AssessmentResult { Id = Guid.NewGuid().ToString(),
+            TenantId = TestData.TenantA, AssessedAt = "2026-10-13T12:00:00Z", SnapshotId = Guid.NewGuid().ToString(),
+            Release = standard.Release, StandardDigest = standard.IntegrityDigest });
+        _page.Refresh();
+        Assert.Single(_page.Assessments);
+        Assert.Contains("No readable saved assessments match", _page.AssessmentHistoryGuidance);
+        Assert.Contains("1 readable assessment(s)", _page.AssessmentHistoryGuidance);
+        Assert.False(_page.HasProblems);
+    }
+
     private void OpenJob()
     {
         _page.NewOwner = "Owner Name";

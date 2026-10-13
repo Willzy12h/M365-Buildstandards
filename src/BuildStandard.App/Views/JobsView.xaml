@@ -60,6 +60,7 @@
                   <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status, Mode=TwoWay}" AutomationProperties.Name="Outcome"/>
                   <TextBlock Text="Stored assessment cited as evidence" Style="{StaticResource FieldLabel}"/>
                   <ComboBox ItemsSource="{Binding Assessments}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding AssessmentId, Mode=TwoWay}" AutomationProperties.Name="Cited assessment"/>
+                  <TextBlock Text="{Binding AssessmentHistoryGuidance}" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.Name="Assessment history guidance"/>
                 </StackPanel>
                 <StackPanel Visibility="{Binding IsDecision, Converter={StaticResource BoolToVis}}">
                   <TextBlock Text="Decision *" Style="{StaticResource FieldLabel}"/>
