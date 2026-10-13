@@ -472,3 +472,10 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Verify both application-report families and their refusal paths through the actual extracted executable and launcher during portable validation (#92); Windows execution remains pending.
 - Require actual fresh extracted-package offline diagnostics readiness before native startup validation (#90).
 - Clarify the original sign-in token timestamp in connection details when read-only report tokens can silently renew (#80, CLA-102).
+
+### Approved WPF/WebView2 phase — T9 catalogue reader (source implemented; hosted acceptance pending)
+
+- Added a contained catalogue-only reader with native Back/Save/Find/zoom/reference controls, exact T8 document identity and current-context/navigation admission.
+- Kept Stable Runtime detection lazy and failed closed on required restrictions or explicit host/profile/debugger overrides; core WPF/CLI do not initialise a browser on startup.
+- Added per-instance transient profile/content ownership and browser-exit retirement; no command bridge, scripts, new permissions or tenant actions.
+- Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.

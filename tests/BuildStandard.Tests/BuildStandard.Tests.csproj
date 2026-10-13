@@ -45,4 +45,8 @@
   </ItemGroup>
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\ViewModels\AssessmentSummaryProjection.cs" Link="App\AssessmentSummaryProjection.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\ViewModels\OutcomePresentation.cs" Link="App\OutcomePresentation.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderNavigationPolicy.cs" Link="App\ReaderNavigationPolicy.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderSessionLease.cs" Link="App\ReaderSessionLease.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderAdmission.cs" Link="App\ReaderAdmission.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderRuntimeConfiguration.cs" Link="App\ReaderRuntimeConfiguration.cs" /></ItemGroup>
 </Project>

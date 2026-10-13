@@ -189,9 +189,27 @@ public sealed class ShellViewModel : ObservableObject
 
     public object? CurrentPage { get => _currentPage; private set => SetProperty(ref _currentPage, value); }
 
+    public long NavigationEpoch { get; private set; }
+    public async Task ShowCatalogueReferenceAsync(BuildStandard.Core.Models.CatalogueDocument document, string controlId,
+        BuildStandard.App.Services.PresentationContextKey context, long? expectedNavigation = null)
+    {
+        if (expectedNavigation is { } expected && expected != NavigationEpoch) return;
+        NavigationEpoch++;
+        if (CurrentPage is CatalogueReaderViewModel previous) previous.Close();
+        var reader = new CatalogueReaderViewModel(this);
+        try { await reader.OpenAsync(document, controlId, context, CancellationToken.None); CurrentPage = reader; }
+        catch { reader.Close(); throw; }
+    }
     public void Navigate(string key)
     {
         if (!_pages.TryGetValue(key, out var page)) return;
+        NavigationEpoch++;
+        if (CurrentPage is CatalogueReaderViewModel reader)
+        {
+            var standard = Page<StandardViewModel>();
+            if (!standard.ReferenceReturnRequested && standard.ReferenceReturnTicket is { } ticket) standard.FinishReferenceReturn(ticket);
+            reader.Close();
+        }
         _updatingNavigation = true;
         try
         {

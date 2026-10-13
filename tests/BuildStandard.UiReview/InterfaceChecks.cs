@@ -779,6 +779,7 @@ internal static partial class Program
         ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
         ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("StandardViewModel.ViewReferenceCommand", "managed Runtime reader is exercised only by explicit --reader-hosted checks; ordinary native and CLI startup stay independent"),
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
         ("StandardViewModel.ExportDocumentMarkdownCommand", Press),

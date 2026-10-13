@@ -5,7 +5,7 @@
              xmlns:infra="clr-namespace:BuildStandard.App.Infrastructure">
   <!-- The page fills the window down to a minimum height, then scrolls: a short window (a laptop at 150% scaling)
        would otherwise squeeze the tables and guidance below it out of reach. See PageLayout.MinimumHeight. -->
-  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+  <ScrollViewer x:Name="CataloguePageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
       <Grid Margin="28,24">
         <Grid.RowDefinitions>
@@ -95,6 +95,7 @@
             </ListBox.ItemTemplate>
           </ListBox>
           <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Selected standard detail"><StackPanel>
+            <Button x:Name="ViewReferenceButton" Content="View reference" Command="{Binding ViewReferenceCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" AutomationProperties.HelpText="Select a control to open its local catalogue reference. No sign-in, scripts or tenant operations occur."/>
             <views:PrerequisitePanel Items="{Binding Selected.Prerequisites}"/>
             <TextBox AutomationProperties.Name="Selected control detail" Text="{Binding Detail, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="{StaticResource BgPanel}" Padding="12"/>
             <TextBlock Text="Recipe template" Style="{StaticResource Muted}" Margin="0,8,0,4"/>
