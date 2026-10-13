@@ -37,6 +37,26 @@ public sealed class JobsPageTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    [Fact]
+    public void Unreadable_assessment_history_is_visible_without_hiding_healthy_citations()
+    {
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        var assessment = new AssessmentEngine(new FixedClock(), "test").Assess(capture, standard, TestData.Profile(),
+            TestData.Mappings(), [], "engineer@test.example");
+        _shell.Workspace.Evidence.SaveAssessment(assessment);
+        var file = Path.Combine(_shell.Workspace.Evidence.TenantDirectory(TestData.TenantA), "assessments", "synthetic-corrupt.json");
+        File.WriteAllText(file, "{broken");
+        _page.Refresh();
+        Assert.True(_page.HasProblems);
+        Assert.Contains("assessment", _page.ProblemsText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("synthetic-corrupt.json", _page.ProblemsText);
+        Assert.Contains(_page.Assessments, a => a.Key == assessment.Id);
+        Assert.Equal("{broken", File.ReadAllText(file));
+    }
+
     private void OpenJob()
     {
         _page.NewOwner = "Owner Name";
