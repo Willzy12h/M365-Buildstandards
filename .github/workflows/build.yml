@@ -51,6 +51,7 @@ jobs:
 
       # The review harness is not in the solution, so it would otherwise gain warnings unseen.
       - name: Build the interface review harness
+        id: interface_harness
         run: dotnet build tests/BuildStandard.UiReview -c Release -warnaserror
 
       - name: Test
@@ -78,6 +79,21 @@ jobs:
               Write-Output "::error title=Offline WPF validation::$detail"
             }
             exit $reviewExit
+          }
+
+      - name: Verify contained catalogue reader on managed Windows Runtime
+        if: ${{ !cancelled() && steps.interface_harness.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          dotnet run --project tests/BuildStandard.UiReview -c Release --no-build -- "$pwd" "$pwd/dist/reader-review" --reader-hosted
+          $readerExit = $LASTEXITCODE
+          if ($readerExit -ne 0) {
+            $errorFile = Join-Path $pwd 'dist/reader-review/harness-error.txt'
+            if (Test-Path -LiteralPath $errorFile) {
+              $detail = (Get-Content -LiteralPath $errorFile -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Hosted reader validation::$detail"
+            }
+            exit $readerExit
           }
 
       - name: Parse Exchange read template and reject an injected write (PowerShell 5.1)
@@ -169,6 +185,17 @@ jobs:
             dist/ui-review/harness-error.txt
             dist/ui-review/commands.txt
             dist/ui-review/tab-order.txt
+
+      - name: Upload synthetic hosted reader evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: synthetic-reader-review
+          path: |
+            dist/reader-review/*.png
+            dist/reader-review/reader-verification.json
+            dist/reader-review/harness-error.txt
+          retention-days: 7
 
       - name: Upload portable review package
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

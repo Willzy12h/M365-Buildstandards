@@ -21,6 +21,7 @@
     <ProjectReference Include="..\BuildStandard.Engine\BuildStandard.Engine.csproj" />
     <ProjectReference Include="..\BuildStandard.Cli\BuildStandard.Cli.csproj" />
   </ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" /></ItemGroup>
   <Target Name="VerifyPublishedTextEditingDependency" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
     <Error Condition="!Exists('$(PublishDir)Accessibility.dll')" Text="The portable publish is incomplete: Accessibility.dll is required by WPF text-box context menus." />
   </Target>

@@ -132,3 +132,6 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 
 | 2026-10-12 | GPT/Codex | M365-Buildstandards | T7 readable findings/plan/outcomes and complete engineer journeys, preserve engine/status schemas and exact approval. | `astra/bs-working-journeys` from prepared T6 `38e6d208877ebe7a4a3a9b931d993dfb5a8d19ed` | [#122](https://github.com/Willzy12h/M365-Buildstandards/pull/122) | Merged provisionally: 0298af5 / actual phase38332256887; final review pending |
+
+
+| 2026-10-12 | GPT/Codex | M365-Buildstandards | Approved T9 contained catalogue-only WebView2 reader, native reference actions and isolated transient cache; no bridge, tenant data or execution. | `astra/bs-catalogue-reader` from prepared T7 `1c7e2ae`, phase target; T6/T7 repairs composed serially if required | [#123](https://github.com/Willzy12h/M365-Buildstandards/pull/123) | Implemented source; Windows/hosted validation and final independent review pending |

@@ -15,6 +15,16 @@ public sealed class StandardViewModel : PageViewModel
     private string _category = "All";
     private string _clientName = "";
     private string _lastExport = "";
+    private readonly BuildStandard.App.Services.Reader.ReaderAdmission _referenceReturn = new();
+    public BuildStandard.App.Services.Reader.ReaderTicket? ReferenceReturnTicket { get; private set; }
+    public bool ReferenceReturnRequested { get; private set; }
+    public void RequestReferenceReturn(string controlId)
+    { ReferenceReturnRequested = ReferenceReturnTicket is { } ticket && ticket.HtmlSha256 == controlId && IsCurrentReferenceReturn(ticket); }
+    public double ReferenceScrollOffset { get; set; }
+    public bool CanRestoreReferenceReturn => ReferenceReturnRequested && ReferenceReturnTicket is { } ticket && IsCurrentReferenceReturn(ticket);
+    public bool IsCurrentReferenceReturn(BuildStandard.App.Services.Reader.ReaderTicket ticket) => _referenceReturn.IsCurrent(ticket, Workspace.CapturePresentationContext());
+    public void FinishReferenceReturn(BuildStandard.App.Services.Reader.ReaderTicket ticket)
+    { if (_referenceReturn.IsCurrent(ticket, ticket.Context)) { _referenceReturn.Close(); ReferenceReturnTicket = null; ReferenceReturnRequested = false; } }
 
     public StandardViewModel(ShellViewModel shell) : base(shell, "Build Standard")
     {
@@ -29,9 +39,21 @@ public sealed class StandardViewModel : PageViewModel
         ExportDefinitionHtmlCommand = Command(() => ExportDefinition(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDefinitionJsonCommand = Command(() => ExportDefinition(ExportFormat.Json), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDefinitionMarkdownCommand = Command(() => ExportDefinition(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
+        ViewReferenceCommand = Command(async () =>
+        {
+            var standard = Workspace.RequireStandard();
+            var controlId = Selected?.Id ?? throw new InvalidOperationException("Select a control first.");
+            var context = Workspace.CapturePresentationContext();
+            var navigation = Shell.NavigationEpoch;
+            ReferenceReturnRequested = false;
+            ReferenceReturnTicket = _referenceReturn.Begin(context, controlId);
+            var document = await Task.Run(() => new CatalogueDocumentService(Workspace.Paths).Create(standard));
+            await Shell.ShowCatalogueReferenceAsync(document, controlId, context, navigation);
+        }, () => Workspace.Idle && Workspace.Standard is not null && Selected is not null);
         Refresh();
     }
 
+    public ICommand ViewReferenceCommand { get; }
     public ICommand SelectReleaseCommand { get; }
     public ICommand ExportDocumentCommand { get; }
     public ICommand ExportDocumentMarkdownCommand { get; }
