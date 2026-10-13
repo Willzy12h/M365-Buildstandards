@@ -56,3 +56,42 @@ Client use requires human code/package review plus the applicable live and physi
 ## Approved native phase: unrun human checks
 
 After the assembled candidate’s independent review, use H1 to confirm native grouped navigation and all21 routes, current-client replacement, hidden finding detail, last-built-plan versus selection, exact CA-001 review and deliberate approval (Enter must not write), saved reference mismatch/copy/close, and distinct accepted/readback/save/protection messages. Exercise new-client, legacy, repeat and handover journeys. Windows harness checks are logical-pixel/synthetic evidence; newcomer/Narrator/physical scaling and Microsoft live behaviour remain unrun. No live or production approval follows from this document.
+
+## Approved BuildStandard phase verification matrix — implementation candidate
+
+This finite phase follows the unchanged approved plan/specification. Source implementation is provisional, independent review pending. Final T10 exact-source CI/package identifiers are recorded in COMPLETION-REGISTER and the candidate packet; human/live gates below are not passed by source tests.
+
+| Criterion | Implementation/evidence | Remaining acceptance |
+|---|---|---|
+| AC-01 | T3 TokenCapability/Graph assessment guard regressions; source/runtime admission review deferred | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-02 | T3/T6 native mode/access distinction, all-size synthetic layouts | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-03 | T4 ReviewedWriteAdmission deadline/preflight regressions | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-04 | T4 initial-dispatch/not-sent/uncertain-write regressions; T7 outcome projection | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-05 | T5 current-context and T7/9 callback/selection isolation | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-06 | T5 HomeTaskProjection; T6 shared next-step native journeys | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-07 | T7 existing access-transition/recapture guidance and approval invalidation tests | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-08 | T7 original states, collection gaps and unknown/empty presentation | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-09 | T7 OutcomePresentation tests separate intent/acceptance/readback/save/protection | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-10 | T7 owned native CA-001 Space/exact payload/exclusions/explicit confirmation | H1 human/environment acceptance unrun; independent review pending. |
+| AC-11 | T6/7 all-route visible caption and two-row/other native viewport checks | H1 human/environment acceptance unrun; independent review pending. |
+| AC-12 | Automated native names/focus/contrast checks only; Narrator/physical scaling not accepted | H1 human/environment acceptance unrun; independent review pending. |
+| AC-13 | T2/6/7 guide/routes/readiness numbering and existing route parity | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-14 | Actual synthetic WPF PNGs and original B+A concepts remain separately identified; William visual sign-off pending | H1 human/environment acceptance unrun; independent review pending. |
+| AC-15 | T9 actual native View reference/Back/Retry, no tenant/authentication calls | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-16 | T8 immutable descriptor/export; T9 actual hosted and native exact-byte Save | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-17 | T9 lazy runtime/config/cache refusal and WPF/CLI startup guards; actual unavailable managed workstation case unrun | H1 human/environment acceptance unrun; independent review pending. |
+| AC-18 | T9 real hostile hosted fixture, scripts/frames/resources/schemes denied; source has no injection/bridge | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-19 | T5/9 generation/late-work guards, owned lease/reparse/concurrent cleanup regressions | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-20 | T9 all-three-size native/hosted Find/zoom/Back/Retry; physical keyboard/copy/Narrator/scaling/workstation policy unrun | H1 human/environment acceptance unrun; independent review pending. |
+| AC-21 | Conditional exception refresh/office-instance and unsaved-run changes excluded; historical findings preserved | Outside this approved phase. |
+| AC-22 | Second engineer unaided outcome unrun; synthetic CI is not human/live acceptance | H1 human/environment acceptance unrun; independent review pending. |
+| AC-23 | T2 neutral defaults/active language plus T6/7/9 generic UI; required historical/developer exceptions preserved | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-24 | T1 namespace/assembly/launcher/resource compatibility; T10 modern and legacy publisher name tests | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-25 | T1/2 preserved data/cache entropy/lock/catalogue bytes; historical regression coverage | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-26 | T2/8 new neutral derivatives/current hashes; historical records/pins unchanged | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-27 | T7 nine-status partition and four Needs review subcounts; no score | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-28 | T9 Deny mapping/fragments and actual non-user refresh; host-origin admission distinct from SDK gesture flag | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-29 | T6 strict saved original pin/client mismatch/collapsed sensitive detail, all sizes | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-30 | T5/9 generation/navigation and owned late callbacks; reused-view Retry regression | H1 human/environment acceptance unrun; independent review pending. |
+| AC-31 | T9 neutral per-instance/session cache outside allowlisted evidence/backup/support roots; no cache transfer | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
+| AC-32 | T2/6 cold no-client/no-live state; T9 catalogue without connection; demo/fixtures explicitly labelled | Final independent source review pending; live Microsoft behaviour unverified where applicable. |
