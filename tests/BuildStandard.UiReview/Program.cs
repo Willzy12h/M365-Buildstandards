@@ -108,6 +108,7 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "assessment") RecordAssessmentViewport(content, pageAtSize, size.Height < 760);
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
                     if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);
@@ -198,6 +199,7 @@ internal static partial class Program
                         SaveImage(content, size, Path.Combine(output, "settings-offline-checks-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                         offline.IsExpanded = false; content.UpdateLayout(); Pump();
                     }
+                    if (nav.Key == "assessment") RecordAssessmentViewport(content, pageAtSize, size.Height < 760);
                     if (nav.Key == "jobs")
                     {
                         // The cutover form: every field rendered and checked, then the form scrolled to its stage evidence.
@@ -349,6 +351,7 @@ internal static partial class Program
             {
                 ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
                 ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
+                ("Assessment finding viewport at all three sizes", AssessmentViewportsMeasured == 3),
                 ("Jobs requirement viewport at all three sizes", JobRequirementViewportsMeasured == 3),
                 ("Configuration object viewport at all three sizes", ConfigurationViewportsMeasured == 3),
                 ("First script input at all three sizes", ScriptFormViewportsMeasured == 3),

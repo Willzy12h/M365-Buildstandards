@@ -248,7 +248,6 @@ public sealed class AssessmentViewModel : PageViewModel
                 : Workspace.Snapshot is null ? "No capture open. Choose a saved capture on Configuration for historical review, or connect and capture read-only." : "No assessment yet. Re-run assessment for the open capture.";
             var s = a.Summary;
             return $"{a.TenantName} · standard {a.Release} · assessed {a.AssessedAt} · snapshot {(a.SnapshotComplete ? "complete" : "INCOMPLETE")} · evidence integrity {MarkdownReports.IntegrityText(a.SnapshotIntegrity)}\n" +
-                   string.Join(" · ", Summary.Groups.Select(g => $"{g.Label} {g.Count}")) + "\n" +
                    $"Actionable: {s.CriticalActionable} critical, {s.HighActionable} high, {s.MediumActionable} medium, {s.LowActionable} low.";
         }
     }
