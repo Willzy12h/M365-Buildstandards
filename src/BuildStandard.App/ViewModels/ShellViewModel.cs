@@ -58,6 +58,7 @@ public sealed class ShellViewModel : ObservableObject
     public PinnedReferenceViewModel PinnedReference { get; } = new();
     public IEnumerable<NativeNavigationGroup> NavigationGroups => RouteCatalog.Groups.Select(g => new NativeNavigationGroup(g, g == _activeGroup));
     private bool _updatingNavigation;
+    private long _navigationDisplayRevision;
     public ObservableCollection<NavItem> VisibleNavItems { get; } = new();
     public string ActiveRouteKey
     {
@@ -224,7 +225,17 @@ public sealed class ShellViewModel : ObservableObject
             OnPropertyChanged(nameof(ActiveRouteKey)); OnPropertyChanged(nameof(CurrentPageTitle));
         }
         finally { _updatingNavigation = false; }
-
+        // Item-source changes are applied later by WPF. Reassert only the still-current caption,
+        // after binding settles; this callback cannot change the page or restore a stale route.
+        var displayRevision = ++_navigationDisplayRevision;
+        if (Application.Current?.Dispatcher is { } dispatcher)
+            dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (displayRevision != _navigationDisplayRevision || ActiveRouteKey != key) return;
+                _updatingNavigation = true;
+                try { OnPropertyChanged(nameof(ActiveRouteKey)); }
+                finally { _updatingNavigation = false; }
+            }));
         if (key == "deploy") Workspace.MarkRunViewed();
         CurrentPage = page;
         page.OnNavigatedTo();
