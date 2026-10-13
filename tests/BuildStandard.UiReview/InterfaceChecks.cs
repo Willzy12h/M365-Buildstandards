@@ -179,6 +179,17 @@ internal static partial class Program
     private static readonly List<string> UnneededScrolling = new();
     private static int FillingPagesMeasured;
     private static int JobRequirementViewportsMeasured;
+    private static int AssessmentViewportsMeasured;
+    private static void RecordAssessmentViewport(FrameworkElement content, string where, bool compact)
+    {
+        var table=Descendants(content).OfType<DataGrid>().Single(g=>System.Windows.Automation.AutomationProperties.GetName(g)=="Assessment findings");
+        AssessmentViewportsMeasured++;
+        if(compact) { table.BringIntoView(); content.UpdateLayout(); Pump(); }
+        var rows=Descendants(table).OfType<DataGridRow>().Where(r=>IsShown(r,content)).ToArray();
+        var visible=rows.Count(r=>VisibleBounds(r,content).Height>=r.ActualHeight-1);
+        if(table.Items.Count<2 || visible<2)
+            throw new InvalidOperationException($"Assessment working area at {where} shows {visible} complete finding rows; at least two are required, with scrolling available at the compact size.");
+    }
     private static readonly List<string> CrampedJobRequirements = new();
 
     // Count fully visible rows, including clipping by the table and outer page viewport.
