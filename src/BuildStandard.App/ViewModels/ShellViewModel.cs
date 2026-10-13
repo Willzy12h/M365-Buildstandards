@@ -57,11 +57,17 @@ public sealed class ShellViewModel : ObservableObject
     private double _viewportWidth = 1480;
     public PinnedReferenceViewModel PinnedReference { get; } = new();
     public IEnumerable<NativeNavigationGroup> NavigationGroups => RouteCatalog.Groups.Select(g => new NativeNavigationGroup(g, g == _activeGroup));
-    public IEnumerable<NavItem> VisibleNavItems => NavItems.Where(n => n.Group == _activeGroup);
+    private bool _updatingNavigation;
+    public ObservableCollection<NavItem> VisibleNavItems { get; } = new();
+    public string ActiveRouteKey
+    {
+        get => ActiveNavItem?.Key ?? "";
+        set { if (!_updatingNavigation && !string.IsNullOrEmpty(value) && value != ActiveRouteKey) Navigate(value); }
+    }
     public NavItem? ActiveNavItem
     {
         get => NavItems.FirstOrDefault(n => n.IsActive);
-        set { if (value is not null && !value.IsActive) Navigate(value.Key); }
+        set { if (!_updatingNavigation && value is not null && !value.IsActive) Navigate(value.Key); }
     }
     public string IdentityContextLabel => Workspace.ApplicationSetup is not null ? "Privileged application setup context"
         : Workspace.Session is null ? "No signed-in tenant session"
@@ -186,9 +192,20 @@ public sealed class ShellViewModel : ObservableObject
     public void Navigate(string key)
     {
         if (!_pages.TryGetValue(key, out var page)) return;
-        foreach (var item in NavItems) item.IsActive = item.Key == key;
-        _activeGroup = NavItems.Single(n => n.Key == key).Group;
-        OnPropertyChanged(nameof(NavigationGroups)); OnPropertyChanged(nameof(VisibleNavItems)); OnPropertyChanged(nameof(ActiveNavItem)); OnPropertyChanged(nameof(CurrentPageTitle));
+        _updatingNavigation = true;
+        try
+        {
+            foreach (var item in NavItems) item.IsActive = item.Key == key;
+            _activeGroup = NavItems.Single(n => n.Key == key).Group;
+            if (!VisibleNavItems.Any() || VisibleNavItems[0].Group != _activeGroup)
+            {
+                VisibleNavItems.Clear();
+                foreach (var item in NavItems.Where(n => n.Group == _activeGroup)) VisibleNavItems.Add(item);
+            }
+            OnPropertyChanged(nameof(NavigationGroups)); OnPropertyChanged(nameof(ActiveNavItem));
+            OnPropertyChanged(nameof(ActiveRouteKey)); OnPropertyChanged(nameof(CurrentPageTitle));
+        }
+        finally { _updatingNavigation = false; }
         if (key == "deploy") Workspace.MarkRunViewed();
         CurrentPage = page;
         page.OnNavigatedTo();

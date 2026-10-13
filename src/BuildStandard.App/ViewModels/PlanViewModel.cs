@@ -132,6 +132,28 @@ public sealed class PlanViewModel : PageViewModel
         }
     }
 
+    public string LastBuiltPlanText
+    {
+        get
+        {
+            var plan = Workspace.Plan;
+            if (plan is null) return "No last-built plan. Current control selection is not an approved proposal.";
+            var contextMatches = Workspace.Profile?.TenantId == plan.TenantId && Workspace.Snapshot?.Id == plan.SnapshotId
+                && Workspace.Snapshot?.IntegrityDigest == plan.SnapshotDigest && Workspace.Standard?.IntegrityDigest == plan.StandardDigest
+                && Workspace.Session?.AccountObjectId == plan.OperatorObjectId && Workspace.Session?.ClientId == plan.ClientId;
+            var expired = !BuildStandard.Core.Timestamps.TryParse(plan.CreatedAt, out var built)
+                || DateTimeOffset.UtcNow - built > TimeSpan.FromMinutes(Workspace.Settings.PlanMaxAgeMinutes);
+            expired |= Workspace.Snapshot is null || !BuildStandard.Core.Timestamps.TryParse(Workspace.Snapshot.CapturedAt, out var captured)
+                || DateTimeOffset.UtcNow - captured > TimeSpan.FromMinutes(Workspace.Settings.SnapshotMaxAgeMinutes);
+            var selected = Controls.Where(c => c.IsSelected).Select(c => c.ControlId).ToHashSet(StringComparer.Ordinal);
+            var planned = plan.Rows.Select(r => r.ControlId).ToHashSet(StringComparer.Ordinal);
+            var selectionMatches = selected.SetEquals(planned);
+            return $"Last built plan: {(contextMatches && !expired ? "local context/time match; engine checks still apply" : "stale or different context — rebuild before approval")}. "
+                + (selectionMatches ? "Selection matches its recorded controls." : "Current selection differs; rebuild to include it.")
+                + " Exact proposal, freshness, permissions and unresolved-write checks remain independent.";
+        }
+    }
+
     public string PlanText
     {
         get
@@ -161,7 +183,7 @@ public sealed class PlanViewModel : PageViewModel
 
     private void OnSelectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ControlSelection.IsSelected)) OnPropertyChanged(nameof(ContextText));
+        if (e.PropertyName == nameof(ControlSelection.IsSelected)) { OnPropertyChanged(nameof(ContextText)); OnPropertyChanged(nameof(LastBuiltPlanText)); }
     }
 
     private void ApplyAreaFilter(bool clearSelection)
@@ -214,9 +236,9 @@ public sealed class PlanViewModel : PageViewModel
                 {
                     status = StatusLabels.For(finding.Status);
                     explanation = finding.Reason + (finding.Status == FindingStatus.UnableToAssess
-                        ? " Next: resolve collection errors in 2 · Configuration, re-capture and assess."
-                        : finding.Owned ? " Next: review the finding and supporting evidence in 3 · Assessment."
-                        : " Next: review this existing object in 3 · Assessment. The tool does not adopt or change it by name.");
+                        ? " Next: resolve collection errors in 1 · Configuration, re-capture and assess."
+                        : finding.Owned ? " Next: review the finding and supporting evidence in 2 · Assessment."
+                        : " Next: review this existing object in 2 · Assessment. The tool does not adopt or change it by name.");
                 }
                 var selection = new ControlSelection
                 {
@@ -241,6 +263,7 @@ public sealed class PlanViewModel : PageViewModel
         SelectedControl = Controls.FirstOrDefault(c => c.ControlId == selectedControlId);
         ApplyAreaFilter(clearSelection: false);
         OnPropertyChanged(nameof(PlanText));
+        OnPropertyChanged(nameof(LastBuiltPlanText));
         OnPropertyChanged(nameof(ContextText));
     }
 }

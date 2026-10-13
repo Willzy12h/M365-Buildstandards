@@ -49,6 +49,7 @@
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Verify the outcome" Style="{StaticResource H2}"/>
+          <views:OutcomeSummary Margin="0,0,0,12"/>
           <TextBlock Text="{Binding RunText}" Margin="0,0,0,12"/>
           <WrapPanel>
             <Button Content="Pause after current action" Command="{Binding PauseCommand}" Style="{StaticResource SecondaryButton}"/>

@@ -52,3 +52,7 @@ After the small candidate workflow is accepted, schedule separately scoped check
 For every check retain: package source commit and ZIP hash; standard release/digest; approved scope and approver; observed time; expected and actual result; service acceptance/readback; effective device/sign-in result; evidence locations; cleanup outcome; and Pass, Fail, Blocked or Not run with a reason. Avoid storing personal details in distributable screenshots.
 
 Client use requires human code/package review plus the applicable live and physical checks. Until then this release is a tested preview only to the extent supported by its completion register.
+
+## Approved native phase: unrun human checks
+
+After the assembled candidate’s independent review, use H1 to confirm native grouped navigation and all21 routes, current-client replacement, hidden finding detail, last-built-plan versus selection, exact CA-001 review and deliberate approval (Enter must not write), saved reference mismatch/copy/close, and distinct accepted/readback/save/protection messages. Exercise new-client, legacy, repeat and handover journeys. Windows harness checks are logical-pixel/synthetic evidence; newcomer/Narrator/physical scaling and Microsoft live behaviour remain unrun. No live or production approval follows from this document.

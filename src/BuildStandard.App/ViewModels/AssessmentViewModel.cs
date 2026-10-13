@@ -30,6 +30,8 @@ public sealed record FilterOption(string Key, string Label)
 
 public sealed class AssessmentViewModel : PageViewModel
 {
+    private BuildStandard.App.Services.PresentationContextKey? _findingContext;
+    private string? _findingAssessmentId;
     private string _filterStatus = "Actionable";
     private string _filterCategory = "All";
     private string _filterArea = "All areas";
@@ -180,6 +182,7 @@ public sealed class AssessmentViewModel : PageViewModel
             SelectedCandidate = Candidates.FirstOrDefault();
             OnPropertyChanged(nameof(SelectedDetail));
             OnPropertyChanged(nameof(ProposedJson));
+            OnPropertyChanged(nameof(HiddenSelectionText));
         }
     }
 
@@ -233,6 +236,9 @@ public sealed class AssessmentViewModel : PageViewModel
 
     public string ProposedJson => Selected?.Finding.Proposed?.ToJsonString(ToolkitJson.Options) ?? "";
 
+    public AssessmentSummaryProjection Summary => AssessmentSummaryProjection.Create(Workspace.Assessment?.Findings.Select(f => f.Status) ?? []);
+    public string HiddenSelectionText => Selected is not null && !Findings.Contains(Selected)
+        ? "The selected finding is hidden by the current filters. Its original detail remains selected; clear filters to see the row." : "";
     public string SummaryText
     {
         get
@@ -242,7 +248,6 @@ public sealed class AssessmentViewModel : PageViewModel
                 : Workspace.Snapshot is null ? "No capture open. Choose a saved capture on Configuration for historical review, or connect and capture read-only." : "No assessment yet. Re-run assessment for the open capture.";
             var s = a.Summary;
             return $"{a.TenantName} · standard {a.Release} · assessed {a.AssessedAt} · snapshot {(a.SnapshotComplete ? "complete" : "INCOMPLETE")} · evidence integrity {MarkdownReports.IntegrityText(a.SnapshotIntegrity)}\n" +
-                   $"Compliant {s.Compliant} (+{s.CompliantWithDeviation} with deviation) · Match not enforced {s.SettingsMatchNotEnforced} · Partial {s.PartialMatch} · Missing {s.Missing} · Manual review {s.RequiresManualReview} · Unable to assess {s.UnableToAssess} · Licence {s.LicenceUnavailable} · N/A {s.NotApplicable}\n" +
                    $"Actionable: {s.CriticalActionable} critical, {s.HighActionable} high, {s.MediumActionable} medium, {s.LowActionable} low.";
         }
     }
@@ -274,6 +279,10 @@ public sealed class AssessmentViewModel : PageViewModel
         foreach (var r in Workspace.Releases.Where(r => !string.Equals(r.Release, Workspace.Standard?.Release, StringComparison.OrdinalIgnoreCase))) CompareReleases.Add(r.Release);
         CompareRelease = keep is not null && CompareReleases.Contains(keep) ? keep : null;
         OnPropertyChanged(nameof(CompareGuidance));
+        var currentPresentation = Workspace.CapturePresentationContext();
+        var keepControl = _findingContext == currentPresentation && _findingAssessmentId == Workspace.Assessment?.Id ? Selected?.ControlId : null;
+        _findingContext = currentPresentation; _findingAssessmentId = Workspace.Assessment?.Id;
+        Selected = null;
         _all.Clear();
         CategoryFilters.Clear();
         CategoryFilters.Add("All");
@@ -287,7 +296,9 @@ public sealed class AssessmentViewModel : PageViewModel
             foreach (var l in a.Limitations) Limitations.Add(l);
         }
         if (!CategoryFilters.Contains(_filterCategory)) _filterCategory = "All";
+        Selected = keepControl is null ? null : _all.FirstOrDefault(row => row.ControlId == keepControl);
         ApplyFilter();
+        OnPropertyChanged(nameof(Summary));
         OnPropertyChanged(nameof(SummaryText));
         OnPropertyChanged(nameof(FilterCategory));
     }
@@ -305,7 +316,7 @@ public sealed class AssessmentViewModel : PageViewModel
             if (q.Length > 0 && !row.ControlId.Contains(q, StringComparison.OrdinalIgnoreCase) && !row.Name.Contains(q, StringComparison.OrdinalIgnoreCase) && !row.Reason.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
             Findings.Add(row);
         }
-        if (Selected is not null && !Findings.Contains(Selected)) Selected = null;
+        OnPropertyChanged(nameof(HiddenSelectionText));
         OnPropertyChanged(nameof(ViewStateText));
     }
 
