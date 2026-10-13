@@ -113,7 +113,11 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
-                    if (nav.Key == "assessment") RecordAssessmentViewport(content, pageAtSize, size.Height < 760);
+                    if (nav.Key == "assessment")
+                    {
+                        SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
+                        RecordAssessmentViewport(content,pageAtSize,size.Height<760);
+                    }
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
                     if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);
@@ -204,7 +208,6 @@ internal static partial class Program
                         SaveImage(content, size, Path.Combine(output, "settings-offline-checks-" + (int)size.Width + "x" + (int)size.Height + ".png"));
                         offline.IsExpanded = false; content.UpdateLayout(); Pump();
                     }
-                    if (nav.Key == "assessment") RecordAssessmentViewport(content, pageAtSize, size.Height < 760);
                     if (nav.Key == "jobs")
                     {
                         // The cutover form: every field rendered and checked, then the form scrolled to its stage evidence.

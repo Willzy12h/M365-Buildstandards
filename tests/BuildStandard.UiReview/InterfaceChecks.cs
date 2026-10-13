@@ -188,7 +188,7 @@ internal static partial class Program
         var rows=Descendants(table).OfType<DataGridRow>().Where(r=>IsShown(r,content)).ToArray();
         var visible=rows.Count(r=>VisibleBounds(r,content).Height>=r.ActualHeight-1);
         if(table.Items.Count<2 || visible<2)
-            throw new InvalidOperationException($"Assessment working area at {where} shows {visible} complete finding rows; at least two are required, with scrolling available at the compact size.");
+            throw new InvalidOperationException($"Assessment working area at {where} shows {visible} complete finding rows (table {table.ActualHeight:0}px; row heights {string.Join(",",rows.Select(r=>r.ActualHeight.ToString("0")))}); at least two are required, with scrolling available at the compact size.");
     }
     private static readonly List<string> CrampedJobRequirements = new();
 
