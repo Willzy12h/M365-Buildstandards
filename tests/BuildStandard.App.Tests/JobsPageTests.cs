@@ -69,10 +69,15 @@ public sealed class JobsPageTests : IDisposable
         _shell.Workspace.Evidence.SaveAssessment(new AssessmentResult { Id = Guid.NewGuid().ToString(),
             TenantId = TestData.TenantA, AssessedAt = "2026-10-13T12:00:00Z", SnapshotId = Guid.NewGuid().ToString(),
             Release = standard.Release, StandardDigest = standard.IntegrityDigest });
+        // Reopening automatically saves a matching offline assessment. Select another synthetic
+        // catalogue to make both saved records genuinely ineligible rather than erase that evidence.
+        _root.WriteStandard("other.json", TestData.StandardJson.Replace("test.1", "test.2", StringComparison.Ordinal));
+        _root.WriteManifest();
+        _shell.Workspace.SelectRelease("other.json");
         _page.Refresh();
         Assert.Single(_page.Assessments);
         Assert.Contains("No readable saved assessments match", _page.AssessmentHistoryGuidance);
-        Assert.Contains("1 readable assessment(s)", _page.AssessmentHistoryGuidance);
+        Assert.Contains("2 readable assessment(s)", _page.AssessmentHistoryGuidance);
         Assert.False(_page.HasProblems);
     }
 
