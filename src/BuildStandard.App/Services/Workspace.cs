@@ -187,7 +187,9 @@ public sealed class Workspace : ObservableObject
         DisplayedTenantId = ApplicationSetup?.Identity.TenantId ?? Session?.TenantId ?? Profile?.TenantId, ApplicationSetupActive = ApplicationSetup is not null,
         Busy = Busy, BusyMessage = BusyMessage, InterruptedNotice = InterruptedNotice, Assessment = Assessment,
         Plan = Plan, LastRun = LastRun, RunReviewed = LastRun is not null && ReferenceEquals(_viewedRun, LastRun) && _viewedRunContent == ToolkitJson.Serialize(LastRun),
-        ExperimentalEnabled = ExperimentalGuard.ApprovalRecordedFor(Connection), AcknowledgedSnapshotId = AcknowledgedSnapshotId
+        ExperimentalEnabled = ExperimentalGuard.ApprovalRecordedFor(Connection), AcknowledgedSnapshotId = AcknowledgedSnapshotId,
+        ObservedAt = SystemClock.Instance.UtcNow, MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
+        MaxPlanAge = TimeSpan.FromMinutes(Settings.PlanMaxAgeMinutes)
     };
 
     public event Action? StateChanged;

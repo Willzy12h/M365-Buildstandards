@@ -23,6 +23,9 @@ public sealed record HomeTaskContext
     public bool RunReviewed { get; init; }
     public bool ExperimentalEnabled { get; init; }
     public string? AcknowledgedSnapshotId { get; init; }
+    public DateTimeOffset ObservedAt { get; init; } = DateTimeOffset.UtcNow;
+    public TimeSpan MaxSnapshotAge { get; init; } = TimeSpan.FromMinutes(20);
+    public TimeSpan MaxPlanAge { get; init; } = TimeSpan.FromMinutes(20);
 
 }
 
@@ -121,6 +124,12 @@ public sealed record HomeTaskProjection(string Headline, string Guidance, string
                 next = ("plan", "Review planned changes", "Select eligible controls and inspect prerequisites and the exact proposal. Manual steps remain engineer actions.");
             else if (context.Plan is not null && !context.Plan.WriteRows.Any())
                 next = ("plan", "Review manual and blocked rows", "This plan has no writes. Review manual steps, blocked controls and their next actions.");
+            else if (context.Plan is not null && (!BuildStandard.Core.Timestamps.TryParse(snapshot.CapturedAt, out var capturedAt)
+                || context.ObservedAt - capturedAt > context.MaxSnapshotAge))
+                next = ("configuration", "Recapture before-change evidence", "Before-change evidence is expired or its recorded time is invalid. Collect a fresh read-only capture, then rebuild and review the exact plan; previous approval cannot authorise it.");
+            else if (context.Plan is not null && (!BuildStandard.Core.Timestamps.TryParse(context.Plan.CreatedAt, out var plannedAt)
+                || context.ObservedAt - plannedAt > context.MaxPlanAge))
+                next = ("plan", "Rebuild the expired plan", "The plan is expired or its recorded time is invalid. Rebuild and review the exact proposal; previous approval cannot authorise a new plan.");
             else if (context.Plan is not null && (session.Mode != SessionMode.Deployment || !context.ExperimentalEnabled))
                 next = ("connect", "Review deployment access", "Deliberately switch permission mode and review session-specific experimental access. Fresh evidence and exact approval still apply.");
             else if (context.Plan is not null)

@@ -34,6 +34,19 @@ public sealed class HomeFreshnessReviewRegressionTests
         Assert.Contains("execution-layer checks", HomeTaskProjection.Create(context).Guidance);
     }
 
+    [Theory]
+    [InlineData(0, "deploy")]
+    [InlineData(1, "plan")]
+    public void Guidance_uses_the_configured_original_deadline_with_an_inclusive_boundary(int extraSeconds, string page)
+    {
+        var context = Current(0, 0);
+        var observed = DateTimeOffset.Parse("2026-10-13T12:00:00Z");
+        context.Snapshot!.CapturedAt = Timestamps.Format(observed.AddMinutes(-1));
+        context.Plan!.CreatedAt = Timestamps.Format(observed.AddMinutes(-5).AddSeconds(-extraSeconds));
+        var projection = HomeTaskProjection.Create(context with { ObservedAt = observed, MaxPlanAge = TimeSpan.FromMinutes(5) });
+        Assert.Equal(page, projection.NextPageKey);
+    }
+
     private static HomeTaskContext Current(int snapshotMinutes, int planMinutes)
     {
         var standard = TestData.Standard(); var snapshot = TestData.Snapshot(standard);

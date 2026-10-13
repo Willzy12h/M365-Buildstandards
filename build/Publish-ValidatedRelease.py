@@ -212,6 +212,8 @@ def prepare(pin):
     output.mkdir()
     for name in (package, package + ".sha256", "portable-verification.json"):
         shutil.copyfile(inputs / "portable" / name, output / name)
+    # The copied destination, not just the downloaded input, must still be the independently pinned bytes.
+    validate_package(pin, output)
     for folder, name in (("ui", "native-ui-review.zip"), ("standards", "standard-definition-exports.zip")):
         root = inputs / folder
         files = sorted(path for path in root.rglob("*") if path.is_file())
@@ -248,6 +250,8 @@ def find_release(tag):
 
 
 def publish(pin, output):
+    # Fail before any GitHub/tag/release side effect if staged bytes changed after preparation.
+    validate_package(pin, output)
     tag, source = "v" + pin["version"], pin["sourceCommit"]
     release = find_release(tag)
     if release:

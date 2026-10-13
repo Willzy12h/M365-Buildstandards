@@ -22,7 +22,9 @@ public sealed record OutcomePresentation(string Lifecycle, string Acceptance, st
     public static string ForRun(DeploymentRun run, bool? saved)
     {
         var accepted = run.Results.Count(r => r.WriteAcceptance == WriteAcceptance.Accepted);
-        var uncertain = run.Results.Count(r => r.WriteAcceptance == WriteAcceptance.Unknown);
+        // Historical/imported values outside the known vocabulary cannot establish a safe not-sent outcome.
+        var uncertain = run.Results.Count(r => r.WriteAcceptance is not WriteAcceptance.Accepted
+            and not WriteAcceptance.Rejected and not WriteAcceptance.NotAttempted);
         var rejected = run.Results.Count(r => r.WriteAcceptance == WriteAcceptance.Rejected);
         var unattempted = run.Results.Count(r => r.WriteAcceptance == WriteAcceptance.NotAttempted);
         var sent = run.Results.Count == 0 ? "No recorded write outcomes; nothing can be inferred about transport."

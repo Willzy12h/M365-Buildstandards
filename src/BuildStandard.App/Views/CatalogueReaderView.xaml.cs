@@ -31,6 +31,11 @@ public partial class CatalogueReaderView : UserControl
                 anchor => { if (Current()) vm.ObserveAnchor(anchor); }).WaitAsync(TimeSpan.FromSeconds(45));
             if (Current()) vm.Ready(host.RuntimeVersion); else host.Dispose();
         }
+        catch (InvalidDataException)
+        {
+            if (Current()) vm.Failed("Invalid", "Catalogue document identity could not be verified. Return to the native catalogue and regenerate its reference; this document cannot be saved or displayed.");
+            Retire(host);
+        }
         catch (WebView2RuntimeNotFoundException)
         {
             if (Current()) vm.Failed("Unavailable", "Managed WebView2 Runtime was not found. Native catalogue and HTML export remain available; no Runtime is installed by this app.");

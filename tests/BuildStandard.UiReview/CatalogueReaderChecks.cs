@@ -123,6 +123,7 @@ internal static partial class Program
             if (!retired || invalidReader.SaveCommand.CanExecute(null)
                 || Descendants(invalidView).OfType<Microsoft.Web.WebView2.Wpf.WebView2>().Any())
                 throw new InvalidOperationException("Invalid document retained its host, browser or Save authority.");
+            SaveWindowImage((FrameworkElement)window.Content, Path.Combine(output, "reader-invalid-document.png"));
             records.Add(new { Case = "native invalid catalogue document", InvalidState = "passed", GenericDispatcherError = false, BrowserCreated = false, HostRetired = true });
         }
         finally { window.Dispatcher.UnhandledException -= invalidTrap; shell.Navigate("standard"); Pump(); }
