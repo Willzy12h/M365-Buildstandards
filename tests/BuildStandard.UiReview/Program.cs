@@ -104,10 +104,18 @@ internal static partial class Program
                     var controls = Descendants(content).OfType<UserControl>().ToList();
                     if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
                     var pageAtSize = nav.Key + " " + (int)size.Width + "x" + (int)size.Height;
+                    var routeSelector=Descendants(content).OfType<ComboBox>().Single(c=>System.Windows.Automation.AutomationProperties.GetName(c)=="Page in the selected navigation group");
+                    if(!Descendants(routeSelector).OfType<TextBlock>().Any(t=>IsShown(t,content) && t.Text==shell.ActiveNavItem?.Title))
+                        throw new InvalidOperationException("Current route selector did not visibly name "+shell.ActiveNavItem?.Title);
                     RecordUnnamedControls(content, pageAtSize);
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "assessment")
+                    {
+                        SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
+                        RecordAssessmentViewport(content,pageAtSize,size.Height<760);
+                    }
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
                     if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);
@@ -305,6 +313,7 @@ internal static partial class Program
             window.Left = -10000; window.Top = -10000; window.Width = 1480; window.Height = 940;
             content.Width = double.NaN; content.Height = double.NaN;
             window.Show(); Pump();
+            CheckCaPlanKeyboardJourney(shell, window, content, output);
             VerifyQuickConnectScroll(shell, window, content);
             using (new NativeHarnessTrackBounds(window, content, PageSizes))
             {
@@ -348,6 +357,7 @@ internal static partial class Program
             {
                 ("text contrast", TextContrastInspected > 0), ("input boundary contrast", BoundariesInspected > 0),
                 ("clipping", ClippingInspected > 0), ("page scrolling at 1180x760 and above", FillingPagesMeasured > 0), ("final confirmation dialog", DialogChecks > 0),
+                ("Assessment finding viewport at all three sizes", AssessmentViewportsMeasured == 3),
                 ("Jobs requirement viewport at all three sizes", JobRequirementViewportsMeasured == 3),
                 ("Configuration object viewport at all three sizes", ConfigurationViewportsMeasured == 3),
                 ("First script input at all three sizes", ScriptFormViewportsMeasured == 3),

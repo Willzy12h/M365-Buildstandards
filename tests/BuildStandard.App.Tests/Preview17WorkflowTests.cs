@@ -78,7 +78,7 @@ public sealed class Preview17WorkflowTests
         var shell = new ShellViewModel(workspace); var vm = shell.Page<PlanViewModel>(); vm.Refresh();
         var row = vm.Controls.Single(c => c.ControlId == control.Id);
         Assert.Contains("Synthetic denied read", row.SelectionGuidance);
-        Assert.Contains("2 · Configuration", row.SelectionGuidance);
+        Assert.Contains("1 · Configuration", row.SelectionGuidance); // Approved native route sequence, not the historical numbering.
         Assert.False(row.Eligible);
         vm.SelectEligibleCommand.Execute(null);
         Assert.False(row.IsSelected);

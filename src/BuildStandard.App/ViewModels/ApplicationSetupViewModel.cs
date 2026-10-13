@@ -132,7 +132,14 @@ public sealed class ApplicationSetupViewModel : PageViewModel
                     && string.Equals(v.ClientId, id, StringComparison.OrdinalIgnoreCase)) : null;
                 var proposedName = NamePrefix.Trim() + (mode == SessionMode.Assessment ? " Assessment Tool" : " Deployment Tool");
                 lines.Add("");
-                lines.Add((result is null ? "Configured name (verify in Entra): " : "Setup application name: ") + (result?.DisplayName ?? proposedName));
+                var observed = PlanRows.FirstOrDefault(r => r.Mode == mode && id.Length > 0
+                    && string.Equals(r.ClientId, id, StringComparison.OrdinalIgnoreCase));
+                lines.Add(result is not null ? "Setup application name: " + result.DisplayName
+                    : observed?.ExistingApplication is not null ? "Observed application name: " + observed.DisplayName
+                    : id.Length > 0 ? "Existing application name: Not verified (identify by client ID below)"
+                    : "Proposed new application name: " + proposedName);
+                lines.Add("Enterprise application name: " +
+                    (observed?.ExistingPrincipal?["displayName"]?.GetValue<string>() ?? "Not independently observed in this preview"));
                 lines.Add("Application (client) ID: " + (id.Length == 0 ? "Not created or entered yet" : id));
                 lines.Add("Enterprise application object ID: " + (check?.ServicePrincipalId is { Length: > 0 } sp ? sp : result?.ServicePrincipalId is { Length: > 0 } createdSp ? createdSp : "Not verified"));
                 lines.Add("Next: " + NextAction(check, mode));

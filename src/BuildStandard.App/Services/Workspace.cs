@@ -87,6 +87,7 @@ public sealed class Workspace : ObservableObject
     public DeploymentPlan? Plan { get; private set; }
     public string? AcknowledgedSnapshotId { get; private set; }
     public DeploymentRun? LastRun { get; private set; }
+    public bool? LastRunSaved { get; private set; }
     public DeploymentControl? Control { get; private set; }
 
     public bool Busy { get => _busy; private set { if (SetProperty(ref _busy, value)) OnPropertyChanged(nameof(Idle)); OnPropertyChanged(nameof(CanEnableExperimentalChanges)); } }
@@ -383,12 +384,18 @@ public sealed class Workspace : ObservableObject
     /// <summary>Runs a local file task exclusively, under a title and progress text that say what is happening.</summary>
     public async Task<string> ExportAsync(Func<string> work, string title, string progressText)
     {
+        var context = CapturePresentationContext();
         var result = "";
         await RunExclusiveAsync(title, async progress =>
         {
             progress.Report(progressText);
-            result = await Task.Run(work);
+            result = await Task.Run(() =>
+            {
+                if (!IsCurrent(context)) throw new TenantMismatchException("Export context changed before writing. Review the current source.");
+                return work();
+            });
         });
+        if (!IsCurrent(context)) throw new TenantMismatchException("Export completed for its original source; its notification was not admitted to the changed working context. Original files were retained.");
         return result;
     }
 
@@ -438,7 +445,7 @@ public sealed class Workspace : ObservableObject
         Snapshot = null; SnapshotIsLive = false;
         ExchangeSnapshot = null; ExchangeCapturedByTool = false; _exchangeFromHistory = false;
         Assessment = null; Plan = null; AcknowledgedSnapshotId = null;
-        Access = null; Licences = null; LastRun = null; Control = null; InterruptedNotice = "";
+        Access = null; Licences = null; LastRun = null; LastRunSaved = null; Control = null; InterruptedNotice = "";
     }
 
     public TenantProfile SaveProfile(TenantProfile input)
@@ -968,6 +975,7 @@ public sealed class Workspace : ObservableObject
         var snapshot = Snapshot!;
         var mappings = Evidence.LoadMappings(profile.TenantId);
         Control = new DeploymentControl();
+        LastRunSaved = null;
         LastRun = await Executor.StartAsync(new ExecutionRequest
         {
             TypedTenant = typedTenantId,
@@ -982,6 +990,14 @@ public sealed class Workspace : ObservableObject
             MaxSnapshotAge = TimeSpan.FromMinutes(Settings.SnapshotMaxAgeMinutes),
             MaxPlanAge = TimeSpan.FromMinutes(Settings.PlanMaxAgeMinutes)
         }, Control, progress);
+        // Explicit local verification after the operation; a completed lifecycle does not imply saving succeeded.
+        try
+        {
+            var saved = Evidence.LoadRun(LastRun.TenantId, LastRun.Id);
+            LastRunSaved = saved is not null && ToolkitJson.Serialize(saved) == ToolkitJson.Serialize(LastRun);
+        }
+        catch (Exception ex) when (ex is ToolkitException or IOException or UnauthorizedAccessException)
+        { LastRunSaved = false; Logger.Warn("Evidence", "Local run saving could not be verified; preserve original evidence and inspect the change register."); }
         Plan = null;
         AcknowledgedSnapshotId = null;
         Snapshot = null;

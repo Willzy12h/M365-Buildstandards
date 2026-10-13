@@ -4,6 +4,23 @@ The tool opens on **Home**. Choose a task or its suggested next step; every shor
 
 This is an internal preview. Use the exact reviewed package and its trusted checksum reference. Available recipes are not live effectiveness acceptance. The release owner records approved scope using [controlled acceptance](CONTROLLED-ACCEPTANCE.md). A new client build and legacy backfill follow the same evidence and approval boundaries.
 
+## Native command centre and working context
+
+Use the five groups **Workspace**, **Build standard**, **Reports**, **Scripts** and **Settings**. The page selector opens existing pages; navigation does not sign in or approve an action. Home’s recommendation and the header’s **Next step** use the same current-state guidance. **Discover the tenant**, **Assess saved evidence**, **Backfill a legacy build** and **Review a change plan** open their existing workflows. Repeat review and engineer handover remain available below them.
+
+The header keeps the working client, signed-in identity and permission meaning visible. **Connection and evidence details** exposes exact IDs/scopes and **Copy details**. Assessment operations remain read-only even when returned access is broader; broader or unclassified capabilities are highlighted. A mode label is not an authorisation grant.
+
+**Pin capture** opens an original saved reference, with a side pane on a wide window and a drawer on a compact window. It is not selected evidence for a new client and has no run/approve action. Changing client, account or source collapses sensitive details and shows a mismatch warning. **Copy original reference** retains its original provenance; **Close reference** does not delete evidence.
+
+Assessment counts separate compliance, review-needed results, matched-but-not-enforced settings, unread settings, recorded deviations and client exclusions. Open the review breakdown and collection limitations; no compliance score is calculated. A filtered selected finding remains explicitly labelled hidden. New source/context clears its old detail.
+
+**Last built plan** describes the recorded proposal separately from current ticked controls. Different selection, expired evidence or changed identity requires rebuilding; runtime guards still check permissions, mappings, deviations, evidence and exact approval. Prerequisite guidance says what the tool prepares and what the engineer must do. An empty group, disabled CA candidate or unassigned Intune candidate is not functional completion.
+
+Recorded outcomes distinguish request acceptance, configuration readback, saving and protection state. An intended payload is not readback. Unknown readback remains unverified; earlier accepted/uncertain rows must not be replayed because a later row stopped. Saving is verified against the durable local record when available. Functional user/device/sign-in checks remain separate.
+
+These phase candidates are unpublished and provisionally integrated. Independent safety/source review, H1 accessibility and live acceptance are outstanding; passing automated checks does not close them.
+
+
 ## Your first read-only assessment
 
 Nothing in these steps changes the client's tenant.

@@ -6,7 +6,7 @@
        would otherwise squeeze the tables and guidance below it out of reach. See PageLayout.MinimumHeight. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
-      <Grid Margin="28,24">
+      <Grid Margin="28,10">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel>
           <TextBlock Text="BUILD 2 / COMPARE WITH THE STANDARD" Style="{StaticResource Eyebrow}"/>
@@ -14,10 +14,16 @@
           <TextBlock Text="Review property-level matches, gaps and unknown results. Select a finding to inspect the supporting evidence." Style="{StaticResource Lead}"/>
         </StackPanel>
         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14" Margin="0,0,0,12">
-          <StackPanel>
-            <TextBlock Text="{Binding SummaryText}" FontSize="12"/>
-            <ItemsControl ItemsSource="{Binding Limitations}" Margin="0,8,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" FontSize="12" Margin="0,3,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-            <Expander Header="Export assessment reports" Margin="0,6,0,0">
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="130"><StackPanel>
+            <TextBlock Text="{Binding SummaryText}" FontSize="12" TextWrapping="Wrap"/>
+            <ItemsControl ItemsSource="{Binding Summary.Groups}" Margin="0,8,0,0"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Border Background="{StaticResource BgPanel}" Padding="8,5" Margin="0,0,8,6" ToolTip="{Binding Meaning}"><TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Count, Mode=OneWay}"/></TextBlock></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            <TextBlock Text="{Binding HiddenSelectionText}" Foreground="{StaticResource Warn}" FontSize="12" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Style.Triggers><DataTrigger Binding="{Binding HiddenSelectionText}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+          </StackPanel></ScrollViewer>
+          <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" MaxHeight="130"><StackPanel>
+            <Expander Header="Needs review · partial, missing, manual and licence breakdown" Padding="0,1" Margin="0,4,0,4"><ItemsControl ItemsSource="{Binding Summary.ReviewBreakdown}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock ToolTip="{Binding Meaning}"><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Count, Mode=OneWay}"/></TextBlock></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Expander>
+            <Expander Header="Collection gaps and limitations" Padding="0,1" Margin="0,6,0,0"><ItemsControl ItemsSource="{Binding Limitations}" Margin="0,8,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" FontSize="12" Margin="0,3,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Expander>
+            <Expander Header="Export assessment reports" Padding="0,1" Margin="0,6,0,0">
               <StackPanel Margin="0,8,0,0">
                 <WrapPanel>
                   <Button Content="Engineer report (HTML)" Command="{Binding ExportHtmlCommand}" Style="{StaticResource SecondaryButton}"/>
@@ -31,7 +37,7 @@
                 <TextBox AutomationProperties.Name="Last exported report" Text="{Binding LastExport, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" MinHeight="0" Padding="0" Margin="0"/>
               </StackPanel>
             </Expander>
-            <Expander Header="Compare with another release (upgrade impact)" Margin="0,6,0,0" AutomationProperties.Name="Compare with another release">
+            <Expander Header="Compare with another release (upgrade impact)" Padding="0,1" Margin="0,6,0,0" AutomationProperties.Name="Compare with another release">
               <StackPanel Margin="0,8,0,0">
                 <TextBlock Text="{Binding CompareGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 <WrapPanel>
@@ -41,22 +47,23 @@
                 </WrapPanel>
               </StackPanel>
             </Expander>
-          </StackPanel>
+          </StackPanel></ScrollViewer>
+          </Grid>
         </Border>
         <Grid Grid.Row="2">
           <Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="4*"/></Grid.ColumnDefinitions>
           <DockPanel>
-            <StackPanel DockPanel.Dock="Top"><TextBlock Text="Area" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding AreaFilters}" SelectedItem="{Binding FilterArea, Mode=TwoWay}" AutomationProperties.Name="Filter assessment area"/></StackPanel>
-            <Grid DockPanel.Dock="Top"><Grid.ColumnDefinitions><ColumnDefinition Width="6*"/><ColumnDefinition Width="5*"/><ColumnDefinition Width="5*"/></Grid.ColumnDefinitions>
-              <StackPanel Margin="0,0,10,0"><TextBlock Text="Result" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding StatusFilters}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding FilterStatus, Mode=TwoWay}" AutomationProperties.Name="Filter results"/></StackPanel>
-              <StackPanel Grid.Column="1" Margin="0,0,10,0"><TextBlock Text="Category" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding CategoryFilters}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}" AutomationProperties.Name="Filter category"/></StackPanel>
-              <StackPanel Grid.Column="2"><TextBlock Text="Search" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search findings"/></StackPanel>
+            <Grid DockPanel.Dock="Top"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+              <StackPanel Margin="0,0,8,0"><TextBlock Text="Area" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding AreaFilters}" SelectedItem="{Binding FilterArea, Mode=TwoWay}" AutomationProperties.Name="Filter assessment area" ToolTip="{Binding SelectedItem, RelativeSource={RelativeSource Self}}"/></StackPanel>
+              <StackPanel Grid.Column="1" Margin="0,0,8,0"><TextBlock Text="Result" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding StatusFilters}" DisplayMemberPath="Label" SelectedValuePath="Key" SelectedValue="{Binding FilterStatus, Mode=TwoWay}" AutomationProperties.Name="Filter results" ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}"/></StackPanel>
+              <StackPanel Grid.Column="2" Margin="0,0,8,0"><TextBlock Text="Category" Style="{StaticResource FieldLabel}"/><ComboBox ItemsSource="{Binding CategoryFilters}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}" AutomationProperties.Name="Filter category" ToolTip="{Binding SelectedItem, RelativeSource={RelativeSource Self}}"/></StackPanel>
+              <StackPanel Grid.Column="3"><TextBlock Text="Search" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search findings"/></StackPanel>
             </Grid>
             <TextBlock DockPanel.Dock="Top" Text="{Binding ViewStateText}" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,8" AutomationProperties.Name="Assessment evidence source and filter result"/>
-            <DataGrid ItemsSource="{Binding Findings}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="Assessment findings">
+            <DataGrid ItemsSource="{Binding Findings}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="Assessment findings" RowHeight="56" MinRowHeight="56">
               <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Control" Width="*" MinWidth="220"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                  <StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/><TextBlock Text="{Binding ControlId}" Style="{StaticResource Mono}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/></StackPanel>
+                  <StackPanel><TextBlock Text="{Binding Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding ControlId}" Style="{StaticResource Mono}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/></StackPanel>
                 </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                 <DataGridTemplateColumn Header="Result" Width="160" MinWidth="160"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Background="{Binding StatusKey, Converter={StaticResource StatusToBrush}}" CornerRadius="4" Padding="7,4"><TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
               </DataGrid.Columns>
