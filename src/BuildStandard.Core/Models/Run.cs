@@ -36,6 +36,10 @@ public static class WriteAcceptance
     public const string Unknown = "Unknown";
     public const string Accepted = "Accepted";
     public const string Rejected = "Rejected";
+
+    /// <summary>Classifies only; it does not establish accepted-write proof or authorise execution.
+    /// Unknown, missing and unsupported values stay uncertain without normalising stored evidence.</summary>
+    public static bool IsUncertain(string? value) => value is not Accepted and not Rejected and not NotAttempted;
 }
 
 public sealed class RunActor
