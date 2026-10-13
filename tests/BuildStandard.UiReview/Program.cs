@@ -104,6 +104,9 @@ internal static partial class Program
                     var controls = Descendants(content).OfType<UserControl>().ToList();
                     if (visualCount < 50 || controls.Count == 0) throw new InvalidOperationException("Page failed to materialise its visual tree: " + nav.Key);
                     var pageAtSize = nav.Key + " " + (int)size.Width + "x" + (int)size.Height;
+                    var routeSelector=Descendants(content).OfType<ComboBox>().Single(c=>System.Windows.Automation.AutomationProperties.GetName(c)=="Page in the selected navigation group");
+                    if(!Descendants(routeSelector).OfType<TextBlock>().Any(t=>IsShown(t,content) && t.Text==shell.ActiveNavItem?.Title))
+                        throw new InvalidOperationException("Current route selector did not visibly name "+shell.ActiveNavItem?.Title);
                     RecordUnnamedControls(content, pageAtSize);
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
