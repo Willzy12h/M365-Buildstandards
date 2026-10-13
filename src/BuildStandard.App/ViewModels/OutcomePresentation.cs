@@ -24,8 +24,7 @@ public sealed record OutcomePresentation(string Lifecycle, string Acceptance, st
         var values = run.Results.Select(r => r.WriteAcceptance).ToArray();
         var accepted = values.Count(value => value == WriteAcceptance.Accepted);
         // Historical/imported values outside the known vocabulary cannot establish a safe not-sent outcome.
-        var uncertain = values.Count(value => value is not WriteAcceptance.Accepted
-            and not WriteAcceptance.Rejected and not WriteAcceptance.NotAttempted);
+        var uncertain = values.Count(WriteAcceptance.IsUncertain);
         var rejected = values.Count(value => value == WriteAcceptance.Rejected);
         var unattempted = values.Count(value => value == WriteAcceptance.NotAttempted);
         var sent = values.Length == 0 ? "No recorded write outcomes; nothing can be inferred about transport."
