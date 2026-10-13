@@ -54,7 +54,7 @@
     <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="16,2">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <ComboBox ItemsSource="{Binding VisibleNavItems}" SelectedItem="{Binding ActiveNavItem, Mode=TwoWay}" Width="225" Margin="8,0,8,0" AutomationProperties.Name="Page in the selected navigation group"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}"/></DataTemplate></ComboBox.ItemTemplate><ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}"/></Style></ComboBox.ItemContainerStyle></ComboBox>
+          <ComboBox ItemsSource="{Binding VisibleNavItems}" SelectedValuePath="Key" SelectedValue="{Binding ActiveRouteKey, Mode=TwoWay}" Width="225" Margin="8,0,8,0" AutomationProperties.Name="Page in the selected navigation group"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}"/></DataTemplate></ComboBox.ItemTemplate><ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}"/></Style></ComboBox.ItemContainerStyle></ComboBox>
           <Button Content="Pin capture" Command="{Binding PinCurrentReferenceCommand}" Style="{StaticResource QuietButton}" Padding="8,4" ToolTip="{Binding PinUnavailableReason}" AutomationProperties.HelpText="{Binding PinUnavailableReason}"/>
         </StackPanel>
         <ItemsControl x:Name="PrimaryGroups" ItemsSource="{Binding NavigationGroups}">
