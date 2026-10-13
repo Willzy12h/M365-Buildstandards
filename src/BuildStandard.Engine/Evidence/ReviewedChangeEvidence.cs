@@ -48,7 +48,7 @@ public sealed partial class EvidenceStore
         foreach (var run in LoadReviewedChangeRuns(tenant))
         {
             if (selected is not null && !selected.Contains(run.ControlId)) continue;
-            if (run.WriteAcceptance == WriteAcceptance.Unknown) throw new SafetyViolationException("A reviewed tenant change has unknown acceptance. Reconcile before further writes.");
+            if (WriteAcceptance.IsUncertain(run.WriteAcceptance)) throw new SafetyViolationException("A reviewed tenant change has unknown acceptance. Reconcile before further writes.");
             if (run.WriteAcceptance != WriteAcceptance.Accepted || run.Verification == ConfigurationVerification.Pass) continue;
             var verified = Directory.EnumerateFiles(ChangeDirectory(tenant), "verification-*.json").Select(f =>
             {

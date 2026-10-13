@@ -56,7 +56,7 @@ public sealed partial class EvidenceStore
     {
         foreach (var run in LoadEntraLapsRuns(tenantId))
         {
-            if (run.WriteAcceptance == WriteAcceptance.Unknown) throw new SafetyViolationException("A LAPS request has unknown acceptance. Reconcile it before any further LAPS write; never retry it.");
+            if (WriteAcceptance.IsUncertain(run.WriteAcceptance)) throw new SafetyViolationException("A LAPS request has unknown acceptance. Reconcile it before any further LAPS write; never retry it.");
             if (run.WriteAcceptance != WriteAcceptance.Accepted || run.Verification == ConfigurationVerification.Pass) continue;
             var verified = Directory.EnumerateFiles(LapsDirectory(tenantId), "verification-*.json").Select(file =>
             {

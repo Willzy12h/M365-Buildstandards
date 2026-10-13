@@ -36,7 +36,7 @@ public sealed partial class EvidenceStore
     }
     public void AssertNoUnknownPackageWrite(string tenant, string objectId)
     {
-        if (LoadPackageRuns(tenant).Any(r => r.ObjectId == objectId && r.Steps.Any(s => s.Acceptance == WriteAcceptance.Unknown)))
+        if (LoadPackageRuns(tenant).Any(r => r.ObjectId == objectId && r.Steps.Any(s => WriteAcceptance.IsUncertain(s.Acceptance))))
             throw new SafetyViolationException("A package operation has unknown acceptance. Do not retry or activate this app. Reconcile the recorded app/content IDs first.");
     }
     public void SavePackageVerification(PackageVerification verification)
