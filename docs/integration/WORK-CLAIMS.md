@@ -135,3 +135,5 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 
 | 2026-10-12 | GPT/Codex | M365-Buildstandards | Approved T9 contained catalogue-only WebView2 reader, native reference actions and isolated transient cache; no bridge, tenant data or execution. | `astra/bs-catalogue-reader` from prepared T7 `1c7e2ae`, phase target; T6/T7 repairs composed serially if required | [#123](https://github.com/Willzy12h/M365-Buildstandards/pull/123) | Implemented source; Windows/hosted validation and final independent review pending |
+
+| 2026-10-13 | GPT/Codex | M365-Buildstandards | Bounded candidate a79b347 Claude review-response: verify/fix R-1 reader invalid-document state, R-2 unknown outcomes, R-3 expired approval guidance, R-4 cancellation before dispatch; assess stated package-staging hypothesis; preserve all runtime/review/release gates. Full Claude report not yet provided; relayed summary attribution retained. | `astra/bs-review-repairs` from a79b347b7e3c67afb06e830bf61ab2d592e54623, phase target | Draft claim pending PR link | Investigating; no findings marked fixed or independent delta accepted |
