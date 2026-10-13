@@ -100,6 +100,25 @@ public class ExecutorTests
     }
 
     [Fact]
+    public async Task Operator_stop_during_final_preparation_is_stopped_with_no_write_and_partial_after_evidence()
+    {
+        using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        h.Graph.BeforeReviewedAdmission = () => { entered.TrySetResult(); return release.Task; };
+        var control = new DeploymentControl(); var task = h.RunAsync(plan, snapshot, control);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)); control.Stop(); release.SetResult();
+        var run = await task.WaitAsync(TimeSpan.FromSeconds(15));
+        Assert.Empty(h.Graph.Writes); Assert.Equal(RunStatus.Stopped, run.Status);
+        Assert.Equal(WriteAcceptance.NotAttempted, run.Results.Single().WriteAcceptance);
+        Assert.Equal(ResultStatus.NotRun, run.Results.Single().Status);
+        Assert.Equal(ConfigurationVerification.NotRun, run.Results.Single().Configuration);
+        Assert.False(run.AfterComplete); Assert.Contains("cancelled by operator", run.AfterError);
+        Assert.NotNull(h.Evidence.LoadSnapshot(h.Session.TenantId, run.AfterSnapshotId!));
+        Assert.Throws<PlanValidationException>(() => h.Evidence.AssertPlanHasNotRun(plan));
+    }
+
+    [Fact]
     public async Task Stop_cancels_a_hung_preflight_without_sending_a_write_and_saves_partial_capture()
     {
         using var h = new Harness(); var (snapshot, plan) = await h.CaptureAndPlanAsync("CA-001");
