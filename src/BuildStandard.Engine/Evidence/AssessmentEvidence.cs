@@ -41,9 +41,17 @@ public sealed partial class EvidenceStore
         var dir = AssessmentsDirectory(tenantId);
         var list = new List<StoredAssessment>();
         var unreadable = new List<UnreadableRecord>();
-        if (!Directory.Exists(dir)) return (list, unreadable);
         string[] files;
-        try { files = Directory.GetFiles(dir, "*.json"); }
+        try
+        {
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(dir); }
+            catch (FileNotFoundException) { return (list, unreadable); }
+            catch (DirectoryNotFoundException) { return (list, unreadable); }
+            if ((attributes & FileAttributes.Directory) == 0)
+                throw new IOException("The assessment history path is not a directory.");
+            files = Directory.GetFiles(dir, "*.json");
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             unreadable.Add(new(dir, "Assessment history could not be listed. Check local access and preserve the original evidence."));
@@ -77,6 +85,8 @@ public sealed partial class EvidenceStore
         {
             var text = File.ReadAllText(file);
             var result = ToolkitJson.Deserialize<AssessmentResult>(text);
+            if (result.Findings is null || result.Findings.Any(finding => finding is null))
+                throw new ConfigurationException("Stored assessment findings contain missing data.");
             return new StoredAssessment(result, CanonicalJson.Sha256(JsonNode.Parse(text)));
         }
         catch (Exception ex) when (ex is JsonException or ConfigurationException or ArgumentException)

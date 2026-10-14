@@ -867,3 +867,9 @@ William approved BS-IMP-002 and related engineer quality-of-life improvements. A
 The original App regression failed at exact e2bb29b/Windows38479398995:HasProblems false despite a corrupt assessment file, with487 other App tests passing. Native fixtures now exercise that warning at all three sizes; physical accessibility and independent/human acceptance remain separate.
 
 INT-112 corruption-boundary refinement: duplicate JSON members fail canonical digest construction with ArgumentException. The actual listing regression reproduced that escaped exception. Wrap this input failure within ReadAssessment as ConfigurationException so structured history reports an unreadable record and strict direct citation still refuses; no duplicate document is normalised, accepted or rewritten. Preserve the original bytes.
+
+## INT-113 — bounded assessment-history input repair (14 October 2026)
+
+#128 follows BS-IMP-002 after a fresh supplementary GPT review. Reject explicit null Findings or null finding entries at the shared assessment-file read boundary, using the existing invalid-evidence diagnostic. Missing Findings retains the existing DTO default; valid empty assessments, saved bytes, canonical digests and client/capture/catalogue citation checks are unchanged. No new schema or repair/migration is introduced.
+
+Directory.Exists cannot distinguish absence from invalid/inaccessible storage. Probe attributes with explicit missing-path handling before listing; a non-directory path, denied access or later listing failure is reported as unreadable rather than empty success. The reader writes no evidence. Three engine regressions failed before correction; selected-requirement Jobs coverage checks healthy citations remain usable. Named independent acceptance is still outstanding. William's 14 October follow-up requires the new branch/PR to remain unmerged while that gate is pending; earlier #126/#127 merges are preserved as historical provisional integrations.
