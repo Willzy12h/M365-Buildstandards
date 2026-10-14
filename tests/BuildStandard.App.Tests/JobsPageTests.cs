@@ -81,6 +81,39 @@ public sealed class JobsPageTests : IDisposable
         Assert.False(_page.HasProblems);
     }
 
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[null]")]
+    public void Malformed_findings_keep_healthy_citations_when_a_requirement_is_selected(string findings)
+    {
+        var standard = _shell.Workspace.RequireStandard();
+        var capture = TestData.Snapshot(standard);
+        _shell.Workspace.Evidence.SaveSnapshot(capture);
+        _shell.Workspace.LoadStoredSnapshot(capture.Id);
+        var healthy = new AssessmentEngine(new FixedClock(), "test").Assess(capture, standard, TestData.Profile(),
+            TestData.Mappings(), [], "engineer@test.example");
+        var healthyFile = _shell.Workspace.Evidence.SaveAssessment(healthy);
+        OpenJob();
+        Select("CA-003");
+        var invalid = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(healthyFile))!;
+        var id = Guid.NewGuid().ToString();
+        invalid["id"] = id;
+        invalid["assessedAt"] = "2099-01-01T00:00:00Z";
+        invalid["findings"] = System.Text.Json.Nodes.JsonNode.Parse(findings);
+        var file = Path.Combine(Path.GetDirectoryName(healthyFile)!, "synthetic-invalid-" + id + ".json");
+        var json = invalid.ToJsonString();
+        File.WriteAllText(file, json);
+
+        Assert.Null(Record.Exception(() => _page.Refresh()));
+
+        Assert.True(_page.HasProblems);
+        Assert.Contains(Path.GetFileName(file), _page.ProblemsText);
+        Assert.Contains(_page.Assessments, a => a.Key == healthy.Id);
+        Assert.DoesNotContain(_page.Assessments, a => a.Key == id);
+        Assert.Equal("CA-003", _page.SelectedRequirement?.InstanceKey);
+        Assert.Equal(json, File.ReadAllText(file));
+    }
+
     private void OpenJob()
     {
         _page.NewOwner = "Owner Name";

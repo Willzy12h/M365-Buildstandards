@@ -9,6 +9,45 @@ namespace BuildStandard.Tests;
 
 public sealed class AssessmentHistoryListingTests
 {
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[null]")]
+    public void Null_findings_are_unreadable_without_hiding_healthy_history(string findings)
+    {
+        using var root = new TempRoot(); var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var healthy = new AssessmentResult { Id = Guid.NewGuid().ToString(), TenantId = TestData.TenantA,
+            AssessedAt = "2026-10-13T12:00:00Z" };
+        var healthyFile = store.SaveAssessment(healthy);
+        var id = Guid.NewGuid().ToString();
+        var file = Path.Combine(Path.GetDirectoryName(healthyFile)!, "synthetic-null-" + id + ".json");
+        var json = $"{{\"id\":\"{id}\",\"tenantId\":\"{TestData.TenantA}\",\"findings\":{findings}}}";
+        File.WriteAllText(file, json);
+        var healthyBytes = File.ReadAllBytes(healthyFile);
+
+        var history = store.LoadAssessmentHistory(TestData.TenantA);
+
+        Assert.Equal(healthy.Id, Assert.Single(history.Assessments).Result.Id);
+        Assert.Equal(file, Assert.Single(history.Unreadable).File);
+        Assert.Throws<ConfigurationException>(() => store.LoadAssessment(TestData.TenantA, id));
+        Assert.Equal(json, File.ReadAllText(file));
+        Assert.Equal(healthyBytes, File.ReadAllBytes(healthyFile));
+    }
+
+    [Fact]
+    public void A_file_blocking_the_history_directory_is_not_empty_success()
+    {
+        using var root = new TempRoot(); var store = new EvidenceStore(root.Paths, NullLog.Instance);
+        var directory = Path.Combine(store.TenantDirectory(TestData.TenantA), "assessments");
+        Directory.CreateDirectory(Path.GetDirectoryName(directory)!);
+        File.WriteAllText(directory, "synthetic occupied path");
+
+        var history = store.LoadAssessmentHistory(TestData.TenantA);
+
+        Assert.Empty(history.Assessments);
+        Assert.Equal(directory, Assert.Single(history.Unreadable).File);
+        Assert.Equal("synthetic occupied path", File.ReadAllText(directory));
+    }
+
     [Fact]
     public void Corrupt_and_wrong_client_records_are_reported_while_healthy_history_remains_usable()
     {
