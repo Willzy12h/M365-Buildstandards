@@ -845,10 +845,11 @@ internal static partial class Program
 
     private static void CaptureOfficeEditor(ShellViewModel shell, FrameworkElement content, Size size, string output)
     {
-        var page = shell.Page<AutomationViewModel>(); var original = page.Offices.Read();
+        var page = shell.Page<AutomationViewModel>(); var original = page.Offices.Read(); var showAll = page.ShowAllInputs;
         var tabs = Descendants(content).OfType<TabControl>().First(); var oldTab = tabs.SelectedIndex;
         try
         {
+            page.ShowAllInputs = true;
             page.Offices.Load([new OfficeLocation { Key = "SYNTHETIC", Name = "Synthetic office", IpRanges = ["8.8.8.8/32"] }]);
             var count = page.Offices.Rows.Count;
             page.AddOfficeCommand.Execute(null);
@@ -865,7 +866,7 @@ internal static partial class Program
             RecordUnnamedControls(content, "office grid"); RecordCollapsedColumns(content, "office grid"); RecordClipping(content, "office grid"); RecordLowContrast(content, "office grid");
             SaveImage(content, size, Path.Combine(output, $"office-grid-{(int)size.Width}x{(int)size.Height}.png"));
         }
-        finally { page.Offices.Load(original); tabs.SelectedIndex = oldTab; content.UpdateLayout(); Pump(); }
+        finally { page.Offices.Load(original); page.ShowAllInputs = showAll; tabs.SelectedIndex = oldTab; content.UpdateLayout(); Pump(); }
     }
 
     private static void CaptureAssignmentPopulations(ShellViewModel shell, FrameworkElement content, Size size, string output)
@@ -876,7 +877,7 @@ internal static partial class Program
         vm.IncludedGroups = "";
         vm.ExcludedGroups = Id(40);
         var tabs = Descendants(content).OfType<TabControl>().First();
-        tabs.SelectedIndex = 3;
+        tabs.SelectedItem = tabs.Items.OfType<TabItem>().Single(t => Equals(t.Header, "Tenant changes and targeting"));
         content.UpdateLayout(); Pump();
         var population = Descendants(content).OfType<ComboBox>().Single(c =>
             System.Windows.Automation.AutomationProperties.GetName(c) == "Assignment population");

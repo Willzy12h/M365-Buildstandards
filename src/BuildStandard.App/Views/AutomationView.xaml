@@ -14,14 +14,17 @@
    <TabItem Header="Readiness checks"><StackPanel Margin="16">
     <TextBlock Text="Identity and service prerequisites" Style="{StaticResource H2}"/>
     <TextBlock Text="Read observed configuration, then complete the ownership and recovery checks. These checks never create accounts, grant roles or accept external service terms." Style="{StaticResource Muted}"/>
-    <Button Content="Check readiness" Command="{Binding CheckReadinessCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Button Content="Check readiness" Command="{Binding CheckReadinessCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding PreviewGuidance}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <ItemsControl ItemsSource="{Binding Readiness}"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource Panel}"><StackPanel>
      <TextBlock FontWeight="SemiBold"><Run Text="{Binding ControlId}"/> · <Run Text="{Binding Status}"/></TextBlock>
      <TextBlock Text="{Binding Detail}" Margin="0,6"/><TextBlock Text="{Binding NextStep}" Style="{StaticResource Muted}"/>
     </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
    </StackPanel></TabItem>
-   <TabItem Header="Policy inputs and imports"><StackPanel Margin="16">
+   <TabItem Header="Policy inputs"><StackPanel Margin="16">
     <TextBlock Text="Client policy inputs" Style="{StaticResource H2}"/>
+    <TextBlock Text="{Binding InputScopeGuidance}" Style="{StaticResource Muted}"/>
+    <CheckBox Content="Show all client inputs" IsChecked="{Binding ShowAllInputs}" AutomationProperties.Name="Show all client policy inputs"/>
+    <StackPanel Visibility="{Binding ShowOfficeEditor, Converter={StaticResource BoolToVis}}">
     <TextBlock Text="Office locations" Style="{StaticResource FieldLabel}"/>
     <TextBlock Text="Enter each office name and its public CIDR ranges (separated by commas). The stable key is retained when you rename an office. These are local inputs until you save and review a plan." Style="{StaticResource Muted}"/>
     <DataGrid ItemsSource="{Binding Offices.Rows}" SelectedItem="{Binding SelectedOffice}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" MinHeight="130" MaxHeight="240" AutomationProperties.Name="Office locations and public ranges">
@@ -31,11 +34,12 @@
       <DataGridTemplateColumn Header="Check inputs" Width="2*" MinWidth="170" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Problem}" TextWrapping="Wrap"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
      </DataGrid.Columns>
     </DataGrid>
-    <WrapPanel><Button Content="Add office" Command="{Binding AddOfficeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Remove selected office" Command="{Binding RemoveOfficeCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+    <WrapPanel><Button Content="Add office" Command="{Binding AddOfficeCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Select a client and wait for the current operation; at most 100 offices can be recorded." Style="{StaticResource SecondaryButton}"/><Button Content="Remove selected office" Command="{Binding RemoveOfficeCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Select an office row first. This edits local inputs only; save and review separately." Style="{StaticResource SecondaryButton}"/></WrapPanel>
     <TextBlock Text="{Binding Offices.Problem}" Foreground="{StaticResource Danger}" TextWrapping="Wrap"/>
     <Expander Header="Selected office stable key"><TextBox Text="{Binding SelectedOffice.Key, Mode=OneWay}" IsReadOnly="True" AutomationProperties.Name="Selected office stable key"/></Expander>
+    </StackPanel>
     <TextBlock Text="Fill in what the client has confirmed. Anything left empty either uses the reviewed default shown beside the field, or blocks only the controls that need it. Never enter credentials, tokens or private keys." Style="{StaticResource Muted}"/>
-    <ItemsControl ItemsSource="{Binding InputFields}" AutomationProperties.Name="Client policy inputs">
+    <ItemsControl ItemsSource="{Binding VisibleInputFields}" AutomationProperties.Name="Client policy inputs">
      <ItemsControl.ItemTemplate><DataTemplate>
       <Border Style="{StaticResource Panel}" Margin="0,0,0,8"><StackPanel>
        <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}" ToolTip="{Binding Description}"/>
@@ -49,34 +53,41 @@
       </StackPanel></Border>
      </DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
-    <Button Content="Save inputs" Command="{Binding SaveInputsCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Button Content="Save inputs" Command="{Binding SaveInputsCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Select a client, wait for the current operation and correct input errors before saving." Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <Expander Header="Saved input JSON (read-only)" Margin="0,8,0,0">
      <TextBox Text="{Binding PolicyInputs, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" Height="120" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Saved policy input JSON"/>
     </Expander>
+   </StackPanel></TabItem>
+   <TabItem Header="Local imports"><StackPanel Margin="16">
+    <TextBlock Text="{Binding ImportGuidance}" Style="{StaticResource Muted}"/>
     <TextBlock Text="Import a Graph policy export" Style="{StaticResource H2}" Margin="0,16,0,8"/>
     <TextBlock Text="Disconnect first. Imports create a local candidate standard under the selected tenant's data folder. Source assignments and metadata are removed; foreign GUID values need explicit replacements." Style="{StaticResource Muted}"/>
     <WrapPanel><Button Content="Choose JSON" Command="{Binding ChooseImportCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="{Binding ImportFile}" VerticalAlignment="Center"/></WrapPanel>
     <TextBlock Text="Candidate name" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding CandidateName}" AutomationProperties.Name="Imported candidate name"/>
     <TextBlock Text="Reference replacements: JSON object mapping source GUIDs to target GUIDs" Style="{StaticResource FieldLabel}"/>
     <TextBox Text="{Binding Replacements}" AcceptsReturn="True" Height="65" FontFamily="Consolas" AutomationProperties.Name="Foreign reference replacements"/>
-    <Button Content="Validate and load local candidate" Command="{Binding ImportCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Button Content="Validate and load local candidate" Command="{Binding ImportCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ImportGuidance}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <TextBlock Text="Saved candidate standards for this tenant" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
     <ComboBox ItemsSource="{Binding SavedCandidates}" SelectedItem="{Binding SavedCandidate}" AutomationProperties.Name="Saved local candidate standard"/>
-    <Button Content="Load saved candidate" Command="{Binding LoadCandidateCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Button Content="Load saved candidate" Command="{Binding LoadCandidateCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ImportGuidance}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
    </StackPanel></TabItem>
    <TabItem Header="Application packages"><StackPanel Margin="16">
-    <TextBlock Text="Publish an approved Win32 package" Style="{StaticResource H2}"/>
+    <TextBlock Text="Upload an approved Win32 package to Intune" Style="{StaticResource H2}"/>
+    <TextBlock Text="{Binding PreviewGuidance}" Style="{StaticResource Muted}"/>
+    <TextBlock Text="{Binding ApplyGuidance}" Style="{StaticResource Muted}"/>
     <TextBlock Text="First create the unassigned Win32 candidate with the client's installer filename, installation command, uninstall command and detection rules. Then select the Microsoft Content Prep Tool .intunewin file. No installer is executed on this computer." Style="{StaticResource Muted}"/>
     <WrapPanel><Button Content="Choose .intunewin" Command="{Binding ChoosePackageCommand}" Style="{StaticResource SecondaryButton}"/><TextBlock Text="{Binding PackageFile}" VerticalAlignment="Center"/></WrapPanel>
-    <Button Content="Preview package publication" Command="{Binding PreviewPackageCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+    <Button Content="Preview package publication" Command="{Binding PreviewPackageCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding PreviewGuidance}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <TextBox Text="{Binding PreviewText, Mode=OneWay}" IsReadOnly="True" Height="280" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Package publication preview"/>
     <CheckBox IsChecked="{Binding Approved}" Content="I reviewed the app, package hash, commands, detection rules and consequences." Margin="0,12"/>
     <TextBlock Text="Type the target tenant ID" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding TypedTenant}" AutomationProperties.Name="Package tenant confirmation"/>
-    <WrapPanel><Button Content="Publish approved package" Command="{Binding PublishPackageCommand}" Style="{StaticResource PrimaryButton}"/>
-     <Button Content="Re-verify latest publication" Command="{Binding ReverifyPackageCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+    <WrapPanel><Button Content="Upload approved package" Command="{Binding PublishPackageCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ApplyGuidance}" Style="{StaticResource PrimaryButton}"/>
+     <Button Content="Re-verify latest publication" Command="{Binding ReverifyPackageCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Connect to the client with a recorded package run. This reads back its state and never repeats the upload." Style="{StaticResource SecondaryButton}"/></WrapPanel>
     <TextBlock Text="Encrypted upload URLs and encryption keys stay in memory. Publication records retain app, content-version and file IDs. Assignment is a separate action; undo removes the recorded unassigned app, including its content." Style="{StaticResource Muted}"/>
    </StackPanel></TabItem>
    <TabItem Header="Tenant changes and targeting"><StackPanel Margin="16">
+    <TextBlock Text="{Binding PreviewGuidance}" Style="{StaticResource Muted}"/>
+    <TextBlock Text="{Binding ApplyGuidance}" Style="{StaticResource Muted}"/>
     <Button Content="Capture fresh configuration" Command="{Binding CaptureCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
     <TextBlock Text="Reviewed action" Style="{StaticResource FieldLabel}"/>
     <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" AutomationProperties.Name="Reviewed policy action"/>
@@ -95,19 +106,18 @@
     <TextBox Text="{Binding ExcludedGroups, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Excluded group IDs"/>
     <TextBlock Text="Entra device IDs for Autopatch actions (up to 50; captured Windows devices only)" Style="{StaticResource FieldLabel}"/>
     <TextBox Text="{Binding DeviceIds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Autopatch Entra device IDs"/>
-    <WrapPanel><Button Content="Preview change" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}"/>
-     <Button Content="Preview Entra LAPS enablement" Command="{Binding PreviewLapsCommand}" Style="{StaticResource SecondaryButton}"
-      ToolTip="Reads the Entra LAPS tenant prerequisite and previews enabling it. Requires a fresh snapshot. Enablement needs separate deployment approval below."/></WrapPanel>
+    <WrapPanel><Button Content="Preview change" Command="{Binding PreviewCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding PreviewGuidance}" Style="{StaticResource SecondaryButton}"/>
+     <Button Content="Preview Entra LAPS enablement" Command="{Binding PreviewLapsCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding PreviewGuidance}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
     <TextBox Text="{Binding PreviewText, Mode=OneWay}" IsReadOnly="True" Height="310" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Exact change preview"/>
     <Border Background="{StaticResource WarnBg}" Padding="12" Margin="0,12"><StackPanel>
      <CheckBox IsChecked="{Binding Approved}" Content="I reviewed settings, targeting, exclusions, dependencies and consequences."/>
      <TextBlock Text="Type the target tenant ID from the preview" Margin="0,10,0,4"/>
      <TextBox Text="{Binding TypedTenant, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tenant confirmation"/>
-     <WrapPanel><Button Content="Apply approved change" Command="{Binding ExecuteCommand}" Style="{StaticResource PrimaryButton}"/>
-      <Button Content="Enable approved Entra LAPS" Command="{Binding ExecuteLapsCommand}" Style="{StaticResource PrimaryButton}"/></WrapPanel>
+     <WrapPanel><Button Content="Apply approved change" Command="{Binding ExecuteCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ApplyGuidance}" Style="{StaticResource PrimaryButton}"/>
+      <Button Content="Enable approved Entra LAPS" Command="{Binding ExecuteLapsCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ApplyGuidance}" Style="{StaticResource PrimaryButton}"/></WrapPanel>
     </StackPanel></Border>
-    <WrapPanel><Button Content="Re-verify latest accepted change" Command="{Binding ReverifyCommand}" Style="{StaticResource SecondaryButton}"/>
-     <Button Content="Re-verify latest accepted LAPS change" Command="{Binding ReverifyLapsCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+    <WrapPanel><Button Content="Re-verify latest accepted change" Command="{Binding ReverifyCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Connect to the client with a previously accepted change. This reads back evidence and never repeats the write." Style="{StaticResource SecondaryButton}"/>
+     <Button Content="Re-verify latest accepted LAPS change" Command="{Binding ReverifyLapsCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Connect to the client with a previously accepted LAPS change. This reads back evidence and never repeats enablement." Style="{StaticResource SecondaryButton}"/></WrapPanel>
    </StackPanel></TabItem>
   </TabControl>
   <TextBlock Text="Result and evidence" Style="{StaticResource H2}" Margin="0,18,0,8"/>
