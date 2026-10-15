@@ -43,6 +43,17 @@ public sealed class OwnedProcessTests
             await reader.ReadToEndAsync().ConfigureAwait(false);
         }
 
+        // These two fixtures deliberately throw synchronously from the second reader. Record the
+        // first reader's handshake synchronously too: blocking on an async callback's TCS can starve
+        // that continuation on a busy runner and test a 30-second fixture timeout instead of cleanup.
+        public Task ReadWithSynchronousHandshake(StreamReader reader)
+        {
+            var first = reader.ReadLine();
+            if (int.TryParse(first?.Trim(), out var pid)) _pid.TrySetResult(pid);
+            else throw new InvalidOperationException("No process id.");
+            return reader.ReadToEndAsync();
+        }
+
         public async Task<int> StartedAsync() => await Pid.WaitAsync(TimeSpan.FromSeconds(30));
 
         /// <summary>True when the child has ended. A process id the system has already reused is reported as ended only if it exited.</summary>
@@ -108,8 +119,8 @@ public sealed class OwnedProcessTests
         try
         {
             // The output reader records the id; the error reader then fails synchronously, after the child started.
-            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync,
-                _ => { child.Pid.WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult(); throw new InvalidOperationException("Reader failed."); },
+            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadWithSynchronousHandshake,
+                _ => throw new InvalidOperationException("Reader failed."),
                 Long, () => false, () => { }, Grace, CancellationToken.None);
             await Assert.ThrowsAsync<InvalidOperationException>(() => run);
             Assert.True(await child.GoneAsync(), "The child was still running after the error was returned.");
@@ -167,8 +178,8 @@ public sealed class OwnedProcessTests
         var child = new Child();
         try
         {
-            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadAsync,
-                _ => { child.Pid.WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult(); throw new InvalidOperationException("Reader failed."); },
+            var run = OwnedProcess.RunAsync(Sleeper(), child.ReadWithSynchronousHandshake,
+                _ => throw new InvalidOperationException("Reader failed."),
                 Long, () => false, () => { }, Grace, CancellationToken.None, terminate: Refuse, terminationWait: TimeSpan.FromMilliseconds(500));
             var outcome = await run.WaitAsync(TimeSpan.FromSeconds(20));
             Assert.Equal(OwnedProcessEnd.NotStopped, outcome.End);
