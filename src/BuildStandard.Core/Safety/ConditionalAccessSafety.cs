@@ -80,6 +80,7 @@ public static class WritePayloadGuard
 {
     public static void Assert(CollectionDefinition definition, JsonObject payload)
     {
+        SupportedDevicePlatforms.AssertSupported(definition, payload);
         if (payload.ContainsKey("assignments"))
             throw new SafetyViolationException("Assignment writes are not supported. Objects are created unassigned; assignment is an explicit post-creation engineering step.");
         if (ConditionalAccessSafety.IsConditionalAccess(definition))
