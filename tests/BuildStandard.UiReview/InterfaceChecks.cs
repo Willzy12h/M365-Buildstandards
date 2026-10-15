@@ -649,6 +649,8 @@ internal static partial class Program
         ("ConnectViewModel.ReviewOfflineCommand", "pressed by the separate cold-start offline journey at all three sizes"),
         ("ConnectViewModel.CheckAccessCommand", TenantRead),
         ("ConnectViewModel.SearchAccountsCommand", TenantRead),
+        ("ConnectViewModel.SearchObjectsCommand", TenantRead),
+        ("ConnectViewModel.UseObjectCommand", Disabled),
         ("ConnectViewModel.CopyApplicationCommand", Clipboard),
         ("ConnectViewModel.CopyAccessCommand", Clipboard),
 
@@ -793,6 +795,8 @@ internal static partial class Program
         ("StandardViewModel.ExportDefinitionMarkdownCommand", Press),
 
         ("AutomationViewModel.SaveInputsCommand", Press),
+        ("AutomationViewModel.AddOfficeCommand", "local editing exercised by the native office grid check at all three sizes"),
+        ("AutomationViewModel.RemoveOfficeCommand", "local editing exercised by the native office grid check at all three sizes"),
         ("AutomationViewModel.ImportCommand", Press),
         ("AutomationViewModel.LoadCandidateCommand", Press),
         ("AutomationViewModel.ChooseImportCommand", FilePicker),

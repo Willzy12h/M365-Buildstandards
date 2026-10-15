@@ -168,3 +168,10 @@ The reader alone requires an organisation-managed Stable Evergreen WebView2 Runt
 The assessment selector lists only readable evidence matching the capture in view and the selected Build Standard. **Do not cite an assessment** records your own outcome without adding an assessment citation; it does not verify a requirement by itself. The guidance beneath the selector explains whether a saved capture is needed, no evidence matches, or other captures/releases were excluded.
 
 An unreadable or wrong-client history file appears in the copyable **Job needs review** details. Healthy matching assessments remain available. Preserve the original file and inspect local evidence/diagnostics; the tool does not delete or repair it automatically. A selection or completed job does not authorise a tenant change.
+
+
+### Choosing client objects and offices
+
+In Connect → Notes and policy parameters, **Find an existing group or named location** uses the current client's existing read access. Choose the purpose, enter a name or exact ID, then **Find objects**. Select the exact name/ID and **Use selected object**; this fills local inputs only. Save/apply them before collecting a new plan. Duplicate names remain separate choices. Failed or incomplete lookup is shown as unavailable, never as proof that the object is absent. Existing exact-ID entry remains available and is subject to normal readiness/reference checks.
+
+In Policy automation → Policy inputs and imports, add one office row per site. Enter its friendly name and public CIDR ranges, separated by commas. Correct the inline errors before saving. Its stable key appears in **Selected office stable key** and survives renaming; removing a row only changes local inputs until saved. Public-IP validation remains authoritative; no DNS lookup, named-location creation or assignment occurs here. Directory device lookup requiring extra access is not added by this update.

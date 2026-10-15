@@ -27,8 +27,13 @@ public sealed class AutomationViewModel : PageViewModel
     private bool _approved;
     private string _lastRunId = "", _lastLapsRunId = "";
     private string _devices = "";
-    private string _officeLocations = "";
-    public string OfficeLocations { get => _officeLocations; set => SetProperty(ref _officeLocations, value); }
+    public OfficeLocationEditor Offices { get; }
+    private OfficeLocationRow? _selectedOffice;
+    public OfficeLocationRow? SelectedOffice { get => _selectedOffice; set { SetProperty(ref _selectedOffice, value); CommandManager.InvalidateRequerySuggested(); } }
+    // Compatibility for existing profile/input harness callers; the native editor uses typed rows.
+    public string OfficeLocations { get => OfficeLocationValidator.Render(Offices.Rows.Select(r => r.Value())); set { Offices.Load(OfficeLocationValidator.ParseLines(value)); OnPropertyChanged(); } }
+    public ICommand AddOfficeCommand { get; }
+    public ICommand RemoveOfficeCommand { get; }
     private string _packageFile = "", _lastPackageRunId = "";
     private string? _savedCandidate;
     public string? SavedCandidate { get => _savedCandidate; set => SetProperty(ref _savedCandidate, value); }
@@ -38,6 +43,9 @@ public sealed class AutomationViewModel : PageViewModel
     public string DeviceIds { get => _devices; set { if (SetProperty(ref _devices, value)) ClearApproval(); } }
     public AutomationViewModel(ShellViewModel shell) : base(shell, "Policy automation")
     {
+        Offices = new OfficeLocationEditor(() => { ClearApproval(); OnPropertyChanged(nameof(OfficeLocations)); });
+        AddOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null) return; Offices.Add(); SelectedOffice = Offices.Rows.Last(); }, () => Workspace.Profile is not null && Workspace.Idle && Offices.Rows.Count < 100);
+        RemoveOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null || SelectedOffice is null) return; Offices.Remove(SelectedOffice); SelectedOffice = null; }, () => Workspace.Profile is not null && Workspace.Idle && SelectedOffice is not null);
         SaveInputsCommand = Sync(SaveInputs, () => Workspace.Profile is not null && Workspace.Idle);
         ChooseImportCommand = Sync(ChooseImport, () => Workspace.Idle);
         ImportCommand = Sync(Import, () => SelectedControl is not null && Workspace.Profile is not null && Workspace.Idle && !Workspace.IsConnected);
@@ -135,7 +143,7 @@ public sealed class AutomationViewModel : PageViewModel
         profile.Parameters.PolicyInputs = values;
         if (Workspace.RequireStandard().SchemaVersion >= 5)
         {
-            profile.Parameters.OfficeLocations = OfficeLocationValidator.ParseLines(OfficeLocations);
+            profile.Parameters.OfficeLocations = Offices.Read();
             if (SelectedControl?.RepeatFor == "officeLocations" && profile.Parameters.OfficeLocations.Count == 0)
                 throw new ConfigurationException("Add a named office with at least one public CIDR range before saving this control.");
         }
@@ -315,7 +323,7 @@ public sealed class AutomationViewModel : PageViewModel
         {
             _inputContext = inputContext;
             PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
-            OfficeLocations = OfficeLocationValidator.Render(Workspace.Profile?.Parameters.OfficeLocations);
+            Offices.Load(Workspace.Profile?.Parameters.OfficeLocations); SelectedOffice = null; OnPropertyChanged(nameof(OfficeLocations));
             BuildInputFields();
             ClearApproval();
         }

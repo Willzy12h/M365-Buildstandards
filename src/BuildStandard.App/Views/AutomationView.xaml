@@ -22,8 +22,18 @@
    </StackPanel></TabItem>
    <TabItem Header="Policy inputs and imports"><StackPanel Margin="16">
     <TextBlock Text="Client policy inputs" Style="{StaticResource H2}"/>
-    <TextBlock Text="Office locations: stable key | name | public CIDR ranges (commas between ranges, one office per line). Keep each key when renaming an office." Style="{StaticResource Muted}"/>
-    <TextBox Text="{Binding OfficeLocations, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="65" MaxHeight="140" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Office location names and public ranges"/>
+    <TextBlock Text="Office locations" Style="{StaticResource FieldLabel}"/>
+    <TextBlock Text="Enter each office name and its public CIDR ranges (separated by commas). The stable key is retained when you rename an office. These are local inputs until you save and review a plan." Style="{StaticResource Muted}"/>
+    <DataGrid ItemsSource="{Binding Offices.Rows}" SelectedItem="{Binding SelectedOffice}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" MinHeight="130" MaxHeight="240" AutomationProperties.Name="Office locations and public ranges">
+     <DataGrid.Columns>
+      <DataGridTextColumn Header="Office name" Width="*" MinWidth="130" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+      <DataGridTextColumn Header="Public CIDR ranges" Width="2*" MinWidth="170" Binding="{Binding Ranges, UpdateSourceTrigger=PropertyChanged}"/>
+      <DataGridTemplateColumn Header="Check inputs" Width="2*" MinWidth="170" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Problem}" TextWrapping="Wrap"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+     </DataGrid.Columns>
+    </DataGrid>
+    <WrapPanel><Button Content="Add office" Command="{Binding AddOfficeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Remove selected office" Command="{Binding RemoveOfficeCommand}" Style="{StaticResource SecondaryButton}"/></WrapPanel>
+    <TextBlock Text="{Binding Offices.Problem}" Foreground="{StaticResource Danger}" TextWrapping="Wrap"/>
+    <Expander Header="Selected office stable key"><TextBox Text="{Binding SelectedOffice.Key, Mode=OneWay}" IsReadOnly="True" AutomationProperties.Name="Selected office stable key"/></Expander>
     <TextBlock Text="Fill in what the client has confirmed. Anything left empty either uses the reviewed default shown beside the field, or blocks only the controls that need it. Never enter credentials, tokens or private keys." Style="{StaticResource Muted}"/>
     <ItemsControl ItemsSource="{Binding InputFields}" AutomationProperties.Name="Client policy inputs">
      <ItemsControl.ItemTemplate><DataTemplate>

@@ -30,4 +30,12 @@ public sealed class ObjectResolverTests
         var graph = new FakeGraphClient(TestData.Standard()) { BeforeRead = (_, _) => throw new IOException("synthetic unavailable lookup") };
         await Assert.ThrowsAsync<IOException>(() => ObjectResolver.SearchAsync(graph, TestData.TenantA, ObjectLookupKind.NamedLocation, "Office", default));
     }
+    [Fact]
+    public async Task Missing_location_name_does_not_turn_an_unknown_match_into_empty_success()
+    {
+        var graph = new FakeGraphClient(TestData.Standard());
+        graph.Add("/identity/conditionalAccess/namedLocations", new JsonObject { ["id"] = TestData.Office });
+        await Assert.ThrowsAsync<ConfigurationException>(() => ObjectResolver.SearchAsync(graph, TestData.TenantA, ObjectLookupKind.NamedLocation, "Office", default));
+    }
+
 }
