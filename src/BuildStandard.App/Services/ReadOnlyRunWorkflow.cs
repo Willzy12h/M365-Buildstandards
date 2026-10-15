@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.ObjectModel;
 using System.Text;
 using BuildStandard.Core;
@@ -43,6 +44,9 @@ public sealed class ReadOnlyRunWorkflow
     private ReadOnlyRunReview? _review;
     private string? _reviewKey;
     private string _evidenceJson = "";
+    // Verified pending bytes outlive current-client presentation, but never authorise a new run.
+    private string _pendingEvidenceJson = "", _pendingTenantId = "", _pendingSummary = "", _pendingEvidenceId = "";
+    public const string PendingReason = "A verified report is not saved. Save, export or explicitly discard that original report before another run.";
 
     public ReadOnlyRunWorkflow(Func<(ConnectedTenant? Connection, TenantProfile? Profile)> current, EvidenceStore store, Func<long>? presentationGeneration = null)
         : this(current, ScriptCatalogue.Shipped, SystemClock.Instance, new ExchangeReportRunner(SystemClock.Instance).RunAsync, store.SaveExchangeReport)
@@ -62,7 +66,9 @@ public sealed class ReadOnlyRunWorkflow
     public string EvidenceJson => _evidenceJson;
     public string SavedFile { get; private set; } = "";
     public string Message { get; private set; } = ClosedReason;
-    public bool CanSave => !IsRunning && _evidenceJson.Length > 0 && SavedFile.Length == 0;
+    public bool CanSave => !IsRunning && HasPendingEvidence;
+    public bool HasPendingEvidence => _pendingEvidenceJson.Length > 0;
+    public string PendingSummary => HasPendingEvidence ? _pendingSummary : "";
     public bool Enabled { get { RefreshContext(); return _enabledConnection is not null; } }
     public bool CanEnable { get { try { Live(); return !IsRunning; } catch (ToolkitException) { return false; } } }
     public string ContextText
@@ -82,6 +88,7 @@ public sealed class ReadOnlyRunWorkflow
         get
         {
             if (IsRunning) return "A read-only run is active. Cancel requests a cooperative stop; the owned runner ends its own process if needed. Closing waits for completion.";
+            if (HasPendingEvidence) return PendingReason;
             try { Live(); }
             catch (ToolkitException) { return ContextText; }
             if (!Enabled) return ClosedReason;
@@ -163,6 +170,7 @@ public sealed class ReadOnlyRunWorkflow
 
     public ReadOnlyRunReview PrepareReview()
     {
+        if (HasPendingEvidence) throw new SafetyViolationException(PendingReason);
         if (IsRunning) throw new SafetyViolationException("Wait for the current run.");
         if (!Enabled) throw new SafetyViolationException(ClosedReason);
         var (entry, _, parameters) = Selection();
@@ -187,6 +195,7 @@ public sealed class ReadOnlyRunWorkflow
     public async Task RunAsync(ReadOnlyRunReview review, bool approved, IProgress<string>? progress, CancellationToken cancellation)
     {
         if (IsRunning) throw new SafetyViolationException("A run is already active.");
+        if (HasPendingEvidence) throw new SafetyViolationException(PendingReason);
         if (!Enabled) throw new SafetyViolationException(ClosedReason);
         var (entry, context, parameters) = Selection();
         if (!approved || !ReferenceEquals(review, _review) || _reviewKey != SelectionKey(entry)) throw new SafetyViolationException(ChangedReason);
@@ -224,6 +233,8 @@ public sealed class ReadOnlyRunWorkflow
                     || result.Outcome == ReadRunOutcome.TimedOut && evidence.Status == ReportReadState.Collected)
                     throw new IntegrityException(FailedReason);
                 _evidenceJson = ExchangeReportEvidenceSchema.Serialize(evidence);
+                _pendingEvidenceJson = _evidenceJson; _pendingTenantId = evidence.TenantId; _pendingEvidenceId = evidence.Id;
+                _pendingSummary = $"Unsaved original report: {evidence.ReportId}\nOriginal tenant: {evidence.TenantId}\nOriginal Exchange account: {evidence.ObservedAccountUpn}\nEvidence ID: {evidence.Id}\nThis retained report is separate from the current client and grants no execution authority.";
                 result = result with { Evidence = evidence };
             }
             Result = result;
@@ -263,13 +274,51 @@ public sealed class ReadOnlyRunWorkflow
         if (!CanSave) throw new SafetyViolationException("A verified unsaved report is required. A saved record is never overwritten.");
         SaveEvidenceCore();
     }
+    public string PendingEvidenceId => _pendingEvidenceId;
+
+    private void RequirePending(string expectedEvidenceId)
+    {
+        if (!CanSave || !string.Equals(expectedEvidenceId, _pendingEvidenceId, StringComparison.Ordinal))
+            throw new SafetyViolationException("The original unsaved report changed or is unavailable. Review its identity again.");
+        _ = ExchangeReportEvidenceSchema.Read(_pendingEvidenceJson, _pendingTenantId);
+    }
+
+    public void ExportEvidence(string path, string expectedEvidenceId)
+    {
+        RequirePending(expectedEvidenceId);
+        var bytes = Encoding.UTF8.GetBytes(_pendingEvidenceJson);
+        // New destinations only. A failed/partial export never clears the only retained original.
+        using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+        {
+            output.Write(bytes); output.Flush(flushToDisk: true); output.Position = 0;
+            if (!System.Security.Cryptography.SHA256.HashData(output).AsSpan().SequenceEqual(System.Security.Cryptography.SHA256.HashData(bytes)))
+                throw new IntegrityException("Exported bytes could not be verified. The original report is retained.");
+        }
+        Message = $"Original report {_pendingEvidenceId} for tenant {_pendingTenantId} exported and verified. This is not a new run or an imported evidence-store record.";
+        ClearPending();
+    }
+
+    public void DiscardEvidence(string expectedEvidenceId, bool confirmed)
+    {
+        RequirePending(expectedEvidenceId);
+        if (!confirmed) throw new SafetyViolationException("Confirm discarding this exact unsaved original report first.");
+        if (_evidenceJson == _pendingEvidenceJson) ClearReviewAndResult();
+        Message = $"Unsaved original report {_pendingEvidenceId} for tenant {_pendingTenantId} discarded explicitly. Existing disk records were not changed.";
+        ClearPending();
+    }
+
+    private void ClearPending()
+    { _pendingEvidenceJson = ""; _pendingTenantId = ""; _pendingSummary = ""; _pendingEvidenceId = ""; }
+
     private void SaveEvidenceCore()
     {
         try
         {
-            var report = ExchangeReportEvidenceSchema.Read(_evidenceJson, Result!.Evidence!.TenantId);
-            SavedFile = _save(report);
-            Message = "Verified evidence saved once in this tenant's local exchange-report-evidence folder. Its read states and limitations remain authoritative.";
+            var report = ExchangeReportEvidenceSchema.Read(_pendingEvidenceJson, _pendingTenantId);
+            var saved = _save(report);
+            if (_evidenceJson == _pendingEvidenceJson && Result?.Evidence?.Id == report.Id) SavedFile = saved;
+            ClearPending();
+            Message = $"Verified original evidence {report.Id} saved once for tenant {report.TenantId}. Its read states and limitations remain authoritative. No report was run again.";
         }
         catch (Exception) { Message = SaveFailedReason; }
     }

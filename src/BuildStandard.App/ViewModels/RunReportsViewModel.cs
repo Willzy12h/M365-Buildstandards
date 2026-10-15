@@ -29,6 +29,8 @@ public sealed class RunReportsViewModel : PageViewModel
         RunCommand = new AsyncCommand(RunAsync, _ => { _localMessage = ReadOnlyRunWorkflow.FailedReason; Refresh(); }, () => CanRun);
         CancelCommand = Safe(() => Workflow?.Cancel(), () => Workflow is { IsRunning: true, CancellationRequested: false });
         SaveEvidenceCommand = Safe(() => Workflow?.SaveEvidence(), () => Workspace.Idle && Workflow?.CanSave == true);
+        ExportEvidenceCommand = Safe(ExportOriginalEvidence, () => Workspace.Idle && Workflow?.CanSave == true);
+        DiscardEvidenceCommand = Safe(DiscardOriginalEvidence, () => Workspace.Idle && Workflow?.CanSave == true);
         CopyOutcomeCommand = Safe(() => PutOnClipboard(Workflow!.Output), () => Workspace.Idle && Workflow is { IsRunning: false, Output.Length: > 0 });
         CopyEvidenceCommand = Safe(() => PutOnClipboard(Workflow!.EvidenceJson), () => Workspace.Idle && Workflow is { IsRunning: false, EvidenceJson.Length: > 0 });
         OpenMailboxCapacityCommand = Safe(() => Shell.Navigate("mailbox-capacity"), () => Workspace.Idle && Workspace.Profile is not null);
@@ -44,10 +46,35 @@ public sealed class RunReportsViewModel : PageViewModel
     public ICommand RunCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand SaveEvidenceCommand { get; }
+    public ICommand ExportEvidenceCommand { get; }
+    public ICommand DiscardEvidenceCommand { get; }
     public ICommand CopyOutcomeCommand { get; }
     public ICommand CopyEvidenceCommand { get; }
     public ICommand OpenMailboxCapacityCommand { get; }
     internal Action<string> PutOnClipboard { get; set; } = System.Windows.Clipboard.SetText;
+
+    internal Func<string?> ChooseRecoveryPath { get; set; } = () =>
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog { Title = "Export original unsaved report", Filter = "Report evidence (*.json)|*.json", DefaultExt = ".json", AddExtension = true, FileName = "unsaved-report.json" };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    };
+    internal Func<string, bool> ConfirmDiscard { get; set; } = summary => System.Windows.MessageBox.Show(
+        summary + "\n\nDiscard this in-memory report? Any existing saved files remain untouched. This cannot be undone and does not run the report again.",
+        "Discard original unsaved report", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning,
+        System.Windows.MessageBoxResult.No) == System.Windows.MessageBoxResult.Yes;
+    private void ExportOriginalEvidence()
+    {
+        var id = Workflow!.PendingEvidenceId;
+        var path = ChooseRecoveryPath();
+        if (path is not null) Workflow.ExportEvidence(path, id);
+    }
+    private void DiscardOriginalEvidence()
+    {
+        var id = Workflow!.PendingEvidenceId;
+        if (ConfirmDiscard(Workflow.PendingSummary)) Workflow.DiscardEvidence(id, confirmed: true);
+    }
+    public bool HasPendingEvidence => Workflow?.HasPendingEvidence == true;
+    public string PendingSummary => Workflow?.PendingSummary ?? "";
 
     private RelayCommand Safe(Action work, Func<bool> canExecute) => new(() =>
     {
@@ -106,16 +133,17 @@ public sealed class RunReportsViewModel : PageViewModel
     public string Availability => !Workspace.Idle && Workflow?.IsRunning != true ? "Wait for the active workspace task. This page's Cancel does not stop another task."
         : (Workflow?.Blocker ?? ContextText) + (Workflow?.IsRunning == true ? "" : " Cancel is available only while this page's run is active.");
     public string LocalOutputGuidance => Workflow?.IsRunning == true ? "Copy and Save are unavailable until the owned run ends. Cancel only requests a stop; closing waits for it."
+        : HasPendingEvidence ? "Resolve the original unsaved report in the recovery panel: save it to its original client, export to a new local file, or explicitly discard it. Another run is blocked."
         : Workflow?.Result is null ? "No accepted outcome yet. Copy and Save become available after a verified outcome/report; review refusal and unavailable guidance above."
         : Workflow.EvidenceJson.Length == 0 ? "Copy outcome is available. There is no accepted report evidence to copy or save."
-        : Workflow.SavedFile.Length == 0 ? "Saving is unconfirmed; a disk copy may already exist. Inspect saved evidence and local access before explicitly choosing Save evidence. Copy sensitive evidence deliberately; no record is overwritten or run repeated."
+        : Workflow.SavedFile.Length == 0 ? "The original report was exported separately; it has not been admitted to the client evidence store. Copy outcome or evidence deliberately."
         : "Evidence was saved once locally. Save is disabled to preserve that immutable record. Copy outcome or sensitive evidence deliberately; no upload is performed.";
     public string Message => _localMessage.Length > 0 ? _localMessage : Workflow?.Message ?? ContextText;
     public string MailboxReviewGuidance => !Workspace.Idle ? "Wait for the active task to finish before opening mailbox capacity."
         : Workspace.Profile is null ? "Select a client in Connect before reviewing its mailbox evidence."
         : "Open Mailbox capacity to review a saved or supplied mailbox inventory alongside a users/licences report. Collect licences separately in Tenant reports if needed. Refresh the saved lists and explicitly select both source records; opening the page does not collect or choose evidence.";
     public string Output => Workflow?.Output ?? "";
-    public bool CanReview => Workspace.Idle && HasSelection && IsValid && Workflow is { Enabled: true, IsRunning: false };
+    public bool CanReview => Workspace.Idle && HasSelection && IsValid && Workflow is { Enabled: true, IsRunning: false, HasPendingEvidence: false };
     public bool CanRun => CanReview && Approved && _shownReview is not null && ReferenceEquals(_shownReview, Workflow?.Review);
 
     public void Revalidate()
@@ -162,7 +190,7 @@ public sealed class RunReportsViewModel : PageViewModel
         if (!ReferenceEquals(_shownReview, Workflow?.Review)) { _shownReview = null; _approved = false; }
         foreach (var name in new[] { nameof(ExperimentalReadEnabled), nameof(CanOptIn), nameof(Approved), nameof(HasReview), nameof(ReviewText),
             nameof(HasSelection), nameof(IsValid), nameof(HasProblems), nameof(Requirements), nameof(ContextText), nameof(Availability),
-            nameof(LocalOutputGuidance), nameof(MailboxReviewGuidance), nameof(Message), nameof(Output), nameof(CanReview), nameof(CanRun) }) OnPropertyChanged(name);
+            nameof(HasPendingEvidence), nameof(PendingSummary), nameof(LocalOutputGuidance), nameof(MailboxReviewGuidance), nameof(Message), nameof(Output), nameof(CanReview), nameof(CanRun) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

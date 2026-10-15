@@ -61,6 +61,14 @@ public partial class MainWindow : Window
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
     }
 
+    private static bool ShowPendingReport(ShellViewModel shell)
+    {
+        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
+        shell.Navigate("run-reports");
+        shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
+        return true;
+    }
+
     /// <summary>Never abandons an in-flight tenant write: closing waits for the executor to reach a safe boundary and finish evidence.</summary>
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
@@ -72,6 +80,7 @@ public partial class MainWindow : Window
             if (shell is null) return;
             e.Cancel = true;
             if (_closing) return;
+            if (ShowPendingReport(shell)) return;
             if (shell.Workspace.Busy)
             {
                 var message = "An operation is in progress.\n\n" + shell.Workspace.StopGuidance + "\n\nStop and close?";
@@ -80,6 +89,14 @@ public partial class MainWindow : Window
             _closing = true;
             IsEnabled = false;
             Title = shell.WindowTitle + " - finishing evidence before closing";
+            await shell.Workspace.StopAndWaitForEvidenceAsync();
+            // A stopped runner may return truthful partial evidence whose local save failed.
+            // Keep the workspace open for recovery before committing to shutdown/disconnect.
+            if (ShowPendingReport(shell))
+            {
+                _closing = false; IsEnabled = true; Title = shell.WindowTitle;
+                return;
+            }
             await shell.Workspace.ShutdownAsync();
             if (shell.Workspace.Executor.CompletionError.Length > 0)
                 MessageBox.Show(shell.Workspace.Executor.CompletionError, "Deployment needs review", MessageBoxButton.OK, MessageBoxImage.Warning);

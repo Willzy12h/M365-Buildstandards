@@ -1,5 +1,9 @@
 # Current goal
 
+## Approved engineering completion follow-up — 15 October 2026
+
+After accepted source promotion #129, William approved the [seven-part completion batch](superpowers/plans/2026-10-15-engineering-completion.md): unsupported/default-off/blocked macOS awareness and a successor standard; unsaved report recovery; object pickers and office grid; assessment-to-plan; clearer existing workflows; registered read-only adapters; deferred scoped findings and exact-source delivery. GPT implements all approved areas. Start from canonical main fd4d84d; preserve the completed WPF/WebView2 design and history. This authorises these specific follow-ups, not the old take-next backlog. Named review, live/permission/publication/protection gates remain. The prior owner acceptance covered the earlier candidate, not these new changes.
+
 ## Owner acceptance and canonical-source promotion — 15 October 2026
 
 William explicitly instructed in the project conversation: **“Merge and accept it all for me. Action these for me.”** This follows the stated acceptance, remaining-fix merge and primary-branch promotion steps; subsequent retry requests preserved that instruction. GPT records this owner acceptance prospectively, not as another Claude review or a passed human/live test.

@@ -1238,10 +1238,9 @@ public sealed class Workspace : ObservableObject
 
     // ---- shutdown ------------------------------------------------------------------------------------------------------
 
-    /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
-    public async Task ShutdownAsync()
+    /// <summary>Stops owned work and waits for evidence before the window checks for an unsaved local report.</summary>
+    public async Task StopAndWaitForEvidenceAsync()
     {
-        if (ShutdownComplete) return;
         CancelOperation();
         if (Executor.CurrentTask is not null)
         {
@@ -1250,6 +1249,13 @@ public sealed class Workspace : ObservableObject
         }
         if (_operationCompletion is not null) await _operationCompletion.Task;
         await CancelPendingDiscoveryAsync();
+    }
+
+    /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
+    public async Task ShutdownAsync()
+    {
+        if (ShutdownComplete) return;
+        await StopAndWaitForEvidenceAsync();
         await DisconnectCoreAsync();
         await DisconnectSetupCoreAsync();
         Logger.Info("App", "Toolkit closed.");
