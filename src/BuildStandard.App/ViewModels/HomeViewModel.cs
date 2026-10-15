@@ -11,7 +11,12 @@ public sealed class HomeViewModel : PageViewModel
 {
     public HomeViewModel(ShellViewModel shell) : base(shell, "Home")
     {
-        NextStepCommand = new RelayCommand(() => Shell.Navigate(Projection.NextPageKey), () => Projection.CanTakeNextAction);
+        NextStepCommand = new RelayCommand(() =>
+        {
+            // Time can pass without a workspace event; refresh the recommendation before following it.
+            Refresh();
+            Shell.Navigate(Projection.NextPageKey);
+        }, () => Shell.NextActionKey.Length > 0);
         OpenTaskCommand = new RelayCommand(value =>
         {
             if (value is HomeTaskCard task && IsHomeTask(task)) Shell.Navigate(task.PageKey);

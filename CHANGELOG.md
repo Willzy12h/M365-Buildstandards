@@ -382,6 +382,8 @@ Source changes on top of the published Preview.18 source (`10808de`). Not publis
 
 ## 1.1.0-preview.3 (2026-09-14) — independent review fixes
 
+- Home now refreshes its next-step guidance when clicked after idle expiry, matching the pinned header without signing in, sending requests or changing approval authority.
+
 - Approved phase T10: recognise neutral and historical portable ZIP names with exact pinned-source/hash checks; refuse ambiguous names. No publication or historical release change.
 
 

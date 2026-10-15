@@ -6,7 +6,7 @@ This is an internal preview. Use the exact reviewed package and its trusted chec
 
 ## Native command centre and working context
 
-Use the five groups **Workspace**, **Build standard**, **Reports**, **Scripts** and **Settings**. The page selector opens existing pages; navigation does not sign in or approve an action. Home’s recommendation and the header’s **Next step** use the same current-state guidance. **Discover the tenant**, **Assess saved evidence**, **Backfill a legacy build** and **Review a change plan** open their existing workflows. Repeat review and engineer handover remain available below them.
+Use the five groups **Workspace**, **Build standard**, **Reports**, **Scripts** and **Settings**. The page selector opens existing pages; navigation does not sign in or approve an action. Home’s recommendation and the header’s **Next step** use the same current-state guidance. Home refreshes that recommendation when clicked, so a session or plan that expired while the window was idle leads back to the appropriate review step. Navigation does not renew access or approve changes. **Discover the tenant**, **Assess saved evidence**, **Backfill a legacy build** and **Review a change plan** open their existing workflows. Repeat review and engineer handover remain available below them.
 
 The header keeps the working client, signed-in identity and permission meaning visible. **Connection and evidence details** exposes exact IDs/scopes and **Copy details**. Assessment operations remain read-only even when returned access is broader; broader or unclassified capabilities are highlighted. A mode label is not an authorisation grant.
 
