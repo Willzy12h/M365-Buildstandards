@@ -27,8 +27,13 @@ public sealed class AutomationViewModel : PageViewModel
     private bool _approved;
     private string _lastRunId = "", _lastLapsRunId = "";
     private string _devices = "";
-    private string _officeLocations = "";
-    public string OfficeLocations { get => _officeLocations; set => SetProperty(ref _officeLocations, value); }
+    public OfficeLocationEditor Offices { get; }
+    private OfficeLocationRow? _selectedOffice;
+    public OfficeLocationRow? SelectedOffice { get => _selectedOffice; set { SetProperty(ref _selectedOffice, value); CommandManager.InvalidateRequerySuggested(); } }
+    // Compatibility for existing profile/input harness callers; the native editor uses typed rows.
+    public string OfficeLocations { get => OfficeLocationValidator.Render(Offices.Rows.Select(r => r.Value())); set { Offices.Load(OfficeLocationValidator.ParseLines(value)); OnPropertyChanged(); } }
+    public ICommand AddOfficeCommand { get; }
+    public ICommand RemoveOfficeCommand { get; }
     private string _packageFile = "", _lastPackageRunId = "";
     private string? _savedCandidate;
     public string? SavedCandidate { get => _savedCandidate; set => SetProperty(ref _savedCandidate, value); }
@@ -38,6 +43,9 @@ public sealed class AutomationViewModel : PageViewModel
     public string DeviceIds { get => _devices; set { if (SetProperty(ref _devices, value)) ClearApproval(); } }
     public AutomationViewModel(ShellViewModel shell) : base(shell, "Policy automation")
     {
+        Offices = new OfficeLocationEditor(() => { ClearApproval(); OnPropertyChanged(nameof(OfficeLocations)); });
+        AddOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null) return; Offices.Add(); SelectedOffice = Offices.Rows.Last(); }, () => Workspace.Profile is not null && Workspace.Idle && Offices.Rows.Count < 100);
+        RemoveOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null || SelectedOffice is null) return; Offices.Remove(SelectedOffice); SelectedOffice = null; }, () => Workspace.Profile is not null && Workspace.Idle && SelectedOffice is not null);
         SaveInputsCommand = Sync(SaveInputs, () => Workspace.Profile is not null && Workspace.Idle);
         ChooseImportCommand = Sync(ChooseImport, () => Workspace.Idle);
         ImportCommand = Sync(Import, () => SelectedControl is not null && Workspace.Profile is not null && Workspace.Idle && !Workspace.IsConnected);
@@ -63,6 +71,37 @@ public sealed class AutomationViewModel : PageViewModel
     /// correct when the standard gains an input. The JSON box remains for imports and paste, but nothing requires it.
     /// </summary>
     public ObservableCollection<PolicyInputField> InputFields { get; } = new();
+    private bool _showAllInputs;
+    public bool ShowAllInputs { get => _showAllInputs; set { if (SetProperty(ref _showAllInputs, value)) RefreshInputScope(); } }
+    public IReadOnlyList<PolicyInputField> VisibleInputFields
+    {
+        get
+        {
+            var keys = PolicyInputScope.Keys(Workspace.Standard?.Parameters ?? [], SelectedControl, ShowAllInputs);
+            return InputFields.Where(f => keys.Contains(f.Key)).ToList();
+        }
+    }
+    public bool ShowOfficeEditor => ShowAllInputs || SelectedControl?.RepeatFor == "officeLocations";
+    public string InputScopeGuidance => ShowAllInputs ? "Showing all client inputs. Hidden/revealed fields retain their values; saving validates the whole profile."
+        : SelectedControl is null ? "Choose a control above to see its required inputs, or show all client inputs."
+        : $"Inputs for {SelectedControl.Name}. Use Show all client inputs to edit other values or resolve an error outside this control. Office rows are shown for the office-location control.";
+    public string ImportGuidance => !Workspace.Idle ? "Wait for the current task before changing the local candidate."
+        : Workspace.Profile is null ? "Select a client first. Imports stay in that client's local data folder."
+        : Workspace.IsConnected ? "Disconnect before importing or loading a candidate; then reconnect, capture and review it."
+        : "Choose a supported control and a policy JSON export, resolve foreign IDs and validate the local candidate. Nothing is deployed by importing.";
+    public string PreviewGuidance => !Workspace.Idle ? "Wait for the current task to finish." : !Workspace.IsConnected ? "Connect to the intended client first; preview reads state and sends no changes."
+        : "Choose the intended action and supply its inputs. Preview reads the current state; it does not apply the change.";
+    public string ApplyGuidance => !Workspace.Idle ? "Wait for the active operation to finish; do not repeat a write."
+        : !Workspace.IsDeploymentSession ? "Connect with deployment access, then prepare a fresh exact preview."
+        : !Workspace.ExperimentalChangesEnabled ? Workspace.ExperimentalChangeGuidance
+        : _plan is null && _lapsPlan is null && _packagePlan is null ? "Prepare a fresh exact preview first."
+        : !Approved ? "Read the exact preview, then tick its approval box. The target-tenant confirmation still applies."
+        : "Confirm the target tenant from this exact preview. Final freshness, ownership and unresolved-write checks still apply.";
+    private void RefreshInputScope()
+    {
+        OnPropertyChanged(nameof(VisibleInputFields)); OnPropertyChanged(nameof(ShowOfficeEditor)); OnPropertyChanged(nameof(InputScopeGuidance));
+    }
+
     public IReadOnlyList<ReviewedChangeKind> Kinds { get; } = Enum.GetValues<ReviewedChangeKind>();
     public IReadOnlyList<AssignmentPopulation> Populations { get; } = Enum.GetValues<AssignmentPopulation>();
     public AssignmentPopulation SelectedPopulation { get => _population; set { if (SetProperty(ref _population, value)) ClearApproval(); } }
@@ -84,7 +123,7 @@ public sealed class AutomationViewModel : PageViewModel
     public ICommand CheckReadinessCommand { get; }
     public ICommand LoadCandidateCommand { get; }
     public ObservableCollection<ServiceReadiness> Readiness { get; } = new();
-    public ControlDefinition? SelectedControl { get => _control; set { if (SetProperty(ref _control, value)) { ClearApproval(); OnPropertyChanged(nameof(Requirements)); } } }
+    public ControlDefinition? SelectedControl { get => _control; set { if (SetProperty(ref _control, value)) { ClearApproval(); OnPropertyChanged(nameof(Requirements)); RefreshInputScope(); } } }
     public ReviewedChangeKind Kind { get => _kind; set { if (SetProperty(ref _kind, value)) { ClearApproval(); OnPropertyChanged(nameof(IsAssignmentAction)); } } }
     public string PolicyInputs { get => _inputs; set => SetProperty(ref _inputs, value); }
     public string ImportFile { get => _importFile; set => SetProperty(ref _importFile, value); }
@@ -94,7 +133,7 @@ public sealed class AutomationViewModel : PageViewModel
     public string IncludedGroups { get => _include; set { if (SetProperty(ref _include, value)) ClearApproval(); } }
     public string ExcludedGroups { get => _exclude; set { if (SetProperty(ref _exclude, value)) ClearApproval(); } }
     public string TypedTenant { get => _typedTenant; set => SetProperty(ref _typedTenant, value); }
-    public bool Approved { get => _approved; set => SetProperty(ref _approved, value); }
+    public bool Approved { get => _approved; set { if (SetProperty(ref _approved, value)) OnPropertyChanged(nameof(ApplyGuidance)); } }
     public string Result { get => _result; private set => SetProperty(ref _result, value); }
     public string Requirements
     {
@@ -111,7 +150,7 @@ public sealed class AutomationViewModel : PageViewModel
         }
     }
     public string PreviewText => _plan is not null ? ToolkitJson.Serialize(_plan) : _lapsPlan is not null ? ToolkitJson.Serialize(_lapsPlan) : _packagePlan is not null ? ToolkitJson.Serialize(_packagePlan) : "Preview a change to inspect exact before/after settings, targets, tenant and consequences.";
-    private void ClearApproval() { _plan = null; _lapsPlan = null; _packagePlan = null; Approved = false; TypedTenant = ""; OnPropertyChanged(nameof(PreviewText)); }
+    private void ClearApproval() { _plan = null; _lapsPlan = null; _packagePlan = null; Approved = false; TypedTenant = ""; OnPropertyChanged(nameof(PreviewText)); OnPropertyChanged(nameof(ApplyGuidance)); }
     private static IEnumerable<string> Ids(string text) => text.Split(new[] { ',', ';', '\r', '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries);
     private void SaveInputs()
     {
@@ -135,7 +174,7 @@ public sealed class AutomationViewModel : PageViewModel
         profile.Parameters.PolicyInputs = values;
         if (Workspace.RequireStandard().SchemaVersion >= 5)
         {
-            profile.Parameters.OfficeLocations = OfficeLocationValidator.ParseLines(OfficeLocations);
+            profile.Parameters.OfficeLocations = Offices.Read();
             if (SelectedControl?.RepeatFor == "officeLocations" && profile.Parameters.OfficeLocations.Count == 0)
                 throw new ConfigurationException("Add a named office with at least one public CIDR range before saving this control.");
         }
@@ -315,7 +354,7 @@ public sealed class AutomationViewModel : PageViewModel
         {
             _inputContext = inputContext;
             PolicyInputs = ToolkitJson.Serialize(Workspace.Profile?.Parameters.PolicyInputs ?? new());
-            OfficeLocations = OfficeLocationValidator.Render(Workspace.Profile?.Parameters.OfficeLocations);
+            Offices.Load(Workspace.Profile?.Parameters.OfficeLocations); SelectedOffice = null; OnPropertyChanged(nameof(OfficeLocations));
             BuildInputFields();
             ClearApproval();
         }
@@ -333,6 +372,7 @@ public sealed class AutomationViewModel : PageViewModel
             foreach (var control in current) Controls.Add(control);
             _control = Controls.FirstOrDefault(c => c.Id == selectedId) ?? Controls.FirstOrDefault();
         }
-        OnPropertyChanged(nameof(SelectedControl)); OnPropertyChanged(nameof(Requirements));
+        OnPropertyChanged(nameof(SelectedControl)); OnPropertyChanged(nameof(Requirements)); RefreshInputScope();
+        OnPropertyChanged(nameof(ImportGuidance)); OnPropertyChanged(nameof(PreviewGuidance)); OnPropertyChanged(nameof(ApplyGuidance));
     }
 }

@@ -52,6 +52,17 @@
           <Expander Header="Notes and policy parameters" Margin="0,0,0,12">
             <StackPanel Margin="0,12,0,0">
               <TextBlock Text="Resolve named accounts in the exclusions section below. Existing account IDs can also be retained here." Style="{StaticResource Muted}" Margin="0,0,0,12"/>
+              <Expander Header="Find an existing group or named location" Margin="0,0,0,12">
+                <StackPanel>
+                  <TextBlock Text="Use existing read access. Select the intended purpose and search by name or exact ID; a matching name alone never establishes ownership." Style="{StaticResource Muted}"/>
+                  <ComboBox ItemsSource="{Binding ObjectPurposes}" SelectedItem="{Binding ObjectPurpose}" AutomationProperties.Name="Object lookup purpose"/>
+                  <TextBox Text="{Binding ObjectQuery, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Object name or exact ID"/>
+                  <Button Content="Find objects" Command="{Binding SearchObjectsCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Connect read-only to the intended client and wait for any active operation."/>
+                  <ComboBox ItemsSource="{Binding ObjectMatches}" SelectedItem="{Binding SelectedObject}" DisplayMemberPath="Label" AutomationProperties.Name="Exact object name and ID choices"/>
+                  <Button Content="Use selected object" Command="{Binding UseObjectCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Choose an exact result from a successful search in the current client. This fills local inputs only."/>
+                  <TextBlock Text="{Binding ObjectStatus}" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Expander>
               <TextBlock Text="Emergency-access account IDs (comma separated)" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Emergency-access account IDs" Text="{Binding EditEmergencyIds, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
               <TextBlock Text="Office named location ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Office named location ID" Text="{Binding EditOfficeLocationId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
               <TextBlock Text="Approved MAM-only group ID" Style="{StaticResource FieldLabel}"/><TextBox AutomationProperties.Name="Approved MAM-only group ID" Text="{Binding EditMamGroupId, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
