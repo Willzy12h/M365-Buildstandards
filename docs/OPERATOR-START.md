@@ -168,3 +168,10 @@ The reader alone requires an organisation-managed Stable Evergreen WebView2 Runt
 The assessment selector lists only readable evidence matching the capture in view and the selected Build Standard. **Do not cite an assessment** records your own outcome without adding an assessment citation; it does not verify a requirement by itself. The guidance beneath the selector explains whether a saved capture is needed, no evidence matches, or other captures/releases were excluded.
 
 An unreadable or wrong-client history file appears in the copyable **Job needs review** details. Healthy matching assessments remain available. Preserve the original file and inspect local evidence/diagnostics; the tool does not delete or repair it automatically. A selection or completed job does not authorise a tenant change.
+
+
+### Supported device scope
+
+The 2026.10.15 successor standard requires compliant **Windows** devices in CA-005. macOS is unsupported: devices returned by Intune can be inspected in the inventory, but macOS deployment and macOS compliance requirements are blocked. There is no switch to enable them. This does not add a tenant policy denying macOS access. Other ordinary tenant-wide policies, such as MFA, retain their reviewed scope.
+
+Historical standards remain readable and unchanged. Their Windows-and-macOS CA-005 recipe is now blocked from deployment; select the successor and review its upgrade impact. Existing live policies are never renamed or retargeted automatically. Preserve emergency/operator exclusions, disabled CA candidates and unassigned Intune candidates. Activation and assignment remain separately reviewed actions.

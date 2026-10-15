@@ -45,4 +45,38 @@ public sealed class UnsupportedMacPlatformTests
         var error = Assert.Throws<SafetyViolationException>(() => WritePayloadGuard.Assert(definition, payload));
         Assert.Contains("macOS", error.Message);
     }
+    [Fact]
+    public void Successor_lineage_preserves_history_and_marks_only_CA005_as_changed()
+    {
+        var directory = Path.Combine(Root, "standards");
+        var manifest = StandardsManifest.Load(directory);
+        Assert.Equal("124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f", manifest.Verify(directory, "2026.09.30.json"));
+        Assert.Equal(64, manifest.Verify(directory, "2026.10.15.json").Length);
+        var lineage = ReleaseLineage.Load(directory, manifest, "2026.10.15")!;
+        var relation = Assert.Single(Assert.Single(lineage.Sources).Relations);
+        Assert.Equal("CA-005", relation.SourceControl); Assert.Equal("Changed", relation.Relation);
+        var old = JsonNode.Parse(File.ReadAllText(Path.Combine(directory, "2026.09.30.json")))!;
+        var current = JsonNode.Parse(File.ReadAllText(Path.Combine(directory, "2026.10.15.json")))!;
+        var oldControls = old["controls"]!.AsArray().ToDictionary(x => x!["id"]!.ToString());
+        Assert.Equal(oldControls.Count, current["controls"]!.AsArray().Count);
+        foreach (var control in current["controls"]!.AsArray().Where(x => x!["id"]!.ToString() != "CA-005"))
+            Assert.True(JsonNode.DeepEquals(oldControls[control!["id"]!.ToString()], control));
+        Assert.True(JsonNode.DeepEquals(old["collections"], current["collections"]));
+        Assert.True(JsonNode.DeepEquals(old["parameters"], current["parameters"]));
+    }
+
+    [Fact]
+    public void Windows_compliance_and_all_platform_MFA_are_preserved()
+    {
+        var definition = new CollectionDefinition { Path = "/identity/conditionalAccess/policies" };
+        var payload = JsonNode.Parse("""{"state":"disabled","conditions":{"platforms":{"includePlatforms":["windows"]}},"grantControls":{"builtInControls":["compliantDevice"]}}""")!.AsObject();
+        WritePayloadGuard.Assert(definition, payload);
+        payload["conditions"]!["platforms"]!["includePlatforms"] = new JsonArray("all");
+        payload["grantControls"]!["builtInControls"] = new JsonArray("mfa");
+        WritePayloadGuard.Assert(definition, payload);
+        payload["grantControls"]!["builtInControls"] = new JsonArray("compliantDevice");
+        payload["conditions"]!["platforms"]!["excludePlatforms"] = new JsonArray("macOS");
+        WritePayloadGuard.Assert(definition, payload);
+    }
+
 }

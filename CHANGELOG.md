@@ -1,5 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add unpublished 2026.10.15 Windows-only CA-005 successor with verified lineage; preserve historical standards and block unsupported macOS deployment while retaining read-only inventory (#131).
 - Assessment history reports blocked storage paths and rejects null finding data without hiding healthy citations or rewriting saved evidence.
 - Keep blank and unfamiliar write-history outcomes uncertain across recovery, reviewed changes, LAPS and package operations; preserve recorded evidence and operation-specific verification (#126).
 - Show unreadable or wrong-client assessment history in copyable Jobs review details; keep healthy citations and explain missing capture, unmatched history and optional citation (#127).

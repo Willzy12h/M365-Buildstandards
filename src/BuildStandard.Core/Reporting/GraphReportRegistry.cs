@@ -25,7 +25,7 @@ public static class GraphReportRegistry
         Make("intune-devices", "Intune managed devices", false, [new("devices", typeof(DeviceReportRow), true)],
             [new("/deviceManagement/managedDevices", "DeviceManagementManagedDevices.Read.All")],
             "https://learn.microsoft.com/en-us/graph/api/intune-devices-manageddevice-list?view=graph-rest-1.0",
-            "Only Intune-returned managed devices are included. Enrolment type and management agent are reported separately; they do not identify physical form factor. Missing ownership, compliance or last sync stays unknown."),
+            "Only Intune-returned managed devices are included. macOS devices are inventory-only: macOS deployment is unsupported and blocked in BuildStandard. Enrolment type and management agent are reported separately; they do not identify physical form factor. Missing ownership, compliance or last sync stays unknown."),
         Make("mfa-registration", "Authentication and MFA registration", false, [new("registration", typeof(RegistrationReportRow), true)],
             [new("/reports/authenticationMethods/userRegistrationDetails", "AuditLog.Read.All")],
             "https://learn.microsoft.com/en-us/graph/api/authenticationmethodsroot-list-userregistrationdetails?view=graph-rest-1.0",

@@ -16,6 +16,16 @@ namespace BuildStandard.Tests;
 public class GraphClientTests
 {
     [Fact]
+    public async Task Unsupported_macOS_candidate_is_refused_before_token_acquisition_or_send()
+    {
+        var (client, handler, tokens) = Create();
+        var payload = new JsonObject { ["@odata.type"] = "#microsoft.graph.macOSCompliancePolicy", ["displayName"] = "Synthetic unsupported macOS policy" };
+        var error = await Assert.ThrowsAsync<WriteNotSentException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/deviceManagement/deviceCompliancePolicies", payload, CancellationToken.None));
+        Assert.Contains("macOS", error.Message); Assert.Empty(handler.Requests); Assert.Equal(0, tokens.Calls);
+    }
+
+    [Fact]
     public async Task Report_context_reuses_provider_but_cannot_write_even_in_deployment_mode()
     {
         var (source, handler, tokens) = Create();
