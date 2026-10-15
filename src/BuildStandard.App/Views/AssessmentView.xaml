@@ -87,6 +87,8 @@
               </StackPanel></ScrollViewer></TabItem>
               <TabItem Header="Finding evidence"><ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0"><StackPanel>
                 <TextBox AutomationProperties.Name="Selected finding detail" Text="{Binding SelectedDetail, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Margin="0,0,0,4"/>
+                <Button Content="Add to plan" Command="{Binding AddToPlanCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding AddToPlanGuidance}" AutomationProperties.Name="Add selected finding to plan"/>
+                <TextBlock Text="{Binding AddToPlanGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
                 <Button Content="Copy finding detail" Command="{Binding CopyDetailCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
                 <ItemsControl ItemsSource="{Binding Notes}" Margin="0,8,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Style="{StaticResource Muted}" Margin="0,0,0,8"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
               </StackPanel></ScrollViewer></TabItem>

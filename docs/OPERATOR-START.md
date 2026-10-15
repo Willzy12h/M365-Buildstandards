@@ -133,7 +133,7 @@ Under **OPERATE → Run reports**, select the registered mailbox report and an a
 
 Fill in the typed values and choose **Review run**. Read **Exact review**, tick its separate approval and choose **Run**. Changing the client, account, runtime or values requires a new review. Exchange sign-in is separate from Graph and may require Microsoft CA/MFA/consent. Page navigation does not sign in. If application control blocks execution, ask the security owner; do not change policy or switch hosts to evade the block.
 
-Read **Outcome** and its original source/read states. Cancel waits for this owned run to stop; a cancelled or failed read is not an empty result. **Copy outcome**, **Copy evidence JSON** and **Save evidence** are deliberate local actions after completion. If saving is unconfirmed, inspect saved evidence and folder access first; an existing record is never overwritten and Save does not rerun the report. The separate **Scripts & Reports** page continues Copy/Save only, including all Exchange change proposals. Run is experimental/live-unverified until accepted.
+Read **Outcome** and its original source/read states. Cancel waits for this owned run to stop; a cancelled or failed read is not an empty result. **Copy outcome** and **Copy evidence JSON** are deliberate local actions after completion. If saving fails, the **Original report needs saving** panel retains verified bytes and their original tenant/account separately from the current client. Inspect folder access, then choose **Save to original client**, **Export original JSON** to a new file, or explicitly confirm **Discard original report**. Disconnecting or changing report/client inputs clears the current result view but does not destroy this pending original. Another run and normal window close are blocked until it is resolved. Export checks the written bytes and never overwrites a file; it does not admit evidence to the current client. None of these actions reruns the report. Pending recovery is in memory: a process crash or forced termination can still lose it. The separate **Scripts & Reports** page continues Copy/Save only, including all Exchange change proposals. Run is experimental/live-unverified until accepted.
 
 Choose **Open mailbox capacity** in Outcome to continue to quota and eligibility review. It opens the historical review page without collecting, selecting a source or changing Run approval. You still need a separately collected users/licences report and must explicitly choose both records.
 
@@ -168,3 +168,28 @@ The reader alone requires an organisation-managed Stable Evergreen WebView2 Runt
 The assessment selector lists only readable evidence matching the capture in view and the selected Build Standard. **Do not cite an assessment** records your own outcome without adding an assessment citation; it does not verify a requirement by itself. The guidance beneath the selector explains whether a saved capture is needed, no evidence matches, or other captures/releases were excluded.
 
 An unreadable or wrong-client history file appears in the copyable **Job needs review** details. Healthy matching assessments remain available. Preserve the original file and inspect local evidence/diagnostics; the tool does not delete or repair it automatically. A selection or completed job does not authorise a tenant change.
+
+
+### Supported device scope
+
+The 2026.10.15 successor standard requires compliant **Windows** devices in CA-005. macOS is unsupported: devices returned by Intune can be inspected in the inventory, but macOS deployment and macOS compliance requirements are blocked. There is no switch to enable them. This does not add a tenant policy denying macOS access. Other ordinary tenant-wide policies, such as MFA, retain their reviewed scope.
+
+Historical standards remain readable and unchanged. Their Windows-and-macOS CA-005 recipe is now blocked from deployment; select the successor and review its upgrade impact. Existing live policies are never renamed or retargeted automatically. Preserve emergency/operator exclusions, disabled CA candidates and unassigned Intune candidates. Activation and assignment remain separately reviewed actions.
+### Choosing client objects and offices
+
+In Connect → Notes and policy parameters, **Find an existing group or named location** uses the current client's existing read access. Choose the purpose, enter a name or exact ID, then **Find objects**. Select the exact name/ID and **Use selected object**; this fills local inputs only. Save/apply them before collecting a new plan. Duplicate names remain separate choices. Failed or incomplete lookup is shown as unavailable, never as proof that the object is absent. Existing exact-ID entry remains available and is subject to normal readiness/reference checks.
+
+In Policy automation → Policy inputs, add one office row per site. Enter its friendly name and public CIDR ranges, separated by commas. Correct the inline errors before saving. Its stable key appears in **Selected office stable key** and survives renaming; removing a row only changes local inputs until saved. Public-IP validation remains authoritative; no DNS lookup, named-location creation or assignment occurs here. Directory device lookup requiring extra access is not added by this update.
+
+
+Policy inputs now show the fields used by the selected control. **Show all client inputs** reveals other saved fields and office rows without discarding any edits. Local policy imports have their own **Local imports** tab and require disconnecting. Application package upload and tenant activation/targeting remain separate tabs with their existing exact previews and approvals. Disabled actions explain the required connection, input or review step; the common progress display still reports the active operation.
+
+### From a finding to a reviewed plan
+
+Select a finding in the full current assessment and choose **Add to plan**. The tool opens Plan changes and ticks that exact eligible control, retaining other choices from the same source. Read the explanation beside a disabled button: historical/partial evidence, failed reads, manual controls and unowned partial matches cannot use this shortcut. Changing client, capture, standard, assessment or session clears stale selections.
+
+This step does not build, approve or run a plan. Build the plan deliberately, resolve its readiness checks, review the exact proposal and obtain the normal approval before deployment. Candidates remain disabled/unassigned; no score or protection claim is inferred from adding a finding.
+
+### Local exception review
+
+Saving or removing an exception refreshes an assessment when either full configuration or supplemental Exchange evidence is open. Office-based exceptions select the individual office control, not its template. Original captures and their timestamps are unchanged. The existing Exchange assessment applies explicit Not applicable exceptions; an Approved deviation record does not currently replace its observed Exchange finding with Compliant with deviation. This update preserves that distinction and creates no deployment approval.

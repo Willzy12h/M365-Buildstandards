@@ -6,6 +6,7 @@ using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Json;
 using BuildStandard.Engine.Identity;
 using BuildStandard.Graph;
+using BuildStandard.App.Services;
 
 namespace BuildStandard.App.ViewModels;
 
@@ -21,6 +22,51 @@ public sealed class ConnectViewModel : PageViewModel
     private ExclusionAccount? _selectedAccount, _selectedExclusion;
     private List<string> _additionalIds = new();
     private DiscoveredTenant? _discovered;
+    private string _objectQuery = "", _objectPurpose = "Office named location", _objectStatus = "Connect read-only to find an existing object. Exact IDs remain available below.";
+    private ResolvedTenantObject? _selectedObject;
+    private PresentationContextKey? _objectContext;
+    public ObservableCollection<ResolvedTenantObject> ObjectMatches { get; } = new();
+    public string[] ObjectPurposes { get; } = ["Office named location", "MAM-only group", "Pilot group", "CA exclusion group"];
+    public string ObjectQuery { get => _objectQuery; set { if (SetProperty(ref _objectQuery, value)) ClearObjects(); } }
+    public string ObjectPurpose { get => _objectPurpose; set { if (SetProperty(ref _objectPurpose, value)) ClearObjects(); } }
+    public string ObjectStatus { get => _objectStatus; private set => SetProperty(ref _objectStatus, value); }
+    public ResolvedTenantObject? SelectedObject { get => _selectedObject; set { SetProperty(ref _selectedObject, value); CommandManager.InvalidateRequerySuggested(); } }
+    public ICommand SearchObjectsCommand { get; }
+    public ICommand UseObjectCommand { get; }
+    private bool CanUseObject => Workspace.Idle && SelectedObject is not null && ObjectMatches.Contains(SelectedObject) && _objectContext is not null && Workspace.IsCurrent(_objectContext)
+        && string.Equals(EditTenantId.Trim(), SelectedObject.TenantId, StringComparison.OrdinalIgnoreCase);
+    private void ClearObjects() { ObjectMatches.Clear(); SelectedObject = null; _objectContext = null; }
+    private Task SearchObjectsAsync() => Workspace.RunExclusiveAsync("Finding the selected object", async _ =>
+    {
+        ClearObjects(); ObjectStatus = "Reading existing objects; this makes no changes.";
+        var context = Workspace.CapturePresentationContext(); var connection = Workspace.RequireConnection();
+        var query = ObjectQuery; var purpose = ObjectPurpose; var tenant = EditTenantId.Trim();
+        try
+        {
+            var kind = purpose == "Office named location" ? ObjectLookupKind.NamedLocation : ObjectLookupKind.Group;
+            var matches = await ObjectResolver.SearchAsync(connection.Graph, tenant, kind, query, Workspace.OperationToken);
+            if (!Workspace.IsCurrent(context) || query != ObjectQuery || purpose != ObjectPurpose || tenant != EditTenantId.Trim())
+                throw new TenantMismatchException("Client or lookup inputs changed. Search again before selecting an object.");
+            foreach (var match in matches) ObjectMatches.Add(match);
+            _objectContext = context;
+            ObjectStatus = matches.Count == 0 ? "Lookup completed: no matching objects. Try the exact object ID." : $"{matches.Count} matches. Select the exact name and ID, then use the selected object. No object is selected automatically.";
+        }
+        catch { ClearObjects(); ObjectStatus = "Could not complete lookup. No objects were selected. Check current access or use an exact ID; this is not a successful empty result."; throw; }
+    });
+    private void UseObject()
+    {
+        if (!CanUseObject) throw new TenantMismatchException("Resolve the object again in the current client before selecting it.");
+        var id = SelectedObject!.ObjectId;
+        switch (ObjectPurpose)
+        {
+            case "Office named location": EditOfficeLocationId = id; break;
+            case "MAM-only group": EditMamGroupId = id; break;
+            case "Pilot group": EditPilotGroupId = id; break;
+            case "CA exclusion group": EditCaExclusionGroupId = id; break;
+            default: throw new ConfigurationException("Choose a supported object purpose.");
+        }
+        ObjectStatus = "Selected locally: " + SelectedObject.Label + ". Save/apply the client inputs and capture a new plan; no tenant changes were made.";
+    }
 
     public ConnectViewModel(ShellViewModel shell) : base(shell, "Connect")
     {
@@ -39,6 +85,8 @@ public sealed class ConnectViewModel : PageViewModel
         CopyAccessCommand = CopyText(AccessReportText);
         ConnectDeploymentCommand = Command(() => ConnectAsync(SessionMode.Deployment), () => Workspace.Idle);
         CheckAccessCommand = Command(Workspace.CheckAccessAsync, () => Workspace.IsConnected && Workspace.Idle);
+        SearchObjectsCommand = Command(SearchObjectsAsync, () => Workspace.IsConnected && Workspace.Idle);
+        UseObjectCommand = Sync(UseObject, () => CanUseObject);
         SearchAccountsCommand = Command(SearchAccountsAsync, () => Workspace.IsConnected && Workspace.Idle);
         AddExclusionCommand = Sync(AddExclusion, () => Workspace.Idle && SelectedAccount is not null);
         RemoveExclusionCommand = Sync(RemoveExclusion, () => Workspace.Idle && SelectedExclusion is not null);
@@ -246,6 +294,7 @@ public sealed class ConnectViewModel : PageViewModel
 
     private void LoadForm(TenantProfile? p)
     {
+        ClearObjects();
         _loadedProfile = p is null ? null : ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(p));
         RememberConnection = p is not null;
         AccountMatches.Clear();
@@ -370,6 +419,7 @@ public sealed class ConnectViewModel : PageViewModel
 
     public override void Refresh()
     {
+        if (_objectContext is not null && !Workspace.IsCurrent(_objectContext)) { ClearObjects(); ObjectStatus = "Client context changed. Search again before selecting an object."; }
         OnPropertyChanged(nameof(OfflineReviewGuidance));
         OnPropertyChanged(nameof(ExperimentalChangesEnabled));
         OnPropertyChanged(nameof(CanEnableExperimentalChanges));

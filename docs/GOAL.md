@@ -1,5 +1,15 @@
 # Current goal
 
+## Owner acceptance of follow-up PRs #130–136 — 15 October 2026
+
+William subsequently explicitly instructed **“Accept and merge all Of it”** in response to the pending #135 contract and #136 candidate acceptance gates. This prospectively accepts the current follow-up source and the specific INT-121 contract, and authorises their merge into canonical main through #136 after current checks pass. Compose #135 with #136 so the already-tested GPT-CAND-001/002 repairs land with the feature branches; preserve all original PRs and histories. This is owner acceptance, not a fabricated Claude review. Existing enforced checks/protection remain; no administrative bypass.
+
+The contract acceptance permits subsequent approved task6 implementation after the contract merges, but does not claim adapters already exist or accept future implementation changes. Required future reviews remain. No publication, tag, version bump, live tenant operation or new permission is authorised. H1, human accessibility, workstation-policy and live acceptance remain unrun. Record the actual merge and resulting main CI/package identities in #136 and issue #83.
+
+## Approved engineering completion follow-up — 15 October 2026
+
+After accepted source promotion #129, William approved the [seven-part completion batch](superpowers/plans/2026-10-15-engineering-completion.md): unsupported/default-off/blocked macOS awareness and a successor standard; unsaved report recovery; object pickers and office grid; assessment-to-plan; clearer existing workflows; registered read-only adapters; deferred scoped findings and exact-source delivery. GPT implements all approved areas. Start from canonical main fd4d84d; preserve the completed WPF/WebView2 design and history. This authorises these specific follow-ups, not the old take-next backlog. Named review, live/permission/publication/protection gates remain. The prior owner acceptance covered the earlier candidate, not these new changes.
+
 ## Owner acceptance and canonical-source promotion — 15 October 2026
 
 William explicitly instructed in the project conversation: **“Merge and accept it all for me. Action these for me.”** This follows the stated acceptance, remaining-fix merge and primary-branch promotion steps; subsequent retry requests preserved that instruction. GPT records this owner acceptance prospectively, not as another Claude review or a passed human/live test.

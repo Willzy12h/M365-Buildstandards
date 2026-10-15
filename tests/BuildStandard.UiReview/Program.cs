@@ -153,7 +153,10 @@ internal static partial class Program
                     if (nav.Key is "standard" or "plan" or "automation")
                         CapturePrerequisites(content, size, output, nav.Key);
                     if (nav.Key == "automation")
+                    {
+                        CaptureOfficeEditor(shell, content, size, output);
                         CaptureAssignmentPopulations(shell, content, size, output);
+                    }
                     if (nav.Key == "assessment")
                         CaptureScopedChecks(shell, content, size, output);
                     if (nav.Key == "setup")
@@ -840,6 +843,32 @@ internal static partial class Program
             throw new InvalidOperationException($"Expanded guidance left the {page} list unusable: {visible.Width:0}x{visible.Height:0}, {rows} visible rows.");
     }
 
+    private static void CaptureOfficeEditor(ShellViewModel shell, FrameworkElement content, Size size, string output)
+    {
+        var page = shell.Page<AutomationViewModel>(); var original = page.Offices.Read(); var showAll = page.ShowAllInputs;
+        var tabs = Descendants(content).OfType<TabControl>().First(); var oldTab = tabs.SelectedIndex;
+        try
+        {
+            page.ShowAllInputs = true;
+            page.Offices.Load([new OfficeLocation { Key = "SYNTHETIC", Name = "Synthetic office", IpRanges = ["8.8.8.8/32"] }]);
+            var count = page.Offices.Rows.Count;
+            page.AddOfficeCommand.Execute(null);
+            if (page.Offices.Rows.Count != count + 1 || page.SelectedOffice is null) throw new InvalidOperationException("Add office did not create a selected local row.");
+            page.RemoveOfficeCommand.Execute(null);
+            if (page.Offices.Rows.Count != count) throw new InvalidOperationException("Remove office did not remove the selected local row.");
+            tabs.SelectedIndex = 1; content.UpdateLayout(); Pump();
+            var grid = Descendants(content).OfType<DataGrid>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Office locations and public ranges");
+            grid.BringIntoView(); content.UpdateLayout(); Pump();
+            var key = page.Offices.Rows[0].Key; page.Offices.Rows[0].Name = "Renamed synthetic office";
+            if (page.Offices.Read()[0].Key != key) throw new InvalidOperationException("Office rename changed its stable identity.");
+            page.Offices.Rows[0].Ranges = "10.0.0.0/8"; content.UpdateLayout(); Pump();
+            if (page.Offices.Problem.Length == 0) throw new InvalidOperationException("Private range had no visible validation error.");
+            RecordUnnamedControls(content, "office grid"); RecordCollapsedColumns(content, "office grid"); RecordClipping(content, "office grid"); RecordLowContrast(content, "office grid");
+            SaveImage(content, size, Path.Combine(output, $"office-grid-{(int)size.Width}x{(int)size.Height}.png"));
+        }
+        finally { page.Offices.Load(original); page.ShowAllInputs = showAll; tabs.SelectedIndex = oldTab; content.UpdateLayout(); Pump(); }
+    }
+
     private static void CaptureAssignmentPopulations(ShellViewModel shell, FrameworkElement content, Size size, string output)
     {
         var vm = shell.Page<AutomationViewModel>();
@@ -848,7 +877,7 @@ internal static partial class Program
         vm.IncludedGroups = "";
         vm.ExcludedGroups = Id(40);
         var tabs = Descendants(content).OfType<TabControl>().First();
-        tabs.SelectedIndex = 3;
+        tabs.SelectedItem = tabs.Items.OfType<TabItem>().Single(t => Equals(t.Header, "Tenant changes and targeting"));
         content.UpdateLayout(); Pump();
         var population = Descendants(content).OfType<ComboBox>().Single(c =>
             System.Windows.Automation.AutomationProperties.GetName(c) == "Assignment population");

@@ -649,6 +649,8 @@ internal static partial class Program
         ("ConnectViewModel.ReviewOfflineCommand", "pressed by the separate cold-start offline journey at all three sizes"),
         ("ConnectViewModel.CheckAccessCommand", TenantRead),
         ("ConnectViewModel.SearchAccountsCommand", TenantRead),
+        ("ConnectViewModel.SearchObjectsCommand", TenantRead),
+        ("ConnectViewModel.UseObjectCommand", Disabled),
         ("ConnectViewModel.CopyApplicationCommand", Clipboard),
         ("ConnectViewModel.CopyAccessCommand", Clipboard),
 
@@ -696,6 +698,7 @@ internal static partial class Program
         ("AssessmentViewModel.OpenExportCommand", Explorer),
         ("AssessmentViewModel.ExportUpgradeImpactCommand", Press),
         ("AssessmentViewModel.CopyDetailCommand", Clipboard),
+        ("AssessmentViewModel.AddToPlanCommand", Press),
         ("AssessmentViewModel.CheckAreaCommand", Press),
         ("AssessmentViewModel.CheckControlCommand", Press),
         ("AssessmentViewModel.CopyPartialCommand", Clipboard),
@@ -793,6 +796,8 @@ internal static partial class Program
         ("StandardViewModel.ExportDefinitionMarkdownCommand", Press),
 
         ("AutomationViewModel.SaveInputsCommand", Press),
+        ("AutomationViewModel.AddOfficeCommand", "local editing exercised by the native office grid check at all three sizes"),
+        ("AutomationViewModel.RemoveOfficeCommand", "local editing exercised by the native office grid check at all three sizes"),
         ("AutomationViewModel.ImportCommand", Press),
         ("AutomationViewModel.LoadCandidateCommand", Press),
         ("AutomationViewModel.ChooseImportCommand", FilePicker),
@@ -832,6 +837,8 @@ internal static partial class Program
         ("RunReportsViewModel.RunCommand", SignIn),
         ("RunReportsViewModel.CancelCommand", Disabled),
         ("RunReportsViewModel.SaveEvidenceCommand", Disabled),
+        ("RunReportsViewModel.ExportEvidenceCommand", Disabled),
+        ("RunReportsViewModel.DiscardEvidenceCommand", Disabled),
         ("RunReportsViewModel.CopyOutcomeCommand", Disabled),
         ("RunReportsViewModel.CopyEvidenceCommand", Disabled),
     };
@@ -874,6 +881,17 @@ internal static partial class Program
         ["MailboxCapacityViewModel.ExportJsonCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ExportCsvCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ExportXlsxCommand"] = SeedMailboxCapacityPage,
+        ["AssessmentViewModel.AddToPlanCommand"] = shell =>
+        {
+            var workspace = shell.Workspace;
+            workspace.Evidence.SaveSnapshot(workspace.Snapshot!);
+            Set(workspace, nameof(Workspace.SnapshotIsLive), true);
+            workspace.RunAssessment();
+            var page = shell.Page<AssessmentViewModel>(); page.FilterStatus = "All"; page.FilterArea = "All areas";
+            page.Selected = page.Findings.FirstOrDefault(f => f.Finding.Status == FindingStatus.Missing
+                && ControlInstances.Find(workspace.RequireStandard(), workspace.Profile, f.ControlId) is { HasRecipe: true } c
+                && workspace.RequireStandard().FindCollection(c.Collection)?.Writable == true);
+        },
         ["RunReportsViewModel.ReviewCommand"] = SeedReadRun,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,

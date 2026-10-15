@@ -883,3 +883,53 @@ William explicitly instructed in the project session “Merge and accept it all 
 Fresh supplementary GPT review of the main-promotion candidate found a remaining R-3 presentation edge: Home cached its recommendation until Refresh, while the header recomputed current guidance. Time passing alone could send Home to Deploy after opt-in expiry; execution still refused. Under William’s current approved-workflow/usability instruction, refresh the existing shared projection before navigation and query the header’s current action for command availability. No background timer, authentication, Graph call, engine policy or authority change.
 
 The new actual-command/injected-clock Windows regression failed first at9361b18/run38701974064: expected connect, actual deploy;2449 engine and491 other App tests passed. It retains the plan, performs no new reads/writes and never manually refreshes Home after advancing the clock. Preserve the original refresh/expiry, busy, purity and navigation tests. Full changed-source Windows/native/hosted/package checks remain required.
+
+## INT-116 — retain verified unsaved read-only reports independently of current context (15 October 2026)
+
+William approved the completion follow-up. GPT-R-007 / CLA-20261011-201/-202 were excluded from T0–T10; PR130 now addresses the observed reset path. Current context changes still invalidate approval and clear current presentation. A separate in-memory immutable pending JSON/tenant/evidence identity survives, with explicit original-client guidance. Save retries only the existing immutable store; export is new-file-only and verifies exact bytes; discard requires the exact pending ID and explicit confirmation. No new read can replace a pending report. Recovery creates no token, consent, request retry, evidence admission for another tenant or new schema. Process crash cannot preserve unsaved memory; normal close must direct the engineer to resolve it first. Existing records and uncertain prior save results are never overwritten/deleted. New source/independent review gates remain separate from the earlier main acceptance.
+
+## INT-117 — Unsupported macOS boundary and Windows-only successor (15 October 2026)
+
+William approved macOS as unsupported, default-off and blocked. The unpublished 2026.10.15 successor narrows CA-005 to Windows and retains its existing object name to avoid an incidental rename. CMP-WIN-001 remains its dependency. Existing macOS devices stay visible in read-only inventory; there is no enable toggle, enrolment recipe or new tenant denial policy. Existing historical catalogue bytes are unchanged. Verified lineage from 2026.09.30 marks CA-005 Changed, never Unchanged or an implicit ownership migration. Older sources without direct successor lineage remain explicitly unconfirmed rather than inferred transitively.
+
+The shared write-payload guard refuses explicit macOS device types/platforms and compliant-device CA conditions that include macOS (including implicit/all platforms without an explicit macOS exclusion). This also blocks historical CA-005 deployment without rewriting its stored standard or evidence. Assessment of history remains available. All-platform MFA remains allowed under existing guards; the support boundary does not remove ordinary tenant-wide security controls. Existing planner reconstruction and write admission both reuse the guard. No schema, service permission or activation contract changes.
+
+Microsoft's conditionalAccessPlatforms resource documentation was inspected on 15 October 2026: https://learn.microsoft.com/en-us/graph/api/resources/conditionalaccessplatforms?view=graph-rest-1.0. It lists macOS and all as platform values. This is source/synthetic verification, not live Microsoft acceptance. Named safety review remains required for this new write-path refusal.
+
+## INT-118 — Existing-permission client object choices and stable office editing (15 October 2026)
+
+Approved completion task3 replaces delimiter-based office entry with native typed rows while preserving the existing OfficeLocation schema, stable keys, public-CIDR validator and JSON profile format. Keys for existing rows cannot be changed by renaming. New rows get a stable generated key once. Editing clears local approval; saving still invalidates policy state and requires capture/review. No named-location object is created by input editing.
+
+Connect offers explicit group and named-location choices under current authorised routes. Name search never establishes ownership, never automatically selects the first result and never grants access. Tenant/context and unchanged query/purpose are checked after asynchronous reads and again before using a selection. Exact-ID entry remains; downstream reference/readiness validation is unchanged. Missing names needed for matching, denied/failed reads and over-limit inventories refuse rather than returning successful empty choices. Named-location matching is local rather than assuming the endpoint supports group filters. Device/directory lookup requiring additional access is not added; existing exact-ID prerequisites remain explicit. No new permission, consent, execution route or schema.
+
+
+### INT-118 presentation completion — approved task5
+
+The same client-input slice focuses visible policy fields on the selected control, with an explicit Show all option that preserves all values and retains whole-profile validation. Office rows are shown for the office-location control or Show all. Local imports move to their own tab; package upload and tenant changes remain separate. New disabled-action guidance mirrors existing command prerequisites but grants no authority. Shared scope selection is presentation-only; no recipe, evidence, authentication, approval or execution semantics change.
+
+
+## INT-119 — Explicit assessment-to-plan selection (15 October 2026)
+
+Approved task4 adds one current, eligible assessment finding to the plan-selection page. The engine now supplies the same selection eligibility to both pages; this is guidance, never write admission. The shortcut requires the same client/session/catalogue/assessment and full live source, rejects manual/unknown/unmanaged results, rechecks capture integrity and completeness on click, and preserves other same-source selections. Changing client, assessment, capture, standard or session clears stale plan selections. A filter is widened to reveal the added control without dropping valid existing choices.
+
+The action does not build or approve a plan, enable experimental writes or execute anything. Existing planner, freshness, evidence, ownership, exact review, single-use and unresolved-write checks remain authoritative. Historical/partial evidence remains readable but cannot supply this shortcut. No schema or permission changes.
+
+## INT-120 — exception review follows available evidence and expanded controls (15 October 2026)
+
+Repair the confirmed GPT-R-003/004 presentation gaps: saving or deleting a local exception reruns the existing assessment when either Graph or supplemental Exchange evidence is loaded. Do not change historical evidence bytes, assessment timing, exception applicability, tenant access or execution authority. The exception picker uses the existing ControlInstances expansion so each office can be reviewed separately; template IDs are not actionable office instances.
+
+The first Windows regressions at9c0c6d5/run38736495941 exposed the missing refresh and instance selection, but also an incorrect test assumption: Exchange's existing assessment path does not apply ApprovedDeviation as CompliantWithDeviation. Corrected tests use the already-supported explicit NotApplicable exception. This bounded fix does not silently change that engine contract. Preserve the original failed run and verify the corrected tests fail before accepting the repair.
+
+### INT-117/118 supplementary assembled review corrections — GPT-CAND-001/002
+
+One fresh-context GPT review at7e8475301f80b29ce2aab2f3454695beb3af6b47 found two confirmed gaps. This review supplements, not replaces, named safety acceptance. GPT-CAND-001: state-only reviewed CA activation and existing Intune assignment did not pass through the candidate write guard. Apply the same supported-platform rule to the full reviewed Before object in ReviewedChangeSafety for enable/report-only/assignment. Preserve existing before/current equality and all identity/approval checks; disabling CA and removing assignments remain allowed containment. No schema, scopes, historical catalogue or automatic tenant action changes.
+
+GPT-CAND-002: the new filtered input list could retain obsolete field objects after SaveInputs rebuilt its backing collection. Notify the visible projection whenever field objects are rebuilt, including after save; preserve whole-profile validation and hidden values. Regressions model consecutive edits through the bound list. Original failed-first evidence and the later exact source checks are recorded in136 and the delivery evidence. Do not treat the earlier per-feature green checks as proof of these repaired interactions.
+
+## INT-121 — proposed registered mailbox report extension (15 October 2026)
+
+**Proposed, not settled.** Approved follow-up task6 requires additional strict report row types. [Bounded contract](REGISTERED-EXCHANGE-EXTENSION-2026.10.15.md) proposes separate protocol, forwarding and hold registrations while preserving INT-088, existing manifest1 Copy/Save behaviour, canonical mailbox identity and all read-runner/evidence safeguards. No dependent source is implemented by this decision PR. Composite/non-GUID report identities remain outside this slice; do not invent GUIDs or reinterpret historical inventory rows. Required independent contract acceptance and authorised merge precede implementation under AGENT-COORDINATION.
+
+## INT-122 — owner accepts follow-up source and adapter contract (15 October 2026)
+
+William explicitly instructs “Accept and merge all Of it” after GPT identifies the #135 contract and #136 candidate acceptance holds. Accept current #130–136 prospectively and merge the assembled candidate into canonical main after its actual required checks pass. #136 preserves all original heads and includes GPT-CAND-001/002 regression repairs; #135 contributes the exact INT-121 contract only, not implemented adapters. This resolves owner acceptance for these current changes, not future changes or unrun human/live checks. Preserve original independent attribution and runtime safeguards; do not invent Claude approval, bypass controls, publish or grant access. Resulting main CI/source/package identities belong in #136/#83 after they exist.

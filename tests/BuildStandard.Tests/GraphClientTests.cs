@@ -16,6 +16,31 @@ namespace BuildStandard.Tests;
 public class GraphClientTests
 {
     [Fact]
+    public async Task Unsupported_macOS_candidate_is_refused_before_token_acquisition_or_send()
+    {
+        var (client, handler, tokens) = Create();
+        var payload = new JsonObject { ["@odata.type"] = "#microsoft.graph.macOSCompliancePolicy", ["displayName"] = "Synthetic unsupported macOS policy" };
+        var error = await Assert.ThrowsAsync<WriteNotSentException>(() => client.WriteAsync(GraphApi.V1, GraphWriteMethod.Post,
+            "/deviceManagement/deviceCompliancePolicies", payload, CancellationToken.None));
+        Assert.Contains("macOS", error.Message); Assert.Empty(handler.Requests); Assert.Equal(0, tokens.Calls);
+    }
+
+    [Theory]
+    [InlineData(ReviewedChangeKind.EnableConditionalAccess)]
+    [InlineData(ReviewedChangeKind.ReportOnlyConditionalAccess)]
+    public async Task Historical_macOS_activation_is_refused_before_token_or_send(ReviewedChangeKind kind)
+    {
+        var (client, handler, tokens) = Create();
+        var plan = new ReviewedChangePlan { TenantId = TestData.TenantA, Kind = kind, ObjectId = TestData.Office,
+            Api = GraphApi.V1, Path = "/identity/conditionalAccess/policies/" + TestData.Office,
+            RequiredScope = "Policy.ReadWrite.ConditionalAccess",
+            Before = JsonNode.Parse("""{"state":"disabled","conditions":{"platforms":{"includePlatforms":["windows","macOS"]}},"grantControls":{"builtInControls":["compliantDevice"]}}""")!.AsObject(),
+            Payload = new JsonObject { ["state"] = kind == ReviewedChangeKind.EnableConditionalAccess ? "enabled" : "enabledForReportingButNotEnforced" } };
+        var error = await Assert.ThrowsAsync<WriteNotSentException>(() => client.ApplyReviewedChangeAsync(plan, CancellationToken.None));
+        Assert.Contains("macOS", error.Message); Assert.Equal(0, tokens.Calls); Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task Report_context_reuses_provider_but_cannot_write_even_in_deployment_mode()
     {
         var (source, handler, tokens) = Create();

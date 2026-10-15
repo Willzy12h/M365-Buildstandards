@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.Services;
@@ -33,6 +34,49 @@ public sealed class RunReportsPageTests : IDisposable
     { _page.ExperimentalReadEnabled = true; _page.ReviewCommand.Execute(null); Assert.True(_page.HasReview); Assert.False(_page.Approved); _page.Approved = true; }
     private static async Task Finish(AsyncCommand command)
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
+
+    [Fact]
+    public async Task Unsaved_report_blocks_another_review_and_keeps_offline_save_available_after_disconnect()
+    {
+        _f.Save = _ => throw new IOException("Synthetic save failure");
+        Approve(); await _page.RunAsync();
+        Assert.True(_page.SaveEvidenceCommand.CanExecute(null));
+        Assert.False(_page.CanReview);
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection), BindingFlags.Instance | BindingFlags.Public)!.SetValue(_workspace, null);
+        _page.Refresh();
+        Assert.True(_page.SaveEvidenceCommand.CanExecute(null)); Assert.Empty(_page.Output);
+        Assert.False(_page.CanRun); Assert.False(_page.CanReview); Assert.Equal(1, _f.Calls);
+    }
+
+    [Fact]
+    public async Task Recovery_commands_require_a_deliberate_choice_and_export_original_bytes_offline()
+    {
+        _f.Save = _ => throw new IOException("Synthetic save failure");
+        Approve(); await _page.RunAsync(); var original = _f.Workflow.EvidenceJson;
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace, null); _page.Refresh();
+        Assert.True(_page.HasPendingEvidence); Assert.Contains(TestData.TenantA, _page.PendingSummary);
+        _page.ChooseRecoveryPath = () => null; _page.ExportEvidenceCommand.Execute(null);
+        _page.ConfirmDiscard = _ => false; _page.DiscardEvidenceCommand.Execute(null);
+        Assert.True(_page.HasPendingEvidence); Assert.Equal(1, _f.Calls);
+        var file = Path.Combine(_f.Root.Paths.LogsDirectory, "original-report.json");
+        _page.ChooseRecoveryPath = () => file; _page.ExportEvidenceCommand.Execute(null);
+        Assert.Equal(original, File.ReadAllText(file)); Assert.False(_page.HasPendingEvidence);
+        Assert.False(_page.ExportEvidenceCommand.CanExecute(null)); Assert.False(_page.DiscardEvidenceCommand.CanExecute(null));
+        Assert.Empty(_page.Output); Assert.Equal(1, _f.Calls);
+    }
+
+    [Fact]
+    public async Task Pending_report_close_guard_routes_to_recovery_until_explicit_discard()
+    {
+        _f.Save = _ => throw new IOException("Synthetic save failure"); Approve(); await _page.RunAsync();
+        var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_shell)!;
+        pages["run-reports"] = _page; _shell.Navigate("home");
+        var guard = typeof(BuildStandard.App.MainWindow).GetMethod("ShowPendingReport", BindingFlags.NonPublic | BindingFlags.Static)!;
+        Assert.True((bool)guard.Invoke(null, [_shell])!); Assert.Same(_page, _shell.CurrentPage);
+        Assert.False(_workspace.ShutdownComplete); Assert.Contains("unsaved", _shell.ErrorMessage);
+        _page.ConfirmDiscard = _ => true; _page.DiscardEvidenceCommand.Execute(null);
+        Assert.False((bool)guard.Invoke(null, [_shell])!); Assert.Equal(1, _f.Calls);
+    }
 
     [Fact]
     public async Task Mailbox_review_shortcut_does_not_run_select_sources_or_invalidate_exact_review()

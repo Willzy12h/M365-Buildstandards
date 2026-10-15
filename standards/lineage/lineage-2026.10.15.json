@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "description": "Windows-only CA-005 successor. Historical catalogue bytes and ownership mappings remain unchanged; no live rename or retargeting is performed.",
+  "target": {
+    "release": "2026.10.15",
+    "sha256": "fd6affe2302f402a7c13c81a3a01a1ea1b958cf52ff33d4d5673cca7fc2493ce"
+  },
+  "sources": [
+    {
+      "release": "2026.09.30",
+      "sha256": "124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f",
+      "unlistedControls": "sameRequirement",
+      "relations": [
+        {
+          "sourceControl": "CA-005",
+          "sourceName": "Require compliant desktop devices",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "CA-005"
+          ],
+          "targetNames": [
+            "Require compliant desktop devices"
+          ],
+          "semanticId": "conditional-access.compliant-desktop",
+          "reason": "Compliance requirement narrowed from Windows/macOS to Windows only; macOS is unsupported and no macOS compliance recipe exists. Requires explicit upgrade review; no ownership or evidence rebinding."
+        }
+      ]
+    }
+  ]
+}

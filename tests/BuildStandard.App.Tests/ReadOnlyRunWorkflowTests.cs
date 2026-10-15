@@ -312,6 +312,85 @@ public sealed class ReadOnlyRunWorkflowTests
     }
 
     [Fact]
+    public async Task Failed_save_survives_disconnect_without_becoming_current_client_output()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.Result!.Evidence!;
+        f.Connection = null; f.Workflow.RefreshContext();
+        Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.Output); Assert.Empty(f.Workflow.EvidenceJson);
+        Assert.True(f.Workflow.CanSave);
+        f.Save = null; f.Workflow.SaveEvidence();
+        var saved = f.Store.LoadExchangeReport(original.TenantId, original.Id);
+        Assert.NotNull(saved); Assert.Equal(original.IntegrityDigest, saved.IntegrityDigest);
+        Assert.False(f.Workflow.CanSave); Assert.Empty(f.Workflow.SavedFile); Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
+    public async Task Failed_save_blocks_another_review_until_the_original_result_is_resolved()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.EvidenceJson;
+        Assert.Throws<SafetyViolationException>(() => f.Workflow.PrepareReview());
+        Assert.Equal(original, f.Workflow.EvidenceJson); Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
+    public async Task Failed_save_survives_report_and_input_selection_changes()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.Result!.Evidence!;
+        f.Workflow.SetSelection(null, "5.1", new Dictionary<string, string?>());
+        Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.EvidenceJson);
+        Assert.True(f.Workflow.CanSave);
+        f.Save = null; f.Workflow.SaveEvidence();
+        Assert.Equal(original.IntegrityDigest, f.Store.LoadExchangeReport(original.TenantId, original.Id)!.IntegrityDigest);
+        Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
+    public async Task Recovery_export_writes_exact_original_bytes_without_a_connection_or_overwriting()
+    {
+        using var f = new ReadRunFixture(); f.Save = _ => throw new IOException("Synthetic save failure");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var json = f.Workflow.EvidenceJson; var id = f.Workflow.Result!.Evidence!.Id;
+        f.Connection = null; f.Workflow.RefreshContext();
+        var folder = Path.Combine(Path.GetTempPath(), "buildstandard-recovery-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var file = Path.Combine(folder, "original.json"); File.WriteAllText(file, "existing original");
+            Assert.Throws<IOException>(() => f.Workflow.ExportEvidence(file, id));
+            Assert.Equal("existing original", File.ReadAllText(file)); Assert.True(f.Workflow.CanSave);
+            var exported = Path.Combine(folder, "exported.json");
+            f.Workflow.ExportEvidence(exported, id);
+            Assert.Equal(json, File.ReadAllText(exported)); Assert.False(f.Workflow.CanSave);
+            Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.SavedFile); Assert.Equal(1, f.Calls);
+            Assert.Throws<SafetyViolationException>(() => f.Workflow.ExportEvidence(Path.Combine(folder, "duplicate.json"), id));
+        }
+        finally { Directory.Delete(folder, true); }
+    }
+
+    [Fact]
+    public async Task Discard_requires_exact_original_identity_and_confirmation_without_rerunning()
+    {
+        using var f = new ReadRunFixture(); f.Save = _ => throw new IOException("Synthetic save failure");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var id = f.Workflow.Result!.Evidence!.Id;
+        Assert.Throws<SafetyViolationException>(() => f.Workflow.DiscardEvidence(id, false));
+        Assert.Throws<SafetyViolationException>(() => f.Workflow.DiscardEvidence(Guid.NewGuid().ToString("D"), true));
+        Assert.True(f.Workflow.CanSave);
+        f.Workflow.DiscardEvidence(id, true);
+        Assert.False(f.Workflow.CanSave); Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.EvidenceJson);
+        Assert.Equal(1, f.Calls); Assert.NotNull(f.Workflow.PrepareReview());
+    }
+
+    [Fact]
     public async Task Existing_immutable_record_save_refusal_preserves_original_bytes_and_never_repeats_the_run()
     {
         using var f = new ReadRunFixture();

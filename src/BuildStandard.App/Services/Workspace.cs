@@ -1039,7 +1039,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         Logger.Info("Deviations", $"Deviation recorded for {deviation.ControlId} ({deviation.Kind}).", profile.TenantId, deviation.ControlId);
-        if (Snapshot is not null) RunAssessment(); else Notify();
+        if (Snapshot is not null || ExchangeSnapshot is not null) RunAssessment(); else Notify();
     }
 
     public void DeleteDeviation(string controlId)
@@ -1051,7 +1051,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         Logger.Info("Deviations", $"Deviation removed for {controlId}.", profile.TenantId, controlId);
-        if (Snapshot is not null) RunAssessment(); else Notify();
+        if (Snapshot is not null || ExchangeSnapshot is not null) RunAssessment(); else Notify();
     }
 
     public ManualCheckRegister LoadManualChecks() => Profile is null ? new ManualCheckRegister() : Evidence.LoadManualChecks(Profile.TenantId);
@@ -1238,10 +1238,9 @@ public sealed class Workspace : ObservableObject
 
     // ---- shutdown ------------------------------------------------------------------------------------------------------
 
-    /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
-    public async Task ShutdownAsync()
+    /// <summary>Stops owned work and waits for evidence before the window checks for an unsaved local report.</summary>
+    public async Task StopAndWaitForEvidenceAsync()
     {
-        if (ShutdownComplete) return;
         CancelOperation();
         if (Executor.CurrentTask is not null)
         {
@@ -1250,6 +1249,13 @@ public sealed class Workspace : ObservableObject
         }
         if (_operationCompletion is not null) await _operationCompletion.Task;
         await CancelPendingDiscoveryAsync();
+    }
+
+    /// <summary>Requests a stop at the next safe boundary, waits for evidence, then removes cached tokens.</summary>
+    public async Task ShutdownAsync()
+    {
+        if (ShutdownComplete) return;
+        await StopAndWaitForEvidenceAsync();
         await DisconnectCoreAsync();
         await DisconnectSetupCoreAsync();
         Logger.Info("App", "Toolkit closed.");

@@ -26,6 +26,7 @@
     <Compile Include="..\..\src\BuildStandard.Cli\DoctorConsoleCancellation.cs" Link="Cli\DoctorConsoleCancellation.cs" />
     <!-- Portable execution of the exact desktop coordinator; WPF command/binding cases remain in App.Tests. -->
     <Compile Include="..\..\src\BuildStandard.App\Services\OfflinePrerequisiteDiagnostic.cs" Link="App\OfflinePrerequisiteDiagnostic.cs" />
+    <Compile Include="..\..\src\BuildStandard.App\ViewModels\OfficeLocationEditor.cs" Link="App\OfficeLocationEditor.cs" />
     <Compile Include="..\..\src\BuildStandard.App\Infrastructure\ObservableObject.cs" Link="App\ObservableObject.cs" />
     <Compile Include="..\BuildStandard.App.Tests\OfflinePrerequisiteDiagnosticTests.cs" Link="App\OfflinePrerequisiteDiagnosticTests.cs" />
     <Compile Include="..\..\src\BuildStandard.App\Services\ReadOnlyRunWorkflow.cs" Link="App\ReadOnlyRunWorkflow.cs" />
