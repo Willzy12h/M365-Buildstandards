@@ -23,7 +23,7 @@ internal static partial class Program
     {
         var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(shell)!;
         var original = pages["run-reports"];
-        var calls = 0;
+        var calls = 0; var populated = false;
         Func<(ConnectedTenant? Connection, TenantProfile? Profile)> current = () => (shell.Workspace.Connection, shell.Workspace.Profile);
         Func<ScriptEntry, ReadRunContext, IReadOnlyDictionary<string, string?>, string, IProgress<string>?, CancellationToken, Task<ReadRunResult>> run =
             (entry, context, inputs, _, _, token) =>
@@ -39,7 +39,14 @@ internal static partial class Program
                     ScriptSha256 = entry.Manifest.ScriptSha256, ManifestSha256 = entry.ManifestSha256, RunnerTemplateSha256 = entry.Manifest.Execution!.RunnerTemplateSha256,
                     Parameters = ScriptReadRequest.Bind(entry, context, inputs, now).Select(p => new ExchangeReportParameter { Name = p.Name, Type = p.Type, Value = p.Value }).ToList(),
                     SourceCommands = [.. definition.SourceCommands], Limitations = [definition.Limitations], Status = ReportReadState.Partial,
-                    Sections = [new ReportSection { Id = "mailboxes", Status = ReportReadState.Partial, Error = "Synthetic read stopped before any rows returned; this is incomplete, never an empty successful query.", Limitations = ["Synthetic offline native fixture, not tenant evidence."], Rows = [] }]
+                    Sections = [new ReportSection { Id = definition.Sections[0].Id, Status = ReportReadState.Partial, Error = populated ? "Synthetic target read is incomplete; other observed fields retain their own meanings." : "Synthetic read stopped before any rows returned; this is incomplete, never an empty successful query.", Limitations = ["Synthetic offline native fixture, not tenant evidence."], Rows = populated ? [ExchangeReportEvidenceSchema.Row(new MailboxForwardingReportRow
+                    {
+                        Id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", Name = "Synthetic report mailbox", PrimarySmtpAddress = "report@synthetic.example",
+                        ReadStatus = ReportReadState.Partial, Error = "Synthetic SMTP target was not returned.",
+                        ForwardingAddressReadStatus = ReportReadState.Collected, ForwardingAddress = null,
+                        ForwardingSmtpAddressReadStatus = ReportReadState.Failed, ForwardingSmtpAddress = null,
+                        DeliverToMailboxAndForwardReadStatus = ReportReadState.Collected, DeliverToMailboxAndForward = false
+                    })] : [] }]
                 };
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
@@ -53,7 +60,7 @@ internal static partial class Program
         try
         {
             pages["run-reports"] = page; shell.Navigate("run-reports");
-            page.Selected = page.Items.Single(); page.ExperimentalReadEnabled = true; page.PrepareReview();
+            page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota"); page.ExperimentalReadEnabled = true; page.PrepareReview();
             if (page.RunCommand.CanExecute(null)) throw new InvalidOperationException("Synthetic review granted implicit approval.");
             page.Approved = true; var command = (AsyncCommand)page.RunCommand; command.Execute(null);
             var deadline = Stopwatch.StartNew();
@@ -73,6 +80,25 @@ internal static partial class Program
             var label = "read-only partial outcome " + size.Width + "x" + size.Height;
             RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
             SaveImage(content, size, Path.Combine(output, "run-reports-partial-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+            populated = true; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-forwarding-settings");
+            page.PrepareReview(); page.Approved = true; command.Execute(null); deadline.Restart();
+            while (command.IsRunning) { if (deadline.Elapsed > TimeSpan.FromSeconds(10)) throw new InvalidOperationException("Synthetic typed-row run did not complete."); Pump(); }
+            if (page.OutcomeRows?.Count != 1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Not set (observed)")
+                || !page.OutcomeRows[0].Row.ItemArray.Contains("false") || !page.OutcomeRows[0].Row.ItemArray.Contains("Unknown / not returned"))
+                throw new InvalidOperationException("Native report rows lost explicit unset, false or unknown meaning.");
+            content.UpdateLayout(); Pump();
+            var table = Descendants(content).OfType<DataGrid>().Single(g => System.Windows.Automation.AutomationProperties.GetName(g) == "Read-only Exchange report rows");
+            table.BringIntoView(); content.UpdateLayout(); Pump();
+            if (VisibleBounds(table,content).Height < 100) CrampedCurrentPages.Add($"  report rows {size.Width}x{size.Height} · needs at least 100 pixels of visible rows.");
+            RecordUnnamedControls(content,"typed Exchange report rows");RecordLowContrast(content,"typed Exchange report rows");RecordClipping(content,"typed Exchange report rows");
+            SaveImage(content,size,Path.Combine(output,"run-reports-typed-rows-"+(int)size.Width+"x"+(int)size.Height+".png"));
+            page.SelectedExportFormat=BuildStandard.Engine.Reports.ExportFormat.Html;
+            var exportCommand=(AsyncCommand)page.ExportReportCommand;exportCommand.Execute(null);deadline.Restart();
+            while(exportCommand.IsRunning) { if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic report export did not complete.");Pump(); }
+            if(!File.Exists(page.LastExport) || !File.ReadAllText(page.LastExport).Contains("Not set (observed)"))
+                throw new InvalidOperationException("Native report export did not preserve the admitted rows.");
+
+            populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);
             deadline.Restart();
             while (command.IsRunning) { if (deadline.Elapsed > TimeSpan.FromSeconds(10)) throw new InvalidOperationException("Synthetic recovery run did not complete."); Pump(); }

@@ -17,16 +17,15 @@ public sealed class ScriptLibrarySchema2Tests
         Assert.Throws<ConfigurationException>(() => ScriptCatalogue.Load(files));
 
     [Fact]
-    public void A_reviewed_schema_2_item_is_admitted_and_the_shipped_library_adds_only_the_registered_adapter()
+    public void Registered_schema_2_items_are_admitted_and_all_manual_items_remain_copy_only()
     {
         var entry = ScriptCatalogue.Load(Library()).Find("exo.synthetic-mailbox-inventory");
         Assert.Equal(2, entry.Manifest.SchemaVersion);
         Assert.Equal("exo-mailbox-inventory", ScriptCatalogue.ReportFor(entry.Manifest).Id);
-        // Slice 3 ships exactly one runnable item, the registered mailbox adapter; every other item stays a schema 1,
-        // Copy-only manual item, unchanged.
-        var runnable = Assert.Single(ScriptCatalogue.Shipped.Entries, e => e.Manifest.SchemaVersion == 2);
-        Assert.Equal("exo.mailbox-size-quota", runnable.Manifest.Id);
-        Assert.All(ScriptCatalogue.Shipped.Entries.Where(e => e != runnable), e => { Assert.Equal(1, e.Manifest.SchemaVersion); Assert.Null(e.Manifest.Execution); });
+        Assert.Equal(new[] { "exo.mailbox-forwarding-settings", "exo.mailbox-hold-settings", "exo.mailbox-protocol-settings", "exo.mailbox-size-quota" },
+            ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 2).Select(e => e.Manifest.Id).OrderBy(id => id,StringComparer.Ordinal));
+        var manual = ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 1).ToArray();
+        Assert.Equal(29,manual.Length);Assert.All(manual,e => Assert.Null(e.Manifest.Execution));
     }
 
     [Fact]

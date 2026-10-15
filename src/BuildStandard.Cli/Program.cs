@@ -522,7 +522,7 @@ public static class Program
             Console.WriteLine(area.Key);
             foreach (var entry in area)
                 Console.WriteLine($"  {entry.Manifest.Id,-28} {(entry.Manifest.Mode == ScriptMode.ReadOnly ? "Read  " : "Change")} {entry.Manifest.Name}"
-                    + (entry.Manifest.SchemaVersion == 2 ? " (toolkit run only; no Copy form, and Run is not available in this build)" : ""));
+                    + (entry.Manifest.SchemaVersion == 2 ? " (desktop experimental Run only; this CLI has no Run command or Copy form)" : ""));
         }
         return 0;
     }

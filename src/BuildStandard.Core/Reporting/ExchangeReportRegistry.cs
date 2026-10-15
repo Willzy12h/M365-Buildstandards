@@ -37,7 +37,26 @@ public static class ExchangeReportRegistry
             + "Shared, room and equipment mailboxes are listed as mailboxes even without a joinable user or licence. Sizes and quotas are "
             + "Exchange's own text, read separately: a read that failed is unknown, never zero, and Unlimited stays Unlimited. Primary "
             + "mailbox, archive and Recoverable Items are separate; no OST or PST claim is made. Live behaviour, required roles and module "
-            + "output are unverified until accepted in a test tenant.")
+            + "output are unverified until accepted in a test tenant."),
+        new Definition("exo-mailbox-protocols", "Mailbox protocol settings", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox", "Get-CASMailbox", "Get-TransportConfig" }),
+            Array.Empty<Parameter>(), Array.AsReadOnly(new[] { new Section("protocols", typeof(MailboxProtocolReportRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-casmailbox",
+            "Observed protocol settings and SMTP AUTH configuration only, not proof that authentication succeeds. "
+            + "A returned null SMTP override inherits the organisation setting; an absent value is unknown. "
+            + "Each CAS read must repeat the exact Entra object ID from the ExchangeGuid inventory. Live behaviour and roles remain unverified."),
+        new Definition("exo-mailbox-forwarding", "Mailbox forwarding settings", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox" }), Array.Empty<Parameter>(),
+            Array.AsReadOnly(new[] { new Section("forwarding", typeof(MailboxForwardingReportRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailbox",
+            "Observed forwarding identifiers and SMTP targets are separate raw values; no ownership or delivery inference. "
+            + "A collected null target means explicitly unset, not an unread value. No forwarding changes. Live behaviour and roles remain unverified."),
+        new Definition("exo-mailbox-holds", "Mailbox hold settings", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox" }), Array.Empty<Parameter>(),
+            Array.AsReadOnly(new[] { new Section("holds", typeof(MailboxHoldReportRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailbox",
+            "Observed mailbox hold flags and up to 100 exact InPlaceHolds identifiers; these do not prove legal/compliance coverage. "
+            + "Litigation Hold, retention hold and policy identifiers retain their distinct meanings. No hold changes. Live behaviour and roles remain unverified.")
     });
 
     public static Definition Find(string id) => Definitions.SingleOrDefault(d => d.Id == id)

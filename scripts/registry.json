@@ -72,6 +72,20 @@
       "manifestSchemaVersion": 1
     },
     {
+      "id": "exo.mailbox-forwarding-settings",
+      "manifest": "exchange-online/Get-MailboxForwardingSettings.json",
+      "manifestSha256": "ce8314b4c98a60d92c164a4a335ed4e78a47b2e254ac5dc0a83bee705db23b29",
+      "scriptSha256": "6e38171d5b5925b9f626695c50bb1b349523d8117cad242a4f2ae401c5766707",
+      "manifestSchemaVersion": 2
+    },
+    {
+      "id": "exo.mailbox-hold-settings",
+      "manifest": "exchange-online/Get-MailboxHoldSettings.json",
+      "manifestSha256": "3aa520e82320e2b99d476636914e973b54e03cfb8014ea7ffbc60d1fc5770c85",
+      "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
+      "manifestSchemaVersion": 2
+    },
+    {
       "id": "exo.mailbox-holds",
       "manifest": "exchange-online/Get-MailboxHoldReport.json",
       "manifestSha256": "2e332b881bad19dc406badd7a11d3642609a32f0e2e04e4b89f2dcd0590090a8",
@@ -100,6 +114,13 @@
       "manifestSchemaVersion": 1
     },
     {
+      "id": "exo.mailbox-protocol-settings",
+      "manifest": "exchange-online/Get-MailboxProtocolSettings.json",
+      "manifestSha256": "6eaca92ba130f55ffdc3614d76c05a09b437f01d73cfc64d9ca79d25b8d2e546",
+      "scriptSha256": "513d488d7bb0a8979f360b1421bc96b0a761d7418486d10f1d46af9bef369a14",
+      "manifestSchemaVersion": 2
+    },
+    {
       "id": "exo.mailbox-protocols",
       "manifest": "exchange-online/Get-MailboxProtocolReport.json",
       "manifestSha256": "8c56bac2572e3d272b2ace598792868fc7f992a3b546e9d8254f989106414338",
@@ -107,16 +128,9 @@
       "manifestSchemaVersion": 1
     },
     {
-      "id": "exo.quota-audit",
-      "manifest": "exchange-online/Get-MailboxQuotaAudit.json",
-      "manifestSha256": "5134eff7c6744e8797d168ba636694e672f17153ddd01ef474d1741801e8327a",
-      "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb",
-      "manifestSchemaVersion": 1
-    },
-    {
       "id": "exo.mailbox-size-quota",
       "manifest": "exchange-online/Get-MailboxSizeAndQuota.json",
-      "manifestSha256": "17a94a464aa259245b4983a7ab4803c1db6ad7d7b8044f1c5b2f902b5544c716",
+      "manifestSha256": "869046136210fa49c017437c76c03884b71a6df6f62f7d8c3abae335f7db2657",
       "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
       "manifestSchemaVersion": 2
     },
@@ -146,6 +160,13 @@
       "manifest": "exchange-online/Get-QuarantinePolicyReport.json",
       "manifestSha256": "25dea6630155ac0bd687cc811532bc285e1321e242c2663196d582dc2e01f8a6",
       "scriptSha256": "95f10b6a7d54743b46b830212089f1d14894a01c92b943a6810b587aa656606f",
+      "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.quota-audit",
+      "manifest": "exchange-online/Get-MailboxQuotaAudit.json",
+      "manifestSha256": "5134eff7c6744e8797d168ba636694e672f17153ddd01ef474d1741801e8327a",
+      "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb",
       "manifestSchemaVersion": 1
     },
     {
@@ -198,17 +219,17 @@
       "manifestSchemaVersion": 1
     },
     {
-      "id": "exo.user-mailbox-access",
-      "manifest": "exchange-online/Get-UserMailboxAccess.json",
-      "manifestSha256": "73baa3f352fe570bcc4b64b7327f52c3b615a288ecf817fdb778298733fad10f",
-      "scriptSha256": "8b368436a7888543aa40aeb825fb7cad0668898cb3553eae7ba0d0d9b3ebac89",
-      "manifestSchemaVersion": 1
-    },
-    {
       "id": "exo.unified-audit-search",
       "manifest": "exchange-online/Search-UnifiedAuditReport.json",
       "manifestSha256": "fb69544bb094d0e900846ebd49ff664d723784b21717a5d25056553d451a47fb",
       "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
+      "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.user-mailbox-access",
+      "manifest": "exchange-online/Get-UserMailboxAccess.json",
+      "manifestSha256": "73baa3f352fe570bcc4b64b7327f52c3b615a288ecf817fdb778298733fad10f",
+      "scriptSha256": "8b368436a7888543aa40aeb825fb7cad0668898cb3553eae7ba0d0d9b3ebac89",
       "manifestSchemaVersion": 1
     }
   ]

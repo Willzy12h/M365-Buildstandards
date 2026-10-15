@@ -1,6 +1,6 @@
 # Registered read-only Exchange adapter extension — accepted contract
 
-Status: accepted by William on 15 October 2026 through “Accept and merge all Of it”; adapters are not implemented. Approved follow-up task6; base canonical main fd4d84d. Preserve INT-088 and the existing experimental Run workflow. This is a bounded shared-contract extension, not a generic script executor.
+Status: accepted by William on 15 October 2026 through “Accept and merge all Of it”; implementation is in [#138](https://github.com/Willzy12h/M365-Buildstandards/pull/138), with source/test/review identities recorded there; live behaviour remains unverified. Approved follow-up task6; base canonical main fd4d84d. Preserve INT-088 and the existing experimental Run workflow. This is a bounded shared-contract extension, not a generic script executor.
 
 ## First eligible additions
 
@@ -37,3 +37,5 @@ AGENT-COORDINATION requires shared schema/contract decisions to merge before dep
 - https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/authenticated-client-smtp-submission — returned null inherits the organisational setting; the mailbox override takes precedence.
 
 Further field/property-set and role verification is required during the adapter implementation; no live module output was inspected.
+
+Implementation note: the existing scalar-only runner output rejects the accepted hold-ID collection. INT-123 records the minimal exact report/section/column bounded string-array extension and coordinated schema2 pin rotation. Existing schema1 Copy/Save entries and body pins remain unchanged. This does not broaden command/type/method admission or tenant/account authority.

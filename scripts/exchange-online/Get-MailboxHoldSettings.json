@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.mailbox-hold-settings",
+  "name": "Mailbox hold settings (toolkit run)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Observed mailbox hold settings. Each value carries its read state. Missing or malformed values remain unknown; this performs no changes.",
+  "keywords": [
+    "mailbox",
+    "hold"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxHoldSettings.ps1",
+  "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "primarySmtpAddress",
+      "litigationHoldEnabledReadStatus",
+      "litigationHoldEnabled",
+      "retentionHoldEnabledReadStatus",
+      "retentionHoldEnabled",
+      "complianceTagHoldAppliedReadStatus",
+      "complianceTagHoldApplied",
+      "delayHoldAppliedReadStatus",
+      "delayHoldApplied",
+      "inPlaceHoldIdsReadStatus",
+      "inPlaceHoldIds",
+      "id",
+      "name",
+      "readStatus",
+      "error"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default; requires the current verified connection, separate Exchange authentication and exact per-run approval.",
+    "Only observed configuration is reported. A failed, missing or malformed value is unknown, never False or an empty-success result.",
+    "Live Microsoft behaviour, required Exchange RBAC and module output remain unverified.",
+    "Collected null forwarding targets mean explicitly unset; collected empty hold identifiers mean a returned empty collection. Neither meaning applies to unread values.",
+    "At most 10,000 identified mailboxes; truncation and unidentified rows make the section Partial.",
+    "Reports documented LitigationHoldEnabled, RetentionHoldEnabled, ComplianceTagHoldApplied, DelayHoldApplied and InPlaceHolds values. DelayReleaseHoldApplied and tenant-wide policy effects are outside this report."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-mailbox-holds",
+    "reportSchemaVersion": 1,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "5b47dc09d9eaf875ca90893eb67763992ffb6c63043c8b1da48812e4a959ed71"
+  }
+}

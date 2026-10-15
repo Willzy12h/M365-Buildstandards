@@ -289,7 +289,7 @@ internal static partial class Program
     {
         // Synthetic verified context only. Never press Run: it authenticates a separate Exchange connection.
         shell.Workspace.Session!.TokenExpiresAt = Stamp;
-        var page = shell.Page<RunReportsViewModel>(); page.Selected = page.Items.Single(); page.SelectedTab = 0;
+        var page = shell.Page<RunReportsViewModel>(); page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota"); page.SelectedTab = 0;
         page.ExperimentalReadEnabled = false;
         if (page.RunCommand.CanExecute(null)) throw new InvalidOperationException("Read-only Run is not default off.");
         page.ExperimentalReadEnabled = true;
@@ -839,6 +839,7 @@ internal static partial class Program
         ("RunReportsViewModel.SaveEvidenceCommand", Disabled),
         ("RunReportsViewModel.ExportEvidenceCommand", Disabled),
         ("RunReportsViewModel.DiscardEvidenceCommand", Disabled),
+        ("RunReportsViewModel.ExportReportCommand", Disabled),
         ("RunReportsViewModel.CopyOutcomeCommand", Disabled),
         ("RunReportsViewModel.CopyEvidenceCommand", Disabled),
     };

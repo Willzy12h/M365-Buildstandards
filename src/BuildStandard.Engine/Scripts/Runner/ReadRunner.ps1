@@ -400,7 +400,15 @@ function Invoke-BditRunner {
                     foreach ($column in $columns) {
                         if (-not $row.Contains($column)) { throw 'output' }
                         $value = $row[$column]
-                        if ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) { throw 'output' }
+                        if ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
+                            # INT-121's sole collection-valued column. All other non-scalars remain refused.
+                            if ([string]$BditRequest.reportId -cne 'exo-mailbox-holds' -or [string]$registered.id -cne 'holds' -or
+                                $column -cne 'inPlaceHoldIds' -or $value -isnot [array] -or $value.Count -gt 100) { throw 'output' }
+                            foreach ($hold in $value) {
+                                if ($hold -isnot [string] -or [string]::IsNullOrWhiteSpace($hold) -or $hold.Length -gt 256 -or
+                                    $hold -match '[\x00-\x1F\x7F]') { throw 'output' }
+                            }
+                        }
                         $projected[$column] = $value
                     }
                     [void]$rows.Add($projected)

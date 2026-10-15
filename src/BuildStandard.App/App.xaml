@@ -230,6 +230,16 @@
           <TextBlock Text="{Binding Problem}" Foreground="{StaticResource Danger}" Margin="0,3,0,0" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
         </StackPanel>
       </DataTemplate>
+            <Style x:Key="ReportCell" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DataGridCell">
+                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                  <TextBlock Text="{Binding Content.Text, RelativeSource={RelativeSource TemplatedParent}}" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" VerticalAlignment="Center"/>
+                </Border>
+              </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="ReportColumnHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+              <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></DataTemplate></Setter.Value></Setter>
+            </Style>
     </ResourceDictionary>
   </Application.Resources>
 </Application>

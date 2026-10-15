@@ -47,17 +47,8 @@
       </StackPanel>
       <TabControl Grid.Row="1" Margin="0,4,0,0">
         <TabItem Header="Rows">
-          <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MinHeight="150" EnableRowVirtualization="True" EnableColumnVirtualization="True" ColumnWidth="180" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Typed report rows">
-            <DataGrid.CellStyle><Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DataGridCell">
-                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                  <TextBlock Text="{Binding Content.Text, RelativeSource={RelativeSource TemplatedParent}}" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" VerticalAlignment="Center"/>
-                </Border>
-              </ControlTemplate></Setter.Value></Setter>
-            </Style></DataGrid.CellStyle>
-            <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-              <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></DataTemplate></Setter.Value></Setter>
-            </Style></DataGrid.ColumnHeaderStyle>
+          <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MinHeight="150" EnableRowVirtualization="True" EnableColumnVirtualization="True" ColumnWidth="180" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Typed report rows" CellStyle="{StaticResource ReportCell}" ColumnHeaderStyle="{StaticResource ReportColumnHeader}">
+
           </DataGrid>
         </TabItem>
         <TabItem Header="Selected row details"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="8"><Button Content="Copy row details" Command="{Binding CopyRowCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Open evidence and select a row before copying its details. Wait for the current operation to finish." Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/><TextBox Text="{Binding SelectedRowDetails, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Height="200" MinHeight="100" Margin="0,4,0,8" Padding="8" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Selected report row identity and read details"/></StackPanel></ScrollViewer></TabItem>
