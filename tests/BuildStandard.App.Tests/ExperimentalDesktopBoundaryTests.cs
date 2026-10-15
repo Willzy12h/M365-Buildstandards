@@ -102,6 +102,34 @@ public sealed class ExperimentalDesktopBoundaryTests : IDisposable
     }
 
     [Fact]
+    public void Idle_home_next_step_rechecks_expired_approval_before_navigation()
+    {
+        var graph = SetVerifiedDeployment(false);
+        var now = DateTimeOffset.UtcNow;
+        var guard = new ExperimentalOperationGuard(() => now);
+        typeof(Workspace).GetField("<ExperimentalGuard>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_workspace, guard);
+        _workspace.SetExperimentalChanges(true);
+        _shell.Navigate("home");
+        var home = _shell.Page<HomeViewModel>();
+        var plan = _workspace.Plan;
+        Assert.Equal("deploy", home.Projection.NextPageKey);
+        var readsBefore = graph.Reads.Count;
+
+        // Time advances while the engineer stays on Home; no workspace event or manual Refresh occurs.
+        now = DateTimeOffset.Parse(_workspace.Session!.TokenExpiresAt).AddSeconds(1);
+        Assert.Equal("connect", _shell.NextActionKey);
+        Assert.True(home.NextStepCommand.CanExecute(null));
+        home.NextStepCommand.Execute(null);
+
+        Assert.Equal("connect", _shell.ActiveRouteKey);
+        Assert.Equal("connect", home.Projection.NextPageKey);
+        Assert.Same(plan, _workspace.Plan);
+        Assert.Null(_workspace.LastRun);
+        Assert.Equal(readsBefore, graph.Reads.Count);
+        Assert.Empty(graph.Writes);
+    }
+
+    [Fact]
     public async Task Write_capable_connection_and_reviewable_plan_do_not_bypass_the_off_gate()
     {
         var graph = SetVerifiedDeployment(optIn: false); var plan = _workspace.Plan;
