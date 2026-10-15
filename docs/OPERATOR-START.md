@@ -183,3 +183,9 @@ In Policy automation → Policy inputs, add one office row per site. Enter its f
 
 
 Policy inputs now show the fields used by the selected control. **Show all client inputs** reveals other saved fields and office rows without discarding any edits. Local policy imports have their own **Local imports** tab and require disconnecting. Application package upload and tenant activation/targeting remain separate tabs with their existing exact previews and approvals. Disabled actions explain the required connection, input or review step; the common progress display still reports the active operation.
+
+### From a finding to a reviewed plan
+
+Select a finding in the full current assessment and choose **Add to plan**. The tool opens Plan changes and ticks that exact eligible control, retaining other choices from the same source. Read the explanation beside a disabled button: historical/partial evidence, failed reads, manual controls and unowned partial matches cannot use this shortcut. Changing client, capture, standard, assessment or session clears stale selections.
+
+This step does not build, approve or run a plan. Build the plan deliberately, resolve its readiness checks, review the exact proposal and obtain the normal approval before deployment. Candidates remain disabled/unassigned; no score or protection claim is inferred from adding a finding.

@@ -3,6 +3,8 @@
 - Retain an unsaved read-only report across client/input changes, with original-client save, non-overwriting export and confirmed discard; block replacement runs and normal close until resolved (#130).
 - Add unpublished 2026.10.15 Windows-only CA-005 successor with verified lineage; preserve historical standards and block unsupported macOS deployment while retaining read-only inventory (#131).
 - Add a stable-key office grid with inline public-CIDR checks and explicit current-client group/named-location choices, retaining exact-ID fallback and existing access; focus fields on the selected control, separate local imports and explain disabled actions (#132).
+
+- Add eligible findings to plan selection using shared eligibility and exact current full-evidence checks; clear stale selections without building or approving changes (#133).
 - Assessment history reports blocked storage paths and rejects null finding data without hiding healthy citations or rewriting saved evidence.
 - Keep blank and unfamiliar write-history outcomes uncertain across recovery, reviewed changes, LAPS and package operations; preserve recorded evidence and operation-specific verification (#126).
 - Show unreadable or wrong-client assessment history in copyable Jobs review details; keep healthy citations and explain missing capture, unmatched history and optional citation (#127).

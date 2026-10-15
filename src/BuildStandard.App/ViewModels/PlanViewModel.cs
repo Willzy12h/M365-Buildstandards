@@ -5,6 +5,7 @@ using BuildStandard.Core;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Engine.Reports;
+using BuildStandard.Engine.Planning;
 
 namespace BuildStandard.App.ViewModels;
 
@@ -28,6 +29,7 @@ public sealed class PlanViewModel : PageViewModel
     private PlanRow? _selectedRow;
     private ControlSelection? _selectedControl;
     private string _filterArea = "All areas";
+    private string _selectionSource = "";
 
     public PlanViewModel(ShellViewModel shell) : base(shell, "Plan changes")
     {
@@ -174,6 +176,15 @@ public sealed class PlanViewModel : PageViewModel
         }
     }
 
+    internal void SelectAssessedControl(string id)
+    {
+        var row = Controls.SingleOrDefault(c => c.ControlId == id && c.Eligible)
+            ?? throw new ToolkitException("The control is no longer eligible. Review the current assessment.");
+        // Reveal the new selection without silently removing other same-source choices.
+        if (_filterArea != "All areas") { _filterArea = "All areas"; OnPropertyChanged(nameof(FilterArea)); ApplyAreaFilter(clearSelection: false); }
+        row.IsSelected = true; SelectedControl = row;
+    }
+
     private void BuildPlan()
     {
         var ids = VisibleControls.Where(c => c.IsSelected).Select(c => c.ControlId).ToList();
@@ -201,8 +212,12 @@ public sealed class PlanViewModel : PageViewModel
 
     public override void Refresh()
     {
-        var selectedControlId = SelectedControl?.ControlId;
-        var selected = Controls.Where(c => c.IsSelected).Select(c => c.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var source = CanonicalJson.Sha256Value(new { Workspace.Profile, Workspace.Session,
+            Release = Workspace.Standard?.Release, Standard = Workspace.Standard?.IntegrityDigest,
+            Snapshot = Workspace.Snapshot?.Id, Digest = Workspace.Snapshot?.IntegrityDigest, Workspace.SnapshotIsLive, Assessment = Workspace.Assessment?.Id });
+        var sameSource = _selectionSource == source; _selectionSource = source;
+        var selectedControlId = sameSource ? SelectedControl?.ControlId : null;
+        var selected = Controls.Where(c => sameSource && c.IsSelected).Select(c => c.ControlId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         Controls.Clear();
         var standard = Workspace.Standard;
         var assessment = Workspace.Assessment;
@@ -212,45 +227,18 @@ public sealed class PlanViewModel : PageViewModel
             {
                 var def = standard.FindCollection(control.Collection);
                 var finding = assessment?.Findings.FirstOrDefault(f => string.Equals(f.ControlId, control.Id, StringComparison.OrdinalIgnoreCase));
-                string status, explanation;
-                var eligible = false;
-                if (!control.HasRecipe || def is null || !def.Writable)
-                {
-                    status = "Manual";
-                    explanation = control.Assessment.ManualInstructions.Length > 0 ? control.Assessment.ManualInstructions : "No automated recipe; follow the build standard manually.";
-                }
-                else if (finding is null)
-                {
-                    status = "Assess first";
-                    explanation = "Read the tenant configuration and review the assessment before planning.";
-                }
-                else if (finding.Status is FindingStatus.Missing || (finding.Owned && finding.Status is FindingStatus.SettingsMatchNotEnforced or FindingStatus.PartialMatch or FindingStatus.Compliant))
-                {
-                    status = "Candidate";
-                    eligible = true;
-                    explanation = finding.Status == FindingStatus.Missing
-                        ? (control.Category == "PRE" || control.Id.StartsWith("PRE-", StringComparison.OrdinalIgnoreCase) ? "Tool creates this prerequisite after plan approval. Engineer verifies membership, scope and recovery access separately." : control.Collection == "conditionalAccess" ? "Create a disabled candidate with exclusions; no activation." : "Create an unassigned candidate; no assignment.")
-                        : "Toolkit-created object; an inactive update or no change will be proposed.";
-                }
-                else
-                {
-                    status = StatusLabels.For(finding.Status);
-                    explanation = finding.Reason + (finding.Status == FindingStatus.UnableToAssess
-                        ? " Next: resolve collection errors in 1 · Configuration, re-capture and assess."
-                        : finding.Owned ? " Next: review the finding and supporting evidence in 2 · Assessment."
-                        : " Next: review this existing object in 2 · Assessment. The tool does not adopt or change it by name.");
-                }
+                var eligibility = ControlSelectionEligibility.For(control, def, finding);
                 var selection = new ControlSelection
                 {
                     ControlId = control.Id,
                     Name = control.Name,
                     Category = control.Category,
                     Area = ControlAreas.For(control),
-                    Eligible = eligible,
-                    Status = status,
-                    Explanation = explanation,
+                    Eligible = eligibility.Eligible,
+                    Status = eligibility.Status,
+                    Explanation = eligibility.Explanation,
                     SafeState = control.SafeDeployment.State,
-                    IsSelected = eligible && selected.Contains(control.Id)
+                    IsSelected = eligibility.Eligible && selected.Contains(control.Id)
                 };
                 // The selected count in ContextText is derived from these rows, so it must follow every tick and untick.
                 selection.PropertyChanged += OnSelectionChanged;

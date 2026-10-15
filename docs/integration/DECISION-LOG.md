@@ -906,3 +906,10 @@ Connect offers explicit group and named-location choices under current authorise
 ### INT-118 presentation completion — approved task5
 
 The same client-input slice focuses visible policy fields on the selected control, with an explicit Show all option that preserves all values and retains whole-profile validation. Office rows are shown for the office-location control or Show all. Local imports move to their own tab; package upload and tenant changes remain separate. New disabled-action guidance mirrors existing command prerequisites but grants no authority. Shared scope selection is presentation-only; no recipe, evidence, authentication, approval or execution semantics change.
+
+
+## INT-119 — Explicit assessment-to-plan selection (15 October 2026)
+
+Approved task4 adds one current, eligible assessment finding to the plan-selection page. The engine now supplies the same selection eligibility to both pages; this is guidance, never write admission. The shortcut requires the same client/session/catalogue/assessment and full live source, rejects manual/unknown/unmanaged results, rechecks capture integrity and completeness on click, and preserves other same-source selections. Changing client, assessment, capture, standard or session clears stale plan selections. A filter is widened to reveal the added control without dropping valid existing choices.
+
+The action does not build or approve a plan, enable experimental writes or execute anything. Existing planner, freshness, evidence, ownership, exact review, single-use and unresolved-write checks remain authoritative. Historical/partial evidence remains readable but cannot supply this shortcut. No schema or permission changes.
