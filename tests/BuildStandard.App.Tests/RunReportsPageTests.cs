@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.Services;
@@ -33,6 +34,19 @@ public sealed class RunReportsPageTests : IDisposable
     { _page.ExperimentalReadEnabled = true; _page.ReviewCommand.Execute(null); Assert.True(_page.HasReview); Assert.False(_page.Approved); _page.Approved = true; }
     private static async Task Finish(AsyncCommand command)
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
+
+    [Fact]
+    public async Task Unsaved_report_blocks_another_review_and_keeps_offline_save_available_after_disconnect()
+    {
+        _f.Save = _ => throw new IOException("Synthetic save failure");
+        Approve(); await _page.RunAsync();
+        Assert.True(_page.SaveEvidenceCommand.CanExecute(null));
+        Assert.False(_page.CanReview);
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection), BindingFlags.Instance | BindingFlags.Public)!.SetValue(_workspace, null);
+        _page.Refresh();
+        Assert.True(_page.SaveEvidenceCommand.CanExecute(null)); Assert.Empty(_page.Output);
+        Assert.False(_page.CanRun); Assert.False(_page.CanReview); Assert.Equal(1, _f.Calls);
+    }
 
     [Fact]
     public async Task Mailbox_review_shortcut_does_not_run_select_sources_or_invalidate_exact_review()
