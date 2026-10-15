@@ -5,6 +5,9 @@ using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Engine.Reports;
 using BuildStandard.Engine.Checks;
+using BuildStandard.Engine.Planning;
+using BuildStandard.Engine.Evidence;
+using BuildStandard.Engine.Assessment;
 
 namespace BuildStandard.App.ViewModels;
 
@@ -56,6 +59,7 @@ public sealed class AssessmentViewModel : PageViewModel
         ExportCsvCommand = Command(() => Export(ExportFormat.Csv), () => Workspace.Assessment is not null);
         ExportXlsxCommand = Command(() => Export(ExportFormat.Xlsx), () => Workspace.Assessment is not null);
         ExportClientCommand = Command(() => Export(ExportFormat.ClientHtml), () => Workspace.Assessment is not null);
+        AddToPlanCommand = Sync(AddToPlan, () => CanAddToPlan);
         CopyDetailCommand = CopyText(() => SelectedDetail + Environment.NewLine + string.Join(Environment.NewLine, Notes));
         OpenExportCommand = Sync(() => Infrastructure.ShellFolders.RevealFile(_lastExportFile), () => _lastExportFile.Length > 0);
         CheckAreaCommand = Command(() => RunCheck(false), () => CanCheck && AreaAvailable);
@@ -73,6 +77,42 @@ public sealed class AssessmentViewModel : PageViewModel
     public ICommand ExportCsvCommand { get; }
     public ICommand ExportXlsxCommand { get; }
     public ICommand ExportClientCommand { get; }
+    public ICommand AddToPlanCommand { get; }
+    public bool CanAddToPlan => AddToPlanProblem is null;
+    public string AddToPlanGuidance => AddToPlanProblem ?? "Select this eligible control in Plan changes. This does not build, approve or execute a plan.";
+    private string? AddToPlanProblem
+    {
+        get
+        {
+            if (!Workspace.Idle) return "Wait for the active operation before selecting changes.";
+            if (Selected is null) return "Select a finding to see whether it can be added to a plan.";
+            if (_findingContext is null || !Workspace.IsCurrent(_findingContext) || _findingAssessmentId != Workspace.Assessment?.Id)
+                return "Client, evidence or standard changed. Review the current assessment again.";
+            var assessment = Workspace.Assessment; var capture = Workspace.Snapshot; var standard = Workspace.Standard;
+            if (!Workspace.IsConnected || !Workspace.SnapshotIsLive || capture is null || assessment is null || standard is null)
+                return "Connect to this client and capture a full live assessment before selecting changes.";
+            if (!capture.Complete || !assessment.SnapshotComplete || assessment.SnapshotIntegrity != SnapshotIntegrityState.Intact)
+                return "Resolve incomplete or unverified capture evidence and re-assess first. Partial checks cannot supply a deployment plan.";
+            if (assessment.SnapshotId != capture.Id || assessment.Release != standard.Release || assessment.StandardDigest != standard.IntegrityDigest
+                || assessment.TenantId != Workspace.Profile?.TenantId || assessment.TenantId != Workspace.Session?.TenantId
+                || !assessment.Findings.Any(f => ReferenceEquals(f, Selected.Finding))) return "This finding is not from the current client's full assessment.";
+            var control = ControlInstances.Find(standard, Workspace.Profile, Selected.ControlId);
+            if (control is null) return "The finding is not in the current standard.";
+            var eligibility = ControlSelectionEligibility.For(control, standard.FindCollection(control.Collection), Selected.Finding);
+            return eligibility.Eligible ? null : eligibility.Explanation;
+        }
+    }
+    private void AddToPlan()
+    {
+        if (AddToPlanProblem is { } reason) throw new ToolkitException(reason);
+        var capture = Workspace.Snapshot!;
+        SnapshotRequirements.AssertComplete(capture, Workspace.RequireStandard());
+        if (AssessmentEngine.IntegrityOf(capture) != SnapshotIntegrityState.Intact) throw new IntegrityException("Capture bytes changed. Re-capture and assess before selecting changes.");
+        var id = Selected!.ControlId;
+        // Navigation refreshes the destination, preserving only selections from the same source.
+        Shell.Navigate("plan");
+        Shell.Page<PlanViewModel>().SelectAssessedControl(id);
+    }
     public ICommand CopyDetailCommand { get; }
     public ICommand OpenExportCommand { get; }
     public ICommand CheckAreaCommand { get; }
@@ -180,6 +220,7 @@ public sealed class AssessmentViewModel : PageViewModel
                 foreach (var o in value.Finding.ObservedObjects) Notes.Add("Observed: " + o);
             }
             SelectedCandidate = Candidates.FirstOrDefault();
+            OnPropertyChanged(nameof(CanAddToPlan)); OnPropertyChanged(nameof(AddToPlanGuidance)); CommandManager.InvalidateRequerySuggested();
             OnPropertyChanged(nameof(SelectedDetail));
             OnPropertyChanged(nameof(ProposedJson));
             OnPropertyChanged(nameof(HiddenSelectionText));

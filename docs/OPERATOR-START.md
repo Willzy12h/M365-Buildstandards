@@ -168,3 +168,10 @@ The reader alone requires an organisation-managed Stable Evergreen WebView2 Runt
 The assessment selector lists only readable evidence matching the capture in view and the selected Build Standard. **Do not cite an assessment** records your own outcome without adding an assessment citation; it does not verify a requirement by itself. The guidance beneath the selector explains whether a saved capture is needed, no evidence matches, or other captures/releases were excluded.
 
 An unreadable or wrong-client history file appears in the copyable **Job needs review** details. Healthy matching assessments remain available. Preserve the original file and inspect local evidence/diagnostics; the tool does not delete or repair it automatically. A selection or completed job does not authorise a tenant change.
+
+
+### From a finding to a reviewed plan
+
+Select a finding in the full current assessment and choose **Add to plan**. The tool opens Plan changes and ticks that exact eligible control, retaining other choices from the same source. Read the explanation beside a disabled button: historical/partial evidence, failed reads, manual controls and unowned partial matches cannot use this shortcut. Changing client, capture, standard, assessment or session clears stale selections.
+
+This step does not build, approve or run a plan. Build the plan deliberately, resolve its readiness checks, review the exact proposal and obtain the normal approval before deployment. Candidates remain disabled/unassigned; no score or protection claim is inferred from adding a finding.

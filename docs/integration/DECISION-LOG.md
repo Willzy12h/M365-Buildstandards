@@ -883,3 +883,10 @@ William explicitly instructed in the project session “Merge and accept it all 
 Fresh supplementary GPT review of the main-promotion candidate found a remaining R-3 presentation edge: Home cached its recommendation until Refresh, while the header recomputed current guidance. Time passing alone could send Home to Deploy after opt-in expiry; execution still refused. Under William’s current approved-workflow/usability instruction, refresh the existing shared projection before navigation and query the header’s current action for command availability. No background timer, authentication, Graph call, engine policy or authority change.
 
 The new actual-command/injected-clock Windows regression failed first at9361b18/run38701974064: expected connect, actual deploy;2449 engine and491 other App tests passed. It retains the plan, performs no new reads/writes and never manually refreshes Home after advancing the clock. Preserve the original refresh/expiry, busy, purity and navigation tests. Full changed-source Windows/native/hosted/package checks remain required.
+
+
+## INT-119 — Explicit assessment-to-plan selection (15 October 2026)
+
+Approved task4 adds one current, eligible assessment finding to the plan-selection page. The engine now supplies the same selection eligibility to both pages; this is guidance, never write admission. The shortcut requires the same client/session/catalogue/assessment and full live source, rejects manual/unknown/unmanaged results, rechecks capture integrity and completeness on click, and preserves other same-source selections. Changing client, assessment, capture, standard or session clears stale plan selections. A filter is widened to reveal the added control without dropping valid existing choices.
+
+The action does not build or approve a plan, enable experimental writes or execute anything. Existing planner, freshness, evidence, ownership, exact review, single-use and unresolved-write checks remain authoritative. Historical/partial evidence remains readable but cannot supply this shortcut. No schema or permission changes.
