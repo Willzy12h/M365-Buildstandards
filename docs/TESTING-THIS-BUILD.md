@@ -1,6 +1,6 @@
 # Testing this build
 
-This guide follows the current integration source and immutable standard 2026.09.30. Use the exact version/source/check record supplied with your candidate; Preview.18 is a historical published package, not proof for changed integration bytes. Agent development and CI checks use synthetic fixtures only. William has reported his own tenant tests; new capabilities still need their recorded acceptance. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
+This guide follows the canonical source promoted to `main` and immutable standard 2026.09.30. Use the exact version/source/check record supplied with your candidate; Preview.18 is a historical published package, not proof for changed integration bytes. Agent development and CI checks use synthetic fixtures only. William has reported his own tenant tests; new capabilities still need their recorded acceptance. Sections 1-3 require no tenant. Later sections describe future, explicitly authorised maintainer acceptance; they do not authorise this development task to connect, grant consent, query DNS or operate a device.
 
 ## 1. Get the build
 
@@ -8,7 +8,7 @@ Engineers use a **published release**, not a CI artifact. Open the repository's 
 
 Reviewers checking an unreleased change use the CI artifact instead. It is not a promoted package: use it only for authorised review/acceptance, and do not present it as an approved production release:
 
-1. Open the repository's **Actions** tab and select the successful run for the exact PR head under review. After merge, use the reviewed `integration` run. Check the commit, not only the green badge on an older run.
+1. Open the repository's **Actions** tab and select the successful run for the exact PR head under review. After promotion, use the successful push run for the exact `main` merge commit. Check the commit, not only the green badge on an older run.
 2. Download the **portable-windows-review** artifact. It contains the application ZIP and its `.sha256` checksum.
 3. Verify the original ZIP against the independently trusted fingerprint, then extract it normally. If organisation application control or Windows security blocks it, use your security owner's approval route for that exact application. Do not unblock, change execution policy, rename it or use another host to evade the block; there is no broad writable-path exception.
 4. Run `Start.cmd`, or `app\BuildStandard.App.exe` directly.

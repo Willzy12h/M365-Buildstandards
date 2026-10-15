@@ -18,7 +18,7 @@ Assessment counts separate compliance, review-needed results, matched-but-not-en
 
 Recorded outcomes distinguish request acceptance, configuration readback, saving and protection state. An intended payload is not readback. Unknown readback remains unverified; earlier accepted/uncertain rows must not be replayed because a later row stopped. Saving is verified against the durable local record when available. Functional user/device/sign-in checks remain separate.
 
-These phase candidates are unpublished and provisionally integrated. Independent safety/source review, H1 accessibility and live acceptance are outstanding; passing automated checks does not close them.
+William has accepted this source and authorised promotion to `main`; the exact source, checks and package fingerprint are recorded in the promotion PR and issue #83. This is owner acceptance, not a new independent review. The package remains unpublished. H1 accessibility, workstation-policy and live acceptance are unverified; passing automated checks does not close them.
 
 
 ## Your first read-only assessment

@@ -1,5 +1,9 @@
 # Astra and Claude coordination
 
+## Current source promotion — 15 October 2026
+
+William has accepted the completed implementation/fixes and authorised promotion to default `main`; see [the current goal](../docs/GOAL.md) for exact scope and acceptance limits. After promotion, use current `main` rather than the older frozen integration tip. Issue #83 remains the shared inbox; this notice does not assign work to Claude or claim a new independent review. Keep the existing routing, attribution and handoff rules below. No historical backlog resumes automatically.
+
 ## Current finite phase — 12 October 2026
 
 William explicitly approved the complete BuildStandard plan and GPT-led execution on 12 October 2026, from that message onward; earlier approval claims are not backdated. The [current goal](../docs/GOAL.md) and [T0 PR #114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) govern the new `phase/wpf-webview2` target; historical work/ownership below is preserved, not automatically resumed. Issue #83 remains the shared inbox. Its older body/index is not the latest disposition: the frozen baseline is in ASTRA-20261011-010, and subsequent explicit phase messages carry new status.

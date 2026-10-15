@@ -1,5 +1,15 @@
 # Current goal
 
+## Owner acceptance and canonical-source promotion — 15 October 2026
+
+William explicitly instructed in the project conversation: **“Merge and accept it all for me. Action these for me.”** This follows the stated acceptance, remaining-fix merge and primary-branch promotion steps; subsequent retry requests preserved that instruction. GPT records this owner acceptance prospectively, not as another Claude review or a passed human/live test.
+
+The completed T0–T10 implementation and follow-ups #125–128 may be promoted from `phase/wpf-webview2` into existing default `main` through normal merge-commit PRs after applicable exact-source checks pass. #128 merged as `80e0103ee3222fbbdf2bf42c3bb91215d7e6ea49`; its earlier head/run and actual merge-run evidence are linked in the PR. This owner decision resolves the previously deferred independent-acceptance hold for this candidate only. Existing review attribution and future safety-review requirements remain; no enforced check or protection is bypassed.
+
+After promotion, `main` is the canonical implementation base. Retain the frozen `integration` baseline, phase branch and historical records. No branch rename/deletion, version bump, tag, publication, new permission or tenant operation is included. The package remains **unpublished 1.1.0-preview.19**. H1, human accessibility, workstation-policy and live Microsoft checks remain unrun; live tenant testing is excluded from this closeout by William.
+
+Current work is to verify the final main package, align engineer guidance and reconcile the approved feature/workflow criteria. Any confirmed remaining approved defect uses a bounded owned branch/PR; do not restart T0–T10, change the approved architecture or resume the historical take-next backlog. The exact final main SHA/run/package identity belongs in the promotion PR and [issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83), avoiding a self-referential source commit. Existing inbox, claims, acknowledgements and ledger survive.
+
 ## Approved BuildStandard phase — 12 October 2026
 
 William explicitly approved implementation on **12 October 2026**, from that message onward, of the [BuildStandard plan](superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md), governed by [design specification v0.2](superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md). This finite phase supersedes the older closeout/take-next and permanent desktop-ownership instructions below **only within T0–T10**. The original frozen source remains `4a7425f55385e84462975bcc5bdde5644815ca8f`.

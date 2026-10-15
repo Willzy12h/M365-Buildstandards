@@ -1,5 +1,9 @@
 # Working with two agents
 
+## Current owner-authorised promotion — 15 October 2026
+
+Apply [the current goal](../GOAL.md) before the preserved phase protocol below. William explicitly accepted the remaining implementation/fixes and requested promotion to existing default `main`. Use normal merge-commit PRs and actual required head/resulting-merge checks; no bypass or fabricated independent review. The owner acceptance resolves this candidate's previously deferred review hold only. After promotion, fetch `main` as the canonical base, preserve frozen integration/phase/history, and retain the existing three-repository pre-flight, ownership, review and inbox rules for subsequent approved work. No publication, live action, new permissions, protection change or old-backlog restart is authorised by this source promotion.
+
 ## Approved BuildStandard phase override — 12 October 2026
 
 For the finite approved [BuildStandard plan](../superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md), GPT/Codex initially owns all implementation areas and `phase/wpf-webview2` replaces `integration` as the feature-PR target. Run the same three-repository pre-flight and check actual phase/integration heads and overlapping PRs before each branch. Existing claims, other-agent branches, decision history, review attribution and shared inbox remain intact. Ownership does not waive an independent or named safety-review gate.

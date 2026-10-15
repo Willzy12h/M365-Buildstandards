@@ -1,5 +1,13 @@
 # Handover and priorities
 
+## Current closeout — owner acceptance and main promotion, 15 October 2026
+
+The approved T0–T10 application is implemented. Claude's original a79 source-only review and its limitations remain attributed; #125 fixes R-1–R-4 and staged-package validation, #126 centralises conservative write-outcome classification, #127 adds usable assessment-history diagnostics, and #128 fixes null findings/blocked history paths. William subsequently explicitly instructed “Merge and accept it all for me. Action these for me.” The [current goal](../GOAL.md) records this owner acceptance and main-promotion authority; no later Claude disposition or unrun acceptance is invented.
+
+#128 head `f63bb7cbdd38a7d927522a76651f3462433a8d71` passed Windows38527759239 (2449 engine/CLI +491 App, zero failures/skips, native/hosted/package checks) and merged normally as `80e0103ee3222fbbdf2bf42c3bb91215d7e6ea49`. Its actual phase run is38701120212; inspect the current outcome rather than assume success. All previous check identities remain immutable evidence.
+
+**Next:** complete the bounded promotion PR from the merged phase to canonical `main`, inspect actual main-push CI, retrieve and verify its original ZIP and new fingerprint, and record final identities in [issue #83](https://github.com/Willzy12h/M365-Buildstandards/issues/83). Continue only confirmed gaps against approved functionality; retain historical tasks without resuming them. Human accessibility/H1/workstation policy and live effectiveness are unverified. No release/tag/publication or tenant operation is part of this source closeout.
+
 ## Approved BuildStandard phase T0 — 12 October 2026
 
 William explicitly approved the complete [implementation plan](../superpowers/plans/2026-10-11-buildstandard-wpf-webview2.md) on **12 October 2026**, prospectively and initial GPT-led execution under [specification v0.2](../superpowers/specs/2026-10-11-buildstandard-wpf-webview2.md). Older next lists below remain history, not a renewed backlog. Frozen integration remains `4a7425f55385e84462975bcc5bdde5644815ca8f`; the new phase target starts at that exact commit. T0 [#114](https://github.com/Willzy12h/M365-Buildstandards/pull/114) changes only coordination, accepted-input storage and the phase CI trigger.
