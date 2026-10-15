@@ -86,7 +86,7 @@ internal static partial class Program
             SaveImage(content, size, Path.Combine(output, "run-reports-recovery-" + (int)size.Width + "x" + (int)size.Height + ".png"));
             var window = Window.GetWindow(content) ?? throw new InvalidOperationException("Recovery window missing.");
             var closing = new System.ComponentModel.CancelEventArgs();
-            typeof(BuildStandard.App.MainWindow).GetMethod("OnClosing", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [window, closing]); Pump();
+            typeof(BuildStandard.App.MainWindow).GetMethod("OnClosing", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)!.Invoke(window, [window, closing]); Pump();
             if (!closing.Cancel || shell.Workspace.ShutdownComplete || !page.HasPendingEvidence)
                 throw new InvalidOperationException("Window close abandoned an unsaved original report.");
             workflow.DiscardEvidence(workflow.PendingEvidenceId, confirmed: true); page.Refresh(); shell.ClearErrorCommand.Execute(null);
