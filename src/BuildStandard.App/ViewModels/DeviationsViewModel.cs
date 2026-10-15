@@ -114,7 +114,7 @@ public sealed class DeviationsViewModel : PageViewModel
         {
             Items.Clear();
             ControlIds.Clear();
-            if (Workspace.Standard is not null) foreach (var c in Workspace.Standard.Controls) ControlIds.Add(c.Id);
+            if (Workspace.Standard is not null) foreach (var c in ControlInstances.All(Workspace.Standard, Workspace.Profile)) ControlIds.Add(c.Id);
             try { foreach (var d in Workspace.LoadDeviations().OrderBy(d => d.ControlId, StringComparer.OrdinalIgnoreCase)) Items.Add(d); }
             catch (ToolkitException ex) { Shell.ShowError(ex); }
             _selected = selectedId is null ? null : Items.FirstOrDefault(d => d.Id == selectedId);
