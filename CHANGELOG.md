@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Close the reviewed activation/assignment macOS gap while preserving containment, and refresh bound policy inputs after saving so subsequent edits are retained (GPT-CAND-001/002).
+
 - Retain an unsaved read-only report across client/input changes, with original-client save, non-overwriting export and confirmed discard; block replacement runs and normal close until resolved (#130).
 - Add unpublished 2026.10.15 Windows-only CA-005 successor with verified lineage; preserve historical standards and block unsupported macOS deployment while retaining read-only inventory (#131).
 - Add a stable-key office grid with inline public-CIDR checks and explicit current-client group/named-location choices, retaining exact-ID fallback and existing access; focus fields on the selected control, separate local imports and explain disabled actions (#132).

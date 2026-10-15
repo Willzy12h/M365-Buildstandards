@@ -198,7 +198,7 @@ public sealed class AutomationViewModel : PageViewModel
     {
         InputFields.Clear();
         var standard = Workspace.Standard;
-        if (standard is null) return;
+        if (standard is null) { RefreshInputScope(); return; }
         var current = Workspace.Profile?.Parameters.PolicyInputs ?? new();
         var now = DateTimeOffset.UtcNow;
         foreach (var parameter in standard.Parameters.Where(p => !Reserved(p.Key)))
@@ -206,6 +206,8 @@ public sealed class AutomationViewModel : PageViewModel
             current.TryGetValue(parameter.Key, out var value);
             InputFields.Add(new PolicyInputField(parameter, value, now));
         }
+        // The filtered ItemsSource is a snapshot list, so every rebuild must publish its new objects.
+        RefreshInputScope();
     }
 
     // Tenant ID alone does not identify a form: switching release or reloading a profile can change its fields and values.

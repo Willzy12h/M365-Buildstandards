@@ -189,3 +189,7 @@ Policy inputs now show the fields used by the selected control. **Show all clien
 Select a finding in the full current assessment and choose **Add to plan**. The tool opens Plan changes and ticks that exact eligible control, retaining other choices from the same source. Read the explanation beside a disabled button: historical/partial evidence, failed reads, manual controls and unowned partial matches cannot use this shortcut. Changing client, capture, standard, assessment or session clears stale selections.
 
 This step does not build, approve or run a plan. Build the plan deliberately, resolve its readiness checks, review the exact proposal and obtain the normal approval before deployment. Candidates remain disabled/unassigned; no score or protection claim is inferred from adding a finding.
+
+### Local exception review
+
+Saving or removing an exception refreshes an assessment when either full configuration or supplemental Exchange evidence is open. Office-based exceptions select the individual office control, not its template. Original captures and their timestamps are unchanged. The existing Exchange assessment applies explicit Not applicable exceptions; an Approved deviation record does not currently replace its observed Exchange finding with Compliant with deviation. This update preserves that distinction and creates no deployment approval.

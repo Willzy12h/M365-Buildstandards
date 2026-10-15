@@ -134,6 +134,10 @@ public static class ReviewedChangeSafety
                 if (!root.EndsWith(suffix, StringComparison.Ordinal)) throw new SafetyViolationException("Object path does not match the recorded ID.");
                 root = root[..^suffix.Length];
                 api = p.Api;
+                // Activation/assignment payloads contain only state or targets. Apply the support
+                // boundary to the full reviewed object; containment remains available.
+                if (p.Kind is ReviewedChangeKind.AssignGroups or ReviewedChangeKind.EnableConditionalAccess or ReviewedChangeKind.ReportOnlyConditionalAccess)
+                    SupportedDevicePlatforms.AssertSupported(new CollectionDefinition { Path = root }, p.Before);
                 if (IsAssignment(p.Kind))
                 {
                     _ = AssignmentType(root);
