@@ -91,7 +91,7 @@ public sealed class AssessmentViewModel : PageViewModel
             var assessment = Workspace.Assessment; var capture = Workspace.Snapshot; var standard = Workspace.Standard;
             if (!Workspace.IsConnected || !Workspace.SnapshotIsLive || capture is null || assessment is null || standard is null)
                 return "Connect to this client and capture a full live assessment before selecting changes.";
-            if (!capture.Complete || !assessment.SnapshotComplete || assessment.SnapshotIntegrity != SnapshotIntegrityState.Intact)
+            if (!capture.Complete || capture.Collections.Values.Any(c => !c.Usable) || !assessment.SnapshotComplete || assessment.SnapshotIntegrity != SnapshotIntegrityState.Intact)
                 return "Resolve incomplete or unverified capture evidence and re-assess first. Partial checks cannot supply a deployment plan.";
             if (assessment.SnapshotId != capture.Id || assessment.Release != standard.Release || assessment.StandardDigest != standard.IntegrityDigest
                 || assessment.TenantId != Workspace.Profile?.TenantId || assessment.TenantId != Workspace.Session?.TenantId
