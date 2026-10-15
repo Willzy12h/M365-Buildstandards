@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mailbox-audit",
+  "name": "Mailbox auditing settings",
+  "category": "exchange-online",
+  "area": "Audit and logs",
+  "description": "Shows whether mailbox auditing is off for the organisation, whether unified audit ingestion is on and, per mailbox, AuditEnabled, the audited actions, log age and audit bypass.",
+  "keywords": [
+    "audit",
+    "mailbox audit",
+    "bypass",
+    "AuditEnabled",
+    "Get-MailboxAuditBypassAssociation",
+    "Get-OrganizationConfig"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxAuditReport.ps1",
+  "scriptSha256": "db59d25ecfa91d665fcc1b6410eeeb02afbbd1d606d6bfd01bd26a1803e89121",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management",
+    "View-Only Audit Logs"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "IncludeBypass",
+      "label": "Check audit bypass",
+      "type": "boolean",
+      "help": "Check whether each mailbox's account bypasses auditing, which needs one extra read per mailbox.",
+      "default": "true"
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "1000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "RecipientTypeDetails",
+      "OrganisationAuditDisabled",
+      "UnifiedAuditIngestion",
+      "AuditEnabled",
+      "AuditBypassEnabled",
+      "AuditLogAgeLimit",
+      "DefaultAuditSet",
+      "AuditOwner",
+      "AuditDelegate",
+      "AuditAdmin",
+      "Finding",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients and organisation configuration; reading unified audit ingestion may need an audit role.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "With auditing on by default for the organisation, a mailbox can show AuditEnabled False and still be audited. Finding NoneFound is not proof that events are recorded; which events are recorded also depends on licence.",
+    "If unified audit ingestion cannot be read (for example without an audit role) it is Unknown on every row and the run says so.",
+    "Audit bypass needs one read per mailbox; unticked, AuditBypassEnabled is NotChecked.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

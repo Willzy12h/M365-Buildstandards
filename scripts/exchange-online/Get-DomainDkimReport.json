@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.domains-dkim",
+  "name": "Accepted domains and DKIM",
+  "category": "exchange-online",
+  "area": "Mail flow",
+  "description": "Lists accepted domains with whether DKIM signing is configured and enabled, its status and the selector CNAME values Exchange expects to be published.",
+  "keywords": [
+    "DKIM",
+    "accepted domain",
+    "domain",
+    "selector",
+    "email authentication",
+    "Get-AcceptedDomain",
+    "Get-DkimSigningConfig"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-DomainDkimReport.ps1",
+  "scriptSha256": "1371c0140ef84bed299780373b7c0d3a818d4b94de554345f54008fcbb1940ef",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management",
+    "Security Reader"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Domain",
+      "label": "Domains",
+      "type": "string",
+      "help": "Domains to show. Leave blank to show every accepted domain.",
+      "array": true,
+      "maxItems": 50,
+      "format": "domain"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Domain",
+      "DomainType",
+      "IsDefault",
+      "DkimConfigured",
+      "DkimEnabled",
+      "DkimStatus",
+      "Selector1CNAME",
+      "Selector2CNAME",
+      "Selector1KeySize",
+      "RotateOnDate",
+      "LastChecked",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 1000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation and DKIM configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "No DNS query is made. The selector CNAME values are what Exchange expects, not proof they are published; SPF and DMARC are not checked.",
+    "A domain with no DKIM signing configuration is listed with DkimConfigured False and DkimEnabled NotConfigured.",
+    "A named domain that is not accepted in this tenant is listed as NotAccepted, with its DKIM columns NotApplicable.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

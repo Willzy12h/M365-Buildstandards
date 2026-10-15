@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.inbox-rules",
+  "name": "Inbox rules",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Lists inbox rules for chosen mailboxes, including forwarding, redirect, delete and mark-as-read actions.",
+  "keywords": [
+    "inbox rule",
+    "forward",
+    "redirect",
+    "compromise",
+    "Get-InboxRule"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-InboxRuleReport.ps1",
+  "scriptSha256": "93252888c0a7d27320aaed028b4a5cd6cfa659ecc021954cff6290b09797bb9a",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases to check.",
+      "required": true,
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "OnlyRiskyRules",
+      "label": "Only forwarding, delete or mark-as-read rules",
+      "type": "boolean",
+      "help": "Hide rules that only move or flag mail."
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "Name",
+      "Enabled",
+      "Priority",
+      "From",
+      "SubjectContainsWords",
+      "ForwardTo",
+      "ForwardAsAttachmentTo",
+      "RedirectTo",
+      "MoveToFolder",
+      "DeleteMessage",
+      "MarkAsRead",
+      "StopProcessingRules"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 900
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Hidden rules created outside Outlook are not included.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mailbox-holds",
+  "name": "Holds and retention per mailbox",
+  "category": "exchange-online",
+  "area": "Compliance",
+  "description": "Shows litigation hold, in-place and retention policy holds, delay holds, retention hold and the retention policy on each mailbox, with the organisation-wide holds.",
+  "keywords": [
+    "hold",
+    "litigation hold",
+    "retention",
+    "in-place hold",
+    "delay hold",
+    "eDiscovery",
+    "Get-EXOMailbox"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxHoldReport.ps1",
+  "scriptSha256": "255d7b7dcc6f53b1599e0b578874e22756511847c6a1b62c72791b3131b0913a",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "OnlyOnHold",
+      "label": "Only mailboxes with a hold",
+      "type": "boolean",
+      "help": "List only mailboxes with a hold set on the mailbox. A mailbox whose holds could not be read is kept."
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "RecipientTypeDetails",
+      "HoldStatus",
+      "LitigationHoldEnabled",
+      "LitigationHoldDate",
+      "LitigationHoldOwner",
+      "LitigationHoldDuration",
+      "InPlaceHolds",
+      "ComplianceTagHoldApplied",
+      "DelayHoldApplied",
+      "DelayReleaseHoldApplied",
+      "RetentionHoldEnabled",
+      "RetentionPolicy",
+      "OrganisationHolds",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients and organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Hold IDs are shown as Exchange returns them and are not resolved to policy or case names; that needs Security and Compliance PowerShell, which this library does not connect to.",
+    "Organisation-wide holds are listed for reference on every row; whether one covers a given mailbox is not worked out.",
+    "An in-place hold entry starting with a minus sign is an exclusion from an organisation-wide policy and does not count as a hold.",
+    "Retention hold pauses retention processing; it is reported but does not by itself make HoldStatus MailboxHold.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

@@ -1,0 +1,102 @@
+<Window x:Class="BuildStandard.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:BuildStandard.App.ViewModels"
+        xmlns:views="clr-namespace:BuildStandard.App.Views"
+        Title="{Binding WindowTitle}" Height="940" Width="1480" MinHeight="600" MinWidth="1180"
+        Background="{StaticResource BgWindow}" WindowStartupLocation="CenterScreen" Icon="Assets/buildstandard.png"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" Closing="OnClosing">
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:HomeViewModel}"><views:HomeView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><views:OverviewView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RecoveryViewModel}"><views:RecoveryView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ConnectViewModel}"><views:ConnectView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ApplicationSetupViewModel}"><views:ApplicationSetupView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ConfigurationViewModel}"><views:ConfigurationView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:AssessmentViewModel}"><views:AssessmentView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DeviationsViewModel}"><views:DeviationsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PlanViewModel}"><views:PlanView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DeployViewModel}"><views:DeployView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><views:HistoryView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ManualChecksViewModel}"><views:ManualChecksView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:JobsViewModel}"><views:JobsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CatalogueReaderViewModel}"><views:CatalogueReaderView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:StandardViewModel}"><views:StandardView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:AutomationViewModel}"><views:AutomationView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ScriptsViewModel}"><views:ScriptsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RunReportsViewModel}"><views:RunReportsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GraphReportsViewModel}"><views:GraphReportsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MailboxCapacityViewModel}"><views:MailboxCapacityView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:NamingAuditViewModel}"><views:NamingAuditView/></DataTemplate>
+  </Window.Resources>
+  <DockPanel Background="{StaticResource BgWindow}">
+    <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="20,4">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="185"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="290"/></Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+          <Border Background="{StaticResource Accent}" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0"><TextBlock Text="bs" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="BuildStandard"/></Border>
+          <StackPanel><TextBlock Text="BuildStandard" FontSize="17" FontWeight="Bold"/><TextBlock Text="{Binding Workspace.Version}" Style="{StaticResource Muted}" FontSize="10"/></StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Margin="0,0,16,0" VerticalAlignment="Center">
+          <TextBlock Text="WORKING CLIENT" Style="{StaticResource Eyebrow}" Margin="0"/><TextBlock Text="{Binding TenantTitle}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TenantTitle}"/>
+          <TextBlock Text="{Binding TenantSubtitle}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding TenantSubtitle}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Margin="0,0,16,0" VerticalAlignment="Center">
+          <TextBlock Text="SIGNED-IN IDENTITY" Style="{StaticResource Eyebrow}" Margin="0"/><TextBlock Text="{Binding HeaderAccount}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding HeaderAccount}"/>
+          <TextBlock Text="{Binding IdentityContextLabel}" Style="{StaticResource Muted}" FontSize="11"/>
+        </StackPanel>
+        <Border Grid.Column="3" CornerRadius="5" Padding="8,4" VerticalAlignment="Center">
+          <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{StaticResource BgPanel}"/><Style.Triggers><DataTrigger Binding="{Binding IsAssessmentSession}" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}"/></DataTrigger><DataTrigger Binding="{Binding IsDeploymentSession}" Value="True"><Setter Property="Background" Value="{StaticResource WarnBg}"/></DataTrigger></Style.Triggers></Style></Border.Style>
+          <TextBlock Text="{Binding ModeBadge}" FontSize="10" FontWeight="SemiBold" TextAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Foreground" Value="{StaticResource TextMuted}"/><Style.Triggers><DataTrigger Binding="{Binding IsAssessmentSession}" Value="True"><Setter Property="Foreground" Value="{StaticResource Accent}"/></DataTrigger><DataTrigger Binding="{Binding IsDeploymentSession}" Value="True"><Setter Property="Foreground" Value="{StaticResource Warn}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+        </Border>
+      </Grid>
+    </Border>
+    <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="16,2">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <ComboBox x:Name="PageSelector" ItemsSource="{Binding VisibleNavItems}" SelectedValuePath="Key" SelectedValue="{Binding ActiveRouteKey, Mode=TwoWay}" Width="225" Margin="8,0,8,0" AutomationProperties.Name="Page in the selected navigation group"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}"/></DataTemplate></ComboBox.ItemTemplate><ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}"/></Style></ComboBox.ItemContainerStyle></ComboBox>
+          <Button Content="Pin capture" Command="{Binding PinCurrentReferenceCommand}" Style="{StaticResource QuietButton}" Padding="8,4" ToolTip="{Binding PinUnavailableReason}" AutomationProperties.HelpText="{Binding PinUnavailableReason}"/>
+        </StackPanel>
+        <ItemsControl x:Name="PrimaryGroups" ItemsSource="{Binding NavigationGroups}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding Name}" Command="{Binding DataContext.SelectGroupCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="10,6" Margin="0,0,4,0" AutomationProperties.Name="{Binding Name}" AutomationProperties.ItemStatus="{Binding AccessibilityStatus}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource QuietButton}"><Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}"/><Setter Property="FontWeight" Value="Bold"/></DataTrigger></Style.Triggers></Style></Button.Style></Button></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DockPanel>
+    </Border>
+      <Expander x:Name="ConnectionDetailsExpander" DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="20,2" Visibility="{Binding HeaderHasDetails, Converter={StaticResource BoolToVis}}">
+        <Expander.Header><DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0"><Button Content="Next step" Command="{Binding NextStepCommand}" Style="{StaticResource QuietButton}" Padding="8,4" Margin="0,0,8,0" AutomationProperties.Name="Open the recommended next step" AutomationProperties.HelpText="{Binding NextAction}" ToolTip="{Binding NextAction}"/><Button Content="Copy details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource QuietButton}" Padding="8,4" Margin="0,0,8,0" Visibility="{Binding HeaderHasDetails, Converter={StaticResource BoolToVis}}"/><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource QuietButton}" Padding="8,4" Visibility="{Binding HeaderHasConnection, Converter={StaticResource BoolToVis}}"/></StackPanel><StackPanel VerticalAlignment="Center"><TextBlock Text="Connection and evidence details" FontWeight="SemiBold" FontSize="11"/><TextBlock x:Name="EvidenceSourceStatus" Text="{Binding EvidenceStatus}" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding EvidenceStatus}" AutomationProperties.Name="Current evidence source and capture time"/></StackPanel></DockPanel></Expander.Header>
+        <DockPanel Margin="0,12,0,6">
+          <Button DockPanel.Dock="Right" Content="Copy details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top"/>
+          <TextBox AutomationProperties.Name="Connection details" Text="{Binding DetailsText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontFamily="Consolas" FontSize="11" MaxHeight="180" Margin="0,0,12,0"/>
+        </DockPanel>
+      </Expander>
+      <Border DockPanel.Dock="Top" Background="{StaticResource DangerBg}" BorderBrush="#EDBEC1" BorderThickness="0,0,0,1" Padding="20,6" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding ClearErrorCommand}" Style="{StaticResource QuietButton}" Margin="16,0,0,0"/>
+          <StackPanel><TextBlock Text="Action needs attention" Foreground="{StaticResource Danger}" FontWeight="SemiBold"/><TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" Margin="0,4,0,0"/></StackPanel>
+        </DockPanel>
+      </Border>
+      <Border DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="20,6" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Cancel operation" Command="{Binding CancelOperationCommand}" Style="{StaticResource SecondaryButton}" Margin="16,0,0,0"/>
+          <ProgressBar AutomationProperties.Name="Operation in progress" DockPanel.Dock="Left" IsIndeterminate="True" Width="88" Height="5" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,18,0"/>
+          <StackPanel><TextBlock Text="{Binding BusyMessage}" FontWeight="SemiBold"/><TextBlock Text="{Binding ProgressDetail}" Style="{StaticResource Muted}" Margin="0,3,0,0"/></StackPanel>
+        </DockPanel>
+      </Border>
+      <Expander DockPanel.Dock="Bottom" Header="Activity log" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,4" IsExpanded="False">
+        <ListBox AutomationProperties.Name="Activity log" ItemsSource="{Binding Activity}" Height="160" FontFamily="Consolas" FontSize="11" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+          <ListBox.ItemTemplate><DataTemplate><TextBlock TextWrapping="NoWrap" FontFamily="Consolas" FontSize="11"><Run Text="{Binding At, Mode=OneWay}"/>  <Run Text="{Binding Level, Mode=OneWay}"/>  <Run Text="{Binding Category, Mode=OneWay}"/>: <Run Text="{Binding Message, Mode=OneWay}"/></TextBlock></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+      </Expander>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="{Binding PinnedColumnWidth}"/></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <ContentControl Content="{Binding CurrentPage}"/>
+      <Border Grid.Column="1" BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0" Background="White" Visibility="{Binding UseSideReference, Converter={StaticResource BoolToVis}}"><views:PinnedReferenceView/></Border>
+      <Expander Grid.Row="1" Grid.ColumnSpan="2" Background="{StaticResource AccentSoft}" Padding="12,4" Visibility="{Binding UseDrawerReference, Converter={StaticResource BoolToVis}}" MaxHeight="220" AutomationProperties.Name="Docked original reference drawer">
+        <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding PinnedReference.Title}" FontWeight="SemiBold"/><TextBlock Text=" · original reference" Margin="8,0,0,0"/><TextBlock Text=" · working context changed" Foreground="{StaticResource Warn}" Visibility="{Binding PinnedReference.HasMismatch, Converter={StaticResource BoolToVis}}"/></StackPanel></Expander.Header>
+        <views:PinnedReferenceView/>
+      </Expander>
+    </Grid>
+  </DockPanel>
+</Window>

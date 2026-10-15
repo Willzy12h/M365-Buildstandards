@@ -1,0 +1,198 @@
+using BuildStandard.App.Services;
+using BuildStandard.App.ViewModels;
+using BuildStandard.Core.Configuration;
+using BuildStandard.Core.Diagnostics;
+using Xunit;
+
+namespace BuildStandard.Tests;
+
+/// <summary>Page behaviour that the review harness cannot see, because it only renders a state rather than changing one.</summary>
+public sealed class PageViewModelTests : IDisposable
+{
+    private readonly TempRoot _root = new();
+    private readonly ToolkitLogger _logger;
+    private readonly ShellViewModel _shell;
+
+    public PageViewModelTests()
+    {
+        _root.WriteStandard("test.json", TestData.StandardJson);
+        _root.WriteManifest();
+        _logger = new ToolkitLogger(_root.Paths.LogsDirectory, LogLevel.Debug);
+        var workspace = new Workspace(_root.Paths, new ToolkitSettings(), _logger, diagnostics: true);
+        workspace.Initialise();
+        if (workspace.Standard is null)
+            throw new InvalidOperationException("The synthetic standard did not load: " + workspace.StandardError);
+        _shell = new ShellViewModel(workspace);
+    }
+
+    public void Dispose()
+    {
+        _logger.Dispose();
+        _root.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// The Plan page says how many controls are selected. It was computed from the rows but only re-read when the
+    /// workspace changed, so ticking a control, or "Select eligible", left the count showing the old number.
+    /// </summary>
+    [Fact]
+    public void The_plan_page_count_follows_each_tick()
+    {
+        var plan = _shell.Page<PlanViewModel>();
+        Assert.NotEmpty(plan.Controls);
+        var raised = new List<string?>();
+        plan.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        plan.Controls[0].IsSelected = true;
+        Assert.Contains(nameof(PlanViewModel.ContextText), raised);
+
+        raised.Clear();
+        plan.ClearSelectionCommand.Execute(null);
+        Assert.Contains(nameof(PlanViewModel.ContextText), raised);
+    }
+
+    [Fact]
+    public void Inspecting_a_control_updates_guidance_without_selecting_it_for_execution()
+    {
+        var plan = _shell.Page<PlanViewModel>();
+        var control = plan.Controls[0];
+        var raised = new List<string?>();
+        plan.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        plan.SelectedControl = control;
+        Assert.False(control.IsSelected);
+        Assert.Contains(control.ControlId, plan.SelectionDetail);
+        Assert.Contains(nameof(PlanViewModel.SelectionDetail), raised);
+        Assert.Contains(nameof(PlanViewModel.SelectionProcedure), raised);
+        plan.SelectedControl = null;
+        Assert.Contains("Tick an eligible", plan.SelectionDetail);
+    }
+
+    [Fact]
+    public void Offline_next_step_keeps_engineer_exports_available_and_saved_evidence_inert()
+    {
+        Assert.Contains("export the engineer guide offline", _shell.NextAction);
+        _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        Assert.Contains("Connect read-only", _shell.NextAction);
+        Assert.False(_shell.Workspace.SnapshotIsLive);
+    }
+
+    [Fact]
+    public void The_menu_preserves_the_client_lifecycle_in_five_native_groups()
+    {
+        var groups = _shell.NavItems.Select(n => n.Group).Distinct().ToList();
+        Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, groups);
+        // Each group is contiguous and its heading shows once, over its first page.
+        foreach (var group in groups)
+        {
+            var indexes = _shell.NavItems.Select((n, i) => (n, i)).Where(x => x.n.Group == group).Select(x => x.i).ToList();
+            Assert.Equal(indexes.Count - 1, indexes[^1] - indexes[0]);
+            Assert.True(_shell.NavItems[indexes[0]].IsGroupStart);
+            Assert.All(indexes.Skip(1), i => Assert.False(_shell.NavItems[i].IsGroupStart));
+        }
+        // Only Build is numbered, in order, and activation is part of it.
+        var numbered = _shell.NavItems.Where(n => n.Step.Length > 0).ToList();
+        Assert.All(numbered, n => Assert.Equal("Build standard", n.Group));
+        Assert.Equal(new[] { "1", "2", "3", "4", "5", "6" }, numbered.Select(n => n.Step));
+        Assert.Equal("automation", numbered[^1].Key);
+        Assert.Equal(21, _shell.NavItems.Select(n => n.Key).Distinct().Count());
+    }
+
+    [Fact]
+    public void Go_to_next_step_opens_the_page_the_next_step_names()
+    {
+        Assert.Equal("connect", _shell.NextActionKey);
+        _shell.NextStepCommand.Execute(null);
+        Assert.IsType<ConnectViewModel>(_shell.CurrentPage);
+        Assert.Contains(_shell.NavItems, n => n.Key == "connect" && n.IsActive);
+        _shell.Workspace.ApplyProfileToSession(TestData.Profile(), save: false);
+        Assert.Equal("configuration", _shell.NextActionKey);
+        Assert.Contains(_shell.NavItems, n => n.Key == _shell.NextActionKey);
+    }
+
+    /// <summary>A refresh replaces the rows; the new rows must be followed too, not only the first set.</summary>
+    [Fact]
+    public void The_plan_page_count_follows_ticks_after_a_refresh()
+    {
+        var plan = _shell.Page<PlanViewModel>();
+        plan.Refresh();
+        var raised = new List<string?>();
+        plan.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        plan.Controls[^1].IsSelected = true;
+
+        Assert.Contains(nameof(PlanViewModel.ContextText), raised);
+    }
+
+    [Fact]
+    public void The_assessment_filter_offers_every_status_in_the_table_wording()
+    {
+        var assessment = _shell.Page<AssessmentViewModel>();
+        var keys = assessment.StatusFilters.Select(f => f.Key).ToList();
+
+        foreach (var status in Enum.GetValues<BuildStandard.Core.Models.FindingStatus>())
+            Assert.Contains(status.ToString(), keys);
+        Assert.DoesNotContain(assessment.StatusFilters, f => f.Label == nameof(BuildStandard.Core.Models.FindingStatus.SettingsMatchNotEnforced));
+        Assert.Equal("Actionable", assessment.FilterStatus);
+    }
+
+    [Fact]
+    public void The_deviation_kind_is_offered_in_words_and_saved_by_key()
+    {
+        var deviations = _shell.Page<DeviationsViewModel>();
+
+        Assert.Equal(new[] { "ApprovedDeviation", "NotApplicable" }, deviations.Kinds.Select(k => k.Key));
+        Assert.Equal(new[] { "Approved deviation", "Not applicable" }, deviations.Kinds.Select(k => k.Label));
+        Assert.Contains(deviations.Kinds, k => k.Key == deviations.Kind);
+    }
+
+    /// <summary>
+    /// A comparison belongs to the client it was made for. Switching client used to leave client A's drift on screen,
+    /// with its exports enabled, under client B.
+    /// </summary>
+    [Fact]
+    public void Switching_client_clears_the_previous_clients_comparison()
+    {
+        var workspace = _shell.Workspace;
+        var history = _shell.Page<HistoryViewModel>();
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantA), save: false);
+        typeof(HistoryViewModel).GetProperty(nameof(HistoryViewModel.Drift))!.SetValue(history, new BuildStandard.Core.Models.DriftReport());
+
+        history.Refresh();
+        Assert.NotNull(history.Drift);
+
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
+
+        Assert.Null(history.Drift);
+        Assert.False(history.ExportDriftHtmlCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Switching_client_clears_selected_run_evidence_and_notifies_its_visible_summary()
+    {
+        var workspace = _shell.Workspace;
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantA), save: false);
+        var history = _shell.Page<HistoryViewModel>();
+        var result = new BuildStandard.Core.Models.RunResult { ControlId = "SYN-001" };
+        history.SelectedRun = new BuildStandard.Core.Models.DeploymentRun
+        {
+            Id = "synthetic-run", TenantId = TestData.TenantA, Results = new() { result }
+        };
+        history.SelectedResult = result;
+        Assert.Contains("synthetic-run", history.RunText);
+        var raised = new List<string?>();
+        history.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
+
+        Assert.Null(history.SelectedRun);
+        Assert.Null(history.SelectedResult);
+        Assert.Empty(history.RunResults);
+        Assert.Empty(history.Journal);
+        Assert.Contains(nameof(HistoryViewModel.RunText), raised);
+        Assert.Contains(nameof(HistoryViewModel.SelectedEvidence), raised);
+        Assert.DoesNotContain("synthetic-run", history.RunText);
+        Assert.DoesNotContain("SYN-001", history.SelectedEvidence.CopyText);
+        Assert.False(history.ExportRunHtmlCommand.CanExecute(null));
+    }
+}

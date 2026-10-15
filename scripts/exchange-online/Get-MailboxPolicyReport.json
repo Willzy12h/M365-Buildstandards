@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mailbox-policies",
+  "name": "OWA and mobile device mailbox policies",
+  "category": "exchange-online",
+  "area": "Client access",
+  "description": "Lists Outlook on the web mailbox policies and mobile device mailbox policies with whether each is the default and its key settings.",
+  "keywords": [
+    "OWA policy",
+    "Outlook on the web",
+    "mobile device mailbox policy",
+    "ActiveSync policy",
+    "device password",
+    "Get-OwaMailboxPolicy",
+    "Get-MobileDeviceMailboxPolicy"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxPolicyReport.ps1",
+  "scriptSha256": "d4aba9a534642e9895bab5ff9c4812cf9c20cabcf0503e88cb156f7675825789",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "PolicyType",
+      "label": "Policy types",
+      "type": "enum",
+      "help": "Which policy types to list.",
+      "array": true,
+      "maxItems": 2,
+      "allowed": [
+        "OwaMailbox",
+        "MobileDeviceMailbox"
+      ],
+      "default": "OwaMailbox, MobileDeviceMailbox"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "PolicyType",
+      "Name",
+      "IsDefault",
+      "KeySettings",
+      "WhenChanged",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 2000,
+    "timeoutSeconds": 600
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Only key settings are summarised; allowed and blocked file type lists are counted, not listed.",
+    "A setting not returned, or returned null, is Unknown; one returned empty is NotSet; a list returned empty is 0.",
+    "Which mailboxes use each policy is not read here: that needs one read per mailbox.",
+    "Conditional Access and Intune app protection policies, which can also govern these clients, are not read.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

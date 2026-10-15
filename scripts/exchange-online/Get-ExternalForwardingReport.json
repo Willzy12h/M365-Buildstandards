@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.external-forwarding",
+  "name": "Mail forwarding report",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Finds mailbox forwarding and, if ticked, forwarding inbox rules, marking each target internal, external or unknown.",
+  "keywords": [
+    "forwarding",
+    "external",
+    "auto-forward",
+    "exfiltration",
+    "ForwardingSmtpAddress"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-ExternalForwardingReport.ps1",
+  "scriptSha256": "ed00e3767ede57c2854b1af55bbe99d40ec023195a39a06aa19ff79ba78621c0",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "Mailbox",
+      "label": "Mailboxes",
+      "type": "string",
+      "help": "Email addresses or aliases. Leave blank to check every mailbox up to the limit.",
+      "array": true,
+      "maxItems": 50,
+      "format": "mailbox"
+    },
+    {
+      "name": "IncludeInboxRules",
+      "label": "Include inbox rules",
+      "type": "boolean",
+      "help": "Also check each mailbox's inbox rules, which takes one extra read per mailbox."
+    },
+    {
+      "name": "MaxMailboxes",
+      "label": "Maximum mailboxes",
+      "type": "integer",
+      "help": "When no mailbox is named, stops after this many and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Mailbox",
+      "Source",
+      "RuleName",
+      "Target",
+      "Scope",
+      "KeepsCopy"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 20000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "A forwarding target that is a recipient object rather than an address is marked Unknown.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False."
+  ]
+}

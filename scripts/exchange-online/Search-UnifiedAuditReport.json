@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.unified-audit-search",
+  "name": "Unified audit search",
+  "category": "exchange-online",
+  "area": "Audit and logs",
+  "description": "Searches the unified audit log by user, operation, record type, object or free text.",
+  "keywords": [
+    "audit",
+    "unified audit log",
+    "who did",
+    "activity",
+    "Search-UnifiedAuditLog"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Search-UnifiedAuditReport.ps1",
+  "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Audit Logs"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "StartDate",
+      "label": "From (UTC)",
+      "type": "date",
+      "help": "First day to search.",
+      "required": true
+    },
+    {
+      "name": "EndDate",
+      "label": "To (UTC)",
+      "type": "date",
+      "help": "Last day to search, included.",
+      "required": true
+    },
+    {
+      "name": "UserIds",
+      "label": "Users",
+      "type": "string",
+      "help": "Sign-in names of the people who acted.",
+      "array": true,
+      "maxItems": 20,
+      "format": "upn"
+    },
+    {
+      "name": "Operations",
+      "label": "Operations",
+      "type": "string",
+      "help": "Operation names, for example MailItemsAccessed or FileDeleted.",
+      "array": true,
+      "maxItems": 20,
+      "format": "text",
+      "maxLength": 80
+    },
+    {
+      "name": "RecordType",
+      "label": "Record type",
+      "type": "string",
+      "help": "One record type, for example ExchangeItem or SharePointFileOperation.",
+      "format": "text",
+      "maxLength": 80
+    },
+    {
+      "name": "ObjectIds",
+      "label": "Objects",
+      "type": "string",
+      "help": "Object IDs or URLs the action was on.",
+      "array": true,
+      "maxItems": 20,
+      "format": "text",
+      "maxLength": 400
+    },
+    {
+      "name": "FreeText",
+      "label": "Free text",
+      "type": "string",
+      "help": "Text to find anywhere in the audit record.",
+      "format": "text",
+      "maxLength": 200
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum rows",
+      "type": "integer",
+      "help": "Stops after this many records and says the result is partial.",
+      "minimum": 1,
+      "maximum": 5000,
+      "default": "1000"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "atLeastOne",
+      "parameters": [
+        "UserIds",
+        "Operations",
+        "RecordType",
+        "ObjectIds",
+        "FreeText"
+      ]
+    },
+    {
+      "kind": "dateRange",
+      "start": "StartDate",
+      "end": "EndDate",
+      "maximumDays": 90,
+      "maximumAgeDays": 180
+    }
+  ],
+  "outputSchema": {
+    "columns": [
+      "CreationDate",
+      "UserId",
+      "Operation",
+      "RecordType",
+      "Workload",
+      "ObjectId",
+      "ClientIP",
+      "AuditData"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later, audit logging enabled, and the View-Only Audit Logs role.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Audit retention depends on licence; older records may not exist.",
+    "AuditData longer than 8,000 characters is truncated and marked.",
+    "When the row limit is reached exactly at the end of a page, one further page is read; if it holds records, the result is marked partial."
+  ]
+}

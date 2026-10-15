@@ -1,0 +1,11 @@
+# Line endings are normalised in the repository and pinned where the consumer cares.
+# Source is stored and checked out with LF; .NET, PowerShell and Git on Windows all read it.
+* text=auto eol=lf
+
+# cmd.exe parses batch files line by line and can misread labels and blocks written with LF, so these are
+# always checked out with CRLF, and so are the copies the portable package ships.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.ico binary

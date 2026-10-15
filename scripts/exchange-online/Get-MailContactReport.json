@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.mail-contacts",
+  "name": "Mail contacts and mail users",
+  "category": "exchange-online",
+  "area": "Recipients",
+  "description": "Lists mail contacts and mail users with their display name, primary address, the external address mail is sent to, whether each is hidden from address lists, its type and object ID.",
+  "keywords": [
+    "mail contact",
+    "contact",
+    "mail user",
+    "external address",
+    "guest",
+    "Get-MailContact",
+    "Get-MailUser"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailContactReport.ps1",
+  "scriptSha256": "5f06af87e793337a7a82066b926044e82982a5fab6c84afe7669a60fabf40474",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "RecipientType",
+      "label": "Recipient types",
+      "type": "enum",
+      "help": "Mail contacts, mail users or both.",
+      "array": true,
+      "maxItems": 2,
+      "allowed": [
+        "MailContact",
+        "MailUser"
+      ],
+      "default": "MailContact, MailUser"
+    },
+    {
+      "name": "MaxRecipients",
+      "label": "Maximum per type",
+      "type": "integer",
+      "help": "Stops after this many of each type and says the result is partial.",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": "2000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "RecipientType",
+      "DisplayName",
+      "PrimarySmtpAddress",
+      "ExternalEmailAddress",
+      "HiddenFromAddressLists",
+      "RecipientTypeDetails",
+      "ExternalDirectoryObjectId",
+      "WhenCreated",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 20000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read recipients.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "The external address is shown exactly as Exchange returned it, including any SMTP: prefix; it is not resolved or checked.",
+    "Each type is read up to the limit plus one, and the result is marked partial when there are more.",
+    "Mail users include guest accounts and other mail-enabled users without an Exchange mailbox; group memberships are not read.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

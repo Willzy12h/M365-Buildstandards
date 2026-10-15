@@ -1,0 +1,7 @@
+{
+  "algorithm": "SHA-256",
+  "note": "SHA-256 integrity digests of the release lineage files. Reviewed with each lineage change; detects modification, not a signature.",
+  "files": {
+    "lineage-2026.09.30.json": "b5db2d39e389b8629592a2e46523809d01a1e1b870857a6b12330ebec56ca3fc"
+  }
+}

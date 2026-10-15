@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "exo.transport-rules",
+  "name": "Mail flow rules",
+  "category": "exchange-online",
+  "area": "Mail flow",
+  "description": "Lists mail flow (transport) rules in priority order with state, mode, description and whether each redirects or copies mail, routes through a connector or bypasses spam filtering.",
+  "keywords": [
+    "transport rule",
+    "mail flow rule",
+    "redirect",
+    "bcc",
+    "spam bypass",
+    "SCL",
+    "Get-TransportRule"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-TransportRuleReport.ps1",
+  "scriptSha256": "bf627c5ae4ab2f3fb4090fbdd40457ee667be67f3ed995ade5abf327020829b8",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "OnlyEnabled",
+      "label": "Only enabled rules",
+      "type": "boolean",
+      "help": "Leave out rules Exchange reports as disabled. A rule whose state is unknown is kept."
+    },
+    {
+      "name": "MaxRows",
+      "label": "Maximum rules",
+      "type": "integer",
+      "help": "Stops after this many rules and says the result is partial.",
+      "minimum": 1,
+      "maximum": 5000,
+      "default": "1000"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "Priority",
+      "Name",
+      "State",
+      "Mode",
+      "RedirectsOrCopies",
+      "RoutesViaConnector",
+      "BypassesSpamFiltering",
+      "StopRuleProcessing",
+      "ActivationDate",
+      "ExpiryDate",
+      "Description",
+      "Comments",
+      "WhenChanged",
+      "Notes"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 900
+  },
+  "prerequisites": "ExchangeOnlineManagement 3.7.0 or later installed through your organisation's approved process, and an Exchange role that can read organisation configuration.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Runtime support follows the ExchangeOnlineManagement module's documented support; not yet tested in a tenant.",
+    "Only the redirect, copy, connector and spam filtering actions are summarised; the Description column holds Exchange's full wording of each rule.",
+    "BypassesSpamFiltering reflects only the bypass spam filtering action (spam confidence level -1). A rule that skips filtering another way, such as by setting a message header, is not detected here.",
+    "Rules are read up to the limit; a fuller result is marked partial.",
+    "A true or false value Exchange did not return is shown as Unknown, never as False.",
+    "The roles listed follow Microsoft's documentation and have not been confirmed in a tenant."
+  ]
+}

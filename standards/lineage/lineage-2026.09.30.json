@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 1,
+  "description": "Release lineage into 2026.09.30 (INT-051, initial read-only slice). Supplements the published catalogues; their bytes and digests are unchanged. A control not listed under a source keeps the same requirement under the same ID. A source release not listed has no recorded lineage, and records from it need review.",
+  "target": {
+    "release": "2026.09.30",
+    "sha256": "124a033454385b262960db2a6f61392ee3e64ad8abb1a6f0d8276db29e21302f"
+  },
+  "sources": [
+    {
+      "release": "2026.09.9",
+      "sha256": "4cbb5ecc017633e44142e00b99402e769817fe07960644964842be0170a792b9",
+      "unlistedControls": "sameRequirement",
+      "relations": [
+        {
+          "sourceControl": "PRE-001",
+          "sourceName": "GRP - Policy Exclusions Users",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-009"
+          ],
+          "targetNames": [
+            "GRP - Policy Exclusions Users"
+          ],
+          "semanticId": "group.policy-exclusions.users",
+          "reason": "Same requirement; its control ID changed from PRE-001 to PRE-009 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-002",
+          "sourceName": "GRP - Policy Exclusions Devices",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-010"
+          ],
+          "targetNames": [
+            "GRP - Policy Exclusions Devices"
+          ],
+          "semanticId": "group.policy-exclusions.devices",
+          "reason": "Same requirement; its control ID changed from PRE-002 to PRE-010 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-003",
+          "sourceName": "GRP - MAM Only Users",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-004"
+          ],
+          "targetNames": [
+            "GRP - MAM Only Users"
+          ],
+          "semanticId": "group.mam-only.users",
+          "reason": "Same requirement; its control ID changed from PRE-003 to PRE-004 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-004",
+          "sourceName": "GRP - Pilot Devices",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-005"
+          ],
+          "targetNames": [
+            "GRP - Pilot Devices"
+          ],
+          "semanticId": "group.pilot.devices",
+          "reason": "Same requirement; its control ID changed from PRE-004 to PRE-005 in 2026.09.11. PRE-004 now identifies the MAM-only users group."
+        },
+        {
+          "sourceControl": "PRE-005",
+          "sourceName": "LOC - M365 Office",
+          "relation": "Replaced",
+          "cardinality": "OneToMany",
+          "targetControls": [
+            "PRE-008"
+          ],
+          "targetNames": [
+            "Office locations (one candidate per named office)"
+          ],
+          "semanticId": "location.offices",
+          "reason": "The single office named location became one candidate per named office (PRE-008). An ownership record for the single location cannot be attributed to any office instance automatically. PRE-005 now identifies the pilot devices group."
+        },
+        {
+          "sourceControl": "CFG-WIN-007",
+          "sourceName": "Long paths (optional)",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "CFG-WIN-007"
+          ],
+          "targetNames": [
+            "Long paths"
+          ],
+          "semanticId": "windows.long-paths",
+          "reason": "Long paths is no longer optional in 2026.09.30. Same object; review the setting against the current standard."
+        },
+        {
+          "sourceControl": "APP-WIN-008",
+          "sourceName": "Endpoint protection agent",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "APP-WIN-008"
+          ],
+          "targetNames": [
+            "ESET endpoint protection (client package)"
+          ],
+          "semanticId": "windows.endpoint-protection-agent",
+          "reason": "The generic endpoint protection agent became the ESET client package. Same control ID; review the package against the current standard."
+        },
+        {
+          "sourceControl": "CMP-WIN-002",
+          "sourceName": "Defender compliance supplement",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.cmp-win-002",
+          "reason": "Defender compliance supplement removed in 2026.09.12; ESET is the endpoint protection standard. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-003",
+          "sourceName": "Windows Autopilot profile",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-003",
+          "reason": "Classic Windows Autopilot profiles are retired from default scope in favour of Windows Autopilot device preparation (PRE-011). The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-004",
+          "sourceName": "Enrolment Status Page",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-004",
+          "reason": "The classic Enrolment Status Page is retired with classic Autopilot. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-001",
+          "sourceName": "Antivirus configuration",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-001",
+          "reason": "Defender antivirus configuration removed in 2026.09.12 under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-002",
+          "sourceName": "Microsoft Defender EDR onboarding",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-002",
+          "reason": "Defender for Endpoint onboarding retired under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-003",
+          "sourceName": "Firewall protection",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-003",
+          "reason": "Defender firewall policy removed in 2026.09.12. The tenant object is not deleted."
+        }
+      ]
+    },
+    {
+      "release": "2026.09.10",
+      "sha256": "fc22f752390661db71bc5bd11ec895e2e934a6be16d5464e0c9790d60231d48d",
+      "unlistedControls": "sameRequirement",
+      "relations": [
+        {
+          "sourceControl": "PRE-001",
+          "sourceName": "GRP - Policy Exclusions Users",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-009"
+          ],
+          "targetNames": [
+            "GRP - Policy Exclusions Users"
+          ],
+          "semanticId": "group.policy-exclusions.users",
+          "reason": "Same requirement; its control ID changed from PRE-001 to PRE-009 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-002",
+          "sourceName": "GRP - Policy Exclusions Devices",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-010"
+          ],
+          "targetNames": [
+            "GRP - Policy Exclusions Devices"
+          ],
+          "semanticId": "group.policy-exclusions.devices",
+          "reason": "Same requirement; its control ID changed from PRE-002 to PRE-010 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-003",
+          "sourceName": "GRP - MAM Only Users",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-004"
+          ],
+          "targetNames": [
+            "GRP - MAM Only Users"
+          ],
+          "semanticId": "group.mam-only.users",
+          "reason": "Same requirement; its control ID changed from PRE-003 to PRE-004 in 2026.09.11."
+        },
+        {
+          "sourceControl": "PRE-004",
+          "sourceName": "GRP - Pilot Devices",
+          "relation": "Renamed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "PRE-005"
+          ],
+          "targetNames": [
+            "GRP - Pilot Devices"
+          ],
+          "semanticId": "group.pilot.devices",
+          "reason": "Same requirement; its control ID changed from PRE-004 to PRE-005 in 2026.09.11. PRE-004 now identifies the MAM-only users group."
+        },
+        {
+          "sourceControl": "PRE-005",
+          "sourceName": "LOC - M365 Office",
+          "relation": "Replaced",
+          "cardinality": "OneToMany",
+          "targetControls": [
+            "PRE-008"
+          ],
+          "targetNames": [
+            "Office locations (one candidate per named office)"
+          ],
+          "semanticId": "location.offices",
+          "reason": "The single office named location became one candidate per named office (PRE-008). An ownership record for the single location cannot be attributed to any office instance automatically. PRE-005 now identifies the pilot devices group."
+        },
+        {
+          "sourceControl": "CFG-WIN-007",
+          "sourceName": "Long paths (optional)",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "CFG-WIN-007"
+          ],
+          "targetNames": [
+            "Long paths"
+          ],
+          "semanticId": "windows.long-paths",
+          "reason": "Long paths is no longer optional in 2026.09.30. Same object; review the setting against the current standard."
+        },
+        {
+          "sourceControl": "APP-WIN-008",
+          "sourceName": "Endpoint protection agent",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "APP-WIN-008"
+          ],
+          "targetNames": [
+            "ESET endpoint protection (client package)"
+          ],
+          "semanticId": "windows.endpoint-protection-agent",
+          "reason": "The generic endpoint protection agent became the ESET client package. Same control ID; review the package against the current standard."
+        },
+        {
+          "sourceControl": "CMP-WIN-002",
+          "sourceName": "Defender compliance supplement",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.cmp-win-002",
+          "reason": "Defender compliance supplement removed in 2026.09.12; ESET is the endpoint protection standard. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-003",
+          "sourceName": "Windows Autopilot profile",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-003",
+          "reason": "Classic Windows Autopilot profiles are retired from default scope in favour of Windows Autopilot device preparation (PRE-011). The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-004",
+          "sourceName": "Enrolment Status Page",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-004",
+          "reason": "The classic Enrolment Status Page is retired with classic Autopilot. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-001",
+          "sourceName": "Antivirus configuration",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-001",
+          "reason": "Defender antivirus configuration removed in 2026.09.12 under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-002",
+          "sourceName": "Microsoft Defender EDR onboarding",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-002",
+          "reason": "Defender for Endpoint onboarding retired under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-003",
+          "sourceName": "Firewall protection",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-003",
+          "reason": "Defender firewall policy removed in 2026.09.12. The tenant object is not deleted."
+        }
+      ]
+    },
+    {
+      "release": "2026.09.11",
+      "sha256": "f30b2e162901df80a21bf2b024f85d6bca83f45696125137f3b2fd0e1625973a",
+      "unlistedControls": "sameRequirement",
+      "relations": [
+        {
+          "sourceControl": "PRE-008",
+          "sourceName": "LOC - M365 Office",
+          "relation": "Changed",
+          "cardinality": "OneToMany",
+          "targetControls": [
+            "PRE-008"
+          ],
+          "targetNames": [
+            "Office locations (one candidate per named office)"
+          ],
+          "semanticId": "location.offices",
+          "reason": "The single office named location became one candidate per named office. An ownership record for the single location cannot be attributed to any office instance automatically."
+        },
+        {
+          "sourceControl": "CFG-WIN-007",
+          "sourceName": "Long paths (optional)",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "CFG-WIN-007"
+          ],
+          "targetNames": [
+            "Long paths"
+          ],
+          "semanticId": "windows.long-paths",
+          "reason": "Long paths is no longer optional in 2026.09.30. Same object; review the setting against the current standard."
+        },
+        {
+          "sourceControl": "APP-WIN-008",
+          "sourceName": "Endpoint protection agent",
+          "relation": "Changed",
+          "cardinality": "OneToOne",
+          "targetControls": [
+            "APP-WIN-008"
+          ],
+          "targetNames": [
+            "ESET endpoint protection (client package)"
+          ],
+          "semanticId": "windows.endpoint-protection-agent",
+          "reason": "The generic endpoint protection agent became the ESET client package. Same control ID; review the package against the current standard."
+        },
+        {
+          "sourceControl": "CMP-WIN-002",
+          "sourceName": "Defender compliance supplement",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.cmp-win-002",
+          "reason": "Defender compliance supplement removed in 2026.09.12; ESET is the endpoint protection standard. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-003",
+          "sourceName": "Windows Autopilot profile",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-003",
+          "reason": "Classic Windows Autopilot profiles are retired from default scope in favour of Windows Autopilot device preparation (PRE-011). The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-004",
+          "sourceName": "Enrolment Status Page",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-004",
+          "reason": "The classic Enrolment Status Page is retired with classic Autopilot. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-001",
+          "sourceName": "Antivirus configuration",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-001",
+          "reason": "Defender antivirus configuration removed in 2026.09.12 under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-002",
+          "sourceName": "Microsoft Defender EDR onboarding",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-002",
+          "reason": "Defender for Endpoint onboarding retired under ESET. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-003",
+          "sourceName": "Firewall protection",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-003",
+          "reason": "Defender firewall policy removed in 2026.09.12. The tenant object is not deleted."
+        }
+      ]
+    },
+    {
+      "release": "2026.09.12",
+      "sha256": "9553ecbcae476f45742042f7503095bb811019dec48527156c3791b05efa6a70",
+      "unlistedControls": "sameRequirement",
+      "relations": [
+        {
+          "sourceControl": "ENR-003",
+          "sourceName": "Windows Autopilot profile",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-003",
+          "reason": "Classic Windows Autopilot profiles are retired from default scope in favour of Windows Autopilot device preparation (PRE-011). The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "ENR-004",
+          "sourceName": "Enrolment Status Page",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.enr-004",
+          "reason": "The classic Enrolment Status Page is retired with classic Autopilot. The tenant object is not deleted."
+        },
+        {
+          "sourceControl": "SEC-WIN-002",
+          "sourceName": "Microsoft Defender EDR onboarding",
+          "relation": "Retired",
+          "cardinality": "Retired",
+          "targetControls": [],
+          "targetNames": [],
+          "semanticId": "retired.sec-win-002",
+          "reason": "Defender for Endpoint onboarding retired under ESET. The tenant object is not deleted."
+        }
+      ]
+    }
+  ]
+}

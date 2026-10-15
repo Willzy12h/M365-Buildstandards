@@ -1,0 +1,94 @@
+diff --git a/tests/BDIT.TenantToolkit.Tests/ApplicationOwnerOutcomeReviewTests.cs b/tests/BDIT.TenantToolkit.Tests/ApplicationOwnerOutcomeReviewTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/BDIT.TenantToolkit.Tests/ApplicationOwnerOutcomeReviewTests.cs
+@@ -0,0 +1,89 @@
++using System.Text.Json;
++using BDIT.TenantToolkit.Core;
++using BDIT.TenantToolkit.Core.Models;
++using BDIT.TenantToolkit.Engine.Evidence;
++using BDIT.TenantToolkit.Engine.Reports;
++using Xunit;
++
++namespace BDIT.TenantToolkit.Tests;
++
++public sealed class ApplicationOwnerOutcomeReviewTests
++{
++    [Fact]
++    public async Task Resealed_failed_owner_parent_cannot_be_promoted_to_collected()
++    {
++        using var fixture = new ApplicationReportFixture();
++        var report = await Capture(fixture, incompleteRoot: false);
++        var failed = report.Sections[0].Rows.Single(r => r["id"]!.GetValue<string>() == TestData.Mam);
++        Assert.Equal(ReportReadState.Failed, failed["ownersReadStatus"]!.GetValue<string>());
++        Assert.Equal(ReportReadState.Partial, report.Sources[2].Status);
++        Assert.Contains("Child metadata read failed", report.Sources[2].Error);
++        PromoteFailedOwner(report);
++        report.IntegrityDigest = EvidenceIntegrity.Compute<object>(report);
++        Assert.True(EvidenceIntegrity.Verify<object>(report, report.IntegrityDigest));
++        var path = Path.Combine(fixture.Root.Root, "resealed-owner-read.json");
++        File.WriteAllText(path, ApplicationReportEvidenceSchema.Serialise(report));
++        Assert.Throws<ConfigurationException>(() => ReportEnvelopeDispatcher.ReadFile(path, TestData.TenantA));
++    }
++
++    [Fact]
++    public async Task Incomplete_root_with_successful_retained_owner_reads_remains_readable()
++    {
++        using var fixture = new ApplicationReportFixture();
++        var report = await Capture(fixture, incompleteRoot: true);
++        Assert.Equal(ReportReadState.Partial, report.Sources[0].Status);
++        Assert.Equal(ReportReadState.Partial, report.Sources[2].Status);
++        Assert.Equal(2, report.Sources[2].ObjectsAttempted);
++        Assert.All(report.Sections[0].Rows, r =>
++        {
++            Assert.Equal(ReportReadState.Collected, r["ownersReadStatus"]!.GetValue<string>());
++            Assert.Equal(ReportReadState.Collected, r["readStatus"]!.GetValue<string>());
++        });
++        var path = Path.Combine(fixture.Root.Root, "partial-root.json");
++        File.WriteAllText(path, ApplicationReportEvidenceSchema.Serialise(report));
++        Assert.Equal(report.Id, ReportEnvelopeDispatcher.ReadFile(path, TestData.TenantA).Schema2!.Id);
++        Assert.Contains(fixture.Http.Routes, r => r.Contains("unread-next-page", StringComparison.Ordinal));
++    }
++
++    [Fact]
++    public async Task Existing_structured_outcomes_cannot_distinguish_promoted_failure_from_incomplete_root()
++    {
++        using var failedFixture = new ApplicationReportFixture();
++        using var partialFixture = new ApplicationReportFixture();
++        var failed = await Capture(failedFixture, incompleteRoot: false);
++        var partial = await Capture(partialFixture, incompleteRoot: true);
++        PromoteFailedOwner(failed);
++        // No error prose is a registered outcome discriminator. Compare all structured
++        // source counts/states and section rows: these are identical despite different reads.
++        static string StructuredOutcomes(ApplicationReportEvidence report) => JsonSerializer.Serialize(new
++        {
++            report.Status,
++            Sources = report.Sources.Select(s => new { s.RegisteredRoute, s.Status, s.Rows, s.ObjectsAttempted }),
++            Sections = report.Sections.Select(s => new { s.Id, s.Status, s.Rows })
++        });
++        Assert.Equal(StructuredOutcomes(partial), StructuredOutcomes(failed));
++        Assert.NotEqual(partial.Sources[2].Error, failed.Sources[2].Error);
++    }
++
++    private static void PromoteFailedOwner(ApplicationReportEvidence report)
++    {
++        var row = report.Sections[0].Rows.Single(r => r["id"]!.GetValue<string>() == TestData.Mam);
++        row["ownersReadStatus"] = ReportReadState.Collected; row["ownerReadReason"] = null;
++        row["readStatus"] = ReportReadState.Collected; row["error"] = null;
++    }
++
++    private static Task<ApplicationReportEvidence> Capture(ApplicationReportFixture fixture, bool incompleteRoot)
++    {
++        fixture.Http.Response = (request, _) => request.RequestUri!.AbsolutePath switch
++        {
++            "/v1.0/applications" when request.RequestUri.Query.Contains("unread-next-page", StringComparison.Ordinal)
++                => ApplicationReportFixture.ReadHttp.Error(),
++            "/v1.0/applications" => ApplicationReportFixture.ReadHttp.Page(
++                [ApplicationReportFixture.Object(TestData.Operator), ApplicationReportFixture.Object(TestData.Mam)],
++                incompleteRoot ? "https://graph.microsoft.com/v1.0/applications?$skiptoken=unread-next-page" : null),
++            "/v1.0/applications/" + TestData.Mam + "/owners" when !incompleteRoot => ApplicationReportFixture.ReadHttp.Error(),
++            _ => ApplicationReportFixture.ReadHttp.Page([])
++        };
++        return fixture.Expiry();
++    }
++}
