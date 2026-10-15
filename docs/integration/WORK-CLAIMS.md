@@ -154,3 +154,6 @@ Feature areas: authentication, collection and snapshots, comparison, planning, d
 
 
 | 2026-10-15 | GPT/Codex | M365-Buildstandards | Approved completion task4: exact-source assessment-to-plan selection using shared eligibility; no execution or approval. | `astra/bs-assessment-plan-selection` from main `fd4d84d8091185a9fa61e72b63183301283c52ad` | [#133](https://github.com/Willzy12h/M365-Buildstandards/pull/133) | Implementation and automated checks in progress; independent acceptance pending |
+
+
+| 2026-10-15 | GPT/Codex | M365-Buildstandards | Approved follow-up7: GPT-R-003/004 Exchange-only local exception refresh and expanded office picker; preserve engine exception semantics and immutable captures. | `astra/bs-exception-review-context` from canonicalmain fd4d84d | [#134](https://github.com/Willzy12h/M365-Buildstandards/pull/134) | Implementation in progress; exact Windows regressions and independent acceptance pending |

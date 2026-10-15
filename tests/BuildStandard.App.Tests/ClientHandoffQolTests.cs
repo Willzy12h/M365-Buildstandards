@@ -47,6 +47,42 @@ public sealed class ClientHandoffQolTests : IDisposable
     }
 
     [Fact]
+    public void Exchange_only_exception_save_refreshes_the_displayed_assessment_without_changing_capture_bytes()
+    {
+        var capture = OpenExchange(); var oldId = _workspace.Assessment!.Id; var digest = capture.IntegrityDigest;
+        var id = _workspace.RequireStandard().Controls.First(c => c.Area == "Exchange").Id;
+        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.NotApplicable, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
+        Assert.NotEqual(oldId, _workspace.Assessment!.Id);
+        Assert.Equal(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        Assert.Equal(digest, capture.IntegrityDigest); Assert.Null(_workspace.Snapshot); Assert.Null(_workspace.Connection);
+    }
+
+    [Fact]
+    public void Exchange_only_exception_removal_refreshes_the_displayed_assessment()
+    {
+        OpenExchange(); var id = _workspace.RequireStandard().Controls.First(c => c.Area == "Exchange").Id;
+        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.NotApplicable, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
+        _workspace.RunAssessment(); var oldId = _workspace.Assessment!.Id;
+        Assert.Equal(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        _workspace.DeleteDeviation(id);
+        Assert.NotEqual(oldId, _workspace.Assessment!.Id);
+        Assert.NotEqual(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        Assert.Null(_workspace.Connection);
+    }
+
+    [Fact]
+    public void Exception_picker_uses_individual_office_instances_instead_of_the_template()
+    {
+        _a.Parameters.OfficeLocations = [new OfficeLocation { Key = "NORTH", Name = "Synthetic north office", IpRanges = ["8.8.8.8/32"] },
+            new OfficeLocation { Key = "SOUTH", Name = "Synthetic south office", IpRanges = ["1.1.1.1/32"] }];
+        _workspace.ApplyProfileToSession(_a, save: false);
+        var template = _workspace.RequireStandard().Controls.First(c => c.RepeatFor == "officeLocations");
+        var page = _shell.Page<DeviationsViewModel>(); page.Refresh();
+        Assert.Contains(template.Id + "-NORTH", page.ControlIds); Assert.Contains(template.Id + "-SOUTH", page.ControlIds);
+        Assert.DoesNotContain(template.Id, page.ControlIds);
+    }
+
+    [Fact]
     public void Live_Graph_and_reopened_Exchange_assessment_explicitly_retain_mixed_sources()
     {
         var graphClient = Connect(); var graph = OpenGraph(); Set(nameof(Workspace.SnapshotIsLive), true);

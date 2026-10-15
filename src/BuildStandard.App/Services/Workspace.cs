@@ -1039,7 +1039,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         Logger.Info("Deviations", $"Deviation recorded for {deviation.ControlId} ({deviation.Kind}).", profile.TenantId, deviation.ControlId);
-        if (Snapshot is not null) RunAssessment(); else Notify();
+        if (Snapshot is not null || ExchangeSnapshot is not null) RunAssessment(); else Notify();
     }
 
     public void DeleteDeviation(string controlId)
@@ -1051,7 +1051,7 @@ public sealed class Workspace : ObservableObject
         Plan = null;
         AcknowledgedSnapshotId = null;
         Logger.Info("Deviations", $"Deviation removed for {controlId}.", profile.TenantId, controlId);
-        if (Snapshot is not null) RunAssessment(); else Notify();
+        if (Snapshot is not null || ExchangeSnapshot is not null) RunAssessment(); else Notify();
     }
 
     public ManualCheckRegister LoadManualChecks() => Profile is null ? new ManualCheckRegister() : Evidence.LoadManualChecks(Profile.TenantId);
