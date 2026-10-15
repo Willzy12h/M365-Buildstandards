@@ -79,4 +79,61 @@ public sealed class UnsupportedMacPlatformTests
         WritePayloadGuard.Assert(definition, payload);
     }
 
+    private static ReviewedChangePlan HistoricalCa(ReviewedChangeKind kind) => new()
+    {
+        TenantId = TestData.TenantA, Kind = kind, ObjectId = TestData.Office, Api = GraphApi.V1,
+        Path = "/identity/conditionalAccess/policies/" + TestData.Office, RequiredScope = "Policy.ReadWrite.ConditionalAccess",
+        Before = JsonNode.Parse("""{"state":"disabled","conditions":{"platforms":{"includePlatforms":["windows","macOS"]}},"grantControls":{"builtInControls":["compliantDevice"]}}""")!.AsObject(),
+        Payload = new JsonObject { ["state"] = kind == ReviewedChangeKind.DisableConditionalAccess ? "disabled"
+            : kind == ReviewedChangeKind.ReportOnlyConditionalAccess ? "enabledForReportingButNotEnforced" : "enabled" }
+    };
+
+    [Theory]
+    [InlineData(ReviewedChangeKind.EnableConditionalAccess)]
+    [InlineData(ReviewedChangeKind.ReportOnlyConditionalAccess)]
+    public void Historical_macOS_compliance_cannot_be_activated_through_state_only_changes(ReviewedChangeKind kind)
+    {
+        var error = Assert.Throws<SafetyViolationException>(() => ReviewedChangeSafety.Assert(HistoricalCa(kind)));
+        Assert.Contains("macOS", error.Message);
+    }
+
+    [Fact]
+    public void Historical_macOS_policy_can_still_be_disabled_for_containment()
+        => ReviewedChangeSafety.Assert(HistoricalCa(ReviewedChangeKind.DisableConditionalAccess));
+
+    [Fact]
+    public void Existing_macOS_policy_cannot_receive_assignments_but_can_be_contained()
+    {
+        var plan = new ReviewedChangePlan { Kind = ReviewedChangeKind.AssignGroups, ObjectId = TestData.Office, Api = GraphApi.V1,
+            Path = "/deviceManagement/deviceCompliancePolicies/" + TestData.Office + "/assign", Method = "POST",
+            RequiredScope = "DeviceManagementConfiguration.ReadWrite.All", IncludeGroups = [TestData.Mam],
+            Before = new JsonObject { ["@odata.type"] = "#microsoft.graph.macOSCompliancePolicy" } };
+        plan.Payload = ReviewedChangeSafety.AssignmentPayload("/deviceManagement/deviceCompliancePolicies", plan.IncludeGroups, []);
+        Assert.Throws<SafetyViolationException>(() => ReviewedChangeSafety.Assert(plan));
+        plan.Kind = ReviewedChangeKind.RemoveAssignments; plan.IncludeGroups.Clear();
+        plan.Payload = ReviewedChangeSafety.AssignmentPayload("/deviceManagement/deviceCompliancePolicies", [], []);
+        ReviewedChangeSafety.Assert(plan);
+    }
+
+    [Theory]
+    [InlineData("all")][InlineData("omitted")][InlineData("empty")]
+    public void Historical_implicit_macOS_compliance_is_blocked(string platforms)
+    {
+        var plan = HistoricalCa(ReviewedChangeKind.EnableConditionalAccess);
+        if (platforms == "omitted") plan.Before["conditions"]!.AsObject().Remove("platforms");
+        else plan.Before["conditions"]!["platforms"]!["includePlatforms"] = platforms == "empty" ? new JsonArray() : new JsonArray("all");
+        Assert.Throws<SafetyViolationException>(() => ReviewedChangeSafety.Assert(plan));
+    }
+
+    [Theory]
+    [InlineData("windows")][InlineData("exclude-macOS")][InlineData("mfa")]
+    public void Reviewed_activation_preserves_supported_compliance_and_ordinary_MFA(string mode)
+    {
+        var plan = HistoricalCa(ReviewedChangeKind.EnableConditionalAccess);
+        if (mode == "windows") plan.Before["conditions"]!["platforms"]!["includePlatforms"] = new JsonArray("windows");
+        else if (mode == "exclude-macOS") plan.Before["conditions"]!["platforms"]!["excludePlatforms"] = new JsonArray("macOS");
+        else plan.Before["grantControls"]!["builtInControls"] = new JsonArray("mfa");
+        ReviewedChangeSafety.Assert(plan);
+    }
+
 }
