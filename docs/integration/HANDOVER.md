@@ -1,5 +1,9 @@
 # Handover and priorities
 
+## Current follow-up acceptance — 15 October 2026
+
+William explicitly accepts and authorises merging current PRs #130–136. #136 contains the five implementation heads, both supplementary-review repairs and now the #135 contract history. Merge the assembled candidate once its current required checks pass, then inspect actual main CI and retrieve/verify its new package. Original reviews and earlier provisional records remain historical. This is owner acceptance, not a Claude disposition; no enforced gate is bypassed. Task6 contract is accepted, while its adapters remain unimplemented and retain future implementation review requirements. No release/tag/live action or new access.
+
 ## Current closeout — owner acceptance and main promotion, 15 October 2026
 
 The approved T0–T10 application is implemented. Claude's original a79 source-only review and its limitations remain attributed; #125 fixes R-1–R-4 and staged-package validation, #126 centralises conservative write-outcome classification, #127 adds usable assessment-history diagnostics, and #128 fixes null findings/blocked history paths. William subsequently explicitly instructed “Merge and accept it all for me. Action these for me.” The [current goal](../GOAL.md) records this owner acceptance and main-promotion authority; no later Claude disposition or unrun acceptance is invented.

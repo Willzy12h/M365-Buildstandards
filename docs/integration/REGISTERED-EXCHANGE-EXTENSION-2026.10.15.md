@@ -1,6 +1,6 @@
-# Registered read-only Exchange adapter extension — decision proposal
+# Registered read-only Exchange adapter extension — accepted contract
 
-Status: proposed, not accepted or implemented. Approved follow-up task6; base canonical main fd4d84d. Preserve INT-088 and the existing experimental Run workflow. This is a bounded shared-contract extension, not a generic script executor.
+Status: accepted by William on 15 October 2026 through “Accept and merge all Of it”; adapters are not implemented. Approved follow-up task6; base canonical main fd4d84d. Preserve INT-088 and the existing experimental Run workflow. This is a bounded shared-contract extension, not a generic script executor.
 
 ## First eligible additions
 
@@ -29,7 +29,7 @@ Meaningful RED/GREEN tests for missing/null/false distinctions, absent versus em
 
 ## Review gate
 
-AGENT-COORDINATION requires shared schema/contract decisions to merge before dependent implementation. This proposal requires the applicable independent runner/evidence safety review and authorised merge; no self-review or prior candidate acceptance waives it. No changes to repository protection, permissions, live access or publishing.
+AGENT-COORDINATION requires shared schema/contract decisions to merge before dependent implementation. William’s explicit acceptance resolves the contract acceptance gate for this precise proposal; merge must complete before dependent implementation. Future runner/evidence implementation retains its applicable independent safety review. Owner acceptance is not independent technical review. No changes to repository protection, permissions, live access or publishing.
 
 ## Primary documentation inspected 15 October 2026
 
