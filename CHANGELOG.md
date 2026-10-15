@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Native script forms: reuse the same typed input template for Copy/Save and read-only Run, with consistent spacing and unchanged validation.
+
 - Close the reviewed activation/assignment macOS gap while preserving containment, and refresh bound policy inputs after saving so subsequent edits are retained (GPT-CAND-001/002).
 
 - Retain an unsaved read-only report across client/input changes, with original-client save, non-overwriting export and confirmed discard; block replacement runs and normal close until resolved (#130).

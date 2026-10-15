@@ -55,20 +55,7 @@
                     </Expander>
                     <TextBlock Text="PowerShell runtime" Style="{StaticResource FieldLabel}"/>
                     <ComboBox ItemsSource="{Binding Runtimes}" SelectedItem="{Binding Runtime}" AutomationProperties.Name="Reviewed PowerShell runtime" Margin="0,0,0,8"/>
-                    <ItemsControl ItemsSource="{Binding Fields}" AutomationProperties.Name="Read-only report typed form" IsTabStop="False">
-                      <ItemsControl.ItemTemplate><DataTemplate>
-                        <StackPanel Margin="0,0,0,10">
-                          <TextBlock Text="{Binding LabelText}" Style="{StaticResource FieldLabel}" Visibility="{Binding ShowsLabel, Converter={StaticResource BoolToVis}}"/>
-                          <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" ToolTip="{Binding Hint}" Visibility="{Binding IsTextEntry, Converter={StaticResource BoolToVis}}"/>
-                          <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" ToolTip="{Binding Hint}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" MaxHeight="120" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsList, Converter={StaticResource BoolToVis}}"/>
-                          <CheckBox IsChecked="{Binding IsChecked}" Content="{Binding Label}" Visibility="{Binding IsFlag, Converter={StaticResource BoolToVis}}"/>
-                          <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" DisplayMemberPath="Text" AutomationProperties.Name="{Binding Label}" Visibility="{Binding IsChoice, Converter={StaticResource BoolToVis}}"/>
-                          <ItemsControl ItemsSource="{Binding Choices}" IsTabStop="False" Visibility="{Binding IsChoices, Converter={StaticResource BoolToVis}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Text}" Margin="0,2,12,4"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                          <TextBlock Text="{Binding Help}" Style="{StaticResource Muted}"/><TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}"/>
-                          <TextBlock Text="{Binding Problem}" Foreground="{StaticResource Danger}" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
-                        </StackPanel>
-                      </DataTemplate></ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Fields}" AutomationProperties.Name="Read-only report typed form" IsTabStop="False" ItemTemplate="{StaticResource ScriptParameterFieldTemplate}"/>
                     <ItemsControl ItemsSource="{Binding Problems}" IsTabStop="False" Visibility="{Binding HasProblems, Converter={StaticResource BoolToVis}}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Danger}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                   </StackPanel>
                 </ScrollViewer>
