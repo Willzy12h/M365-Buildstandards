@@ -51,9 +51,9 @@ public sealed class ClientHandoffQolTests : IDisposable
     {
         var capture = OpenExchange(); var oldId = _workspace.Assessment!.Id; var digest = capture.IntegrityDigest;
         var id = _workspace.RequireStandard().Controls.First(c => c.Area == "Exchange").Id;
-        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.ApprovedDeviation, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
+        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.NotApplicable, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
         Assert.NotEqual(oldId, _workspace.Assessment!.Id);
-        Assert.Equal(FindingStatus.CompliantWithDeviation, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        Assert.Equal(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
         Assert.Equal(digest, capture.IntegrityDigest); Assert.Null(_workspace.Snapshot); Assert.Null(_workspace.Connection);
     }
 
@@ -61,12 +61,12 @@ public sealed class ClientHandoffQolTests : IDisposable
     public void Exchange_only_exception_removal_refreshes_the_displayed_assessment()
     {
         OpenExchange(); var id = _workspace.RequireStandard().Controls.First(c => c.Area == "Exchange").Id;
-        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.ApprovedDeviation, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
+        _workspace.SaveDeviation(new Deviation { ControlId = id, Kind = DeviationKind.NotApplicable, Reason = "Synthetic approved exception", ApprovedBy = "Synthetic reviewer" });
         _workspace.RunAssessment(); var oldId = _workspace.Assessment!.Id;
-        Assert.Equal(FindingStatus.CompliantWithDeviation, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        Assert.Equal(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
         _workspace.DeleteDeviation(id);
         Assert.NotEqual(oldId, _workspace.Assessment!.Id);
-        Assert.NotEqual(FindingStatus.CompliantWithDeviation, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
+        Assert.NotEqual(FindingStatus.NotApplicable, _workspace.Assessment.Findings.Single(f => f.ControlId == id).Status);
         Assert.Null(_workspace.Connection);
     }
 
