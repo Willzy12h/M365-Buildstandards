@@ -44,7 +44,8 @@ internal static partial class Program
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
-        Func<ExchangeReportEvidence, string> save = shell.Workspace.Evidence.SaveExchangeReport;
+        bool failSave = false;
+        Func<ExchangeReportEvidence, string> save = evidence => failSave ? throw new IOException("Synthetic local save failure") : shell.Workspace.Evidence.SaveExchangeReport(evidence);
         var workflow = (ReadOnlyRunWorkflow)Activator.CreateInstance(typeof(ReadOnlyRunWorkflow), BindingFlags.NonPublic | BindingFlags.Instance, null,
             new object[] { current, ScriptCatalogue.Shipped, SystemClock.Instance, run, save }, null)!;
         var page = (RunReportsViewModel)Activator.CreateInstance(typeof(RunReportsViewModel), BindingFlags.NonPublic | BindingFlags.Instance, null,
@@ -72,6 +73,24 @@ internal static partial class Program
             var label = "read-only partial outcome " + size.Width + "x" + size.Height;
             RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
             SaveImage(content, size, Path.Combine(output, "run-reports-partial-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+            failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);
+            deadline.Restart();
+            while (command.IsRunning) { if (deadline.Elapsed > TimeSpan.FromSeconds(10)) throw new InvalidOperationException("Synthetic recovery run did not complete."); Pump(); }
+            if (!page.HasPendingEvidence || page.CanReview || !page.SaveEvidenceCommand.CanExecute(null))
+                throw new InvalidOperationException("Unsaved original report was not retained or another review was allowed.");
+            content.UpdateLayout(); Pump();
+            var recovery = Descendants(content).OfType<Button>().Single(b => System.Windows.Automation.AutomationProperties.GetName(b) == "Save original unsaved report");
+            recovery.BringIntoView(); content.UpdateLayout(); Pump();
+            if (VisibleBounds(recovery, content).Height < 20) CrampedCurrentPages.Add($"  report recovery {size.Width}x{size.Height} · recovery action is not visible.");
+            RecordUnnamedControls(content, "report recovery"); RecordLowContrast(content, "report recovery"); RecordClipping(content, "report recovery");
+            SaveImage(content, size, Path.Combine(output, "run-reports-recovery-" + (int)size.Width + "x" + (int)size.Height + ".png"));
+            var window = Window.GetWindow(content) ?? throw new InvalidOperationException("Recovery window missing.");
+            var closing = new System.ComponentModel.CancelEventArgs();
+            typeof(BuildStandard.App.MainWindow).GetMethod("OnClosing", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [window, closing]); Pump();
+            if (!closing.Cancel || shell.Workspace.ShutdownComplete || !page.HasPendingEvidence)
+                throw new InvalidOperationException("Window close abandoned an unsaved original report.");
+            workflow.DiscardEvidence(workflow.PendingEvidenceId, confirmed: true); page.Refresh(); shell.ClearErrorCommand.Execute(null);
+
         }
         finally
         {

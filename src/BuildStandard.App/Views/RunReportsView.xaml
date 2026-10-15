@@ -32,6 +32,18 @@
               <TextBlock Text="{Binding Availability}" Style="{StaticResource Muted}"/>
               <TextBlock Text="{Binding Message}" FontWeight="SemiBold" Margin="0,4,0,0"/>
             </StackPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="10" Margin="0,0,0,8" Visibility="{Binding HasPendingEvidence, Converter={StaticResource BoolToVis}}">
+              <StackPanel>
+                <TextBlock Text="ORIGINAL REPORT NEEDS SAVING" Style="{StaticResource Eyebrow}"/>
+                <TextBlock Text="This report belongs to the original client. Resolve it before running another report or closing the app."/>
+                <Expander Header="Original client and report identity"><TextBox Text="{Binding PendingSummary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="130" AutomationProperties.Name="Original unsaved report identity"/></Expander>
+                <WrapPanel>
+                  <Button Content="Save to original client" Command="{Binding SaveEvidenceCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Save original unsaved report"/>
+                  <Button Content="Export original JSON" Command="{Binding ExportEvidenceCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Export original unsaved report" ToolTip="Choose a new file. Existing files cannot be overwritten."/>
+                  <Button Content="Discard original report…" Command="{Binding DiscardEvidenceCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Discard original unsaved report"/>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
             <TabControl SelectedIndex="{Binding SelectedTab}">
               <TabItem Header="Setup">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -68,7 +80,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <DockPanel Margin="8" MinHeight="360" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
                   <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
-                    <WrapPanel><Button Content="Copy outcome" Command="{Binding CopyOutcomeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy evidence JSON" Command="{Binding CopyEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Save evidence" Command="{Binding SaveEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open mailbox capacity" Command="{Binding OpenMailboxCapacityCommand}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open mailbox capacity evidence review" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MailboxReviewGuidance}"/></WrapPanel>
+                    <WrapPanel><Button Content="Copy outcome" Command="{Binding CopyOutcomeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy evidence JSON" Command="{Binding CopyEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open mailbox capacity" Command="{Binding OpenMailboxCapacityCommand}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open mailbox capacity evidence review" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MailboxReviewGuidance}"/></WrapPanel>
                     <TextBlock Text="{Binding LocalOutputGuidance}" Style="{StaticResource Muted}"/>
                     <TextBlock Text="{Binding MailboxReviewGuidance}" Style="{StaticResource Muted}"/>
                   </StackPanel>
