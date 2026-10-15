@@ -832,6 +832,8 @@ internal static partial class Program
         ("RunReportsViewModel.RunCommand", SignIn),
         ("RunReportsViewModel.CancelCommand", Disabled),
         ("RunReportsViewModel.SaveEvidenceCommand", Disabled),
+        ("RunReportsViewModel.ExportEvidenceCommand", Disabled),
+        ("RunReportsViewModel.DiscardEvidenceCommand", Disabled),
         ("RunReportsViewModel.CopyOutcomeCommand", Disabled),
         ("RunReportsViewModel.CopyEvidenceCommand", Disabled),
     };
