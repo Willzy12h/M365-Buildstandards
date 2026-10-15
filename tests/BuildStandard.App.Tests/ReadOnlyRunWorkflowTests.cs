@@ -312,6 +312,48 @@ public sealed class ReadOnlyRunWorkflowTests
     }
 
     [Fact]
+    public async Task Failed_save_survives_disconnect_without_becoming_current_client_output()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.Result!.Evidence!;
+        f.Connection = null; f.Workflow.RefreshContext();
+        Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.Output); Assert.Empty(f.Workflow.EvidenceJson);
+        Assert.True(f.Workflow.CanSave);
+        f.Save = null; f.Workflow.SaveEvidence();
+        var saved = f.Store.LoadExchangeReport(original.TenantId, original.Id);
+        Assert.NotNull(saved); Assert.Equal(original.IntegrityDigest, saved.IntegrityDigest);
+        Assert.False(f.Workflow.CanSave); Assert.Empty(f.Workflow.SavedFile); Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
+    public async Task Failed_save_blocks_another_review_until_the_original_result_is_resolved()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.EvidenceJson;
+        Assert.Throws<SafetyViolationException>(() => f.Workflow.PrepareReview());
+        Assert.Equal(original, f.Workflow.EvidenceJson); Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
+    public async Task Failed_save_survives_report_and_input_selection_changes()
+    {
+        using var f = new ReadRunFixture();
+        f.Save = _ => throw new IOException("Synthetic unavailable store");
+        await f.Workflow.RunAsync(f.Review(), true, null, default);
+        var original = f.Workflow.Result!.Evidence!;
+        f.Workflow.SetSelection(null, "5.1", new Dictionary<string, string?>());
+        Assert.Null(f.Workflow.Result); Assert.Empty(f.Workflow.EvidenceJson);
+        Assert.True(f.Workflow.CanSave);
+        f.Save = null; f.Workflow.SaveEvidence();
+        Assert.Equal(original.IntegrityDigest, f.Store.LoadExchangeReport(original.TenantId, original.Id)!.IntegrityDigest);
+        Assert.Equal(1, f.Calls);
+    }
+
+    [Fact]
     public async Task Existing_immutable_record_save_refusal_preserves_original_bytes_and_never_repeats_the_run()
     {
         using var f = new ReadRunFixture();
