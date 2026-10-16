@@ -205,11 +205,10 @@ public sealed class RunReportsViewModel : PageViewModel
         if (!CanExportReport) throw new SafetyViolationException("Save or export the original evidence first and use its current client context before exporting a formatted report.");
         var context=Workspace.CapturePresentationContext();var json=Workflow!.EvidenceJson;
         var tenant=Workspace.Profile?.TenantId ?? throw new SafetyViolationException("Select the original client.");
-        var format=SelectedExportFormat;var file="";
-        await Workspace.RunExclusiveAsync("Exporting original read-only report",async _ =>
-        {
-            file=await Task.Run(()=>Workspace.Exporter.ExportExchangeReport(ExchangeReportEvidenceSchema.Read(json,tenant),format),Workspace.OperationToken);
-        });
+        var format=SelectedExportFormat;
+        var file=await Workspace.ExportAsync(
+            ()=>Workspace.Exporter.ExportExchangeReport(ExchangeReportEvidenceSchema.Read(json,tenant),format),
+            "Exporting original read-only report", "Writing the original report locally. Closing waits for the file to finish.");
         if (!Workspace.IsCurrent(context) || Workflow.EvidenceJson != json)
             throw new SafetyViolationException("The context changed during local export. An output may exist for the original report; it is not attributed to the current client.");
         _exportPath=file;_localMessage="Original report exported locally; no new read or tenant change was made.";
