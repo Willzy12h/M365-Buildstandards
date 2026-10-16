@@ -54,7 +54,7 @@ public sealed class MailboxSettingsRunnerTests
         {
             using var run = new Run(runtime,path); var result = await run.Execute(item,"settings-normal");
             Assert.Equal(ReadRunOutcome.Completed,result.Outcome); Assert.Equal("Collected",result.Evidence!.Status);
-            Assert.Equal(2,result.Evidence.Sections[0].Rows.Count); Assert.DoesNotContain("Write ",run.Log);
+            Assert.Equal(2,result.Evidence.Sections[0].Rows.Count); Assert.DoesNotContain("WRITE ",run.Log);
             var row = First(result); Assert.Equal("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",row["id"]!.GetValue<string>());
             if (item.Contains("protocol")) { Assert.False(row["popEnabled"]!.GetValue<bool>()); Assert.Equal("Inherit",row["smtpAuthOverride"]!.GetValue<string>()); Assert.True(row["effectiveSmtpAuthDisabled"]!.GetValue<bool>()); }
             else if (item.Contains("forwarding")) { Assert.Null(row["forwardingAddress"]); Assert.Equal("Collected",row["forwardingAddressReadStatus"]!.GetValue<string>()); Assert.False(row["deliverToMailboxAndForward"]!.GetValue<bool>()); }
@@ -138,7 +138,7 @@ public sealed class MailboxSettingsRunnerTests
         var body=ScriptCatalogue.Shipped.Find("exo.mailbox-size-quota").Script.Replace("$row.primarySizeRaw = $size","$row.primarySizeRaw = @('one','two')");
         Assert.Contains("@('one','two')",body);
         using var run=new Run(runtime,path);var result=await run.Execute("unused","settings-normal",custom:ExchangeReportRunnerTests.Entry(body));
-        Assert.Equal(ReadRunOutcome.Failed,result.Outcome);Assert.Null(result.Evidence);Assert.DoesNotContain("Write ",run.Log);
+        Assert.Equal(ReadRunOutcome.Failed,result.Outcome);Assert.Null(result.Evidence);Assert.DoesNotContain("WRITE ",run.Log);
     }
 
     [Theory, MemberData(nameof(Runtimes))]

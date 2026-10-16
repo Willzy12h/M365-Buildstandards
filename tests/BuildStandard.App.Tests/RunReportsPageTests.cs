@@ -48,6 +48,20 @@ public sealed class RunReportsPageTests : IDisposable
     }
 
     [Fact]
+    public async Task Stop_at_local_export_start_never_claims_success_without_a_file()
+    {
+        Approve();await _page.RunAsync();
+        _workspace.PropertyChanged += (_,e) =>
+        {
+            if(e.PropertyName==nameof(Workspace.BusyMessage) && _workspace.BusyMessage=="Exporting original read-only report")
+                _workspace.CancelOperation();
+        };
+        await _page.ExportReportAsync();
+        Assert.True(File.Exists(_page.LastExport));
+        Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
     public async Task Unsaved_report_blocks_another_review_and_keeps_offline_save_available_after_disconnect()
     {
         _f.Save = _ => throw new IOException("Synthetic save failure");

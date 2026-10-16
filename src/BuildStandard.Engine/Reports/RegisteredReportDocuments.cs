@@ -22,6 +22,7 @@ public static class RegisteredReportDocuments
         metadata.Add("Run ID",report.RunId);metadata.Add("Resource",report.Resource);metadata.Add("Initiating account object ID",report.InitiatingAccountObjectId ?? "Unknown");
         metadata.Add("Toolkit",report.ToolkitVersion);metadata.Add("Adapter",report.AdapterVersion);metadata.Add("Module",report.ModuleVersion);metadata.Add("Runtime",report.RuntimeVersion);
         metadata.Add("Script SHA-256",report.ScriptSha256);metadata.Add("Manifest SHA-256",report.ManifestSha256);metadata.Add("Runner SHA-256",report.RunnerTemplateSha256);
+        foreach(var parameter in report.Parameters)metadata.Add($"Parameter {parameter.Name} ({parameter.Type})",parameter.Value);
         foreach(var command in report.SourceCommands)metadata.Add("Source command",command);
         metadata.Add("Started at", report.StartedAt); metadata.Add("Ended at", report.EndedAt);
         metadata.Add("Integrity digest", report.IntegrityDigest);

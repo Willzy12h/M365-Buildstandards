@@ -79,18 +79,18 @@
       "manifestSchemaVersion": 2
     },
     {
-      "id": "exo.mailbox-hold-settings",
-      "manifest": "exchange-online/Get-MailboxHoldSettings.json",
-      "manifestSha256": "3aa520e82320e2b99d476636914e973b54e03cfb8014ea7ffbc60d1fc5770c85",
-      "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
-      "manifestSchemaVersion": 2
-    },
-    {
       "id": "exo.mailbox-holds",
       "manifest": "exchange-online/Get-MailboxHoldReport.json",
       "manifestSha256": "2e332b881bad19dc406badd7a11d3642609a32f0e2e04e4b89f2dcd0590090a8",
       "scriptSha256": "255d7b7dcc6f53b1599e0b578874e22756511847c6a1b62c72791b3131b0913a",
       "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.mailbox-hold-settings",
+      "manifest": "exchange-online/Get-MailboxHoldSettings.json",
+      "manifestSha256": "3aa520e82320e2b99d476636914e973b54e03cfb8014ea7ffbc60d1fc5770c85",
+      "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
+      "manifestSchemaVersion": 2
     },
     {
       "id": "exo.mailbox-inventory",
@@ -114,6 +114,13 @@
       "manifestSchemaVersion": 1
     },
     {
+      "id": "exo.mailbox-protocols",
+      "manifest": "exchange-online/Get-MailboxProtocolReport.json",
+      "manifestSha256": "8c56bac2572e3d272b2ace598792868fc7f992a3b546e9d8254f989106414338",
+      "scriptSha256": "4ba7998ba2abbfc20fa39b8290ed3e67c6d117aff7222a7110a7002472f0bea6",
+      "manifestSchemaVersion": 1
+    },
+    {
       "id": "exo.mailbox-protocol-settings",
       "manifest": "exchange-online/Get-MailboxProtocolSettings.json",
       "manifestSha256": "6eaca92ba130f55ffdc3614d76c05a09b437f01d73cfc64d9ca79d25b8d2e546",
@@ -121,10 +128,10 @@
       "manifestSchemaVersion": 2
     },
     {
-      "id": "exo.mailbox-protocols",
-      "manifest": "exchange-online/Get-MailboxProtocolReport.json",
-      "manifestSha256": "8c56bac2572e3d272b2ace598792868fc7f992a3b546e9d8254f989106414338",
-      "scriptSha256": "4ba7998ba2abbfc20fa39b8290ed3e67c6d117aff7222a7110a7002472f0bea6",
+      "id": "exo.quota-audit",
+      "manifest": "exchange-online/Get-MailboxQuotaAudit.json",
+      "manifestSha256": "5134eff7c6744e8797d168ba636694e672f17153ddd01ef474d1741801e8327a",
+      "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb",
       "manifestSchemaVersion": 1
     },
     {
@@ -160,13 +167,6 @@
       "manifest": "exchange-online/Get-QuarantinePolicyReport.json",
       "manifestSha256": "25dea6630155ac0bd687cc811532bc285e1321e242c2663196d582dc2e01f8a6",
       "scriptSha256": "95f10b6a7d54743b46b830212089f1d14894a01c92b943a6810b587aa656606f",
-      "manifestSchemaVersion": 1
-    },
-    {
-      "id": "exo.quota-audit",
-      "manifest": "exchange-online/Get-MailboxQuotaAudit.json",
-      "manifestSha256": "5134eff7c6744e8797d168ba636694e672f17153ddd01ef474d1741801e8327a",
-      "scriptSha256": "4d084148b03b541e0b05b8b17babdfe466eb2777e401156eed465bfde2a8cafb",
       "manifestSchemaVersion": 1
     },
     {
@@ -219,17 +219,17 @@
       "manifestSchemaVersion": 1
     },
     {
-      "id": "exo.unified-audit-search",
-      "manifest": "exchange-online/Search-UnifiedAuditReport.json",
-      "manifestSha256": "fb69544bb094d0e900846ebd49ff664d723784b21717a5d25056553d451a47fb",
-      "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
-      "manifestSchemaVersion": 1
-    },
-    {
       "id": "exo.user-mailbox-access",
       "manifest": "exchange-online/Get-UserMailboxAccess.json",
       "manifestSha256": "73baa3f352fe570bcc4b64b7327f52c3b615a288ecf817fdb778298733fad10f",
       "scriptSha256": "8b368436a7888543aa40aeb825fb7cad0668898cb3553eae7ba0d0d9b3ebac89",
+      "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.unified-audit-search",
+      "manifest": "exchange-online/Search-UnifiedAuditReport.json",
+      "manifestSha256": "fb69544bb094d0e900846ebd49ff664d723784b21717a5d25056553d451a47fb",
+      "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
       "manifestSchemaVersion": 1
     }
   ]

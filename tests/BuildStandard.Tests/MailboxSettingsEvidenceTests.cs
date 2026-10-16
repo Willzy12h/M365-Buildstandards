@@ -158,6 +158,21 @@ public sealed class MailboxSettingsEvidenceTests
         Assert.Contains(tables[0].Rows,r=>r.Any(c=>c.Contains("Collected")));
     }
 
+    [Theory]
+    [InlineData("true")]
+    [InlineData("false")]
+    public void Empty_inventory_projection_retains_original_archive_request(string value)
+    {
+        var report=Evidence("exo-mailbox-forwarding",Row("exo-mailbox-forwarding"));
+        report.ReportId="exo-mailbox-inventory";
+        report.SourceCommands=[..ExchangeReportRegistry.Find(report.ReportId).SourceCommands];
+        report.Parameters=[new() {Name="IncludeArchive",Type=ExchangeReportParameterType.Boolean,Value=value}];
+        report.Sections[0].Id="mailboxes";report.Sections[0].Rows.Clear();ExchangeReportEvidenceSchema.Seal(report);
+        var metadata=RegisteredReportDocuments.Sheets(report)[0];
+        Assert.Contains(metadata.Rows,r=>r[0]=="Parameter IncludeArchive (Boolean)" && r[1]==value);
+        Assert.Contains("Parameter IncludeArchive (Boolean)",RegisteredReportDocuments.ExchangeHtml(report,"Synthetic"));
+    }
+
     [Fact]
     public void Successful_row_does_not_display_an_unknown_error()
     {
