@@ -75,6 +75,23 @@ function Get-EXOMailbox {
         [pscustomobject]@{ ExchangeGuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; DisplayName = 'Synthetic user'; ExternalDirectoryObjectId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; PrimarySmtpAddress = 'user@synthetic.example'; RecipientTypeDetails = 'UserMailbox'; IssueWarningQuota = '49 GB (52,613,349,376 bytes)'; ProhibitSendQuota = '49.5 GB (53,150,220,288 bytes)'; ProhibitSendReceiveQuota = '50 GB (53,687,091,200 bytes)'; ArchiveGuid = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'; ArchiveQuota = '100 GB (107,374,182,400 bytes)' },
         [pscustomobject]@{ ExchangeGuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'; DisplayName = 'Synthetic shared'; ExternalDirectoryObjectId = ''; PrimarySmtpAddress = 'shared@synthetic.example'; RecipientTypeDetails = 'SharedMailbox'; IssueWarningQuota = 'Unlimited'; ProhibitSendQuota = 'Unlimited'; ProhibitSendReceiveQuota = 'Unlimited'; ArchiveGuid = '00000000-0000-0000-0000-000000000000'; ArchiveQuota = '0 B (0 bytes)' }
     )
+    if ($script:Scenario.StartsWith('settings-')) {
+        $mailboxes[1].ExternalDirectoryObjectId = '77777777-7777-4777-8777-777777777777'
+        foreach ($mailbox in $mailboxes) {
+            foreach ($property in @('LitigationHoldEnabled','RetentionHoldEnabled','ComplianceTagHoldApplied','DelayHoldApplied','DelayReleaseHoldApplied','DeliverToMailboxAndForward')) {
+                $mailbox.PSObject.Properties.Add([psnoteproperty]::new($property,$false))
+            }
+            $mailbox.PSObject.Properties.Add([psnoteproperty]::new('ForwardingAddress',$null))
+            $mailbox.PSObject.Properties.Add([psnoteproperty]::new('ForwardingSmtpAddress','smtp:target@synthetic.example'))
+            $mailbox.PSObject.Properties.Add([psnoteproperty]::new('InPlaceHolds',@()))
+        }
+        if ($script:Scenario -eq 'settings-missing-flag') { $mailboxes[0].PSObject.Properties.Remove('LitigationHoldEnabled'); $mailboxes[0].PSObject.Properties.Remove('DeliverToMailboxAndForward') }
+        if ($script:Scenario -eq 'settings-malformed-flag') { $mailboxes[0].LitigationHoldEnabled = 'false';$mailboxes[0].DeliverToMailboxAndForward = 'false' }
+        if ($script:Scenario -eq 'settings-no-mailbox-guid') { $mailboxes[0].ExchangeGuid = '' }
+        if ($script:Scenario -eq 'settings-duplicate-guid') { $mailboxes[1].ExchangeGuid = $mailboxes[0].ExchangeGuid }
+        if ($script:Scenario -eq 'settings-null-holds') { $mailboxes[0].InPlaceHolds = $null }
+        if ($script:Scenario -eq 'settings-excess-holds') { $mailboxes[0].InPlaceHolds = @(1..101 | ForEach-Object { 'hold' + $_ }) }
+    }
     # Shapes the shipped adapter must not trust: a missing quota, a blank archive GUID, a malformed object ID, no mailbox GUID.
     if ($script:Scenario -eq 'no-quota') { $mailboxes[0].IssueWarningQuota = '  ' }
     if ($script:Scenario -eq 'no-archive-guid') { $mailboxes[0].ArchiveGuid = '' }
@@ -129,4 +146,27 @@ function Get-EXOMailboxStatistics {
 # Present only to prove a body cannot reach a write: the gate never registers it and the body check refuses it.
 function Set-Mailbox { param([string]$Identity) Write-FakeLog ('WRITE Set-Mailbox ' + $Identity) }
 
-Export-ModuleMember -Function Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-CASMailbox {
+    [CmdletBinding()]
+    param([string]$Identity)
+    if ($Identity -notin @('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')) { throw 'Unexpected synthetic mailbox identity' }
+    $ExternalDirectoryObjectId = [guid]$(if ($Identity.StartsWith('aaaaaaaa')) { 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } else { '77777777-7777-4777-8777-777777777777' })
+    $script:Reads++; Write-FakeLog ('Read Get-CASMailbox ' + $Identity)
+    if ($script:Scenario -eq 'settings-cas-fail') { throw 'Synthetic mailbox-specific read failure' }
+    $value = [ordered]@{ ExternalDirectoryObjectId = $ExternalDirectoryObjectId.ToString('D'); PopEnabled = $false; ImapEnabled = $false; MAPIEnabled = $true; EwsEnabled = $false; ActiveSyncEnabled = $false; OWAEnabled = $true; SmtpClientAuthenticationDisabled = $null }
+    if ($ExternalDirectoryObjectId.ToString().StartsWith('cccccccc')) {
+        if ($script:Scenario -eq 'settings-missing-flag') { $value.Remove('PopEnabled') }
+        if ($script:Scenario -eq 'settings-malformed-flag') { $value.PopEnabled = 'false' }
+    }
+    if ($script:Scenario -eq 'settings-cas-wrong-id') { $value.ExternalDirectoryObjectId = '99999999-9999-4999-8999-999999999999' }
+    if ($script:Scenario -eq 'settings-smtp-absent') { $value.Remove('SmtpClientAuthenticationDisabled') }
+    if ($script:Scenario -eq 'settings-smtp-enabled') { $value.SmtpClientAuthenticationDisabled = $false }
+    if ($script:Scenario -eq 'settings-smtp-disabled') { $value.SmtpClientAuthenticationDisabled = $true }
+    [pscustomobject]$value
+}
+function Get-TransportConfig {
+    $script:Reads++; Write-FakeLog 'Read Get-TransportConfig'
+    [pscustomobject]@{ SmtpClientAuthenticationDisabled = $(if($script:Scenario -eq 'settings-org-null') { $null } else { $true }) }
+}
+
+Export-ModuleMember -Function Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

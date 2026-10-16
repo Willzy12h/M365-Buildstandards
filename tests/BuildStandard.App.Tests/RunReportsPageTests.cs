@@ -1,3 +1,4 @@
+using BuildStandard.Core;
 using System.IO;
 using System.Reflection;
 using BuildStandard.App.Infrastructure;
@@ -28,7 +29,7 @@ public sealed class RunReportsPageTests : IDisposable
         typeof(Workspace).GetProperty(nameof(Workspace.Connection), BindingFlags.Instance | BindingFlags.Public)!.SetValue(_workspace, _f.Connection);
         _f.ContextProvider = () => (_workspace.Connection, _workspace.Profile);
         _shell = new(_workspace); _page = new(_shell, _f.Workflow);
-        _page.Selected = Assert.Single(_page.Items);
+        _page.Selected = _page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
     }
     private void Approve()
     { _page.ExperimentalReadEnabled = true; _page.ReviewCommand.Execute(null); Assert.True(_page.HasReview); Assert.False(_page.Approved); _page.Approved = true; }
@@ -36,15 +37,41 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Formatted_report_export_reuses_original_evidence_and_clears_on_disconnect()
+    {
+        Approve();await _page.RunAsync();var original=_f.Workflow.EvidenceJson;
+        _page.SelectedExportFormat=BuildStandard.Engine.Reports.ExportFormat.Json;await _page.ExportReportAsync();
+        Assert.True(File.Exists(_page.LastExport));Assert.Equal(original,File.ReadAllText(_page.LastExport));Assert.Equal(1,_f.Calls);
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace,null);_page.Refresh();
+        Assert.Empty(_page.LastExport);Assert.False(_page.ExportReportCommand.CanExecute(null));
+        await Assert.ThrowsAsync<SafetyViolationException>(_page.ExportReportAsync);Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
+    public async Task Stop_at_local_export_start_never_claims_success_without_a_file()
+    {
+        Approve();await _page.RunAsync();
+        _workspace.PropertyChanged += (_,e) =>
+        {
+            if(e.PropertyName==nameof(Workspace.BusyMessage) && _workspace.BusyMessage=="Exporting original read-only report")
+                _workspace.CancelOperation();
+        };
+        await _page.ExportReportAsync();
+        Assert.True(File.Exists(_page.LastExport));
+        Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
     public async Task Unsaved_report_blocks_another_review_and_keeps_offline_save_available_after_disconnect()
     {
         _f.Save = _ => throw new IOException("Synthetic save failure");
         Approve(); await _page.RunAsync();
         Assert.True(_page.SaveEvidenceCommand.CanExecute(null));
+        Assert.NotNull(_page.OutcomeRows); var rows = _page.OutcomeRows; _page.Refresh(); Assert.Same(rows,_page.OutcomeRows);
         Assert.False(_page.CanReview);
         typeof(Workspace).GetProperty(nameof(Workspace.Connection), BindingFlags.Instance | BindingFlags.Public)!.SetValue(_workspace, null);
         _page.Refresh();
-        Assert.True(_page.SaveEvidenceCommand.CanExecute(null)); Assert.Empty(_page.Output);
+        Assert.True(_page.SaveEvidenceCommand.CanExecute(null)); Assert.Empty(_page.Output); Assert.Null(_page.OutcomeRows);
         Assert.False(_page.CanRun); Assert.False(_page.CanReview); Assert.Equal(1, _f.Calls);
     }
 

@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Data;
 using System.Windows.Input;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.Services;
 using BuildStandard.Core;
+using BuildStandard.Core.Models;
+using BuildStandard.Engine.Reports;
 using BuildStandard.Engine.Scripts;
 
 namespace BuildStandard.App.ViewModels;
@@ -15,6 +18,14 @@ public sealed class RunReportsViewModel : PageViewModel
     private bool _building, _approved;
     private int _selectedTab;
     private ReadOnlyRunReview? _shownReview;
+    private ExchangeReportEvidence? _displayedReport;
+    public DataView? OutcomeRows { get; private set; }
+    private string _exportPath = "";
+    private ExportFormat _exportFormat = ExportFormat.Html;
+    public ExportFormat[] ExportFormats { get; } = [ExportFormat.Html,ExportFormat.Json,ExportFormat.Csv,ExportFormat.Xlsx];
+    public ExportFormat SelectedExportFormat { get => _exportFormat; set { if (SetProperty(ref _exportFormat,value)) CommandManager.InvalidateRequerySuggested(); } }
+    public string LastExport => _exportPath;
+    public bool HasReportExport => _exportPath.Length > 0;
 
     public RunReportsViewModel(ShellViewModel shell) : this(shell, null) { }
     internal RunReportsViewModel(ShellViewModel shell, ReadOnlyRunWorkflow? workflow) : base(shell, "Run reports")
@@ -25,6 +36,7 @@ public sealed class RunReportsViewModel : PageViewModel
             foreach (var entry in Workflow.Items) Items.Add(new ScriptLibraryItem(entry));
         }
         catch (Exception) { _localMessage = "The pinned script library could not be verified. Run is unavailable; use a complete verified toolkit package."; }
+        ExportReportCommand = new AsyncCommand(ExportReportAsync,_ => { _localMessage = "Local export could not be confirmed. An output may exist for the original report; original evidence is unchanged. No run is repeated.";Refresh(); },()=>CanExportReport);
         ReviewCommand = Safe(PrepareReview, () => CanReview);
         RunCommand = new AsyncCommand(RunAsync, _ => { _localMessage = ReadOnlyRunWorkflow.FailedReason; Refresh(); }, () => CanRun);
         CancelCommand = Safe(() => Workflow?.Cancel(), () => Workflow is { IsRunning: true, CancellationRequested: false });
@@ -42,6 +54,7 @@ public sealed class RunReportsViewModel : PageViewModel
     public ObservableCollection<ScriptFormField> Fields { get; } = new();
     public ObservableCollection<string> Problems { get; } = new();
     public ObservableCollection<string> Runtimes { get; } = new();
+    public ICommand ExportReportCommand { get; }
     public ICommand ReviewCommand { get; }
     public ICommand RunCommand { get; }
     public ICommand CancelCommand { get; }
@@ -127,7 +140,7 @@ public sealed class RunReportsViewModel : PageViewModel
     public bool HasSelection => Selected is not null;
     public bool IsValid { get; private set; }
     public bool HasProblems => Problems.Count > 0;
-    public string Requirements => Selected is null ? "Choose a registered report. Only the shipped schema 2 mailbox inventory currently supports Run."
+    public string Requirements => Selected is null ? "Choose a registered report. Only registered schema 2 read-only reports support Run."
         : Selected.Description + "\n" + Selected.Needs + "\n" + Selected.Entry.Manifest.Prerequisites + "\n" + Selected.LiveStatus;
     public string ContextText => Workflow?.ContextText ?? "Run unavailable: the pinned library could not be loaded.";
     public string Availability => !Workspace.Idle && Workflow?.IsRunning != true ? "Wait for the active workspace task. This page's Cancel does not stop another task."
@@ -184,9 +197,43 @@ public sealed class RunReportsViewModel : PageViewModel
         catch (Exception) { _localMessage = "Run was refused or could not be confirmed. Review the current verified connection, opt-in and exact values again. No automatic retry was performed."; }
         Refresh();
     }
+    private bool CanExportReport => Workspace.Idle && ExportFormats.Contains(SelectedExportFormat)
+        && Workflow is { IsRunning:false, HasPendingEvidence:false, Result.Evidence:not null, EvidenceJson.Length: > 0 };
+    public async Task ExportReportAsync()
+    {
+        Workflow?.RefreshContext();
+        if (!CanExportReport) throw new SafetyViolationException("Save or export the original evidence first and use its current client context before exporting a formatted report.");
+        var context=Workspace.CapturePresentationContext();var json=Workflow!.EvidenceJson;
+        var tenant=Workspace.Profile?.TenantId ?? throw new SafetyViolationException("Select the original client.");
+        var format=SelectedExportFormat;
+        var file=await Workspace.ExportAsync(
+            ()=>Workspace.Exporter.ExportExchangeReport(ExchangeReportEvidenceSchema.Read(json,tenant),format),
+            "Exporting original read-only report", "Writing the original report locally. Closing waits for the file to finish.");
+        if (!Workspace.IsCurrent(context) || Workflow.EvidenceJson != json)
+            throw new SafetyViolationException("The context changed during local export. An output may exist for the original report; it is not attributed to the current client.");
+        _exportPath=file;_localMessage="Original report exported locally; no new read or tenant change was made.";
+        OnPropertyChanged(nameof(LastExport));OnPropertyChanged(nameof(HasReportExport));Refresh();
+    }
+    private void RefreshRows()
+    {
+        var report = Workflow?.Result?.Evidence;
+        if (ReferenceEquals(report, _displayedReport)) return;
+        _displayedReport = report; OutcomeRows = null; _exportPath = "";
+        if (report is not null)
+        {
+            var sheet = RegisteredReportDocuments.Sheets(report).Single(s => s.Name != "Report provenance");
+            var table = new DataTable();
+            foreach (var column in sheet.Rows[0]) table.Columns.Add(column, typeof(string));
+            table.BeginLoadData();
+            foreach (var row in sheet.Rows.Skip(1)) table.Rows.Add(row.Cast<object>().ToArray());
+            table.EndLoadData(); OutcomeRows = table.DefaultView;
+        }
+        OnPropertyChanged(nameof(OutcomeRows));OnPropertyChanged(nameof(LastExport));OnPropertyChanged(nameof(HasReportExport));
+    }
     public override void Refresh()
     {
         Workflow?.RefreshContext();
+        RefreshRows();
         if (!ReferenceEquals(_shownReview, Workflow?.Review)) { _shownReview = null; _approved = false; }
         foreach (var name in new[] { nameof(ExperimentalReadEnabled), nameof(CanOptIn), nameof(Approved), nameof(HasReview), nameof(ReviewText),
             nameof(HasSelection), nameof(IsValid), nameof(HasProblems), nameof(Requirements), nameof(ContextText), nameof(Availability),

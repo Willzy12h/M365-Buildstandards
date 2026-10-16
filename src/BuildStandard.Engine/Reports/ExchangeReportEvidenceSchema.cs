@@ -138,6 +138,7 @@ public static class ExchangeReportEvidenceSchema
                 if (section.Status == ReportReadState.Collected && row.ReadStatus != ReportReadState.Collected)
                     throw Bad("Incomplete rows cannot become a successful section.");
                 if (row is MailboxReportRow mailbox) ValidateMailbox(mailbox, includeArchive);
+                else ValidateSettings(row);
             }
         }
         State(e.Status);
@@ -176,6 +177,78 @@ public static class ExchangeReportEvidenceSchema
                 || m.HasArchive == true && m.ArchiveSizeReadStatus != ReportReadState.Collected))
                 throw Bad("A successful mailbox row in an archive run needs its archive state and, when present, its archive size.");
         }
+    }
+
+    private static void ValidateSettings(ExchangeReportRow row)
+    {
+        CanonicalGuid(row.Id); // New setting adapters exclude unidentified rows, even when a section is partial.
+        switch (row)
+        {
+            case MailboxProtocolReportRow p:
+                if (p.PrimarySmtpAddress is not null) Readable(p.PrimarySmtpAddress);
+                Boolean(p.PopEnabledReadStatus, p.PopEnabled); Boolean(p.ImapEnabledReadStatus, p.ImapEnabled);
+                Boolean(p.MapiEnabledReadStatus, p.MapiEnabled); Boolean(p.EwsEnabledReadStatus, p.EwsEnabled);
+                Boolean(p.ActiveSyncEnabledReadStatus, p.ActiveSyncEnabled); Boolean(p.OwaEnabledReadStatus, p.OwaEnabled);
+                Boolean(p.OrganisationSmtpAuthDisabledReadStatus, p.OrganisationSmtpAuthDisabled);
+                Boolean(p.EffectiveSmtpAuthDisabledReadStatus, p.EffectiveSmtpAuthDisabled);
+                State(p.SmtpAuthOverrideReadStatus);
+                if (p.SmtpAuthOverride is not ("Enabled" or "Disabled" or "Inherit" or "Unknown")
+                    || (p.SmtpAuthOverrideReadStatus == ReportReadState.Collected) == (p.SmtpAuthOverride == "Unknown"))
+                    throw Bad("SMTP AUTH override must distinguish observed inheritance from an unknown read.");
+                bool? expected = p.SmtpAuthOverride switch
+                {
+                    "Enabled" => false, "Disabled" => true, "Inherit" => p.OrganisationSmtpAuthDisabled, _ => null
+                };
+                if (p.EffectiveSmtpAuthDisabled != expected)
+                    throw Bad("Effective SMTP AUTH configuration does not match its observed inputs.");
+                Complete(row, p.PopEnabledReadStatus, p.ImapEnabledReadStatus, p.MapiEnabledReadStatus, p.EwsEnabledReadStatus,
+                    p.ActiveSyncEnabledReadStatus, p.OwaEnabledReadStatus, p.SmtpAuthOverrideReadStatus,
+                    p.OrganisationSmtpAuthDisabledReadStatus, p.EffectiveSmtpAuthDisabledReadStatus);
+                break;
+            case MailboxForwardingReportRow f:
+                if (f.PrimarySmtpAddress is not null) Readable(f.PrimarySmtpAddress);
+                OptionalTarget(f.ForwardingAddressReadStatus, f.ForwardingAddress);
+                OptionalTarget(f.ForwardingSmtpAddressReadStatus, f.ForwardingSmtpAddress);
+                Boolean(f.DeliverToMailboxAndForwardReadStatus, f.DeliverToMailboxAndForward);
+                Complete(row, f.ForwardingAddressReadStatus, f.ForwardingSmtpAddressReadStatus, f.DeliverToMailboxAndForwardReadStatus);
+                break;
+            case MailboxHoldReportRow h:
+                if (h.PrimarySmtpAddress is not null) Readable(h.PrimarySmtpAddress);
+                Boolean(h.LitigationHoldEnabledReadStatus, h.LitigationHoldEnabled);
+                Boolean(h.RetentionHoldEnabledReadStatus, h.RetentionHoldEnabled);
+                Boolean(h.ComplianceTagHoldAppliedReadStatus, h.ComplianceTagHoldApplied);
+                Boolean(h.DelayHoldAppliedReadStatus, h.DelayHoldApplied);
+                State(h.InPlaceHoldIdsReadStatus);
+                if ((h.InPlaceHoldIdsReadStatus == ReportReadState.Collected) != (h.InPlaceHoldIds is not null))
+                    throw Bad("Hold identifiers require an explicit collection read; unknown is not an empty list.");
+                if (h.InPlaceHoldIds is { } ids)
+                {
+                    if (ids.Count > 100) throw Bad("Hold identifier list exceeds its registered limit.");
+                    foreach (var id in ids) { if (id is null) throw Bad("Invalid hold identifier."); Readable(id); }
+                }
+                Complete(row, h.LitigationHoldEnabledReadStatus, h.RetentionHoldEnabledReadStatus, h.ComplianceTagHoldAppliedReadStatus,
+                    h.DelayHoldAppliedReadStatus, h.InPlaceHoldIdsReadStatus);
+                break;
+            default: throw Bad("No validator for the registered setting row.");
+        }
+    }
+
+    private static void Boolean(string state, bool? value)
+    {
+        State(state);
+        if ((state == ReportReadState.Collected) != value.HasValue)
+            throw Bad("A boolean is known only when its exact value was collected; unknown is never false.");
+    }
+    private static void OptionalTarget(string state, string? value)
+    {
+        State(state);
+        if (state != ReportReadState.Collected && value is not null) throw Bad("An unread forwarding target cannot contain a value.");
+        if (value is not null) Readable(value);
+    }
+    private static void Complete(ExchangeReportRow row, params string[] states)
+    {
+        if (row.ReadStatus == ReportReadState.Collected && states.Any(s => s != ReportReadState.Collected))
+            throw Bad("A complete settings row cannot contain an unsuccessful read.");
     }
 
     private static void Group(string state, params string?[] values)

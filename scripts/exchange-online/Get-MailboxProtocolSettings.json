@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.mailbox-protocol-settings",
+  "name": "Mailbox protocol settings (toolkit run)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Observed mailbox protocol settings. Each value carries its read state. Missing or malformed values remain unknown; this performs no changes.",
+  "keywords": [
+    "mailbox",
+    "protocol"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxProtocolSettings.ps1",
+  "scriptSha256": "513d488d7bb0a8979f360b1421bc96b0a761d7418486d10f1d46af9bef369a14",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "primarySmtpAddress",
+      "popEnabledReadStatus",
+      "popEnabled",
+      "imapEnabledReadStatus",
+      "imapEnabled",
+      "mapiEnabledReadStatus",
+      "mapiEnabled",
+      "ewsEnabledReadStatus",
+      "ewsEnabled",
+      "activeSyncEnabledReadStatus",
+      "activeSyncEnabled",
+      "owaEnabledReadStatus",
+      "owaEnabled",
+      "smtpAuthOverrideReadStatus",
+      "smtpAuthOverride",
+      "organisationSmtpAuthDisabledReadStatus",
+      "organisationSmtpAuthDisabled",
+      "effectiveSmtpAuthDisabledReadStatus",
+      "effectiveSmtpAuthDisabled",
+      "id",
+      "name",
+      "readStatus",
+      "error"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access plus organisation transport-settings read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default; requires the current verified connection, separate Exchange authentication and exact per-run approval.",
+    "Only observed configuration is reported. A failed, missing or malformed value is unknown, never False or an empty-success result.",
+    "Live Microsoft behaviour, required Exchange RBAC and module output remain unverified.",
+    "Collected null forwarding targets mean explicitly unset; collected empty hold identifiers mean a returned empty collection. Neither meaning applies to unread values.",
+    "At most 10,000 identified mailboxes; truncation and unidentified rows make the section Partial."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-mailbox-protocols",
+    "reportSchemaVersion": 1,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "5b47dc09d9eaf875ca90893eb67763992ffb6c63043c8b1da48812e4a959ed71"
+  }
+}

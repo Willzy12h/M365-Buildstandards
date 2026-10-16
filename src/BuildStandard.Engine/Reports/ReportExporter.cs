@@ -105,6 +105,20 @@ public sealed partial class ReportExporter
         };
     }
 
+    public string ExportExchangeReport(ExchangeReportEvidence report, ExportFormat format)
+    {
+        ExchangeReportEvidenceSchema.Validate(report,report.TenantId);
+        var kind = "exchange-report-" + SafeName(report.ReportId) + "-" + report.Id + "-" + Guid.NewGuid().ToString("N");
+        return format switch
+        {
+            ExportFormat.Html => WriteText(Target(kind,report.TenantId,report.EndedAt,"html"),RegisteredReportDocuments.ExchangeHtml(report,_companyName)),
+            ExportFormat.Json => WriteText(Target(kind,report.TenantId,report.EndedAt,"json"),ExchangeReportEvidenceSchema.Serialize(report)),
+            ExportFormat.Csv => WriteBytes(Target(kind,report.TenantId,report.EndedAt,"csv.zip"),CsvWriter.ZipSheets(RegisteredReportDocuments.Sheets(report))),
+            ExportFormat.Xlsx => WriteBytes(Target(kind,report.TenantId,report.EndedAt,"xlsx"),XlsxWriter.Write(RegisteredReportDocuments.Sheets(report))),
+            _ => throw new ArgumentOutOfRangeException(nameof(format),"Exchange reports export as HTML, JSON, CSV or XLSX.")
+        };
+    }
+
     public string ExportReport(ReportEvidence report, ExportFormat format, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);

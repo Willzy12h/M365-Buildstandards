@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.mailbox-forwarding-settings",
+  "name": "Mailbox forwarding settings (toolkit run)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Observed mailbox forwarding settings. Each value carries its read state. Missing or malformed values remain unknown; this performs no changes.",
+  "keywords": [
+    "mailbox",
+    "forwarding"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxForwardingSettings.ps1",
+  "scriptSha256": "6e38171d5b5925b9f626695c50bb1b349523d8117cad242a4f2ae401c5766707",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [],
+  "rules": [],
+  "outputSchema": {
+    "columns": [
+      "primarySmtpAddress",
+      "forwardingAddressReadStatus",
+      "forwardingAddress",
+      "forwardingSmtpAddressReadStatus",
+      "forwardingSmtpAddress",
+      "deliverToMailboxAndForwardReadStatus",
+      "deliverToMailboxAndForward",
+      "id",
+      "name",
+      "readStatus",
+      "error"
+    ]
+  },
+  "outputSchemaVersion": 1,
+  "limits": {
+    "maximumRows": 10000,
+    "timeoutSeconds": 1800
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default; requires the current verified connection, separate Exchange authentication and exact per-run approval.",
+    "Only observed configuration is reported. A failed, missing or malformed value is unknown, never False or an empty-success result.",
+    "Live Microsoft behaviour, required Exchange RBAC and module output remain unverified.",
+    "Collected null forwarding targets mean explicitly unset; collected empty hold identifiers mean a returned empty collection. Neither meaning applies to unread values.",
+    "At most 10,000 identified mailboxes; truncation and unidentified rows make the section Partial."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-mailbox-forwarding",
+    "reportSchemaVersion": 1,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "5b47dc09d9eaf875ca90893eb67763992ffb6c63043c8b1da48812e4a959ed71"
+  }
+}

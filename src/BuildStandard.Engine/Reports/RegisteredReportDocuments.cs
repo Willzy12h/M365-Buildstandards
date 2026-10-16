@@ -11,6 +11,43 @@ namespace BuildStandard.Engine.Reports;
 public static class RegisteredReportDocuments
 {
     public const string SuppliedFileNotice = "Offline supplied file: source, account and live-mode claims have not been independently verified. No live reads were performed for this export. A digest detects modification; it does not authenticate the source.";
+    public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report)
+    {
+        ExchangeReportEvidenceSchema.Validate(report, report.TenantId);
+        var definition = ExchangeReportRegistry.Find(report.ReportId);
+        var metadata = new Sheet("Report provenance", ["Field", "Value"]);
+        metadata.Add("Report", definition.Name); metadata.Add("Report ID", report.ReportId); metadata.Add("Record ID", report.Id);
+        metadata.Add("Tenant ID", report.TenantId); metadata.Add("Observed account", report.ObservedAccountUpn ?? "Unknown");
+        metadata.Add("Source mode", report.SourceMode); metadata.Add("Read status", report.Status);
+        metadata.Add("Run ID",report.RunId);metadata.Add("Resource",report.Resource);metadata.Add("Initiating account object ID",report.InitiatingAccountObjectId ?? "Unknown");
+        metadata.Add("Toolkit",report.ToolkitVersion);metadata.Add("Adapter",report.AdapterVersion);metadata.Add("Module",report.ModuleVersion);metadata.Add("Runtime",report.RuntimeVersion);
+        metadata.Add("Script SHA-256",report.ScriptSha256);metadata.Add("Manifest SHA-256",report.ManifestSha256);metadata.Add("Runner SHA-256",report.RunnerTemplateSha256);
+        foreach(var parameter in report.Parameters)metadata.Add($"Parameter {parameter.Name} ({parameter.Type})",parameter.Value);
+        foreach(var command in report.SourceCommands)metadata.Add("Source command",command);
+        metadata.Add("Started at", report.StartedAt); metadata.Add("Ended at", report.EndedAt);
+        metadata.Add("Integrity digest", report.IntegrityDigest);
+        var sheets = new List<Sheet> { metadata };
+        foreach (var section in report.Sections)
+        {
+            metadata.Add("Section " + section.Id, section.Status + " · " + section.Rows.Count + " returned rows · " + (section.Error ?? "Read completed"));
+            foreach (var limitation in report.Limitations.Concat(section.Limitations)) metadata.Add("Limitation", limitation);
+            var columns = ExchangeReportEvidenceSchema.Columns(definition.Sections.Single(s => s.Id == section.Id).RowType)
+                .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
+            var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? "Exchange mailbox GUID" : Label(c)));
+            foreach (var row in section.Rows)
+                sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c)).ToArray());
+            sheets.Add(sheet);
+        }
+        return sheets;
+    }
+    private static string ExchangeValue(JsonObject row,string column)
+    {
+        if (row[column] is not null) return Value(row[column]);
+        if (column == "error" && row["readStatus"]?.GetValue<string>() == ReportReadState.Collected) return "No read error";
+        if ((column is "forwardingAddress" or "forwardingSmtpAddress")
+            && row[column + "ReadStatus"]?.GetValue<string>() == ReportReadState.Collected) return "Not set (observed)";
+        return Value(null);
+    }
     public static IReadOnlyList<Sheet> Sheets(ReportEvidence report, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);
@@ -44,10 +81,7 @@ public static class RegisteredReportDocuments
     {
         var sheets = Sheets(report, suppliedFile);
         var definition = GraphReportRegistry.Find(report.ReportId);
-        var html = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
-        html.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">");
-        html.Append("<title>").Append(E(definition.Name)).Append("</title><style>body{font:15px system-ui;margin:32px;color:#172c3e}h1,h2{color:#145887}.table{overflow:auto}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #cad4dd;padding:10px;text-align:left;vertical-align:top}th{background:#eef3f8}td{white-space:pre-wrap;overflow-wrap:anywhere;min-width:110px}.notice{padding:14px;background:#fff0cd}.muted{color:#536477}</style></head><body>");
-        html.Append("<p class=\"muted\">").Append(E(companyName)).Append("</p><h1>").Append(E(definition.Name)).Append("</h1>");
+        var html = StartDocument(definition.Name,companyName);
         if (suppliedFile) html.Append("<p class=\"notice\">").Append(E(SuppliedFileNotice)).Append("</p>");
         html.Append("<p>Tenant ID: ").Append(E(report.TenantId)).Append(" · ").Append(E(report.SourceMode == "live" ? "Recorded live read" : "Historical report"))
             .Append(" · ").Append(E(report.StartedAt)).Append(" to ").Append(E(report.EndedAt)).Append("</p>");
@@ -64,6 +98,23 @@ public static class RegisteredReportDocuments
         html.Append("<h2>Source and integrity details</h2><p>A digest detects modification; unsigned source claims are not authenticated.</p>");
         Table(html, sheets[0]);
         return html.Append("</body></html>").ToString();
+    }
+
+    public static string ExchangeHtml(ExchangeReportEvidence report,string companyName)
+    {
+        var sheets=Sheets(report);
+        var html=StartDocument(ExchangeReportRegistry.Find(report.ReportId).Name,companyName);
+        html.Append("<p class=\"notice\">Read status: ").Append(E(report.Status)).Append(". Separate report evidence; cannot authorise deployment. Unknown is not false or proof of absence. A digest verifies integrity, not Microsoft acceptance. This export does not refresh the data.</p>");
+        foreach(var sheet in sheets) { html.Append("<h2>").Append(E(sheet.Name)).Append("</h2>");Table(html,sheet); }
+        return html.Append("</body></html>").ToString();
+    }
+    private static StringBuilder StartDocument(string title,string companyName)
+    {
+        var html = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+        html.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">");
+        html.Append("<title>").Append(E(title)).Append("</title><style>body{font:15px system-ui;margin:32px;color:#172c3e}h1,h2{color:#145887}.table{overflow:auto}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #cad4dd;padding:10px;text-align:left;vertical-align:top}th{background:#eef3f8}td{white-space:pre-wrap;overflow-wrap:anywhere;min-width:110px}.notice{padding:14px;background:#fff0cd}.muted{color:#536477}</style></head><body>");
+        html.Append("<p class=\"muted\">").Append(E(companyName)).Append("</p><h1>").Append(E(title)).Append("</h1>");
+        return html;
     }
 
     private static string[] Columns(string reportId, ReportSection section) => GraphReportRegistry.Find(reportId).Sections.Single(s => s.Id == section.Id).RowType

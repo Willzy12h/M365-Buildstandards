@@ -20,7 +20,7 @@ internal sealed class ReadRunFixture : IDisposable
     public TempRoot Root { get; } = new();
     public FixedClock Clock { get; } = new() { UtcNow = new(2026, 10, 11, 1, 0, 0, TimeSpan.Zero) };
     public ScriptCatalogue Catalogue { get; }
-    public ScriptEntry Entry => Catalogue.Entries.Single(e => e.Manifest.SchemaVersion == 2);
+    public ScriptEntry Entry => Catalogue.Find("exo.mailbox-size-quota");
     public TenantProfile? Profile { get; set; } = TestData.Profile();
     public ConnectedTenant? Connection { get; set; }
     public ReadOnlyRunWorkflow Workflow { get; }
@@ -96,7 +96,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Single(f.Workflow.Items); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(4, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));
