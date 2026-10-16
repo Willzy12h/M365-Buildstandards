@@ -208,6 +208,28 @@
       <Style x:Key="WarnPanel" TargetType="Border" BasedOn="{StaticResource Card}">
         <Setter Property="Background" Value="{StaticResource WarnBg}"/><Setter Property="BorderBrush" Value="#E7D2A1"/>
       </Style>
+
+      <!-- Shared native typed inputs for Copy/Save and read-only Run. -->
+      <DataTemplate x:Key="ScriptParameterFieldTemplate">
+        <StackPanel Margin="0,0,0,10">
+          <TextBlock Text="{Binding LabelText}" Style="{StaticResource FieldLabel}" Visibility="{Binding ShowsLabel, Converter={StaticResource BoolToVis}}"/>
+          <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" ToolTip="{Binding Hint}" Margin="0,0,0,4"
+                   Visibility="{Binding IsTextEntry, Converter={StaticResource BoolToVis}}"/>
+          <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" ToolTip="{Binding Hint}" Margin="0,0,0,4"
+                   AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" MaxHeight="120" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                   Visibility="{Binding IsList, Converter={StaticResource BoolToVis}}"/>
+          <CheckBox IsChecked="{Binding IsChecked}" Content="{Binding Label}" Margin="0,4,0,4" Visibility="{Binding IsFlag, Converter={StaticResource BoolToVis}}"/>
+          <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" DisplayMemberPath="Text" AutomationProperties.Name="{Binding Label}" Margin="0,0,0,4"
+                    Visibility="{Binding IsChoice, Converter={StaticResource BoolToVis}}"/>
+          <ItemsControl ItemsSource="{Binding Choices}" IsTabStop="False" Visibility="{Binding IsChoices, Converter={StaticResource BoolToVis}}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Text}" Margin="0,2,16,6"/></DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding Help}" Style="{StaticResource Muted}"/>
+          <TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}"/>
+          <TextBlock Text="{Binding Problem}" Foreground="{StaticResource Danger}" Margin="0,3,0,0" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVis}}"/>
+        </StackPanel>
+      </DataTemplate>
     </ResourceDictionary>
   </Application.Resources>
 </Application>
