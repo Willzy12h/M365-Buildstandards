@@ -69,6 +69,29 @@ public sealed class CustomerPreviewCliTests
     }
 
     [Theory]
+    [InlineData(5000, false, 0)]
+    [InlineData(5001, false, 2)]
+    [InlineData(5001, true, 2)]
+    public async Task Saved_profile_count_is_bounded_before_materialising_profile_values(int count, bool malformedFirst, int expectedExit)
+    {
+        using var root = new TempRoot();
+        var rows = Enumerable.Range(1, count).Select(i => i == 1 && malformedFirst ? "42"
+            : "{\"tenantId\":\"00000000-0000-0000-0000-" + i.ToString("x12") + "\"}");
+        File.WriteAllText(root.Paths.ProfilesFile, "[" + string.Join(",", rows) + "]");
+        var input = Path.Combine(root.Root, "customers.csv");
+        File.WriteAllText(input, $"Microsoft ID,Company name\n{TestData.TenantA},New client\n");
+        var original = File.ReadAllText(root.Paths.ProfilesFile);
+        var result = await RegisteredReportCliTests.Run("customers", "--csv", input, "--root", root.Root);
+        Assert.Equal(expectedExit, result.Exit);
+        if (expectedExit != 0)
+        {
+            Assert.Contains("5,000", result.Error);
+            Assert.DoesNotContain("customerImportPreview", result.Output);
+        }
+        Assert.Equal(original, File.ReadAllText(root.Paths.ProfilesFile));
+    }
+
+    [Theory]
     [InlineData("--save")]
     [InlineData("--csv")]
     public async Task Unsupported_and_duplicate_options_are_refused(string option)

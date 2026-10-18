@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
 using BuildStandard.Core.Diagnostics;
@@ -490,7 +491,12 @@ public static class Program
         if ((profileAttributes & FileAttributes.Directory) != 0)
             throw new ConfigurationException("The saved-profile file path is occupied by a directory. Resolve it before previewing customers.");
         var bytes = ReadPreviewInput(paths.ProfilesFile, 8 * 1024 * 1024, "Saved profiles exceed the 8 MiB preview limit; no preview was produced.");
-        return ToolkitJson.Deserialize<List<TenantProfile>>(new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'));
+        var json = new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF');
+        // Bound the object count before constructing profiles and their nested default parameters.
+        using (var document = JsonDocument.Parse(json, ToolkitJson.DocumentOptions))
+            if (document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 5000)
+                throw new ConfigurationException("Saved profiles exceed the 5,000-client preview limit; no preview was produced.");
+        return ToolkitJson.Deserialize<List<TenantProfile>>(json);
     }
 
     private static byte[] ReadPreviewInput(string file, int maximumBytes, string limitMessage)
