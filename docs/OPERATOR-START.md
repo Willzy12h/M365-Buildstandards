@@ -193,3 +193,10 @@ This step does not build, approve or run a plan. Build the plan deliberately, re
 ### Local exception review
 
 Saving or removing an exception refreshes an assessment when either full configuration or supplemental Exchange evidence is open. Office-based exceptions select the individual office control, not its template. Original captures and their timestamps are unchanged. The existing Exchange assessment applies explicit Not applicable exceptions; an Approved deviation record does not currently replace its observed Exchange finding with Compliant with deviation. This update preserves that distinction and creates no deployment approval.
+
+
+## Preview a Partner Center customer list offline
+
+In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. The native bulk-import/save journey is not delivered by this command.
+
+Use the Partner Center customer-list CSV with **Microsoft ID** and **Company name** headings; **Primary domain name** is optional. UTF-8 with optional BOM, quoted commas/newlines, at most 5 MiB and 5,000 data rows are supported. Invalid/conflicting rows stay visible; existing clients are skipped. Correct malformed quoting or conflicts in the source and preview again. An unreadable/blocked local profile store is an error, never an empty client list. The CLI bounds the saved-profile file at 8 MiB. No Graph consent or Microsoft modules are needed.

@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using BuildStandard.Core;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
@@ -34,6 +36,8 @@ public static class PartnerCustomerImport
 {
     public const int MaximumBytes = 5 * 1024 * 1024;
     public const int MaximumRows = 5000;
+    private static readonly JsonSerializerOptions CopyOptions = new(ToolkitJson.Options)
+    { DefaultIgnoreCondition = JsonIgnoreCondition.Never };
 
     public static PartnerCustomerPreview Preview(byte[] csv, IReadOnlyList<TenantProfile> profiles)
     {
@@ -44,6 +48,7 @@ public static class PartnerCustomerImport
         try { text = new UTF8Encoding(false, true).GetString(csv); }
         catch (DecoderFallbackException ex) { throw new ConfigurationException("Save the customer list as UTF-8 CSV. This encoding could not be read.", ex); }
         if (text.StartsWith('\uFEFF')) text = text[1..];
+        ValidateQuotePlacement(text);
         using var parser = new TextFieldParser(new StringReader(text))
         {
             TextFieldType = FieldType.Delimited, HasFieldsEnclosedInQuotes = true, TrimWhiteSpace = false
@@ -102,7 +107,7 @@ public static class PartnerCustomerImport
         if (rows.Count != selected.Count || rows.Any(r => r.State != CustomerImportState.Ready))
             throw new ConfigurationException("Select only valid new clients from this preview. Existing, invalid or conflicting clients cannot be imported.");
         // Return independent copies, never mutate live UI profiles or retain their mutable nested parameters.
-        var result = currentProfiles.Select(p => ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(p))).ToList();
+        var result = currentProfiles.Select(p => ToolkitJson.Deserialize<TenantProfile>(JsonSerializer.Serialize(p, CopyOptions))).ToList();
         foreach (var row in rows)
             result.Add(ProfileValidator.Validate(new TenantProfile { TenantId = row.TenantId, Company = row.Company, Domain = row.Domain }, now));
         return result.AsReadOnly();
@@ -111,17 +116,48 @@ public static class PartnerCustomerImport
     private static string Fingerprint(IReadOnlyList<TenantProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(profiles);
-        if (profiles.Any(p => p is null || !ProfileValidator.IsGuid(p.TenantId)) ||
+        if (profiles.Any(p => p is null || !StrictTenantId(p.TenantId)) ||
             profiles.Select(p => p.TenantId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != profiles.Count)
-            throw new ConfigurationException("Saved clients contain missing or duplicate tenant identities. Resolve them before importing customers.");
+            throw new ConfigurationException("Saved clients contain malformed or duplicate tenant identities. Resolve them before importing customers.");
         return CanonicalJson.Sha256(ToolkitJson.ToNode(profiles));
+    }
+
+    private static bool StrictTenantId(string? value) =>
+        value is { Length: 36 } && Guid.TryParseExact(value, "D", out var id) && id != Guid.Empty;
+
+    // TextFieldParser deliberately tolerates quotes inside bare fields and whitespace before quoted fields.
+    // Refuse those forms before it can discard identity controls. It still owns CSV decoding/escaped quotes.
+    private static void ValidateQuotePlacement(string text)
+    {
+        var quoted = false;
+        var closed = false;
+        var fieldStart = true;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (quoted)
+            {
+                if (c == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"') i++;
+                    else { quoted = false; closed = true; }
+                }
+                continue;
+            }
+            if (c is ',' or '\r' or '\n') { fieldStart = true; closed = false; continue; }
+            if (closed || c == '"' && !fieldStart)
+                throw new ConfigurationException("Customer CSV quoting is invalid. Quotes must enclose a whole field, with no text or controls outside them.");
+            if (c == '"') quoted = true;
+            fieldStart = false;
+        }
+        if (quoted) throw new ConfigurationException("Customer CSV has an unfinished quoted field. No rows were imported.");
     }
 
     private static string RowProblem(string tenant, string company, string domain)
     {
         if (tenant.Any(char.IsControl) || company.Any(char.IsControl) || domain.Any(char.IsControl))
             return "Tenant ID, company and domain must not contain control characters.";
-        if (!ProfileValidator.IsGuid(tenant.Trim()) || Guid.Parse(tenant.Trim()) == Guid.Empty)
+        if (!StrictTenantId(tenant.Trim()))
             return "Microsoft ID must be a non-empty tenant GUID. It is never inferred from a domain.";
         if (company.Trim().Length is < 1 or > 120) return "Company name must contain between 1 and 120 characters.";
         if (domain.Trim().Length > 200) return "Primary domain name must contain no more than 200 characters.";

@@ -180,4 +180,33 @@ public sealed class PartnerCustomerImportTests
         Assert.Empty(result.DeploymentClientId);
         Assert.Empty(result.Notes);
     }
+
+    [Fact]
+    public void Quote_inside_unquoted_company_refuses_the_whole_preview() =>
+        Assert.Throws<ConfigurationException>(() => Preview($"{Tenant},Acme\"broken,example.test,,"));
+
+    [Fact]
+    public void Parser_must_not_strip_a_control_character_before_quoted_identity() =>
+        Assert.Throws<ConfigurationException>(() => Preview($"\t\"{Tenant}\",Example,example.test,,"));
+
+    [Fact]
+    public void Saved_identity_with_trailing_line_feed_cannot_allow_a_duplicate_tenant()
+    {
+        var existing = new TenantProfile { TenantId = Tenant + "\n", Company = "Original" };
+        Assert.Throws<ConfigurationException>(() => Preview($"{Tenant},New,example.test,,", existing));
+        Assert.Equal(Tenant + "\n", existing.TenantId);
+    }
+
+    [Fact]
+    public void Preparing_additions_preserves_existing_explicit_null_values()
+    {
+        var existing = new TenantProfile { TenantId = Tenant, Company = "Original", Notes = null!, Parameters = null! };
+        var before = ToolkitJson.Serialize(existing);
+        var preview = Preview($"{Other},New,new.test,,", existing);
+        var result = PartnerCustomerImport.PrepareAdditions(preview, [Other], [existing], Now);
+        Assert.Null(result[0].Parameters);
+        Assert.Null(result[0].Notes);
+        Assert.Equal(before, ToolkitJson.Serialize(result[0]));
+    }
+
 }
