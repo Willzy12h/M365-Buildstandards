@@ -224,8 +224,7 @@ public sealed class ClientReviewsViewModel : PageViewModel
     }
     private void ReplaceProfileList(IReadOnlyList<TenantProfile> profiles)
     {
-        Workspace.Profiles.Clear();
-        foreach (var profile in profiles) Workspace.Profiles.Add(profile);
+        Workspace.ReplaceSavedProfiles(profiles);
     }
     private void RequireContext(PresentationContextKey context, long? selectionVersion = null)
     {

@@ -67,6 +67,8 @@ public sealed class Workspace : ObservableObject
     public string StopGuidance => $"Stop cancels policy reads. An in-flight policy request waits for its {Settings.GraphWriteTimeoutSeconds}-second transport budget. Verification and after-capture each have a 60-second budget and may finish incomplete. Local evidence is saved before closing.";
 
     public ObservableCollection<TenantProfile> Profiles { get; } = new();
+    // Editing or normalising a visible profile must not change the last persisted comparison baseline.
+    private IReadOnlyList<TenantProfile> _savedProfileBaseline = Array.Empty<TenantProfile>();
     public ObservableCollection<StandardRelease> Releases { get; } = new();
     public ObservableCollection<LogEntry> Activity { get; } = new();
 
@@ -238,13 +240,23 @@ public sealed class Workspace : ObservableObject
 
     private void LoadProfiles()
     {
-        Profiles.Clear();
-        foreach (var p in Evidence.LoadProfiles()) Profiles.Add(p);
+        ReplaceSavedProfiles(Evidence.LoadProfiles());
         foreach (var p in Profiles)
         {
             try { Evidence.MarkInterruptedRuns(p.TenantId); }
             catch (ToolkitException ex) { Logger.Warn("App", $"Could not review previous runs for {p.Company}: {ex.Message}"); }
         }
+    }
+
+    internal void ReplaceSavedProfiles(IReadOnlyList<TenantProfile> profiles)
+    {
+        var visible = profiles.ToArray();
+        var options = new System.Text.Json.JsonSerializerOptions(ToolkitJson.Options)
+            { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
+        _savedProfileBaseline = System.Text.Json.JsonSerializer.Deserialize<List<TenantProfile>>(
+            System.Text.Json.JsonSerializer.Serialize(visible, options), options)!;
+        Profiles.Clear();
+        foreach (var profile in visible) Profiles.Add(profile);
     }
 
     /// <summary>
@@ -438,7 +450,7 @@ public sealed class Workspace : ObservableObject
             ClearClientEvidence();
             // Keep the visible saved-client entry consistent with the persisted target, using a separate edit copy.
             var index = Profiles.ToList().FindIndex(p => string.Equals(p.Id, savedProfileId, StringComparison.Ordinal));
-            var listed = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(profile));
+            var listed = matches[0];
             if (index >= 0) Profiles[index] = listed; else Profiles.Add(listed);
             Profile = profile;
         });
@@ -456,7 +468,7 @@ public sealed class Workspace : ObservableObject
     public TenantProfile SaveProfile(TenantProfile input)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
-        var expected = Profiles.ToArray();
+        var expected = _savedProfileBaseline;
         var profile = ProfileValidator.Validate(ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(input)), DateTimeOffset.UtcNow);
         if (Connection is not null && Profile?.Id == profile.Id
             && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
@@ -475,8 +487,7 @@ public sealed class Workspace : ObservableObject
         }
         else all.Add(profile);
         Evidence.UpdateProfiles(expected, _ => all);
-        Profiles.Clear();
-        foreach (var p in all) Profiles.Add(p);
+        ReplaceSavedProfiles(all);
         if (Profile?.Id == profile.Id)
         {
             if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
@@ -493,14 +504,13 @@ public sealed class Workspace : ObservableObject
     public async Task DeleteProfileAsync(string id)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before deleting a profile.");
-        var expected = Profiles.ToArray();
+        var expected = _savedProfileBaseline;
         if (Profile?.Id == id) await DisconnectAsync();
-        var remaining = expected.Where(p => p.Id != id).ToList();
+        var remaining = Profiles.Where(p => p.Id != id).ToList();
         Evidence.UpdateProfiles(expected, _ => remaining);
         // Removing the active saved client also removes its local target and transient authority; durable evidence stays.
         if (Profile?.Id == id) { ClearClientEvidence(); Profile = null; }
-        Profiles.Clear();
-        foreach (var p in remaining) Profiles.Add(p);
+        ReplaceSavedProfiles(remaining);
         Logger.Info("Profiles", "Saved connection removed. Tenant objects and saved evidence are retained.");
         Notify();
     }
