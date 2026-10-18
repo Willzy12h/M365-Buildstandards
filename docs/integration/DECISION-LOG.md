@@ -975,3 +975,7 @@ Independent GPT engineering review ataa4299b found three importer edge cases: Te
 ## INT-126 — proposed domain readiness report contract (18 October 2026)
 
 Approved expansion D needs typed MX/TXT/CNAME observations and truthful absence/failure semantics beyond the legacy Exchange capture. The [bounded contract](DOMAIN-READINESS-CONTRACT-2026.10.18.md) keeps old capture bytes/enums/readers unchanged, fixes the owned resolver to supported questions, distinguishes explicit NXDOMAIN/NODATA from failures, and limits SPF analysis to structural readiness rather than sender authentication. It defines separate report identity, limits, current-context admission and DNS-owner instructions without a generic script/CLI query route. No new Microsoft permission, actual DNS call or implementation is included. Independent review and an owner-authorised decision merge precede dependent code; existing runner/context safety gates remain.
+
+## INT-129 — proposed usage-based licence review (18 October 2026)
+
+The [F contract](USAGE-REVIEW-CONTRACT-2026.10.18.md) reuses approved optional Reports.Read.All with four exact report functions and a separate credential-free preauthenticated-download boundary. Privacy may conceal object IDs as well as UPNs: no shape heuristic or name join establishes identity. Unknown/unjoined usage remains useful report data but cannot justify a licence change. Shared decision only; no live call, consent or code, and existing licence/entitlement/execution meanings remain.
