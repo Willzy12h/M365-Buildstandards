@@ -10,22 +10,24 @@ Reuse `Core.Safety.MailDomain`, the fixed owned-process pattern in `Engine.Excha
 
 ## New query and observation semantics
 
-An internal `IDomainReadinessResolver.QueryAsync(DomainDnsQuestion, CancellationToken)` accepts only a validated ASCII DNS name and one exact type: TXT, MX or CNAME. No arbitrary PowerShell, resolver address, executable, command flags, credentials or query expressions enter this interface. Source domains use existing domain validation; the collector constructs only the selected apex, `enterpriseenrollment.<domain>`, `enterpriseregistration.<domain>`, and validated literal SPF include/redirect domains. Unicode/URL/wildcard/IP/control-character input is refused with guidance; no silent IDNA conversion is added.
+An internal `IDomainReadinessResolver.QueryAsync(DomainDnsQuestion, CancellationToken)` accepts only a validated ASCII DNS name and one exact type: TXT, MX or CNAME. No arbitrary PowerShell, resolver address, executable, command flags, credentials or query expressions enter this interface. The selected mail domain retains existing `MailDomain` validation. The collector constructs only its apex, `enterpriseenrollment.<domain>`, `enterpriseregistration.<domain>`, and literal SPF include/redirect references. Those SPF references need a separate constrained ASCII DNS-name validator: permit utility-label underscores (for example `_spf.example.com`) and one optional terminal root dot, with DNS label/name length limits; reject empty labels, URLs, wildcards, IP literals, control characters, quotes, whitespace and macros. Preserve the original reference and its canonical comparison/query name. Do not weaken historical mail-domain validation or silently convert IDNA.
 
 Each observation records the exact question, UTC start/end, resolver description, adapter version and one state:
 
 | State | Meaning |
 | --- | --- |
 | Observed | A successful response with at least one admitted answer of the requested type. |
-| NameAbsent | Explicit native NXDOMAIN error 9003, not an empty array. |
-| TypeAbsent | Explicit native no-record error 9501, not a missing field or filtered-away response. |
+| NameError | Explicit native NXDOMAIN response 9003 to the lookup; it does not by itself establish that the original queried owner is absent. |
+| NoData | Explicit native no-record response 9501 to the lookup, not a missing field or filtered-away response. |
 | Failed | Timeout, access/platform/helper/parse/response failure; absence is unknown. |
 | Limited | A row/byte/deadline/traversal limit prevented a complete observation. |
 | Cancelled | The caller stopped collection; preserve prior observations and mark the report incomplete. |
 
 Unknown states, duplicate fields, mismatched questions/types, malformed times or invalid answer values are refused as adapter output. A successful process with empty/missing/null output is Failed. Null data cannot become False, zero, an empty-success result or an inferred DNS error code.
 
-Typed answers retain owner name, type and returned TTL when valid: TXT keeps the ordered chunks of each individual record and its concatenated text; MX keeps preference and exchange; CNAME keeps its target. Never concatenate separate TXT records. Domain comparisons use case-insensitive canonical DNS names with a terminal dot removed only from returned DNS values. Raw returned values remain available for inspection. Preserve answer multiplicity; do not create an answer by silently dropping malformed entries. Any invalid entry makes the observation incomplete with a reason.
+Typed answers retain owner name, type and returned TTL when valid: TXT keeps the ordered chunks of each individual record and its concatenated text; MX keeps preference and exchange; CNAME keeps its target. Never concatenate separate TXT records. Domain comparisons use case-insensitive canonical DNS names with a terminal dot removed only from returned DNS values. Admit only Answer-section records for the exact question owner, or records reached through an explicit, connected, acyclic Answer-section CNAME chain (at most 10 aliases, within the same run/query bounds). Authority/additional records or unrelated owners cannot establish an SPF policy, expected target or absence. Missing section/owner/chain information leaves the question unable to check; do not infer a connection from matching record types. Raw returned values remain available for inspection. Preserve answer multiplicity; do not create an answer by silently dropping malformed entries. Any invalid entry makes the observation incomplete with a reason.
+
+Negative responses retain the original question, any observed alias chain and the negative owner only when explicitly established. A CNAME target can be NXDOMAIN while the original owner exists; when the native error omits that distinction, report “lookup returned NXDOMAIN; negative owner unknown”. The worksheet must not assert original-owner/type absence from an unbound negative response.
 
 The resolver description is `Windows configured DNS resolver` unless the actual server is observed; never invent a server IP or claim authoritative/DNSSEC validation. Do not use hosts-file, LLMNR/NetBIOS or HTTP fallback. Query only via fixed `DnsClient\Resolve-DnsName` with `-DnsOnly -NoHostsFile`, not a general shell. No execution-policy change, module installation or application-control bypass.
 
@@ -57,8 +59,8 @@ Engine and CLI offline report projection/export share the same model. HTML/CSV/J
 
 ## Implementation brief and acceptance
 
-1. Add typed Core query/report models and strict schema validation; engine collector/projector with injected resolver and time budget. Tests first: malformed/unknown fields, explicit error states, mixed valid/invalid records, duplicate TXT policies, hostile text, no invented tenant binding, row/byte caps and historical import meaning.
-2. Add the fixed Windows resolver using the existing ownership pattern, without changing old capture interfaces. Tests first: only supported names/types, exact response admission, stdout/stderr overflow, timeout/cancellation/failed termination, wrong type/question and empty output; PS5.1/7 parser/stub evidence with zero real DNS.
+1. Add typed Core query/report models and strict schema validation; engine collector/projector with injected resolver and time budget. Tests first: malformed/unknown fields, explicit error states, mixed valid/invalid records, `_spf` references/root dots without changing old validation, duplicate TXT policies, hostile text, no invented tenant binding, row/byte caps and historical import meaning.
+2. Add the fixed Windows resolver using the existing ownership pattern, without changing old capture interfaces. Tests first: only supported names/types, exact response admission, stdout/stderr overflow, timeout/cancellation/failed termination, wrong type/question, wrong owner/auxiliary Answer records, missing section, unrelated/cyclic aliases, ambiguous negative owner and empty output; PS5.1/7 parser/stub evidence with zero real DNS.
 3. Add native selected-domain form, typed results and local export using existing context/progress/recovery controls. Test A–B–A supersession, domain changes, stop, export failure and zero queries on navigation; render all three harness sizes and inspect keyboard/disabled-action guidance.
 4. Verify fresh composed Windows/App/native/hosted/portable source. Original package/hash must match changed bytes. Keep human accessibility, workstation-policy, public DNS and actual Microsoft enrolment acceptance unrun during development.
 
@@ -74,3 +76,5 @@ Rollback is removal of the additive report/route/registry. Existing Exchange cap
 - [RFC7208](https://www.rfc-editor.org/rfc/rfc7208.html), especially sections 4.6.4, 5, 6 and 7. Static readiness limits are not a replacement for the full sender-evaluation algorithm.
 
 These are documentation observations, not live DNS or tenant validation. All implementation and expected tests above remain pending this contract's reviewed, owner-authorised merge.
+
+Supplementary independent GPT contract review of `ff8ce55` identified SPF utility-label rejection, unbound returned records and overclaimed NXDOMAIN owner absence. These three corrections are incorporated above with explicit regression criteria. No source implementation or named safety acceptance is claimed.
