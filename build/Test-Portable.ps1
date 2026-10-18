@@ -191,6 +191,17 @@ public static class PortableCliStandardHandles {
     if ($domainRefusal.Text -or $domainRefusal.Error -notmatch '--run' -or @(Get-ChildItem -LiteralPath $domainOutput -Directory).Count -ne 1) {
         throw 'Packaged domain CLI did not refuse a collection option before exporting.'
     }
+    # Remove the exact test-owned pack files, then their now-empty folders. Never recurse over unknown evidence.
+    $domainManifest = Get-Content -LiteralPath (Join-Path $domainPack 'manifest.json') -Raw | ConvertFrom-Json
+    foreach ($name in 'report.json','readiness.html','observations.csv.zip') {
+        $actual = (Get-FileHash -LiteralPath (Join-Path $domainPack $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $domainManifest.files.$name) { throw "Domain pack fingerprint mismatch: $name" }
+        Remove-Item -LiteralPath (Join-Path $domainPack $name) -Force
+    }
+    Remove-Item -LiteralPath (Join-Path $domainPack 'manifest.json') -Force
+    Remove-Item -LiteralPath $domainPack -Force
+    Remove-Item -LiteralPath $domainOutput -Force
+    Remove-Item -LiteralPath $domainFile -Force
     $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
     $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
     if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'buildstandard inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }

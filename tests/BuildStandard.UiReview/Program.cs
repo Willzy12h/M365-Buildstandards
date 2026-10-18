@@ -182,6 +182,7 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "domain-readiness") CaptureDomainRecovery(shell, content, size, output);
                     if (nav.Key == "settings")
                     {
                         // The hand-off journey after a backup was made, and the receive journey with a pasted checksum line.

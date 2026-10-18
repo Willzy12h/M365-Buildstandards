@@ -30,7 +30,7 @@
               <CheckBox Content="Sender policy structure (SPF)" IsChecked="{Binding CheckSpf}" AutomationProperties.Name="Check SPF structure"/>
               <CheckBox Content="Windows enrolment DNS (public cloud)" IsChecked="{Binding CheckEnrolment}" AutomationProperties.Name="Check Windows enrolment DNS"/>
             </StackPanel>
-            <StackPanel>
+            <StackPanel Grid.Column="1">
               <TextBlock Text="Expected mail gateways (optional)" Style="{StaticResource FieldLabel}"/>
               <TextBox Text="{Binding ExpectedMx, UpdateSourceTrigger=PropertyChanged}" MaxLength="8192" AutomationProperties.Name="Expected mail gateways"/>
               <TextBlock Text="Comma-separated hostnames. Leave blank to record routing without a match claim; Microsoft is not assumed." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
