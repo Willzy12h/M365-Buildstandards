@@ -89,7 +89,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -167,7 +167,7 @@ internal static partial class Program
                         SaveImage(content, size, Path.Combine(output, $"setup-writes-{(int)size.Width}x{(int)size.Height}.png"));
                     }
                     records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
-                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings")
+                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings" or "clients")
                     {
                         var scroller = Descendants(controls[0]).OfType<ScrollViewer>().First();
                         scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
@@ -608,6 +608,17 @@ internal static partial class Program
                 throw new InvalidOperationException("Jobs must visibly distinguish unreadable assessment history.");
             vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
+        }
+        if (key == "clients")
+        {
+            var page=shell.Page<ClientReviewsViewModel>();
+            if(shell.Workspace.Evidence.LoadClientProfiles().Count==0) shell.Workspace.Evidence.SaveProfiles([shell.Workspace.Profile!]);
+            AwaitReader(page.ScanAsync());
+            shell.Page<ConnectViewModel>().Selected=shell.Workspace.Profiles.First(p=>p.TenantId==Tenant);
+            page.Selected=page.Clients.FirstOrDefault();
+            if(page.Selected is not null) AwaitReader(page.ReviewSelectedAsync());
+            AwaitReader(page.PreviewImportAsync(System.Text.Encoding.UTF8.GetBytes("Microsoft ID,Company name\n33333333-3333-4333-8333-333333333333,Synthetic additional client\ninvalid,Invalid customer\n")));
+            if(page.ImportRows.Count!=2 || page.ImportRows.Any(r=>r.IsSelected)) throw new InvalidOperationException("CSV preview must not select or save customers automatically.");
         }
         if (key == "scripts") SeedScripts(shell);
         if (key == "run-reports") SeedReadRun(shell);

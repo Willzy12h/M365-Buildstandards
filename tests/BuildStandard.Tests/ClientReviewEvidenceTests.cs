@@ -295,5 +295,25 @@ public sealed class ClientReviewEvidenceTests : IDisposable
         new JobWorkflow(_store,new FixedClock()).OpenJob(TestData.Profile(),standard,JobIntention.NewBuild,"Owner","","engineer@test.example");
         var history=_store.LoadClientReviewEvidence(TestData.TenantA);Assert.Empty(history.Catalogues);Assert.Contains(history.Diagnostics,d=>d.Section=="catalogue");
     }
+    [Theory]
+    [InlineData("controls")]
+    [InlineData("collections")]
+    public void Null_catalogue_entries_never_abort_the_client_scan(string section)
+    {
+        var node=ToolkitJson.ParseObject(TestData.StandardJson);
+        if(section=="controls") node["controls"]=new System.Text.Json.Nodes.JsonArray((System.Text.Json.Nodes.JsonNode?)null);
+        else node["collections"]!["conditionalAccess"]=null;
+        var json=node.ToJsonString();var standard=TestData.Standard();standard.IntegrityDigest=CanonicalJson.Sha256Hex(Encoding.UTF8.GetBytes(json));
+        _root.WriteStandard("test.json",json);_root.WriteManifest();
+        new JobWorkflow(_store,new FixedClock()).OpenJob(TestData.Profile(),standard,JobIntention.NewBuild,"Owner","","engineer@test.example");
+        var history=_store.LoadClientReviewEvidence(TestData.TenantA);Assert.Empty(history.Catalogues);Assert.Contains(history.Diagnostics,d=>d.Section=="catalogue");
+    }
+    [Fact]
+    public void Case_aliased_json_properties_are_not_silently_reinterpreted()
+    {
+        var a=Assessment();var json=ToolkitJson.Serialize(a).TrimEnd();json=json[..^1]+",\"AssessedAt\":\"2026-09-12T10:00:00Z\"}";
+        Put("assessments/"+a.Id+".json",json);var history=_store.LoadClientReviewEvidence(TestData.TenantA);
+        Assert.Empty(history.Assessments);Assert.Single(history.Diagnostics);
+    }
 
 }

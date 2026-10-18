@@ -197,6 +197,25 @@ Saving or removing an exception refreshes an assessment when either full configu
 
 ## Preview a Partner Center customer list offline
 
-In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. The native bulk-import/save journey is not delivered by this command.
+In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. This CLI command remains preview-only; use the native Clients and reviews page to select and save new clients.
 
 Use the Partner Center customer-list CSV with **Microsoft ID** and **Company name** headings; **Primary domain name** is optional. UTF-8 with optional BOM, quoted commas/newlines, at most 5 MiB and 5,000 data rows are supported. Invalid/conflicting rows stay visible; existing clients are skipped. Correct malformed quoting or conflicts in the source and preview again. An unreadable/blocked local profile store is an error, never an empty client list. The CLI bounds the saved-profile file at 8 MiB and 5,000 clients, checking the count before constructing profile objects. No Graph consent or Microsoft modules are needed.
+
+
+## Saved client reviews and customer import
+
+Open **Workspace → Clients and reviews**. Navigation does not read a tenant or switch your current connection.
+
+1. Select **Read local summaries**. Each row shows the last readable stored assessment, its standard, recorded unresolved writes and job summaries. Missing history is not a current clean assessment. An unreadable section remains unknown with diagnostics; read limits are 500 records per section, 8 MiB per record and 64 MiB per client. The scan supports at most 5,000 saved clients and can be stopped from the shell.
+2. Select a row and **Review selected client**. Copyable details retain original assessment times, collection limitations and job reasons. **Open client offline** uses Configuration after you disconnect tenant/setup sessions and resolve any unsaved registered-report result. Reviewing a row alone never changes the active client shown in the header.
+3. **Export review pack** creates a fresh folder containing `engineer.html`, `client.html`, `review.csv.zip` and `manifest.json`. All use the same captured history. The manifest cites the original relative paths and byte hashes. Hashes detect changed bytes, not authenticity. Changed client details, source files, selection or working context refuse export: review again rather than silently refreshing the document. No current tenant compliance, trend across incompatible releases or permission to deploy is inferred.
+4. To add customers, **Preview customer CSV**, inspect invalid/conflicting/existing rows, tick valid new clients and **Save selected clients**. There is no automatic selection, overwrite, sign-in or consent. Existing profile fields are retained. Another window's save invalidates the preview; reopen it after refreshing. Failed saves retain the preview. Current import/edit/delete paths share a local profile-write lease; older binaries and arbitrary external editors do not participate, so avoid concurrent edits with them. The lease file is not transferred in backups; an active save refuses backup.
+
+Offline equivalents (the compatible `bdit.cmd` alias also works):
+
+```powershell
+.\buildstandard.cmd clients --root "C:\Tools\BuildStandard"
+.\buildstandard.cmd review --tenant "<saved tenant GUID>" --output "C:\Work\ClientReviews" --root "C:\Tools\BuildStandard"
+```
+
+`clients` prints JSON summaries without creating client evidence. `review` exports only one exactly matching saved client and never authenticates. Keep packs within your organisation's evidence-handling policy; they contain client identity and configuration-history details. Human usability/accessibility and live Microsoft behaviour remain separate acceptance checks.

@@ -1,0 +1,67 @@
+<UserControl x:Class="BuildStandard.App.Views.ClientReviewsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="28,24">
+      <TextBlock Text="LOCAL CLIENT WORKSPACE" Style="{StaticResource Eyebrow}"/>
+      <TextBlock Text="Clients and reviews" Style="{StaticResource H1}"/>
+      <TextBlock Text="Review saved history across clients, add selected customers, and prepare a one-client review pack. These actions never sign in or change a tenant." Style="{StaticResource Lead}" TextWrapping="Wrap"/>
+      <Border Style="{StaticResource Card}" Padding="16">
+        <StackPanel>
+          <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.Name="Client review status"/>
+          <WrapPanel Margin="0,12,0,4">
+            <Button Content="Read local summaries" Command="{Binding ScanCommand}" Margin="0,0,8,6" ToolTip="{Binding ReadGuidance}" ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Review selected client" Command="{Binding ReviewCommand}" Margin="0,0,8,6" Style="{StaticResource SecondaryButton}" ToolTip="{Binding SelectionGuidance}" ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Open client offline" Command="{Binding OpenCommand}" Margin="0,0,8,6" Style="{StaticResource SecondaryButton}" ToolTip="{Binding OpenGuidance}" ToolTipService.ShowOnDisabled="True"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding ReadGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding OpenGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+          <DataGrid ItemsSource="{Binding Clients}" SelectedItem="{Binding Selected, Mode=TwoWay}" Height="210" IsReadOnly="True" EnableRowVirtualization="True" AutomationProperties.Name="Saved client summaries">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Client" Binding="{Binding Company}" Width="180"/>
+              <DataGridTextColumn Header="Last readable assessment" Binding="{Binding Assessment}" Width="230"/>
+              <DataGridTextColumn Header="Standard" Binding="{Binding Standard}" Width="110"/>
+              <DataGridTextColumn Header="Write history" Binding="{Binding Writes}" Width="130"/>
+              <DataGridTextColumn Header="Jobs" Binding="{Binding Jobs}" Width="*" MinWidth="160"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Text="{Binding SelectionGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Card}" Padding="16">
+        <StackPanel>
+          <TextBlock Text="SELECTED CLIENT · SAVED EVIDENCE" Style="{StaticResource Eyebrow}"/>
+          <TextBox Text="{Binding Details, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Height="170" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Local client review details"/>
+          <WrapPanel Margin="0,10,0,4">
+            <Button Content="Copy review details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,6"/>
+            <Button Content="Export review pack" Command="{Binding ExportCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,6" ToolTip="{Binding ExportGuidance}" ToolTipService.ShowOnDisabled="True"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding ExportGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <TextBlock Text="Unknown or unreadable history is not a clean result. A local review pack is not permission to deploy." TextWrapping="Wrap" Margin="0,6,0,0"/>
+        </StackPanel>
+      </Border>
+      <Expander Header="Add clients from a Partner Centre CSV" IsExpanded="True" Margin="0,0,0,12">
+        <Border Style="{StaticResource Card}" Padding="16">
+          <StackPanel>
+            <TextBlock Text="{Binding ImportStatus}" TextWrapping="Wrap" AutomationProperties.Name="Customer import guidance"/>
+            <WrapPanel Margin="0,12,0,8">
+              <Button Content="Preview customer CSV" Command="{Binding PreviewImportCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,6" ToolTip="{Binding ReadGuidance}" ToolTipService.ShowOnDisabled="True"/>
+              <Button Content="Save selected clients" Command="{Binding SaveImportCommand}" Margin="0,0,8,6" ToolTip="Tick at least one valid new client and wait for the current operation. Existing or invalid rows cannot be selected." ToolTipService.ShowOnDisabled="True"/>
+            </WrapPanel>
+            <TextBlock Text="Tick valid new rows to enable Save. Existing clients are never overwritten; stale previews must be opened again." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <DataGrid ItemsSource="{Binding ImportRows}" Height="220" EnableRowVirtualization="True" AutomationProperties.Name="Customer import preview">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Add" Width="48"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelect}" AutomationProperties.Name="{Binding Row.Company}" ToolTip="{Binding Row.Detail}" ToolTipService.ShowOnDisabled="True" HorizontalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                <DataGridTextColumn Header="Client" Binding="{Binding Row.Company}" Width="170" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Domain" Binding="{Binding Row.Domain}" Width="150" IsReadOnly="True"/>
+                <DataGridTextColumn Header="State" Binding="{Binding Row.State}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Source rows" Binding="{Binding Row.Occurrences}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Reason" Binding="{Binding Row.Detail}" Width="*" MinWidth="240" IsReadOnly="True"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </StackPanel>
+        </Border>
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

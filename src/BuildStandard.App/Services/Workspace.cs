@@ -456,7 +456,8 @@ public sealed class Workspace : ObservableObject
     public TenantProfile SaveProfile(TenantProfile input)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
-        var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        var expected = Profiles.ToArray();
+        var profile = ProfileValidator.Validate(ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(input)), DateTimeOffset.UtcNow);
         if (Connection is not null && Profile?.Id == profile.Id
             && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("Disconnect before changing the tenant ID of the connected profile.");
@@ -473,7 +474,7 @@ public sealed class Workspace : ObservableObject
             all[index] = profile;
         }
         else all.Add(profile);
-        Evidence.SaveProfiles(all);
+        Evidence.UpdateProfiles(expected, _ => all);
         Profiles.Clear();
         foreach (var p in all) Profiles.Add(p);
         if (Profile?.Id == profile.Id)
@@ -492,9 +493,10 @@ public sealed class Workspace : ObservableObject
     public async Task DeleteProfileAsync(string id)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before deleting a profile.");
+        var expected = Profiles.ToArray();
         if (Profile?.Id == id) await DisconnectAsync();
-        var remaining = Profiles.Where(p => p.Id != id).ToList();
-        Evidence.SaveProfiles(remaining);
+        var remaining = expected.Where(p => p.Id != id).ToList();
+        Evidence.UpdateProfiles(expected, _ => remaining);
         // Removing the active saved client also removes its local target and transient authority; durable evidence stays.
         if (Profile?.Id == id) { ClearClientEvidence(); Profile = null; }
         Profiles.Clear();

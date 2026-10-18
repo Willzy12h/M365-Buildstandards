@@ -41,6 +41,30 @@ public sealed class ClientReviewProjectionTests : IDisposable
         _store.SaveAssessment(Assessment("2026-09-11T10:00:00+02:00"));
         Assert.Equal(later.Id,Review().LastAssessment!.Id);
     }
+    [Fact] public void Stored_assessment_collection_limits_survive_projection_and_both_reports()
+    {
+        var assessment=Assessment("2026-09-11T08:30:00Z");
+        assessment.Limitations.Add("Synthetic collection stopped at its page limit");
+        assessment.CollectionStatus.Add("policies","Partially collected");
+        _store.SaveAssessment(assessment);
+        var evidence=_store.LoadClientReviewEvidence(TestData.TenantA);
+        var projected=ToolkitJson.Serialize(Review(evidence));
+        Assert.Contains("Synthetic collection stopped",projected);
+        var document=BuildStandard.Engine.Reports.ClientReviewDocuments.Create(_profile,evidence,_clock.UtcNow);
+        foreach(var clientSummary in new[]{false,true})
+        {
+            var html=BuildStandard.Engine.Reports.ClientReviewDocuments.Html(document,clientSummary);
+            Assert.Contains("Synthetic collection stopped",html);Assert.Contains("Partially collected",html);
+        }
+    }
+    [Theory] [InlineData("limitations")] [InlineData("collectionStatus")]
+    public void Malformed_collection_limits_are_diagnostics_not_a_crashed_client_scan(string member)
+    {
+        var assessment=Assessment("2026-09-11T08:30:00Z");_store.SaveAssessment(assessment);
+        var file=Directory.GetFiles(Path.Combine(_store.TenantDirectory(TestData.TenantA),"assessments"),"*.json").Single();
+        var node=ToolkitJson.ParseObject(File.ReadAllText(file));node[member]=null;File.WriteAllText(file,node.ToJsonString());
+        var review=Review();Assert.Null(review.LastAssessment);Assert.NotEmpty(review.Diagnostics);
+    }
     [Fact] public void Another_client_profile_cannot_label_captured_evidence()
     { var history=_store.LoadClientReviewEvidence(TestData.TenantA); var other=TestData.Profile(TestData.TenantB);
         Assert.Throws<ConfigurationException>(()=>ClientReviewProjection.Project(other,history,_clock.UtcNow)); }

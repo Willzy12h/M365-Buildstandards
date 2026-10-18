@@ -46,6 +46,8 @@ public static class ClientReviewDocuments
             .Add("Assessment ID",r.LastAssessment?.Id ?? "Unknown").Add("Standard release",r.LastAssessment?.Release ?? "Unknown")
             .Add("Standard digest",r.LastAssessment?.StandardDigest ?? "Unknown")
             .Add("Assessment capture",r.LastAssessment is null ? "Unknown" : r.LastAssessment.Complete ? "Complete; stored digest reported intact" : "Incomplete or integrity unconfirmed")
+            .Add("Assessment limitations",r.LastAssessment is null ? "Unknown" : string.Join("; ",r.LastAssessment.Limitations))
+            .Add("Assessment collection states",r.LastAssessment is null ? "Unknown" : string.Join("; ",r.LastAssessment.CollectionStatus.Select(c=>c.Key+": "+c.Value)))
             .Add("Write history coverage",r.WriteHistoryKnown ? "Known within captured history" : "Unknown — incomplete or unreadable")
             .Add("Recorded write results",r.Writes.Count).Add("Unresolved writes",r.UnresolvedWrites)
             .Add("Jobs",r.Jobs.Count).Add("Complete jobs",r.Jobs.Count(j=>j.Complete)).Add("Jobs with unknown completion",r.Jobs.Count(j=>!j.Known))

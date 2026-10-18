@@ -197,6 +197,7 @@ public sealed partial class EvidenceStore
 
     private static void ValidateReviewRecord(string section, string relative, string text, string tenant)
     {
+        using (var json = JsonDocument.Parse(text, ToolkitJson.DocumentOptions)) RequireUnambiguousMembers(json.RootElement);
         if (section == "deviations")
         {
             var array = ToolkitJson.ParseNode(text) as JsonArray ?? throw new ConfigurationException("Expected a deviation array.");
@@ -239,7 +240,10 @@ public sealed partial class EvidenceStore
         if (section == "catalogue")
         {
             // Validate declared non-nullable members before the existing catalogue rules dereference them.
-            _ = JsonSerializer.Deserialize<StandardCatalogue>(text, ReviewCatalogueOptions);
+            var catalogue = JsonSerializer.Deserialize<StandardCatalogue>(text, ReviewCatalogueOptions)!;
+            if (catalogue.Controls.Any(c => c is null) || catalogue.Collections.Values.Any(c => c is null)
+                || catalogue.Parameters.Any(p => p is null))
+                throw new ConfigurationException("Catalogue collections, controls and parameters cannot contain null records.");
             StandardsLoader.Parse(text, Path.GetFileName(relative)); return;
         }
         ReviewIdentity(node["id"]?.GetValue<string>(), node["tenantId"]?.GetValue<string>(), tenant, relative);
@@ -247,7 +251,9 @@ public sealed partial class EvidenceStore
         {
             var value = ToolkitJson.Deserialize<AssessmentResult>(text);
             ReviewIdentity(value.Id, value.TenantId, tenant, relative);
-            if (!Timestamps.TryParse(value.AssessedAt, out _) || value.Findings is null || value.Findings.Any(f => f is null))
+            if (!Timestamps.TryParse(value.AssessedAt, out _) || value.Findings is null || value.Findings.Any(f => f is null)
+                || value.Limitations is null || value.Limitations.Any(l => l is null)
+                || value.CollectionStatus is null || value.CollectionStatus.Any(c => c.Value is null))
                 throw new ConfigurationException("Assessment timestamp or findings are invalid.");
         }
         else if (section == "runs")
@@ -314,6 +320,21 @@ public sealed partial class EvidenceStore
             if (node["integrityDigest"]?.GetValue<string>() != RecoveryDigest(value)) throw new IntegrityException("Workflow digest does not match.");
             validate(value);
         }
+    }
+
+    private static void RequireUnambiguousMembers(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var property in element.EnumerateObject())
+            {
+                if (!names.Add(property.Name)) throw new ConfigurationException("Duplicate or case-aliased JSON member; its meaning is ambiguous.");
+                RequireUnambiguousMembers(property.Value);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+            foreach (var child in element.EnumerateArray()) RequireUnambiguousMembers(child);
     }
 
     private static string ReviewRecordKind(string relative)

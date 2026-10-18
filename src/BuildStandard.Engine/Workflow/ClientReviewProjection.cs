@@ -5,7 +5,7 @@ using BuildStandard.Engine.Evidence;
 
 namespace BuildStandard.Engine.Workflow;
 
-public sealed record ClientReviewAssessment(string Id, DateTimeOffset At, string Release, string StandardDigest, bool Complete, int Findings, int Unknown);
+public sealed record ClientReviewAssessment(string Id, DateTimeOffset At, string Release, string StandardDigest, bool Complete, int Findings, int Unknown, IReadOnlyList<string> Limitations, IReadOnlyDictionary<string,string> CollectionStatus);
 public sealed record ClientReviewWrite(string Kind, string RunId, string ControlId, string Acceptance, bool Unresolved);
 public sealed record ClientReviewDeviation(string Id, string ControlId, string Owner, string ReviewBy, string State);
 public sealed record ClientReviewJob(string Id, string Owner, string Intention, string Release, bool Known, bool Complete,
@@ -29,7 +29,9 @@ public static class ClientReviewProjection
             .ThenBy(a => a.Id, StringComparer.Ordinal).FirstOrDefault();
         var assessment = latest is null ? null : new ClientReviewAssessment(latest.Id, Instant(latest.AssessedAt), latest.Release,
             latest.StandardDigest, latest.SnapshotComplete && latest.SnapshotIntegrity == SnapshotIntegrityState.Intact,
-            latest.Findings.Count, latest.Findings.Count(f => f.Status == FindingStatus.UnableToAssess || !Enum.IsDefined(f.Status)));
+            latest.Findings.Count, latest.Findings.Count(f => f.Status == FindingStatus.UnableToAssess || !Enum.IsDefined(f.Status)),
+            latest.Limitations.ToList().AsReadOnly(),
+            new System.Collections.ObjectModel.ReadOnlyDictionary<string,string>(new Dictionary<string,string>(latest.CollectionStatus, StringComparer.Ordinal)));
         var deviations = store.LoadDeviations(evidence.TenantId).Select(d => new ClientReviewDeviation(d.Id, d.ControlId, d.Owner, d.ReviewBy,
             !DateOnly.TryParseExact(d.ReviewBy, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var due)
                 ? "Review date unknown" : due < DateOnly.FromDateTime(now.UtcDateTime) ? "Overdue" : "In date")).ToList().AsReadOnly();

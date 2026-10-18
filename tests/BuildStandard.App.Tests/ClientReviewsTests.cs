@@ -69,4 +69,50 @@ public sealed class ClientReviewsTests : IDisposable
         var connection=new ConnectedTenant(TestData.Session(),graph,null);typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace,connection);
         await Assert.ThrowsAsync<ToolkitException>(_page.OpenSelectedAsync);Assert.Same(connection,_workspace.Connection);Assert.Empty(graph.Reads);Assert.Empty(graph.Writes);
     }
+    [Fact] public async Task Export_rechecks_the_original_client_profile_and_source()
+    {
+        await _page.ScanAsync();_page.Selected=_page.Clients.Single();await _page.ReviewSelectedAsync();
+        var changed=TestData.Profile();changed.Notes="Changed after review";_workspace.Evidence.SaveProfiles([changed]);
+        await Assert.ThrowsAsync<ConfigurationException>(()=>_page.ExportAsync(_root.Paths.ReportsDirectory));
+        Assert.Empty(Directory.GetDirectories(_root.Paths.ReportsDirectory));
+    }
+    [Fact] public async Task Selection_A_B_A_rejects_a_delayed_review_without_changing_active_client()
+    {
+        await _page.ScanAsync();var selected=_page.Clients.Single();_page.Selected=selected;
+        var held=new HeldContext();var previous=SynchronizationContext.Current;Task task;
+        try { SynchronizationContext.SetSynchronizationContext(held);task=_page.ReviewSelectedAsync(); }
+        finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        await held.Posted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        _page.Selected=null;_page.Selected=selected;held.Resume();
+        await Assert.ThrowsAsync<ConfigurationException>(()=>task);
+        Assert.Null(_page.Review);Assert.Null(_workspace.Profile);Assert.Null(_workspace.Connection);
+    }
+    [Fact] public async Task Stop_before_scan_admission_is_not_an_empty_success()
+    {
+        var held=new HeldContext();var previous=SynchronizationContext.Current;Task task;
+        try { SynchronizationContext.SetSynchronizationContext(held);task=_page.ScanAsync(); }
+        finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        await held.Posted.Task.WaitAsync(TimeSpan.FromSeconds(10));_workspace.CancelOperation();held.Resume();await task;
+        Assert.StartsWith("Stopped",_page.Status);Assert.Empty(_page.Clients);Assert.False(_workspace.Busy);
+    }
+    // Hold only the real async continuation; no fake collector, clock or production test hook.
+    private sealed class HeldContext : SynchronizationContext
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<(SendOrPostCallback Callback,object? State)> _queue=new();
+        private bool _released;
+        public TaskCompletionSource Posted { get; }=new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public override void Post(SendOrPostCallback callback,object? state)
+        {
+            lock(_queue)
+            {
+                if(_released) { ThreadPool.QueueUserWorkItem(_=>callback(state));return; }
+                _queue.Enqueue((callback,state));Posted.TrySetResult();
+            }
+        }
+        public void Resume()
+        {
+            lock(_queue) { _released=true;while(_queue.TryDequeue(out var item))ThreadPool.QueueUserWorkItem(_=>item.Callback(item.State)); }
+        }
+    }
+
 }
