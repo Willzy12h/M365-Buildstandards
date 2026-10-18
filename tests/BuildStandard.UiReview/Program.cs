@@ -117,6 +117,7 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "domain-readiness") RecordDomainInputs(content, pageAtSize);
                     if (nav.Key == "assessment")
                     {
                         SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
