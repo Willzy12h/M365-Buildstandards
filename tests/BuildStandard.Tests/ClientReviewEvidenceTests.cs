@@ -316,4 +316,23 @@ public sealed class ClientReviewEvidenceTests : IDisposable
         Assert.Empty(history.Assessments);Assert.Single(history.Diagnostics);
     }
 
+    [Theory] [InlineData("signals")] [InlineData("caveats")]
+    public void Null_nested_equivalence_entries_do_not_abort_the_entire_client_review(string member)
+    {
+        var node=ToolkitJson.ParseObject(TestData.StandardJson);
+        var equivalence=new System.Text.Json.Nodes.JsonObject {
+            ["collection"]="conditionalAccess",["note"]="Synthetic equivalence",
+            ["signals"]=new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject {
+                ["key"]="state",["label"]="State",["path"]="state",["operator"]="Present",["required"]=true }),
+            ["caveats"]=new System.Text.Json.Nodes.JsonArray() };
+        equivalence[member]=new System.Text.Json.Nodes.JsonArray((System.Text.Json.Nodes.JsonNode?)null);
+        node["controls"]![0]!["equivalence"]=equivalence;
+        var json=node.ToJsonString();var standard=TestData.Standard();standard.IntegrityDigest=CanonicalJson.Sha256Hex(Encoding.UTF8.GetBytes(json));
+        _root.WriteStandard("test.json",json);_root.WriteManifest();
+        new JobWorkflow(_store,new FixedClock()).OpenJob(TestData.Profile(),standard,JobIntention.NewBuild,"Owner","","engineer@test.example");
+        var history=_store.LoadClientReviewEvidence(TestData.TenantA);
+        Assert.Empty(history.Catalogues);Assert.Contains(history.Diagnostics,d=>d.Section=="catalogue");
+        Assert.Empty(_store.LoadClientReviewEvidence(TestData.TenantB).Diagnostics);
+    }
+
 }

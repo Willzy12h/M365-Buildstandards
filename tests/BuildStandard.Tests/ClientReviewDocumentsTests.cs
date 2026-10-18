@@ -77,4 +77,22 @@ public sealed class ClientReviewDocumentsTests : IDisposable
         Assert.Throws<ConfigurationException>(()=>ClientReviewDocuments.Export(Document(),_store,Path.Combine(link,"new-output"),()=>true));
         Assert.False(Directory.Exists(Path.Combine(_root.Paths.DataDirectory,"new-output")));
     }
+    [Fact] public void Context_is_readmitted_after_the_expensive_final_source_recheck()
+    {
+        var admissions=0;
+        Assert.Throws<ConfigurationException>(()=>Export(Document(),()=>++admissions<=2));
+        Assert.Empty(Directory.GetDirectories(_root.Paths.ReportsDirectory));
+    }
+    [Fact] public void Complete_stored_capture_does_not_hide_unassessed_findings_in_handover_outputs()
+    {
+        _store.SaveAssessment(new AssessmentResult { Id=Guid.NewGuid().ToString(),TenantId=TestData.TenantA,
+            AssessedAt="2026-09-11T10:00:00Z",SnapshotComplete=true,SnapshotIntegrity=SnapshotIntegrityState.Intact,
+            Findings=[new ControlFinding{ControlId="CA-001",Status=FindingStatus.UnableToAssess}] });
+        var doc=Document();Assert.Equal(1,doc.Review.LastAssessment!.Unknown);
+        var rows=ClientReviewDocuments.Sheets(doc)[0].Rows;
+        Assert.Contains(rows,r=>r[0]=="Assessment findings" && r[1]=="1");
+        Assert.Contains(rows,r=>r[0]=="Unable to assess or unclassified findings" && r[1]=="1");
+        foreach(var client in new[]{false,true})Assert.Contains("Unable to assess or unclassified findings</td><td>1",ClientReviewDocuments.Html(doc,client));
+    }
+
 }

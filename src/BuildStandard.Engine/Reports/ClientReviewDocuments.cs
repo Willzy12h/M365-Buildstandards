@@ -46,6 +46,8 @@ public static class ClientReviewDocuments
             .Add("Assessment ID",r.LastAssessment?.Id ?? "Unknown").Add("Standard release",r.LastAssessment?.Release ?? "Unknown")
             .Add("Standard digest",r.LastAssessment?.StandardDigest ?? "Unknown")
             .Add("Assessment capture",r.LastAssessment is null ? "Unknown" : r.LastAssessment.Complete ? "Complete; stored digest reported intact" : "Incomplete or integrity unconfirmed")
+            .Add("Assessment findings",r.LastAssessment?.Findings.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "Unknown")
+            .Add("Unable to assess or unclassified findings",r.LastAssessment?.Unknown.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "Unknown")
             .Add("Assessment limitations",r.LastAssessment is null ? "Unknown" : string.Join("; ",r.LastAssessment.Limitations))
             .Add("Assessment collection states",r.LastAssessment is null ? "Unknown" : string.Join("; ",r.LastAssessment.CollectionStatus.Select(c=>c.Key+": "+c.Value)))
             .Add("Write history coverage",r.WriteHistoryKnown ? "Known within captured history" : "Unknown — incomplete or unreadable")
@@ -91,6 +93,8 @@ public static class ClientReviewDocuments
             Write("manifest.json",Encoding.UTF8.GetBytes(ToolkitJson.Serialize(manifest)),includeDigest:false);
             cancellationToken.ThrowIfCancellationRequested();
             RequireCurrent();
+            cancellationToken.ThrowIfCancellationRequested();
+            if(!contextCurrent()) throw new ConfigurationException("Client selection or working context changed during final source verification. Review again before exporting.");
             cancellationToken.ThrowIfCancellationRequested();
             Directory.Move(staging,target); // A new pack appears whole; no existing report is overwritten.
             return target;

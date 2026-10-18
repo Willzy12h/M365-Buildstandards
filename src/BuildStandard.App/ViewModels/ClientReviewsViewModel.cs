@@ -98,7 +98,7 @@ public sealed class ClientReviewsViewModel : PageViewModel
                     var evidence = Workspace.Evidence.LoadClientReviewEvidence(profile.TenantId, token);
                     var review = ClientReviewProjection.Project(profile, evidence, DateTimeOffset.UtcNow);
                     rows.Add(new(profile.Id, profile.TenantId, profile.Company,
-                        review.LastAssessment is { } a ? Timestamps.Format(a.At) + (a.Complete ? " · stored complete" : " · incomplete") : "No readable assessment",
+                        review.LastAssessment is { } a ? Timestamps.Format(a.At) + (a.Complete ? " · stored capture complete" : " · capture incomplete") + $" · {a.Unknown} unable / {a.Findings} findings" : "No readable assessment",
                         review.LastAssessment?.Release ?? "Unknown",
                         review.WriteHistoryKnown ? $"{review.UnresolvedWrites} unresolved" : "Unknown history",
                         review.Jobs.Count == 0 ? "No readable jobs" : $"{review.Jobs.Count(j => j.Complete)} complete / {review.Jobs.Count} recorded",

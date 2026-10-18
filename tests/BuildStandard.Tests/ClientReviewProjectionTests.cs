@@ -115,4 +115,27 @@ public sealed class ClientReviewProjectionTests : IDisposable
         _store.SaveDeviations(TestData.TenantA,[new Deviation{Id=Guid.NewGuid().ToString(),TenantId=TestData.TenantA,ControlId="CA-001",Owner="Engineer",ReviewBy=date}]);
         Assert.Equal(expected,Assert.Single(Review().Deviations).State);
     }
+    [Theory] [InlineData(true)] [InlineData(false)]
+    public void Unknown_run_or_row_status_keeps_client_write_history_unknown(bool runStatus)
+    {
+        var run=new DeploymentRun{Id=Guid.NewGuid().ToString(),TenantId=TestData.TenantA,StartedAt=Timestamps.Format(_clock.UtcNow),
+            Status=runStatus?"Future state":RunStatus.Completed,
+            Results=[new RunResult{ControlId="CA-001",Status=runStatus?ResultStatus.Completed:"Future state",
+                WriteAcceptance=WriteAcceptance.Accepted,ObjectId=Guid.NewGuid().ToString(),Configuration=ConfigurationVerification.Pass}]};
+        _store.SaveRun(run);var review=Review();Assert.False(review.WriteHistoryKnown);Assert.NotEmpty(review.Diagnostics);
+    }
+    [Fact] public void Exact_local_candidate_catalogue_is_a_captured_dependency_not_permanently_missing()
+    {
+        var json=TestData.StandardJson.Replace("test.1","import-test");var standard=BuildStandard.Engine.Standards.StandardsLoader.Parse(json,"import-test.json");
+        standard.IntegrityDigest=CanonicalJson.Sha256Hex(Encoding.UTF8.GetBytes(json));
+        var directory=Path.Combine(_store.TenantDirectory(TestData.TenantA),"catalogues");Directory.CreateDirectory(directory);
+        var file=Path.Combine(directory,"import-test.json");File.WriteAllText(file,json);
+        File.WriteAllText(file+".integrity.json",ToolkitJson.Serialize(new {sha256=standard.IntegrityDigest,sourceDigest="synthetic",removedProperties=Array.Empty<string>()}));
+        new JobWorkflow(_store,_clock).OpenJob(_profile,standard,JobIntention.NewBuild,"Engineer","","engineer@test.example");
+        var captured=_store.LoadClientReviewEvidence(TestData.TenantA);
+        Assert.Single(captured.Catalogues);Assert.DoesNotContain(captured.Diagnostics,d=>d.Section=="catalogue");
+        Assert.True(Assert.Single(Review(captured).Jobs).Known);
+        File.AppendAllText(file," ");Assert.Throws<ConfigurationException>(()=>_store.RequireClientReviewCurrent(captured));
+    }
+
 }

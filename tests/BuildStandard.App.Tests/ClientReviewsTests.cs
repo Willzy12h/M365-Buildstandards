@@ -95,6 +95,13 @@ public sealed class ClientReviewsTests : IDisposable
         await held.Posted.Task.WaitAsync(TimeSpan.FromSeconds(10));_workspace.CancelOperation();held.Resume();await task;
         Assert.StartsWith("Stopped",_page.Status);Assert.Empty(_page.Clients);Assert.False(_workspace.Busy);
     }
+    [Theory] [InlineData(false)] [InlineData(true)]
+    public async Task Opening_saved_client_offline_does_not_invalidate_its_next_edit_or_delete(bool delete)
+    {
+        await _workspace.SelectOfflineProfileAsync(_workspace.Profiles.Single().Id);
+        if(delete) { await _workspace.DeleteProfileAsync(_workspace.Profile!.Id);Assert.Empty(_workspace.Evidence.LoadProfiles()); }
+        else { var edit=TestData.Profile();edit.Company="Reviewed client name";_workspace.SaveProfile(edit);Assert.Equal(edit.Company,Assert.Single(_workspace.Evidence.LoadProfiles()).Company); }
+    }
     // Hold only the real async continuation; no fake collector, clock or production test hook.
     private sealed class HeldContext : SynchronizationContext
     {

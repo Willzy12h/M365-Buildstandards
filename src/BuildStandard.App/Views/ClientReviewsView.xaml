@@ -53,6 +53,7 @@
               <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Add" Width="48"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelect}" AutomationProperties.Name="{Binding Row.Company}" ToolTip="{Binding Row.Detail}" ToolTipService.ShowOnDisabled="True" HorizontalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                 <DataGridTextColumn Header="Client" Binding="{Binding Row.Company}" Width="170" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Tenant ID" Binding="{Binding Row.TenantId}" Width="290" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Domain" Binding="{Binding Row.Domain}" Width="150" IsReadOnly="True"/>
                 <DataGridTextColumn Header="State" Binding="{Binding Row.State}" Width="90" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Source rows" Binding="{Binding Row.Occurrences}" Width="90" IsReadOnly="True"/>

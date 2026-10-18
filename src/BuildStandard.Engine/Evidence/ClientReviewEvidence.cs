@@ -135,28 +135,49 @@ public sealed partial class EvidenceStore
             .Select(p => ToolkitJson.Deserialize<TenantJob>(p.Value)).ToList();
         if (jobs.Count > 0)
         {
-            const string manifestKey = "catalogue-manifest/manifest.json";
-            Read("catalogue-manifest", Path.Combine(_paths.StandardsDirectory, StandardsManifest.FileName), manifestKey);
-            if (!records.TryGetValue(manifestKey, out var manifestText))
-                Problem("catalogue", manifestKey, "The catalogue manifest is missing or unreadable; job completion is unknown.");
-            else
+            // Local candidate file names are fixed by Workspace.UseImportedStandard. Never use an arbitrary job path.
+            foreach (var release in jobs.Select(j => j.StandardRelease).Distinct(StringComparer.Ordinal)
+                .Where(r => r is not null && System.Text.RegularExpressions.Regex.IsMatch(r, @"\Aimport-[A-Za-z0-9._-]{1,100}\z")))
             {
-                var manifest = ToolkitJson.Deserialize<StandardsManifest>(manifestText);
-                foreach (var entry in manifest.Files.Where(p => jobs.Any(j => j.StandardDigest == p.Value)))
-                {
-                    var key = "catalogue/" + entry.Key;
-                    Read("catalogue", Path.Combine(_paths.StandardsDirectory, entry.Key), key);
-                    if (!records.ContainsKey(key)) continue;
-                    if (sources.Single(s => s.RelativePath == key).Sha256 != entry.Value)
-                    { records.Remove(key); Problem("catalogue", key, "Catalogue bytes do not match the captured manifest."); }
-                }
-                foreach (var job in jobs)
-                    if (!records.Any(p => p.Key.StartsWith("catalogue/", StringComparison.Ordinal)
-                        && sources.Any(s => s.RelativePath == p.Key && s.Sha256 == job.StandardDigest)
-                        && ToolkitJson.Deserialize<StandardCatalogue>(p.Value).Release == job.StandardRelease))
-                        Problem("catalogue", job.Id, "The exact catalogue for this job is missing or unreadable; completion is unknown.");
+                var file = release + ".json";
+                var key = "catalogue/local/" + file;
+                var integrityKey = "catalogue-integrity/local/" + file + ".integrity.json";
+                var path = Path.Combine(tenantDirectory, "catalogues", file);
+                Read("catalogue", path, key);
+                Read("catalogue-integrity", path + ".integrity.json", integrityKey);
+                if (!records.ContainsKey(key)) continue;
+                var digest = sources.Single(v => v.RelativePath == key).Sha256;
+                if (!records.TryGetValue(integrityKey, out var sidecar)
+                    || ToolkitJson.ParseObject(sidecar)["sha256"]?.GetValue<string>() != digest
+                    || !jobs.Any(j => j.StandardRelease == release && j.StandardDigest == digest))
+                { records.Remove(key); Problem("catalogue", key, "Local catalogue bytes, sidecar and job identity do not match."); }
             }
+            var missing = jobs.Where(j => !CapturedCatalogue(j)).ToList();
+            if (missing.Count > 0)
+            {
+                const string manifestKey = "catalogue-manifest/manifest.json";
+                Read("catalogue-manifest", Path.Combine(_paths.StandardsDirectory, StandardsManifest.FileName), manifestKey);
+                if (!records.TryGetValue(manifestKey, out var manifestText))
+                    Problem("catalogue", manifestKey, "The catalogue manifest is missing or unreadable; job completion is unknown.");
+                else
+                {
+                    var manifest = ToolkitJson.Deserialize<StandardsManifest>(manifestText);
+                    foreach (var entry in manifest.Files.Where(p => missing.Any(j => j.StandardDigest == p.Value)))
+                    {
+                        var key = "catalogue/" + entry.Key;
+                        Read("catalogue", Path.Combine(_paths.StandardsDirectory, entry.Key), key);
+                        if (!records.ContainsKey(key)) continue;
+                        if (sources.Single(v => v.RelativePath == key).Sha256 != entry.Value)
+                        { records.Remove(key); Problem("catalogue", key, "Catalogue bytes do not match the captured manifest."); }
+                    }
+                }
+            }
+            foreach (var job in jobs.Where(j => !CapturedCatalogue(j)))
+                Problem("catalogue", job.Id, "The exact catalogue for this job is missing or unreadable; completion is unknown.");
         }
+        bool CapturedCatalogue(TenantJob job) => records.Any(p => p.Key.StartsWith("catalogue/", StringComparison.Ordinal)
+            && sources.Any(v => v.RelativePath == p.Key && v.Sha256 == job.StandardDigest)
+            && ToolkitJson.Deserialize<StandardCatalogue>(p.Value).Release == job.StandardRelease);
         return new(_paths.Root, tenantId, records, sources, diagnostics, complete);
     }
 
@@ -237,6 +258,12 @@ public sealed partial class EvidenceStore
                 throw new ConfigurationException("Catalogue manifest contains an invalid algorithm, file name or digest.");
             return;
         }
+        if (section == "catalogue-integrity")
+        {
+            if (node["sha256"]?.GetValue<string>() is not { Length: 64 } digest || !digest.All(Uri.IsHexDigit))
+                throw new ConfigurationException("The local catalogue sidecar has no valid SHA-256 identity.");
+            return;
+        }
         if (section == "catalogue")
         {
             // Validate declared non-nullable members before the existing catalogue rules dereference them.
@@ -244,6 +271,8 @@ public sealed partial class EvidenceStore
             if (catalogue.Controls.Any(c => c is null) || catalogue.Collections.Values.Any(c => c is null)
                 || catalogue.Parameters.Any(p => p is null))
                 throw new ConfigurationException("Catalogue collections, controls and parameters cannot contain null records.");
+            if (catalogue.Controls.Any(c => c.Equivalence is { } eq && (eq.Signals.Any(s => s is null) || eq.Caveats.Any(s => s is null))))
+                throw new ConfigurationException("Catalogue equivalence signals and caveats cannot contain null records.");
             StandardsLoader.Parse(text, Path.GetFileName(relative)); return;
         }
         ReviewIdentity(node["id"]?.GetValue<string>(), node["tenantId"]?.GetValue<string>(), tenant, relative);
@@ -263,6 +292,9 @@ public sealed partial class EvidenceStore
             if (!Timestamps.TryParse(value.StartedAt, out _) || value.Results is null || value.Results.Any(r => r is null))
                 throw new ConfigurationException("Run timestamp or results are invalid.");
             if (!EvidenceIntegrity.Verify(value, value.IntegrityDigest)) throw new IntegrityException("Run digest does not match.");
+            RequireKnownRunStatus(value.Status);
+            if (value.Results.Any(r => r.Status is not (ResultStatus.Pending or ResultStatus.InProgress or ResultStatus.Completed or ResultStatus.Error or ResultStatus.NotRun)))
+                throw new ConfigurationException("An unrecognised result status leaves this client history unknown.");
         }
         else if (section == "snapshots")
         {
@@ -311,6 +343,7 @@ public sealed partial class EvidenceStore
             };
             if (node["integrityDigest"]?.GetValue<string>() != RecoveryDigest(value))
                 throw new IntegrityException("History digest does not match.");
+            if (kind == "run") RequireKnownRunStatus(node["status"]?.GetValue<string>());
             if (kind == "run" && !Timestamps.TryParse(node["startedAt"]?.GetValue<string>(), out _))
                 throw new ConfigurationException("History timestamp is invalid.");
         }
@@ -320,6 +353,12 @@ public sealed partial class EvidenceStore
             if (node["integrityDigest"]?.GetValue<string>() != RecoveryDigest(value)) throw new IntegrityException("Workflow digest does not match.");
             validate(value);
         }
+    }
+
+    private static void RequireKnownRunStatus(string? status)
+    {
+        if (status is not (RunStatus.Running or RunStatus.Completed or RunStatus.Stopped or RunStatus.ReviewRequired or RunStatus.Interrupted or RunStatus.Error))
+            throw new ConfigurationException("An unrecognised run status leaves this client history unknown.");
     }
 
     private static void RequireUnambiguousMembers(JsonElement element)
