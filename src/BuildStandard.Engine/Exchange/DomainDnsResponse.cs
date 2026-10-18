@@ -65,7 +65,7 @@ public static class DomainDnsResponse
                 chunks=Array.AsReadOnly(strings.EnumerateArray().Select(s=>s.GetString()!).ToArray());
                 Absent(row,"exchange","preference","target");break;
             case DomainDnsType.MX:
-                exchange=Text(row,"exchange");_=DomainDnsName.Reference(exchange);
+                exchange=Text(row,"exchange");if(exchange!=".")_=DomainDnsName.Reference(exchange);
                 var number=Number(row,"preference");if(number is null or <0 or >65535)throw Bad("MX preference is missing or invalid.");
                 preference=(int)number.Value;Absent(row,"textChunks","target");break;
             case DomainDnsType.CNAME:

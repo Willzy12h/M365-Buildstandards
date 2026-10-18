@@ -24,6 +24,12 @@ public sealed class DomainDnsResponseTests
         { ["owner"]=name,["type"]="CNAME",["section"]="Answer",["target"]=target };
     private static DomainDnsObservation Parse(JsonObject value,DomainDnsType type=DomainDnsType.TXT)
         =>DomainDnsResponse.Parse(value.ToJsonString(),new("example.invalid",type));
+    [Fact] public void Null_mx_preserves_the_observed_root_exchange_without_fabricating_a_mail_host()
+    {
+        var response=Response();response["type"]="MX";response["answers"]=new JsonArray(new JsonObject
+            { ["owner"]="example.invalid",["type"]="MX",["section"]="Answer",["exchange"]=".",["preference"]=0 });
+        var result=Parse(response,DomainDnsType.MX);Assert.Equal(".",Assert.Single(result.Answers).Exchange);
+    }
 
     [Fact] public void Txt_chunks_join_only_within_each_record_and_missing_ttl_stays_unknown()
     {
