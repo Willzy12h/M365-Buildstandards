@@ -1,8 +1,8 @@
 using BuildStandard.Core;
+using BuildStandard.Core.Models;
 
 namespace BuildStandard.Engine.Exchange;
 
-public enum DomainDnsType { TXT, MX, CNAME }
 public sealed record DomainDnsReference(string Original, string Canonical);
 public sealed record DomainDnsQuestion
 {
