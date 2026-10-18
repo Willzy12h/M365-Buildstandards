@@ -11,6 +11,7 @@ public static class RouteCatalog
         new("Workspace", "home", "", "Command centre"),
         new("Workspace", "connect", "", "Client and connection"),
         new("Workspace", "overview", "", "Overview and licences"),
+        new("Workspace", "clients", "", "Clients and reviews"),
         new("Build standard", "configuration", "1", "Configuration"),
         new("Build standard", "assessment", "2", "Assessment"),
         new("Build standard", "deviations", "3", "Deviations"),
