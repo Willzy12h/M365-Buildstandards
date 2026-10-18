@@ -1,0 +1,47 @@
+{
+  "kind": "domainReadinessReport",
+  "schemaVersion": 1,
+  "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "runId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "domain": "example.invalid",
+  "sourceMode": "localDns",
+  "cloud": "Public",
+  "startedAt": "2026-10-18T12:00:00.000Z",
+  "completedAt": "2026-10-18T12:00:01.000Z",
+  "toolkitVersion": "synthetic",
+  "adapterVersion": "1",
+  "requestedChecks": [
+    "Mx"
+  ],
+  "expectedMx": [],
+  "status": "Partial",
+  "observations": [
+    {
+      "name": "example.invalid",
+      "type": "MX",
+      "state": "Failed",
+      "startedAt": "2026-10-18T12:00:00.000Z",
+      "completedAt": "2026-10-18T12:00:01.000Z",
+      "resolver": "Windows configured DNS resolver",
+      "adapterVersion": "1",
+      "answers": [],
+      "reason": "Synthetic unavailable resolver; no real DNS query."
+    }
+  ],
+  "references": [],
+  "results": [
+    {
+      "check": "Mx",
+      "meaning": "UnableToCheck",
+      "summary": "Synthetic DNS check could not finish.",
+      "details": [
+        "DNS absence is unknown."
+      ],
+      "dnsOwnerNextStep": "Review the configured resolver with the DNS owner."
+    }
+  ],
+  "limitations": [
+    "Synthetic fixture only. No tenant or DNS query was performed."
+  ],
+  "integrityDigest": "a0e5a0d05d4adc867da7584be93668d1171901b1f0dca364db75bf202be13633"
+}

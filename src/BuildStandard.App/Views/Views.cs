@@ -16,3 +16,5 @@ public partial class SettingsView : UserControl { public SettingsView() => Initi
 public partial class ScriptsView : UserControl { public ScriptsView() => InitializeComponent(); }
 
 public partial class ClientReviewsView : UserControl { public ClientReviewsView() => InitializeComponent(); }
+
+public partial class DomainReadinessView : UserControl { public DomainReadinessView() => InitializeComponent(); }

@@ -74,6 +74,7 @@ internal static partial class Program
             using var logger = new ToolkitLogger(paths.LogsDirectory, LogLevel.Debug);
             var workspace = new Workspace(paths, ToolkitSettings.Load(paths.SettingsFile), logger, diagnostics: true);
             workspace.Initialise();
+            File.Copy(Path.Combine(source,"build","test-fixtures","domain-readiness.json"),Path.Combine(workspace.Paths.ReportsDirectory,"synthetic-domain-report.json"));
             if (workspace.Standard is null) throw new InvalidOperationException("Synthetic standards did not load: " + workspace.StandardError);
             var shell = new ShellViewModel(workspace);
             var window = new BuildStandard.App.MainWindow { DataContext = shell };
@@ -89,7 +90,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients", "domain-readiness" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -116,6 +117,7 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "domain-readiness") RecordDomainInputs(content, pageAtSize);
                     if (nav.Key == "assessment")
                     {
                         SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
@@ -167,7 +169,7 @@ internal static partial class Program
                         SaveImage(content, size, Path.Combine(output, $"setup-writes-{(int)size.Width}x{(int)size.Height}.png"));
                     }
                     records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
-                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings" or "clients")
+                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings" or "clients" or "domain-readiness")
                     {
                         var scroller = Descendants(controls[0]).OfType<ScrollViewer>().First();
                         scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
@@ -180,6 +182,7 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "domain-readiness") CaptureDomainRecovery(shell, content, size, output);
                     if (nav.Key == "settings")
                     {
                         // The hand-off journey after a backup was made, and the receive journey with a pasted checksum line.
@@ -619,6 +622,13 @@ internal static partial class Program
             if(page.Selected is not null) AwaitReader(page.ReviewSelectedAsync());
             AwaitReader(page.PreviewImportAsync(System.Text.Encoding.UTF8.GetBytes("Microsoft ID,Company name\n33333333-3333-4333-8333-333333333333,Synthetic additional client\ninvalid,Invalid customer\n")));
             if(page.ImportRows.Count!=2 || page.ImportRows.Any(r=>r.IsSelected)) throw new InvalidOperationException("CSV preview must not select or save customers automatically.");
+        }
+        if (key == "domain-readiness")
+        {
+            var page=shell.Page<DomainReadinessViewModel>();
+            AwaitReader(page.ImportAsync(Path.Combine(shell.Workspace.Paths.ReportsDirectory,"synthetic-domain-report.json")));
+            if(page.Acknowledged||page.CanRun||!page.CurrentSummary.Contains("Historical",StringComparison.Ordinal)||page.Results.Count!=1)
+                throw new InvalidOperationException("Domain report must remain historical with DNS Run closed by default.");
         }
         if (key == "scripts") SeedScripts(shell);
         if (key == "run-reports") SeedReadRun(shell);

@@ -174,6 +174,20 @@ internal static partial class Program
         }
     }
 
+    private static void RecordDomainInputs(FrameworkElement content,string where)
+    {
+        var fields=new[]{"Domain to check","Expected mail gateways","Expected mail gateway source"}
+            .Select(name=>Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)==name)).ToArray();
+        var bounds=fields.Select(t=>t.TransformToAncestor(content).TransformBounds(new Rect(t.RenderSize))).ToArray();
+        for(var i=0;i<fields.Length;i++)
+        {
+            ClippingInspected++;
+            if(bounds[i].Width<200||bounds[i].Height<24)ClippedElements.Add(where+" · Domain input has no usable edit area.");
+            for(var j=i+1;j<fields.Length;j++)
+                if(bounds[i].IntersectsWith(bounds[j]))ClippedElements.Add(where+" · Independently editable domain/gateway inputs overlap.");
+        }
+    }
+
     // ---- page scrolling ------------------------------------------------------------------------------------------
 
     private static readonly List<string> UnneededScrolling = new();
@@ -628,6 +642,13 @@ internal static partial class Program
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
         ("ShellViewModel.CancelOperationCommand", Disabled),
 
+        ("DomainReadinessViewModel.RunCommand", "explicit public DNS read; never invoked by the offline harness; injected App tests cover admission/recovery"),
+        ("DomainReadinessViewModel.StopCommand", Disabled),
+        ("DomainReadinessViewModel.ImportCommand", FilePicker),
+        ("DomainReadinessViewModel.SaveCommand", Press),
+        ("DomainReadinessViewModel.RecoverCommand", FilePicker),
+        ("DomainReadinessViewModel.DiscardCommand", Disabled),
+        ("DomainReadinessViewModel.CopyCommand", Clipboard),
         ("ClientReviewsViewModel.ScanCommand", Press),
         ("ClientReviewsViewModel.ReviewCommand", Press),
         ("ClientReviewsViewModel.SaveImportCommand", Press),

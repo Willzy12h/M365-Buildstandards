@@ -171,6 +171,37 @@ public static class PortableCliStandardHandles {
     [IO.File]::WriteAllText($customerFile, "Microsoft ID,Company name`n11111111-1111-4111-8111-111111111111,broken`"quote`n", [Text.UTF8Encoding]::new($false))
     $invalidCustomers = Invoke-OwnedCli $exe ('--cli customers --csv "' + $customerFile + '"') 2
     if ($invalidCustomers.Text -or $invalidCustomers.Error -notmatch 'Refused:') { throw 'Packaged customer preview accepted malformed quoting or lost its refusal.' }
+    # Separate domain envelope: original JSON, historical provenance, HTML/CSV; no DNS command exists in CLI.
+    $domainFile = Join-Path $synthetic 'synthetic domain report.json'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'test-fixtures\domain-readiness.json') -Destination $domainFile
+    $domainOutput = Join-Path $synthetic 'domain exports'
+    $domainRead = Invoke-OwnedCli $exe ('--cli domain-report --input "' + $domainFile + '" --output "' + $domainOutput + '"') 0
+    if ($domainRead.Error -or $domainRead.Text -notmatch 'Historical' -or $domainRead.Text -notmatch 'Partial' -or $domainRead.Text -notmatch 'no DNS queries') {
+        throw 'Packaged domain report lost historical/partial/read-only meaning.'
+    }
+    $domainPacks = @(Get-ChildItem -LiteralPath $domainOutput -Directory)
+    if ($domainPacks.Count -ne 1) { throw 'Packaged domain report did not publish exactly one new pack.' }
+    $domainPack = $domainPacks[0].FullName
+    if ((Get-FileHash -LiteralPath $domainFile -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath (Join-Path $domainPack 'report.json') -Algorithm SHA256).Hash -or
+        -not (Test-Path -LiteralPath (Join-Path $domainPack 'observations.csv.zip')) -or
+        (Get-Content -LiteralPath (Join-Path $domainPack 'readiness.html') -Raw) -notmatch 'DNS-owner worksheet') {
+        throw 'Packaged domain report did not preserve original JSON or generate the shared worksheet.'
+    }
+    $domainRefusal = Invoke-OwnedCli $exe ('--cli domain-report --input "' + $domainFile + '" --output "' + $domainOutput + '" --run') 2
+    if ($domainRefusal.Text -or $domainRefusal.Error -notmatch '--run' -or @(Get-ChildItem -LiteralPath $domainOutput -Directory).Count -ne 1) {
+        throw 'Packaged domain CLI did not refuse a collection option before exporting.'
+    }
+    # Remove the exact test-owned pack files, then their now-empty folders. Never recurse over unknown evidence.
+    $domainManifest = Get-Content -LiteralPath (Join-Path $domainPack 'manifest.json') -Raw | ConvertFrom-Json
+    foreach ($name in 'report.json','readiness.html','observations.csv.zip') {
+        $actual = (Get-FileHash -LiteralPath (Join-Path $domainPack $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $domainManifest.files.$name) { throw "Domain pack fingerprint mismatch: $name" }
+        Remove-Item -LiteralPath (Join-Path $domainPack $name) -Force
+    }
+    Remove-Item -LiteralPath (Join-Path $domainPack 'manifest.json') -Force
+    Remove-Item -LiteralPath $domainPack -Force
+    Remove-Item -LiteralPath $domainOutput -Force
+    Remove-Item -LiteralPath $domainFile -Force
     $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
     $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
     if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'buildstandard inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
@@ -458,7 +489,7 @@ public static class PortableTextMenu {
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
         portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
-        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true; portableCliClients=$true; portableCliClientReviewPack=$true;
+        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true; portableCliClients=$true; portableCliClientReviewPack=$true; portableCliDomainReport=$true; portableCliDomainCollectionRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
