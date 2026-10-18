@@ -319,7 +319,7 @@ public static class PortableCliStandardHandles {
     if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
     if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'data') -File -Recurse | Where-Object { $_.Name -match 'cache|token|session' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
     # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
-    Remove-Item -LiteralPath $snapshotFile, $profileFile, $registeredFile -Force
+    Remove-Item -LiteralPath $snapshotFile, $profileFile, $registeredFile, $customerFile -Force
     Remove-Item -LiteralPath $synthetic -Force
     Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File | Remove-Item -Force
 
