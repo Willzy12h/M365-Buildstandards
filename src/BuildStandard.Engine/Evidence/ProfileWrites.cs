@@ -82,6 +82,8 @@ public sealed partial class EvidenceStore
     {
         if (profiles.Count > 5000) throw new ConfigurationException("This save would exceed 5,000 clients. No profiles were changed.");
         _ = PartnerCustomerImport.Fingerprint(profiles);
+        if (Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(profiles, ProfileCopyOptions)) > 8 * 1024 * 1024)
+            throw new ConfigurationException("This save would exceed the 8 MiB profile-store limit. No profiles were changed.");
     }
 
     private void WriteProfilesUnderLease(IReadOnlyList<TenantProfile> profiles)

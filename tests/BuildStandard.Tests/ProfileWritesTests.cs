@@ -72,4 +72,22 @@ public sealed class ProfileWritesTests : IDisposable
         Assert.Throws<InvalidOperationException>(()=>_store.UpdateProfiles(_store.LoadProfiles(),_=>throw new InvalidOperationException("synthetic")));
         Assert.Equal(before,File.ReadAllBytes(_root.Paths.ProfilesFile));_store.UpdateProfiles(_store.LoadProfiles(),p=>p);
     }
+    [Fact] public void Backups_exclude_the_released_profile_lease_but_keep_profiles()
+    {
+        _store.SaveProfiles([TestData.Profile()]);var file=new WorkspaceBackup(_root.Paths).Create();
+        using var zip=System.IO.Compression.ZipFile.OpenRead(file);
+        Assert.Contains(zip.Entries,e=>e.FullName=="data/profiles.json");Assert.DoesNotContain(zip.Entries,e=>e.Name=="profiles-write.lock");
+    }
+    [Fact] public void Backup_refuses_while_the_profile_transaction_is_active()
+    {
+        _store.SaveProfiles([TestData.Profile()]);
+        _store.UpdateProfiles(_store.LoadProfiles(),p=>
+        {var ex=Assert.Throws<ConfigurationException>(()=>new WorkspaceBackup(_root.Paths).Create());Assert.Contains("in progress",ex.Message);return p;});
+    }
+    [Fact] public void An_oversized_replacement_cannot_make_the_profile_store_unreadable()
+    {
+        _store.SaveProfiles([TestData.Profile()]);var before=File.ReadAllBytes(_root.Paths.ProfilesFile);
+        Assert.Throws<ConfigurationException>(()=>_store.UpdateProfiles(_store.LoadProfiles(),p=>{p[0].Notes=new string('x',8*1024*1024);return p;}));
+        Assert.Equal(before,File.ReadAllBytes(_root.Paths.ProfilesFile));
+    }
 }
