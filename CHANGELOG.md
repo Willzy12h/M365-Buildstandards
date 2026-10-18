@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
+
 - Registered experimental read-only mailbox protocol, forwarding and hold reports with exact identity, per-value read states, inspectable native rows and local HTML/JSON/CSV/Excel exports. No new permissions or Exchange writes; existing Copy/Save items are preserved.
 
 - Native script forms: reuse the same typed input template for Copy/Save and read-only Run, with consistent spacing and unchanged validation.
