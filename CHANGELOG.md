@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Begin bounded domain-readiness support with typed DNS response admission and a fixed Windows resolver, separate from historical Exchange DNS evidence. This source slice has no native run action yet; malformed/partial/negative-owner-unknown results never become clean absence.
+
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
 
 - Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. Native import/save remains pending.
