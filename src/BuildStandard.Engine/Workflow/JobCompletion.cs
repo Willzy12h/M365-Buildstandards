@@ -60,7 +60,10 @@ public sealed class JobCompletion
             ? $"Complete: all {Verified} requirement(s) verified."
             : $"Complete with approved departures: {Verified} verified, {Departures} relying on an approved deviation (not verified).";
 
-    public static JobCompletion Build(EvidenceStore store, JobProjection projection, StandardCatalogue standard, TenantProfile profile, DateTimeOffset now)
+    public static JobCompletion Build(EvidenceStore store, JobProjection projection, StandardCatalogue standard, TenantProfile profile, DateTimeOffset now) =>
+        BuildCaptured(store, projection, standard, profile, now);
+
+    internal static JobCompletion BuildCaptured(IJobReviewEvidence store, JobProjection projection, StandardCatalogue standard, TenantProfile profile, DateTimeOffset now)
     {
         var blockers = new List<string>(projection.JobReviewReasons.Select(r => "The job needs review. " + r));
         blockers.AddRange(projection.Unreadable.Select(u => $"An attached record ({u.File}) cannot be read: {u.Problem}"));

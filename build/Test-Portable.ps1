@@ -195,9 +195,26 @@ public static class PortableCliStandardHandles {
     Assert-SyntheticReport (@($inventory.Text -split "`r?`n")[0]) 'configuration-*.html' 'configuration inventory'
     $profileFile = Join-Path $extract 'data\profiles.json'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $profileFile) | Out-Null
-    [IO.File]::WriteAllText($profileFile, '[{"tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($profileFile, '[{"id":"88888888-8888-4888-8888-888888888888","tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
     $jobs = Invoke-OwnedCli $exe '--cli jobs --tenant 11111111-1111-4111-8111-111111111111' 0
     if ($jobs.Text -notmatch 'Synthetic CLI client.*0 job\(s\)' -or $jobs.Error) { throw "Packaged CLI did not project stored synthetic client jobs cleanly. $($jobs.Error)" }
+    $clients = Invoke-OwnedCli $exe '--cli clients' 0
+    $clientRows = $clients.Text | ConvertFrom-Json
+    if ($clients.Error -or $clientRows.kind -ne 'clientReviews' -or @($clientRows.clients).Count -ne 1 -or $clientRows.clients[0].company -ne 'Synthetic CLI client') { throw 'Packaged client history command did not return the saved synthetic client.' }
+    $review = Invoke-OwnedCli $exe ('--cli review --tenant 11111111-1111-4111-8111-111111111111 --output "' + $synthetic + '"') 0
+    $reviewPack = $review.Text | ConvertFrom-Json
+    if ($review.Error -or $reviewPack.kind -ne 'clientReviewPack') { throw 'Packaged review command failed.' }
+    $reviewDirectory = [IO.Path]::GetFullPath($reviewPack.directory)
+    if ([IO.Path]::GetDirectoryName($reviewDirectory) -ine [IO.Path]::GetFullPath($synthetic)) { throw 'Packaged review output escaped its requested synthetic folder.' }
+    $reviewManifest = Get-Content -LiteralPath (Join-Path $reviewDirectory 'manifest.json') -Raw | ConvertFrom-Json
+    if ($reviewManifest.tenantId -ne '11111111-1111-4111-8111-111111111111' -or $reviewManifest.notice -notmatch 'not a live assessment') { throw 'Review manifest lost client identity or limitations.' }
+    foreach ($name in 'engineer.html','client.html','review.csv.zip') {
+        $actual = (Get-FileHash -LiteralPath (Join-Path $reviewDirectory $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $reviewManifest.files.$name) { throw "Review output fingerprint mismatch: $name" }
+        Remove-Item -LiteralPath (Join-Path $reviewDirectory $name) -Force
+    }
+    Remove-Item -LiteralPath (Join-Path $reviewDirectory 'manifest.json') -Force
+    Remove-Item -LiteralPath $reviewDirectory -Force
     $report = Invoke-OwnedCli $exe ('--cli report --snapshot "' + $snapshotFile + '" --format html') 0
     if ($report.Error) { throw "Packaged CLI report wrote to stderr: $($report.Error)" }
     $reportLine = @($report.Text -split "`r?`n" | Where-Object { $_ -match '^Report: ' })
@@ -441,7 +458,7 @@ public static class PortableTextMenu {
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
         portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
-        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true;
+        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true; portableCliClients=$true; portableCliClientReviewPack=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

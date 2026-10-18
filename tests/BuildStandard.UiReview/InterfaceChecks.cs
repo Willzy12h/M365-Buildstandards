@@ -628,6 +628,13 @@ internal static partial class Program
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
         ("ShellViewModel.CancelOperationCommand", Disabled),
 
+        ("ClientReviewsViewModel.ScanCommand", Press),
+        ("ClientReviewsViewModel.ReviewCommand", Press),
+        ("ClientReviewsViewModel.SaveImportCommand", Press),
+        ("ClientReviewsViewModel.PreviewImportCommand", FilePicker),
+        ("ClientReviewsViewModel.ExportCommand", FilePicker),
+        ("ClientReviewsViewModel.CopyDetailsCommand", Clipboard),
+        ("ClientReviewsViewModel.OpenCommand", "active connection refusal and offline selection covered by App tests; preserves shared render fixture connection"),
         ("OverviewViewModel.ConnectCommand", Press),
         ("OverviewViewModel.RefreshLicencesCommand", TenantRead),
         ("OverviewViewModel.LoadAssignmentsCommand", TenantRead),
@@ -876,6 +883,13 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["ClientReviewsViewModel.ReviewCommand"] = shell => SeedPage(shell,"clients"),
+        ["ClientReviewsViewModel.SaveImportCommand"] = shell =>
+        {
+            SeedPage(shell,"clients");
+            var page=shell.Page<ClientReviewsViewModel>();
+            page.ImportRows.Single(r=>r.CanSelect).IsSelected=true;
+        },
         ["MailboxCapacityViewModel.RefreshSourcesCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ReviewCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ExportHtmlCommand"] = SeedMailboxCapacityPage,

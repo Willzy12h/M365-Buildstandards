@@ -113,7 +113,7 @@ public static class PartnerCustomerImport
         return result.AsReadOnly();
     }
 
-    private static string Fingerprint(IReadOnlyList<TenantProfile> profiles)
+    internal static string Fingerprint(IReadOnlyList<TenantProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(profiles);
         if (profiles.Any(p => p is null || !StrictTenantId(p.TenantId)) ||

@@ -144,7 +144,11 @@ public sealed partial class EvidenceStore
     public IReadOnlyList<TenantProfile> LoadProfiles() =>
         ReadJson<List<TenantProfile>>(_paths.ProfilesFile) ?? new List<TenantProfile>();
 
-    public void SaveProfiles(IReadOnlyList<TenantProfile> profiles) => WriteJsonAtomic(_paths.ProfilesFile, profiles);
+    public void SaveProfiles(IReadOnlyList<TenantProfile> profiles)
+    {
+        using var lease = AcquireProfileWriteLease();
+        WriteProfilesUnderLease(profiles);
+    }
 
     // ---- snapshots ---------------------------------------------------------------------------------------------
 

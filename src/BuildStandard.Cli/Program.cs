@@ -68,13 +68,15 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers" or "domain-report");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers" or "clients" or "review" or "domain-report");
 
         return command switch
         {
             "releases" => Releases(options),
             "customers" => Customers(options),
             "domain-report" => DomainReport(options),
+            "clients" => ClientReviews(options),
+            "review" => ClientReviewPack(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
             "inventory" => Inventory(options),
@@ -122,6 +124,15 @@ public static class Program
                   Invalid/conflicting/existing clients remain visible. No profiles are saved,
                   no tenant is contacted and relationship/tags do not prove access.
                   UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
+
+              buildstandard clients [--root <dir>]
+                  List saved clients with offline assessment, write-history and job summaries as JSON.
+                  Missing, unreadable and unresolved evidence remain explicit. No connection is made.
+
+              buildstandard review --tenant <guid> --output <directory> [--root <dir>]
+                  Export one saved client's engineer/client HTML, CSV tables and source-hash manifest.
+                  Rechecks the original evidence and client details before publishing the new local folder.
+                  This is a historical review pack, never deployment before-evidence or write approval.
 
               buildstandard domain-report --input <file> --output <directory> [--root <dir>]
                   Export a supplied domain-readiness report as HTML, CSV and original JSON.
@@ -475,6 +486,45 @@ public static class Program
         var folder=DomainReadinessDocuments.Export(document,paths,output,()=>true);
         Console.WriteLine(folder);
         Console.WriteLine($"Historical supplied report — unverified source · {document.Report.Domain} · read coverage {document.Report.Status} · no DNS queries or tenant operations. Export success is not readiness success.");
+        return 0;
+    }
+
+    private static int ClientReviews(IReadOnlyDictionary<string, string> options)
+    {
+        if (options.Keys.Any(k => !k.Equals("root", StringComparison.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Unsupported clients option. This command only reads local saved evidence.");
+        var context = Context.Open(options);
+        var at = DateTimeOffset.UtcNow;
+        var clients = new List<object>();
+        foreach (var profile in context.Evidence.LoadClientProfiles())
+        {
+            var review = BuildStandard.Engine.Workflow.ClientReviewProjection.Project(profile,
+                context.Evidence.LoadClientReviewEvidence(profile.TenantId), at);
+            clients.Add(new { profile.Id, profile.Company, profile.TenantId, review.LastAssessment,
+                review.WriteHistoryKnown, review.UnresolvedWrites, Jobs = review.Jobs.Count,
+                CompleteJobs = review.Jobs.Count(j => j.Complete), UnknownJobs = review.Jobs.Count(j => !j.Known),
+                DiagnosticCount = review.Diagnostics.Count });
+        }
+        Console.WriteLine(ToolkitJson.Serialize(new { Kind = "clientReviews", ReviewedAt = Timestamps.Format(at),
+            Notice = ClientReviewDocuments.Notice, Clients = clients }));
+        return 0;
+    }
+
+    private static int ClientReviewPack(IReadOnlyDictionary<string, string> options)
+    {
+        if (options.Keys.Any(k => !new[] { "root", "tenant", "output" }.Contains(k, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Unsupported review option. Choose one saved client and an output folder.");
+        var tenant = Require(options, "tenant"); var output = Require(options, "output");
+        if (tenant.Length != 36 || !Guid.TryParseExact(tenant, "D", out var id) || id == Guid.Empty)
+            throw new ConfigurationException("Choose an exact saved client tenant GUID.");
+        var context = Context.Open(options);
+        var profile = context.Evidence.LoadClientProfiles().SingleOrDefault(p => string.Equals(p.TenantId, tenant, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ConfigurationException("No saved client matches this tenant. Save its local profile before creating a review pack.");
+        var evidence = context.Evidence.LoadClientReviewEvidence(profile.TenantId);
+        var document = ClientReviewDocuments.Create(profile, evidence, DateTimeOffset.UtcNow);
+        var directory = ClientReviewDocuments.Export(document, context.Evidence, output, () => true);
+        Console.WriteLine(ToolkitJson.Serialize(new { Kind = "clientReviewPack", profile.TenantId, Directory = directory,
+            document.Review.UnresolvedWrites, document.Review.WriteHistoryKnown, Notice = ClientReviewDocuments.Notice }));
         return 0;
     }
 
