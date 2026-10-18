@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Begin bounded domain-readiness support with typed DNS response admission and a fixed Windows resolver, separate from historical Exchange DNS evidence. This source slice has no native run action yet; malformed/partial/negative-owner-unknown results never become clean absence.
+- Expansion D: experimental domain-readiness form, bounded MX/SPF/public-cloud Windows enrolment observations, original-result recovery, HTML/CSV/JSON DNS-owner packs and offline `domain-report` CLI. No DNS/tenant writes, new Microsoft access or deployment-evidence authority; live behaviour remains unverified.
 
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
 

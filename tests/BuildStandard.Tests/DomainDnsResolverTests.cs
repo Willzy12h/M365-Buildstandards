@@ -92,6 +92,34 @@ public sealed class DomainDnsResolverTests
         var timed=await WindowsDomainReadinessResolver.RunHelperAsync(Start(path,"Start-Sleep -Seconds 10"),TimeSpan.FromMilliseconds(300),default);
         Assert.Equal(OwnedProcessEnd.TimedOut,timed.Process.End);
     }
+    [Theory,MemberData(nameof(MailboxSettingsRunnerTests.Runtimes),MemberType=typeof(MailboxSettingsRunnerTests))]
+    public async Task Fixed_template_preserves_mx_and_cname_fields_and_refuses_nulls(string runtime,string path)
+    {
+        _=runtime;
+        foreach(var scenario in new[]{"mx","null-mx","missing-preference","cname","missing-target"})
+        {
+            var question=new DomainDnsQuestion("example.invalid",scenario.Contains("cname",StringComparison.Ordinal)||scenario=="missing-target"?DomainDnsType.CNAME:DomainDnsType.MX);
+            var body=scenario switch
+            {
+                "mx"=>"[pscustomobject]@{Name=$Name;Type='MX';Section='Answer';TTL=0;NameExchange='Gateway.invalid.';Preference=20}",
+                "null-mx"=>"[pscustomobject]@{Name=$Name;Type='MX';Section='Answer';NameExchange='.';Preference=0}",
+                "missing-preference"=>"[pscustomobject]@{Name=$Name;Type='MX';Section='Answer';NameExchange='gateway.invalid'}",
+                "cname"=>"[pscustomobject]@{Name=$Name;Type='CNAME';Section='Answer';NameHost='TARGET.invalid.'}",
+                _=>"[pscustomobject]@{Name=$Name;Type='CNAME';Section='Answer';NameHost=$null}"
+            };
+            var stub="New-Module -Name DnsClient -ScriptBlock { function Resolve-DnsName { param($Name,$Type,[switch]$DnsOnly,[switch]$NoHostsFile,[switch]$QuickTimeout) "
+                +"if ($Name -cne 'example.invalid' -or -not $DnsOnly -or -not $NoHostsFile) { throw 'Unexpected synthetic query' }; "+body
+                +" }; Export-ModuleMember -Function Resolve-DnsName } | Import-Module -Force\n"
+                +"if ((Get-Command DnsClient\\Resolve-DnsName).CommandType -ne 'Function') { throw 'Stub missing' }\n";
+            var result=await WindowsDomainReadinessResolver.RunHelperAsync(Start(path,stub+WindowsDomainReadinessResolver.QueryScript(question)),TimeSpan.FromSeconds(20),default);
+            var observation=await new WindowsDomainReadinessResolver((_,_)=>Task.FromResult(result)).QueryAsync(question,default);
+            if(scenario.StartsWith("missing",StringComparison.Ordinal)){Assert.Equal(DomainDnsState.Failed,observation.State);Assert.Empty(observation.Answers);continue;}
+            Assert.Equal(DomainDnsState.Observed,observation.State);var answer=Assert.Single(observation.Answers);
+            if(scenario=="mx"){Assert.Equal("Gateway.invalid.",answer.Exchange);Assert.Equal(20,answer.Preference);Assert.Equal(0,answer.Ttl);}
+            if(scenario=="null-mx"){Assert.Equal(".",answer.Exchange);Assert.Equal(0,answer.Preference);Assert.Null(answer.Ttl);}
+            if(scenario=="cname"){Assert.Equal("TARGET.invalid.",answer.Target);Assert.Null(answer.Ttl);}
+        }
+    }
     private static ProcessStartInfo Start(string path,string script)
     {
         var start=new ProcessStartInfo(path){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,

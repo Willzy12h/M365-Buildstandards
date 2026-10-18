@@ -1,0 +1,79 @@
+<UserControl x:Class="BuildStandard.App.Views.DomainReadinessView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources><Style x:Key="DomainCell" TargetType="TextBlock"><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/></Style></UserControl.Resources>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="28,24">
+      <TextBlock Text="READ-ONLY DOMAIN CHECKS · EXPERIMENTAL" Style="{StaticResource Eyebrow}"/>
+      <TextBlock Text="Domain readiness" Style="{StaticResource H1}"/>
+      <TextBlock Text="Review mail routing, SPF structure and Windows enrolment DNS. No sign-in is needed. Reads run only when you explicitly approve and choose Run; no DNS or tenant settings are changed." TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,0,0,18"/>
+      <Border Style="{StaticResource Card}" Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+          <TextBlock Text="Original report needs saving" FontWeight="SemiBold"/>
+          <TextBox Text="{Binding PendingSummary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="150" AutomationProperties.Name="Original unsaved domain report identity"/>
+          <CheckBox IsChecked="{Binding RecoveryAcknowledged}" IsEnabled="{Binding Workspace.Idle}" Content="I have checked the original domain and recorded identity above" AutomationProperties.Name="Acknowledge original domain report recovery"/>
+          <WrapPanel Margin="0,8,0,0">
+            <Button Content="Export original report…" Command="{Binding RecoverCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Export original unsaved domain report" ToolTip="Acknowledge the original identity and wait for the current task. This never binds the report to a different client." ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Discard original report" Command="{Binding DiscardCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Discard original unsaved domain report" ToolTip="Acknowledge the original identity first. Discard removes only the unsaved in-memory result." ToolTipService.ShowOnDisabled="True"/>
+          </WrapPanel>
+          <TextBlock Text="Save report pack below for a current result. If the working client changed, use this recovery panel. Another read and closing are blocked until the original is preserved or explicitly discarded." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <Grid IsEnabled="{Binding Workspace.Idle}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,18,0">
+              <TextBlock Text="Domain to check" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}" MaxLength="253" AutomationProperties.Name="Domain to check"/>
+              <TextBlock Text="Enter the domain only. A saved client name does not verify domain ownership." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+              <CheckBox Content="Mail routing (MX)" IsChecked="{Binding CheckMx}" AutomationProperties.Name="Check mail routing MX"/>
+              <CheckBox Content="Sender policy structure (SPF)" IsChecked="{Binding CheckSpf}" AutomationProperties.Name="Check SPF structure"/>
+              <CheckBox Content="Windows enrolment DNS (public cloud)" IsChecked="{Binding CheckEnrolment}" AutomationProperties.Name="Check Windows enrolment DNS"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="Expected mail gateways (optional)" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding ExpectedMx, UpdateSourceTrigger=PropertyChanged}" MaxLength="8192" AutomationProperties.Name="Expected mail gateways"/>
+              <TextBlock Text="Comma-separated hostnames. Leave blank to record routing without a match claim; Microsoft is not assumed." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+              <TextBlock Text="Where the expected targets came from" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding ExpectedSource, UpdateSourceTrigger=PropertyChanged}" MaxLength="1024" AutomationProperties.Name="Expected mail gateway source"/>
+              <TextBlock Text="Required when targets are entered, for example the approved gateway configuration." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            </StackPanel>
+          </Grid>
+          <Expander Header="Exact reads, limits and prerequisites" IsExpanded="True" Margin="0,14,0,8">
+            <TextBox Text="{Binding ReviewText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Height="170" AutomationProperties.Name="Reviewed domain DNS request and limits"/>
+          </Expander>
+          <CheckBox Content="Approve this experimental read for the domain and checks shown above" IsChecked="{Binding Acknowledged}" IsEnabled="{Binding Workspace.Idle}" AutomationProperties.Name="Approve selected experimental domain read"/>
+          <WrapPanel Margin="0,10,0,6">
+            <Button Content="Run selected checks" Command="{Binding RunCommand}" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="Run selected domain DNS checks" ToolTip="{Binding Availability}" ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Stop" Command="{Binding StopCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Stop this domain DNS read" ToolTip="Available only while this page is collecting DNS observations. Partial results are retained." ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Open historical report…" Command="{Binding ImportCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open historical domain report" ToolTip="Wait for the current task and resolve any original unsaved report first. Imports never run DNS." ToolTipService.ShowOnDisabled="True"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding Availability}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,6,0,0"/>
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Observations and DNS-owner next steps" Style="{StaticResource H2}"/>
+          <TextBox Text="{Binding CurrentSummary, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="150" AutomationProperties.Name="Domain report source and read coverage"/>
+          <DataGrid ItemsSource="{Binding Results}" IsReadOnly="True" Height="180" AutomationProperties.Name="Domain readiness findings" Margin="0,8,0,8">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Check" Binding="{Binding Check}" ElementStyle="{StaticResource DomainCell}" Width="150"/>
+              <DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" ElementStyle="{StaticResource DomainCell}" Width="145"/>
+              <DataGridTextColumn Header="Finding" Binding="{Binding Summary}" ElementStyle="{StaticResource DomainCell}" Width="*" MinWidth="210"/>
+              <DataGridTextColumn Header="Manual next step" Binding="{Binding DnsOwnerNextStep}" ElementStyle="{StaticResource DomainCell}" Width="*" MinWidth="240"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Text="Complete means the requested reads finished, not that mail or enrolment works. Failed, partial and unknown results require review. This report cannot satisfy deployment before-evidence." Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,8,0,6">
+            <Button Content="Save report pack" Command="{Binding SaveCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Save current domain report pack" ToolTip="{Binding OutputGuidance}" ToolTipService.ShowOnDisabled="True"/>
+            <Button Content="Copy displayed details" Command="{Binding CopyCommand}" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Copy displayed domain report details"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding OutputGuidance}" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <TextBox Text="{Binding SavedDirectory, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="60" AutomationProperties.Name="Last saved domain report folder"/>
+          <Expander Header="Original observations, limitations and identifiers" IsExpanded="True" Margin="0,8,0,0"><TextBox Text="{Binding Details, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" Height="240" AutomationProperties.Name="Detailed domain report observations"/></Expander>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

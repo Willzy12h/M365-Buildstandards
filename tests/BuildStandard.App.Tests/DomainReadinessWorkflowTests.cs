@@ -21,6 +21,28 @@ public sealed class DomainReadinessWorkflowTests
         if(!cancelled)r.Observations.Add(new(r.Domain,DomainDnsType.MX,DomainDnsState.Observed,r.StartedAt,r.CompletedAt,DomainDnsResponse.Resolver,"1",[new(r.Domain,DomainDnsType.MX,"Answer",Exchange:"gateway.invalid",Preference:10)]));
         r.IntegrityDigest=EvidenceIntegrity.Compute(r);return r;
     }
+    [Fact] public async Task Native_form_is_closed_by_default_and_an_invalid_input_starts_no_read()
+    {
+        using var f=new ConnectedReportsFixture(false);var calls=0;
+        var controller=new DomainReadinessController(f.Workspace,(r,_)=>{calls++;return Task.FromResult(Report(r));});
+        var page=new DomainReadinessViewModel(new ShellViewModel(f.Workspace),controller){Domain="example.invalid",CheckSpf=false};
+        Assert.False(page.CanRun);Assert.Contains("acknowledge",page.Availability,StringComparison.OrdinalIgnoreCase);
+        page.Acknowledged=true;Assert.True(page.CanRun);page.Domain="https://bad.invalid";Assert.False(page.Acknowledged);Assert.False(page.CanRun);
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.RunAsync);Assert.Equal(0,calls);
+    }
+    [Fact] public async Task Native_domain_A_B_A_supersedes_the_result_but_preserves_original_recovery()
+    {
+        using var f=new ConnectedReportsFixture(false);var done=new TaskCompletionSource<DomainReadinessReport>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var controller=new DomainReadinessController(f.Workspace,(_,_)=>done.Task);
+        var page=new DomainReadinessViewModel(new ShellViewModel(f.Workspace),controller){Domain="example.invalid",CheckSpf=false,Acknowledged=true};
+        var run=page.RunAsync();page.Domain="other.invalid";page.Domain="example.invalid";done.SetResult(Report(Request()));await run;
+        Assert.True(page.HasPending);Assert.Empty(page.Results);Assert.Contains("example.invalid",page.PendingSummary);Assert.False(page.CanRun);Assert.False(page.Acknowledged);
+    }
+    [Fact] public async Task A_well_formed_but_different_returned_domain_is_not_admitted()
+    {
+        using var f=new ConnectedReportsFixture(false);var controller=new DomainReadinessController(f.Workspace,(_,_)=>Task.FromResult(Report(Request() with{Domain="other.invalid"})));
+        await Assert.ThrowsAnyAsync<ToolkitException>(()=>controller.CollectAsync(Request(),true,()=>true));Assert.Null(controller.Current);Assert.False(controller.HasPending);
+    }
     [Fact] public void Navigation_exposes_domain_readiness_without_connecting_or_querying()
     {
         using var f=new ConnectedReportsFixture(false);var shell=new ShellViewModel(f.Workspace);

@@ -628,6 +628,13 @@ internal static partial class Program
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
         ("ShellViewModel.CancelOperationCommand", Disabled),
 
+        ("DomainReadinessViewModel.RunCommand", "explicit public DNS read; never invoked by the offline harness; injected App tests cover admission/recovery"),
+        ("DomainReadinessViewModel.StopCommand", Disabled),
+        ("DomainReadinessViewModel.ImportCommand", FilePicker),
+        ("DomainReadinessViewModel.SaveCommand", Press),
+        ("DomainReadinessViewModel.RecoverCommand", FilePicker),
+        ("DomainReadinessViewModel.DiscardCommand", Disabled),
+        ("DomainReadinessViewModel.CopyCommand", Clipboard),
         ("ClientReviewsViewModel.ScanCommand", Press),
         ("ClientReviewsViewModel.ReviewCommand", Press),
         ("ClientReviewsViewModel.SaveImportCommand", Press),

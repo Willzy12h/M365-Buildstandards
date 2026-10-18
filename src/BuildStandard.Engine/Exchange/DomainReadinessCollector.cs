@@ -14,7 +14,8 @@ public sealed class DomainReadinessCollector
     private readonly IClock _clock;
     public DomainReadinessCollector():this(new WindowsDomainReadinessResolver(),SystemClock.Instance) { }
     internal DomainReadinessCollector(IDomainReadinessResolver resolver,IClock clock){_resolver=resolver;_clock=clock;}
-    public async Task<DomainReadinessReport> CollectAsync(DomainReadinessRequest request,CancellationToken ct)
+    /// <summary>Pure, frozen preflight shared with the native form. No resolver or authentication is used.</summary>
+    public static DomainReadinessRequest PrepareRequest(DomainReadinessRequest request)
     {
         var domain=MailDomain.Validate(request.Domain);var checks=request.Checks?.ToArray()??[];
         if(checks.Length==0||checks.Length>3||checks.Distinct().Count()!=checks.Length||checks.Any(c=>!Enum.IsDefined(c)))throw new ConfigurationException("Select supported domain readiness checks once each.");
@@ -28,6 +29,12 @@ public sealed class DomainReadinessCollector
         foreach(var id in new[]{request.TenantId,request.AccountObjectId})
             if(id is not null&&(!Guid.TryParseExact(id,"D",out var guid)||guid==Guid.Empty))throw new ConfigurationException("Optional client/account bindings must be exact GUIDs.");
         if(request.AccountObjectId is not null&&request.TenantId is null)throw new ConfigurationException("An initiating account needs its verified tenant binding.");
+        return request with{Domain=domain,Checks=Array.AsReadOnly(checks),ExpectedMx=Array.AsReadOnly(expected)};
+    }
+    public async Task<DomainReadinessReport> CollectAsync(DomainReadinessRequest request,CancellationToken ct)
+    {
+        request=PrepareRequest(request);
+        var domain=request.Domain;var checks=request.Checks;var expected=request.ExpectedMx!.ToArray();
         var start=_clock.UtcNow;var report=new DomainReadinessReport
         {
             Id=Guid.NewGuid().ToString("D"),RunId=Guid.NewGuid().ToString("D"),Domain=domain,RequestedChecks=checks.ToList(),

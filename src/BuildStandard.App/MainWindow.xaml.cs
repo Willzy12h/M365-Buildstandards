@@ -63,7 +63,13 @@ public partial class MainWindow : Window
 
     private static bool ShowPendingReport(ShellViewModel shell)
     {
-        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
+        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence)
+        {
+            if (!shell.Page<DomainReadinessViewModel>().HasPending) return false;
+            shell.Navigate("domain-readiness");
+            shell.ShowError(new InvalidOperationException("An original domain report is still unsaved. Save the report pack, export the original, or explicitly discard it in Domain readiness before closing. No DNS read was repeated."));
+            return true;
+        }
         shell.Navigate("run-reports");
         shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
         return true;

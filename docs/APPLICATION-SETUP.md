@@ -137,3 +137,8 @@ The same classifier also checks assessment permission requests before explicit c
 ### INT-121 registered Exchange settings reports
 
 The protocol/forwarding/hold reports add no Graph permissions and require no registration/consent update. They reuse separate Exchange Online authentication and approved installed module access. Recipient reads use the existing Exchange read roles; protocol reporting additionally needs permission for the read-only organisation transport configuration. Missing RBAC/module properties remain explicit unknown/partial reads. Do not grant broader roles automatically; the listed role requirements remain live-unverified. See [Exchange/Purview](EXCHANGE-PURVIEW.md#registered-mailbox-setting-reports-int-121).
+
+
+### Domain-readiness access
+
+The experimental Domain readiness page adds **no Microsoft Graph or Exchange permission**, consent or authentication. An explicit Run asks the workstation's configured DNS resolver for the reviewed MX/TXT/CNAME names through the fixed Windows PowerShell/DnsClient helper. It never changes DNS, installs a module or changes execution/application-control policy. Existing verified connection identity may be recorded as the initiating context; it does not prove ownership of the domain. Offline profiles do not create a verified binding. Historical reports retain their original unverified claims. The separate report cannot satisfy tenant deployment before-evidence. Actual public DNS checks still need the applicable owner authorisation; development uses synthetic responses only.

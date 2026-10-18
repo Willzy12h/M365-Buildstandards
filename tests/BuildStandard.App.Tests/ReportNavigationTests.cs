@@ -13,14 +13,14 @@ public sealed class ReportNavigationTests
         using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
         var originalKeys = new[] { "overview", "connect", "setup", "configuration", "assessment", "deviations", "plan", "deploy", "automation", "recovery", "history", "jobs", "checks", "scripts", "standard", "settings" };
         foreach (var key in originalKeys) Assert.Single(shell.NavItems, n => n.Key == key);
-        Assert.Equal(22, shell.NavItems.Count);
+        Assert.Equal(23, shell.NavItems.Count);
         Assert.Single(shell.NavItems, n => n.Key == "run-reports" && n.Group == "Scripts");
         Assert.Single(shell.NavItems, n => n.Key == "mailbox-capacity" && n.Group == "Reports");
         Assert.Single(shell.NavItems, n => n.Key == "home");
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
         Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
         Assert.Equal(new[] { "home", "connect", "overview", "clients" }, shell.NavItems.Where(n => n.Group == "Workspace").Select(n => n.Key));
-        Assert.Equal(new[] { "reports", "naming", "mailbox-capacity" }, shell.NavItems.Where(n => n.Group == "Reports").Select(n => n.Key));
+        Assert.Equal(new[] { "reports", "domain-readiness", "naming", "mailbox-capacity" }, shell.NavItems.Where(n => n.Group == "Reports").Select(n => n.Key));
         foreach (var group in shell.NavItems.GroupBy(n => n.Group))
         {
             Assert.True(group.First().IsGroupStart);

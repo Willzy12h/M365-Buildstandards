@@ -28,6 +28,7 @@
     <DataTemplate DataType="{x:Type vm:ScriptsViewModel}"><views:ScriptsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:RunReportsViewModel}"><views:RunReportsView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:GraphReportsViewModel}"><views:GraphReportsView/></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DomainReadinessViewModel}"><views:DomainReadinessView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:MailboxCapacityViewModel}"><views:MailboxCapacityView/></DataTemplate>
     <DataTemplate DataType="{x:Type vm:NamingAuditViewModel}"><views:NamingAuditView/></DataTemplate>
   </Window.Resources>

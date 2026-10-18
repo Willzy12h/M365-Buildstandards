@@ -5,6 +5,13 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class DomainReadinessCliTests
 {
+    [Fact] public void Packaged_synthetic_fixture_is_strict_partial_unbound_and_uses_original_bytes()
+    {
+        var file=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","..","..","..","..","build","test-fixtures","domain-readiness.json"));
+        var document=DomainReadinessDocument.ReadFile(file);Assert.True(document.Historical);
+        Assert.Equal(BuildStandard.Core.Models.DomainReadinessState.Partial,document.Report.Status);Assert.Null(document.Report.TenantId);
+        Assert.Equal(BuildStandard.Core.Models.DomainReadinessMeaning.UnableToCheck,Assert.Single(document.Report.Results).Meaning);
+    }
     [Fact] public async Task Offline_command_exports_shared_worksheet_and_original_bytes_without_evidence_or_a_client()
     {
         using var root=new TempRoot();var input=Path.Combine(root.Root,"original.json");
