@@ -86,6 +86,39 @@ public sealed class DomainReadinessSchemaTests
         }
         Assert.Throws<ConfigurationException>(()=>DomainReadinessSchema.Read(Encoding.UTF8.GetBytes(json.ToJsonString())));
     }
+    private sealed class PolicyResolver(Func<string,string> policy):IDomainReadinessResolver
+    {
+        public Task<DomainDnsObservation> QueryAsync(DomainDnsQuestion question,CancellationToken ct)=>Task.FromResult(
+            new DomainDnsObservation(question.Name,question.Type,DomainDnsState.Observed,"2026-10-18T12:00:00.000Z","2026-10-18T12:00:00.000Z",
+                DomainDnsResponse.Resolver,"1",[new(question.Name,DomainDnsType.TXT,"Answer",null,[policy(question.Name)])]));
+    }
+    [Theory] [InlineData("missing-read-and-edge")][InlineData("loop-as-reference")][InlineData("wrong-depth")]
+    [InlineData("missing-repeated-edge")][InlineData("extra-edge")][InlineData("context-as-complete")][InlineData("budget-as-complete")]
+    public async Task Complete_spf_coverage_is_proved_from_original_policies_not_supplied_edges(string defect)
+    {
+        var policy=defect switch
+        {
+            "loop-as-reference"=>"v=spf1 include:example.invalid -all",
+            "missing-repeated-edge"=>"v=spf1 include:child.invalid include:child.invalid -all",
+            "context-as-complete"=>"v=spf1 include:%{d}.invalid -all",
+            "budget-as-complete"=>"v=spf1 "+string.Join(' ',Enumerable.Repeat("include:child.invalid",11))+" -all",
+            _=>"v=spf1 include:child.invalid -all"
+        };
+        var clock=new FixedClock{UtcNow=new(2026,10,18,12,0,0,TimeSpan.Zero)};
+        var collector=new DomainReadinessCollector(new PolicyResolver(n=>n=="example.invalid"?policy:"v=spf1 -all"),clock);
+        var report=await collector.CollectAsync(new("example.invalid",[DomainReadinessCheck.Spf]),default);
+        Assert.Equal(report.Status,DomainReadinessSchema.Read(Bytes(report)).Status); // Original complete and partial reports remain valid.
+        switch(defect)
+        {
+            case "missing-read-and-edge":report.Observations.RemoveAt(1);report.References.Clear();break;
+            case "loop-as-reference":report.References[0]=report.References[0] with{State="Reference"};break;
+            case "wrong-depth":report.References[0]=report.References[0] with{Depth=2};break;
+            case "missing-repeated-edge":report.References.RemoveAt(1);break;
+            case "extra-edge":report.References.Add(report.References[0]);break;
+        }
+        report.Status=DomainReadinessState.Complete;report.IntegrityDigest=EvidenceIntegrity.Compute(report);
+        Assert.Throws<ConfigurationException>(()=>DomainReadinessSchema.Read(Bytes(report)));
+    }
     [Fact] public void Integrity_duplicate_fields_encoding_and_size_are_checked_before_admission()
     {
         var r=Valid();r.Results[0]=r.Results[0] with{Summary="Altered"};Assert.Throws<ConfigurationException>(()=>DomainReadinessSchema.Read(Bytes(r)));

@@ -127,7 +127,47 @@ public static class DomainReadinessSchema
         if(r.Status==DomainReadinessState.Complete&&(required.Any(q=>!observations.ContainsKey(q))
             ||observations.Values.Any(o=>o.State is DomainDnsState.Failed or DomainDnsState.Limited or DomainDnsState.Cancelled)
             ||r.References.Any(e=>e.State!="Reference"||!observations.ContainsKey(new(e.TargetDomain,DomainDnsType.TXT)))))throw Bad("Incomplete reads cannot become a Complete report.");
+        if(r.Status==DomainReadinessState.Complete&&r.RequestedChecks.Contains(DomainReadinessCheck.Spf))
+            RequireCompleteSpfCoverage(r,observations);
         if(r.IntegrityDigest.Length!=64||r.IntegrityDigest.Any(c=>!char.IsAsciiDigit(c)&&c is not (>= 'a' and <= 'f'))||!EvidenceIntegrity.Verify(r,r.IntegrityDigest))throw Bad("Report integrity check failed. A digest does not prove authenticity.");
+    }
+    private static void RequireCompleteSpfCoverage(DomainReadinessReport report,
+        IReadOnlyDictionary<DomainDnsQuestion,DomainDnsObservation> observations)
+    {
+        // A digest is not an authenticity claim. Independently prove the narrower claimed
+        // read coverage from original TXT records; a supplied edge list can omit dependencies.
+        var remaining=report.References.ToList();
+        var path=new HashSet<string>(StringComparer.Ordinal);
+        var terms=0;
+        void Visit(string owner,int depth)
+        {
+            if(depth>10||!path.Add(owner))throw Bad("Complete SPF coverage contains a loop or exceeds the traversal depth.");
+            try
+            {
+                if(!observations.TryGetValue(new(owner,DomainDnsType.TXT),out var read))
+                    throw Bad("Complete SPF coverage is missing a reachable TXT read.");
+                if(read.State!=DomainDnsState.Observed)return; // Explicit native negative read, not invented absence.
+                var policies=read.Answers.Where(a=>a.Type==DomainDnsType.TXT).Select(a=>a.Text!)
+                    .Where(t=>t.Equals("v=spf1",StringComparison.OrdinalIgnoreCase)||t.StartsWith("v=spf1 ",StringComparison.OrdinalIgnoreCase)).ToArray();
+                if(policies.Length!=1)return; // Missing/multiple policies are findings, with no followed dependencies.
+                var policy=SpfPolicyAnalysis.Parse(policies[0]);
+                if(policy.Problems.Count>0)return;
+                foreach(var term in policy.Terms.Where(t=>t.Reachable))
+                {
+                    if(term.DnsDependent&&++terms>10||term.NeedsContext)
+                        throw Bad("Complete SPF coverage requires unperformed context or exceeds the term budget.");
+                    if(term.Reference is null)continue;
+                    var index=remaining.FindIndex(e=>e.SourceDomain==owner&&e.OriginalTerm==term.Original
+                        &&e.TargetDomain==term.Reference&&e.Depth==depth+1&&e.State=="Reference"&&Utc(e.ObservedAt)==Utc(read.CompletedAt));
+                    if(index<0)throw Bad("Complete SPF coverage is missing an original reachable term occurrence.");
+                    remaining.RemoveAt(index);
+                    Visit(term.Reference,depth+1);
+                }
+            }
+            finally { path.Remove(owner); }
+        }
+        Visit(report.Domain,0);
+        if(remaining.Count!=0)throw Bad("Complete SPF coverage contains unsupported reference occurrences.");
     }
     private static void BoundArray(JsonElement parent,string field,int count)
     {

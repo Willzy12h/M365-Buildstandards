@@ -91,7 +91,7 @@ public sealed record SpfPolicyAnalysis(string Original,IReadOnlyList<SpfTerm> Te
         var parts=argument.Split('/');
         if(parts.Length is <1 or >2 || argument.Contains('%') || !IPAddress.TryParse(parts[0],out var address)
             || address.AddressFamily!=(ipv4?AddressFamily.InterNetwork:AddressFamily.InterNetworkV6))return false;
-        if(ipv4&&(parts[0].Split('.').Length!=4||parts[0].Split('.').Any(p=>p.Length==0||p.Any(c=>!char.IsAsciiDigit(c)))))return false;
+        if(ipv4&&(parts[0].Split('.').Length!=4||parts[0].Split('.').Any(p=>p.Length==0||p.Length>1&&p[0]=='0'||p.Any(c=>!char.IsAsciiDigit(c)))))return false;
         return parts.Length==1 || parts[1].Length>0&&parts[1].All(char.IsAsciiDigit)&&int.TryParse(parts[1],out var prefix)&&prefix<=(ipv4?32:128);
     }
 }

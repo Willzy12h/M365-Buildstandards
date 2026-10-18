@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Domain-readiness review corrections: validate complete SPF dependency coverage from original policies, distinguish deadline limits from an engineer stop, and report malformed leading-zero IPv4 SPF terms.
+
 - Expansion D: experimental domain-readiness form, bounded MX/SPF/public-cloud Windows enrolment observations, original-result recovery, HTML/CSV/JSON DNS-owner packs and offline `domain-report` CLI. No DNS/tenant writes, new Microsoft access or deployment-evidence authority; live behaviour remains unverified.
 
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.

@@ -61,6 +61,12 @@ public sealed class SpfPolicyAnalysisTests
         var policy=SpfPolicyAnalysis.Parse("v=spf1 include:%{l=}.example.invalid");
         Assert.Empty(policy.Problems);Assert.True(Assert.Single(policy.Terms).NeedsContext);Assert.Null(policy.Terms[0].Reference);
     }
+    [Theory] [InlineData("192.0.2.010")][InlineData("192.0.2.01")][InlineData("0192.0.2.1")][InlineData("192.00.2.1")]
+    public void Leading_zero_ipv4_octets_are_not_spf_decimal_literals(string address)
+        =>Assert.NotEmpty(SpfPolicyAnalysis.Parse("v=spf1 ip4:"+address+" -all").Problems);
+    [Theory] [InlineData("0.0.0.0")][InlineData("255.255.255.255")][InlineData("192.0.2.10")]
+    public void Canonical_decimal_ipv4_octets_remain_supported(string address)
+        =>Assert.Empty(SpfPolicyAnalysis.Parse("v=spf1 ip4:"+address+" -all").Problems);
     [Fact] public void An_ipv6_interface_scope_is_not_a_valid_spf_literal()
         =>Assert.NotEmpty(SpfPolicyAnalysis.Parse("v=spf1 ip6:fe80::1%1 -all").Problems);
 }

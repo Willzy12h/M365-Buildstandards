@@ -69,6 +69,11 @@ public sealed class DomainReadinessCollector
             { Stop();return null; }
             catch(Exception ex) when(ex is ToolkitException or IOException)
             { observation=new(question.Name,question.Type,DomainDnsState.Failed,Timestamps.Format(_clock.UtcNow),Timestamps.Format(_clock.UtcNow),DomainDnsResponse.Resolver,"1",[],null,null,"Response could not be admitted; absence is unknown."); }
+            // The helper sees a linked token; only the initiating token means an engineer stop.
+            // Keep Failed cleanup outcomes intact rather than relabelling an uncertain process exit.
+            if(observation.State==DomainDnsState.Cancelled&&!ct.IsCancellationRequested
+                &&(deadline.IsCancellationRequested||_clock.UtcNow-start>=TimeSpan.FromSeconds(120)))
+                observation=observation with{State=DomainDnsState.Limited,Reason="The 120-second report deadline interrupted this read; a complete DNS response was not admitted."};
             if(observedRows+report.References.Count+1+observation.Answers.Count>500){Limited("The 500-observation/reference budget was reached; the last response was not admitted.");return null;}
             cache.Add(question,observation);report.Observations.Add(observation);observedRows+=1+observation.Answers.Count;
             if(observation.State is DomainDnsState.Failed or DomainDnsState.Limited or DomainDnsState.Cancelled)Limited(observation.Reason??"A DNS read was incomplete.");
@@ -76,7 +81,7 @@ public sealed class DomainReadinessCollector
         }
         foreach(var check in checks)
         {
-            if(Stop()){report.Results.Add(Unable(check,"Stopped or report deadline reached; this check did not finish."));continue;}
+            if(Stop()){report.Results.Add(Unable(check,ct.IsCancellationRequested?"Stopped by the engineer; this check did not finish.":"The report deadline was reached; this check did not finish."));continue;}
             if(check==DomainReadinessCheck.Mx)
             {
                 var read=await Query(domain,DomainDnsType.MX).ConfigureAwait(false);

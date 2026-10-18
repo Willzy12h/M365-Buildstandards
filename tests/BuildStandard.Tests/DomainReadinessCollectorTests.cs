@@ -83,6 +83,15 @@ public sealed class DomainReadinessCollectorTests
         Assert.Equal(2,resolver.Questions.Count);Assert.Equal(2,report.References.Count);Assert.Equal(DomainReadinessState.Complete,report.Status);
         Assert.DoesNotContain(report.Results,r=>r.Summary.Contains("sender passed",StringComparison.OrdinalIgnoreCase));
     }
+    [Fact] public async Task Leading_zero_ipv4_is_a_structural_finding_not_a_clean_policy()
+    {
+        var resolver=new Resolver(q=>Txt(q,"v=spf1 ip4:192.0.2.010 -all"));
+        var report=await new DomainReadinessCollector(resolver,_clock).CollectAsync(Request(DomainReadinessCheck.Spf),default);
+        Assert.Equal(DomainReadinessState.Complete,report.Status); // Read coverage, not policy correctness.
+        Assert.Equal(DomainReadinessMeaning.ReviewFinding,Assert.Single(report.Results).Meaning);
+        Assert.Contains(report.Results[0].Details,d=>d.Contains("Invalid SPF address",StringComparison.Ordinal));
+        Assert.Single(resolver.Questions);
+    }
     [Fact] public async Task Multiple_txt_policies_are_not_concatenated_or_followed()
     {
         var resolver=new Resolver(q=>Txt(q,"v=spf1 include:a.invalid -all","v=spf1 include:b.invalid -all"));
@@ -127,6 +136,44 @@ public sealed class DomainReadinessCollectorTests
         var resolver=new Resolver(q=>{var answer=Txt(q,"v=spf1 include:later.invalid -all");_clock.UtcNow=_clock.UtcNow.AddSeconds(121);return answer;});
         var report=await new DomainReadinessCollector(resolver,_clock).CollectAsync(Request(DomainReadinessCheck.Spf,DomainReadinessCheck.Mx),default);
         Assert.Single(resolver.Questions);Assert.Single(report.Observations);Assert.Equal(DomainReadinessState.Partial,report.Status);
+    }
+    [Theory] [InlineData(false)][InlineData(true)]
+    public async Task An_interrupted_read_distinguishes_report_deadline_from_caller_stop(bool callerStopped)
+    {
+        using var stop=new CancellationTokenSource();
+        var resolver=new Resolver(q=>
+        {
+            if(q.Type==DomainDnsType.MX)return Answer(q,new DomainDnsAnswer(q.Name,DomainDnsType.MX,"Answer",null,null,"gateway.invalid",10));
+            var started=Timestamps.Format(_clock.UtcNow);
+            _clock.UtcNow=_clock.UtcNow.AddSeconds(121);
+            if(callerStopped)stop.Cancel();
+            return new(q.Name,q.Type,DomainDnsState.Cancelled,started,Timestamps.Format(_clock.UtcNow),
+                DomainDnsResponse.Resolver,"1",[],null,null,"Stopped before a complete DNS response was admitted.");
+        });
+        var report=await new DomainReadinessCollector(resolver,_clock).CollectAsync(
+            Request(DomainReadinessCheck.Mx,DomainReadinessCheck.Spf,DomainReadinessCheck.WindowsEnrolment),stop.Token);
+        Assert.Equal(callerStopped?DomainReadinessState.Cancelled:DomainReadinessState.Partial,report.Status);
+        Assert.Equal(2,resolver.Questions.Count);Assert.Equal(2,report.Observations.Count);
+        Assert.Equal(DomainDnsState.Observed,report.Observations[0].State);
+        Assert.Equal(callerStopped?DomainDnsState.Cancelled:DomainDnsState.Limited,report.Observations[1].State);
+        if(!callerStopped)
+        {
+            Assert.Contains("deadline",report.Observations[1].Reason!,StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Stopped",report.Observations[1].Reason!,StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.Equal(report.Status,DomainReadinessSchema.Read(System.Text.Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report))).Status);
+    }
+    [Fact] public async Task Deadline_does_not_replace_unconfirmed_helper_cleanup_with_a_limit()
+    {
+        var resolver=new Resolver(q=>
+        {
+            var start=Timestamps.Format(_clock.UtcNow);_clock.UtcNow=_clock.UtcNow.AddSeconds(121);
+            return new(q.Name,q.Type,DomainDnsState.Failed,start,Timestamps.Format(_clock.UtcNow),DomainDnsResponse.Resolver,"1",[],null,null,"Helper cleanup was not confirmed.");
+        });
+        var report=await new DomainReadinessCollector(resolver,_clock).CollectAsync(Request(DomainReadinessCheck.Mx),default);
+        Assert.Equal(DomainReadinessState.Failed,report.Status);
+        Assert.Equal(DomainDnsState.Failed,Assert.Single(report.Observations).State);
+        Assert.Contains("cleanup",report.Observations[0].Reason!);
     }
     [Fact] public async Task Unsupported_cloud_and_missing_expected_gateway_provenance_refuse_before_queries()
     {
