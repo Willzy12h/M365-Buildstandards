@@ -68,12 +68,13 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers" or "domain-report");
 
         return command switch
         {
             "releases" => Releases(options),
             "customers" => Customers(options),
+            "domain-report" => DomainReport(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
             "inventory" => Inventory(options),
@@ -121,6 +122,11 @@ public static class Program
                   Invalid/conflicting/existing clients remain visible. No profiles are saved,
                   no tenant is contacted and relationship/tags do not prove access.
                   UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
+
+              buildstandard domain-report --input <file> --output <directory> [--root <dir>]
+                  Export a supplied domain-readiness report as HTML, CSV and original JSON.
+                  Historical/unverified; preserves original bytes, status, domain and binding.
+                  No DNS queries, tenant sign-in or deployment evidence. No client is required.
 
               buildstandard releases
                   List the Build Standard releases available to this installation.
@@ -457,6 +463,20 @@ public static class Program
     }
 
     // ---- shared context -------------------------------------------------------------------------------------------
+
+    private static int DomainReport(IReadOnlyDictionary<string,string> options)
+    {
+        foreach(var key in options.Keys)
+            if(!new[]{"input","output","root"}.Contains(key,StringComparer.OrdinalIgnoreCase))
+                throw new ConfigurationException("Unsupported domain-report option --"+key+". This command imports local reports only.");
+        var input=Require(options,"input");var output=Require(options,"output");
+        var document=DomainReadinessDocument.ReadFile(input);
+        var paths=ToolkitPaths.Resolve(options.GetValueOrDefault("root"));
+        var folder=DomainReadinessDocuments.Export(document,paths,output,()=>true);
+        Console.WriteLine(folder);
+        Console.WriteLine($"Historical supplied report — unverified source · {document.Report.Domain} · read coverage {document.Report.Status} · no DNS queries or tenant operations. Export success is not readiness success.");
+        return 0;
+    }
 
     private static int Customers(IReadOnlyDictionary<string, string> options)
     {
