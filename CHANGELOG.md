@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
+
 - Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. Native import/save remains pending.
 
 - Registered experimental read-only mailbox protocol, forwarding and hold reports with exact identity, per-value read states, inspectable native rows and local HTML/JSON/CSV/Excel exports. No new permissions or Exchange writes; existing Copy/Save items are preserved.
