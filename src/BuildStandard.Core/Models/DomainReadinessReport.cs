@@ -5,14 +5,14 @@ namespace BuildStandard.Core.Models;
 // Separate from historical ExchangeCapture DNS semantics. No deployment authority.
 public enum DomainDnsType { TXT, MX, CNAME }
 public enum DomainDnsState { Observed, NameError, NoData, Failed, Limited, Cancelled }
-public sealed record DomainDnsAnswer(string Owner, DomainDnsType Type, string Section, long? Ttl,
-    IReadOnlyList<string>? TextChunks, string? Exchange, int? Preference, string? Target)
+public sealed record DomainDnsAnswer(string Owner, DomainDnsType Type, string Section, long? Ttl=null,
+    IReadOnlyList<string>? TextChunks=null, string? Exchange=null, int? Preference=null, string? Target=null)
 {
     [JsonIgnore] public string? Text => TextChunks is null ? null : string.Concat(TextChunks);
 }
 public sealed record DomainDnsObservation(string Name, DomainDnsType Type, DomainDnsState State,
     string StartedAt, string CompletedAt, string Resolver, string AdapterVersion,
-    IReadOnlyList<DomainDnsAnswer> Answers, int? NativeErrorCode, string? NegativeOwner, string? Reason);
+    IReadOnlyList<DomainDnsAnswer> Answers, int? NativeErrorCode=null, string? NegativeOwner=null, string? Reason=null);
 
 public enum DomainReadinessCheck { Mx, Spf, WindowsEnrolment }
 public enum DomainReadinessState { Complete, Partial, Failed, Cancelled }

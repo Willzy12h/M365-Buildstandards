@@ -19,6 +19,8 @@ public sealed class DomainReadinessCollector
         var domain=MailDomain.Validate(request.Domain);var checks=request.Checks?.ToArray()??[];
         if(checks.Length==0||checks.Length>3||checks.Distinct().Count()!=checks.Length||checks.Any(c=>!Enum.IsDefined(c)))throw new ConfigurationException("Select supported domain readiness checks once each.");
         if(request.Cloud!="Public")throw new ConfigurationException("This domain-readiness adapter supports Microsoft public cloud only; no queries were made.");
+        if(checks.Contains(DomainReadinessCheck.WindowsEnrolment))
+        { _=new DomainDnsQuestion("enterpriseenrollment."+domain,DomainDnsType.CNAME);_=new DomainDnsQuestion("enterpriseregistration."+domain,DomainDnsType.CNAME); }
         var expected=(request.ExpectedMx??[]).Select(s=>DomainDnsName.Reference(s).Canonical).ToArray();
         if(expected.Length>32||expected.Distinct(StringComparer.Ordinal).Count()!=expected.Length
             ||expected.Length>0&&string.IsNullOrWhiteSpace(request.ExpectedMxSource))throw new ConfigurationException("Expected gateways must be distinct and have an explicit source. No queries were made.");
@@ -54,7 +56,7 @@ public sealed class DomainReadinessCollector
             {
                 var response=await _resolver.QueryAsync(question,deadline.Token).ConfigureAwait(false);
                 // A substituted/malformed resolver cannot bypass the production typed response contract.
-                observation=DomainDnsResponse.Parse(ToolkitJson.Serialize(response),question);
+                observation=DomainDnsResponse.Parse(System.Text.Json.JsonSerializer.Serialize(response,ToolkitJson.Compact),question);
             }
             catch(OperationCanceledException) when(deadline.IsCancellationRequested)
             { Stop();return null; }

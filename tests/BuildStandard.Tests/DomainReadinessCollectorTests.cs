@@ -18,6 +18,23 @@ public sealed class DomainReadinessCollectorTests
         Timestamps.Format(_clock.UtcNow),Timestamps.Format(_clock.UtcNow),DomainDnsResponse.Resolver,DomainDnsResponse.AdapterVersion,answers,null,null,null);
     private DomainDnsObservation Txt(DomainDnsQuestion question,params string[] records)=>Answer(question,records.Select(text=>new DomainDnsAnswer(question.Name,DomainDnsType.TXT,"Answer",null,new[]{text},null,null,null)).ToArray());
     private DomainReadinessRequest Request(params DomainReadinessCheck[] checks)=>new("example.invalid",checks);
+    [Fact] public async Task Oversized_constructed_enrolment_name_refuses_before_any_other_selected_read()
+    {
+        var domain=string.Join('.',new string('a',63),new string('b',63),new string('c',63),new string('d',61));
+        var resolver=new Resolver(q=>Answer(q,new DomainDnsAnswer(q.Name,DomainDnsType.MX,"Answer",null,null,"gateway.invalid",10,null)));
+        await Assert.ThrowsAsync<ConfigurationException>(()=>new DomainReadinessCollector(resolver,_clock).CollectAsync(
+            new(domain,new[]{DomainReadinessCheck.Mx,DomainReadinessCheck.WindowsEnrolment}),default));
+        Assert.Empty(resolver.Questions);
+    }
+    [Theory] [InlineData("v=spf1 -all")][InlineData("v=spf1 include:example.invalid -all")]
+    [InlineData("v=spf1 include:%{d}.invalid -all")][InlineData("v=spf1 include:child.invalid -all")]
+    public async Task Collected_complete_and_incomplete_reports_roundtrip_the_same_strict_schema(string policy)
+    {
+        var resolver=new Resolver(q=>Txt(q,q.Name=="example.invalid"?policy:"v=spf1 -all"));
+        var report=await new DomainReadinessCollector(resolver,_clock).CollectAsync(Request(DomainReadinessCheck.Spf),default);
+        var parsed=DomainReadinessSchema.Read(System.Text.Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report)));
+        Assert.Equal(report.IntegrityDigest,parsed.IntegrityDigest);Assert.Equal(report.Status,parsed.Status);
+    }
     [Fact] public async Task Null_mx_and_mixed_null_mx_are_explicit_observations_not_failed_reads()
     {
         foreach(var mixed in new[]{false,true})
