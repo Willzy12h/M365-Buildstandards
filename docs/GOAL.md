@@ -1,5 +1,13 @@
 # Current goal
 
+## Owner approval of expansion decisions — 18 October 2026
+
+William subsequently said **“Approve all three, keeping live actions and consent separately approved.”** This prospectively accepts normal merge-commit integration of PRs #139, #140 and #141 after their actual checks and review gates, including necessary owned-branch conflict resolution. It is not blanket acceptance of later main merges.
+
+Development may add optional reporting capabilities using Reports.Read.All, ServiceHealth.Read.All, DelegatedAdminRelationship.Read.All (partner context only), Sites.Read.All (metadata collection; the scope itself permits content reads), TeamMember.Read.All and SecurityIncident.Read.All. Controlled lifecycle development may use GroupMember.ReadWrite.All, LicenseAssignment.ReadWrite.All, User.EnableDisableAccount.All and User.RevokeSessions.All for the reviewed membership/licensing/account-status/session actions. This supersedes the earlier pending permission-purpose decisions for those exact capabilities; detailed route/evidence contracts and named safety reviews still apply. No permission is granted or consented by source development.
+
+Live tenant/device/DNS operations, consent, publication and protection changes remain separately gated. Exchange changes and account/password creation remain manual. Preserve exact approval, before-evidence, no replay and uncertainty/recovery safeguards. The existing A–J plan continues; do not recreate it or restart completed tasks. Approval and exact merge/check records remain in the original PRs and issue #83.
+
 ## Approved engineering expansion — 18 October 2026
 
 William approved the [A–J expansion design](superpowers/specs/2026-10-18-engineering-expansion.md) and instructed GPT to continue until its eligible work is complete. The [execution plan](superpowers/plans/2026-10-18-engineering-expansion.md) maps all twelve recommendations. GPT initially implements all areas, using executing-plans and isolated owned branches from canonical main2e4a063. This is a new finite approved scope; do not restart completed work or the historical take-next backlog.
