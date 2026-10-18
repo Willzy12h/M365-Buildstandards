@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
 using BuildStandard.Core.Diagnostics;
@@ -7,6 +9,7 @@ using BuildStandard.Engine;
 using BuildStandard.Engine.Assessment;
 using BuildStandard.Engine.Checks;
 using BuildStandard.Engine.Evidence;
+using BuildStandard.Engine.Identity;
 using BuildStandard.Engine.Reports;
 using BuildStandard.Engine.Scripts;
 using BuildStandard.Engine.Standards;
@@ -65,11 +68,12 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command == "report-evidence");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
 
         return command switch
         {
             "releases" => Releases(options),
+            "customers" => Customers(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
             "inventory" => Inventory(options),
@@ -111,6 +115,12 @@ public static class Program
                   --exchange-snapshot adds separate Exchange/Purview evidence, as report does.
                   Writes a separate partial scoped-check JSON wrapper to standard output.
                   Historical filtering only: no new collection, sign-in or complete before-evidence.
+
+              buildstandard customers --csv <file> [--root <dir>]
+                  Preview a Partner Center customer CSV against saved local clients as JSON.
+                  Invalid/conflicting/existing clients remain visible. No profiles are saved,
+                  no tenant is contacted and relationship/tags do not prove access.
+                  UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
 
               buildstandard releases
                   List the Build Standard releases available to this installation.
@@ -447,6 +457,57 @@ public static class Program
     }
 
     // ---- shared context -------------------------------------------------------------------------------------------
+
+    private static int Customers(IReadOnlyDictionary<string, string> options)
+    {
+        foreach (var key in options.Keys)
+            if (!key.Equals("csv", StringComparison.OrdinalIgnoreCase) && !key.Equals("root", StringComparison.OrdinalIgnoreCase)) throw new ConfigurationException("Unsupported customer-preview option --" + key + ". No save or connection is supported.");
+        var file = Require(options, "csv");
+        var context = Context.Open(options);
+        var profiles = CustomerPreviewProfiles(context.Paths);
+        var bytes = ReadPreviewInput(file, PartnerCustomerImport.MaximumBytes, "Customer CSV exceeds 5 MiB.");
+        var preview = PartnerCustomerImport.Preview(bytes, profiles);
+        Console.WriteLine(ToolkitJson.Serialize(new
+        {
+            Kind = "customerImportPreview", Saved = false, Root = context.Paths.Root,
+            Notice = "Offline preview only. No clients saved or connected. Domain, relationship and access remain unverified.",
+            preview.DataRows, preview.Rows
+        }));
+        return 0;
+    }
+
+    private static IReadOnlyList<TenantProfile> CustomerPreviewProfiles(ToolkitPaths paths)
+    {
+        // File.Exists swallows access/path errors. Do not turn blocked storage into 'no existing clients'.
+        FileAttributes dataAttributes;
+        try { dataAttributes = File.GetAttributes(paths.DataDirectory); }
+        catch (FileNotFoundException) { return []; }
+        catch (DirectoryNotFoundException) { return []; }
+        if ((dataAttributes & FileAttributes.Directory) == 0)
+            throw new ConfigurationException("The saved-profile data path is not a directory. Resolve local storage before previewing customers.");
+        FileAttributes profileAttributes;
+        try { profileAttributes = File.GetAttributes(paths.ProfilesFile); }
+        catch (FileNotFoundException) { return []; }
+        if ((profileAttributes & FileAttributes.Directory) != 0)
+            throw new ConfigurationException("The saved-profile file path is occupied by a directory. Resolve it before previewing customers.");
+        var bytes = ReadPreviewInput(paths.ProfilesFile, 8 * 1024 * 1024, "Saved profiles exceed the 8 MiB preview limit; no preview was produced.");
+        var json = new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF');
+        // Bound the object count before constructing profiles and their nested default parameters.
+        using (var document = JsonDocument.Parse(json, ToolkitJson.DocumentOptions))
+            if (document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 5000)
+                throw new ConfigurationException("Saved profiles exceed the 5,000-client preview limit; no preview was produced.");
+        return ToolkitJson.Deserialize<List<TenantProfile>>(json);
+    }
+
+    private static byte[] ReadPreviewInput(string file, int maximumBytes, string limitMessage)
+    {
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > maximumBytes) throw new ConfigurationException(limitMessage);
+        var bytes = new byte[(int)stream.Length];
+        stream.ReadExactly(bytes);
+        if (stream.ReadByte() != -1) throw new ConfigurationException("The preview input changed while reading it. Open a new preview.");
+        return bytes;
+    }
 
     /// <summary>Everything a command needs from the installation, resolved once and failing early with a clear reason.</summary>
     private sealed class Context

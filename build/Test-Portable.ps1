@@ -158,6 +158,19 @@ public static class PortableCliStandardHandles {
     } elseif ($mixedFailure -notmatch 'Refused:') { throw 'CLI refusal was lost when no standard error was available.' }
     $synthetic = Join-Path $extract 'synthetic CLI evidence'
     New-Item -ItemType Directory -Path $synthetic | Out-Null
+    # Exercise the CSV parser from the extracted self-contained host, before any profile is created.
+    $customerFile = Join-Path $synthetic 'synthetic customers.csv'
+    [IO.File]::WriteAllText($customerFile, "Microsoft ID,Company name`n11111111-1111-4111-8111-111111111111,`"Synthetic, client`"`n", [Text.UTF8Encoding]::new($false))
+    $customers = Invoke-OwnedCli $exe ('--cli customers --csv "' + $customerFile + '"') 0
+    $customerPreview = $customers.Text | ConvertFrom-Json
+    if ($customers.Error -or $customerPreview.kind -ne 'customerImportPreview' -or $customerPreview.saved -ne $false -or
+        @($customerPreview.rows).Count -ne 1 -or $customerPreview.rows[0].state -ne 'Ready' -or
+        $customerPreview.rows[0].company -ne 'Synthetic, client' -or (Test-Path -LiteralPath (Join-Path $extract 'data\profiles.json'))) {
+        throw 'Packaged customer preview did not preserve quoted input and remain unsaved.'
+    }
+    [IO.File]::WriteAllText($customerFile, "Microsoft ID,Company name`n11111111-1111-4111-8111-111111111111,broken`"quote`n", [Text.UTF8Encoding]::new($false))
+    $invalidCustomers = Invoke-OwnedCli $exe ('--cli customers --csv "' + $customerFile + '"') 2
+    if ($invalidCustomers.Text -or $invalidCustomers.Error -notmatch 'Refused:') { throw 'Packaged customer preview accepted malformed quoting or lost its refusal.' }
     $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
     $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
     if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'buildstandard inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
@@ -306,7 +319,7 @@ public static class PortableCliStandardHandles {
     if (Test-Path -LiteralPath (Join-Path $extract 'logs\startup.log')) { throw 'Offline CLI initialised the desktop workspace.' }
     if (@(Get-ChildItem -LiteralPath (Join-Path $extract 'data') -File -Recurse | Where-Object { $_.Name -match 'cache|token|session' }).Count -gt 0) { throw 'Offline CLI created an authentication cache.' }
     # Remove only test-owned outputs, leaving blank evidence for the existing desktop first-launch checks.
-    Remove-Item -LiteralPath $snapshotFile, $profileFile, $registeredFile -Force
+    Remove-Item -LiteralPath $snapshotFile, $profileFile, $registeredFile, $customerFile -Force
     Remove-Item -LiteralPath $synthetic -Force
     Get-ChildItem -LiteralPath (Join-Path $extract 'reports') -File | Remove-Item -Force
 
@@ -428,6 +441,7 @@ public static class PortableTextMenu {
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
         portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
