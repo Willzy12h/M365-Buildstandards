@@ -1,5 +1,12 @@
 # Current goal
 
+## Approved engineering expansion — 18 October 2026
+
+William approved the [A–J expansion design](superpowers/specs/2026-10-18-engineering-expansion.md) and instructed GPT to continue until its eligible work is complete. The [execution plan](superpowers/plans/2026-10-18-engineering-expansion.md) maps all twelve recommendations. GPT initially implements all areas, using executing-plans and isolated owned branches from canonical main2e4a063. This is a new finite approved scope; do not restart completed work or the historical take-next backlog.
+
+Preserve the existing inbox, claims, acknowledgements and decision history. This approval is prospective and does not grant new service permissions, live operations, publication or blanket acceptance of future main merges. Shared contracts still settle through a decision PR before dependent implementation; named safety reviews remain. Continue independent approved tasks around concrete gates and never represent partial work as completion.
+
+
 ## Owner acceptance of follow-up PRs #130–136 — 15 October 2026
 
 William subsequently explicitly instructed **“Accept and merge all Of it”** in response to the pending #135 contract and #136 candidate acceptance gates. This prospectively accepts the current follow-up source and the specific INT-121 contract, and authorises their merge into canonical main through #136 after current checks pass. Compose #135 with #136 so the already-tested GPT-CAND-001/002 repairs land with the feature branches; preserve all original PRs and histories. This is owner acceptance, not a fabricated Claude review. Existing enforced checks/protection remain; no administrative bypass.
