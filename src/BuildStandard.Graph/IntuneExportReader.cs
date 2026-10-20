@@ -38,10 +38,14 @@ public sealed class IntuneExportReader:IDisposable
     private readonly long _started;
     private readonly string _startedAt;
     private readonly CancellationTokenSource _deadline,_lifetime=new();
-    private int _disposed,_used,_gets;
+    private int _disposed,_used,_gets,_requests;
+    private readonly int _maximumRequests;
+    public int RequestsSent=>Volatile.Read(ref _requests);
     private bool _renewed,_createSent;
-    internal IntuneExportReader(HttpClient graph,HttpClient download,IAccessTokenProvider tokens,string tenant,SessionMode mode,TenantSession session,Func<bool> current,bool broaderTokenAcknowledged,TimeProvider? clock=null)
+    internal IntuneExportReader(HttpClient graph,HttpClient download,IAccessTokenProvider tokens,string tenant,SessionMode mode,TenantSession session,Func<bool> current,bool broaderTokenAcknowledged,TimeProvider? clock=null,int maximumRequests=100)
     {
+        if(maximumRequests is <0 or >100)throw new ConfigurationException("A report can only use the remaining bounded capture requests, from zero to100.");
+        _maximumRequests=maximumRequests;
         if(ReferenceEquals(graph,download))throw new ConfigurationException("The export download must own a separate credential-free client.");
         _graph=graph;_download=download;_tokens=tokens;_tenant=tenant;_mode=mode;_session=session;_current=current;_acknowledged=broaderTokenAcknowledged;
         _account=session.AccountObjectId;_client=session.ClientId;_scopes=session.Scopes?.ToArray()??[];_clock=clock??TimeProvider.System;
@@ -69,8 +73,10 @@ public sealed class IntuneExportReader:IDisposable
             if(job.State!=IntuneExportJobState.Completed||job.Download is null)
                 throw new ConfigurationException("The report job failed or its completion state is unknown. No empty/successful inventory is inferred and no create is replayed.");
             RequireCurrent();
+            RequireRequestBudget();
             using var message=new HttpRequestMessage(HttpMethod.Get,job.Download);
             // This owned client has no Graph authentication, cookies or default credentials. Never log its signed URI.
+            _requests++;
             using var response=await Bounded(_download.SendAsync(message,HttpCompletionOption.ResponseHeadersRead,operation.Token),static r=>r.Dispose()).ConfigureAwait(false);RequireCurrent();
             if(response.StatusCode!=HttpStatusCode.OK)throw new GraphRequestException((int)response.StatusCode,"GET","intune-export-download","downloadRefused","The completed report could not be downloaded. No redirect, authenticated fallback or job replay was attempted.");
             var bytes=await ReadBody(response,5*1024*1024).ConfigureAwait(false);RequireCurrent();
@@ -90,14 +96,14 @@ public sealed class IntuneExportReader:IDisposable
             var force=false;
             while(true)
             {
-                RequireCurrent();
+                RequireCurrent();RequireRequestBudget();
                 if(method==HttpMethod.Get&&_gets>=30)throw new ConfigurationException("The maximum 30 status GETs was reached. The report remains incomplete; no job was recreated.");
                 var token=await Bounded(_tokens.GetAccessTokenAsync(force,operation.Token)).ConfigureAwait(false);RequireCurrent();
                 if(string.IsNullOrWhiteSpace(token)||token.Any(c=>char.IsControl(c)||char.IsWhiteSpace(c)))throw new AuthenticationRequiredException("A current valid token is unavailable. Reconnect deliberately; this report never signs in or requests consent.");
                 using var message=new HttpRequestMessage(method,"https://graph.microsoft.com/v1.0"+path);
                 message.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
                 if(method==HttpMethod.Post){message.Content=new ByteArrayContent(request.Bytes);message.Content.Headers.ContentType=new("application/json");}
-                RequireCurrent();if(method==HttpMethod.Get)_gets++;else _createSent=true;
+                RequireCurrent();RequireRequestBudget();_requests++;if(method==HttpMethod.Get)_gets++;else _createSent=true;
                 using var response=await Bounded(_graph.SendAsync(message,HttpCompletionOption.ResponseHeadersRead,operation.Token),static r=>r.Dispose()).ConfigureAwait(false);RequireCurrent();
                 if(response.StatusCode==HttpStatusCode.Unauthorized&&!_renewed){_renewed=true;force=true;continue;}
                 var expected=method==HttpMethod.Post?HttpStatusCode.Created:HttpStatusCode.OK;
@@ -125,6 +131,8 @@ public sealed class IntuneExportReader:IDisposable
                 _=task.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);throw;
             }
         }
+        void RequireRequestBudget()
+        {if(_requests>=_maximumRequests)throw new ConfigurationException("The shared100-request selected-control capture budget is exhausted. No further report request or job replay is permitted.");}
         void RequireCurrent()
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed)!=0,this);ct.ThrowIfCancellationRequested();

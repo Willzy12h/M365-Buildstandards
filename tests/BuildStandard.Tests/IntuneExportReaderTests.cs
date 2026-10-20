@@ -24,8 +24,8 @@ public sealed class IntuneExportReaderTests
         public TenantSession Session=new(){TenantId=TestData.TenantA,AccountObjectId=TestData.Operator,OperatorObjectId=TestData.Operator,ClientId=TestData.Emergency,Mode=SessionMode.Deployment,TenantVerified=true,OperatorVerified=true,Scopes=["DeviceManagementApps.ReadWrite.All"]};
         public Tokens Tokens=new();public Handler Graph=new(),Download=new();public bool Current=true;
         public ConnectAcquisitionBudgetTests.ManualTime Clock=new();public IntuneExportReader Reader;
-        public Fixture(bool ack=true)
-        {Graph.Response=(_,_)=>Task.FromResult(Job("completed"));Download.Response=(_,_)=>Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=new ByteArrayContent([1,2,3])});Reader=new(new HttpClient(Graph),new HttpClient(Download),Tokens,TestData.TenantA,SessionMode.Deployment,Session,()=>Current,ack,Clock);}
+        public Fixture(bool ack=true,int maximumRequests=100)
+        {Graph.Response=(_,_)=>Task.FromResult(Job("completed"));Download.Response=(_,_)=>Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=new ByteArrayContent([1,2,3])});Reader=new(new HttpClient(Graph),new HttpClient(Download),Tokens,TestData.TenantA,SessionMode.Deployment,Session,()=>Current,ack,Clock,maximumRequests);}
         public static HttpResponseMessage Job(string status="notStarted",HttpStatusCode code=HttpStatusCode.Created)
             =>new(code){Content=new ByteArrayContent(IntuneExportJobCodecTests.Body(Request(),status:status,url:status=="completed"?Address:null))};
         public void Dispose()=>Reader.Dispose();
@@ -73,4 +73,9 @@ public sealed class IntuneExportReaderTests
     {public TaskCompletionSource Retired=new(TaskCreationOptions.RunContinuationsAsynchronously);public TrackedContent():base(new byte[]{1}){}protected override void Dispose(bool disposing){base.Dispose(disposing);if(disposing)Retired.TrySetResult();}}
     [Fact] public async Task A_late_owned_response_is_retired_after_stop_without_downloading_or_replaying()
     {using var f=new Fixture();using var stop=new CancellationTokenSource();var late=new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);f.Graph.Response=(_,_)=>{entered.SetResult();return late.Task;};var task=f.Reader.ReadAsync(Request(),stop.Token);await entered.Task.WaitAsync(TimeSpan.FromSeconds(1));stop.Cancel();await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>task);var content=new TrackedContent();late.SetResult(new HttpResponseMessage(HttpStatusCode.Created){Content=content});await content.Retired.Task.WaitAsync(TimeSpan.FromSeconds(1));Assert.Empty(f.Download.Sent);Assert.Single(f.Graph.Sent);}
+    [Theory][InlineData(0)][InlineData(1)]
+    public async Task Shared_capture_request_budget_cannot_reset_before_create_or_blob_download(int maximum)
+    {using var f=new Fixture(maximumRequests:maximum);await Assert.ThrowsAsync<ConfigurationException>(()=>f.Reader.ReadAsync(Request(),default));Assert.Equal(maximum==0?0:1,f.Graph.Sent.Count);Assert.Empty(f.Download.Sent);Assert.Equal(maximum==0?0:1,f.Tokens.Calls.Count);}
+    [Fact] public async Task Exactly_two_remaining_requests_can_create_and_download_an_already_completed_report()
+    {using var f=new Fixture(maximumRequests:2);await f.Reader.ReadAsync(Request(),default);Assert.Single(f.Graph.Sent);Assert.Single(f.Download.Sent);}
 }

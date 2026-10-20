@@ -86,11 +86,11 @@ public sealed class GraphClient : IGraphClient
     }
 
     /// <summary>Fixed reporting-only modern Intune jobs; caller explicitly acknowledges existing broader access and owns disposal.</summary>
-    public IntuneExportReader ForIntuneExports(TenantSession session,Func<bool> isCurrent,bool broaderTokenAcknowledged)
+    public IntuneExportReader ForIntuneExports(TenantSession session,Func<bool> isCurrent,bool broaderTokenAcknowledged,int remainingRequests=100)
     {
         var graph=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
         var download=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
-        return new IntuneExportReader(graph,download,_tokens,TenantId,Mode,session,isCurrent,broaderTokenAcknowledged);
+        return new IntuneExportReader(graph,download,_tokens,TenantId,Mode,session,isCurrent,broaderTokenAcknowledged,maximumRequests:remainingRequests);
     }
 
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)

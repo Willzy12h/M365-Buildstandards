@@ -21,6 +21,7 @@ public sealed class DeploymentCoverageReader:IDisposable
     private readonly long _started;
     private readonly CancellationTokenSource _deadline,_lifetime=new();
     private int _disposed,_active,_sends,_rows,_bytes;
+    public int RequestsSent=>Volatile.Read(ref _sends);
     internal DeploymentCoverageReader(HttpClient http,IAccessTokenProvider tokens,string tenant,SessionMode mode,TenantSession session,Func<bool> current,TimeProvider? clock=null)
     {
         _http=http;_tokens=tokens;_tenant=tenant;_mode=mode;_session=session;_current=current;_account=session.AccountObjectId;_client=session.ClientId;

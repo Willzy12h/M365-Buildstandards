@@ -18,17 +18,25 @@ public sealed class DeploymentCoverageService
 {
     private readonly TimeProvider _clock;
     public DeploymentCoverageService(TimeProvider? clock=null){_clock=clock??TimeProvider.System;}
-    public async Task<DeploymentCoverageCapture> CaptureAsync(DeploymentCoverageSelection selection,TenantSession session,GraphClient graph,Func<bool> current,CancellationToken ct)
+    public async Task<DeploymentCoverageCapture> CaptureAsync(DeploymentCoverageSelection selection,TenantSession session,GraphClient graph,Func<bool> current,CancellationToken ct,bool broaderTokenAcknowledged=false)
     {
         if(!string.Equals(graph.TenantId,selection.TenantId,StringComparison.OrdinalIgnoreCase)||graph.Mode!=selection.PermissionMode)
             throw new TenantMismatchException("The Graph context does not match the frozen coverage scope.");
+        var modern=selection.Family is CoverageFamily.Application or CoverageFamily.ClassicConfiguration;
+        if(modern&&broaderTokenAcknowledged)RequireModernAccess(selection,session);
         using var reader=graph.ForDeploymentCoverage(session,()=>Matches(selection,session)&&current());
-        return await CaptureAsync(selection,session,reader.ReadAsync,current,ct).ConfigureAwait(false);
+        return await CaptureAsync(selection,session,reader.ReadAsync,current,ct,modern&&broaderTokenAcknowledged?ReadModern:null).ConfigureAwait(false);
+        async Task<IntuneExportReceipt> ReadModern(CancellationToken token)
+        {
+            using var export=graph.ForIntuneExports(session,()=>Matches(selection,session)&&current(),true,100-reader.RequestsSent);
+            return await export.ReadAsync(IntuneExportRequest.Prepare(selection.Family,selection.ObjectId),token).ConfigureAwait(false);
+        }
     }
-    internal async Task<DeploymentCoverageCapture> CaptureAsync(DeploymentCoverageSelection selection,TenantSession session,Func<PreparedCoverageRead,CancellationToken,Task<CoverageReadResponse>> read,Func<bool> current,CancellationToken ct)
+    internal async Task<DeploymentCoverageCapture> CaptureAsync(DeploymentCoverageSelection selection,TenantSession session,Func<PreparedCoverageRead,CancellationToken,Task<CoverageReadResponse>> read,Func<bool> current,CancellationToken ct,Func<CancellationToken,Task<IntuneExportReceipt>>? readModern=null)
     {
         ArgumentNullException.ThrowIfNull(selection);ArgumentNullException.ThrowIfNull(session);ArgumentNullException.ThrowIfNull(read);ArgumentNullException.ThrowIfNull(current);
         if(!Matches(selection,session)||!current())throw new TenantMismatchException("The connection changed after selecting the exact coverage scope. Prepare a fresh report scope; no read was started.");
+        if(readModern is not null&&selection.Family is (CoverageFamily.Application or CoverageFamily.ClassicConfiguration))RequireModernAccess(selection,session);
         using var deadline=new CancellationTokenSource(TimeSpan.FromMinutes(5),_clock);
         using var operation=CancellationTokenSource.CreateLinkedTokenSource(ct,deadline.Token);
         var sources=new List<CoverageCapturedSource>();var assignments=new List<CoverageAssignmentObservation>();
@@ -93,9 +101,47 @@ public sealed class DeploymentCoverageService
                 catch(ConfigurationException){warnings.Add("A service-result row was malformed; no verification is inferred. Its original page remains available.");}
             }
         }
-        else Unavailable("service-results",CoverageSourceState.Unsupported,"Modern Intune export collection is not implemented yet; deprecated result endpoints are refused. Review the selected app/policy result in Intune manually. Assignment is not installation or configuration success.");
+        else if(readModern is not null)await CaptureModern().ConfigureAwait(false);
+        else Unavailable("service-results",CoverageSourceState.NotAttempted,"Modern service results were not requested. Deliberately select existing deployment access and acknowledge its broader token for reporting before this fixed export; there is no automatic mode/consent change. Alternatively review the selected app/policy result in Intune manually. Assignment is not installation or configuration success.");
         return Finish();
 
+        async Task CaptureModern()
+        {
+            if(pages>=100||rows>=5000||bytes>=CoverageResponseCodec.MaximumBytes)
+            {Unavailable("service-results",CoverageSourceState.NotAttempted,"The capture-wide source limit was reached; no modern report job was requested.");return;}
+            var request=IntuneExportRequest.Prepare(selection.Family,selection.ObjectId);
+            var started=Timestamps.Format(_clock.GetUtcNow());var completed=started;IntuneExportObservation? original=null;
+            CoverageSourceState state;string detail;
+            try
+            {
+                var task=readModern!(operation.Token);IntuneExportReceipt receipt;
+                try{receipt=await task.WaitAsync(operation.Token).ConfigureAwait(false);}
+                catch
+                {
+                    _=task.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);throw;
+                }
+                original=IntuneExportObservation.Create(selection,receipt);started=original.StartedAt;completed=original.CompletedAt;
+                state=!Current()?CoverageSourceState.ContextChanged:operation.IsCancellationRequested?(ct.IsCancellationRequested?CoverageSourceState.Stopped:CoverageSourceState.Partial):CoverageSourceState.Complete;
+                detail=state==CoverageSourceState.Complete?"Original fixed modern CSV report was downloaded and admitted; not effective deployment.":"Original modern source retained separately after stop, deadline or context change; no current-client completion is claimed.";
+                var archiveBytes=original.Archive.OriginalArchiveBytes.Length;
+                if(original.Archive.Table.Rows.Count>5000-rows||archiveBytes>CoverageResponseCodec.MaximumBytes-bytes||pages>=100)
+                {state=CoverageSourceState.Partial;detail="NOT SAVED: combined original sources exceed the report row/byte/page limits. Original material is retained separately; no smaller complete report or raised limit is inferred.";warnings.Add(detail);}
+                detail+=" "+original.Archive.Table.Limitations;
+            }
+            catch(OperationCanceledException)
+            {
+                state=!Current()?CoverageSourceState.ContextChanged:ct.IsCancellationRequested?CoverageSourceState.Stopped:CoverageSourceState.Failed;
+                detail="Modern report stopped or reached the original capture deadline. Earlier admitted JSON originals remain available; a report job may still exist and is never automatically replayed. No successful empty source is claimed.";
+                completed=Timestamps.Format(_clock.GetUtcNow());
+            }
+            catch(Exception ex)when(ex is ToolkitException or IOException or HttpRequestException)
+            {
+                state=Current()?CoverageSourceState.Failed:CoverageSourceState.ContextChanged;
+                detail="Modern report could not be admitted. Earlier source observations remain available; there is no successful empty inventory, permission fallback or automatic report-job replay. No signed address, service body or token is included in this failure.";
+                completed=Timestamps.Format(_clock.GetUtcNow());
+            }
+            sources.Add(new("service-results",request.Path,request.RequiredScope,started,completed,new(state,[],[],detail)){ModernExport=original});
+        }
         bool Current()=>Matches(selection,session)&&current();
         async Task<CoverageSourceCapture> Read(string key,PreparedCoverageRead request)
         {
@@ -129,6 +175,12 @@ public sealed class DeploymentCoverageService
             if(operation.IsCancellationRequested)limitations+=" Collection stopped or reached its deadline; unrequested sources were not checked.";
             return new(selection,Array.AsReadOnly(sources.ToArray()),Array.AsReadOnly(assignments.ToArray()),Array.AsReadOnly(groups.ToArray()),Array.AsReadOnly(compliance.ToArray()),candidate,isCurrent,complete,limitations);
         }
+    }
+    private static void RequireModernAccess(DeploymentCoverageSelection selection,TenantSession session)
+    {
+        var request=IntuneExportRequest.Prepare(selection.Family,selection.ObjectId);
+        if(selection.PermissionMode!=SessionMode.Deployment||session.Mode!=SessionMode.Deployment||!selection.Scopes.Any(s=>string.Equals(s,request.RequiredScope,StringComparison.OrdinalIgnoreCase)||string.Equals(s,"https://graph.microsoft.com/"+request.RequiredScope,StringComparison.OrdinalIgnoreCase)))
+            throw new SafetyViolationException("Modern service reports require deliberately selected deployment access and the fixed existing broader reporting scope; no source is read, automatic upgrade or consent requested.");
     }
     private static bool Matches(DeploymentCoverageSelection selection,TenantSession session)=>session.TenantVerified&&session.OperatorVerified&&session.Mode==selection.PermissionMode
         &&string.Equals(session.TenantId,selection.TenantId,StringComparison.OrdinalIgnoreCase)&&string.Equals(session.AccountObjectId,selection.AccountObjectId,StringComparison.OrdinalIgnoreCase)

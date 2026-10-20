@@ -170,7 +170,7 @@ public sealed class DeploymentCoverageEvidence
                 if(source.ModernExport is { } modern)
                 {
                     var prepared=IntuneExportRequest.Prepare(scope.Family,scope.ObjectId);
-                    if(source.Key!="service-results"||source.Path!=prepared.Path||source.Scope!=prepared.RequiredScope||source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State is not (CoverageSourceState.Complete or CoverageSourceState.ContextChanged or CoverageSourceState.Partial))throw Bad("Modern source registration/state differs; CSV rows cannot be relabelled as JSON or directory identities.");
+                    if(source.Key!="service-results"||source.Path!=prepared.Path||source.Scope!=prepared.RequiredScope||source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State is not (CoverageSourceState.Complete or CoverageSourceState.ContextChanged or CoverageSourceState.Partial or CoverageSourceState.Stopped))throw Bad("Modern source registration/state differs; CSV rows cannot be relabelled as JSON or directory identities.");
                     if(r.PermissionMode!=SessionMode.Deployment||!r.Scopes.Any(s=>string.Equals(s,prepared.RequiredScope,StringComparison.OrdinalIgnoreCase)||string.Equals(s,"https://graph.microsoft.com/"+prepared.RequiredScope,StringComparison.OrdinalIgnoreCase)))throw Bad("Modern original access/purpose is incompatible with its fixed report scope.");
                     if(modern.AdapterVersion!="intune-export-csv/1"||modern.ReportName!=prepared.ReportName||modern.RequestSha256!=prepared.Sha256||modern.ArchiveFile!="export-000.zip"||!usedFiles.Add(modern.ArchiveFile)||!pages.TryGetValue(modern.ArchiveFile,out var archive))throw Bad("Unsupported modern adapter/report/request or missing original archive.");
                     IntuneExportObservation.ValidateJob(modern.JobId,source.StartedAt,source.CompletedAt);
@@ -178,6 +178,12 @@ public sealed class DeploymentCoverageEvidence
                     var admitted=IntuneExportArchive.Read(archive,prepared);
                     if(admitted.Table.OriginalBytes.Length!=modern.CsvBytes||admitted.Table.OriginalSha256!=modern.CsvSha256||admitted.Table.Rows.Count!=modern.SourceRows)throw new IntegrityException("The original modern CSV fingerprint, length or raw row inventory differs.");
                     returnedRows+=admitted.Table.Rows.Count;if(returnedRows>5000)throw Bad("Original returned JSON/CSV rows exceed 5,000; NOT SAVED, not a smaller complete report.");
+                    continue;
+                }
+                if(source.Key=="service-results"&&scope.Family is (CoverageFamily.Application or CoverageFamily.ClassicConfiguration)&&source.Path.Length>0)
+                {
+                    var prepared=IntuneExportRequest.Prepare(scope.Family,scope.ObjectId);
+                    if(source.Path!=prepared.Path||source.Scope!=prepared.RequiredScope||source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State is not (CoverageSourceState.Failed or CoverageSourceState.Stopped or CoverageSourceState.ContextChanged or CoverageSourceState.NotAttempted))throw Bad("An unavailable modern source cannot claim complete/empty results without its original archive.");
                     continue;
                 }
                 if(source.Path.Length==0&&source.Scope.Length==0)
