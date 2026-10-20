@@ -56,6 +56,15 @@ public sealed class ConditionalAccessEvaluationExportTests
     }
     [Fact] public void A_successful_empty_array_is_explicitly_different_from_failed_or_missing_results()
     {var c=Capture("{\"value\":[]}");var html=ConditionalAccessEvaluationDocuments.Html(c,"");Assert.Contains("no policy results returned",html,StringComparison.OrdinalIgnoreCase);Assert.Contains("not proof",html,StringComparison.OrdinalIgnoreCase);}
+    [Fact] public void Original_result_context_uses_the_recorded_scenario_actor_interval_and_limitations()
+    {
+        var c=Capture();var imported=ConditionalAccessEvaluationBundle.Read(ConditionalAccessEvaluationBundle.Write(c),TestData.TenantA);
+        var text=ConditionalAccessEvaluationDocuments.OriginalContext(imported);
+        Assert.Contains("Scenario user ID: "+TestData.Operator,text);Assert.Contains("Scenario application ID: "+TestData.TenantA,text);
+        Assert.DoesNotContain("Scenario application ID: "+TestData.TenantB,text);Assert.Contains("Engineer account ID: "+TestData.Operator,text);
+        Assert.Contains("2026-10-20T00:00:00.000Z",text);Assert.Contains("Historical",text);Assert.Contains("not a real sign-in",text);
+        Assert.Contains("Omitted",text);Assert.Contains("Integrity digest (not a signature)",text);
+    }
     private static byte[] Archive(Dictionary<string,byte[]> files,string? remove=null,string? extra=null)
     {
         using var memory=new MemoryStream();using(var zip=new ZipArchive(memory,ZipArchiveMode.Create,true))

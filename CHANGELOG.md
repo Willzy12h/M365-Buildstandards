@@ -56,7 +56,7 @@
 
 ### Pending source — mailbox capacity review, PR #94
 
-- In progress: add native experimental hypothetical CA evaluation with an exact bounded member lookup, original-byte recovery, historical import and shared HTML/CSV/JSON/Excel exports; guest, ambiguous, incomplete and stale contexts remain refused. Native/package acceptance and broader deployment coverage remain separate.
+- In progress: add native experimental hypothetical CA evaluation with an exact bounded member lookup, separately labelled original scenario/context, original-byte recovery, historical import and shared exports; enforce the overall read budget even for non-cooperative response reads. Native/package acceptance and broader deployment coverage remain separate.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 

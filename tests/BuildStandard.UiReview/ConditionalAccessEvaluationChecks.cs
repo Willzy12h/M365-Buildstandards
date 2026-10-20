@@ -25,7 +25,7 @@ internal static partial class Program
             Write("metadata.json",Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report)));Write("response.json",source);Write("NOTICE.txt",Encoding.UTF8.GetBytes(ConditionalAccessEvaluationBundle.Notice));
             void Write(string name,byte[] bytes){using var entry=zip.CreateEntry(name).Open();entry.Write(bytes);}
         }
-        var page=shell.Page<ConditionalAccessEvaluationViewModel>();page.Refresh();page.UserId=Operator;page.ApplicationId=Tenant;page.SourceFile=file;
+        var page=shell.Page<ConditionalAccessEvaluationViewModel>();page.Refresh();page.UserId=Operator;page.ApplicationId=Id(9704);page.SourceFile=file;
     }
     private static void SeedConditionalAccessPage(ShellViewModel shell)
     {
@@ -35,6 +35,8 @@ internal static partial class Program
         task.GetAwaiter().GetResult();
         if(page.Rows?.Count!=1||!page.Outcome.Contains("Historical",StringComparison.Ordinal)||!page.Rows[0]["Meaning"].ToString()!.Contains("Unknown",StringComparison.Ordinal))
             throw new InvalidOperationException("The native evaluation did not preserve historical/partial/unknown meaning.");
+        if(!page.OriginalReportDetails.Contains("Scenario application ID: "+Tenant,StringComparison.Ordinal)||!page.RequestPreview.Contains(Id(9704),StringComparison.Ordinal))
+            throw new InvalidOperationException("The original scenario A must be visible separately from editable scenario B.");
         if(page.ReadCommand.CanExecute(null)||page.StopCommand.CanExecute(null))throw new InvalidOperationException("Opening synthetic evidence enabled a live read or Stop.");
     }
 }

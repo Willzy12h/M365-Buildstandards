@@ -77,6 +77,7 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
     }
     public string Outcome{get;private set;}="No evaluation attempted. An unavailable result is not an empty successful check.";
     public string LastExport{get;private set;}="";
+    public string OriginalReportDetails{get;private set;}="No original report accepted for this selection.";
     public DataView? Rows{get;private set;}
     public string PendingSummary
     {
@@ -131,10 +132,11 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
         var selection=_selection;
         var table=await Task.Run(()=>
         {
-            var sheet=ConditionalAccessEvaluationDocuments.Sheets(capture).Last();var t=new DataTable();foreach(var header in sheet.Rows[0])t.Columns.Add(header,typeof(string));foreach(var row in sheet.Rows.Skip(1))t.Rows.Add(row.Cast<object>().ToArray());return t.DefaultView;
+            var sheet=ConditionalAccessEvaluationDocuments.Sheets(capture).Last();var t=new DataTable();foreach(var header in sheet.Rows[0])t.Columns.Add(header,typeof(string));foreach(var row in sheet.Rows.Skip(1))t.Rows.Add(row.Cast<object>().ToArray());
+            return (Rows:t.DefaultView,Original:ConditionalAccessEvaluationDocuments.OriginalContext(capture));
         });
         if(_controller.ContextKey!=context||_selection!=selection)throw new TenantMismatchException("The presentation changed during projection; no result was admitted.");
-        _result=capture;_resultContext=context;Rows=table;Notify();
+        _result=capture;_resultContext=context;Rows=table.Rows;OriginalReportDetails=table.Original;Notify();
     }
     public async Task ExportAsync(ExportFormat format)
     {
@@ -149,14 +151,14 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
         var id=_controller.Pending?.Metadata.Id??"";var file=await _controller.RecoverAsync(id,RecoveryAcknowledged,export);
         _recoveryAcknowledged=false;Outcome="Retained original verified at "+file+". Its tenant/account identity was preserved; no new read.";Notify();
     }
-    private void ClearResult(){_result=null;_resultContext="";Rows=null;LastExport="";Outcome="No current-client result. Older saved or retained originals remain separate.";}
+    private void ClearResult(){_result=null;_resultContext="";Rows=null;LastExport="";OriginalReportDetails="No original report accepted for this selection.";Outcome="No current-client result. Older saved or retained originals remain separate.";}
     public override void Refresh()
     {
         var context=_controller.ContextKey;if(context!=_context){_context=context;_selection++;_acknowledged=false;_recoveryAcknowledged=false;ClearResult();}Notify();
     }
     private void Notify()
     {
-        foreach(var name in new[]{nameof(ContextSummary),nameof(ReadGuidance),nameof(RequestPreview),nameof(Acknowledged),nameof(RecoveryAcknowledged),nameof(CanEdit),nameof(HasPending),nameof(Outcome),nameof(LastExport),nameof(Rows),nameof(PendingSummary),nameof(ExportGuidance)})OnPropertyChanged(name);
+        foreach(var name in new[]{nameof(ContextSummary),nameof(ReadGuidance),nameof(RequestPreview),nameof(Acknowledged),nameof(RecoveryAcknowledged),nameof(CanEdit),nameof(HasPending),nameof(Outcome),nameof(LastExport),nameof(OriginalReportDetails),nameof(Rows),nameof(PendingSummary),nameof(ExportGuidance)})OnPropertyChanged(name);
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 }

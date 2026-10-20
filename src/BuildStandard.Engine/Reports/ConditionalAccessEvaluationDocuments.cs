@@ -31,6 +31,12 @@ public static class ConditionalAccessEvaluationDocuments
             row.PolicyApplies is null?"Unknown / not returned":row.PolicyApplies.Value?"true":"false",row.AnalysisReasons??"Unknown / not returned",Meaning(row.Meaning));
         return [metadata,rows];
     }
+    public static string OriginalContext(ConditionalAccessEvaluationCapture capture)
+    {
+        var rows=Sheets(capture)[0].Rows.Skip(1).ToArray();
+        string[] priority=["Evidence admission","Scenario user ID","Scenario application ID","Device platform","Client type","Engineer account ID","Tenant ID","Started at","Completed at","Read status"];
+        return string.Join("\n",rows.OrderBy(row=>{var index=Array.IndexOf(priority,row[0]);return index<0?priority.Length:index;}).Select(row=>row[0]+": "+row[1]));
+    }
     public static string Html(ConditionalAccessEvaluationCapture capture,string companyName)
     {
         var sheets=Sheets(capture);var report=capture.Metadata;

@@ -30,11 +30,13 @@ public sealed class ConditionalAccessEvaluatorTests
         public List<Sent> Sent {get;}=[];
         public Queue<(HttpStatusCode,string)> Responses {get;}=new();
         public Action? AfterResponse;
+        public Func<CancellationToken,Task>? BeforeResponse;
         public Func<HttpContent>? Content;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
         {
             Sent.Add(new(request.Method.Method,request.RequestUri!.AbsoluteUri,await request.Content!.ReadAsStringAsync(ct),request.Headers.Authorization?.ToString()));
             var response=Responses.Count>0?Responses.Dequeue():(HttpStatusCode.OK,ValidResponse);
+            if(BeforeResponse is not null)await BeforeResponse(ct);
             AfterResponse?.Invoke();return new(response.Item1){Content=Content?.Invoke()??new StringContent(response.Item2,Encoding.UTF8,"application/json")};
         }
     }
@@ -129,6 +131,31 @@ public sealed class ConditionalAccessEvaluatorTests
         try{var error=await Assert.ThrowsAsync<GraphRequestException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(1)));Assert.Equal("timeout",error.ErrorCode);}
         finally{release.TrySetResult();try{await pending;}catch(GraphRequestException){}}
         Assert.Empty(f.Handler.Sent);
+    }
+
+    private sealed class PausingStream:MemoryStream
+    {
+        public TaskCompletionSource Started {get;}=new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<int> Release {get;}=new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer,CancellationToken ct=default)
+        {Started.TrySetResult();return new(Release.Task);}
+    }
+    [Fact] public async Task A_body_stream_that_ignores_cancellation_cannot_outlive_the_overall_budget()
+    {
+        var clock=new ConnectAcquisitionBudgetTests.ManualTime();using var f=new Fixture(clock);var body=new PausingStream();f.Handler.Content=()=>new StreamContent(body);
+        var pending=f.Evaluator.EvaluateAsync(Scenario(),CancellationToken.None);await body.Started.Task;clock.Advance(TimeSpan.FromSeconds(121));
+        try{var error=await Assert.ThrowsAsync<GraphRequestException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(1)));Assert.Equal("timeout",error.ErrorCode);}
+        finally{body.Release.TrySetResult(0);try{await pending;}catch(GraphRequestException){}}
+        Assert.Single(f.Handler.Sent);
+    }
+
+    [Fact] public async Task A_headers_read_that_ignores_cancellation_cannot_outlive_the_overall_budget()
+    {
+        var clock=new ConnectAcquisitionBudgetTests.ManualTime();using var f=new Fixture(clock);var started=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        f.Handler.BeforeResponse=async _=>{started.TrySetResult();await release.Task;};var pending=f.Evaluator.EvaluateAsync(Scenario(),CancellationToken.None);await started.Task;clock.Advance(TimeSpan.FromSeconds(121));
+        try{var error=await Assert.ThrowsAsync<GraphRequestException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(1)));Assert.Equal("timeout",error.ErrorCode);}
+        finally{release.TrySetResult();try{await pending;}catch(GraphRequestException){}}
+        Assert.Single(f.Handler.Sent);
     }
 
 }

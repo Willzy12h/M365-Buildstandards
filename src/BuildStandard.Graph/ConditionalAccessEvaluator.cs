@@ -65,16 +65,7 @@ public sealed class ConditionalAccessEvaluator:IDisposable
             for(var attempt=0;attempt<2;attempt++)
             {
                 RequireCurrent();
-                var acquisition=_tokens.GetAccessTokenAsync(attempt==1,operation.Token);
-                string token;
-                try { token=await acquisition.WaitAsync(operation.Token).ConfigureAwait(false); }
-                catch
-                {
-                    // A provider that ignores cancellation may finish later. Observe faults without using a late token.
-                    _=acquisition.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,
-                        TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
-                    throw;
-                }
+                var token=await Bounded(_tokens.GetAccessTokenAsync(attempt==1,operation.Token)).ConfigureAwait(false);
                 RequireCurrent();
                 if(string.IsNullOrWhiteSpace(token)||token.Any(c=>char.IsWhiteSpace(c)||char.IsControl(c)))
                     throw new AuthenticationRequiredException("The current access token is unavailable or malformed. Reconnect deliberately; the report does not sign in or retry.");
@@ -83,18 +74,18 @@ public sealed class ConditionalAccessEvaluator:IDisposable
                 request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
                 // No await or I/O between final identity/cancellation/deadline admission and this fixed send.
                 RequireCurrent();
-                using var response=await _http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,operation.Token).ConfigureAwait(false);
+                using var response=await Bounded(_http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,operation.Token),static r=>r.Dispose()).ConfigureAwait(false);
                 RequireCurrent();
                 if(response.StatusCode==HttpStatusCode.Unauthorized&&attempt==0)continue;
                 if(response.StatusCode!=HttpStatusCode.OK)
                     throw new GraphRequestException((int)response.StatusCode,"POST",Path,"evaluationFailed","Microsoft could not complete the hypothetical evaluation. No automatic retry or tenant change was performed.");
                 if(response.Content.Headers.ContentLength is >ConditionalAccessEvaluationResponseCodec.MaximumBytes)
                     throw new ConfigurationException("The evaluation response exceeds 5 MiB. No complete result is available.");
-                await using var source=await response.Content.ReadAsStreamAsync(operation.Token).ConfigureAwait(false);RequireCurrent();
+                await using var source=await Bounded(response.Content.ReadAsStreamAsync(operation.Token),static s=>s.Dispose()).ConfigureAwait(false);RequireCurrent();
                 using var buffer=new MemoryStream();var chunk=new byte[16*1024];
                 while(true)
                 {
-                    var count=await source.ReadAsync(chunk,operation.Token).ConfigureAwait(false);RequireCurrent();
+                    var count=await Bounded(source.ReadAsync(chunk,operation.Token).AsTask()).ConfigureAwait(false);RequireCurrent();
                     if(count==0)break;
                     if(buffer.Length>ConditionalAccessEvaluationResponseCodec.MaximumBytes-count)
                         throw new ConfigurationException("The evaluation response exceeds 5 MiB. No complete result is available.");
@@ -115,6 +106,21 @@ public sealed class ConditionalAccessEvaluator:IDisposable
         catch(HttpRequestException)
         {throw new GraphRequestException(0,"POST",Path,"transport","The hypothetical evaluation could not be read. No result or tenant change is claimed, and no retry was attempted.");}
 
+        async Task<T> Bounded<T>(Task<T> task,Action<T>? retireLate=null)
+        {
+            try{return await task.WaitAsync(operation.Token).ConfigureAwait(false);}
+            catch
+            {
+                // Package-owned providers/streams should honour cancellation, but the overall budget is
+                // independently bounded. A late response/stream is retired, never admitted or reused.
+                if(retireLate is not null)
+                    _=task.ContinueWith(t=>{try{retireLate(t.Result);}catch(Exception){}},CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnRanToCompletion|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
+                _=task.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
+                throw;
+            }
+        }
         bool Expired()=>deadline.IsCancellationRequested||_clock.GetElapsedTime(timestamp)>=Budget;
         GraphRequestException TimeoutFailure()=>new(0,"POST",Path,"timeout","The 120-second evaluation budget ended. No complete result is available; no automatic retry was attempted.");
         void RequireCurrent()

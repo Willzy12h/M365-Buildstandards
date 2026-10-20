@@ -121,6 +121,14 @@ internal static partial class Program
                         SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
                         RecordAssessmentViewport(content,pageAtSize,size.Height<760);
                     }
+                    if(nav.Key=="ca-evaluation")
+                    {
+                        var original=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Original evaluation scenario identity timestamps and limitations");
+                        original.BringIntoView();content.UpdateLayout();Pump();
+                        var label="ca-evaluation-original-context "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,label);RecordClipping(content,label);RecordLowContrast(content,label);
+                        SaveImage(content,size,Path.Combine(output,"ca-evaluation-original-context-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                    }
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
                     if (nav.Key == "scripts") RecordScriptFormViewport(content, pageAtSize);

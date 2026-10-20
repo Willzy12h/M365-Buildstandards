@@ -46,6 +46,14 @@ public sealed class ConditionalAccessEvaluationPageTests
         await page.ImportAsync();Assert.Contains("Historical",page.Outcome);var rows=Assert.IsType<System.Data.DataView>(page.Rows);Assert.Single(rows.Cast<System.Data.DataRowView>());Assert.Contains("Unknown",rows[0]["Meaning"].ToString());
         await page.ExportAsync(ExportFormat.Html);Assert.True(File.Exists(page.LastExport));Assert.Contains("Historical",File.ReadAllText(page.LastExport));Assert.Equal(0,f.Handler.Calls);Assert.Equal(0,f.Tokens.Calls);
     }
+    [Fact] public async Task Imported_results_show_original_scenario_A_separately_from_editable_scenario_B()
+    {
+        using var f=new ConnectedReportsFixture(connect:false);var page=new ConditionalAccessEvaluationViewModel(new(f.Workspace)){UserId=TestData.Operator,ApplicationId=TestData.TenantB,SourceFile=Original(f)};
+        await page.ImportAsync();Assert.Equal(TestData.TenantB,page.ApplicationId);Assert.Contains(TestData.TenantB,page.RequestPreview);
+        Assert.Contains("Scenario application ID: "+TestData.TenantA,page.OriginalReportDetails);Assert.DoesNotContain("Scenario application ID: "+TestData.TenantB,page.OriginalReportDetails);
+        Assert.Contains("Engineer account ID: "+TestData.Operator,page.OriginalReportDetails);Assert.Contains("2026-10-20T00:00:00.000Z",page.OriginalReportDetails);Assert.Contains("not a real sign-in",page.OriginalReportDetails);
+        Assert.False(page.Acknowledged);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
     [Fact] public async Task A_failed_repeat_import_does_not_leave_the_previous_result_looking_current()
     {
         using var f=new ConnectedReportsFixture(connect:false);var file=Original(f);var page=new ConditionalAccessEvaluationViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();Assert.NotNull(page.Rows);
