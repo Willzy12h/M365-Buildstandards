@@ -72,6 +72,11 @@ function Invoke-BditRunner {
         foreach ($section in @($BditRequest.sections)) { Assert-BditMembers $section @('id', 'columns') }
         foreach ($parameter in @($BditRequest.parameters)) { Assert-BditMembers $parameter @('name', 'type', 'bound', 'payload') }
         if ($BditRequest.maximumRows -isnot [int] -and $BditRequest.maximumRows -isnot [long]) { throw 'rows' }
+        if (($BditRequest.reportSchemaVersion -isnot [int] -and $BditRequest.reportSchemaVersion -isnot [long]) -or $BditRequest.reportSchemaVersion -notin @(1,2)) { throw 'report' }
+        if ($BditRequest.reportSchemaVersion -eq 2) {
+            if ($BditRequest.reportId -cne 'exo-inbox-rules' -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
+            if ((@($BditRequest.sourceCommands) -join ',') -cne 'Get-EXOMailbox,Get-InboxRule') { throw 'source' }
+        }
     }
     catch { Stop-BditRun 'RequestInvalid' }
 
@@ -108,6 +113,18 @@ function Invoke-BditRunner {
         }
     }
     catch { Stop-BditRun 'RequestInvalid' }
+    if ($BditRequest.reportSchemaVersion -eq 2) {
+        try {
+            if ($BditArguments.Count -ne 2 -or $BditArguments['MailboxGuids'] -isnot [string] -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
+            $targetIds = $BditArguments['MailboxGuids'].Split(',')
+            if ($targetIds.Count -lt 1 -or $targetIds.Count -gt 50) { throw 'scope' }
+            $targetSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($target in $targetIds) {
+                if ($target -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $target -ceq '00000000-0000-0000-0000-000000000000' -or -not $targetSet.Add($target)) { throw 'scope' }
+            }
+        }
+        catch { Stop-BditRun 'RequestInvalid' }
+    }
 
     # ---- the body: parsed and checked before anything is imported or signed in -------------------------------------
     $sourceCommands = @($BditRequest.sourceCommands | ForEach-Object { [string]$_ })
@@ -255,10 +272,24 @@ function Invoke-BditRunner {
 
     # ---- the private gate --------------------------------------------------------------------------------------------
     New-Variable -Name BditGate -Option Private -Value (New-Module -Name BditReadGate -ArgumentList @(
-            [guid][string]$BditRequest.tenantId, ([string]$BditRequest.expectedAccountUpn).Trim(), $identity['Get-ConnectionInformation'], $readers, $Stop) -ScriptBlock {
-            param($Tenant, $Account, $Connections, $Readers, $StopFile)
+            [guid][string]$BditRequest.tenantId, ([string]$BditRequest.expectedAccountUpn).Trim(), $identity['Get-ConnectionInformation'], $readers, $Stop,
+            [int]$BditRequest.reportSchemaVersion, [string]$BditRequest.reportId, $BditArguments) -ScriptBlock {
+            param($Tenant, $Account, $Connections, $Readers, $StopFile, $ReportVersion, $ReportId, $ReportArguments)
             $script:Failure = $null
             $script:Observed = $null
+            $script:FamilyVersion = $ReportVersion
+            $script:FamilyReportId = $ReportId
+            $script:FamilyTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyVerifiedTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyIncludeHidden = $false
+            $script:FamilySourceCalls = 0
+            $script:FamilyRowsRead = 0
+            $script:FamilyProjectedBytes = 2
+            $script:FamilyStarted = [Diagnostics.Stopwatch]::StartNew()
+            if ($ReportVersion -eq 2) {
+                foreach ($target in $ReportArguments['MailboxGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) }
+                $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden']
+            }
             # A token is usable only when it is reported Active and its expiry is read as a time after now. A missing, null,
             # malformed or ambiguous status or expiry is never guessed usable. Typed values keep their own meaning: a
             # DateTimeOffset is an instant, a Local DateTime is converted, and an Unspecified DateTime is the documented UTC.
@@ -308,7 +339,7 @@ function Invoke-BditRunner {
             # INT-128 private bounded projection. Only fixed engine-owned callers may supply the producer/fields;
             # this function is not exported to a library body and adds no command or parameter admission.
             function Read-BditBoundedRows {
-                param([scriptblock]$Producer, [string[]]$Properties)
+                param([scriptblock]$Producer, [string[]]$Properties, [bool]$UseSharedBudget = $false, [bool]$CountAsObservation = $false)
                 if ($null -eq $Producer -or $null -eq $Properties -or $Properties.Count -lt 1 -or $Properties.Count -gt 32) { throw 'BDIT-READ-SHAPE' }
                 $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
                 foreach ($name in $Properties) {
@@ -367,6 +398,10 @@ function Invoke-BditRunner {
                     # Detect the sentinel before projections/lookups and before another body-visible array exists.
                     if ($rows.Count -ge 5000) { throw 'BDIT-READ-LIMIT' }
                     Assert-BditGate
+                    if ($CountAsObservation) {
+                        if ($script:FamilyRowsRead -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                        $script:FamilyRowsRead++
+                    }
                     if ($null -eq $_ -or $_ -is [Collections.IDictionary]) { throw 'BDIT-READ-SHAPE' }
                     $projected = [ordered]@{}
                     foreach ($name in $Properties) {
@@ -375,12 +410,59 @@ function Invoke-BditRunner {
                     }
                     # Only already whitelisted, bounded scalar/reference/list values reach JSON sizing. Never raw module objects.
                     $size = $utf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 6 -Compress)) + 1
-                    if ($size -gt (33554432 - $budget.Bytes)) { throw 'BDIT-READ-LIMIT' }
-                    $budget.Bytes += $size
+                    $used = if ($UseSharedBudget) { $script:FamilyProjectedBytes } else { $budget.Bytes }
+                    if ($size -gt (33554432 - $used)) { throw 'BDIT-READ-LIMIT' }
+                    if ($UseSharedBudget) { $script:FamilyProjectedBytes += $size } else { $budget.Bytes += $size }
                     $rows.Add([pscustomobject]$projected)
                 }
                 Assert-BditGate
                 return ,$rows.ToArray()
+            }
+            # Fixed INT-128 source policy, private to this engine-owned module. No body-provided projections,
+            # arbitrary parameter names, unverified child targets or caller-selected ResultSize are admitted.
+            function Read-BditFamilyRows {
+                param([string]$Command, [hashtable]$Parameters)
+                Assert-BditGate
+                if ($script:FamilyReportId -cne 'exo-inbox-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                if ($script:FamilySourceCalls -ge 100 -or $script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                $arguments = @{ ErrorAction = 'Stop' }
+                $observation = $false
+                switch -CaseSensitive ($Command) {
+                    'Get-EXOMailbox' {
+                        if ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        }
+                        $properties = @('ExchangeGuid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress')
+                        $arguments['Identity'] = $Parameters['Identity']
+                        $arguments['Properties'] = $properties
+                    }
+                    'Get-InboxRule' {
+                        if ($Parameters.Count -ne 2 -or -not $Parameters.ContainsKey('Mailbox') -or -not $Parameters.ContainsKey('IncludeHidden') -or
+                            $Parameters['Mailbox'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Mailbox']) -or
+                            -not $script:FamilyVerifiedTargets.Contains($Parameters['Mailbox']) -or $Parameters['IncludeHidden'] -isnot [bool] -or
+                            $Parameters['IncludeHidden'] -ne $script:FamilyIncludeHidden) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($script:FamilyRowsRead -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                        $properties = @('RuleIdentity','Identity','Name','Enabled','Priority','ForwardTo','ForwardAsAttachmentTo','RedirectTo','DeleteMessage','MarkAsRead','StopProcessingRules')
+                        $arguments['Mailbox'] = $Parameters['Mailbox']
+                        $arguments['IncludeHidden'] = $script:FamilyIncludeHidden
+                        $arguments['ResultSize'] = 5001 - $script:FamilyRowsRead
+                        $observation = $true
+                    }
+                    default { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                }
+                $script:FamilySourceCalls++
+                [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
+                $output = Read-BditBoundedRows -Producer { & $Readers[$Command] @arguments } -Properties $properties -UseSharedBudget $true -CountAsObservation $observation
+                if ($script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                if ($Command -ceq 'Get-EXOMailbox' -and $output.Count -eq 1) {
+                    $returned = $output[0].PSObject.Properties['ExchangeGuid']
+                    $actual = [guid]::Empty
+                    if ($null -ne $returned -and ($returned.Value -is [guid] -or $returned.Value -is [string]) -and
+                        [guid]::TryParseExact([string]$returned.Value, 'D', [ref]$actual) -and $actual.ToString('D') -ceq $Parameters['Identity']) {
+                        $null = $script:FamilyVerifiedTargets.Add($Parameters['Identity'])
+                    }
+                }
+                return ,$output
             }
             function Use-BditRead {
                 param([Parameter(Mandatory = $true)][string]$Command, [Parameter(Mandatory = $true)][hashtable]$Parameters)
@@ -392,6 +474,10 @@ function Invoke-BditRunner {
                     if ($key -isnot [string] -or $common -contains $key -or $Parameters[$key] -is [scriptblock]) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 }
                 Assert-BditGate
+                if ($script:FamilyVersion -eq 2) {
+                    $output = Read-BditFamilyRows -Command $Command -Parameters $Parameters
+                    return $output
+                }
                 [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
                 $arguments = @{} + $Parameters
                 $arguments['ErrorAction'] = 'Stop'

@@ -1,0 +1,76 @@
+param([string]$Wrapper,[string]$Case)
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+$tokens=$null;$errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile($Wrapper,[ref]$tokens,[ref]$errors)
+if($errors.Count -ne 0){throw 'Wrapper parse failed'}
+foreach($name in @('Read-BditBoundedRows','Read-BditFamilyRows','Use-BditRead')) {
+    $definition=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name},$true)
+    if($null -ne $definition){. ([scriptblock]::Create($definition.Extent.Text))}
+}
+function Check([bool]$Value,[string]$Message){if(-not $Value){throw $Message}}
+function Assert-BditGate {if($script:BadActor){throw 'BDIT-IDENTITY'}}
+$script:BadActor=$false;$script:Reads=0;$script:Produced=0;$script:LastSize=0;$script:Failure=$null
+$first='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';$second='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+$script:FamilyVersion=2;$script:FamilyReportId='exo-inbox-rules'
+$script:FamilyTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$null=$script:FamilyTargets.Add($first)
+$script:FamilyVerifiedTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$script:FamilyIncludeHidden=$false;$script:FamilySourceCalls=0;$script:FamilyRowsRead=0;$script:FamilyProjectedBytes=2
+$script:FamilyStarted=[Diagnostics.Stopwatch]::StartNew()
+function Get-FakeMailbox {
+    param([string]$Identity,[string[]]$Properties)
+    $script:Reads++
+    $guid=if($Case -ceq 'wrong-object'){$second}else{$Identity}
+    [pscustomobject]@{ExchangeGuid=[guid]$guid;ExternalDirectoryObjectId=$null;DisplayName='Synthetic';PrimarySmtpAddress='mailbox@synthetic.example';Secret='not selected'}
+}
+function Get-FakeRules {
+    param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
+    $script:Reads++;$script:LastSize=$ResultSize
+    $count=if($Case -ceq 'rows'){2}else{1}
+    for($n=0;$n -lt $count;$n++){
+        $script:Produced++
+        [pscustomobject]@{RuleIdentity=('18446744073709551615'+[string]$n);Identity='raw-rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true;Secret='not selected'}
+    }
+}
+$Readers=@{'Get-EXOMailbox'=(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
+function Refused([scriptblock]$Work,[int]$ExpectedReads){
+    $failed=$false;try{$null=& $Work}catch{$failed=$true}
+    Check $failed 'A forbidden/unbounded call was admitted';Check ($script:Reads -eq $ExpectedReads) 'A refused call reached a source reader'
+}
+switch -CaseSensitive ($Case) {
+ 'projection' {
+    $rows=@(Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first})
+    Check ($rows.Count -eq 1) 'Expected one lookup row'
+    Check ($null -eq $rows[0].PSObject.Properties['Secret']) 'Unselected source data escaped'
+    $rules=@(Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false})
+    Check ($rules.Count -eq 1 -and $rules[0].Enabled -is [bool] -and -not $rules[0].Enabled) 'False was lost'
+    Check ($script:LastSize -eq 5001) 'ResultSize is not the gate-owned remaining cap plus sentinel'
+    Check ($script:FamilyRowsRead -eq 1 -and $script:FamilyProjectedBytes -gt 2) 'Shared budgets were not charged'
+    Check ($null -eq $rules[0].PSObject.Properties['Secret']) 'Unselected rule data escaped'
+ }
+ 'wrong-target' {Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$second}} 0}
+ 'unverified-child' {Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 0}
+ 'wrong-object' {
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+ }
+ 'extra-parameter' {Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first;ResultSize='Unlimited'}} 0}
+ 'hidden-scope' {
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$true}} 1
+ }
+ 'rows' {
+    $null=$script:FamilyVerifiedTargets.Add($first);$script:FamilyRowsRead=4999
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+    Check ($script:Produced -eq 2 -and $script:FamilyRowsRead -eq 5000) 'Shared row sentinel was not bounded before materialisation'
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+ }
+ 'bytes' {
+    $null=$script:FamilyVerifiedTargets.Add($first);$script:FamilyProjectedBytes=33554430
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+ }
+ 'calls' {$script:FamilySourceCalls=100;Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}} 0}
+ 'actor' {$script:BadActor=$true;Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}} 0}
+}
+'PASS '+$Case
