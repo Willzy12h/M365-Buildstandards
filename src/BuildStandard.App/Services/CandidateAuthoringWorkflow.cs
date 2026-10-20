@@ -13,6 +13,7 @@ public sealed class CandidateAuthoringWorkflow(Func<PresentationContextKey> cont
     private long _generation;
     private bool _busy;
     public bool HasDraft => _draft is not null;
+    public int UnresolvedCount => _draft?.Unresolved.Count ?? 0;
     public string DraftTitle => _draft?.Title ?? "";
     public string DraftDigest => _draft?.ContentDigest ?? "";
     public CandidateBaseline? Baseline => _draft?.Baseline;

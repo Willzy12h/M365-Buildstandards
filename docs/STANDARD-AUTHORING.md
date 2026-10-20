@@ -2,7 +2,7 @@
 
 Candidate authoring is offline. It does not connect to a tenant, install a catalogue, change historical standard files or publish a release. A candidate is not deployment approval or a verified successor lineage.
 
-The current source provides a shared draft/validation/output engine, a native offline editor and the CLI commands below. Supported policy import is available through the CLI; the native import form is still being implemented. Native validation results must match the candidate source; source implementation alone is not Windows acceptance.
+The current source provides a shared draft/validation/output engine, a native offline editor and the CLI commands below. Supported policy import uses the same engine in the native editor and CLI. Native validation results must match the candidate source; source implementation alone is not Windows acceptance.
 
 ## Native offline editor
 
@@ -24,7 +24,7 @@ The JSON response names a new local draft under `reports`. Its identity includes
 
 The editor's draft model supports existing control recipe settings and reviewable parameter defaults. It does not add controls, collections, permissions, execution routes, licence rules or new template syntax. Foreign references need explicit supported mappings. Conditional Access candidates stay disabled and preserve their exact targeting/exclusions; Intune candidates remain unassigned. macOS remains unsupported and blocked. Edited defaults lose their inherited vendor-review date; editing is not a new vendor review.
 
-Do not hand-edit a saved draft's digest to bypass validation. Policy import is not yet exposed in this editor. Saving an unresolved draft will not make it exportable.
+Do not hand-edit a saved draft's digest to bypass validation. For a supported Intune control, expand **Import a supported policy into this draft**, enter the proposed policy name and choose a policy file. Optionally choose an explicit parameter-mapping JSON file as described below. Import updates only the local draft; it refuses to overwrite existing edits for that control. Review the operation result for unresolved references and assignment uncertainty, then save the draft or validate it. Saving an unresolved draft will not make it exportable.
 
 ## Import a supported policy into a separate draft
 

@@ -17,6 +17,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     private readonly CandidateEditingService _editing;
     private readonly CandidateLocalOutputs _outputs;
     private bool _expanded;
+    private string _importName = "", _mappingFile = "";
     private ControlDefinition? _control;
     private CandidateEditableField? _field;
     private string _value = "", _initialValue = "", _title = "Proposed build standard", _message = "No local draft opened.";
@@ -34,6 +35,17 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
             var dialog = new OpenFileDialog { Filter = "Candidate draft (*.json)|*.json", Title = "Open a local candidate draft" };
             if (dialog.ShowDialog() == true) await OpenAsync(dialog.FileName);
         }, () => Workspace.Idle && !HasUnsavedChanges);
+        ImportPolicyCommand = Command(async () =>
+        {
+            RequireEditable();
+            var dialog = new OpenFileDialog { Filter = "Policy export (*.json)|*.json", Title = "Inspect a supported policy for this candidate control" };
+            if (dialog.ShowDialog() == true) await ImportPolicyAsync(dialog.FileName, ImportName, MappingFile);
+        }, () => CanEdit && SelectedControl is not null && !HasPendingInput && !string.IsNullOrWhiteSpace(ImportName));
+        ChooseMappingCommand = Sync(() =>
+        {
+            var dialog = new OpenFileDialog { Filter = "Parameter mapping (*.json)|*.json", Title = "Choose explicit mappings to existing typed parameters" };
+            if (dialog.ShowDialog() == true) MappingFile = dialog.FileName;
+        }, () => Workspace.Idle);
         LoadFieldsCommand = Command(LoadFieldsAsync, () => CanEdit && SelectedControl is not null && !HasPendingInput);
         ApplyCommand = Command(ApplyAsync, () => CanEdit && SelectedField is not null && HasPendingInput);
         ResetInputCommand = Sync(() => { ValueText = _initialValue; }, () => Workspace.Idle && HasPendingInput);
@@ -42,6 +54,10 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         ExportCandidateCommand = Command(ExportAsync, () => CanEdit && !HasPendingInput && _workflow.Validation is not null);
         DiscardDraftCommand = Sync(Discard, () => Workspace.Idle && (_workflow.HasDraft || HasPendingInput));
     }
+    public ICommand ImportPolicyCommand { get; }
+    public ICommand ChooseMappingCommand { get; }
+    public string ImportName { get => _importName; set => SetProperty(ref _importName, value); }
+    public string MappingFile { get => _mappingFile; set => SetProperty(ref _mappingFile, value); }
     public ICommand NewDraftCommand { get; }
     public ICommand OpenDraftCommand { get; }
     public ICommand LoadFieldsCommand { get; }
@@ -63,6 +79,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         : HasPendingInput ? "Apply the proposed value, or reset it, before selecting another setting, saving or exporting."
         : !_workflow.HasDraft ? "Create a draft from the loaded verified catalogue, or open a saved draft. This is entirely offline."
         : !_workflow.ContextCurrent ? "The working context changed. Save this draft, then reopen it deliberately; comparison and validation have been cleared."
+        : _workflow.UnresolvedCount > 0 ? "This import has unresolved foreign references. Save it for review; validation and export cannot succeed. Prepare explicit mappings and import from an unedited draft. Published standards and assignments remain unchanged."
         : _workflow.Validation is null ? "Edit existing settings, review the comparison, then Validate. Export stays unavailable until validation succeeds. Save preserves a draft; it does not publish or deploy it."
         : "Validated local candidate. Export writes separate catalogue, draft, comparison and checksums. Publication and deployment remain separate reviewed workflows.";
     public string Identity => _workflow.Baseline is { } baseline
@@ -74,7 +91,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         set
         {
             if (HasPendingInput) { Message = "Apply or reset the current input before changing controls."; OnPropertyChanged(); return; }
-            if (SetProperty(ref _control, value)) { Fields.Clear(); SetField(null); }
+            if (SetProperty(ref _control, value)) { Fields.Clear(); SetField(null); ImportName = value?.Payload?["displayName"]?.ToString() ?? value?.Name ?? ""; MappingFile = ""; }
         }
     }
     public CandidateEditableField? SelectedField
@@ -129,6 +146,23 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         _initialValue = _value; await LoadFieldsAsync();
         Message = "Proposed setting applied to this draft only. Validate the complete draft before export.";
     }
+    public async Task ImportPolicyAsync(string file, string name, string? mappingFile = null)
+    {
+        RequireEditable();
+        var control = SelectedControl?.Id ?? throw new ConfigurationException("Select the existing control to import into.");
+        await LocalAsync("Inspecting local policy import", ct => _workflow.EditAsync((draft, token) =>
+        {
+            token.ThrowIfCancellationRequested();
+            var mappings = string.IsNullOrWhiteSpace(mappingFile) ? null : CandidatePolicyImportService.ReadParameterMappings(mappingFile);
+            return new CandidatePolicyImportService(_baselines, _authoring).ImportFile(draft, control, file, name, mappings);
+        }, ct));
+        Fields.Clear(); SetField(null);
+        var result = _workflow.Draft!;
+        Message = $"Policy imported into local draft for {control}. {result.Unresolved.Count} unresolved reference(s). Review and validate before export. Nothing was assigned or published."
+            + "\n" + string.Join("\n", result.Unresolved.Select(u => u.Path + ": " + u.Reason))
+            + "\n" + string.Join("\n", result.AssignmentObservations.Select(a => a.Status + ": " + a.Detail));
+        RaiseAll();
+    }
     public async Task ValidateAsync()
     {
         RequireEditable();
@@ -178,7 +212,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         var draft = _workflow.Draft!; var baseline = await Task.Run(() => _baselines.Load(draft), ct);
         ct.ThrowIfCancellationRequested(); if (!_workflow.ContextCurrent) throw new ConfigurationException("Context changed while loading draft controls.");
         Controls.Clear(); foreach (var control in baseline.Controls.Where(c => c.HasRecipe)) Controls.Add(control);
-        Fields.Clear(); _control = Controls.FirstOrDefault(); SetField(null); RaiseAll();
+        Fields.Clear(); _control = Controls.FirstOrDefault(); ImportName = _control?.Payload?["displayName"]?.ToString() ?? _control?.Name ?? ""; MappingFile = ""; SetField(null); RaiseAll();
     }
     private async Task LocalAsync(string title, Func<CancellationToken, Task> work)
     {

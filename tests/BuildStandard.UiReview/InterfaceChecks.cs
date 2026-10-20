@@ -782,6 +782,8 @@ internal static partial class Program
         ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
         ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("CandidateAuthoringViewModel.ImportPolicyCommand", "local file picker; shared import and native view-model admission covered with synthetic files"),
+        ("CandidateAuthoringViewModel.ChooseMappingCommand", "local file picker; strict mapping reader covered by CLI and engine regressions"),
         ("CandidateAuthoringViewModel.NewDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
         ("CandidateAuthoringViewModel.OpenDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
         ("CandidateAuthoringViewModel.LoadFieldsCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
