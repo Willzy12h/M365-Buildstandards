@@ -1038,3 +1038,7 @@ INT-137 review correction: supplementary GPT contract review of ca64c20 found th
 ## INT-138 — security context and external result meaning (20 October)
 
 Proposed [J contract](SECURITY-CONTEXT-CONTRACT-2026.10.20.md): owner-approved SecurityIncident.Read.All only, fixed bounded created-time report, explicit workload/RBAC/retention limits and no P1-to-P2 inference. Neutral versioned external-results interchange remains untrusted and never native assessment/write/completion authority; no claim of a direct arbitrary Maester JSON adapter. Exact-base control links are reference-only. No runtime/access grant/publication in this decision; reviewed merge precedes dependent implementation.
+
+### INT-138 implementation — neutral external-result admission
+
+Use a distinct immutable source-claim model and strict reader; never route it through the native report-evidence dispatcher as an assessment. The original byte image and its SHA-256 are retained separately from typed display rows. Canonical integrity clears only integrityDigest before hashing; unknown outcome values remain raw and display Unclassified. Required source-state labels preserve partial/failed/cancelled/unknown execution independently of individual passed rows. This first slice has no Graph route, file execution, managed evidence insertion or native/CLI exposure. Later consumers must preserve these admission and provenance boundaries.
