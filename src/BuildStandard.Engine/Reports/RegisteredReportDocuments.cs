@@ -46,7 +46,7 @@ public static class RegisteredReportDocuments
                 .OrderBy(k => definition.ReportSchemaVersion == 2 ? FamilyColumnPriority(section.Id, k)
                     : k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
             var ruleCues = report.ReportId == "exo-inbox-rules" && section.Id == "rules";
-            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? report.ReportId=="exo-transport-rules" && section.Id=="policies" ? "Exchange transport-rule GUID" : "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)).ToList();
+            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? report.ReportId=="exo-transport-rules" && section.Id=="policies" ? "Exchange transport-rule GUID" : "Local observation key (not a service ID)" : "Exchange mailbox GUID" : report.ReportId == "exo-message-trace" ? TraceLabel(c) : Label(c)).ToList();
             if (ruleCues) headings.InsertRange(1, ["Local review cue status", "Local review cues"]);
             var sheet = new Sheet(section.Id, headings);
             foreach (var row in section.Rows)
@@ -70,6 +70,8 @@ public static class RegisteredReportDocuments
         if (column == "id") return 99;
         string[] priority = section switch
         {
+            "traces" => ["recipientAddress", "status", "receivedUtc", "senderAddress", "subject", "readStatus", "error"],
+            "interval-reads" => ["windowIndex", "readStatus", "returnedEntries", "excludedEntries", "requestedResultSize", "startUtc", "endUtc", "error"],
             "permissions" => ["principal", "rights", "readStatus", "permissionKind", "sharingPermissionFlags", "isInherited", "deny", "error"],
             "policies" => ["name", "state", "mode", "priority", "readStatus", "activationDate", "expiryDate", "error"],
             "members" => ["name", "sourceIdentity", "recipientTypeDetails", "primarySmtpAddress", "readStatus", "error"],
@@ -122,6 +124,9 @@ public static class RegisteredReportDocuments
                     + " · excluded entries: " + (read["excludedEntries"] is null ? "Unknown" : Value(read["excludedEntries"]))
                     + (read["error"] is null ? "" : " · " + read["error"]!.GetValue<string>());
             }));
+        if (family && column == "subject" && row[column] is JsonObject { } subject
+            && subject["state"]?.GetValue<string>() == "NotAttempted")
+            return "Not collected — subject collection was not selected.";
         if (family && row[column] is JsonObject observed && observed["state"] is JsonValue)
             return ObservedValue(observed);
         if (row[column] is not null) return Value(row[column]);
@@ -255,6 +260,12 @@ public static class RegisteredReportDocuments
     private static string[] Columns(string reportId, ReportSection section) => GraphReportRegistry.Find(reportId).Sections.Single(s => s.Id == section.Id).RowType
         .GetProperties().Select(p => ToolkitJson.Options.PropertyNamingPolicy!.ConvertName(p.Name)).Distinct(StringComparer.Ordinal)
         .OrderBy(k => k == "name" ? 0 : k == "id" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ThenBy(k => k, StringComparer.Ordinal).ToArray();
+    private static string TraceLabel(string key) => key switch
+    {
+        "size" => "Reported size (raw; unit unverified)", "receivedUtc" => "Received (UTC)", "frozenAtUtc" => "Frozen review (UTC)",
+        "startUtc" => "Window start (UTC)", "endUtc" => "Window end (UTC)", "windowIndex" => "Window index (0-based)",
+        "messageTraceId" => "Service MessageTraceId", "internetMessageId" => "Internet MessageId", _ => Label(key)
+    };
     private static string Label(string key) => key switch
     {
         "id" => "Object ID", "skuId" => "SKU ID", "osVersion" => "OS version", "isMfaRegistered" => "MFA registered",

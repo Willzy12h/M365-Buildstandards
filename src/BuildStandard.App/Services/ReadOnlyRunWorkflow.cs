@@ -42,6 +42,7 @@ public sealed class ReadOnlyRunWorkflow
     private string _runtime = "7";
     private IReadOnlyDictionary<string, string?> _inputs = new ReadOnlyDictionary<string, string?>(new Dictionary<string, string?>());
     private ReadOnlyRunReview? _review;
+    private TraceRunPreparation? _tracePreparation;
     private string? _reviewKey;
     private string _evidenceJson = "";
     // Verified pending bytes outlive current-client presentation, but never authorise a new run.
@@ -154,7 +155,7 @@ public sealed class ReadOnlyRunWorkflow
         if (IsRunning) Cancel();
     }
 
-    private (ScriptEntry Entry, ReadRunContext Context, IReadOnlyList<ReadRunParameter> Parameters) Selection()
+    private (ScriptEntry Entry, ReadRunContext Context, IReadOnlyList<ReadRunParameter> Parameters) Selection(DateTimeOffset? bindingClock = null)
     {
         var (_, _, s) = Live();
         var entry = _catalogue.Find(_selection ?? "");
@@ -163,7 +164,7 @@ public sealed class ReadOnlyRunWorkflow
             || ScriptCatalogue.Sha256(Encoding.ASCII.GetBytes(entry.Script)) != entry.Manifest.ScriptSha256)
             throw new SafetyViolationException("Only a pinned registered schema 2 read-only report and its reviewed runtimes can run.");
         var context = new ReadRunContext(s.TenantId, s.AccountObjectId, s.OperatorUpn);
-        return (entry, context, ScriptReadRequest.Bind(entry, context, _inputs, _clock.UtcNow));
+        return (entry, context, ScriptReadRequest.Bind(entry, context, _inputs, bindingClock ?? _clock.UtcNow));
     }
 
     private string SelectionKey(ScriptEntry entry) => ToolkitJson.Serialize(new { Context = ContextKey(), Selection = _selection, entry, Runtime = _runtime, Inputs = _inputs });
@@ -173,7 +174,9 @@ public sealed class ReadOnlyRunWorkflow
         if (HasPendingEvidence) throw new SafetyViolationException(PendingReason);
         if (IsRunning) throw new SafetyViolationException("Wait for the current run.");
         if (!Enabled) throw new SafetyViolationException(ClosedReason);
-        var (entry, _, parameters) = Selection();
+        ClearReviewAndResult();
+        var preparedAt = _clock.UtcNow;
+        var (entry, context, parameters) = Selection(preparedAt);
         var m = entry.Manifest; var report = ScriptCatalogue.ReportFor(m);
         var text = new StringBuilder(ContextText).Append("\n\nREAD ONLY — no tenant changes. Live behaviour is unverified.\n")
             .Append(m.Name).Append(" (").Append(m.Id).Append(")\nPurpose: ").Append(m.Description)
@@ -185,6 +188,18 @@ public sealed class ReadOnlyRunWorkflow
             .Append("\nSeparate Microsoft Exchange sign-in may request CA/MFA/consent. Graph sign-in does not establish Exchange access.\n")
             .Append("No module installation, policy change, alternate host, automatic retry or tenant write is offered.\n\nExact typed values:\n");
         foreach (var parameter in parameters) text.Append(parameter.Name).Append(" (").Append(parameter.Type).Append("): ").Append(parameter.Value.Length == 0 ? "(not set)" : parameter.Value).Append('\n');
+        if (report.Id == "exo-message-trace")
+        {
+            _tracePreparation = TraceRunPreparation.Prepare(entry, context, parameters, _runtime, preparedAt);
+            var query = _tracePreparation.Query;
+            text.Append("\nFrozen trace review: ").Append(Timestamps.Format(query.FrozenNow))
+                .Append("\nReview expires after300 seconds; running never regenerates the dates or filters.")
+                .Append("\nSubject collection: ").Append(query.IncludeSubject ? "ON — subjects are retained in local evidence" : "off — omitted from retained output")
+                .Append("\nTotal row limit including interval diagnostics: ").Append(query.MaximumRows)
+                .Append("\nExact filter digest: ").Append(query.FilterDigest).Append("\nReviewed UTC windows:\n");
+            foreach (var window in query.Windows) text.Append(Timestamps.Format(window.Start)).Append(" to ").Append(Timestamps.Format(window.End)).Append('\n');
+            if (!query.IsExactTraceQuery || query.IsCurrentDayIncomplete) text.Append("This query remains incomplete for general high-recipient coverage or the current UTC day.\n");
+        }
         text.Append("\nManifest SHA-256: ").Append(entry.ManifestSha256).Append("\nBody SHA-256: ").Append(m.ScriptSha256)
             .Append("\nOwned wrapper SHA-256: ").Append(m.Execution.RunnerTemplateSha256).Append("\nLimitations:\n");
         foreach (var limitation in m.Limitations) text.Append("• ").Append(limitation).Append('\n');
@@ -197,8 +212,22 @@ public sealed class ReadOnlyRunWorkflow
         if (IsRunning) throw new SafetyViolationException("A run is already active.");
         if (HasPendingEvidence) throw new SafetyViolationException(PendingReason);
         if (!Enabled) throw new SafetyViolationException(ClosedReason);
-        var (entry, context, parameters) = Selection();
+        var preparation = _tracePreparation;
+        var (entry, context, parameters) = Selection(preparation?.Query.FrozenNow);
         if (!approved || !ReferenceEquals(review, _review) || _reviewKey != SelectionKey(entry)) throw new SafetyViolationException(ChangedReason);
+        if (ScriptCatalogue.ReportFor(entry.Manifest).Id == "exo-message-trace")
+        {
+            try
+            {
+                if (preparation is null) throw new SafetyViolationException("The trace has no frozen review. Prepare a fresh review.");
+                preparation.RequireMatch(entry, context, parameters, _runtime, _clock.UtcNow);
+                context = context with { TracePreparation = preparation };
+            }
+            catch (ToolkitException)
+            {
+                ClearReviewAndResult(); Message = "The trace review expired or changed. Prepare a fresh exact review; nothing was run."; throw;
+            }
+        }
         var key = _reviewKey; var connection = _enabledConnection;
         // Consume review before invoking any transport, even if the transport refuses or throws.
         ClearReviewAndResult();
@@ -323,7 +352,7 @@ public sealed class ReadOnlyRunWorkflow
         catch (Exception) { Message = SaveFailedReason; }
     }
     private void ClearReviewAndResult()
-    { _review = null; _reviewKey = null; Result = null; Output = ""; _evidenceJson = ""; SavedFile = ""; }
+    { _review = null; _reviewKey = null; _tracePreparation = null; Result = null; Output = ""; _evidenceJson = ""; SavedFile = ""; }
 
     private static string OutcomeText(ReadRunResult result)
     {

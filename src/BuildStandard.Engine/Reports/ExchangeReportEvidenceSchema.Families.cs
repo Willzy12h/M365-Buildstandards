@@ -59,6 +59,7 @@ public static partial class ExchangeReportEvidenceSchema
     }
     private static void ValidateFamilyRow(ExchangeReportRow row,string reportId)
     {
+        if(reportId=="exo-message-trace"){ValidateTraceRow(row);return;}
         if(reportId=="exo-transport-rules"){ValidateTransportRow(row);return;}
         if(reportId=="exo-distribution-groups"){ValidateGroupRow(row);return;}
         if(reportId=="exo-calendar-permissions"){ValidateCalendarRow(row);return;}
@@ -105,6 +106,7 @@ public static partial class ExchangeReportEvidenceSchema
     }
     private static void ValidateFamilyReport(ExchangeReportEvidence evidence)
     {
+        if(evidence.ReportId=="exo-message-trace"){ValidateTraceReport(evidence);return;}
         if(evidence.ReportId=="exo-transport-rules"){ValidateTransportReport(evidence);return;}
         if(evidence.ReportId=="exo-distribution-groups"){ValidateGroupReport(evidence);return;}
         if(evidence.ReportId=="exo-calendar-permissions"){ValidateCalendarReport(evidence);return;}

@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add the sixth approved Exchange family as a separately pinned, experimental message-trace Run adapter: one immutable UTC query review, exact filters/windows, subject collection off by default, source-cap diagnostics, no retry, and retained prior-window evidence on stop/failure. Native review, section tables and shared exports preserve unknowns and raw Size without an invented unit. Windows/package/named acceptance is pending for this source.
+
 - Add a separately pinned experimental transport-rule metadata adapter with selected-GUID or explicit inventory scope, bounded ResultSize/cap diagnostics, original service GUIDs, truthful unknowns and shared native/offline exports. No rule content or changes. Live behaviour and named acceptance remain unverified.
 
 - Exchange group report tables now label original recipient identities and independently returned Entra IDs instead of displaying raw JSON. New-family exact reviews describe the shared total row budget accurately; original evidence is unchanged.

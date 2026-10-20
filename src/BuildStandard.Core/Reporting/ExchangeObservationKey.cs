@@ -41,6 +41,12 @@ public static class ExchangeObservationKey
         string principalNamespace, string principal) =>
         Hash(GuidIdentity(mailboxGuid), Identity(folderIdentity), Identity(principalNamespace), Identity(principal));
 
+    public static string TraceInterval(string startUtc,string endUtc,string filterDigest)
+    {
+        if(filterDigest is not {Length:64}||filterDigest.Any(c=>c is not (>= '0' and <= '9' or >= 'a' and <= 'f')))throw new ConfigurationException("Trace filter digest must be exact lowercase SHA256.");
+        return Hash("exo-message-trace",Identity(startUtc),Identity(endUtc),filterDigest);
+    }
+
     public static string MessageTrace(string traceId, string recipient, string receivedUtc)
     {
         // Keep the original UTC representation; do not invent a timestamp or conflate recipients/Internet MessageId.

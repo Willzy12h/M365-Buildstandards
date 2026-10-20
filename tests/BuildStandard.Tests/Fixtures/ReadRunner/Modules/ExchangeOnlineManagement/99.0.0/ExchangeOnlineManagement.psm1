@@ -281,4 +281,15 @@ function Get-TransportRule {
     }
 }
 
-Export-ModuleMember -Function Get-TransportRule, Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-MessageTraceV2 {
+    param([datetime]$StartDate,[datetime]$EndDate,[int]$ResultSize,[string]$SenderAddress,[string]$RecipientAddress,[string]$MessageId,[string]$MessageTraceId)
+    $script:Reads++
+    Write-FakeLog ('Read Get-MessageTraceV2 Start=' + $StartDate.ToString('o') + ' End=' + $EndDate.ToString('o') + ' ResultSize=' + $ResultSize + ' Trace=' + $MessageTraceId)
+    if ($script:Scenario -ceq 'trace-empty') { return }
+    if ($script:Scenario -ceq 'trace-second-failed' -and $script:Reads -eq 2) { throw 'Synthetic second-window failure' }
+    if ($script:Scenario -ceq 'trace-stop' -and $script:Reads -eq 2) { Start-Sleep -Milliseconds 300 }
+    [pscustomobject]@{MessageTraceId=[guid]'44444444-4444-4444-8444-444444444444';RecipientAddress='recipient@synthetic.example';Received=[datetime]::SpecifyKind($StartDate.AddHours(1),[DateTimeKind]::Utc);
+        SenderAddress='sender@synthetic.example';MessageId='<synthetic@message.invalid>';Status='Delivered';Size=[long]0;Subject='synthetic subject'}
+}
+
+Export-ModuleMember -Function Get-MessageTraceV2, Get-TransportRule, Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

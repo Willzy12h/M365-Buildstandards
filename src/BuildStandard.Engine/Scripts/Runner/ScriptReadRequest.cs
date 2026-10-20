@@ -12,7 +12,10 @@ namespace BuildStandard.Engine.Scripts.Runner;
 /// The verified context a run needs before anything is created: the current tenant, the Graph-verified signed-in account
 /// object ID and that account's confirmed sign-in name. A client profile or historical evidence is not a connection.
 /// </summary>
-public sealed record ReadRunContext(string TenantId, string AccountObjectId, string AccountUpn);
+public sealed record ReadRunContext(string TenantId, string AccountObjectId, string AccountUpn)
+{
+    [System.Text.Json.Serialization.JsonIgnore] public TraceRunPreparation? TracePreparation {get;init;}
+}
 
 /// <summary>One registered parameter: its normalised evidence value and, when it is passed, the payload the wrapper decodes.</summary>
 public sealed record ReadRunParameter(string Name, string Type, string Value, bool Bound, JsonNode? Payload);
@@ -102,6 +105,12 @@ public static class ScriptReadRequest
             ["maximumRows"] = Math.Min(m.Limits.MaximumRows, report.RowLimit),
             ["parameters"] = new JsonArray(parameters.Select(Parameter).ToArray())
         };
+        if(report.Id=="exo-message-trace")
+        {
+            var preparation=context.TracePreparation??throw new SafetyViolationException("Trace request requires its exact frozen preparation.");
+            preparation.RequireBinding(entry,context,parameters);request["traceContext"]=preparation.RequestContext();
+        }
+        else if(context.TracePreparation is not null)throw new SafetyViolationException("A trace preparation cannot be attached to another report family.");
         var bytes = new UTF8Encoding(false).GetBytes(request.ToJsonString());
         if (bytes.Length > ReadRunnerLimits.MaximumRequestBytes) throw new ConfigurationException("The run request is too large.");
         return bytes;

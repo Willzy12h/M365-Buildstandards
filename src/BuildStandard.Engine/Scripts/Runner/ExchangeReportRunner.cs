@@ -78,8 +78,12 @@ public sealed class ExchangeReportRunner
         if (m.SchemaVersion != 2 || m.Mode != ScriptMode.ReadOnly || m.Execution is null)
             throw new ConfigurationException($"{m.Name} is a Copy-only item. Only reviewed schema 2 read-only items can run.");
         var report = ScriptCatalogue.ReportFor(m);
+        var preparation=context.TracePreparation;
+        if((report.Id=="exo-message-trace")!=(preparation is not null))
+            throw new SafetyViolationException("Only a trace run carries its exact frozen trace review. Prepare a fresh review for the selected report.");
         if (!m.SupportedRuntimes.Contains(runtime, StringComparer.Ordinal)) throw new ConfigurationException($"{m.Name} is not reviewed for PowerShell {runtime}.");
         var parameters = ScriptRequestOrThrow(entry, context, inputs);
+        preparation?.RequireMatch(entry,context,parameters,runtime,_clock.UtcNow);
         var runId = Guid.NewGuid().ToString("D");
         var runtimePath = _host.RuntimePath(runtime);
         if (runtimePath is null || !File.Exists(runtimePath))
@@ -118,6 +122,7 @@ public sealed class ExchangeReportRunner
             var markers = new MarkerReader(progress, report.SourceCommands);
             long diagnosticBytes = 0;
             var launchedAt = _clock.UtcNow;
+            preparation?.RequireMatch(entry,context,parameters,runtime,launchedAt);
             // INT-128 report2 families are sampled at the owned process' existing250ms poll interval. This is not
             // an OS hard allocation limit; module-internal peaks between samples can exceed the threshold.
             var memory = new ReadRunnerMemoryLimit(_host.MemorySample);
@@ -146,7 +151,7 @@ public sealed class ExchangeReportRunner
     }
 
     private IReadOnlyList<ReadRunParameter> ScriptRequestOrThrow(ScriptEntry entry, ReadRunContext context, IReadOnlyDictionary<string, string?> inputs) =>
-        ScriptReadRequest.Bind(entry, context, inputs, _clock.UtcNow);
+        ScriptReadRequest.Bind(entry, context, inputs, context.TracePreparation?.Query.FrozenNow ?? _clock.UtcNow);
 
     private static ReadRunResult Decide(string runId, ScriptEntry entry, ExchangeReportRegistry.Definition report, ReadRunContext context,
         IReadOnlyList<ReadRunParameter> parameters, OwnedProcessOutcome outcome, MarkerReader markers, string resultFile,

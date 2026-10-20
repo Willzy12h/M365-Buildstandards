@@ -148,7 +148,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(9, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(10, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));
@@ -522,5 +522,26 @@ public sealed class ReadOnlyRunWorkflowTests
         if (selection == "invalid-bool") f.Workflow.SetSelection(f.Entry.Manifest.Id, "7", new Dictionary<string, string?> { ["IncludeArchive"] = "Start-Process private" });
         if (selection == "unsupported-runtime") f.Workflow.SetSelection(f.Entry.Manifest.Id, "custom/private/pwsh", f.Inputs);
         Assert.ThrowsAny<ToolkitException>(f.Workflow.PrepareReview); Assert.Equal(0, f.Calls);
+    }
+}
+
+public sealed class TraceRunWorkflowTests
+{
+    private static Dictionary<string,string?> Inputs()=>new(){["StartDate"]="2026-10-01",["EndDate"]="2026-10-11",["MessageTraceId"]=TestData.Office,["IncludeSubject"]="false",["MaximumRows"]="100"};
+    [Fact] public async Task Review_freezes_the_actual_context_and_does_not_expand_after_midnight()
+    {
+        using var f=new ReadRunFixture();f.Clock.UtcNow=new(2026,10,11,23,59,0,TimeSpan.Zero);
+        f.Workflow.SetSelection("exo.message-trace-observations","7",Inputs());var review=f.Review();
+        Assert.Contains("Frozen trace review: 2026-10-11T23:59:00.000Z",review.Text);Assert.Contains("Subject collection: off",review.Text);
+        f.Clock.UtcNow=f.Clock.UtcNow.AddMinutes(2);
+        f.Transport=(_,context,_,_)=>{Assert.NotNull(context.TracePreparation);Assert.Equal(new DateTimeOffset(2026,10,11,23,59,0,TimeSpan.Zero),context.TracePreparation.Query.Windows[^1].End);return Task.FromResult(new ReadRunResult(Guid.NewGuid().ToString(),ReadRunOutcome.Failed,"Synthetic no-result transport.",null,false));};
+        await f.Workflow.RunAsync(review,true,null,default);Assert.Equal(1,f.Calls);
+    }
+    [Theory][InlineData(301)][InlineData(-1)]
+    public async Task Stale_or_future_review_is_refused_before_transport_and_requires_a_new_review(int seconds)
+    {
+        using var f=new ReadRunFixture();f.Workflow.SetSelection("exo.message-trace-observations","7",Inputs());var review=f.Review();
+        f.Clock.UtcNow=f.Clock.UtcNow.AddSeconds(seconds);
+        await Assert.ThrowsAnyAsync<ToolkitException>(()=>f.Workflow.RunAsync(review,true,null,default));Assert.Equal(0,f.Calls);Assert.Null(f.Workflow.Review);
     }
 }

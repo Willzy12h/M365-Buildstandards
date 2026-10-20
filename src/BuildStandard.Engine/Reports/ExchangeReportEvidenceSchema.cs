@@ -103,6 +103,11 @@ public static partial class ExchangeReportEvidenceSchema
             throw Bad("Report source commands do not match the registration.");
         Strings(e.Limitations);
         ValidateRowsAndSections(definition, e);
+        if (definition.Id == "exo-message-trace")
+        {
+            var originalClock = e.Sections.Single(section => section.Id == "interval-reads").Rows[0]["frozenAtUtc"]!.GetValue<string>();
+            if (!Utc(originalClock, out var frozen) || frozen > started) throw Bad("The frozen trace review cannot be after collection started.");
+        }
         State(e.Status);
         if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
         if (definition.ReportSchemaVersion == 2) RequireEncodedSize(e, MaximumBytes);
@@ -129,7 +134,7 @@ public static partial class ExchangeReportEvidenceSchema
                 throw Bad("A successful report section cannot conceal a read error.");
             if (section.Error is not null) Text(section.Error);
             if ((section.Status is ReportReadState.Failed or ReportReadState.NotAttempted) && section.Rows.Count != 0
-                && !(definition.ReportSchemaVersion == 2 && section.Id == "target-reads"))
+                && !(definition.ReportSchemaVersion == 2 && (section.Id == "target-reads" || (definition.Id=="exo-message-trace"&&section.Id=="interval-reads"))))
                 throw Bad("Failed or unattempted sections cannot claim collected rows.");
             var schema = definition.Sections.Single(s => s.Id == section.Id);
             var identities = new HashSet<string>(StringComparer.Ordinal);
@@ -144,6 +149,8 @@ public static partial class ExchangeReportEvidenceSchema
                 {
                     row.Id = row switch
                     {
+                        ExchangeTraceIntervalRow interval => ExchangeObservationKey.TraceInterval(interval.StartUtc,interval.EndUtc,interval.FilterDigest),
+                        ExchangeTraceRecipientRow trace => ExchangeObservationKey.MessageTrace(trace.MessageTraceId,trace.RecipientAddress,trace.ReceivedUtc),
                         ExchangeTransportReadRow target => ExchangeObservationKey.TransportRead(target.Scope,target.RequestedRuleGuid),
                         TransportRuleObservationRow rule => rule.RuleGuid,
                         ExchangeGroupTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedGroupGuid),

@@ -25,6 +25,9 @@ public sealed class ExchangeFamilyGateTests
     [Theory][InlineData("raw-owner")][InlineData("unknown-owner")]
     public Task Group_source_shapes_are_pinned_before_schema_admission(string scenario) => RunFixture("Test-GroupProjection.ps1", scenario);
 
+    [Theory][InlineData("valid")][InlineData("subject")][InlineData("arbitrary-date")][InlineData("string-index")][InlineData("skipped-index")][InlineData("foreign-family")][InlineData("replay")][InlineData("failed-replay")]
+    public Task Trace_source_uses_only_the_next_exact_window_and_never_replays(string scenario) => RunFixture("Test-TraceGate.ps1", scenario);
+
     private static async Task RunFixture(string fixture, string scenario)
     {
         var runtime=OperatingSystem.IsWindows()?Path.Combine(Environment.SystemDirectory,"WindowsPowerShell","v1.0","powershell.exe")

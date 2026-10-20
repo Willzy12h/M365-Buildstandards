@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Globalization;
+using BuildStandard.Core.Models;
 namespace BuildStandard.Core.Reporting;
 public sealed record ExchangeTraceWindow(DateTimeOffset Start,DateTimeOffset End);
 /// <summary>Frozen read-only INT-128 message-trace selection. Preparing it performs no service call.</summary>
@@ -52,6 +54,20 @@ public sealed class ExchangeTraceQuery
             FilterDigest = Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
                 new object?[] { sender, recipient, internetMessageId, messageTraceId, includeSubject, maximumRows })))
         };
+    }
+    /// <summary>Strict recorded values, evaluated at their original frozen clock; never today's clock during historical admission.</summary>
+    public static ExchangeTraceQuery Prepare(IReadOnlyList<ExchangeReportParameter> parameters,DateTimeOffset frozen)
+    {
+        string[] names=["StartDate","EndDate","Sender","Recipient","InternetMessageId","MessageTraceId","IncludeSubject","MaximumRows"];
+        string[] types=["Date","Date","Text","Text","Text","Text","Boolean","Integer"];
+        if(parameters.Count!=names.Length||parameters.Any(p=>p is null)||!parameters.Select(p=>p.Name).SequenceEqual(names,StringComparer.Ordinal)||!parameters.Select(p=>p.Type).SequenceEqual(types,StringComparer.Ordinal))
+            throw Bad("Trace parameters must match their exact registered names, types and order.");
+        var p=parameters.Select(parameter=>parameter.Value).ToArray();
+        if(!DateOnly.TryParseExact(p[0],"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out var start)
+            ||!DateOnly.TryParseExact(p[1],"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out var end)
+            ||p[6] is not ("true" or "false")||!int.TryParse(p[7],NumberStyles.None,CultureInfo.InvariantCulture,out var rows)||rows.ToString(CultureInfo.InvariantCulture)!=p[7])
+            throw Bad("Trace dates, subject choice and row limit need exact normalised values.");
+        return Prepare(start,end,frozen,p[2],p[3],p[4],p[5],p[6]=="true",rows);
     }
     private static string? Optional(string? value)
     {

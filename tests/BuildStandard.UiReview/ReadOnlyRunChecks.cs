@@ -53,6 +53,7 @@ internal static partial class Program
                 if (definition.Id == "exo-calendar-permissions") PopulateCalendarNativeFixture(evidence);
                 if (definition.Id == "exo-distribution-groups") PopulateGroupNativeFixture(evidence);
                 if (definition.Id == "exo-transport-rules") PopulateTransportNativeFixture(evidence);
+                if (definition.Id == "exo-message-trace") PopulateTraceNativeFixture(evidence,context);
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
@@ -175,6 +176,27 @@ internal static partial class Program
             if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  transport metadata {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
             RecordUnnamedControls(content,"transport metadata");RecordLowContrast(content,"transport metadata");RecordClipping(content,"transport metadata");
             SaveImage(content,size,Path.Combine(output,"run-reports-transport-metadata-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.message-trace-observations");
+            var traceNow=SystemClock.Instance.UtcNow;
+            page.Fields.Single(field=>field.Name=="StartDate").Value=traceNow.AddDays(-4).ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+            page.Fields.Single(field=>field.Name=="EndDate").Value=traceNow.AddDays(-1).ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+            page.Fields.Single(field=>field.Name=="MessageTraceId").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.Fields.Single(field=>field.Name=="MaximumRows").Value="100";
+            page.PrepareReview();
+            if(!page.ReviewText.Contains("Frozen trace review:",StringComparison.Ordinal)||!page.ReviewText.Contains("Subject collection: off",StringComparison.Ordinal))
+                throw new InvalidOperationException("Trace review omitted the frozen query or subject scope.");
+            page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic trace report did not complete.");Pump();}
+            if(page.OutcomeSections.Count!=2)throw new InvalidOperationException("Native trace lost reviewed interval diagnostics.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="traces");
+            if(page.OutcomeRows?.Count!=1||page.OutcomeRows.Table?.Columns[0].ColumnName!="Recipient address"||page.CanFilterRuleCues
+                ||!page.OutcomeRows[0].Row.ItemArray.Contains("Not collected — subject collection was not selected."))
+                throw new InvalidOperationException("Native trace lost scope, readable ordering or unselected-subject meaning.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  recipient trace {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"recipient trace");RecordLowContrast(content,"recipient trace");RecordClipping(content,"recipient trace");
+            SaveImage(content,size,Path.Combine(output,"run-reports-recipient-trace-"+(int)size.Width+"x"+(int)size.Height+".png"));
 
             populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);
