@@ -190,3 +190,6 @@ Owner acceptance update, 15 October 2026: William’s “Accept and merge all Of
 
 
 | 2026-10-20 | GPT/Codex | M365-Buildstandards | Decision-only INT-133: deliberate optional usage-report access through existing connection/setup/cache flows and safe managed-store/transfer bounds; approved F only | `astra/bs-optional-usage-access` from main5478973 | [#153](https://github.com/Willzy12h/M365-Buildstandards/pull/153) | Merged2d5693e after supplementary independent GPT READY1165cdd; exact-head39465323610 and actual-main39467418339 SUCCESS. Runtime#152 named acceptance remains. |
+
+
+| 2026-10-20 | GPT/Codex | M365-Buildstandards | Decision-only G/INT-134: fixed partner GDAP relationship/access-assignment and service-health context reporting; no runtime or access grant | `astra/bs-partner-health-contract` refreshed from main2d5693e | [#154](https://github.com/Willzy12h/M365-Buildstandards/pull/154) | Claimed. Concrete route/schema/context/bounds/access contract and independent contract feedback must merge before dependent runtime; named implementation reviews remain. No competing F/C implementation. |
