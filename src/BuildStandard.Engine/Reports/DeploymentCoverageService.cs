@@ -6,7 +6,10 @@ using BuildStandard.Core.Safety;
 using BuildStandard.Graph;
 namespace BuildStandard.Engine.Reports;
 
-public sealed record CoverageCapturedSource(string Key,string Path,string Scope,string StartedAt,string CompletedAt,CoverageSourceCapture Capture);
+public sealed record CoverageCapturedSource(string Key,string Path,string Scope,string StartedAt,string CompletedAt,CoverageSourceCapture Capture)
+{
+    public IntuneExportObservation? ModernExport {get;init;}
+}
 public sealed record CoverageCapturedGroup(string GroupObjectId,CoverageMembershipResult Membership);
 public sealed record DeploymentCoverageCapture(DeploymentCoverageSelection Selection,IReadOnlyList<CoverageCapturedSource> Sources,IReadOnlyList<CoverageAssignmentObservation> Assignments,IReadOnlyList<CoverageCapturedGroup> Groups,IReadOnlyList<ComplianceCoverageObservation> ComplianceObservations,string CandidateState,bool IsCurrentAtCompletion,bool SupportedReadsComplete,string Limitations);
 

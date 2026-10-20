@@ -43,6 +43,7 @@ public sealed class CoverageReportSource
     [JsonRequired] public string Detail {get;set;}="";
     [JsonRequired] public List<string> RetainedRowIds {get;set;}=[];
     [JsonRequired] public List<CoverageReportPage> Pages {get;set;}=[];
+    [JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] public CoverageModernExportRecord? ModernExport {get;set;}
 }
 public sealed class DeploymentCoverageReport
 {
@@ -95,6 +96,14 @@ public sealed class DeploymentCoverageEvidence
                 State=source.Capture.State,Detail=source.Capture.Detail,RetainedRowIds=source.Capture.Rows.Select(r=>r["id"]!.GetValue<string>()).ToList()};
             foreach(var bytes in source.Capture.OriginalPages)
             {var name=$"page-{index++:D3}.json";pages.Add(name,bytes);entry.Pages.Add(new(){File=name,Bytes=bytes.Length,Sha256=CanonicalJson.Sha256Hex(bytes)});}
+            if(source.ModernExport is { } modern)
+            {
+                if(modern.TenantId!=s.TenantId||modern.AccountObjectId!=s.AccountObjectId||modern.ClientId!=s.ClientId)throw new TenantMismatchException("The modern original source belongs to another recorded actor/client.");
+                var archive=modern.Archive.OriginalArchiveBytes;const string file="export-000.zip";
+                if(!pages.TryAdd(file,archive))throw Bad("Only the selected control's one modern service-results export is registered.");
+                entry.ModernExport=new(){ReportName=modern.Request.ReportName,RequestSha256=modern.Request.Sha256,JobId=modern.JobId,ArchiveFile=file,
+                    ArchiveBytes=archive.Length,ArchiveSha256=modern.Archive.OriginalArchiveSha256,CsvBytes=modern.Archive.Table.OriginalBytes.Length,CsvSha256=modern.Archive.Table.OriginalSha256,SourceRows=modern.Archive.Table.Rows.Count};
+            }
             report.Sources.Add(entry);
         }
         report.IntegrityDigest=EvidenceIntegrity.Compute(report);
@@ -115,7 +124,8 @@ public sealed class DeploymentCoverageEvidence
             foreach(var page in source.Pages)
                 foreach(var row in CoverageResponseCodec.Read(_pages[page.File],request!).Rows)rows.TryAdd(row["id"]!.GetValue<string>(),row);
             sources.Add(new(source.Key,source.Path,source.Scope,source.StartedAt,source.CompletedAt,
-                new(source.State,source.RetainedRowIds.Select(id=>rows[id]),source.Pages.Select(p=>_pages[p.File]),source.Detail,originalDetail:true)));
+                new(source.State,source.RetainedRowIds.Select(id=>rows[id]),source.Pages.Select(p=>_pages[p.File]),source.Detail,originalDetail:true))
+                {ModernExport=source.ModernExport is { } modern?IntuneExportObservation.ReadHistorical(report,source,_pages[modern.ArchiveFile]):null});
         }
         return sources.AsReadOnly();
     }
@@ -149,7 +159,7 @@ public sealed class DeploymentCoverageEvidence
             if(!r.Sources.Any(s=>s.Key=="object")||!r.Sources.Any(s=>s.Key=="service-results")||scope.Family!=CoverageFamily.ConditionalAccess&&!r.Sources.Any(s=>s.Key=="assignments"))throw Bad("A required read-state entry is absent; omission is not a successful empty read.");
             if(r.AnalysisLimitations is not null)Text(r.AnalysisLimitations,16384);
             if(r.SupportedReadsFinished==true&&(r.WasCurrentAtCompletion!=true||r.Sources.Any(s=>s.State!=CoverageSourceState.Complete)))throw Bad("The recorded overall read completion contradicts original context/source states.");
-            var pageNumber=0;var rowCount=0;var returnedRows=0;var groups=new HashSet<string>(StringComparer.Ordinal);
+            var pageNumber=0;var rowCount=0;var returnedRows=0;var usedFiles=new HashSet<string>(StringComparer.Ordinal);var groups=new HashSet<string>(StringComparer.Ordinal);
             for(var sourceIndex=0;sourceIndex<r.Sources.Count;sourceIndex++)
             {
                 var source=r.Sources[sourceIndex];Text(source.Key,128);if(source.Path is null||source.Scope is null)throw Bad("Original source path/scope cannot be null.");ExactEnum(document.RootElement.GetProperty("sources")[sourceIndex].GetProperty("state"),source.State);
@@ -157,13 +167,26 @@ public sealed class DeploymentCoverageEvidence
                 if(from<start||to<from||to>end)throw Bad("A source interval is outside the original report interval.");
                 var request=Request(scope,source.Key,groups);
                 if(source.Pages is null||source.RetainedRowIds is null||source.RetainedRowIds.Count>5000||source.RetainedRowIds.Any(id=>string.IsNullOrEmpty(id))||source.RetainedRowIds.Distinct(StringComparer.Ordinal).Count()!=source.RetainedRowIds.Count)throw Bad("Malformed retained-row/page inventory.");
+                if(source.ModernExport is { } modern)
+                {
+                    var prepared=IntuneExportRequest.Prepare(scope.Family,scope.ObjectId);
+                    if(source.Key!="service-results"||source.Path!=prepared.Path||source.Scope!=prepared.RequiredScope||source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State is not (CoverageSourceState.Complete or CoverageSourceState.ContextChanged or CoverageSourceState.Partial))throw Bad("Modern source registration/state differs; CSV rows cannot be relabelled as JSON or directory identities.");
+                    if(r.PermissionMode!=SessionMode.Deployment||!r.Scopes.Any(s=>string.Equals(s,prepared.RequiredScope,StringComparison.OrdinalIgnoreCase)||string.Equals(s,"https://graph.microsoft.com/"+prepared.RequiredScope,StringComparison.OrdinalIgnoreCase)))throw Bad("Modern original access/purpose is incompatible with its fixed report scope.");
+                    if(modern.AdapterVersion!="intune-export-csv/1"||modern.ReportName!=prepared.ReportName||modern.RequestSha256!=prepared.Sha256||modern.ArchiveFile!="export-000.zip"||!usedFiles.Add(modern.ArchiveFile)||!pages.TryGetValue(modern.ArchiveFile,out var archive))throw Bad("Unsupported modern adapter/report/request or missing original archive.");
+                    IntuneExportObservation.ValidateJob(modern.JobId,source.StartedAt,source.CompletedAt);
+                    if(archive.Length!=modern.ArchiveBytes||CanonicalJson.Sha256Hex(archive)!=modern.ArchiveSha256)throw new IntegrityException("Original modern archive differs from the recorded bytes/fingerprint.");
+                    var admitted=IntuneExportArchive.Read(archive,prepared);
+                    if(admitted.Table.OriginalBytes.Length!=modern.CsvBytes||admitted.Table.OriginalSha256!=modern.CsvSha256||admitted.Table.Rows.Count!=modern.SourceRows)throw new IntegrityException("The original modern CSV fingerprint, length or raw row inventory differs.");
+                    returnedRows+=admitted.Table.Rows.Count;if(returnedRows>5000)throw Bad("Original returned JSON/CSV rows exceed 5,000; NOT SAVED, not a smaller complete report.");
+                    continue;
+                }
                 if(source.Path.Length==0&&source.Scope.Length==0)
                 {if(source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State==CoverageSourceState.Complete)throw Bad("An unread source cannot contain pages or claim complete.");continue;}
                 if(request is null||source.Path!=request.Path||source.Scope!=request.Scope)throw Bad("A source path/scope differs from its fixed registered relation.");
                 var available=new HashSet<string>(StringComparer.Ordinal);var identities=new HashSet<string>(StringComparer.Ordinal);var allRows=new List<string>();var hasMore=false;var duplicate=false;var pageRequest=request;var pageIndex=0;var paths=new HashSet<string>(StringComparer.Ordinal){request.Path};
                 foreach(var page in source.Pages)
                 {
-                    if(page is null||page.File!=$"page-{pageNumber++:D3}.json"||!pages.TryGetValue(page.File,out var bytes))throw Bad("Original page files are missing, reordered or outside the generated inventory.");
+                    if(page is null||page.File!=$"page-{pageNumber++:D3}.json"||!usedFiles.Add(page.File)||!pages.TryGetValue(page.File,out var bytes))throw Bad("Original page files are missing, reordered or outside the generated inventory.");
                     if(bytes.Length!=page.Bytes||CanonicalJson.Sha256Hex(bytes)!=page.Sha256)throw new IntegrityException("Coverage original page bytes differ from the recorded length/fingerprint.");
                     var decoded=CoverageResponseCodec.Read(bytes,pageRequest);hasMore=decoded.HasMore;
                     returnedRows+=decoded.Rows.Count;if(returnedRows>5000)throw Bad("Original returned rows exceed the 5,000-row capture limit; NOT SAVED rather than a smaller complete report.");
@@ -180,7 +203,7 @@ public sealed class DeploymentCoverageEvidence
                 if(source.State==CoverageSourceState.Complete&&(source.Pages.Count==0||hasMore||duplicate||!allRows.SequenceEqual(source.RetainedRowIds)))throw Bad("A complete source cannot omit rows, contain duplicates or declare an unread further page.");
                 rowCount+=source.RetainedRowIds.Count;if(rowCount>5000)throw Bad("Retained rows exceed the capture-wide bound.");
             }
-            if(pageNumber!=pages.Count)throw Bad("Unexpected original source files cannot be silently dropped.");
+            if(usedFiles.Count!=pages.Count)throw Bad("Unexpected original source files cannot be silently dropped.");
             if(!EvidenceIntegrity.Verify(r,r.IntegrityDigest))throw new IntegrityException("Coverage metadata fingerprint differs from its original fields.");
         }
         catch(JsonException){throw Bad("Unsupported, missing or malformed report fields.");}

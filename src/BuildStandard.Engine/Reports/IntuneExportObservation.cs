@@ -7,14 +7,17 @@ namespace BuildStandard.Engine.Reports;
 /// <summary>Bound original downloaded report. Its raw observations do not prove effective deployment or establish identity joins.</summary>
 public sealed class IntuneExportObservation
 {
+    public string TenantId {get;}
+    public string AccountObjectId {get;}
+    public string ClientId {get;}
     public PreparedIntuneExportRequest Request {get;}
     public string JobId {get;}
     public string StartedAt {get;}
     public string CompletedAt {get;}
     public IntuneExportArchive Archive {get;}
     public bool IsHistorical {get;}
-    private IntuneExportObservation(PreparedIntuneExportRequest request,string jobId,string startedAt,string completedAt,IntuneExportArchive archive,bool historical)
-    {Request=request;JobId=jobId;StartedAt=startedAt;CompletedAt=completedAt;Archive=archive;IsHistorical=historical;}
+    private IntuneExportObservation(string tenant,string account,string client,PreparedIntuneExportRequest request,string jobId,string startedAt,string completedAt,IntuneExportArchive archive,bool historical)
+    {TenantId=tenant;AccountObjectId=account;ClientId=client;Request=request;JobId=jobId;StartedAt=startedAt;CompletedAt=completedAt;Archive=archive;IsHistorical=historical;}
     public static IntuneExportObservation Create(DeploymentCoverageSelection selection,IntuneExportReceipt receipt)
     {
         ArgumentNullException.ThrowIfNull(selection);ArgumentNullException.ThrowIfNull(receipt);
@@ -24,7 +27,13 @@ public sealed class IntuneExportObservation
         if(!Same(selection.TenantId,receipt.TenantId)||!Same(selection.AccountObjectId,receipt.AccountObjectId)||!Same(selection.ClientId,receipt.ClientId)||request.Sha256!=receipt.RequestSha256)
             throw new TenantMismatchException("The returned export actor or exact report request differs from the selected coverage scope. No foreign observation is admitted.");
         ValidateJob(receipt.JobId,receipt.StartedAt,receipt.CompletedAt);
-        return new(request,receipt.JobId,receipt.StartedAt,receipt.CompletedAt,IntuneExportArchive.Read(receipt.OriginalArchiveBytes,request),false);
+        return new(selection.TenantId,selection.AccountObjectId,selection.ClientId,request,receipt.JobId,receipt.StartedAt,receipt.CompletedAt,IntuneExportArchive.Read(receipt.OriginalArchiveBytes,request),false);
+    }
+    internal static IntuneExportObservation ReadHistorical(DeploymentCoverageReport report,CoverageReportSource source,byte[] archive)
+    {
+        var original=source.ModernExport!;var request=IntuneExportRequest.Prepare(report.Selection.Family,report.Selection.ObjectId);
+        ValidateJob(original.JobId,source.StartedAt,source.CompletedAt);
+        return new(report.TenantId,report.AccountObjectId,report.ClientId,request,original.JobId,source.StartedAt,source.CompletedAt,IntuneExportArchive.Read(archive,request),true);
     }
     internal static void ValidateJob(string id,string startedAt,string completedAt)
     {

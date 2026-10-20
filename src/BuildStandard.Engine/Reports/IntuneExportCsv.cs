@@ -19,7 +19,7 @@ public sealed class IntuneExportTable
     internal IntuneExportTable(byte[] bytes,string[] columns,List<IReadOnlyDictionary<string,string>> rows,bool application)
     {
         _bytes=(byte[])bytes.Clone();OriginalSha256=CanonicalJson.Sha256Hex(_bytes);Columns=Array.AsReadOnly((string[])columns.Clone());Rows=rows.AsReadOnly();
-        Limitations="Original CSV text only, not deployment verification or source authentication. Blank/zero/unknown codes are distinct; localised labels do not determine success. "
+        Limitations="Original CSV text only, not deployment verification or source authentication. Blank raw cells have no usable reported value; they are not zero, success or not applicable. Zero/future codes and localised labels do not determine success. "
             +(application?"Application DeviceId has an unestablished report namespace; no managed-device/name/UPN join is made.":"IntuneDeviceId and AadDeviceId retain separate Intune/Entra namespaces; no name/UPN join or proof that every setting took effect.");
     }
 }

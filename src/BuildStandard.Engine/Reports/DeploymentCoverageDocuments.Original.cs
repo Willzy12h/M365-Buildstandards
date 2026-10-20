@@ -23,19 +23,28 @@ public static partial class DeploymentCoverageDocuments
         var states=new Sheet("Source read states",["Source","Read state","Retained rows","Original interval","Read meaning","Detail"]);
         var raw=new Sheet("Admitted source observations",["Source","Raw row identity","Property","Original value","Read state","Meaning"]);
         var pages=new Sheet("Original source pages",["Source","File","Original SHA-256 (not a signature)","Bytes","Registered path"]);
+        var modernSheets=new List<Sheet>();
         foreach(var source in evidence.Sources())
         {
             var rows=source.Capture.Rows;
-            var meaning=rows.Count==0?(source.Capture.State==CoverageSourceState.Complete?"Checked successfully; no source rows returned":"Not established — no admitted rows; this is not an empty success"):"Retained source observations; not proof of effective deployment";
-            states.Add(source.Key,source.Capture.State,rows.Count,source.StartedAt+" to "+source.CompletedAt,meaning,source.Capture.Detail);
+            var count=source.ModernExport?.Archive.Table.Rows.Count??rows.Count;
+            var meaning=count==0?(source.Capture.State==CoverageSourceState.Complete?"Checked successfully; no source rows returned":"Not established — no admitted rows; this is not an empty success"):"Retained source observations; not proof of effective deployment";
+            states.Add(source.Key,source.Capture.State,count,source.StartedAt+" to "+source.CompletedAt,meaning,source.Capture.Detail);
             foreach(var row in rows)foreach(var property in row)
                 raw.Add(source.Key,row["id"]!.GetValue<string>(),property.Key,Value(property.Value),source.Capture.State,"Raw source namespaces/statuses retained; no name, UPN or device-ID join and no effect inferred");
             foreach(var page in r.Sources.Single(x=>x.Key==source.Key).Pages)pages.Add(source.Key,page.File,page.Sha256,page.Bytes,source.Path);
+            if(source.ModernExport is { } modern)
+            {
+                context.Add("Original modern report",modern.Request.ReportName);context.Add("Original modern job ID",modern.JobId);context.Add("Modern source meaning",modern.Archive.Table.Limitations);
+                context.Add("Original modern CSV SHA-256",modern.Archive.Table.OriginalSha256);
+                pages.Add(source.Key,"export-000.zip",modern.Archive.OriginalArchiveSha256,modern.Archive.OriginalArchiveBytes.Length,source.Path);
+                modernSheets.Add(ModernRows(modern));
+            }
         }
         var pilot=new Sheet("Selected pilot",["Identity namespace","Original object ID","Meaning"]);
         foreach(var id in s.PilotUserObjectIds)pilot.Add("Directory user object ID",id,"Report scope only; not assignment approval");
         foreach(var id in s.PilotDirectoryDeviceObjectIds)pilot.Add("Directory device object ID (not an Intune managed-device ID)",id,"Report scope only; no device namespace guess");
-        return new[]{context,states,pilot,pages,raw};
+        return new[]{context,states,pilot,pages,raw}.Concat(modernSheets).ToArray();
     }
     public static string Html(DeploymentCoverageEvidence evidence,string companyName)
     {
@@ -43,5 +52,12 @@ public static partial class DeploymentCoverageDocuments
         html.Append("<p class=\"notice\">Historical or unsigned observations, not proof of effective protection. This document does not refresh the tenant. Unknown is not false, zero or successful verification.</p>");
         foreach(var sheet in Sheets(evidence)){html.Append("<h2>").Append(WebUtility.HtmlEncode(sheet.Name)).Append("</h2>");RegisteredReportDocuments.Table(html,sheet);}
         return html.Append("</body></html>").ToString();
+    }
+    private static Sheet ModernRows(IntuneExportObservation observation)
+    {
+        var table=observation.Archive.Table;
+        var sheet=new Sheet("Modern Intune source rows",new[]{"Original CSV row (local order only, not a Microsoft object ID)"}.Concat(table.Columns).ToArray());
+        for(var i=0;i<table.Rows.Count;i++)sheet.Add(new object?[]{i+1}.Concat(table.Columns.Select(c=>(object?)table.Rows[i][c])).ToArray());
+        return sheet;
     }
 }

@@ -33,7 +33,7 @@ public static class DeploymentCoverageBundle
             {
                 var name=entry.FullName;var mode=(entry.ExternalAttributes>>16)&0xF000;
                 if(!names.Add(name)||mode is not (0 or 0x8000)||(entry.ExternalAttributes&0x10)!=0)throw Bad();
-                if(name!="metadata.json"&&name!="NOTICE.txt"&&!(name.Length==13&&name.StartsWith("page-0",StringComparison.Ordinal)&&char.IsAsciiDigit(name[6])&&char.IsAsciiDigit(name[7])&&name.EndsWith(".json",StringComparison.Ordinal)))throw Bad();
+                if(name!="metadata.json"&&name!="NOTICE.txt"&&name!="export-000.zip"&&!(name.Length==13&&name.StartsWith("page-0",StringComparison.Ordinal)&&char.IsAsciiDigit(name[6])&&char.IsAsciiDigit(name[7])&&name.EndsWith(".json",StringComparison.Ordinal)))throw Bad();
                 var bound=name=="NOTICE.txt"?1024:remaining;
                 if(entry.Length is <=0||entry.Length>bound)throw Bad();
                 using var stream=entry.Open();var content=ReadBounded(stream,bound);

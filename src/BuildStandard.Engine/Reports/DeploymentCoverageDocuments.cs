@@ -13,7 +13,7 @@ public static partial class DeploymentCoverageDocuments
         var pages=new Sheet("Original source pages",["Source","Page","Original SHA-256 (not a signature)","Bytes","Registered path","Read state"]);
         foreach(var source in capture.Sources)
         {
-            var count=source.Capture.Rows.Count;
+            var count=source.ModernExport?.Archive.Table.Rows.Count??source.Capture.Rows.Count;
             var meaning=count==0?(source.Capture.State==CoverageSourceState.Complete?"Checked successfully; no source rows returned":"Not established — no admitted rows; this is not an empty success"):"Retained source rows; inspect read state and limitations";
             sources.Add(source.Key,source.Capture.State,count,source.StartedAt+" to "+source.CompletedAt,meaning,source.Capture.Detail);
             var originals=source.Capture.OriginalPages;
@@ -45,7 +45,10 @@ public static partial class DeploymentCoverageDocuments
         sheets.Add(populations);sheets.Add(members);sheets.Add(pilotGroups);
         var results=new Sheet("Service observations",["Policy report-row ID (not a managed-device ID)","Reported display name (not a join)","Raw service status","Raw service time","Observation","Freshness","Identity limitation","Detail"]);
         foreach(var row in capture.ComplianceObservations)results.Add(Raw(row.ReportRowId),Raw(row.DeviceDisplayName),Raw(row.RawStatus),Raw(row.RawReportedAt),row.Observation,row.Freshness,row.IdentityMeaning,row.Detail);
-        sheets.Add(results);return sheets;
+        sheets.Add(results);
+        foreach(var source in capture.Sources)if(source.ModernExport is { } modern)
+        {sheets[0].Add("Original modern report",modern.Request.ReportName);sheets[0].Add("Original modern job ID",modern.JobId);sheets[0].Add("Modern source meaning",modern.Archive.Table.Limitations);sheets.Add(ModernRows(modern));}
+        return sheets;
     }
     public static string Html(DeploymentCoverageCapture capture,string companyName)
     {

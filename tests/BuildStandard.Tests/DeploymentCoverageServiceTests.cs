@@ -10,7 +10,7 @@ public sealed class DeploymentCoverageServiceTests
 {
     internal sealed class Fixture
     {
-        public DeploymentCoverageSelectionTests.Fixture Data {get;}=new();
+        public DeploymentCoverageSelectionTests.Fixture Data {get;}
         public List<string> Reads {get;}=[];
         public bool Current=true;
         public Func<PreparedCoverageRead,CancellationToken,Task<CoverageReadResponse>>? Override;
@@ -24,7 +24,7 @@ public sealed class DeploymentCoverageServiceTests
             return Task.FromResult(CoverageResponseCodec.Read(Encoding.UTF8.GetBytes(body),request));
         }
         public Task<DeploymentCoverageCapture> Capture(CancellationToken ct=default)=>new DeploymentCoverageService().CaptureAsync(Data.Prepare(),Data.Session,Read,()=>Current,ct);
-        public Fixture(){Data.Session.Scopes.Add("Group.Read.All");}
+        public Fixture(CoverageFamily family=CoverageFamily.ClassicCompliance){Data=new(family);Data.Session.Scopes.Add("Group.Read.All");}
         public void GroupAssignment()=>Assignments="{\"value\":[{\"id\":\"a1\",\"target\":{\"@odata.type\":\"#microsoft.graph.groupAssignmentTarget\",\"groupId\":\""+TestData.Emergency+"\",\"deviceAndAppManagementAssignmentFilterType\":\"none\",\"deviceAndAppManagementAssignmentFilterId\":null}}]}";
     }
     [Fact] public async Task Selected_compliance_report_collects_fixed_sources_and_keeps_service_rows_separate_from_membership()
