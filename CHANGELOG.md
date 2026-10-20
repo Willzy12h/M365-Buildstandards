@@ -1,6 +1,26 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add the sixth approved Exchange family as a separately pinned, experimental message-trace Run adapter: one immutable UTC query review, exact filters/windows, subject collection off by default, source-cap diagnostics, no retry, and retained prior-window evidence on stop/failure. Native review, section tables and shared exports preserve unknowns and raw Size without an invented unit. Windows/package/named acceptance is pending for this source.
+
+- Add a separately pinned experimental transport-rule metadata adapter with selected-GUID or explicit inventory scope, bounded ResultSize/cap diagnostics, original service GUIDs, truthful unknowns and shared native/offline exports. No rule content or changes. Live behaviour and named acceptance remain unverified.
+
+- Exchange group report tables now label original recipient identities and independently returned Entra IDs instead of displaying raw JSON. New-family exact reviews describe the shared total row budget accurately; original evidence is unchanged.
+
+
+- Add separate experimental/default-off read-only Run adapters for selected inbox rules, mailbox permission sources, unique default-calendar ACL observations and direct distribution-group membership. Preserve original manual scripts, localised folder paths, raw principal namespaces and explicit unknown/partial source outcomes; no effective-access or deployment-evidence claim. Native sections and original exports share existing report projections. Windows/native/package acceptance remains separately recorded.
+
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
+
+- Prepare exact registered multi-section report2 descriptors while preserving old flat manifests. Metadata alone cannot start an unshipped adapter; target forms validate all50 explicit GUIDs before preparation. No new runnable report2 item is enabled yet.
+
+- Add offline `exchange-report-evidence` HTML/CSV/Excel/original-JSON exports with strict supplied-file admission, original hashes and unverified-source notices. It performs no authentication, collection or tenant-evidence mutation.
+
+- Add strict inbox-rule/target-read report2 evidence and local-key labelling, preserving opaque rule IDs, explicit unknown values and failed parent reads. Shared native/export presentation distinguishes reported false/zero/empty lists from null, missing, failed and unresolved references; hostile text remains escaped. This reader does not yet enable a runnable inbox-rule registration.
+
+- Exchange report2 preparation: private bounded source projection and owned-host resource sampling preserve unknown/null/empty distinctions and stop unbounded accumulation. New report families remain unavailable until their typed registrations and gate wiring are complete; existing report1 bodies are preserved.
+
+- Exchange-report foundations: explicit per-registration schema/adapter admission and deterministic typed observation keys preserve old report semantics while preparing the approved composite-identity families. No new runnable registration is enabled by this slice.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
 
@@ -53,6 +73,13 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+
+- Preserve readable outcome/table space for multi-section reports; section and cue filters remain display-only.
+- Add strict offline mailbox-permission evidence with separate source diagnostics and the approved explicit permission-selection rule; the separate permission Run adapter is experimental and live-unverified.
+
+- Add a separately pinned, experimental selected-mailbox inbox-rule observation adapter with per-value unknown states and target diagnostics; remaining Exchange families and native section integration are still in progress.
+
+- Correct new Exchange report row budgets to include target diagnostics and enforce lower manifest limits before source enumeration; original report bodies remain unchanged.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 

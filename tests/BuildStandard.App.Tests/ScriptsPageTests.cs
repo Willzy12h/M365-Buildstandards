@@ -84,8 +84,9 @@ public sealed class ScriptsPageTests : IDisposable
     {
         FillMessageTrace();
         _page.SearchText = "message trace";
-        Assert.Equal(ScriptCatalogue.Shipped.Search("message trace").Select(e => e.Manifest.Id).OrderBy(x => x), _page.Items.Select(i => i.Id).OrderBy(x => x));
+        Assert.Equal(ScriptCatalogue.Shipped.Search("message trace").Where(e => e.Manifest.SchemaVersion == 1).Select(e => e.Manifest.Id).OrderBy(x => x), _page.Items.Select(i => i.Id).OrderBy(x => x));
         Assert.Contains(_page.Items, i => i.Id == "exo.message-trace");
+        Assert.DoesNotContain(_page.Items, i => i.Id == "exo.message-trace-observations");
         Assert.Equal("exo.message-trace", _page.Selected?.Id);
         Assert.Equal("alex@example.com", _page.Field("RecipientAddress").Value);
 

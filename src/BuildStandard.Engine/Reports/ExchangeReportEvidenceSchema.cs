@@ -17,7 +17,7 @@ namespace BuildStandard.Engine.Reports;
 /// rule with Graph report evidence but is a separate kind: neither reader accepts the other's records, and neither is a
 /// configuration capture. Registered row schemas mean raw module output cannot be imported as a report.
 /// </summary>
-public static class ExchangeReportEvidenceSchema
+public static partial class ExchangeReportEvidenceSchema
 {
     public const int MaximumBytes = 32 * 1024 * 1024;
     private const int MaximumTextLength = 4096;
@@ -64,18 +64,19 @@ public static class ExchangeReportEvidenceSchema
 
     public static void Seal(ExchangeReportEvidence evidence)
     {
+        if (evidence.ReportSchemaVersion == 2) RequireEncodedSize(evidence, MaximumBytes - 64);
         evidence.IntegrityDigest = EvidenceIntegrity.Compute(evidence);
         Validate(evidence, evidence.TenantId);
     }
 
     public static void Validate(ExchangeReportEvidence e, string expectedTenantId)
     {
-        if (e.SchemaVersion != 1 || e.Kind != "exchangeReportEvidence" || e.ReportSchemaVersion != 1)
+        if (e.SchemaVersion != 1 || e.Kind != "exchangeReportEvidence")
             throw Bad("Unsupported Exchange report evidence kind or schema.");
         CanonicalGuid(e.Id); CanonicalGuid(e.RunId); CanonicalGuid(e.TenantId);
         if (!ReportValues.TryGuid(expectedTenantId, out var expected) || !string.Equals(e.TenantId, expected, StringComparison.Ordinal))
             throw new TenantMismatchException("Exchange report evidence belongs to another tenant.");
-        var definition = ExchangeReportRegistry.Find(e.ReportId);
+        var definition = ExchangeReportRegistry.Find(e.ReportId, e.ReportSchemaVersion, e.AdapterVersion);
         if (!string.Equals(e.Resource, definition.Resource, StringComparison.Ordinal))
             throw Bad("The evidence resource does not match the registered adapter.");
         switch (e.SourceMode)
@@ -93,8 +94,6 @@ public static class ExchangeReportEvidenceSchema
         }
         if (!Utc(e.StartedAt, out var started) || !Utc(e.EndedAt, out var ended) || ended < started)
             throw Bad("The report collection interval is invalid.");
-        if (!string.Equals(e.AdapterVersion, ExchangeReportRegistry.AdapterVersion, StringComparison.Ordinal))
-            throw Bad("The report adapter version is not registered.");
         foreach (var version in new[] { e.ToolkitVersion, e.ModuleVersion, e.RuntimeVersion })
             if (string.IsNullOrWhiteSpace(version) || version.Length > 128 || version.Any(char.IsControl)) throw Bad("Missing report tool, module or runtime provenance.");
         foreach (var digest in new[] { e.ScriptSha256, e.ManifestSha256, e.RunnerTemplateSha256 })
@@ -103,6 +102,23 @@ public static class ExchangeReportEvidenceSchema
         if (e.SourceCommands is null || !e.SourceCommands.SequenceEqual(definition.SourceCommands, StringComparer.Ordinal))
             throw Bad("Report source commands do not match the registration.");
         Strings(e.Limitations);
+        ValidateRowsAndSections(definition, e);
+        if (definition.Id == "exo-message-trace")
+        {
+            var originalClock = e.Sections.Single(section => section.Id == "interval-reads").Rows[0]["frozenAtUtc"]!.GetValue<string>();
+            if (!Utc(originalClock, out var frozen) || frozen > started) throw Bad("The frozen trace review cannot be after collection started.");
+        }
+        State(e.Status);
+        if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
+        if (definition.ReportSchemaVersion == 2) RequireEncodedSize(e, MaximumBytes);
+        if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
+            throw Bad("Exchange report evidence failed its integrity check. Digests detect change; they do not authenticate source claims.");
+    }
+
+    // Stored/imported readers never normalise IDs. Only exact actor-bound report2 child admission uses this option.
+    private static void ValidateRowsAndSections(ExchangeReportRegistry.Definition definition, ExchangeReportEvidence e,
+        bool normaliseChildKeys = false)
+    {
         if (e.Sections is null || e.Sections.Count != definition.Sections.Count || e.Sections.Any(s => s is null)
             || !e.Sections.Select(s => s.Id).SequenceEqual(definition.Sections.Select(s => s.Id), StringComparer.Ordinal))
             throw Bad("Missing, duplicated or unrelated report sections.");
@@ -110,26 +126,56 @@ public static class ExchangeReportEvidenceSchema
         foreach (var section in e.Sections)
         {
             State(section.Status); Strings(section.Limitations);
-            if (section.Rows is null || section.Rows.Count > ExchangeReportRegistry.MaximumRows || section.Rows.Any(r => r is null))
+            if (section.Rows is null || section.Rows.Count > definition.RowLimit || section.Rows.Any(r => r is null))
                 throw Bad("Invalid or excessive report rows.");
             if (section.Status != ReportReadState.Collected && string.IsNullOrWhiteSpace(section.Error))
                 throw Bad("Unsuccessful or partial report sections require an explicit reason.");
             if (section.Status == ReportReadState.Collected && section.Error is not null)
                 throw Bad("A successful report section cannot conceal a read error.");
             if (section.Error is not null) Text(section.Error);
-            if (section.Status is ReportReadState.Failed or ReportReadState.NotAttempted && section.Rows.Count != 0)
+            if ((section.Status is ReportReadState.Failed or ReportReadState.NotAttempted) && section.Rows.Count != 0
+                && !(definition.ReportSchemaVersion == 2 && (section.Id == "target-reads" || (definition.Id=="exo-message-trace"&&section.Id=="interval-reads"))))
                 throw Bad("Failed or unattempted sections cannot claim collected rows.");
             var schema = definition.Sections.Single(s => s.Id == section.Id);
             var identities = new HashSet<string>(StringComparer.Ordinal);
             foreach (var node in section.Rows)
             {
+                if (normaliseChildKeys && (!node.ContainsKey("id") || node["id"] is not null))
+                    throw Bad("A report2 child must supply explicit-null local ID; only the parent computes observation keys.");
                 ExchangeReportRow row;
                 try { row = (ExchangeReportRow)(JsonSerializer.Deserialize(node.ToJsonString(), schema.RowType, Strict) ?? throw Bad("Empty report row.")); }
                 catch (JsonException ex) { throw Bad("Invalid registered report row: " + ex.Message); }
+                if (normaliseChildKeys)
+                {
+                    row.Id = row switch
+                    {
+                        ExchangeTraceIntervalRow interval => ExchangeObservationKey.TraceInterval(interval.StartUtc,interval.EndUtc,interval.FilterDigest),
+                        ExchangeTraceRecipientRow trace => ExchangeObservationKey.MessageTrace(trace.MessageTraceId,trace.RecipientAddress,trace.ReceivedUtc),
+                        ExchangeTransportReadRow target => ExchangeObservationKey.TransportRead(target.Scope,target.RequestedRuleGuid),
+                        TransportRuleObservationRow rule => rule.RuleGuid,
+                        ExchangeGroupTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedGroupGuid),
+                        ExchangeGroupMemberRow member => GroupKey(member),
+                        ExchangeCalendarTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        CalendarPermissionObservationRow permission => CalendarKey(permission),
+                        ExchangePermissionTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        MailboxPermissionObservationRow permission => PermissionKey(permission),
+                        ExchangeTargetReadRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        InboxRuleObservationRow rule => ExchangeObservationKey.InboxRule(rule.MailboxExchangeGuid, rule.RuleIdentity),
+                        _ => throw Bad("No parent observation-key encoder is registered for this family row.")
+                    };
+                    node["id"] = row.Id;
+                }
                 State(row.ReadStatus);
-                if (row.Id is not null && (!ReportValues.IsCanonicalGuid(row.Id) || !identities.Add(row.Id)))
+                if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 || (definition.Id=="exo-transport-rules" && schema.RowType==typeof(TransportRuleObservationRow)) ? ReportValues.IsCanonicalGuid(row.Id)
+                    : row.Id.StartsWith("sha256:",StringComparison.Ordinal) && IsSha256(row.Id[7..])) || !identities.Add(row.Id)))
                     throw Bad("Duplicate, malformed or empty report identity.");
-                if (row.Name is not null) Value(row.Name);
+                if (row.Name is not null)
+                {
+                    if (definition.ReportSchemaVersion == 1) Value(row.Name);
+                    // A friendly label is not source identity. A reported blank name can accompany an exact rule ID.
+                    else if (row.Name.Length > 1024 || row.Name.Any(char.IsControl))
+                        throw Bad("A reported family name exceeds1,024 characters or contains control characters.");
+                }
                 if (row.Error is not null) Text(row.Error);
                 if (row.ReadStatus == ReportReadState.Collected && (row.Id is null || row.Error is not null))
                     throw Bad("A successful row needs exact identity and no hidden error.");
@@ -137,14 +183,12 @@ public static class ExchangeReportEvidenceSchema
                     throw Bad("An unsuccessful or partial row needs a reason.");
                 if (section.Status == ReportReadState.Collected && row.ReadStatus != ReportReadState.Collected)
                     throw Bad("Incomplete rows cannot become a successful section.");
-                if (row is MailboxReportRow mailbox) ValidateMailbox(mailbox, includeArchive);
+                if (definition.ReportSchemaVersion == 2) ValidateFamilyRow(row, definition.Id);
+                else if (row is MailboxReportRow mailbox) ValidateMailbox(mailbox, includeArchive);
                 else ValidateSettings(row);
             }
         }
-        State(e.Status);
-        if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
-        if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
-            throw Bad("Exchange report evidence failed its integrity check. Digests detect change; they do not authenticate source claims.");
+        if(definition.ReportSchemaVersion == 2) ValidateFamilyReport(e);
     }
 
     /// <summary>

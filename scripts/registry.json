@@ -9,6 +9,13 @@
       "manifestSchemaVersion": 1
     },
     {
+      "id": "exo.calendar-permission-observations",
+      "manifest": "exchange-online/Get-CalendarPermissionObservations.json",
+      "manifestSha256": "6eb9259b63ff6d25d83feaf38e3ab3d9a60245c20cb9457c1b588477df0d4dbf",
+      "scriptSha256": "4f6ad053d171e0584bc25abddac80febc671ad7ab192510058721ca8038fdb62",
+      "manifestSchemaVersion": 2
+    },
+    {
       "id": "exo.calendar-permissions",
       "manifest": "exchange-online/Get-CalendarPermissionReport.json",
       "manifestSha256": "0e2581b840371066d86a7797d769ed44ec6461d38f0f24b8d77c490011124aa7",
@@ -21,6 +28,13 @@
       "manifestSha256": "48e72e48fe32470709d89f972cdee31ff53ccc4c6ab28493b4efcf9b0aa22c9a",
       "scriptSha256": "e49141e0a1a331ff8d6bccce3ff3a9d8d8e2c4c5a9935c810e25ace0097fb955",
       "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.distribution-group-observations",
+      "manifest": "exchange-online/Get-DistributionGroupObservations.json",
+      "manifestSha256": "411b441c88d666e96312f73210a896fd14188e2b1b45f5b5eff3c7cb623be2a0",
+      "scriptSha256": "69c67bc49f28a6c89af53f78a0e6fe38f09ab84c109761174f179ad7d9af702e",
+      "manifestSchemaVersion": 2
     },
     {
       "id": "exo.domains-dkim",
@@ -42,6 +56,13 @@
       "manifestSha256": "b88f2b0c4c0b560069b14b9c766493ccd77134c3c2c6ce236843791ff727ce15",
       "scriptSha256": "218585070d3afe0add734e0eedde850aac0a39645e02afd89ef60549c657a063",
       "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.inbox-rule-observations",
+      "manifest": "exchange-online/Get-InboxRuleObservations.json",
+      "manifestSha256": "3854d3e8a003ab6345c4c1466450fc0878425bee41b7115359ad1d52586dd784",
+      "scriptSha256": "2e8d1d3fa55600d4313dafa1c42a6710acfa1bab6abfbc561de8282b94e7fa40",
+      "manifestSchemaVersion": 2
     },
     {
       "id": "exo.inbox-rules",
@@ -74,7 +95,7 @@
     {
       "id": "exo.mailbox-forwarding-settings",
       "manifest": "exchange-online/Get-MailboxForwardingSettings.json",
-      "manifestSha256": "ce8314b4c98a60d92c164a4a335ed4e78a47b2e254ac5dc0a83bee705db23b29",
+      "manifestSha256": "1ba55b00fa6b583bc3af26f998756309eb4d5928bf846cfd5e39b04880424831",
       "scriptSha256": "6e38171d5b5925b9f626695c50bb1b349523d8117cad242a4f2ae401c5766707",
       "manifestSchemaVersion": 2
     },
@@ -88,7 +109,7 @@
     {
       "id": "exo.mailbox-hold-settings",
       "manifest": "exchange-online/Get-MailboxHoldSettings.json",
-      "manifestSha256": "3aa520e82320e2b99d476636914e973b54e03cfb8014ea7ffbc60d1fc5770c85",
+      "manifestSha256": "920473f018e1c9b463dd673104187a1adfae7f61bad30f2828a3d1f19451652b",
       "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
       "manifestSchemaVersion": 2
     },
@@ -98,6 +119,13 @@
       "manifestSha256": "dcb2a637facf13e5f871120a716d106f38bd0e85c7d01722c7d7d01e4a5d217e",
       "scriptSha256": "249513a747314b17ac4a9228524763f529252d58b166d8c399a7214f8c89465b",
       "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.mailbox-permission-observations",
+      "manifest": "exchange-online/Get-MailboxPermissionObservations.json",
+      "manifestSha256": "6a5a0217dc81c109dd84ef3b7fa2e960c4949b9a4393688dddad5e4050cd1480",
+      "scriptSha256": "4127cde20e445b465568bb37d22ad5311128eae20088e5cfac4228cfd1cd5c60",
+      "manifestSchemaVersion": 2
     },
     {
       "id": "exo.mailbox-permissions",
@@ -123,7 +151,7 @@
     {
       "id": "exo.mailbox-protocol-settings",
       "manifest": "exchange-online/Get-MailboxProtocolSettings.json",
-      "manifestSha256": "6eaca92ba130f55ffdc3614d76c05a09b437f01d73cfc64d9ca79d25b8d2e546",
+      "manifestSha256": "7d2dd46fc9c8990f2e7266c8d97b7dfc17201e0cef0728cddf8819778a3f6762",
       "scriptSha256": "513d488d7bb0a8979f360b1421bc96b0a761d7418486d10f1d46af9bef369a14",
       "manifestSchemaVersion": 2
     },
@@ -137,8 +165,15 @@
     {
       "id": "exo.mailbox-size-quota",
       "manifest": "exchange-online/Get-MailboxSizeAndQuota.json",
-      "manifestSha256": "869046136210fa49c017437c76c03884b71a6df6f62f7d8c3abae335f7db2657",
+      "manifestSha256": "1fe79558262bd7fe0811466be394e495123db45d6b2bfc60d9d1e9c4b472bded",
       "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
+      "manifestSchemaVersion": 2
+    },
+    {
+      "id": "exo.message-trace-observations",
+      "manifest": "exchange-online/Get-MessageTraceObservations.json",
+      "manifestSha256": "366cadf61d5b476893ab37f2e279d8b8174f89dc33264a8bdbefa635fffe56dd",
+      "scriptSha256": "1f448e4d56a35eb53c0333829e7f3b40365f5e5ac8b5b25bd41bc851c6feac98",
       "manifestSchemaVersion": 2
     },
     {
@@ -210,6 +245,13 @@
       "manifestSha256": "b437c2eee548856c63afb01566651ca020645490af7a5428c4c3386e01cbdf3f",
       "scriptSha256": "7be249a50cac5ac5120965b45a6beb9c046ac22989ba0663f09233e3ae540d89",
       "manifestSchemaVersion": 1
+    },
+    {
+      "id": "exo.transport-rule-observations",
+      "manifest": "exchange-online/Get-TransportRuleObservations.json",
+      "manifestSha256": "a83b6003f05fe549d0a2156e33966a744156f78ca18ae9b544d29d5ebb64716f",
+      "scriptSha256": "5eff6f30a30223897dac81347f82df63c7df850243a43427df993fccea5c46b4",
+      "manifestSchemaVersion": 2
     },
     {
       "id": "exo.transport-rules",

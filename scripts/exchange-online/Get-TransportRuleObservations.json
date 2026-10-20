@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.transport-rule-observations",
+  "name": "Transport-rule metadata (selected rules or inventory)",
+  "category": "exchange-online",
+  "area": "Groups and mail flow",
+  "description": "Bounded metadata with original rule GUIDs and explicit selected/inventory scope. Unknown values and saturated reads stay incomplete; no rule content or changes.",
+  "keywords": [
+    "transport rules",
+    "mail flow",
+    "metadata"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-TransportRuleObservations.ps1",
+  "scriptSha256": "5eff6f30a30223897dac81347f82df63c7df850243a43427df993fccea5c46b4",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "RuleGuids",
+      "label": "Exchange rule GUIDs",
+      "type": "string",
+      "help": "Optional one to50 exact rule GUIDs. Leave blank only when explicitly selecting organisation inventory.",
+      "required": false,
+      "maxLength": 1849
+    },
+    {
+      "name": "OrganisationInventory",
+      "label": "Read bounded organisation inventory",
+      "type": "boolean",
+      "help": "Explicitly read visible rule metadata instead of selected GUIDs; this does not prove complete effective mail flow.",
+      "default": "false"
+    }
+  ],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "target-reads",
+        "columns": [
+          "scope",
+          "requestedRuleGuid",
+          "requestedResultSize",
+          "returnedEntries",
+          "excludedEntries",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "policies",
+        "columns": [
+          "ruleGuid",
+          "priority",
+          "state",
+          "mode",
+          "activationDate",
+          "expiryDate",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement and an Exchange role permitting transport-rule reads. Live module/RBAC remains unverified; no installation or fallback is offered.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Metadata only: no predicates/actions/content, effective security or change authority.",
+    "Exactly one scope: selected rule GUIDs or explicit organisation inventory.",
+    "Total5000 rows including diagnostics; saturation remains Partial, never complete inventory.",
+    "Original service GUIDs differ from local scope hashes. Source and live/RBAC behaviour remain unverified."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-transport-rules",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53"
+  },
+  "rules": []
+}

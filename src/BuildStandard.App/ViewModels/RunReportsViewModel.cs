@@ -19,6 +19,38 @@ public sealed class RunReportsViewModel : PageViewModel
     private int _selectedTab;
     private ReadOnlyRunReview? _shownReview;
     private ExchangeReportEvidence? _displayedReport;
+    private IReadOnlyList<Sheet> _outcomeSheets = [];
+    private IReadOnlyList<ReadOnlyReportSectionChoice> _outcomeSections = [];
+    private ReadOnlyReportSectionChoice? _selectedOutcomeSection;
+    private bool _onlyNeedsReview;
+    public IReadOnlyList<ReadOnlyReportSectionChoice> OutcomeSections => _outcomeSections;
+    public ReadOnlyReportSectionChoice? SelectedOutcomeSection
+    {
+        get => _selectedOutcomeSection;
+        set
+        {
+            if (value is not null && !_outcomeSections.Contains(value)) return;
+            if (SetProperty(ref _selectedOutcomeSection, value)) BuildOutcomeRows();
+        }
+    }
+    public bool CanFilterRuleCues => _displayedReport is { ReportSchemaVersion: 2, ReportId: "exo-inbox-rules" }
+        && SelectedOutcomeSection?.Id == "rules";
+    public bool OnlyNeedsReview
+    {
+        get => _onlyNeedsReview;
+        set { if (SetProperty(ref _onlyNeedsReview, value)) BuildOutcomeRows(); }
+    }
+    public string OutcomeSectionGuidance
+    {
+        get
+        {
+            var section = _displayedReport?.Sections.SingleOrDefault(section => section.Id == SelectedOutcomeSection?.Id);
+            return section is null ? "No admitted report section selected."
+                : $"{section.Rows.Count} returned rows · read status: {section.Status}. "
+                    + (section.Error is null ? "" : section.Error + " ")
+                    + "The filter changes this table only; exports retain every original section and row. Empty rows do not prove a successful or complete inventory.";
+        }
+    }
     public DataView? OutcomeRows { get; private set; }
     private string _exportPath = "";
     private ExportFormat _exportFormat = ExportFormat.Html;
@@ -141,7 +173,9 @@ public sealed class RunReportsViewModel : PageViewModel
     public bool IsValid { get; private set; }
     public bool HasProblems => Problems.Count > 0;
     public string Requirements => Selected is null ? "Choose a registered report. Only registered schema 2 read-only reports support Run."
-        : Selected.Description + "\n" + Selected.Needs + "\n" + Selected.Entry.Manifest.Prerequisites + "\n" + Selected.LiveStatus;
+        : Selected.Description + "\n" + Selected.Needs + "\n" + Selected.Entry.Manifest.Prerequisites + "\n" + Selected.LiveStatus + "\nRegistered output sections: "
+            + string.Join("; ", ScriptCatalogue.ReportFor(Selected.Entry.Manifest).Sections.Select(section => SectionLabel(section.Id)))
+            + "\n" + string.Join(" ", Selected.Entry.Manifest.Limitations);
     public string ContextText => Workflow?.ContextText ?? "Run unavailable: the pinned library could not be loaded.";
     public string Availability => !Workspace.Idle && Workflow?.IsRunning != true ? "Wait for the active workspace task. This page's Cancel does not stop another task."
         : (Workflow?.Blocker ?? ContextText) + (Workflow?.IsRunning == true ? "" : " Cancel is available only while this page's run is active.");
@@ -218,17 +252,35 @@ public sealed class RunReportsViewModel : PageViewModel
     {
         var report = Workflow?.Result?.Evidence;
         if (ReferenceEquals(report, _displayedReport)) return;
-        _displayedReport = report; OutcomeRows = null; _exportPath = "";
-        if (report is not null)
+        _displayedReport = report; _exportPath = ""; _onlyNeedsReview = false;
+        _outcomeSheets = report is null ? [] : RegisteredReportDocuments.Sheets(report).Where(sheet => sheet.Name != "Report provenance").ToArray();
+        _outcomeSections = _outcomeSheets.Select(sheet => new ReadOnlyReportSectionChoice(sheet.Name, SectionLabel(sheet.Name), sheet.Rows.Count - 1)).ToArray();
+        _selectedOutcomeSection = _outcomeSections.FirstOrDefault();
+        BuildOutcomeRows();
+        OnPropertyChanged(nameof(OutcomeSections)); OnPropertyChanged(nameof(SelectedOutcomeSection)); OnPropertyChanged(nameof(OnlyNeedsReview));
+        OnPropertyChanged(nameof(LastExport)); OnPropertyChanged(nameof(HasReportExport));
+    }
+    private static string SectionLabel(string id) => id switch
+    {
+        "interval-reads" => "Trace window read status", "traces" => "Recipient trace observations",
+        "policies" => "Transport-rule metadata", "members" => "Direct group members", "permissions" => "Permission observations", "target-reads" => "Target read status", "rules" => "Inbox-rule observations", "mailboxes" => "Mailboxes",
+        "protocols" => "Mailbox protocols", "forwarding" => "Mailbox forwarding", "holds" => "Mailbox holds", _ => id
+    };
+    private void BuildOutcomeRows()
+    {
+        OutcomeRows = null;
+        var sheet = _outcomeSheets.SingleOrDefault(sheet => sheet.Name == SelectedOutcomeSection?.Id);
+        if (sheet is not null)
         {
-            var sheet = RegisteredReportDocuments.Sheets(report).Single(s => s.Name != "Report provenance");
             var table = new DataTable();
             foreach (var column in sheet.Rows[0]) table.Columns.Add(column, typeof(string));
             table.BeginLoadData();
             foreach (var row in sheet.Rows.Skip(1)) table.Rows.Add(row.Cast<object>().ToArray());
             table.EndLoadData(); OutcomeRows = table.DefaultView;
+            if (CanFilterRuleCues && OnlyNeedsReview)
+                OutcomeRows.RowFilter = "[Local review cue status] <> 'No selected cues reported — not a safety verdict'";
         }
-        OnPropertyChanged(nameof(OutcomeRows));OnPropertyChanged(nameof(LastExport));OnPropertyChanged(nameof(HasReportExport));
+        OnPropertyChanged(nameof(OutcomeRows)); OnPropertyChanged(nameof(CanFilterRuleCues)); OnPropertyChanged(nameof(OutcomeSectionGuidance));
     }
     public override void Refresh()
     {
@@ -241,3 +293,6 @@ public sealed class RunReportsViewModel : PageViewModel
         CommandManager.InvalidateRequerySuggested();
     }
 }
+
+public sealed record ReadOnlyReportSectionChoice(string Id, string Label, int RowCount)
+{ public string Display => $"{Label} ({RowCount})"; }

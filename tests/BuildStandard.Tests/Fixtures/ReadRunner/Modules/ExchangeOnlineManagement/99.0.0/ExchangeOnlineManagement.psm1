@@ -57,7 +57,7 @@ function Get-ConnectionInformation {
     if (-not $script:Connected) { return }
     $account = $script:Account
     # Changes only after the last of the three reads, so only the gate's check after a read can notice it.
-    if ($script:Scenario -eq 'account-changes' -and $script:Reads -ge 3) { $account = 'someone.else@synthetic.example' }
+    if (($script:Scenario -eq 'account-changes' -and $script:Reads -ge 3) -or ($script:Scenario -eq 'inbox-actor-change' -and $script:Reads -ge 2)) { $account = 'someone.else@synthetic.example' }
     $connection = [pscustomobject]@{ State = 'Connected'; IsEopSession = $false; TenantID = $script:Tenant; UserPrincipalName = $account }
     Add-FakeToken $connection
     if ($script:Scenario -eq 'two-connections') { return @($connection, $connection) }
@@ -65,9 +65,15 @@ function Get-ConnectionInformation {
 }
 
 function Get-EXOMailbox {
-    param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails)
+    param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails, [string]$Identity)
     $script:Reads++
     Write-FakeLog ('Read Get-EXOMailbox' + $(if ($ResultSize) { ' ResultSize=' + $ResultSize } else { '' }) + $(if ($Properties) { ' Properties=' + ($Properties -join ',') } else { '' }))
+    if ($Identity) {
+        $actual=if($script:Scenario -eq 'inbox-mismatch'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}else{$Identity}
+        $selected=[pscustomobject]@{ExchangeGuid=[guid]$actual;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'}
+        if ($Properties -contains 'GrantSendOnBehalfTo') { $selected | Add-Member -NotePropertyName GrantSendOnBehalfTo -NotePropertyValue @([pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1003'}) }
+        return $selected
+    }
     if ($script:Scenario -eq 'chatty') { [Console]::Out.Write(('x' * 1100000)); [Console]::Out.Flush() }
     if ($script:Scenario -eq 'noisy-errors') { 1..3000 | ForEach-Object { [Console]::Error.WriteLine(('e' * 200)) } }
     if ($script:Scenario -eq 'hang') { Start-Sleep -Seconds 120 }
@@ -169,4 +175,121 @@ function Get-TransportConfig {
     [pscustomobject]@{ SmtpClientAuthenticationDisabled = $(if($script:Scenario -eq 'settings-org-null') { $null } else { $true }) }
 }
 
-Export-ModuleMember -Function Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-InboxRule {
+    param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
+    $script:Reads++; Write-FakeLog ('Read Get-InboxRule ' + $Mailbox + ' hidden=' + $IncludeHidden + ' ResultSize=' + $ResultSize)
+    if ($script:Scenario -eq 'inbox-stop' -and $Mailbox -like 'bbbbbbbb*') {
+        for ($n=0;$n -lt 300;$n++) {
+            if (@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0) { break }
+            Start-Sleep -Milliseconds 10
+        }
+    }
+    if ($script:Scenario -eq 'inbox-failed') { throw 'Synthetic inbox read failure' }
+    if ($script:Scenario -eq 'inbox-empty') { return }
+    $row=[pscustomobject]@{RuleIdentity=[uint64]::MaxValue;Identity='raw opaque rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true}
+    if ($script:Scenario -eq 'inbox-missing') { $row.PSObject.Properties.Remove('DeleteMessage') }
+    if ($script:Scenario -eq 'inbox-missing-id') { $row.PSObject.Properties.Remove('RuleIdentity') }
+    if ($script:Scenario -eq 'inbox-raw-identity') { $row.Identity=[pscustomobject]@{RawIdentity='opaque-original';Secret='excluded unrelated'} }
+    if ($script:Scenario -eq 'inbox-null') { $row.DeleteMessage=$null }
+    if ($script:Scenario -eq 'inbox-unresolved') { $row.ForwardTo=@([pscustomobject]@{DisplayName='Unresolved synthetic label'}) }
+    $row
+    if ($script:Scenario -eq 'inbox-duplicate') { $row }
+}
+
+function Get-EXOMailboxPermission {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxPermission '+$Identity+' ResultSize='+$ResultSize)
+    if ($script:Scenario -eq 'permission-failed') { throw 'Synthetic permission read failure' }
+    if ($script:Scenario -eq 'permission-empty') { return }
+    $row=[pscustomobject]@{User=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1001';Private='excluded'};AccessRights=@('FullAccess','ReadPermission');IsInherited=$false;Deny=$false}
+    if ($script:Scenario -eq 'permission-missing-flag') { $row.PSObject.Properties.Remove('Deny') }
+    if ($script:Scenario -eq 'permission-null-rights') { $row.AccessRights=$null }
+    if ($script:Scenario -eq 'permission-unresolved') { $row.User=[pscustomobject]@{DisplayName='Synthetic unresolved label'} }
+    $row
+}
+function Get-EXORecipientPermission {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-EXORecipientPermission '+$Identity+' ResultSize='+$ResultSize)
+    if ($script:Scenario -eq 'permission-stop') {
+        for ($n=0;$n -lt 300;$n++) {
+            if (@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0) { break }
+            Start-Sleep -Milliseconds 10
+        }
+    }
+    [pscustomobject]@{Trustee=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1002'};AccessRights=@('SendAs');IsInherited=$false;Deny=$false}
+}
+
+function Get-EXOMailboxFolderStatistics {
+    param([string]$Identity,[string]$FolderScope)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxFolderStatistics '+$Identity+' FolderScope='+$FolderScope)
+    if($FolderScope -cne 'Calendar'){throw 'Unexpected synthetic folder scope'}
+    if($script:Scenario -eq 'calendar-missing'){return}
+    [pscustomobject]@{FolderId='returned-store-folder-id';FolderPath='/Kalender';FolderType='Calendar';Identity='original-folder-identity';Private='excluded'}
+    if($script:Scenario -eq 'calendar-ambiguous'){[pscustomobject]@{FolderId='second-id';FolderPath='/Other';FolderType='Calendar';Identity='other-identity'}}
+}
+function Get-EXOMailboxFolderPermission {
+    param([string]$Identity)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxFolderPermission '+$Identity)
+    if($script:Scenario -eq 'calendar-failed'){throw 'Synthetic ACL failure'}
+    $row=[pscustomobject]@{User=[pscustomobject]@{UserType='Default';DisplayName='Not an identity';Private='excluded'};AccessRights=@('AvailabilityOnly');SharingPermissionFlags=@();Private='excluded'}
+    if($script:Scenario -eq 'calendar-missing-rights'){$row.PSObject.Properties.Remove('AccessRights')}
+    $row
+    if($script:Scenario -eq 'calendar-duplicate'){$row}
+}
+
+function Get-DistributionGroup {
+    param([string]$Identity)
+    $script:Reads++;Write-FakeLog ('Read Get-DistributionGroup '+$Identity)
+    $row=[pscustomobject]@{Guid=[guid]$Identity;ExternalDirectoryObjectId=$null;DisplayName='Synthetic group';PrimarySmtpAddress='group@synthetic.example';RecipientTypeDetails='MailUniversalDistributionGroup';ManagedBy=@([pscustomobject]@{RawIdentity='original-owner';Private='excluded'});MemberJoinRestriction='Closed';MemberDepartRestriction='Open';RequireSenderAuthenticationEnabled=$false;HiddenFromAddressListsEnabled=$false;Private='excluded'}
+    if($script:Scenario -eq 'group-unsupported'){$row.RecipientTypeDetails='GroupMailbox'}
+    if($script:Scenario -eq 'group-unresolved-owner'){$row.ManagedBy=@([pscustomobject]@{DisplayName='Unresolved owner label'})}
+    if($script:Scenario -eq 'group-null-flag'){$row.RequireSenderAuthenticationEnabled=$null}
+    $row
+}
+function Get-DistributionGroupMember {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-DistributionGroupMember '+$Identity+' ResultSize='+$ResultSize)
+    if($script:Scenario -eq 'group-failed'){throw 'Synthetic member read failure'}
+    if($script:Scenario -eq 'group-stop' -and $Identity -ne '44444444-4444-4444-8444-444444444444') {
+        for($n=0;$n -lt 300;$n++) { if(@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0){break};Start-Sleep -Milliseconds 10 }
+    }
+    if($script:Scenario -eq 'group-empty'){return}
+    $row=[pscustomobject]@{Guid=[guid]'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';ExternalDirectoryObjectId=$null;Identity=[pscustomobject]@{RawIdentity='original-member'};DisplayName='Synthetic member';PrimarySmtpAddress='member@synthetic.example';RecipientTypeDetails='UserMailbox';Private='excluded'}
+    if($script:Scenario -eq 'group-unresolved-member'){$row.PSObject.Properties.Remove('Guid');$row.Identity=[pscustomobject]@{DisplayName='Unresolved member label'}}
+    if($script:Scenario -eq 'group-raw-member'){$row.PSObject.Properties.Remove('Guid');$row.ExternalDirectoryObjectId=[guid]'55555555-5555-4555-8555-555555555555'}
+    $row
+    if($script:Scenario -eq 'group-duplicate'){$row}
+}
+
+function Get-TransportRule {
+    param([string]$Identity,[int]$ResultSize,[bool]$ExcludeConditionActionDetails)
+    $script:Reads++;Write-FakeLog ('Read Get-TransportRule Identity='+$Identity+' ResultSize='+$ResultSize+' ExcludeDetails='+$ExcludeConditionActionDetails)
+    if(-not $ExcludeConditionActionDetails){throw 'Synthetic content exclusion missing'}
+    if($script:Scenario -eq 'transport-failed'){throw 'Synthetic transport read failure'}
+    if($script:Scenario -eq 'transport-stop' -and $Identity -ne '44444444-4444-4444-8444-444444444444') {
+        for($n=0;$n -lt 300;$n++){if(@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0){break};Start-Sleep -Milliseconds 10}
+    }
+    if($script:Scenario -eq 'transport-empty'){return}
+    $guid=if($script:Scenario -eq 'transport-broad'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}elseif($Identity){$Identity}else{'44444444-4444-4444-8444-444444444444'}
+    $count=if($script:Scenario -eq 'transport-cap'){$ResultSize}elseif($script:Scenario -eq 'transport-duplicate'){2}else{1}
+    for($n=0;$n -lt $count;$n++) {
+        $actual=if($script:Scenario -eq 'transport-cap'){('10000000-0000-4000-8000-{0:d12}' -f $n)}else{$guid}
+        $row=[pscustomobject]@{Guid=[guid]$actual;Name='Synthetic rule';Priority=0;State='Disabled';Mode='Audit';ActivationDate='';ExpiryDate='';Actions='excluded';Private='excluded'}
+        if($script:Scenario -eq 'transport-missing-guid'){$row.PSObject.Properties.Remove('Guid')}
+        if($script:Scenario -eq 'transport-null-state'){$row.State=$null}
+        $row
+    }
+}
+
+function Get-MessageTraceV2 {
+    param([datetime]$StartDate,[datetime]$EndDate,[int]$ResultSize,[string]$SenderAddress,[string]$RecipientAddress,[string]$MessageId,[string]$MessageTraceId)
+    $script:Reads++
+    Write-FakeLog ('Read Get-MessageTraceV2 Start=' + $StartDate.ToString('o') + ' End=' + $EndDate.ToString('o') + ' ResultSize=' + $ResultSize + ' Trace=' + $MessageTraceId)
+    if ($script:Scenario -ceq 'trace-empty') { return }
+    if ($script:Scenario -ceq 'trace-second-failed' -and $script:Reads -eq 2) { throw 'Synthetic second-window failure' }
+    if ($script:Scenario -ceq 'trace-stop' -and $script:Reads -eq 2) { Start-Sleep -Milliseconds 300 }
+    [pscustomobject]@{MessageTraceId=[guid]'44444444-4444-4444-8444-444444444444';RecipientAddress='recipient@synthetic.example';Received=[datetime]::SpecifyKind($StartDate.AddHours(1),[DateTimeKind]::Utc);
+        SenderAddress='sender@synthetic.example';MessageId='<synthetic@message.invalid>';Status='Delivered';Size=[long]0;Subject='synthetic subject'}
+}
+
+Export-ModuleMember -Function Get-MessageTraceV2, Get-TransportRule, Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

@@ -55,6 +55,69 @@ function Assert-BditMembers($Object, [string[]]$Names) {
     foreach ($name in $Names) { if ($actual -cnotcontains $name) { throw 'shape' } }
 }
 
+# BCL JSON reader retains escaped property names without last-value-wins loss; no custom JSON lexer/dependency.
+function Assert-BditUniqueJsonMembers([byte[]]$Bytes) {
+    # Windows PowerShell 5.1 does not preload the framework JSON/XML reader assembly.
+    Add-Type -AssemblyName System.Runtime.Serialization
+    if ($Bytes.Length -gt 262144) { throw 'trace-json-limit' }
+    $quotas = [Xml.XmlDictionaryReaderQuotas]::new(); $quotas.MaxDepth = 48
+    $quotas.MaxStringContentLength = 262144; $quotas.MaxArrayLength = 262144
+    $reader = [Runtime.Serialization.Json.JsonReaderWriterFactory]::CreateJsonReader($Bytes, $quotas)
+    $containers = [Collections.Generic.List[object]]::new()
+    try {
+        while ($reader.Read()) {
+            if ($reader.NodeType -eq [Xml.XmlNodeType]::Element) {
+                if ($containers.Count -gt 0 -and $containers[$containers.Count - 1].Type -ceq 'object') {
+                    $name = $reader.GetAttribute('item'); if ($null -eq $name) { $name = $reader.LocalName }
+                    if (-not $containers[$containers.Count - 1].Names.Add($name)) { throw 'duplicate-json-member' }
+                }
+                $type = $reader.GetAttribute('type')
+                if ($type -cin @('object','array') -and -not $reader.IsEmptyElement) {
+                    $containers.Add([pscustomobject]@{ Depth=$reader.Depth; Type=$type; Names=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal) })
+                }
+            } elseif ($reader.NodeType -eq [Xml.XmlNodeType]::EndElement -and $containers.Count -gt 0 -and $containers[$containers.Count - 1].Depth -eq $reader.Depth) {
+                $containers.RemoveAt($containers.Count - 1)
+            }
+        }
+    } finally { $reader.Dispose() }
+}
+
+# Read only the fixed traceContext from original JSON tokens: ConvertFrom-Json may coerce ISO text to DateTime.
+function Read-BditTraceContext([byte[]]$Bytes) {
+    Add-Type -AssemblyName System.Runtime.Serialization
+    $quotas=[Xml.XmlDictionaryReaderQuotas]::new();$quotas.MaxDepth=48;$quotas.MaxStringContentLength=262144;$quotas.MaxArrayLength=262144
+    $reader=[Runtime.Serialization.Json.JsonReaderWriterFactory]::CreateJsonReader($Bytes,$quotas)
+    $document=[Xml.XmlDocument]::new();$document.XmlResolver=$null
+    try{$document.Load($reader)}finally{$reader.Dispose()}
+    function TraceNodeName($Node){if($Node.HasAttribute('item')){return $Node.GetAttribute('item')};return $Node.LocalName}
+    function TraceNodeFields($Node,[string[]]$Names){
+        if($Node.GetAttribute('type') -cne 'object'){throw 'trace-context-shape'}
+        $fields=@{};$seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach($child in $Node.ChildNodes){
+            if($child.NodeType -ne [Xml.XmlNodeType]::Element){continue}
+            $name=TraceNodeName $child
+            if($Names -cnotcontains $name -or -not $seen.Add($name)){throw 'trace-context-shape'}
+            $fields[$name]=$child
+        }
+        if($fields.Count -ne $Names.Count){throw 'trace-context-shape'}
+        return $fields
+    }
+    function TraceNodeString($Node){if($Node.GetAttribute('type') -cne 'string'){throw 'trace-context-string'};return $Node.InnerText}
+    if($document.DocumentElement.GetAttribute('type') -cne 'object'){throw 'trace-context-shape'}
+    $matches=@(foreach($node in $document.DocumentElement.ChildNodes){if($node.NodeType -eq [Xml.XmlNodeType]::Element -and (TraceNodeName $node) -ceq 'traceContext'){$node}})
+    if($matches.Count -ne 1){throw 'trace-context-shape'}
+    $fields=TraceNodeFields $matches[0] @('schemaVersion','frozenAtUtc','filterDigest','windows')
+    if($fields.schemaVersion.GetAttribute('type') -cne 'number' -or $fields.schemaVersion.InnerText -cne '1' -or $fields.windows.GetAttribute('type') -cne 'array'){throw 'trace-context-shape'}
+    $windows=[Collections.Generic.List[object]]::new()
+    foreach($node in $fields.windows.ChildNodes){
+        if($node.NodeType -ne [Xml.XmlNodeType]::Element){continue}
+        if($windows.Count -ge 9){throw 'trace-context-shape'}
+        $window=TraceNodeFields $node @('startUtc','endUtc')
+        $windows.Add([pscustomobject]@{startUtc=(TraceNodeString $window.startUtc);endUtc=(TraceNodeString $window.endUtc)})
+    }
+    return [pscustomobject]@{schemaVersion=1;frozenAtUtc=(TraceNodeString $fields.frozenAtUtc);filterDigest=(TraceNodeString $fields.filterDigest);windows=$windows.ToArray()}
+}
+
 function Invoke-BditRunner {
     param([string]$Request, [string]$RequestSha256, [string]$Body, [string]$Result, [string]$Stop)
     Remove-Variable -Name BditEntry -Scope 1
@@ -64,23 +127,117 @@ function Invoke-BditRunner {
         $requestBytes = Read-BditBytes $Request 1048576
         if ($null -eq $requestBytes -or (Get-BditSha256 $requestBytes) -cne $RequestSha256) { throw 'digest' }
         $BditRequest = ConvertFrom-BditUtf8 $requestBytes | ConvertFrom-Json
-        Assert-BditMembers $BditRequest @('schemaVersion', 'kind', 'runId', 'scriptId', 'manifestSha256', 'scriptSha256',
+        $requestFields = @('schemaVersion', 'kind', 'runId', 'scriptId', 'manifestSha256', 'scriptSha256',
             'runnerTemplateSha256', 'adapter', 'reportId', 'reportSchemaVersion', 'tenantId', 'expectedAccountUpn', 'module',
             'sourceCommands', 'sections', 'maximumRows', 'parameters')
+        if ($BditRequest.reportId -ceq 'exo-message-trace' -and $BditRequest.reportSchemaVersion -eq 2) {
+            Assert-BditUniqueJsonMembers $requestBytes
+            $BditRequest.traceContext = Read-BditTraceContext $requestBytes
+            $requestFields += 'traceContext'
+        }
+        Assert-BditMembers $BditRequest $requestFields
         if ($BditRequest.schemaVersion -ne 1 -or $BditRequest.kind -cne 'scriptReadRequest' -or $BditRequest.adapter -cne 'exchangeOnline') { throw 'kind' }
         Assert-BditMembers $BditRequest.module @('name', 'minimumVersion')
         foreach ($section in @($BditRequest.sections)) { Assert-BditMembers $section @('id', 'columns') }
         foreach ($parameter in @($BditRequest.parameters)) { Assert-BditMembers $parameter @('name', 'type', 'bound', 'payload') }
         if ($BditRequest.maximumRows -isnot [int] -and $BditRequest.maximumRows -isnot [long]) { throw 'rows' }
+        if (($BditRequest.reportSchemaVersion -isnot [int] -and $BditRequest.reportSchemaVersion -isnot [long]) -or $BditRequest.reportSchemaVersion -notin @(1,2)) { throw 'report' }
+        if ($BditRequest.reportSchemaVersion -eq 2) {
+            if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups','exo-transport-rules','exo-message-trace') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
+            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') { 'Get-EXOMailbox,Get-EXOMailboxFolderStatistics,Get-EXOMailboxFolderPermission' } elseif ($BditRequest.reportId -ceq 'exo-distribution-groups') { 'Get-DistributionGroup,Get-DistributionGroupMember' } elseif ($BditRequest.reportId -ceq 'exo-message-trace') { 'Get-MessageTraceV2' } else { 'Get-TransportRule' }
+            if ((@($BditRequest.sourceCommands) -join ',') -cne $expectedCommands) { throw 'source' }
+        }
     }
     catch { Stop-BditRun 'RequestInvalid' }
 
+    # Exact fixed typed-filter tuple, matching the engine's current System.Text.Json escaping.
+    # Kept private and characterised against all ASCII plus HTML/Unicode cases on both runtimes.
+    function ConvertTo-BditTraceJsonString($Value) {
+        if ($null -eq $Value) { return 'null' }
+        if ($Value -isnot [string] -or $Value.Length -gt 1024) { throw 'trace-shape' }
+        $escape = @{ 8='\b'; 9='\t'; 10='\n'; 12='\f'; 13='\r'; 34='\u0022'; 38='\u0026'; 39='\u0027'; 43='\u002B'; 60='\u003C'; 62='\u003E'; 92='\\'; 96='\u0060' }
+        $text = [Text.StringBuilder]::new(); $null = $text.Append('"')
+        foreach ($character in $Value.ToCharArray()) {
+            $code = [int]$character
+            if ($escape.ContainsKey($code)) { $null = $text.Append($escape[$code]) }
+            elseif ($code -lt 32 -or $code -ge 127) { $null = $text.Append('\u').Append($code.ToString('X4', [Globalization.CultureInfo]::InvariantCulture)) }
+            else { $null = $text.Append($character) }
+        }
+        return $text.Append('"').ToString()
+    }
+    function Get-BditTraceFilterDigest($Sender, $Recipient, $InternetMessageId, $MessageTraceId, [bool]$IncludeSubject, [int]$MaximumRows) {
+        $parts = @((ConvertTo-BditTraceJsonString $Sender), (ConvertTo-BditTraceJsonString $Recipient),
+            (ConvertTo-BditTraceJsonString $InternetMessageId), (ConvertTo-BditTraceJsonString $MessageTraceId),
+            $(if ($IncludeSubject) { 'true' } else { 'false' }), $MaximumRows.ToString([Globalization.CultureInfo]::InvariantCulture))
+        $json = '[' + ($parts -join ',') + ']'; $hash = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($hash.ComputeHash(([Text.UTF8Encoding]::new($false, $true)).GetBytes($json))).Replace('-', '').ToLowerInvariant() }
+        finally { $hash.Dispose() }
+    }
+
+    function Get-BditTracePlan($RequestObject, [hashtable]$Arguments) {
+        $context = $RequestObject.traceContext
+        Assert-BditMembers $context @('schemaVersion','frozenAtUtc','filterDigest','windows')
+        if (($context.schemaVersion -isnot [int] -and $context.schemaVersion -isnot [long]) -or $context.schemaVersion -ne 1 -or
+            $context.frozenAtUtc -isnot [string] -or $context.filterDigest -isnot [string] -or $context.filterDigest -cnotmatch '^[0-9a-f]{64}$' -or
+            $context.windows -isnot [array] -or $context.windows.Count -lt 1 -or $context.windows.Count -gt 9) { throw 'trace-context' }
+        $culture = [Globalization.CultureInfo]::InvariantCulture
+        $styles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
+        $stamp = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'"
+        $frozen = [DateTimeOffset]::ParseExact($context.frozenAtUtc, $stamp, $culture, $styles)
+        $names = @('StartDate','EndDate','Sender','Recipient','InternetMessageId','MessageTraceId','IncludeSubject','MaximumRows')
+        $types = @('Date','Date','Text','Text','Text','Text','Boolean','Integer')
+        if ((@($RequestObject.parameters | ForEach-Object { $_.name }) -join ',') -cne ($names -join ',') -or
+            (@($RequestObject.parameters | ForEach-Object { $_.type }) -join ',') -cne ($types -join ',')) { throw 'trace-parameters' }
+        foreach ($key in $Arguments.Keys) { if ($names -cnotcontains $key) { throw 'trace-parameters' } }
+        if ($Arguments['StartDate'] -isnot [string] -or $Arguments['EndDate'] -isnot [string] -or $Arguments['IncludeSubject'] -isnot [bool] -or
+            ($Arguments['MaximumRows'] -isnot [int] -and $Arguments['MaximumRows'] -isnot [long]) -or $Arguments['MaximumRows'] -lt 1 -or $Arguments['MaximumRows'] -gt 5000) { throw 'trace-parameters' }
+        foreach ($name in @('Sender','Recipient','InternetMessageId','MessageTraceId')) {
+            if ($Arguments.ContainsKey($name)) {
+                $value = $Arguments[$name]
+                if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value) -or $value.Length -gt 1024 -or $value -cne $value.Trim() -or $value -match '[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]') { throw 'trace-filter' }
+            }
+        }
+        if (-not ($Arguments.ContainsKey('Sender') -or $Arguments.ContainsKey('Recipient') -or $Arguments.ContainsKey('InternetMessageId') -or $Arguments.ContainsKey('MessageTraceId'))) { throw 'trace-filter' }
+        foreach ($name in @('Sender','Recipient')) {
+            if ($Arguments.ContainsKey($name)) {
+                $address = $Arguments[$name]
+                if ($address.Length -gt 320 -or $address.IndexOf('@') -le 0 -or $address.EndsWith('@') -or $address.IndexOf('@') -ne $address.LastIndexOf('@') -or $address -match '[\s*?<>,;]') { throw 'trace-filter' }
+            }
+        }
+        if ($Arguments.ContainsKey('MessageTraceId') -and ($Arguments['MessageTraceId'] -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $Arguments['MessageTraceId'] -ceq '00000000-0000-0000-0000-000000000000')) { throw 'trace-filter' }
+        $first = [DateTime]::ParseExact($Arguments['StartDate'], 'yyyy-MM-dd', $culture, $styles)
+        $lastDate = [DateTime]::ParseExact($Arguments['EndDate'], 'yyyy-MM-dd', $culture, $styles)
+        if ($lastDate -lt $first -or $lastDate -gt $frozen.UtcDateTime.Date -or $first -lt $frozen.UtcDateTime.AddDays(-90)) { throw 'trace-interval' }
+        $last = if ($lastDate -eq $frozen.UtcDateTime.Date) { $frozen.UtcDateTime } else { $lastDate.AddDays(1) }
+        if ($last -le $first) { throw 'trace-interval' }
+        $digest = Get-BditTraceFilterDigest $Arguments['Sender'] $Arguments['Recipient'] $Arguments['InternetMessageId'] $Arguments['MessageTraceId'] $Arguments['IncludeSubject'] ([int]$Arguments['MaximumRows'])
+        if ($digest -cne $context.filterDigest) { throw 'trace-digest' }
+        $windows = [Collections.Generic.List[object]]::new(); $at = $first
+        while ($at -lt $last) {
+            $until = if ($at.AddDays(10) -lt $last) { $at.AddDays(10) } else { $last }
+            $windows.Add([pscustomobject]@{ startUtc=$at.ToString($stamp,$culture); endUtc=$until.ToString($stamp,$culture) }); $at=$until
+        }
+        if ($windows.Count -ne $context.windows.Count -or $windows.Count -gt 9 -or $Arguments['MaximumRows'] -le $windows.Count) { throw 'trace-interval' }
+        for ($index=0; $index -lt $windows.Count; $index++) {
+            $window = $context.windows[$index]; Assert-BditMembers $window @('startUtc','endUtc')
+            if ($window.startUtc -isnot [string] -or $window.endUtc -isnot [string] -or $window.startUtc -cne $windows[$index].startUtc -or $window.endUtc -cne $windows[$index].endUtc) { throw 'trace-interval' }
+        }
+        return [pscustomobject]@{ FrozenAtUtc=$context.frozenAtUtc; FilterDigest=$digest; Windows=$windows.ToArray(); MaximumRows=[int]$Arguments['MaximumRows'];
+            IncludeSubject=$Arguments['IncludeSubject']; Sender=$Arguments['Sender']; Recipient=$Arguments['Recipient']; InternetMessageId=$Arguments['InternetMessageId']; MessageTraceId=$Arguments['MessageTraceId']; CurrentDayIncomplete=($lastDate -eq $frozen.UtcDateTime.Date) }
+    }
+
+    function Copy-BditTracePlan($Plan) {
+        $windows = @(foreach ($window in $Plan.Windows) { [pscustomobject]@{startUtc=$window.startUtc;endUtc=$window.endUtc} })
+        return [pscustomobject]@{FrozenAtUtc=$Plan.FrozenAtUtc;FilterDigest=$Plan.FilterDigest;Windows=$windows;MaximumRows=$Plan.MaximumRows;IncludeSubject=$Plan.IncludeSubject;
+            Sender=$Plan.Sender;Recipient=$Plan.Recipient;InternetMessageId=$Plan.InternetMessageId;MessageTraceId=$Plan.MessageTraceId;CurrentDayIncomplete=$Plan.CurrentDayIncomplete}
+    }
     $bodyBytes = Read-BditBytes $Body 262144
     if ($null -eq $bodyBytes -or (Get-BditSha256 $bodyBytes) -cne [string]$BditRequest.scriptSha256) { Stop-BditRun 'BodyChanged' }
     $bodyText = [Text.Encoding]::ASCII.GetString($bodyBytes)
 
     # ---- typed parameters: decoded without culture coercion, then re-checked by .NET type -------------------------
     New-Variable -Name BditArguments -Option Private -Value @{}
+    New-Variable -Name BditTracePlan -Option Private -Value $null
     try {
         foreach ($parameter in @($BditRequest.parameters)) {
             if ($parameter.bound -isnot [bool]) { throw 'bound' }
@@ -100,6 +257,7 @@ function Invoke-BditRunner {
                     $text = ConvertFrom-BditUtf8 ([Convert]::FromBase64String($parameter.payload))
                     $styles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
                     $value = [datetime]::ParseExact($text, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture, $styles)
+                    if ($BditRequest.reportId -ceq 'exo-message-trace') { $value = $text }
                 }
                 default { throw 'type' }
             }
@@ -108,12 +266,48 @@ function Invoke-BditRunner {
         }
     }
     catch { Stop-BditRun 'RequestInvalid' }
+    if ($BditRequest.reportSchemaVersion -eq 2) {
+        try {
+            if ($BditRequest.reportId -ceq 'exo-message-trace') {
+                $BditTracePlan = Get-BditTracePlan $BditRequest $BditArguments
+                $frozen = [DateTimeOffset]::ParseExact($BditTracePlan.FrozenAtUtc, "yyyy-MM-dd'T'HH:mm:ss.fff'Z'", [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal)
+                $age = [DateTimeOffset]::UtcNow - $frozen
+                if ($age.Ticks -lt 0 -or $age.TotalSeconds -gt 300) { throw 'trace-expired' }
+                $targetIds = @()
+            } elseif ($BditRequest.reportId -ceq 'exo-transport-rules') {
+                if ($BditArguments['OrganisationInventory'] -isnot [bool]) { throw 'scope' }
+                $hasRules = $BditArguments.ContainsKey('RuleGuids')
+                if ($hasRules -eq $BditArguments['OrganisationInventory'] -or $BditArguments.Count -ne (1 + [int]$hasRules)) { throw 'scope' }
+                if ($hasRules -and $BditArguments['RuleGuids'] -isnot [string]) { throw 'scope' }
+                $targetIds = @(); if ($hasRules) { $targetIds = @($BditArguments['RuleGuids'].Split(',')) }
+            } else {
+            $targetParameter = if ($BditRequest.reportId -ceq 'exo-distribution-groups') { 'GroupGuids' } else { 'MailboxGuids' }
+            if ($BditArguments[$targetParameter] -isnot [string]) { throw 'scope' }
+            if ($BditRequest.reportId -ceq 'exo-inbox-rules') {
+                if ($BditArguments.Count -ne 2 -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
+            } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions' -or $BditRequest.reportId -ceq 'exo-distribution-groups') {
+                if ($BditArguments.Count -ne 1) { throw 'scope' }
+            } else {
+                if ($BditArguments.Count -ne 4) { throw 'scope' }
+                foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($BditArguments[$kind] -isnot [bool]) { throw 'scope' } }
+                if (-not ($BditArguments['FullAccess'] -or $BditArguments['SendAs'] -or $BditArguments['SendOnBehalf'])) { throw 'scope' }
+            }
+            $targetIds = $BditArguments[$targetParameter].Split(',')
+            }
+            if (($targetIds.Count -lt 1 -and $BditRequest.reportId -cnotin @('exo-transport-rules','exo-message-trace')) -or $targetIds.Count -gt 50 -or $targetIds.Count -gt $BditRequest.maximumRows) { throw 'scope' }
+            $targetSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($target in $targetIds) {
+                if ($target -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $target -ceq '00000000-0000-0000-0000-000000000000' -or -not $targetSet.Add($target)) { throw 'scope' }
+            }
+        }
+        catch { Stop-BditRun 'RequestInvalid' }
+    }
 
     # ---- the body: parsed and checked before anything is imported or signed in -------------------------------------
     $sourceCommands = @($BditRequest.sourceCommands | ForEach-Object { [string]$_ })
     $allowedCommands = @('Use-BditRead', 'Where-Object', 'ForEach-Object', 'Select-Object', 'Sort-Object', 'Group-Object', 'Measure-Object', 'Set-StrictMode')
     $allowedTypes = @('string', 'int', 'long', 'bool', 'switch', 'datetime', 'guid', 'hashtable', 'ordered', 'pscustomobject', 'array',
-        'object', 'object[]', 'string[]', 'double', 'decimal', 'int32', 'int64', 'boolean', 'System.Collections.Generic.List[object]',
+        'object', 'object[]', 'string[]', 'double', 'decimal', 'uint64', 'int32', 'int64', 'boolean', 'System.Collections.Generic.List[object]',
         'Collections.Generic.List[object]', 'System.Collections.Generic.List[hashtable]', 'Collections.Generic.List[hashtable]')
     $deniedMembers = @('Invoke', 'InvokeReturnAsIs', 'Create', 'GetNewClosure', 'NewBoundScriptBlock', 'InvokeScript', 'AddScript',
         'AddCommand', 'SessionState', 'PSVariable', 'InvokeCommand', 'InvokeProvider', 'Module', 'ScriptBlock', 'GetSteppablePipeline',
@@ -144,7 +338,7 @@ function Invoke-BditRunner {
         }
         return $false
     }
-    $deniedVariables = @('ExecutionContext', 'Host', 'PSCmdlet', 'MyInvocation', 'PSBoundParameters', 'BditRequest', 'BditArguments', 'BditGate', 'BditEntry')
+    $deniedVariables = @('ExecutionContext', 'Host', 'PSCmdlet', 'MyInvocation', 'PSBoundParameters', 'BditRequest', 'BditArguments', 'BditGate', 'BditEntry', 'BditTracePlan')
     $tokens = $null; $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseInput($bodyText, [ref]$tokens, [ref]$errors)
     $refusal = $null
@@ -255,10 +449,45 @@ function Invoke-BditRunner {
 
     # ---- the private gate --------------------------------------------------------------------------------------------
     New-Variable -Name BditGate -Option Private -Value (New-Module -Name BditReadGate -ArgumentList @(
-            [guid][string]$BditRequest.tenantId, ([string]$BditRequest.expectedAccountUpn).Trim(), $identity['Get-ConnectionInformation'], $readers, $Stop) -ScriptBlock {
-            param($Tenant, $Account, $Connections, $Readers, $StopFile)
+            [guid][string]$BditRequest.tenantId, ([string]$BditRequest.expectedAccountUpn).Trim(), $identity['Get-ConnectionInformation'], $readers, $Stop,
+            [int]$BditRequest.reportSchemaVersion, [string]$BditRequest.reportId, $BditArguments, [int]$BditRequest.maximumRows, $(if ($null -ne $BditTracePlan) { Copy-BditTracePlan $BditTracePlan } else { $null })) -ScriptBlock {
+            param($Tenant, $Account, $Connections, $Readers, $StopFile, $ReportVersion, $ReportId, $ReportArguments, $MaximumRows, $TracePlan)
             $script:Failure = $null
             $script:Observed = $null
+            $script:FamilyVersion = $ReportVersion
+            $script:FamilyReportId = $ReportId
+            $script:FamilyTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyPermissionSources = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyVerifiedTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyCalendarProof = @{}
+            $script:FamilyObservationMaximum = 0
+            $script:FamilyIncludeHidden = $false
+            $script:FamilyTransportInventory = $false
+            $script:FamilySourceCalls = 0
+            $script:FamilyRowsRead = 0
+            $script:FamilyProjectedBytes = 2
+            $script:FamilyStarted = [Diagnostics.Stopwatch]::StartNew()
+            $script:FrozenTracePlan = $null; $script:TraceNextIndex = 0
+            if ($ReportId -ceq 'exo-message-trace') {
+                # Private clone; the body receives another clone and cannot alter source admission.
+                $script:FrozenTracePlan = $TracePlan
+                $MaximumRows = [Math]::Min($MaximumRows, $TracePlan.MaximumRows)
+            }
+            if ($ReportVersion -eq 2) {
+                if ($ReportId -ceq 'exo-message-trace') {
+                    $script:FamilyObservationMaximum = $MaximumRows - $TracePlan.Windows.Count
+                } elseif ($ReportId -ceq 'exo-transport-rules') {
+                    $script:FamilyTransportInventory = $ReportArguments['OrganisationInventory']
+                    if (-not $script:FamilyTransportInventory) { foreach ($target in $ReportArguments['RuleGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) } }
+                } else {
+                    $targetParameter = if ($ReportId -ceq 'exo-distribution-groups') { 'GroupGuids' } else { 'MailboxGuids' }
+                    foreach ($target in $ReportArguments[$targetParameter].Split(',')) { $null = $script:FamilyTargets.Add($target) }
+                }
+                if ($ReportId -ceq 'exo-inbox-rules') { $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden'] }
+                elseif ($ReportId -ceq 'exo-mailbox-permissions') { foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($ReportArguments[$kind]) { $null = $script:FamilyPermissionSources.Add($kind) } } }
+                # Every selected target retains one diagnostic row, even after failure/cancellation.
+                if ($ReportId -cne 'exo-message-trace') { $script:FamilyObservationMaximum = $MaximumRows - [Math]::Max(1, $script:FamilyTargets.Count) }
+            }
             # A token is usable only when it is reported Active and its expiry is read as a time after now. A missing, null,
             # malformed or ambiguous status or expiry is never guessed usable. Typed values keep their own meaning: a
             # DateTimeOffset is an instant, a Local DateTime is converted, and an Unspecified DateTime is the documented UTC.
@@ -305,6 +534,291 @@ function Invoke-BditRunner {
                 $state = Test-BditConnection
                 if ($state -ne 'Usable') { $script:Failure = Get-BditConnectionFailure $state; throw 'BDIT-IDENTITY' }
             }
+            # INT-128 private bounded projection. Only fixed engine-owned callers may supply the producer/fields;
+            # this function is not exported to a library body and adds no command or parameter admission.
+            function Read-BditBoundedRows {
+                param([scriptblock]$Producer, [string[]]$Properties, [bool]$UseSharedBudget = $false, [bool]$CountAsObservation = $false)
+                if ($null -eq $Producer -or $null -eq $Properties -or $Properties.Count -lt 1 -or $Properties.Count -gt 32) { throw 'BDIT-READ-SHAPE' }
+                $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+                foreach ($name in $Properties) {
+                    if ($name -cnotmatch '^[A-Za-z][A-Za-z0-9]{0,63}$' -or -not $names.Add($name)) { throw 'BDIT-READ-SHAPE' }
+                }
+                function Convert-BditProjectedValue($Value, [bool]$AllowList = $true) {
+                    if ($null -eq $Value) { return $null }
+                    if ($Value -is [string]) {
+                        if ($Value.Length -gt 1024) { throw 'BDIT-READ-LIMIT' }
+                        return $Value
+                    }
+                    if ($Value -is [bool] -or $Value -is [guid] -or $Value -is [datetime] -or $Value -is [datetimeoffset] -or
+                        $Value -is [byte] -or $Value -is [sbyte] -or $Value -is [int16] -or $Value -is [uint16] -or
+                        $Value -is [int32] -or $Value -is [uint32] -or $Value -is [int64] -or $Value -is [uint64] -or
+                        $Value -is [decimal]) { return $Value }
+                    if ($Value -is [enum]) { return Convert-BditProjectedValue ([string]$Value) $false }
+                    if ($AllowList -and $Value -is [Collections.IEnumerable] -and $Value -isnot [Collections.IDictionary]) {
+                        $values = [Collections.Generic.List[object]]::new()
+                        foreach ($entry in $Value) {
+                            if ($values.Count -ge 100) { throw 'BDIT-READ-LIMIT' }
+                            $values.Add((Convert-BditProjectedValue $entry $false))
+                        }
+                        return ,$values.ToArray()
+                    }
+                    # Some Exchange principal/reference types expose RawIdentity. Keep only that explicitly labelled
+                    # field, never arbitrary object serialisation, display-name resolution or a generic ToString call.
+                    if ($Value -isnot [Collections.IDictionary]) {
+                        $raw = $Value.PSObject.Properties['RawIdentity']
+                        if ($null -ne $raw -and $raw.Value -is [string]) {
+                            return [pscustomobject][ordered]@{ Source = 'RawIdentity'; Value = (Convert-BditProjectedValue $raw.Value $false) }
+                        }
+                        $type = $Value.PSObject.Properties['UserType']
+                        if ($null -ne $type -and ($type.Value -is [string] -or $type.Value -is [enum])) {
+                            $special = [string]$type.Value
+                            if ($special -ceq 'Default' -or $special -ceq 'Anonymous') {
+                                return [pscustomobject][ordered]@{ Source = 'SpecialPrincipal'; Value = $special }
+                            }
+                        }
+                        $distinguished = $Value.PSObject.Properties['DistinguishedName']
+                        if ($null -ne $distinguished -and $distinguished.Value -is [string]) {
+                            return [pscustomobject][ordered]@{ Source = 'DistinguishedName'; Value = (Convert-BditProjectedValue $distinguished.Value $false) }
+                        }
+                        $label = $Value.PSObject.Properties['DisplayName']
+                        if ($null -ne $label -and $label.Value -is [string]) {
+                            # A raw unresolved label is not an exact principal identity. The family adapter must keep
+                            # it explicitly unresolved/partial, never resolve it by name or assign a fabricated GUID.
+                            return [pscustomobject][ordered]@{ Source = 'UnresolvedDisplayLabel'; Value = (Convert-BditProjectedValue $label.Value $false) }
+                        }
+                    }
+                    throw 'BDIT-READ-SHAPE'
+                }
+                $rows = [Collections.Generic.List[object]]::new()
+                $budget = @{ Bytes = 2 }
+                $utf8 = [Text.UTF8Encoding]::new($false, $true)
+                & $Producer | ForEach-Object {
+                    # Detect the sentinel before projections/lookups and before another body-visible array exists.
+                    if ($rows.Count -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                    Assert-BditGate
+                    if ($CountAsObservation) {
+                        if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                        $script:FamilyRowsRead++
+                    }
+                    if ($null -eq $_ -or $_ -is [Collections.IDictionary]) { throw 'BDIT-READ-SHAPE' }
+                    $projected = [ordered]@{}
+                    foreach ($name in $Properties) {
+                        $property = $_.PSObject.Properties[$name]
+                        if ($null -ne $property) { $projected[$name] = Convert-BditProjectedValue $property.Value }
+                    }
+                    # Only already whitelisted, bounded scalar/reference/list values reach JSON sizing. Never raw module objects.
+                    $size = $utf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 6 -Compress)) + 1
+                    $used = if ($UseSharedBudget) { $script:FamilyProjectedBytes } else { $budget.Bytes }
+                    if ($size -gt (33554432 - $used)) { throw 'BDIT-READ-LIMIT' }
+                    if ($UseSharedBudget) { $script:FamilyProjectedBytes += $size } else { $budget.Bytes += $size }
+                    $rows.Add([pscustomobject]$projected)
+                }
+                Assert-BditGate
+                return ,$rows.ToArray()
+            }
+            # Fixed INT-128 source policy, private to this engine-owned module. No body-provided projections,
+            # arbitrary parameter names, unverified child targets or caller-selected ResultSize are admitted.
+            function Read-BditFamilyRows {
+                param([string]$Command, [hashtable]$Parameters)
+                Assert-BditGate
+                if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups','exo-transport-rules','exo-message-trace') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                if ($script:FamilySourceCalls -ge 100 -or $script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                $arguments = @{ ErrorAction = 'Stop' }
+                $observation = $false
+                if ($Command -ceq 'Get-EXOMailboxPermission' -or $Command -ceq 'Get-EXORecipientPermission') {
+                    $kind = if ($Command -ceq 'Get-EXOMailboxPermission') { 'FullAccess' } else { 'SendAs' }
+                    if ($script:FamilyReportId -cne 'exo-mailbox-permissions' -or -not $script:FamilyPermissionSources.Contains($kind) -or
+                        $Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or
+                        -not $script:FamilyTargets.Contains($Parameters['Identity']) -or -not $script:FamilyVerifiedTargets.Contains($Parameters['Identity'])) {
+                        $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                    }
+                    if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                    $properties = if ($kind -ceq 'FullAccess') { @('User','AccessRights','IsInherited','Deny') } else { @('Trustee','AccessRights','IsInherited','Deny') }
+                    $arguments['Identity'] = $Parameters['Identity']
+                    $arguments['ResultSize'] = 1 + $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                    $observation = $true
+                } else {
+                switch -CaseSensitive ($Command) {
+                    'Get-MessageTraceV2' {
+                        if ($script:FamilyReportId -cne 'exo-message-trace' -or $Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('WindowIndex') -or
+                            $Parameters['WindowIndex'] -isnot [int] -or $Parameters['WindowIndex'] -ne $script:TraceNextIndex -or $script:TraceNextIndex -ge $script:FrozenTracePlan.Windows.Count) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        }
+                        $window = $script:FrozenTracePlan.Windows[$script:TraceNextIndex]
+                        # Consume before the source call. A failed window cannot be replayed through this gate.
+                        $script:TraceNextIndex++
+                        $remaining = $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                        if ($remaining -lt 1) { throw 'BDIT-READ-LIMIT' }
+                        $arguments['StartDate'] = ([DateTimeOffset]$window.startUtc).UtcDateTime
+                        $arguments['EndDate'] = ([DateTimeOffset]$window.endUtc).UtcDateTime
+                        $arguments['ResultSize'] = [Math]::Min(5000, $remaining)
+                        foreach ($filter in @('Sender','Recipient','InternetMessageId','MessageTraceId')) {
+                            $value = $script:FrozenTracePlan.$filter
+                            if ($null -ne $value) {
+                                $sourceName = switch -CaseSensitive ($filter) { 'Sender' {'SenderAddress'} 'Recipient' {'RecipientAddress'} 'InternetMessageId' {'MessageId'} 'MessageTraceId' {'MessageTraceId'} }
+                                $arguments[$sourceName] = $value
+                            }
+                        }
+                        $properties = @('MessageTraceId','RecipientAddress','Received','SenderAddress','MessageId','Status','Size')
+                        if ($script:FrozenTracePlan.IncludeSubject) { $properties += 'Subject' }
+                        $observation = $true
+                    }
+                    'Get-TransportRule' {
+                        if ($script:FamilyReportId -cne 'exo-transport-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($script:FamilyTransportInventory) {
+                            if ($Parameters.Count -ne 0) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        } elseif ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or
+                            $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        } else { $arguments['Identity'] = $Parameters['Identity'] }
+                        $remaining = $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                        if ($remaining -lt 1) { throw 'BDIT-READ-LIMIT' }
+                        $arguments['ResultSize'] = if ($script:FamilyTransportInventory) { $remaining } else { [Math]::Min(2, $remaining) }
+                        $arguments['ExcludeConditionActionDetails'] = $true
+                        $properties = @('Guid','Name','Priority','State','Mode','ActivationDate','ExpiryDate')
+                        $observation = $true
+                    }
+                    'Get-DistributionGroup' {
+                        if ($script:FamilyReportId -cne 'exo-distribution-groups' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        }
+                        $null = $script:FamilyVerifiedTargets.Remove($Parameters['Identity'])
+                        $properties = @('Guid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress','RecipientTypeDetails','ManagedBy','MemberJoinRestriction','MemberDepartRestriction','RequireSenderAuthenticationEnabled','HiddenFromAddressListsEnabled')
+                        $arguments['Identity'] = $Parameters['Identity']
+                    }
+                    'Get-DistributionGroupMember' {
+                        if ($script:FamilyReportId -cne 'exo-distribution-groups' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity']) -or
+                            -not $script:FamilyVerifiedTargets.Contains($Parameters['Identity'])) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                        $properties = @('Guid','ExternalDirectoryObjectId','Identity','DisplayName','PrimarySmtpAddress','RecipientTypeDetails')
+                        $arguments['Identity'] = $Parameters['Identity']; $arguments['ResultSize'] = 1 + $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                        $observation = $true
+                    }
+                    'Get-EXOMailbox' {
+                        if ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        }
+                        # A later failed/mismatched lookup cannot leave earlier proof usable for another child read.
+                        $null = $script:FamilyVerifiedTargets.Remove($Parameters['Identity'])
+                        $script:FamilyCalendarProof.Remove($Parameters['Identity'])
+                        $properties = @('ExchangeGuid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress')
+                        if ($script:FamilyReportId -ceq 'exo-mailbox-permissions' -and $script:FamilyPermissionSources.Contains('SendOnBehalf')) { $properties += 'GrantSendOnBehalfTo' }
+                        $arguments['Identity'] = $Parameters['Identity']
+                        $arguments['Properties'] = $properties
+                    }
+                    'Get-EXOMailboxFolderStatistics' {
+                        if ($script:FamilyReportId -cne 'exo-calendar-permissions' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or
+                            -not $script:FamilyVerifiedTargets.Contains($Parameters['Identity'])) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $script:FamilyCalendarProof.Remove($Parameters['Identity'])
+                        $properties = @('FolderId','FolderPath','FolderType','Identity')
+                        $arguments['Identity'] = $Parameters['Identity']; $arguments['FolderScope'] = 'Calendar'
+                        $observation = $true
+                    }
+                    'Get-EXOMailboxFolderPermission' {
+                        if ($script:FamilyReportId -cne 'exo-calendar-permissions' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string]) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $verifiedFolder = $false
+                        foreach ($mailbox in @($script:FamilyCalendarProof.Keys)) {
+                            if ($script:FamilyCalendarProof[$mailbox] -ceq $Parameters['Identity'] -and $script:FamilyVerifiedTargets.Contains($mailbox)) { $verifiedFolder = $true }
+                        }
+                        if (-not $verifiedFolder) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $properties = @('User','AccessRights','SharingPermissionFlags')
+                        $arguments['Identity'] = $Parameters['Identity']; $observation = $true
+                    }
+                    'Get-InboxRule' {
+                        if ($script:FamilyReportId -cne 'exo-inbox-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($Parameters.Count -ne 2 -or -not $Parameters.ContainsKey('Mailbox') -or -not $Parameters.ContainsKey('IncludeHidden') -or
+                            $Parameters['Mailbox'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Mailbox']) -or
+                            -not $script:FamilyVerifiedTargets.Contains($Parameters['Mailbox']) -or $Parameters['IncludeHidden'] -isnot [bool] -or
+                            $Parameters['IncludeHidden'] -ne $script:FamilyIncludeHidden) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                        $properties = @('RuleIdentity','Identity','Name','Enabled','Priority','ForwardTo','ForwardAsAttachmentTo','RedirectTo','DeleteMessage','MarkAsRead','StopProcessingRules')
+                        $arguments['Mailbox'] = $Parameters['Mailbox']
+                        $arguments['IncludeHidden'] = $script:FamilyIncludeHidden
+                        $arguments['ResultSize'] = 1 + $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                        $observation = $true
+                    }
+                    default { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                }
+                }
+                $script:FamilySourceCalls++
+                [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
+                $output = Read-BditBoundedRows -Producer { & $Readers[$Command] @arguments } -Properties $properties -UseSharedBudget $true -CountAsObservation $observation
+                if ($script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                if ($Command -ceq 'Get-MessageTraceV2') {
+                    foreach ($row in $output) {
+                        $property = $row.PSObject.Properties['Received']
+                        if ($null -ne $property -and $null -ne $property.Value) {
+                            $value = $property.Value; $utc = $null
+                            if ($value -is [DateTimeOffset]) { $utc = $value.UtcDateTime }
+                            elseif ($value -is [DateTime]) { $utc = if ($value.Kind -eq [DateTimeKind]::Local) { $value.ToUniversalTime() } else { [DateTime]::SpecifyKind($value, [DateTimeKind]::Utc) } }
+                            elseif ($value -is [string] -and $value -cmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,7})?(Z|[+-][0-9]{2}:[0-9]{2})$') {
+                                $parsed = [DateTimeOffset]::MinValue
+                                if ([DateTimeOffset]::TryParse($value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) { $utc = $parsed.UtcDateTime }
+                            }
+                            $property.Value = if ($null -eq $utc) { $null } else { $utc.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", [Globalization.CultureInfo]::InvariantCulture) }
+                        }
+                    }
+                }
+                if ($Command -ceq 'Get-TransportRule' -or $Command -ceq 'Get-MessageTraceV2') {
+                    # Fixed source-only envelope exposes the actual bounded cap, including a successful empty read.
+                    return [pscustomobject]@{ Rows = $output; ResultSize = [int]$arguments['ResultSize'] }
+                }
+                if ($Command -ceq 'Get-DistributionGroup' -and $output.Count -eq 1) {
+                    $guidProperty = $output[0].PSObject.Properties['Guid']; $actual = [guid]::Empty
+                    $kindProperty = $output[0].PSObject.Properties['RecipientTypeDetails']
+                    if ($null -ne $guidProperty -and ($guidProperty.Value -is [guid] -or $guidProperty.Value -is [string]) -and
+                        [guid]::TryParseExact([string]$guidProperty.Value, 'D', [ref]$actual) -and $actual.ToString('D') -ceq $Parameters['Identity']) {
+                        $owners = $output[0].PSObject.Properties['ManagedBy']
+                        if ($null -ne $owners -and $owners.Value -is [array]) {
+                            foreach ($owner in $owners.Value) { if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }; $script:FamilyRowsRead++ }
+                        }
+                        if ($null -ne $kindProperty -and $kindProperty.Value -is [string] -and $kindProperty.Value -cin @('MailUniversalDistributionGroup','MailUniversalSecurityGroup','RoomList')) {
+                            $null = $script:FamilyVerifiedTargets.Add($Parameters['Identity'])
+                        }
+                    }
+                }
+                if ($Command -ceq 'Get-EXOMailboxFolderStatistics') {
+                    $calendars = @($output | Where-Object { $p = $_.PSObject.Properties['FolderType']; $null -ne $p -and $p.Value -is [string] -and $p.Value -ceq 'Calendar' })
+                    $typesKnown = $true
+                    foreach ($folder in $output) { $p = $folder.PSObject.Properties['FolderType']; if ($null -eq $p -or $p.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($p.Value)) { $typesKnown = $false } }
+                    if ($typesKnown -and $calendars.Count -eq 1) {
+                        $pathProperty = $calendars[0].PSObject.Properties['FolderPath']; $idProperty = $calendars[0].PSObject.Properties['FolderId']
+                        if ($null -ne $pathProperty -and $pathProperty.Value -is [string] -and $null -ne $idProperty -and $idProperty.Value -is [string] -and
+                            -not [string]::IsNullOrWhiteSpace($idProperty.Value) -and $idProperty.Value -notmatch '[\x00-\x1F\x7F]') {
+                            $path = $pathProperty.Value
+                            if ($path.Length -ge 2 -and $path.Length -le 980 -and $path[0] -ceq '/' -and -not $path.Contains('\') -and -not $path.Contains(':') -and $path -notmatch '[\x00-\x1F\x7F]') {
+                                $validPath = $true
+                                foreach ($part in @($path.Split('/') | Select-Object -Skip 1)) { if ([string]::IsNullOrWhiteSpace($part) -or $part -ceq '.' -or $part -ceq '..') { $validPath = $false } }
+                                if ($validPath) { $script:FamilyCalendarProof[$Parameters['Identity']] = $Parameters['Identity'] + ':' + $path.Replace('/','\') }
+                            }
+                        }
+                    }
+                }
+                if ($Command -ceq 'Get-EXOMailbox' -and $output.Count -eq 1) {
+                    $returned = $output[0].PSObject.Properties['ExchangeGuid']
+                    $actual = [guid]::Empty
+                    if ($null -ne $returned -and ($returned.Value -is [guid] -or $returned.Value -is [string]) -and
+                        [guid]::TryParseExact([string]$returned.Value, 'D', [ref]$actual) -and $actual.ToString('D') -ceq $Parameters['Identity']) {
+                        if ($script:FamilyReportId -ceq 'exo-mailbox-permissions' -and $script:FamilyPermissionSources.Contains('SendOnBehalf')) {
+                            $grants = $output[0].PSObject.Properties['GrantSendOnBehalfTo']
+                            # The projected attribute is independently bounded to100 values. Each resulting edge also
+                            # consumes the shared diagnostic-reserved observation budget before it reaches the body.
+                            if ($null -ne $grants -and $grants.Value -is [array]) {
+                                foreach ($grant in $grants.Value) {
+                                    if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                                    $script:FamilyRowsRead++
+                                }
+                            }
+                        }
+                        $null = $script:FamilyVerifiedTargets.Add($Parameters['Identity'])
+                    }
+                }
+                return ,$output
+            }
             function Use-BditRead {
                 param([Parameter(Mandatory = $true)][string]$Command, [Parameter(Mandatory = $true)][hashtable]$Parameters)
                 if (-not $Readers.ContainsKey($Command)) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
@@ -315,6 +829,10 @@ function Invoke-BditRunner {
                     if ($key -isnot [string] -or $common -contains $key -or $Parameters[$key] -is [scriptblock]) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 }
                 Assert-BditGate
+                if ($script:FamilyVersion -eq 2) {
+                    $output = Read-BditFamilyRows -Command $Command -Parameters $Parameters
+                    return $output
+                }
                 [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
                 $arguments = @{} + $Parameters
                 $arguments['ErrorAction'] = 'Stop'
@@ -347,6 +865,9 @@ function Invoke-BditRunner {
     $bodyFailed = $false
     try {
         $bodyHost = New-Module -Name BditBody -ScriptBlock { }
+        if ($BditRequest.reportId -ceq 'exo-message-trace') {
+            $BditArguments['TracePlan'] = Copy-BditTracePlan $BditTracePlan
+        }
         $bodyOutput = @(& $bodyHost { param($Text, $Arguments) & ([scriptblock]::Create($Text)) @Arguments } $bodyText $BditArguments)
     }
     catch { $bodyFailed = $true }
@@ -356,6 +877,211 @@ function Invoke-BditRunner {
     $endedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ', [Globalization.CultureInfo]::InvariantCulture)
     if ($bodyFailed -and $null -eq $gate.Failure) { Stop-BditRun 'BodyFailed' }
     if ($gate.Failure -eq 'Unregistered') { Stop-BditRun 'BodyRefused' }
+
+    # Exact report2 cell projection. Complex module objects never reach serialisation: only these bounded DTO shapes do.
+    function Require-BditOutputText($Text, [int]$Maximum, [bool]$Nullable = $false, [bool]$Blank = $false, [bool]$Newline = $false) {
+        if ($null -eq $Text) { if ($Nullable) { return $null }; throw 'output' }
+        if ($Text -isnot [string] -or $Text.Length -gt $Maximum -or (-not $Blank -and [string]::IsNullOrWhiteSpace($Text))) { throw 'output' }
+        $controls = if ($Newline) { '[\x00-\x09\x0B-\x1F\x7F-\x9F]' } else { '\p{Cc}' }
+        if ($Text -match $controls) { throw 'output' }
+        return $Text
+    }
+    function Require-BditOutputMap($Map, [string[]]$Keys) {
+        if ($Map -isnot [Collections.IDictionary] -or $Map.PSBase.Count -ne $Keys.Count) { throw 'output' }
+        foreach ($key in $Keys) { if (@($Map.PSBase.Keys) -cnotcontains $key) { throw 'output' } }
+    }
+
+    function Convert-BditInboxRuleCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Section -cnotin @('target-reads','rules')) { throw 'output' }
+        if ($Column -ceq 'id') { if ($null -ne $Value) { throw 'output' }; return $null }
+        if ($Column -ceq 'name') { return Require-BditOutputText $Value 1024 $true $true }
+        if ($Column -ceq 'error') { return Require-BditOutputText $Value 4096 $true $false $true }
+        $states = @('Collected','Partial','Failed','NotAttempted','Cancelled')
+        if ($Column -ceq 'readStatus' -or ($Section -ceq 'target-reads' -and $Column -cin @('lookupReadStatus','childReadStatus'))) {
+            if ($Value -isnot [string] -or $states -cnotcontains $Value) { throw 'output' }
+            return $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -cin @('returnedEntries','excludedEntries')) {
+                if ($null -eq $Value) { return $null }
+                if (($Value -isnot [int] -and $Value -isnot [long]) -or $Value -lt 0 -or $Value -gt 5000) { throw 'output' }
+                return $Value
+            }
+            if ($Column -cin @('requestedExchangeGuid','observedExchangeGuid','externalDirectoryObjectId','primarySmtpAddress')) {
+                return Require-BditOutputText $Value 1024 ($Column -cne 'requestedExchangeGuid')
+            }
+            throw 'output'
+        }
+        if ($Column -cin @('mailboxExchangeGuid','ruleIdentity','actualIdentityRaw')) {
+            return Require-BditOutputText $Value 1024 ($Column -ceq 'actualIdentityRaw')
+        }
+        $booleans = @('enabled','deleteMessage','markAsRead','stopProcessingRules')
+        $lists = @('forwardTo','forwardAsAttachmentTo','redirectTo')
+        if ($Column -cnotin $booleans -and $Column -cnotin $lists -and $Column -cne 'priority') { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        $state = $Value['state']; $actual = $Value['value']; $reason = $Value['reason']
+        if ($state -isnot [string] -or $state -cnotin @('Value','ReturnedNull','Missing','Failed','NotAttempted','Unsupported')) { throw 'output' }
+        if ($state -cne 'Value') {
+            if ($null -ne $actual) { throw 'output' }
+            $reason = Require-BditOutputText $reason 4096 $false $false $true
+            return [ordered]@{state=$state;value=$null;reason=$reason}
+        }
+        if ($null -ne $reason -or $null -eq $actual) { throw 'output' }
+        if ($Column -cin $booleans) { if ($actual -isnot [bool]) { throw 'output' } }
+        elseif ($Column -ceq 'priority') {
+            if (($actual -isnot [int] -and $actual -isnot [long]) -or $actual -lt 0 -or $actual -gt 2147483647) { throw 'output' }
+        }
+        else {
+            if ($actual -isnot [array] -or $actual.Count -gt 100) { throw 'output' }
+            $references = [Collections.Generic.List[object]]::new()
+            foreach ($reference in $actual) {
+                Require-BditOutputMap $reference @('namespace','value','externalDirectoryObjectId')
+                $source = $reference['namespace']
+                if ($source -isnot [string] -or $source -cnotin @('ReturnedText','RawIdentity','DistinguishedName','SpecialPrincipal','UnresolvedDisplayLabel')) { throw 'output' }
+                $text = Require-BditOutputText $reference['value'] 1024
+                if ($source -ceq 'SpecialPrincipal' -and $text -cnotin @('Default','Anonymous')) { throw 'output' }
+                $directory = $reference['externalDirectoryObjectId']
+                if ($null -ne $directory -and ($directory -isnot [string] -or $directory -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $directory -ceq '00000000-0000-0000-0000-000000000000')) { throw 'output' }
+                $references.Add([ordered]@{namespace=$source;value=$text;externalDirectoryObjectId=$directory})
+            }
+            $actual = $references.ToArray()
+        }
+        return [ordered]@{state=$state;value=$actual;reason=$null}
+    }
+
+    function Convert-BditPermissionCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Section -cnotin @('target-reads','permissions')) { throw 'output' }
+        if ($Column -cin @('id','name','readStatus','error','mailboxExchangeGuid')) {
+            return Convert-BditInboxRuleCell 'rules' $Column $Value
+        }
+        if ($Section -ceq 'target-reads' -and $Column -cne 'permissionReads') {
+            return Convert-BditInboxRuleCell 'target-reads' $Column $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Value -isnot [array] -or $Value.Count -ne 3) { throw 'output' }
+            $reads = [Collections.Generic.List[object]]::new(); $kinds = @('FullAccess','SendAs','SendOnBehalf')
+            for ($n = 0; $n -lt 3; $n++) {
+                $read = $Value[$n]; Require-BditOutputMap $read @('kind','selected','status','error','returnedEntries','excludedEntries')
+                if ($read['kind'] -isnot [string] -or $read['kind'] -cne $kinds[$n] -or $read['selected'] -isnot [bool]) { throw 'output' }
+                $reads.Add([ordered]@{ kind=$read['kind']; selected=$read['selected'];
+                    status=(Convert-BditInboxRuleCell 'target-reads' 'lookupReadStatus' $read['status']);
+                    error=(Require-BditOutputText $read['error'] 4096 $true $false $true);
+                    returnedEntries=(Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $read['returnedEntries']);
+                    excludedEntries=(Convert-BditInboxRuleCell 'target-reads' 'excludedEntries' $read['excludedEntries']) })
+            }
+            return ,$reads.ToArray()
+        }
+        if ($Column -ceq 'permissionKind') {
+            if ($Value -isnot [string] -or $Value -cnotin @('FullAccess','SendAs','SendOnBehalf')) { throw 'output' }; return $Value
+        }
+        if ($Column -ceq 'principal') {
+            $group = Convert-BditInboxRuleCell 'rules' 'forwardTo' ([ordered]@{state='Value';value=@($Value);reason=$null})
+            return $group.value[0]
+        }
+        if ($Column -cin @('isInherited','deny')) { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($Column -cne 'rights') { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($null -ne $Value['reason'] -or $Value['value'] -isnot [array] -or $Value['value'].Count -gt 100) { throw 'output' }
+        $rights = [Collections.Generic.List[object]]::new()
+        foreach ($right in $Value['value']) { $rights.Add((Require-BditOutputText $right 1024)) }
+        return [ordered]@{state='Value';value=$rights.ToArray();reason=$null}
+    }
+
+    function Convert-BditCalendarCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Column -cin @('id','name','readStatus','error','mailboxExchangeGuid')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Column -cin @('requestedExchangeGuid','observedExchangeGuid','externalDirectoryObjectId','primarySmtpAddress','lookupReadStatus','returnedEntries','excludedEntries')) {
+            return Convert-BditInboxRuleCell $Section $Column $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -cin @('folderReadStatus','permissionReadStatus')) { return Convert-BditInboxRuleCell 'target-reads' 'childReadStatus' $Value }
+            if ($Column -cin @('returnedFolders','defaultFolderMatches')) { return Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $Value }
+            if ($Column -cin @('folderId','folderPath','nativeFolderIdentity')) { return Require-BditOutputText $Value 1024 $true }
+        }
+        if ($Section -ceq 'permissions') {
+            if ($Column -ceq 'nativeFolderIdentity') { return Require-BditOutputText $Value 1024 }
+            if ($Column -ceq 'principal') { return Convert-BditPermissionCell 'permissions' 'principal' $Value }
+            if ($Column -cin @('rights','sharingPermissionFlags')) { return Convert-BditPermissionCell 'permissions' 'rights' $Value }
+        }
+        throw 'output'
+    }
+
+    function Convert-BditTraceCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Column -cin @('id','name','readStatus','error')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Column -ceq 'windowIndex') {
+            if ($Value -isnot [int] -or $Value -lt 0 -or $Value -gt 8) { throw 'output' }; return $Value
+        }
+        if ($Section -ceq 'interval-reads') {
+            if ($Column -cin @('requestedResultSize','returnedEntries','excludedEntries')) { return Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $Value }
+            if ($Column -cin @('frozenAtUtc','startUtc','endUtc','filterDigest')) { return Require-BditOutputText $Value 1024 }
+        } elseif ($Section -ceq 'traces') {
+            if ($Column -cin @('messageTraceId','recipientAddress','receivedUtc')) { return Require-BditOutputText $Value 1024 }
+            if ($Column -cin @('senderAddress','internetMessageId','status','size','subject')) {
+                Require-BditOutputMap $Value @('state','value','reason')
+                if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+                if ($null -ne $Value['reason']) { throw 'output' }
+                return [ordered]@{state='Value';value=(Require-BditOutputText $Value['value'] 1024 $false $true);reason=$null}
+            }
+        }
+        throw 'output'
+    }
+
+    function Convert-BditTransportCell {
+        param([string]$Section,[string]$Column,$Value)
+        if ($Section -cnotin @('target-reads','policies')) { throw 'output' }
+        if ($Column -cin @('id','name','readStatus','error')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -ceq 'scope') { if ($Value -cnotin @('SelectedRule','OrganisationInventory')) { throw 'output' }; return $Value }
+            if ($Column -ceq 'requestedRuleGuid') { return Require-BditOutputText $Value 36 $true }
+            if ($Column -cin @('requestedResultSize','returnedEntries','excludedEntries')) { return Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $Value }
+            throw 'output'
+        }
+        if ($Column -ceq 'ruleGuid') { return Require-BditOutputText $Value 36 }
+        if ($Column -ceq 'priority') { return Convert-BditInboxRuleCell 'rules' 'priority' $Value }
+        if ($Column -cnotin @('state','mode','activationDate','expiryDate')) { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($null -ne $Value['reason']) { throw 'output' }
+        $text = Require-BditOutputText $Value['value'] 1024 $false ($Column -cin @('activationDate','expiryDate'))
+        return [ordered]@{state='Value';value=$text;reason=$null}
+    }
+
+    function Convert-BditGroupCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Section -cnotin @('target-reads','members')) { throw 'output' }
+        if ($Column -cin @('id','name','readStatus','error')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Column -cin @('requestedGroupGuid','groupGuid')) { return Require-BditOutputText $Value 1024 }
+        if ($Column -cin @('observedGroupGuid','externalDirectoryObjectId','primarySmtpAddress')) { return Require-BditOutputText $Value 1024 $true }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -cin @('lookupReadStatus','membershipReadStatus')) { return Convert-BditInboxRuleCell 'target-reads' 'childReadStatus' $Value }
+            if ($Column -cin @('returnedEntries','excludedEntries')) { return Convert-BditInboxRuleCell 'target-reads' $Column $Value }
+            if ($Column -cin @('requireSenderAuthenticationEnabled','hiddenFromAddressListsEnabled')) { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+            if ($Column -ceq 'managedBy') { return Convert-BditInboxRuleCell 'rules' 'forwardTo' $Value }
+        }
+        if ($Section -ceq 'members' -and $Column -ceq 'sourceIdentity') {
+            Require-BditOutputMap $Value @('namespace','value','externalDirectoryObjectId')
+            if ($Value['namespace'] -ceq 'ExchangeRecipientGuid') {
+                $guid = Require-BditOutputText $Value['value'] 36
+                if ($guid -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $guid -ceq '00000000-0000-0000-0000-000000000000') { throw 'output' }
+                $directory = Require-BditOutputText $Value['externalDirectoryObjectId'] 36 $true
+                if ($null -ne $directory -and ($directory -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $directory -ceq '00000000-0000-0000-0000-000000000000')) { throw 'output' }
+                return [ordered]@{ namespace='ExchangeRecipientGuid'; value=$guid; externalDirectoryObjectId=$directory }
+            }
+            $reference = Convert-BditPermissionCell 'permissions' 'principal' $Value
+            if ($reference['namespace'] -ceq 'SpecialPrincipal') { throw 'output' }; return $reference
+        }
+        if ($Column -cin @('recipientTypeDetails','memberJoinRestriction','memberDepartRestriction')) {
+            Require-BditOutputMap $Value @('state','value','reason')
+            if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+            if ($null -ne $Value['reason']) { throw 'output' }
+            return [ordered]@{state='Value';value=(Require-BditOutputText $Value['value'] 1024);reason=$null}
+        }
+        throw 'output'
+    }
 
     # ---- project exactly the registered sections and columns ---------------------------------------------------------
     $failureReason = @{
@@ -376,6 +1102,10 @@ function Invoke-BditRunner {
             if ($claimedSections.Count -ne @($BditRequest.sections).Count) { throw 'output' }
         }
         $index = 0
+        # Reserve fixed envelope/parameter space and parent-assigned key growth before accumulating report2 rows.
+        $familyOutputRows = 0
+        $familyOutputBytes = 65536 + ($requestBytes.Length * 2) + (5000 * 96)
+        $outputUtf8 = [Text.UTF8Encoding]::new($false, $true)
         foreach ($registered in @($BditRequest.sections)) {
             $columns = @($registered.columns | ForEach-Object { [string]$_ })
             $rows = New-Object Collections.ArrayList
@@ -395,12 +1125,28 @@ function Invoke-BditRunner {
                 $claimedRows = @($section['Rows'])
                 if ($claimedRows.Count -gt $BditRequest.maximumRows) { throw 'rows' }
                 foreach ($row in $claimedRows) {
-                    if ($row -isnot [Collections.IDictionary] -or @($row.Keys).Count -ne $columns.Count) { throw 'output' }
+                    if ($row -isnot [Collections.IDictionary]) { throw 'output' }
+                    $keyCount = if ($BditRequest.reportSchemaVersion -eq 2) { $row.PSBase.Count } else { @($row.Keys).Count }
+                    if ($keyCount -ne $columns.Count) { throw 'output' }
                     $projected = [ordered]@{}
                     foreach ($column in $columns) {
                         if (-not $row.Contains($column)) { throw 'output' }
                         $value = $row[$column]
-                        if ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
+                        if ($BditRequest.reportSchemaVersion -eq 2) {
+                            if (@($row.PSBase.Keys) -cnotcontains $column) { throw 'output' }
+                            if ($BditRequest.reportId -ceq 'exo-message-trace') {
+                                $value = Convert-BditTraceCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-transport-rules') {
+                                $value = Convert-BditTransportCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') {
+                                $value = Convert-BditPermissionCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') {
+                                $value = Convert-BditCalendarCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-distribution-groups') {
+                                $value = Convert-BditGroupCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } else { $value = Convert-BditInboxRuleCell -Section ([string]$registered.id) -Column $column -Value $value }
+                        }
+                        elseif ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
                             # INT-121's sole collection-valued column. All other non-scalars remain refused.
                             if ([string]$BditRequest.reportId -cne 'exo-mailbox-holds' -or [string]$registered.id -cne 'holds' -or
                                 $column -cne 'inPlaceHoldIds' -or $value -isnot [array] -or $value.Count -gt 100) { throw 'output' }
@@ -410,6 +1156,13 @@ function Invoke-BditRunner {
                             }
                         }
                         $projected[$column] = $value
+                    }
+                    if ($BditRequest.reportSchemaVersion -eq 2) {
+                        $size = $outputUtf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 10 -Compress)) + 1
+                        if ($familyOutputRows -ge $BditRequest.maximumRows) { throw 'rows' }
+                        $familyOutputRows++
+                        if ($size -gt (33554432 - $familyOutputBytes)) { throw 'output' }
+                        $familyOutputBytes += $size
                     }
                     [void]$rows.Add($projected)
                 }
@@ -432,7 +1185,7 @@ function Invoke-BditRunner {
         runnerTemplateSha256 = [string]$BditRequest.runnerTemplateSha256
         adapter = [string]$BditRequest.adapter
         reportId = [string]$BditRequest.reportId
-        reportSchemaVersion = 1
+        reportSchemaVersion = [int]$BditRequest.reportSchemaVersion
         tenantId = [string]$BditRequest.tenantId
         observedAccountUpn = $gate.Observed
         startedAt = $startedAt
@@ -443,8 +1196,10 @@ function Invoke-BditRunner {
         sections = @($sections)
     }
     try {
-        $json = ConvertTo-Json -InputObject $envelope -Depth 8 -Compress
+        $depth = if ($BditRequest.reportSchemaVersion -eq 2) { 12 } else { 8 }
+        $json = ConvertTo-Json -InputObject $envelope -Depth $depth -Compress
         $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($json)
+        if ($BditRequest.reportSchemaVersion -eq 2 -and $bytes.Length -gt 33554432) { throw 'output' }
         $stream = New-Object IO.FileStream($Result, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
         try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
     }

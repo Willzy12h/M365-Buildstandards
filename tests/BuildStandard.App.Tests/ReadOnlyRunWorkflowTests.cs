@@ -73,6 +73,52 @@ internal sealed class ReadRunFixture : IDisposable
             SourceCommands = [.. definition.SourceCommands], Limitations = [definition.Limitations], Status = state,
             Sections = [new ReportSection { Id = "mailboxes", Status = state, Error = state == ReportReadState.Collected ? null : "Synthetic incomplete read.", Limitations = ["Synthetic section coverage limitation."], Rows = [] }]
         };
+        if (definition.ReportSchemaVersion == 2)
+        {
+            report.ReportSchemaVersion = 2; report.AdapterVersion = definition.AdapterVersion;
+            var mailbox = inputs[definition.Id=="exo-distribution-groups"?"GroupGuids":"MailboxGuids"]!;
+            report.Sections =
+            [
+                new() { Id = "target-reads", Status = "Collected", Rows = [new JsonObject
+                {
+                    ["id"] = ExchangeObservationKey.TargetRead(definition.Id, mailbox), ["name"] = "Synthetic selected mailbox",
+                    ["readStatus"] = "Collected", ["error"] = null, ["requestedExchangeGuid"] = mailbox,
+                    ["observedExchangeGuid"] = mailbox, ["externalDirectoryObjectId"] = null, ["primarySmtpAddress"] = null,
+                    ["lookupReadStatus"] = "Collected", ["childReadStatus"] = "Collected", ["returnedEntries"] = 0, ["excludedEntries"] = 0
+                }] },
+                new() { Id = "rules", Status = "Collected", Rows = [] }
+            ];
+        }
+        if (definition.Id == "exo-mailbox-permissions")
+        {
+            var target=report.Sections[0].Rows[0];target.Remove("childReadStatus");target.Remove("returnedEntries");target.Remove("excludedEntries");
+            target["permissionReads"]=new JsonArray(new[]{"FullAccess","SendAs","SendOnBehalf"}.Select(kind=>
+            {
+                var selected=inputs.TryGetValue(kind,out var text)&&bool.TryParse(text,out var flag)&&flag;
+                return (JsonNode)new JsonObject{["kind"]=kind,["selected"]=selected,["status"]=selected?"Collected":"NotAttempted",["error"]=selected?null:"Not selected",["returnedEntries"]=selected?0:null,["excludedEntries"]=selected?0:null};
+            }).ToArray());
+            report.Sections[1].Id="permissions";
+        }
+        if(definition.Id=="exo-calendar-permissions")
+        {
+            var target=report.Sections[0].Rows[0];target.Remove("childReadStatus");
+            target["folderReadStatus"]="Collected";target["returnedFolders"]=1;target["defaultFolderMatches"]=1;
+            target["folderId"]="synthetic-folder-id";target["folderPath"]="/Kalender";
+            target["nativeFolderIdentity"]=ExchangeCalendarIdentity.FromReturnedPath(inputs["MailboxGuids"]!,"/Kalender");
+            target["permissionReadStatus"]="Collected";report.Sections[1].Id="permissions";
+        }
+        if(definition.Id=="exo-distribution-groups")
+        {
+            var group=inputs["GroupGuids"]!;
+            report.Sections[0].Rows=[ExchangeReportEvidenceSchema.Row(new ExchangeGroupTargetRow
+            {
+                Id=ExchangeObservationKey.TargetRead(definition.Id,group),Name="Synthetic group",ReadStatus="Collected",RequestedGroupGuid=group,ObservedGroupGuid=group,
+                LookupReadStatus="Collected",MembershipReadStatus="Collected",ReturnedEntries=0,ExcludedEntries=0,
+                RecipientTypeDetails=new(){State="Value",Value="MailUniversalDistributionGroup"},ManagedBy=new(){State="Value",Value=[]},
+                MemberJoinRestriction=new(){State="Value",Value="Closed"},MemberDepartRestriction=new(){State="Value",Value="Open"},
+                RequireSenderAuthenticationEnabled=new(){State="Value",Value=false},HiddenFromAddressListsEnabled=new(){State="Value",Value=false}
+            })];report.Sections[1].Id="members";
+        }
         ExchangeReportEvidenceSchema.Seal(report);
         return new(report.RunId, outcome, "Synthetic safe outcome.", report, false);
     }
@@ -92,16 +138,35 @@ internal sealed class ReadRunFixture : IDisposable
 
 public sealed class ReadOnlyRunWorkflowTests
 {
+    [Fact] public void Transport_inventory_review_names_explicit_scope_and_has_no_implicit_service_call()
+    {
+        using var f=new ReadRunFixture();f.Workflow.SetSelection("exo.transport-rule-observations","7",new Dictionary<string,string?>{["RuleGuids"]="",["OrganisationInventory"]="true"});
+        var text=f.Review().Text;Assert.Contains("OrganisationInventory (Boolean): true",text);Assert.Contains("rows total across all sections",text);Assert.Contains("Get-TransportRule",text);
+        Assert.Equal(0,f.Calls);Assert.Equal(0,f.Saves);
+    }
     [Fact]
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(4, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(10, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(new(review.Text), true, null, default));
         Assert.Equal(0, f.Calls); Assert.Equal(0, f.Saves);
+    }
+
+    [Theory]
+    [InlineData("exo.mailbox-size-quota", false)]
+    [InlineData("exo.distribution-group-observations", true)]
+    public void Exact_review_distinguishes_total_family_budget_from_legacy_section_budget(string id, bool total)
+    {
+        using var f=new ReadRunFixture();
+        f.Workflow.SetSelection(id,"7",id=="exo.mailbox-size-quota" ? f.Inputs : new Dictionary<string,string?> { ["GroupGuids"]=TestData.Office });
+        var text=f.Review().Text;
+        Assert.Contains(total?"rows total across all sections":"rows per section",text);
+        if(total)Assert.DoesNotContain("rows per section",text);
+        Assert.Equal(0,f.Calls);
     }
 
     [Theory]
@@ -457,5 +522,26 @@ public sealed class ReadOnlyRunWorkflowTests
         if (selection == "invalid-bool") f.Workflow.SetSelection(f.Entry.Manifest.Id, "7", new Dictionary<string, string?> { ["IncludeArchive"] = "Start-Process private" });
         if (selection == "unsupported-runtime") f.Workflow.SetSelection(f.Entry.Manifest.Id, "custom/private/pwsh", f.Inputs);
         Assert.ThrowsAny<ToolkitException>(f.Workflow.PrepareReview); Assert.Equal(0, f.Calls);
+    }
+}
+
+public sealed class TraceRunWorkflowTests
+{
+    private static Dictionary<string,string?> Inputs()=>new(){["StartDate"]="2026-10-01",["EndDate"]="2026-10-11",["MessageTraceId"]=TestData.Office,["IncludeSubject"]="false",["MaximumRows"]="100"};
+    [Fact] public async Task Review_freezes_the_actual_context_and_does_not_expand_after_midnight()
+    {
+        using var f=new ReadRunFixture();f.Clock.UtcNow=new(2026,10,11,23,59,0,TimeSpan.Zero);
+        f.Workflow.SetSelection("exo.message-trace-observations","7",Inputs());var review=f.Review();
+        Assert.Contains("Frozen trace review: 2026-10-11T23:59:00.000Z",review.Text);Assert.Contains("Subject collection: off",review.Text);
+        f.Clock.UtcNow=f.Clock.UtcNow.AddMinutes(2);
+        f.Transport=(_,context,_,_)=>{Assert.NotNull(context.TracePreparation);Assert.Equal(new DateTimeOffset(2026,10,11,23,59,0,TimeSpan.Zero),context.TracePreparation.Query.Windows[^1].End);return Task.FromResult(new ReadRunResult(Guid.NewGuid().ToString(),ReadRunOutcome.Failed,"Synthetic no-result transport.",null,false));};
+        await f.Workflow.RunAsync(review,true,null,default);Assert.Equal(1,f.Calls);
+    }
+    [Theory][InlineData(301)][InlineData(-1)]
+    public async Task Stale_or_future_review_is_refused_before_transport_and_requires_a_new_review(int seconds)
+    {
+        using var f=new ReadRunFixture();f.Workflow.SetSelection("exo.message-trace-observations","7",Inputs());var review=f.Review();
+        f.Clock.UtcNow=f.Clock.UtcNow.AddSeconds(seconds);
+        await Assert.ThrowsAnyAsync<ToolkitException>(()=>f.Workflow.RunAsync(review,true,null,default));Assert.Equal(0,f.Calls);Assert.Null(f.Workflow.Review);
     }
 }

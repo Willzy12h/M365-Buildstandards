@@ -32,9 +32,10 @@ public static class OwnedProcess
         RunAsync(start, readOutput, readErrors, timeout, limitExceeded, requestStop, stopGrace, ct, terminate: null, terminationWait: null);
 
     /// <param name="terminate">Replaces the tree termination step; tests use it to stand in for a system that refuses.</param>
+    /// <param name="ownedLimitExceeded">Optional sampled resource limit for this exact owned process. It is not an OS allocation cap.</param>
     internal static async Task<OwnedProcessOutcome> RunAsync(ProcessStartInfo start, Func<StreamReader, Task> readOutput,
         Func<StreamReader, Task> readErrors, TimeSpan timeout, Func<bool> limitExceeded, Action requestStop, TimeSpan stopGrace,
-        CancellationToken ct, Action<Process>? terminate, TimeSpan? terminationWait)
+        CancellationToken ct, Action<Process>? terminate, TimeSpan? terminationWait, Func<Process, bool>? ownedLimitExceeded = null)
     {
         if (start.UseShellExecute || !start.RedirectStandardOutput || !start.RedirectStandardError || !string.IsNullOrEmpty(start.Arguments))
             throw new ConfigurationException("An owned process must redirect its output, never use the shell and take only an argument list.");
@@ -59,7 +60,7 @@ public static class OwnedProcess
                 var first = await Task.WhenAny(exit, deadline, cancelled, Task.Delay(250, CancellationToken.None));
                 if (first == exit) break;
                 if (first == deadline) { end = OwnedProcessEnd.TimedOut; kill = true; break; }
-                if (limitExceeded()) { end = OwnedProcessEnd.LimitExceeded; kill = true; break; }
+                if (limitExceeded() || (ownedLimitExceeded?.Invoke(process) ?? false)) { end = OwnedProcessEnd.LimitExceeded; kill = true; break; }
                 if (first == cancelled)
                 {
                     end = OwnedProcessEnd.Cancelled;

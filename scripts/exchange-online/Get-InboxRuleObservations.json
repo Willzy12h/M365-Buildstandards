@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.inbox-rule-observations",
+  "name": "Inbox-rule observations (selected mailboxes)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Bounded read-only observations for explicitly selected Exchange mailbox GUIDs. Hidden rules are omitted by default. Per-target read states and unknown values remain visible; no incident or protection verdict.",
+  "keywords": [
+    "inbox",
+    "rules",
+    "forwarding",
+    "investigation"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-InboxRuleObservations.ps1",
+  "scriptSha256": "2e8d1d3fa55600d4313dafa1c42a6710acfa1bab6abfbc561de8282b94e7fa40",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "MailboxGuids",
+      "label": "Exchange mailbox GUIDs",
+      "type": "string",
+      "help": "Choose 1\u201350 exact Exchange mailbox GUIDs, separated by commas. Names, SMTP addresses and Entra object IDs are not substituted.",
+      "required": true,
+      "maxLength": 1849
+    },
+    {
+      "name": "IncludeHidden",
+      "label": "Include hidden inbox rules",
+      "type": "boolean",
+      "help": "Off by default. Omitting hidden rules is not a complete hidden-rule check.",
+      "default": "false"
+    }
+  ],
+  "rules": [],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "target-reads",
+        "columns": [
+          "requestedExchangeGuid",
+          "observedExchangeGuid",
+          "externalDirectoryObjectId",
+          "primarySmtpAddress",
+          "lookupReadStatus",
+          "childReadStatus",
+          "returnedEntries",
+          "excludedEntries",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "rules",
+        "columns": [
+          "mailboxExchangeGuid",
+          "ruleIdentity",
+          "actualIdentityRaw",
+          "enabled",
+          "priority",
+          "forwardTo",
+          "forwardAsAttachmentTo",
+          "redirectTo",
+          "deleteMessage",
+          "markAsRead",
+          "stopProcessingRules",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default; current verified connection, separate Exchange authentication and exact per-run approval remain required.",
+    "At most 50 explicit mailbox GUIDs, 5,000 total rows including target diagnostics, 100 source calls, 300 seconds and 32 MiB output. Unknown, failed, stopped and excluded rows are not successful empty results.",
+    "Hidden rules omitted unless explicitly selected. Local forwarding/deletion/read cues are not incident, effective protection or deployment evidence.",
+    "Live Microsoft behaviour, module output and required RBAC are unverified. No change command, automatic retry, name resolution or implicit tenant-wide scan."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-inbox-rules",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53"
+  }
+}

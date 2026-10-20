@@ -38,7 +38,8 @@ public sealed record ReadRunResult(string RunId, ReadRunOutcome Outcome, string 
 /// and <paramref name="TerminationWait"/> stand in for a system that refuses to end the process, again only in tests.
 /// </summary>
 internal sealed record ReadRunnerHost(Func<string, string?> RuntimePath, IReadOnlyDictionary<string, string>? Environment, string? OriginSource, string StagingRoot,
-    TimeSpan? StopGrace = null, Action<Process>? Terminate = null, TimeSpan? TerminationWait = null)
+    TimeSpan? StopGrace = null, Action<Process>? Terminate = null, TimeSpan? TerminationWait = null,
+    Func<Process, long>? MemorySample = null)
 {
     /// <summary>The fixed system locations only: Windows PowerShell 5.1 and machine-wide PowerShell 7. No PATH lookup.</summary>
     public static ReadRunnerHost Default { get; } = new(DefaultRuntime, null, System.Environment.ProcessPath, Path.GetTempPath());
@@ -77,8 +78,12 @@ public sealed class ExchangeReportRunner
         if (m.SchemaVersion != 2 || m.Mode != ScriptMode.ReadOnly || m.Execution is null)
             throw new ConfigurationException($"{m.Name} is a Copy-only item. Only reviewed schema 2 read-only items can run.");
         var report = ScriptCatalogue.ReportFor(m);
+        var preparation=context.TracePreparation;
+        if((report.Id=="exo-message-trace")!=(preparation is not null))
+            throw new SafetyViolationException("Only a trace run carries its exact frozen trace review. Prepare a fresh review for the selected report.");
         if (!m.SupportedRuntimes.Contains(runtime, StringComparer.Ordinal)) throw new ConfigurationException($"{m.Name} is not reviewed for PowerShell {runtime}.");
         var parameters = ScriptRequestOrThrow(entry, context, inputs);
+        preparation?.RequireMatch(entry,context,parameters,runtime,_clock.UtcNow);
         var runId = Guid.NewGuid().ToString("D");
         var runtimePath = _host.RuntimePath(runtime);
         if (runtimePath is null || !File.Exists(runtimePath))
@@ -117,6 +122,10 @@ public sealed class ExchangeReportRunner
             var markers = new MarkerReader(progress, report.SourceCommands);
             long diagnosticBytes = 0;
             var launchedAt = _clock.UtcNow;
+            preparation?.RequireMatch(entry,context,parameters,runtime,launchedAt);
+            // INT-128 report2 families are sampled at the owned process' existing250ms poll interval. This is not
+            // an OS hard allocation limit; module-internal peaks between samples can exceed the threshold.
+            var memory = new ReadRunnerMemoryLimit(_host.MemorySample);
             var outcome = await OwnedProcess.RunAsync(start, markers.ReadAsync,
                 async reader =>
                 {
@@ -126,10 +135,11 @@ public sealed class ExchangeReportRunner
                 TimeSpan.FromSeconds(Math.Min(m.Limits.TimeoutSeconds, ReadRunnerLimits.MaximumTimeoutSeconds)),
                 () => markers.Overflowed,
                 () => { using var _ = new FileStream(files.Stop, FileMode.CreateNew, FileAccess.Write); },
-                _host.StopGrace ?? ReadRunnerLimits.StopGrace, ct, _host.Terminate, _host.TerminationWait);
+                _host.StopGrace ?? ReadRunnerLimits.StopGrace, ct, _host.Terminate, _host.TerminationWait,
+                report.ReportSchemaVersion == 2 ? memory.Check : null);
             var finishedAt = _clock.UtcNow;
             var truncated = Interlocked.Read(ref diagnosticBytes) > ReadRunnerLimits.MaximumDiagnosticBytes;
-            return Decide(runId, entry, report, context, parameters, outcome, markers, files.Result, launchedAt, finishedAt, truncated);
+            return Decide(runId, entry, report, context, parameters, outcome, markers, files.Result, launchedAt, finishedAt, truncated, memory.Exceeded);
         }
         finally
         {
@@ -141,11 +151,11 @@ public sealed class ExchangeReportRunner
     }
 
     private IReadOnlyList<ReadRunParameter> ScriptRequestOrThrow(ScriptEntry entry, ReadRunContext context, IReadOnlyDictionary<string, string?> inputs) =>
-        ScriptReadRequest.Bind(entry, context, inputs, _clock.UtcNow);
+        ScriptReadRequest.Bind(entry, context, inputs, context.TracePreparation?.Query.FrozenNow ?? _clock.UtcNow);
 
     private static ReadRunResult Decide(string runId, ScriptEntry entry, ExchangeReportRegistry.Definition report, ReadRunContext context,
         IReadOnlyList<ReadRunParameter> parameters, OwnedProcessOutcome outcome, MarkerReader markers, string resultFile,
-        DateTimeOffset launchedAt, DateTimeOffset finishedAt, bool truncated)
+        DateTimeOffset launchedAt, DateTimeOffset finishedAt, bool truncated, bool privateMemoryExceeded)
     {
         ReadRunResult Result(ReadRunOutcome o, string reason, ExchangeReportEvidence? evidence = null) => new(runId, o, reason, evidence, truncated);
 
@@ -164,7 +174,9 @@ public sealed class ExchangeReportRunner
             };
         }
         if (outcome.End == OwnedProcessEnd.LimitExceeded)
-            return Result(ReadRunOutcome.Failed, "The run wrote more progress output than the 1 MiB limit and was ended. No rows were kept.");
+            return Result(ReadRunOutcome.Failed, privateMemoryExceeded
+                ? "The owned report host exceeded its sampled1GiB private-memory limit and was ended. This is not a hard allocation cap. No rows were kept."
+                : "The run wrote more progress output than the 1 MiB limit and was ended. No rows were kept.");
         if (outcome.End == OwnedProcessEnd.OutputHeldOpen)
             return Result(ReadRunOutcome.Failed, "PowerShell ended but another process kept its output open, so the run could not be confirmed. No rows were kept.");
 
@@ -180,10 +192,10 @@ public sealed class ExchangeReportRunner
                 { section.Status = downgradeTo; section.Error = reason; }
             var evidence = new ExchangeReportEvidence
             {
-                Id = Guid.NewGuid().ToString("D"), RunId = runId, ReportId = report.Id, TenantId = context.TenantId,
+                Id = Guid.NewGuid().ToString("D"), RunId = runId, ReportId = report.Id, ReportSchemaVersion = report.ReportSchemaVersion, TenantId = context.TenantId,
                 InitiatingAccountObjectId = context.AccountObjectId, ObservedAccountUpn = envelope.ObservedAccountUpn, Resource = report.Resource,
                 SourceMode = "live", StartedAt = envelope.StartedAt, EndedAt = envelope.EndedAt, ToolkitVersion = ToolkitVersion.Current,
-                AdapterVersion = ExchangeReportRegistry.AdapterVersion, ModuleVersion = envelope.ModuleVersion, RuntimeVersion = envelope.RuntimeVersion,
+                AdapterVersion = report.AdapterVersion, ModuleVersion = envelope.ModuleVersion, RuntimeVersion = envelope.RuntimeVersion,
                 ScriptSha256 = entry.Manifest.ScriptSha256, ManifestSha256 = entry.ManifestSha256, RunnerTemplateSha256 = ReadRunnerTemplate.Sha256,
                 Parameters = parameters.Select(p => new ExchangeReportParameter { Name = p.Name, Type = p.Type, Value = p.Value }).ToList(),
                 SourceCommands = [.. report.SourceCommands], Limitations = [report.Limitations], Sections = sections,

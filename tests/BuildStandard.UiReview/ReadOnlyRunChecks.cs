@@ -48,6 +48,12 @@ internal static partial class Program
                         DeliverToMailboxAndForwardReadStatus = ReportReadState.Collected, DeliverToMailboxAndForward = false
                     })] : [] }]
                 };
+                if (definition.Id == "exo-inbox-rules") PopulateInboxNativeFixture(evidence);
+                if (definition.Id == "exo-mailbox-permissions") PopulatePermissionNativeFixture(evidence);
+                if (definition.Id == "exo-calendar-permissions") PopulateCalendarNativeFixture(evidence);
+                if (definition.Id == "exo-distribution-groups") PopulateGroupNativeFixture(evidence);
+                if (definition.Id == "exo-transport-rules") PopulateTransportNativeFixture(evidence);
+                if (definition.Id == "exo-message-trace") PopulateTraceNativeFixture(evidence,context);
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
@@ -97,6 +103,100 @@ internal static partial class Program
             while(exportCommand.IsRunning) { if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic report export did not complete.");Pump(); }
             if(!File.Exists(page.LastExport) || !File.ReadAllText(page.LastExport).Contains("Not set (observed)"))
                 throw new InvalidOperationException("Native report export did not preserve the admitted rows.");
+
+            page.Selected = page.Items.Single(item => item.Id == "exo.inbox-rule-observations");
+            page.Fields.Single(field => field.Name == "MailboxGuids").Value = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview(); page.Approved = true; command.Execute(null); deadline.Restart();
+            while(command.IsRunning) { if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic inbox report did not complete.");Pump(); }
+            if(page.OutcomeSections.Count!=2 || page.SelectedOutcomeSection?.Id!="target-reads" || page.OutcomeRows?.Count!=1)
+                throw new InvalidOperationException("Native multi-section report lost its target diagnostics.");
+            content.UpdateLayout();Pump();
+            SaveImage(content,size,Path.Combine(output,"run-reports-inbox-targets-"+(int)size.Width+"x"+(int)size.Height+".png"));
+            var originalEvidence=workflow.EvidenceJson;var originalCalls=calls;
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="rules");page.OnlyNeedsReview=true;
+            if(page.OutcomeRows?.Count!=1 || calls!=originalCalls || workflow.EvidenceJson!=originalEvidence)
+                throw new InvalidOperationException("The local inbox filter lost unknowns or repeated/changed collection.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  inbox observations {size.Width}x{size.Height} · needs at least100 pixels of visible rows; actual {VisibleBounds(table,content).Height:0.#} pixels.");
+            RecordUnnamedControls(content,"inbox observations");RecordLowContrast(content,"inbox observations");RecordClipping(content,"inbox observations");
+            SaveImage(content,size,Path.Combine(output,"run-reports-inbox-observations-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.mailbox-permission-observations");
+            page.Fields.Single(field=>field.Name=="MailboxGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            if(page.IsValid || page.CanReview)throw new InvalidOperationException("Permission sources were implicitly selected.");
+            page.Fields.Single(field=>field.Name=="FullAccess").IsChecked=true;
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic permission report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1 || page.OutcomeSections.Count!=2)throw new InvalidOperationException("Permission target diagnostics missing.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="permissions");
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Raw identity: S-1-5-21-123-456-789-1001") || page.CanFilterRuleCues)
+                throw new InvalidOperationException("Native permissions lost original principal meaning or exposed the inbox-only filter.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  permissions {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"permission observations");RecordLowContrast(content,"permission observations");RecordClipping(content,"permission observations");
+            SaveImage(content,size,Path.Combine(output,"run-reports-permissions-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.calendar-permission-observations");
+            page.Fields.Single(field=>field.Name=="MailboxGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic calendar report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("/Kalender"))throw new InvalidOperationException("Native calendar lost localised folder discovery.");
+            SaveImage(content,size,Path.Combine(output,"run-reports-calendar-targets-"+(int)size.Width+"x"+(int)size.Height+".png"));
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="permissions");
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Special principal: Default") || page.CanFilterRuleCues)
+                throw new InvalidOperationException("Native calendar lost special principal meaning or exposed inbox-only filtering.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  calendar permissions {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"calendar permissions");RecordLowContrast(content,"calendar permissions");RecordClipping(content,"calendar permissions");
+            SaveImage(content,size,Path.Combine(output,"run-reports-calendar-permissions-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.distribution-group-observations");
+            page.Fields.Single(field=>field.Name=="GroupGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic group report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1 || page.OutcomeSections.Count!=2)throw new InvalidOperationException("Native group target diagnostics missing.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="members");
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Exchange recipient GUID: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb") || page.CanFilterRuleCues)
+                throw new InvalidOperationException("Native group lost original member namespace or exposed inbox-only filtering.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  group members {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"group members");RecordLowContrast(content,"group members");RecordClipping(content,"group members");
+            SaveImage(content,size,Path.Combine(output,"run-reports-group-members-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.transport-rule-observations");
+            page.Fields.Single(field=>field.Name=="RuleGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic transport report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1||page.OutcomeSections.Count!=2)throw new InvalidOperationException("Native transport scope diagnostic missing.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="policies");
+            if(page.OutcomeRows?.Count!=1||page.OutcomeRows.Table?.Columns.Contains("Exchange transport-rule GUID")!=true||page.CanFilterRuleCues
+                ||!page.OutcomeRows[0].Row.ItemArray.OfType<string>().Any(value=>value.Contains("Unknown — not returned",StringComparison.Ordinal)))
+                throw new InvalidOperationException("Native transport metadata lost service ID/unknown meaning or exposed inbox-only filtering.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  transport metadata {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"transport metadata");RecordLowContrast(content,"transport metadata");RecordClipping(content,"transport metadata");
+            SaveImage(content,size,Path.Combine(output,"run-reports-transport-metadata-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.message-trace-observations");
+            var traceNow=SystemClock.Instance.UtcNow;
+            page.Fields.Single(field=>field.Name=="StartDate").Value=traceNow.AddDays(-4).ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+            page.Fields.Single(field=>field.Name=="EndDate").Value=traceNow.AddDays(-1).ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+            page.Fields.Single(field=>field.Name=="MessageTraceId").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.Fields.Single(field=>field.Name=="MaximumRows").Value="100";
+            page.PrepareReview();
+            if(!page.ReviewText.Contains("Frozen trace review:",StringComparison.Ordinal)||!page.ReviewText.Contains("Subject collection: off",StringComparison.Ordinal))
+                throw new InvalidOperationException("Trace review omitted the frozen query or subject scope.");
+            page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic trace report did not complete.");Pump();}
+            if(page.OutcomeSections.Count!=2)throw new InvalidOperationException("Native trace lost reviewed interval diagnostics.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="traces");
+            if(page.OutcomeRows?.Count!=1||page.OutcomeRows.Table?.Columns[0].ColumnName!="Recipient address"||page.CanFilterRuleCues
+                ||!page.OutcomeRows[0].Row.ItemArray.Contains("Not collected — subject collection was not selected."))
+                throw new InvalidOperationException("Native trace lost scope, readable ordering or unselected-subject meaning.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  recipient trace {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"recipient trace");RecordLowContrast(content,"recipient trace");RecordClipping(content,"recipient trace");
+            SaveImage(content,size,Path.Combine(output,"run-reports-recipient-trace-"+(int)size.Width+"x"+(int)size.Height+".png"));
 
             populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);

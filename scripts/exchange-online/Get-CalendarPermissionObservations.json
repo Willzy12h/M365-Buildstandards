@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.calendar-permission-observations",
+  "name": "Default-calendar permission observations (selected mailboxes)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Read the unique returned default calendar for selected mailbox GUIDs, preserving localised paths and original principals. No effective delegate/access claim.",
+  "keywords": [
+    "calendar",
+    "permissions",
+    "folder",
+    "delegates"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-CalendarPermissionObservations.ps1",
+  "scriptSha256": "4f6ad053d171e0584bc25abddac80febc671ad7ab192510058721ca8038fdb62",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "MailboxGuids",
+      "label": "Exchange mailbox GUIDs",
+      "type": "string",
+      "help": "Choose 1\u201350 exact Exchange mailbox GUIDs, separated by commas. Names, SMTP addresses and Entra object IDs are not substituted.",
+      "required": true,
+      "maxLength": 1849
+    }
+  ],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "target-reads",
+        "columns": [
+          "requestedExchangeGuid",
+          "observedExchangeGuid",
+          "externalDirectoryObjectId",
+          "primarySmtpAddress",
+          "lookupReadStatus",
+          "folderReadStatus",
+          "returnedFolders",
+          "defaultFolderMatches",
+          "folderId",
+          "folderPath",
+          "nativeFolderIdentity",
+          "permissionReadStatus",
+          "returnedEntries",
+          "excludedEntries",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "permissions",
+        "columns": [
+          "mailboxExchangeGuid",
+          "nativeFolderIdentity",
+          "principal",
+          "rights",
+          "sharingPermissionFlags",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default. Exact selected mailbox GUIDs, installed supported module/runtime, verified tenant/account and exact review required.",
+    "At most50targets,5,000 combined raw folder/ACL rows including target diagnostics,100calls,100values per list,300seconds and32MiB output; partial reads never become deployment before-evidence.",
+    "Only a unique returned FolderType Calendar and validated returned folder ID/path admits an ACL. No English-name guess, first-folder selection, principal lookup or effective-access inference. Default/Anonymous retain their typed source namespace.",
+    "Actual module properties, role access and Microsoft behaviour remain live-unverified; missing/null values and ambiguous discovery are explicit. No changes, module installation or automatic retry."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-calendar-permissions",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53"
+  },
+  "rules": []
+}

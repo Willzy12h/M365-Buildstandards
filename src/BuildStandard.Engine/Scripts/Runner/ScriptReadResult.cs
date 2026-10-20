@@ -7,6 +7,7 @@ using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Exchange;
+using BuildStandard.Engine.Reports;
 
 namespace BuildStandard.Engine.Scripts.Runner;
 
@@ -67,7 +68,7 @@ public sealed class ScriptReadResult
         var report = ScriptCatalogue.ReportFor(m);
         var same = r.SchemaVersion == 1 && r.Kind == ReadRunnerLimits.OutputKind && r.RunId == runId && r.ScriptId == m.Id
             && r.ManifestSha256 == entry.ManifestSha256 && r.ScriptSha256 == m.ScriptSha256 && r.RunnerTemplateSha256 == ReadRunnerTemplate.Sha256
-            && r.Adapter == m.Execution!.Adapter && r.ReportId == report.Id && r.ReportSchemaVersion == 1 && r.TenantId == context.TenantId;
+            && r.Adapter == m.Execution!.Adapter && r.ReportId == report.Id && r.ReportSchemaVersion == report.ReportSchemaVersion && r.TenantId == context.TenantId;
         if (!same) throw Bad("The result names another run, item, pin, report or tenant.");
         if (r.ObservedAccountUpn is null || !string.Equals(r.ObservedAccountUpn.Trim(), context.AccountUpn, StringComparison.OrdinalIgnoreCase)
             || r.ObservedAccountUpn != r.ObservedAccountUpn.Trim())
@@ -87,8 +88,15 @@ public sealed class ScriptReadResult
         if (r.Sections.Count != report.Sections.Count || r.Sections.Any(s => s is null)
             || !r.Sections.Select(s => s.Id).SequenceEqual(report.Sections.Select(s => s.Id), StringComparer.Ordinal))
             throw Bad("The result's sections are not the registered sections.");
-        var maximum = Math.Min(m.Limits.MaximumRows, ExchangeReportRegistry.MaximumRows);
+        var maximum = Math.Min(m.Limits.MaximumRows, report.RowLimit);
         if (r.Sections.Any(s => s.Rows is null || s.Rows.Count > maximum)) throw Bad("The result has more rows than the item allows.");
+        if (report.ReportSchemaVersion == 2 && r.Sections.Sum(section => section.Rows.Count) > maximum)
+            throw Bad("Combined report sections exceed the item row budget, including target diagnostics.");
+        if(report.Id=="exo-message-trace"&&context.TracePreparation is null)throw Bad("Trace output requires the parent's original frozen review.");
+        if (report.ReportSchemaVersion == 2)
+            ExchangeReportEvidenceSchema.AdmitFamilyRows(report, r.Sections, parameters.Select(parameter =>
+                new ExchangeReportParameter { Name = parameter.Name, Type = parameter.Type, Value = parameter.Value }).ToList());
+        if(report.Id=="exo-message-trace")context.TracePreparation!.RequireResult(r.Sections);
         return r;
     }
 

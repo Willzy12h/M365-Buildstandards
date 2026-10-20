@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.distribution-group-observations",
+  "name": "Distribution-group observations (selected groups)",
+  "category": "exchange-online",
+  "area": "Groups and mail flow",
+  "description": "Selected Exchange group configuration and direct members. Raw owner/member identities and per-value states; no recursion, effective delivery or name joins.",
+  "keywords": [
+    "distribution groups",
+    "members",
+    "owners",
+    "mail flow"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-DistributionGroupObservations.ps1",
+  "scriptSha256": "69c67bc49f28a6c89af53f78a0e6fe38f09ab84c109761174f179ad7d9af702e",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "GroupGuids",
+      "label": "Exchange group GUIDs",
+      "type": "string",
+      "help": "One to50 exact Exchange group GUIDs separated by commas. No names, SMTP addresses, recursive expansion or implicit estate scan.",
+      "required": true,
+      "maxLength": 1849
+    }
+  ],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "target-reads",
+        "columns": [
+          "requestedGroupGuid",
+          "observedGroupGuid",
+          "externalDirectoryObjectId",
+          "primarySmtpAddress",
+          "lookupReadStatus",
+          "membershipReadStatus",
+          "returnedEntries",
+          "excludedEntries",
+          "recipientTypeDetails",
+          "managedBy",
+          "memberJoinRestriction",
+          "memberDepartRestriction",
+          "requireSenderAuthenticationEnabled",
+          "hiddenFromAddressListsEnabled",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "members",
+        "columns": [
+          "groupGuid",
+          "sourceIdentity",
+          "primarySmtpAddress",
+          "recipientTypeDetails",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental/default-off read-only Run. Explicit selected group GUIDs, verified tenant/account, supported installed Exchange module/runtime and exact review required.",
+    "At most50targets,5,000 raw owner/member observations including target diagnostics,100calls,100values per list,300seconds and32MiB output. Failed/unattempted reads never become zero members or complete deployment evidence.",
+    "Direct distribution/security-group and room-list membership only. Dynamic/Microsoft365 groups, recursion, name resolution and effective delivery/access are unsupported. Original source IDs and Entra directory IDs remain separate.",
+    "Source module/RBAC/property shapes and Microsoft behaviour are live-unverified. No mutation, new service permission, module installation or automatic retry."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-distribution-groups",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53"
+  },
+  "rules": []
+}

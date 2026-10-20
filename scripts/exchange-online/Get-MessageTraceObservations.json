@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.message-trace-observations",
+  "name": "Message-trace observations (frozen UTC query)",
+  "category": "exchange-online",
+  "area": "Groups and mail flow",
+  "description": "Read bounded recipient trace metadata for one reviewed UTC date range and explicit filters. Subject is excluded unless deliberately selected; incomplete windows remain explicit.",
+  "keywords": [
+    "message trace",
+    "mail flow",
+    "recipient observations"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MessageTraceObservations.ps1",
+  "scriptSha256": "1f448e4d56a35eb53c0333829e7f3b40365f5e5ac8b5b25bd41bc851c6feac98",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "Message Tracking"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "StartDate",
+      "label": "First UTC date",
+      "type": "date",
+      "help": "Inclusive first UTC day; within the rolling 90-day retention.",
+      "required": true
+    },
+    {
+      "name": "EndDate",
+      "label": "Last UTC date",
+      "type": "date",
+      "help": "Inclusive final UTC day; today ends at the frozen review clock and remains incomplete.",
+      "required": true
+    },
+    {
+      "name": "Sender",
+      "label": "Exact sender address",
+      "type": "string",
+      "help": "One exact SMTP address, without wildcards or display names.",
+      "maxLength": 320
+    },
+    {
+      "name": "Recipient",
+      "label": "Exact recipient address",
+      "type": "string",
+      "help": "One exact SMTP address, without wildcards or display names.",
+      "maxLength": 320
+    },
+    {
+      "name": "InternetMessageId",
+      "label": "Internet MessageId",
+      "type": "string",
+      "help": "Exact source MessageId; distinct from the service MessageTraceId GUID.",
+      "maxLength": 1000
+    },
+    {
+      "name": "MessageTraceId",
+      "label": "Service MessageTraceId",
+      "type": "string",
+      "help": "Exact canonical service GUID; needed for exhaustive high-recipient coverage.",
+      "maxLength": 36
+    },
+    {
+      "name": "IncludeSubject",
+      "label": "Collect message subjects",
+      "type": "boolean",
+      "help": "Off by default. Subjects can contain sensitive content and are retained only when explicitly reviewed.",
+      "default": "false"
+    },
+    {
+      "name": "MaximumRows",
+      "label": "Total row limit",
+      "type": "integer",
+      "help": "Total observations plus all interval diagnostics; saturation remains incomplete.",
+      "minimum": 2,
+      "maximum": 5000,
+      "default": "5000"
+    }
+  ],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "interval-reads",
+        "columns": [
+          "windowIndex",
+          "frozenAtUtc",
+          "startUtc",
+          "endUtc",
+          "filterDigest",
+          "requestedResultSize",
+          "returnedEntries",
+          "excludedEntries",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "traces",
+        "columns": [
+          "windowIndex",
+          "messageTraceId",
+          "recipientAddress",
+          "receivedUtc",
+          "senderAddress",
+          "internetMessageId",
+          "status",
+          "size",
+          "subject",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement supporting Get-MessageTraceV2 and the Message Tracking role. Module/RBAC/live behaviour is unverified. Review expires after300 seconds; no installation, retry or fallback.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Read-only metadata; never deployment before-evidence or change authority.",
+    "One frozen UTC review, at most nine contiguous ten-day windows,5000 total rows,100 source calls and300 seconds including authentication.",
+    "General queries may omit high-recipient messages; exact MessageTraceId is required for a complete claim. Current-day results remain incomplete.",
+    "Subjects are omitted by default. Raw Size has no inferred unit; source identity and unknown values are preserved.",
+    "Repeated recipient identities refuse the affected window instead of silent deduplication. Failed windows are not retried."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-message-trace",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53"
+  },
+  "rules": [
+    {
+      "kind": "atLeastOne",
+      "parameters": [
+        "Sender",
+        "Recipient",
+        "InternetMessageId",
+        "MessageTraceId"
+      ]
+    },
+    {
+      "kind": "dateRange",
+      "start": "StartDate",
+      "end": "EndDate",
+      "maximumDays": 89,
+      "maximumAgeDays": 90
+    }
+  ]
+}

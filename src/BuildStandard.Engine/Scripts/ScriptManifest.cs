@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BuildStandard.Engine.Scripts;
 
 /// <summary>INT-072 modes. There is no integrated-change mode: a change can only ever be copied.</summary>
@@ -8,7 +10,7 @@ public enum ScriptParameterType { String, Boolean, Integer, Date, Guid, Enum }
 /// <summary>How a string parameter is checked. Text is any single line without control or formatting characters.</summary>
 public enum ScriptValueFormat { Text, Upn, Smtp, Mailbox, Domain, IpAddress }
 
-public enum ScriptRuleKind { AtLeastOne, DateRange }
+public enum ScriptRuleKind { AtLeastOne, DateRange, AtLeastOneTrue }
 
 public enum ScriptLiveStatus { Unverified, Verified }
 
@@ -45,7 +47,11 @@ public sealed record ScriptRule(
     int? MaximumDays = null,
     int? MaximumAgeDays = null);
 
-public sealed record ScriptOutputSchema(IReadOnlyList<string> Columns);
+public sealed record ScriptOutputSection(string Id, IReadOnlyList<string> Columns);
+
+/// <summary>INT-131: old flat descriptions remain unchanged; registered report2 uses exact, separate sections.</summary>
+public sealed record ScriptOutputSchema(IReadOnlyList<string> Columns,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<ScriptOutputSection>? Sections = null);
 
 public sealed record ScriptLimits(int MaximumRows, int TimeoutSeconds);
 

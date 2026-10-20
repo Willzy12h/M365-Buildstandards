@@ -11,11 +11,12 @@ namespace BuildStandard.Engine.Reports;
 public static class RegisteredReportDocuments
 {
     public const string SuppliedFileNotice = "Offline supplied file: source, account and live-mode claims have not been independently verified. No live reads were performed for this export. A digest detects modification; it does not authenticate the source.";
-    public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report)
+    public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report, bool suppliedFile = false)
     {
         ExchangeReportEvidenceSchema.Validate(report, report.TenantId);
         var definition = ExchangeReportRegistry.Find(report.ReportId);
         var metadata = new Sheet("Report provenance", ["Field", "Value"]);
+        if (suppliedFile) metadata.Add("Export provenance", SuppliedFileNotice);
         metadata.Add("Report", definition.Name); metadata.Add("Report ID", report.ReportId); metadata.Add("Record ID", report.Id);
         metadata.Add("Tenant ID", report.TenantId); metadata.Add("Observed account", report.ObservedAccountUpn ?? "Unknown");
         metadata.Add("Source mode", report.SourceMode); metadata.Add("Read status", report.Status);
@@ -26,28 +27,156 @@ public static class RegisteredReportDocuments
         foreach(var command in report.SourceCommands)metadata.Add("Source command",command);
         metadata.Add("Started at", report.StartedAt); metadata.Add("Ended at", report.EndedAt);
         metadata.Add("Integrity digest", report.IntegrityDigest);
+        if(definition.ReportSchemaVersion==2)
+        {
+            metadata.Add("Identity meaning",report.ReportId=="exo-transport-rules" ? "Policy IDs are original Exchange transport-rule GUIDs. sha256 diagnostic keys identify local scope observations, never service IDs or execution authority." : "sha256 keys identify local observation tuples, not Microsoft service IDs, ownership, permissions or execution targets. Source namespaces remain separate.");
+            metadata.Add("Registered limitation",definition.Limitations);
+            if(report.ReportId=="exo-inbox-rules")metadata.Add("Hidden rule scope",report.Parameters.Single(p=>p.Name=="IncludeHidden").Value=="false"
+                ?"Hidden rules omitted; no complete all-rules inventory or incident verdict is claimed."
+                :"Hidden rules requested; source/RBAC/row limits still apply and this is not an incident verdict.");
+            if (report.ReportId == "exo-inbox-rules") metadata.Add("Local review cues",
+                "Forwarding recipients, DeleteMessage=true and MarkAsRead=true are review cues, including on recorded disabled rules. Unknown values stay visible. Cues do not establish maliciousness, effective behaviour or protection; hidden-rule scope still applies.");
+        }
         var sheets = new List<Sheet> { metadata };
         foreach (var section in report.Sections)
         {
             metadata.Add("Section " + section.Id, section.Status + " · " + section.Rows.Count + " returned rows · " + (section.Error ?? "Read completed"));
             foreach (var limitation in report.Limitations.Concat(section.Limitations)) metadata.Add("Limitation", limitation);
             var columns = ExchangeReportEvidenceSchema.Columns(definition.Sections.Single(s => s.Id == section.Id).RowType)
-                .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
-            var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? "Exchange mailbox GUID" : Label(c)));
+                .OrderBy(k => definition.ReportSchemaVersion == 2 ? FamilyColumnPriority(section.Id, k)
+                    : k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
+            var ruleCues = report.ReportId == "exo-inbox-rules" && section.Id == "rules";
+            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? report.ReportId=="exo-transport-rules" && section.Id=="policies" ? "Exchange transport-rule GUID" : "Local observation key (not a service ID)" : "Exchange mailbox GUID" : report.ReportId == "exo-message-trace" ? TraceLabel(c) : Label(c)).ToList();
+            if (ruleCues) headings.InsertRange(1, ["Local review cue status", "Local review cues"]);
+            var sheet = new Sheet(section.Id, headings);
             foreach (var row in section.Rows)
-                sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c)).ToArray());
+            {
+                var cells = columns.Select(c => ExchangeValue(row,c,definition.ReportSchemaVersion == 2)).ToList();
+                if (ruleCues)
+                {
+                    var cue = RuleReviewCue(row);
+                    cells.InsertRange(1, [cue.Status, cue.Detail]);
+                }
+                sheet.Rows.Add(cells.ToArray());
+            }
             sheets.Add(sheet);
         }
         return sheets;
     }
-    private static string ExchangeValue(JsonObject row,string column)
+    // Presentation order only: retain every registered column and the unchanged original evidence/JSON.
+    // Work fields lead the native and human-readable export table; local hashes remain available at the end.
+    private static int FamilyColumnPriority(string section, string column)
     {
+        if (column == "id") return 99;
+        string[] priority = section switch
+        {
+            "traces" => ["recipientAddress", "status", "receivedUtc", "senderAddress", "subject", "readStatus", "error"],
+            "interval-reads" => ["windowIndex", "readStatus", "returnedEntries", "excludedEntries", "requestedResultSize", "startUtc", "endUtc", "error"],
+            "permissions" => ["principal", "rights", "readStatus", "permissionKind", "sharingPermissionFlags", "isInherited", "deny", "error"],
+            "policies" => ["name", "state", "mode", "priority", "readStatus", "activationDate", "expiryDate", "error"],
+            "members" => ["name", "sourceIdentity", "recipientTypeDetails", "primarySmtpAddress", "readStatus", "error"],
+            "rules" => ["name", "enabled", "readStatus", "priority", "error"],
+            _ => ["name", "readStatus", "lookupReadStatus", "folderReadStatus", "permissionReadStatus", "membershipReadStatus", "childReadStatus", "error", "permissionReads", "managedBy"]
+        };
+        var index = Array.IndexOf(priority, column);
+        return index < 0 ? 80 : index;
+    }
+    private static (string Status, string Detail) RuleReviewCue(JsonObject row)
+    {
+        var cues = new List<string>();
+        foreach (var name in new[] { "forwardTo", "forwardAsAttachmentTo", "redirectTo" })
+            if (row[name]!["state"]!.GetValue<string>() == "Value"
+                && row[name]!["value"] is JsonArray { Count: > 0 })
+                cues.Add(Label(name) + " recipients reported");
+        if (row["deleteMessage"]!["state"]!.GetValue<string>() == "Value"
+            && row["deleteMessage"]!["value"]!.GetValue<bool>()) cues.Add("DeleteMessage reported true");
+        if (row["markAsRead"]!["state"]!.GetValue<string>() == "Value"
+            && row["markAsRead"]!["value"]!.GetValue<bool>()) cues.Add("MarkAsRead reported true");
+        var unknown = row["readStatus"]!.GetValue<string>() != ReportReadState.Collected;
+        var status = (cues.Count > 0, unknown) switch
+        {
+            (true, true) => "Reported cues and unknowns — review",
+            (true, false) => "Reported cues — review context",
+            (false, true) => "Unable to classify all cues",
+            _ => "No selected cues reported — not a safety verdict"
+        };
+        if (cues.Count == 0) cues.Add("No positive cues established from returned values");
+        var enabled = row["enabled"]!;
+        cues.Add(enabled["state"]!.GetValue<string>() == "Value"
+            ? enabled["value"]!.GetValue<bool>() ? "Recorded enabled; effect unverified" : "Recorded disabled; effect unverified"
+            : "Enabled state unknown; effect unverified");
+        if (unknown) cues.Add("Unknown values / unresolved references: " + row["error"]!.GetValue<string>());
+        return (status, string.Join(" · ", cues));
+    }
+    private static string ExchangeValue(JsonObject row,string column,bool family)
+    {
+        if (family && column == "name" && row[column] is JsonValue label && label.TryGetValue<string>(out var name)
+            && string.IsNullOrWhiteSpace(name))
+            return name.Length == 0 ? "Empty name (reported)" : "Whitespace name (reported)";
+        if (family && (column is "principal" or "sourceIdentity") && row[column] is JsonObject principal) return ReferenceValue(principal);
+        if (family && column == "permissionReads" && row[column] is JsonArray reads)
+            return string.Join("\n", reads.Select(node =>
+            {
+                var read = node!.AsObject(); var kind = read["kind"]!.GetValue<string>();
+                if (!read["selected"]!.GetValue<bool>()) return kind + ": Not selected — not attempted";
+                return kind + ": " + read["status"]!.GetValue<string>()
+                    + " · returned entries: " + (read["returnedEntries"] is null ? "Unknown" : Value(read["returnedEntries"]))
+                    + " · excluded entries: " + (read["excludedEntries"] is null ? "Unknown" : Value(read["excludedEntries"]))
+                    + (read["error"] is null ? "" : " · " + read["error"]!.GetValue<string>());
+            }));
+        if (family && column == "subject" && row[column] is JsonObject { } subject
+            && subject["state"]?.GetValue<string>() == "NotAttempted")
+            return "Not collected — subject collection was not selected.";
+        if (family && row[column] is JsonObject observed && observed["state"] is JsonValue)
+            return ObservedValue(observed);
         if (row[column] is not null) return Value(row[column]);
         if (column == "error" && row["readStatus"]?.GetValue<string>() == ReportReadState.Collected) return "No read error";
         if ((column is "forwardingAddress" or "forwardingSmtpAddress")
             && row[column + "ReadStatus"]?.GetValue<string>() == ReportReadState.Collected) return "Not set (observed)";
         return Value(null);
     }
+    // Called only after strict report2 validation. This is shared presentation, never evidence mutation or inference.
+    private static string ObservedValue(JsonObject observed)
+    {
+        var state = observed["state"]!.GetValue<string>();
+        if (state != "Value")
+        {
+            var meaning = state switch
+            {
+                "ReturnedNull" => "returned null", "Missing" => "not returned", "Failed" => "read failed",
+                "NotAttempted" => "not attempted", "Unsupported" => "unsupported",
+                _ => "unclassified"
+            };
+            return $"Unknown — {meaning}: {observed["reason"]!.GetValue<string>()}";
+        }
+        var value = observed["value"];
+        if (value is JsonArray references)
+        {
+            if (references.Count == 0) return "No values returned (reported empty list)";
+            if (references.All(item => item is JsonValue scalar && scalar.TryGetValue<string>(out _)))
+                return string.Join("; ", references.Select(Value)) + " (reported)";
+            return string.Join("; ", references.Select(reference => ReferenceValue(reference!.AsObject())));
+        }
+        if (value is JsonValue scalar && scalar.TryGetValue<bool>(out var flag))
+            return flag ? "True (reported)" : "False (reported)";
+        if(value is JsonValue textValue && textValue.TryGetValue<string>(out var text) && text.Length==0)return "Empty text (reported)";
+        return Value(value) + " (reported)";
+    }
+
+    private static string ReferenceValue(JsonObject item)
+    {
+        var source = item["namespace"]!.GetValue<string>();
+        var label = source switch
+        {
+            "UnresolvedDisplayLabel" => "Unresolved display label", "RawIdentity" => "Raw identity",
+            "ExchangeRecipientGuid" => "Exchange recipient GUID", "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal", _ => "Returned text"
+        };
+        var unresolved = source == "UnresolvedDisplayLabel" ? " (identity not resolved)" : "";
+        var directoryId = item["externalDirectoryObjectId"]?.GetValue<string>();
+        return $"{label}: {item["value"]!.GetValue<string>()}{unresolved}"
+            + (directoryId is null ? "" : $" · Returned Entra object ID: {directoryId}");
+    }
+
     public static IReadOnlyList<Sheet> Sheets(ReportEvidence report, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);
@@ -100,9 +229,20 @@ public static class RegisteredReportDocuments
         return html.Append("</body></html>").ToString();
     }
 
-    public static string ExchangeHtml(ExchangeReportEvidence report,string companyName)
+    public static string ExchangeHtml(ExchangeReportEvidence report,string companyName,bool suppliedFile = false)
     {
-        var sheets=Sheets(report);
+        var sheets=Sheets(report,suppliedFile);
+        return ExchangeHtmlCore(report, companyName, sheets);
+    }
+    public static string SuppliedExchangeHtml(ExchangeReportImport original, string companyName)
+    {
+        var report = original.ReadEvidence();
+        var sheets = Sheets(report, suppliedFile: true);
+        sheets[0].Add("Original file SHA-256", original.OriginalSha256);
+        return ExchangeHtmlCore(report, companyName, sheets);
+    }
+    private static string ExchangeHtmlCore(ExchangeReportEvidence report, string companyName, IReadOnlyList<Sheet> sheets)
+    {
         var html=StartDocument(ExchangeReportRegistry.Find(report.ReportId).Name,companyName);
         html.Append("<p class=\"notice\">Read status: ").Append(E(report.Status)).Append(". Separate report evidence; cannot authorise deployment. Unknown is not false or proof of absence. A digest verifies integrity, not Microsoft acceptance. This export does not refresh the data.</p>");
         foreach(var sheet in sheets) { html.Append("<h2>").Append(E(sheet.Name)).Append("</h2>");Table(html,sheet); }
@@ -120,6 +260,12 @@ public static class RegisteredReportDocuments
     private static string[] Columns(string reportId, ReportSection section) => GraphReportRegistry.Find(reportId).Sections.Single(s => s.Id == section.Id).RowType
         .GetProperties().Select(p => ToolkitJson.Options.PropertyNamingPolicy!.ConvertName(p.Name)).Distinct(StringComparer.Ordinal)
         .OrderBy(k => k == "name" ? 0 : k == "id" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ThenBy(k => k, StringComparer.Ordinal).ToArray();
+    private static string TraceLabel(string key) => key switch
+    {
+        "size" => "Reported size (raw; unit unverified)", "receivedUtc" => "Received (UTC)", "frozenAtUtc" => "Frozen review (UTC)",
+        "startUtc" => "Window start (UTC)", "endUtc" => "Window end (UTC)", "windowIndex" => "Window index (0-based)",
+        "messageTraceId" => "Service MessageTraceId", "internetMessageId" => "Internet MessageId", _ => Label(key)
+    };
     private static string Label(string key) => key switch
     {
         "id" => "Object ID", "skuId" => "SKU ID", "osVersion" => "OS version", "isMfaRegistered" => "MFA registered",

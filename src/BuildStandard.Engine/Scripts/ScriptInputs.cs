@@ -53,6 +53,31 @@ public static class ScriptInputs
             if (value is not null && value is not ScriptFlag { Value: false }) arguments.Add(new ScriptArgument(parameter.Name, value));
         }
 
+        foreach (var argument in arguments.Where(argument => ScriptCatalogue.IsExchangeTargetParameter(manifest, argument.Name)))
+        {
+            if (argument.Value is not ScriptText targets)
+                problems.Add($"{argument.Name}: use an exact bounded Exchange GUID selection.");
+            else
+            {
+                try
+                {
+                    var selection = BuildStandard.Core.Reporting.ExchangeTargetSelection.Parse(targets.Value);
+                    if (selection.Count > manifest.Limits.MaximumRows)
+                        problems.Add($"{argument.Name}: the row budget must retain a diagnostic row for every selected target.");
+                }
+                catch (BuildStandard.Core.ConfigurationException error) { problems.Add($"{argument.Name}: {error.Message}"); }
+            }
+        }
+        if(manifest.SchemaVersion==2&&manifest.Execution?.ReportId=="exo-transport-rules")
+        {
+            try
+            {
+                var rules=(arguments.SingleOrDefault(a=>a.Name=="RuleGuids")?.Value as ScriptText)?.Value;
+                var inventory=arguments.SingleOrDefault(a=>a.Name=="OrganisationInventory")?.Value is ScriptFlag {Value:true};
+                _=BuildStandard.Core.Reporting.ExchangeTransportScope.Parse(rules,inventory);
+            }
+            catch(BuildStandard.Core.ConfigurationException error){problems.Add(error.Message);}
+        }
         foreach (var rule in manifest.Rules) CheckRule(manifest, rule, arguments, now, problems);
         return new ScriptBinding(arguments, problems);
     }
@@ -136,6 +161,14 @@ public static class ScriptInputs
     {
         string Label(string name) => manifest.Parameters.First(p => p.Name == name).Label;
         ScriptArgument? Find(string name) => arguments.FirstOrDefault(a => a.Name == name);
+
+        if (rule.Kind == ScriptRuleKind.AtLeastOneTrue)
+        {
+            var names = rule.Parameters!; // The catalogue requires the exact three non-null source names.
+            if (!names.Any(name => Find(name)?.Value is ScriptFlag { Value: true }))
+                problems.Add("Select at least one permission source: " + string.Join(", ", names.Select(Label)) + ".");
+            return;
+        }
 
         if (rule.Kind == ScriptRuleKind.AtLeastOne)
         {
