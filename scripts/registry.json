@@ -44,6 +44,13 @@
       "manifestSchemaVersion": 1
     },
     {
+      "id": "exo.inbox-rule-observations",
+      "manifest": "exchange-online/Get-InboxRuleObservations.json",
+      "manifestSha256": "515f01401b51607a29105fe034a3a087a464838ab66fba503a6f9b4f293785c6",
+      "scriptSha256": "68940a84bd21c82fee2d001345b027c0cc19847225e672455c228e6f5c64ee36",
+      "manifestSchemaVersion": 2
+    },
+    {
       "id": "exo.inbox-rules",
       "manifest": "exchange-online/Get-InboxRuleReport.json",
       "manifestSha256": "961fc1e3a8079aa28c111d85e6149ae906599d09668f1fb3875f918e7a08b534",
@@ -231,13 +238,6 @@
       "manifestSha256": "fb69544bb094d0e900846ebd49ff664d723784b21717a5d25056553d451a47fb",
       "scriptSha256": "4997c789d9658ee09ace3ab5877ae0a52054dffd8fc0e7b3c5c913780911b524",
       "manifestSchemaVersion": 1
-    },
-    {
-      "id": "exo.inbox-rule-observations",
-      "manifest": "exchange-online/Get-InboxRuleObservations.json",
-      "manifestSha256": "eb95b8d87e0b06d40484a81e5af2d565cac7a9b464ec57bc464bb2d2c6600636",
-      "scriptSha256": "cb504ef4e709379f605373fd456d0e16d0435d4eb2a019683441049fe3cf06ed",
-      "manifestSchemaVersion": 2
     }
   ]
 }

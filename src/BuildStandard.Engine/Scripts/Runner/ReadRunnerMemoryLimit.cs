@@ -10,8 +10,18 @@ internal sealed class ReadRunnerMemoryLimit(Func<Process,long>? sample=null)
     {
         if (Exceeded) return true;
         long bytes;
-        if (sample is not null) bytes = sample(ownedProcess);
-        else { ownedProcess.Refresh(); bytes = ownedProcess.PrivateMemorySize64; }
+        try
+        {
+            if (sample is not null) bytes = sample(ownedProcess);
+            else { ownedProcess.Refresh(); bytes = ownedProcess.PrivateMemorySize64; }
+        }
+        catch (InvalidOperationException) when (ownedProcess.HasExited)
+        {
+            // The exact owned host can exit after the poll selected its timer but before memory sampling.
+            // There is no running host left to measure; preserve any already-latched breach above. A failed
+            // measurement of a still-running host continues to fail, never becoming a known-zero sample.
+            return false;
+        }
         if (bytes < 0) throw new ConfigurationException("The owned report host's private memory could not be measured; zero is not assumed.");
         Exceeded = bytes > MaximumPrivateBytes;
         return Exceeded;

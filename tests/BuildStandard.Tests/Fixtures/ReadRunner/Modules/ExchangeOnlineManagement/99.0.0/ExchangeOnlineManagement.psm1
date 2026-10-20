@@ -57,7 +57,7 @@ function Get-ConnectionInformation {
     if (-not $script:Connected) { return }
     $account = $script:Account
     # Changes only after the last of the three reads, so only the gate's check after a read can notice it.
-    if ($script:Scenario -eq 'account-changes' -and $script:Reads -ge 3) { $account = 'someone.else@synthetic.example' }
+    if (($script:Scenario -eq 'account-changes' -and $script:Reads -ge 3) -or ($script:Scenario -eq 'inbox-actor-change' -and $script:Reads -ge 2)) { $account = 'someone.else@synthetic.example' }
     $connection = [pscustomobject]@{ State = 'Connected'; IsEopSession = $false; TenantID = $script:Tenant; UserPrincipalName = $account }
     Add-FakeToken $connection
     if ($script:Scenario -eq 'two-connections') { return @($connection, $connection) }
@@ -68,7 +68,7 @@ function Get-EXOMailbox {
     param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails, [string]$Identity)
     $script:Reads++
     Write-FakeLog ('Read Get-EXOMailbox' + $(if ($ResultSize) { ' ResultSize=' + $ResultSize } else { '' }) + $(if ($Properties) { ' Properties=' + ($Properties -join ',') } else { '' }))
-    if ($Identity) { return [pscustomobject]@{ExchangeGuid=[guid]$Identity;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'} }
+    if ($Identity) { $actual=if($script:Scenario -eq 'inbox-mismatch'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}else{$Identity};return [pscustomobject]@{ExchangeGuid=[guid]$actual;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'} }
     if ($script:Scenario -eq 'chatty') { [Console]::Out.Write(('x' * 1100000)); [Console]::Out.Flush() }
     if ($script:Scenario -eq 'noisy-errors') { 1..3000 | ForEach-Object { [Console]::Error.WriteLine(('e' * 200)) } }
     if ($script:Scenario -eq 'hang') { Start-Sleep -Seconds 120 }
@@ -173,11 +173,21 @@ function Get-TransportConfig {
 function Get-InboxRule {
     param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
     $script:Reads++; Write-FakeLog ('Read Get-InboxRule ' + $Mailbox + ' hidden=' + $IncludeHidden + ' ResultSize=' + $ResultSize)
+    if ($script:Scenario -eq 'inbox-stop' -and $Mailbox -like 'bbbbbbbb*') {
+        for ($n=0;$n -lt 300;$n++) {
+            if (@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0) { break }
+            Start-Sleep -Milliseconds 10
+        }
+    }
     if ($script:Scenario -eq 'inbox-failed') { throw 'Synthetic inbox read failure' }
     if ($script:Scenario -eq 'inbox-empty') { return }
     $row=[pscustomobject]@{RuleIdentity=[uint64]::MaxValue;Identity='raw opaque rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true}
     if ($script:Scenario -eq 'inbox-missing') { $row.PSObject.Properties.Remove('DeleteMessage') }
+    if ($script:Scenario -eq 'inbox-missing-id') { $row.PSObject.Properties.Remove('RuleIdentity') }
+    if ($script:Scenario -eq 'inbox-null') { $row.DeleteMessage=$null }
+    if ($script:Scenario -eq 'inbox-unresolved') { $row.ForwardTo=@([pscustomobject]@{DisplayName='Unresolved synthetic label'}) }
     $row
+    if ($script:Scenario -eq 'inbox-duplicate') { $row }
 }
 
 Export-ModuleMember -Function Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

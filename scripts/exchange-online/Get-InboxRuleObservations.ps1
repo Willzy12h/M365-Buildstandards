@@ -73,6 +73,7 @@ foreach ($target in $targets) {
         $target.returnedEntries = $source.Count; $target.excludedEntries = 0
         $target.childReadStatus = 'Collected'; $target.readStatus = 'Collected'; $target.error = $null
         $seen = [Collections.Generic.List[object]]::new()
+        $targetRules = [Collections.Generic.List[object]]::new()
         foreach ($item in $source) {
             $identity = TextOf $item 'RuleIdentity'
             # Documented UInt64 identities are opaque decimal strings. Never parse a returned string as a number.
@@ -80,7 +81,8 @@ foreach ($target in $targets) {
             if ($null -eq $identity -and $null -ne $identityProperty -and $identityProperty.Value -is [uint64]) {
                 $identity = $identityProperty.Value.ToString()
             }
-            if ($null -eq $identity -or $seen.Contains($identity)) {
+            if ($null -ne $identity -and $seen.Contains($identity)) { throw 'Duplicate opaque rule identity; no arbitrary winner is retained' }
+            if ($null -eq $identity) {
                 $target.excludedEntries++; $target.readStatus = 'Partial'; $target.childReadStatus = 'Partial'
                 $target.error = 'Some entries lacked an exact unique opaque RuleIdentity; excluded counts are recorded.'
                 continue
@@ -107,8 +109,9 @@ foreach ($target in $targets) {
                 $target.readStatus = 'Partial'; $target.childReadStatus = 'Partial'
                 $target.error = 'Some rule observations are incomplete; inspect the original value states.'
             }
-            $rules.Add($row)
+            $targetRules.Add($row)
         }
+        foreach ($row in $targetRules) { $rules.Add($row) }
     } catch {
         $target.childReadStatus = 'Failed'; $target.readStatus = 'Failed'; $target.returnedEntries = $null; $target.excludedEntries = $null
         $target.error = 'The bounded child read failed, stopped or reached its limit; this is unknown, not an empty rule inventory.'

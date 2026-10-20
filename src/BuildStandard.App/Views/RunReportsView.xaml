@@ -75,7 +75,12 @@
                   <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="150"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <TextBox Text="{Binding Output, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontSize="12" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Read-only run outcome"/>
-                    <TextBlock Grid.Row="1" Text="Returned rows only. Scroll horizontally for each value's read state; unknown is never false. Copy evidence JSON preserves the complete original record." Style="{StaticResource Muted}" Margin="0,6,0,6"/>
+                    <StackPanel Grid.Row="1" Margin="0,6,0,6">
+                      <TextBlock Text="Report section" Style="{StaticResource FieldLabel}"/>
+                      <ComboBox ItemsSource="{Binding OutcomeSections}" SelectedItem="{Binding SelectedOutcomeSection}" DisplayMemberPath="Display" AutomationProperties.Name="Read-only report section" MinWidth="180" HorizontalAlignment="Stretch"/>
+                      <CheckBox Content="Show review cues and unknowns only (display filter)" IsChecked="{Binding OnlyNeedsReview}" Visibility="{Binding CanFilterRuleCues, Converter={StaticResource BoolToVis}}" AutomationProperties.Name="Show inbox rule review cues and unknowns" Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding OutcomeSectionGuidance}" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+                    </StackPanel>
                     <DataGrid Grid.Row="2" ItemsSource="{Binding OutcomeRows}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MinHeight="120" ColumnWidth="180" EnableRowVirtualization="True" EnableColumnVirtualization="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Read-only Exchange report rows" CellStyle="{StaticResource ReportCell}" ColumnHeaderStyle="{StaticResource ReportColumnHeader}"/>
                   </Grid>
                 </DockPanel>

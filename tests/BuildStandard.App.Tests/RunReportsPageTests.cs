@@ -37,6 +37,45 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Section_and_review_filters_are_local_keep_unknowns_and_export_all_original_rows()
+    {
+        _page.Selected = _page.Items.Single(item => item.Id == "exo.inbox-rule-observations");
+        _page.Fields.Single(field => field.Name == "MailboxGuids").Value = TestData.Office;
+        _f.Transport = (entry, context, inputs, token) =>
+        {
+            var result = _f.Outcome(entry, context, inputs); var evidence = result.Evidence!;
+            System.Text.Json.Nodes.JsonObject Value(System.Text.Json.Nodes.JsonNode? value) => new() { ["state"] = "Value", ["value"] = value, ["reason"] = null };
+            evidence.Sections[1].Rows = Enumerable.Range(0, 3).Select(index => new System.Text.Json.Nodes.JsonObject
+            {
+                ["id"] = BuildStandard.Core.Reporting.ExchangeObservationKey.InboxRule(TestData.Office, "synthetic-" + index),
+                ["name"] = "Synthetic rule " + index, ["readStatus"] = index == 2 ? "Partial" : "Collected", ["error"] = index == 2 ? "Synthetic missing value" : null,
+                ["mailboxExchangeGuid"] = TestData.Office, ["ruleIdentity"] = "synthetic-" + index, ["actualIdentityRaw"] = null,
+                ["enabled"] = Value(false), ["priority"] = Value(0),
+                ["forwardTo"] = index == 2 ? new System.Text.Json.Nodes.JsonObject { ["state"] = "Missing", ["value"] = null, ["reason"] = "Synthetic missing reference" } : Value(new System.Text.Json.Nodes.JsonArray()),
+                ["forwardAsAttachmentTo"] = Value(new System.Text.Json.Nodes.JsonArray()), ["redirectTo"] = Value(new System.Text.Json.Nodes.JsonArray()),
+                ["deleteMessage"] = Value(index == 1), ["markAsRead"] = Value(false), ["stopProcessingRules"] = Value(true)
+            }).ToList();
+            var target = evidence.Sections[0].Rows[0]; target["returnedEntries"] = 3;
+            target["readStatus"] = "Partial"; target["childReadStatus"] = "Partial"; target["error"] = "Synthetic partial rule fields";
+            foreach (var section in evidence.Sections) { section.Status = "Partial"; section.Error = "Synthetic incomplete fields"; }
+            evidence.Status = "Partial"; BuildStandard.Engine.Reports.ExchangeReportEvidenceSchema.Seal(evidence);
+            return Task.FromResult(result);
+        };
+        Approve(); await _page.RunAsync(); var original = _f.Workflow.EvidenceJson;
+        Assert.Equal(2, _page.OutcomeSections.Count); Assert.Equal("target-reads", _page.SelectedOutcomeSection!.Id);
+        _page.SelectedOutcomeSection = _page.OutcomeSections.Single(section => section.Id == "rules");
+        Assert.True(_page.CanFilterRuleCues); Assert.Equal(3, _page.OutcomeRows!.Count);
+        _page.OnlyNeedsReview = true; Assert.Equal(2, _page.OutcomeRows!.Count);
+        Assert.All(_page.OutcomeRows.Cast<System.Data.DataRowView>(), row => Assert.Contains("Recorded disabled", row["Local review cues"].ToString()));
+        Assert.Contains(_page.OutcomeRows.Cast<System.Data.DataRowView>(), row => row["Local review cue status"].ToString()!.Contains("Unable to classify", StringComparison.Ordinal));
+        _page.SelectedExportFormat = BuildStandard.Engine.Reports.ExportFormat.Json; await _page.ExportReportAsync();
+        Assert.Equal(original, File.ReadAllText(_page.LastExport)); Assert.Equal(1, _f.Calls);
+        typeof(Workspace).GetProperty(nameof(Workspace.Connection))!.SetValue(_workspace, null); _page.Refresh();
+        Assert.Empty(_page.OutcomeSections); Assert.Null(_page.SelectedOutcomeSection); Assert.Null(_page.OutcomeRows);
+        Assert.False(_page.CanFilterRuleCues); Assert.Equal(1, _f.Calls);
+    }
+
+    [Fact]
     public async Task Multiple_registered_sections_do_not_drop_target_diagnostics_or_crash_the_outcome()
     {
         _page.Selected = _page.Items.Single(item => item.Id == "exo.inbox-rule-observations");

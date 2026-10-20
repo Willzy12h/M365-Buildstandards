@@ -48,6 +48,7 @@ internal static partial class Program
                         DeliverToMailboxAndForwardReadStatus = ReportReadState.Collected, DeliverToMailboxAndForward = false
                     })] : [] }]
                 };
+                if (definition.ReportSchemaVersion == 2) PopulateInboxNativeFixture(evidence);
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
@@ -97,6 +98,23 @@ internal static partial class Program
             while(exportCommand.IsRunning) { if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic report export did not complete.");Pump(); }
             if(!File.Exists(page.LastExport) || !File.ReadAllText(page.LastExport).Contains("Not set (observed)"))
                 throw new InvalidOperationException("Native report export did not preserve the admitted rows.");
+
+            page.Selected = page.Items.Single(item => item.Id == "exo.inbox-rule-observations");
+            page.Fields.Single(field => field.Name == "MailboxGuids").Value = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview(); page.Approved = true; command.Execute(null); deadline.Restart();
+            while(command.IsRunning) { if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic inbox report did not complete.");Pump(); }
+            if(page.OutcomeSections.Count!=2 || page.SelectedOutcomeSection?.Id!="target-reads" || page.OutcomeRows?.Count!=1)
+                throw new InvalidOperationException("Native multi-section report lost its target diagnostics.");
+            content.UpdateLayout();Pump();
+            SaveImage(content,size,Path.Combine(output,"run-reports-inbox-targets-"+(int)size.Width+"x"+(int)size.Height+".png"));
+            var originalEvidence=workflow.EvidenceJson;var originalCalls=calls;
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="rules");page.OnlyNeedsReview=true;
+            if(page.OutcomeRows?.Count!=1 || calls!=originalCalls || workflow.EvidenceJson!=originalEvidence)
+                throw new InvalidOperationException("The local inbox filter lost unknowns or repeated/changed collection.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  inbox observations {size.Width}x{size.Height} · needs at least100 pixels of visible rows.");
+            RecordUnnamedControls(content,"inbox observations");RecordLowContrast(content,"inbox observations");RecordClipping(content,"inbox observations");
+            SaveImage(content,size,Path.Combine(output,"run-reports-inbox-observations-"+(int)size.Width+"x"+(int)size.Height+".png"));
 
             populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);

@@ -65,7 +65,7 @@ public static class ExchangeReportRegistry
             Array.AsReadOnly(new[] {new Parameter("MailboxGuids", ExchangeReportParameterType.Text), new Parameter("IncludeHidden", ExchangeReportParameterType.Boolean)}),
             Array.AsReadOnly(new[] {new Section("target-reads", typeof(ExchangeTargetReadRow)), new Section("rules", typeof(InboxRuleObservationRow))}),
             "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-inboxrule",
-            "One to50 explicitly selected Exchange mailbox GUIDs, not an implicit estate scan. Opaque RuleIdentity and raw recipient references remain distinct from names/Entra identities. Hidden rules are omitted unless explicitly selected. Unknown values and unsuccessful target reads are not successful empty results; no incident verdict or change authority. The typed evidence registration alone does not provide a runnable script. Live/module/RBAC behaviour is unverified.",
+            "One to 50 explicitly selected Exchange mailbox GUIDs, not an implicit estate scan. Opaque RuleIdentity and raw recipient references remain distinct from names/Entra identities. Hidden rules are omitted unless explicitly selected. Unknown values and unsuccessful target reads are not successful empty results; no incident verdict or change authority. The separately pinned selected-mailbox adapter is experimental and off by default; its library registration, exact review and supported installed runtime/module are required. Live/module/RBAC behaviour is unverified.",
             ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion)
     });
 
