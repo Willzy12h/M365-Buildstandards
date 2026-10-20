@@ -9,7 +9,7 @@ using BuildStandard.Graph.Auth;
 namespace BuildStandard.Graph.Reports;
 
 /// <summary>Fixed, bounded Graph GET pages. No generic URL, action or write interface.</summary>
-public sealed class OperationalReportTransport : IOperationalReportSource, IDisposable
+public sealed class OperationalReportTransport : IOperationalReportSource, ICollaborationReportSource, IDisposable
 {
     private readonly HttpClient _client;
     private readonly IAccessTokenProvider _tokens;
@@ -32,6 +32,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     public string TenantId { get; }
     public string ReportId { get; }
     public string? CustomerTenantId => _customerTenantId;
+    public CollaborationReadSelection Selection => _collaboration ?? throw Refuse("This source is not a collaboration selection.");
     internal OperationalReportTransport(HttpClient client, IAccessTokenProvider tokens, TenantSession session,
         string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null)
     {

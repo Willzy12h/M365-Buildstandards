@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- In-progress collaboration inventory: bounded selected-site/group/Team collection retains per-source failures, stopped reads and owner-population limitations; no effective-access or tenant-wide OneDrive claim. Native and original-evidence integration remain incomplete.
+
 - G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
 
 - In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
