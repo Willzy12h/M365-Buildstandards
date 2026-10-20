@@ -120,4 +120,15 @@ public sealed class ConditionalAccessEvaluatorTests
         Assert.InRange(stream.ReadBytes,1,5*1024*1024+16*1024);Assert.Single(f.Handler.Sent);
     }
 
+    [Fact] public async Task A_non_cooperative_token_acquisition_cannot_outlive_the_overall_budget_or_send_late()
+    {
+        var clock=new ConnectAcquisitionBudgetTests.ManualTime();using var f=new Fixture(clock);
+        var started=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        f.Tokens.Before=async _=>{started.TrySetResult();await release.Task;};
+        var pending=f.Evaluator.EvaluateAsync(Scenario(),CancellationToken.None);await started.Task;clock.Advance(TimeSpan.FromSeconds(121));
+        try{var error=await Assert.ThrowsAsync<GraphRequestException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(1)));Assert.Equal("timeout",error.ErrorCode);}
+        finally{release.TrySetResult();try{await pending;}catch(GraphRequestException){}}
+        Assert.Empty(f.Handler.Sent);
+    }
+
 }

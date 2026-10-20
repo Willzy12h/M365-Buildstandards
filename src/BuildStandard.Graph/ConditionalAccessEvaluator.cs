@@ -63,7 +63,16 @@ public sealed class ConditionalAccessEvaluator:IDisposable
             for(var attempt=0;attempt<2;attempt++)
             {
                 RequireCurrent();
-                var token=await _tokens.GetAccessTokenAsync(attempt==1,operation.Token).ConfigureAwait(false);
+                var acquisition=_tokens.GetAccessTokenAsync(attempt==1,operation.Token);
+                string token;
+                try { token=await acquisition.WaitAsync(operation.Token).ConfigureAwait(false); }
+                catch
+                {
+                    // A provider that ignores cancellation may finish later. Observe faults without using a late token.
+                    _=acquisition.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
+                    throw;
+                }
                 RequireCurrent();
                 if(string.IsNullOrWhiteSpace(token)||token.Any(c=>char.IsWhiteSpace(c)||char.IsControl(c)))
                     throw new AuthenticationRequiredException("The current access token is unavailable or malformed. Reconnect deliberately; the report does not sign in or retry.");
