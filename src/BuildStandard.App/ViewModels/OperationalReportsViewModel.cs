@@ -1,4 +1,5 @@
 using System.Data;
+using BuildStandard.Engine.Identity;
 using System.IO;
 using System.Text;
 using System.Windows.Input;
@@ -38,6 +39,11 @@ public sealed class OperationalReportsViewModel : PageViewModel
         OpenConnectionCommand = Sync(() => Shell.Navigate("connect"), () => Workspace.Idle);
         Refresh();
     }
+    public string GroupQuery { get; set; } = "";
+    public IReadOnlyList<ResolvedTenantObject> GroupMatches { get; private set; } = [];
+    public ResolvedTenantObject? SelectedGroup { get; set; }
+    public Task SearchGroupsAsync() => throw new ToolkitException("Bounded group picker is not connected yet.");
+    public void UseSelectedGroup() => throw new ToolkitException("Resolve an exact group in the current client first.");
     private string _collaborationSearch = "", _collaborationSites = "", _collaborationGroups = "";
     private bool _includeLibraries, _includeOwners, _includeMembers;
     public string CollaborationSearch { get => _collaborationSearch; set { if (SetProperty(ref _collaborationSearch, value)) SelectionChanged(); } }

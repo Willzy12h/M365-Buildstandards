@@ -1,4 +1,6 @@
 using System.Text;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json.Nodes;
 using BuildStandard.App.Services;
 using BuildStandard.App.ViewModels;
@@ -10,6 +12,31 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class CollaborationReportsPageTests
 {
+    [Fact]public async Task Group_picker_uses_bounded_name_lookup_and_requires_explicit_selection()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent("{\"value\":[{\"id\":\""+TestData.TenantB+"\",\"displayName\":\"Synthetic group\"}]}")};
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;
+        await page.SearchGroupsAsync();Assert.Single(page.GroupMatches);Assert.Null(page.SelectedGroup);Assert.Equal("",page.CollaborationGroups);
+        Assert.False(page.Acknowledged);Assert.Equal(1,f.Handler.Calls);Assert.Contains("/groups?",f.Handler.Routes.Single());
+        page.SelectedGroup=page.GroupMatches.Single();page.UseSelectedGroup();Assert.Equal(TestData.TenantB,page.CollaborationGroups);
+        Assert.Equal(1,f.Handler.Calls);Assert.False(page.HasPendingOriginal);
+    }
+    [Fact]public async Task Group_picker_query_A_B_A_discards_late_results()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;
+        f.Handler.BeforeResponse=()=>{page.GroupQuery="Other";page.GroupQuery="Synthetic";};
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent("{\"value\":[]}")};
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.SearchGroupsAsync);Assert.Equal(1,f.Handler.Calls);Assert.Empty(page.GroupMatches);
+    }
+    [Theory][InlineData("scope")][InlineData("ack")][InlineData("query")]
+    public async Task Group_picker_invalid_access_or_inputs_never_requests(string fault)
+    {
+        using var f=new ConnectedReportsFixture();if(fault!="scope")f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        var page=Page(f);page.GroupQuery=fault=="query"?"x":"Synthetic";page.Acknowledged=fault!="ack";
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.SearchGroupsAsync);Assert.Equal(0,f.Handler.Calls);Assert.Empty(page.GroupMatches);
+    }
     private sealed class Source(CollaborationReadSelection selection,Action? before=null):ICollaborationReportSource
     {
         public string TenantId=>TestData.TenantA;public CollaborationReadSelection Selection=>selection;public int Reads;
