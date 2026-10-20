@@ -3,12 +3,19 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
  <TabControl Margin="4">
   <TabItem Header="Read context"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="12">
-   <TextBlock Text="Service-health context · experimental and read-only" Style="{StaticResource H2}"/>
+   <TextBlock Text="Operational context · experimental and read-only" Style="{StaticResource H2}"/>
+   <TextBlock Text="Report"/>
+   <ComboBox ItemsSource="{Binding ReportChoices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedReportId}" IsEnabled="{Binding CanEdit}" Width="280" HorizontalAlignment="Left" AutomationProperties.Name="Operational report selection"/>
+   <StackPanel Margin="0,8,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsPartnerReport}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+    <TextBlock Text="Selected customer tenant ID (distinct from the connected partner)" TextWrapping="Wrap"/>
+    <TextBox Text="{Binding CustomerTenantId, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="36" MaxWidth="420" HorizontalAlignment="Stretch" AutomationProperties.Name="Partner report customer tenant ID"/>
+    <CheckBox IsChecked="{Binding PartnerDeclared}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0" AutomationProperties.Name="Declare connected partner source"><TextBlock Text="I declare the current verified connection as the partner source. This does not prove customer rights." TextWrapping="Wrap"/></CheckBox>
+   </StackPanel>
    <TextBlock Text="{Binding AccessPreview}" TextWrapping="Wrap" Margin="0,6,0,8"/>
    <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,0,0,8"/>
    <Button Content="Connection and read access" Command="{Binding OpenConnectionCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" ToolTipService.ShowOnDisabled="True" ToolTip="Open Connect when idle. Navigation does not authenticate or consent."/>
-   <CheckBox IsChecked="{Binding Acknowledged}" IsEnabled="{Binding CanEdit}" Margin="0,8,0,8" AutomationProperties.Name="Acknowledge exact experimental operational read"><TextBlock Text="I acknowledge this source tenant, the two fixed health reads, actual read-access requirement and limitations. This is not consent or approval to change a tenant." TextWrapping="Wrap"/></CheckBox>
-   <WrapPanel><Button Content="Read service-health context" Command="{Binding ReadCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ReadGuidance}"/><Button Content="Stop context read" Command="{Binding StopCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Available while this page owns an active capture. Earlier admitted observations remain; original retention continues before close."/></WrapPanel>
+   <CheckBox IsChecked="{Binding Acknowledged}" IsEnabled="{Binding CanEdit}" Margin="0,8,0,8" AutomationProperties.Name="Acknowledge exact experimental operational read"><TextBlock Text="{Binding AcknowledgementText}" TextWrapping="Wrap"/></CheckBox>
+   <WrapPanel><Button Content="{Binding ReadLabel}" Command="{Binding ReadCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding ReadGuidance}"/><Button Content="Stop context read" Command="{Binding StopCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Available while this page owns an active capture. Earlier admitted observations remain; original retention continues before close."/></WrapPanel>
    <TextBlock Text="{Binding ReadGuidance}" TextWrapping="Wrap" Margin="0,6,0,8"/>
    <Button Content="Open saved or supplied operational JSON" Command="{Binding OpenCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" ToolTipService.ShowOnDisabled="True" ToolTip="Select the original source client, wait for the operation and resolve pending originals. Opens strict16MiB operational evidence only; no service request."/>
    <TextBlock Text="Opening JSON keeps source claims historical/unverified and does not insert a managed record. An empty table establishes absence only where its source read completed." TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,6,0,0"/>

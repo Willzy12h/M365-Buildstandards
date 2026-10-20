@@ -131,26 +131,35 @@ public sealed class GraphReportsController(Workspace workspace)
 
     internal Func<ConnectedTenant, Action, IOperationalReportSource> OperationalSourceFactory { get; set; } =
         (connection, current) => ((GraphClient)connection.Graph).ForOperationalReports(connection.Session, "service-health", current);
-    internal Func<ConnectedTenant,string,Action,IOperationalReportSource> PartnerSourceFactory {get;set;} =
-        (_,_,_)=>throw new ConfigurationException("Partner native source is not implemented yet.");
-    public string OperationalReadBlocker
+    internal Func<ConnectedTenant, string, Action, IOperationalReportSource> PartnerSourceFactory { get; set; } =
+        (connection, customer, current) => ((GraphClient)connection.Graph).ForOperationalReports(
+            connection.Session, "partner-relationships", current, customer, true);
+    public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
+    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared)
     {
-        get
+        var blocker = ReadBlocker;
+        if (blocker.Length != 0) return blocker;
+        if (reportId is not ("service-health" or "partner-relationships")) return "Select a registered operational report.";
+        var session = RequireLive().Session;
+        if (reportId == "partner-relationships")
         {
-            var blocker = ReadBlocker;
-            if (blocker.Length != 0) return blocker;
-            return RequireLive().Session.Scopes.Any(scope => scope is "ServiceHealth.Read.All" or "https://graph.microsoft.com/ServiceHealth.Read.All") ? ""
-                : "No ServiceHealth.Read.All scope was returned for this connection. Review optional service-health access in Connect and reconnect deliberately. This page never signs in or grants consent.";
+            if (!ReportValues.IsCanonicalGuid(customerTenantId) || customerTenantId == session.TenantId)
+                return "Enter a distinct customer's exact tenant ID. The connected partner source will not change.";
+            if (!partnerDeclared) return "Declare the current verified connection as the partner source. This does not establish customer access.";
         }
+        else if (customerTenantId is not null || partnerDeclared) return "Service-health reads use the connected source only; clear partner parameters.";
+        var scope = reportId == "service-health" ? "ServiceHealth.Read.All" : "DelegatedAdminRelationship.Read.All";
+        return session.Scopes.Any(value => value == scope || value == "https://graph.microsoft.com/" + scope) ? ""
+            : $"No {scope} scope was returned for this connection. Review optional read access in Connect and reconnect deliberately. This page never signs in or grants consent.";
     }
     public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
         Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal,
         string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false)
     {
-        if(reportId!="service-health")throw new ConfigurationException("The selected native operational report is not implemented yet.");
         RequireIdle(expectedContext);
-        if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental service-health read and its limitations first.");
-        if (OperationalReadBlocker.Length != 0) throw new ToolkitException(OperationalReadBlocker);
+        if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental operational read and its limitations first.");
+        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared);
+        if (blocker.Length != 0) throw new ToolkitException(blocker);
         var connection = RequireLive();
         void AssertCurrent()
         {
@@ -160,13 +169,16 @@ public sealed class GraphReportsController(Workspace workspace)
             RequireLive();
         }
         OperationalContextReport? result = null;
-        await workspace.RunExclusiveAsync("Reading service-health context", async progress =>
+        await workspace.RunExclusiveAsync("Reading operational context", async progress =>
         {
             AssertCurrent();
-            progress.Report("Read-only registered overview and issue GETs; five minutes,100requests,5,000rows and16MiB. Advisories do not prove this tenant's availability.");
-            var source = OperationalSourceFactory(connection, AssertCurrent);
+            progress.Report("Registered read-only routes; five minutes, 100 requests, 5,000 rows and 16 MiB. Observations do not prove availability or effective customer access.");
+            var source = reportId == "service-health" ? OperationalSourceFactory(connection, AssertCurrent)
+                : PartnerSourceFactory(connection, customerTenantId!, AssertCurrent);
             using var owned = source as IDisposable;
-            result = await new ServiceHealthReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken);
+            result = reportId == "service-health"
+                ? await new ServiceHealthReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken)
+                : await new PartnerRelationshipReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, customerTenantId!, partnerDeclared, AssertCurrent, workspace.OperationToken);
             // A returned admitted original belongs to the captured source. Preserve it before current-view admission,
             // including the dispatcher transition after capture; ownership continues through serialisation/projection.
             progress.Report("Retaining original operational evidence. Closing waits for the original; Stop does not discard already captured observations.");

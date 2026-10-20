@@ -8,10 +8,12 @@ using BuildStandard.App.Services;
 using BuildStandard.App.ViewModels;
 using BuildStandard.Core;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
 internal static partial class Program
 {
     private static string SyntheticOperationalFile = "";
+    private static string SyntheticPartnerFile = "";
     private static void SeedOperationalEvidence(Workspace workspace, string output)
     {
         var stamp = Timestamps.Format(DateTimeOffset.UtcNow);
@@ -34,6 +36,28 @@ internal static partial class Program
         SyntheticOperationalFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-operational-source.json");
         File.WriteAllText(SyntheticOperationalFile, "\uFEFF  " + OperationalContextSchema.Serialise(report) + "\n", new UTF8Encoding(false));
         File.Copy(SyntheticOperationalFile, Path.Combine(output, "synthetic-operational-source.json"));
+        var partner = new OperationalContextReport
+        {
+            Id = Id(891), ReportId = "partner-relationships", AccessIntent = "partner-relationships", TenantId = Tenant,
+            CustomerTenantId = Id(892), SourceMode = "historical", AsOfUtc = stamp, StartedAt = stamp, EndedAt = stamp,
+            ToolkitVersion = workspace.Version, Status = ReportReadState.Collected,
+            Sources = OperationalContextSchema.SourceDeclarations("partner-relationships").ToList(),
+            PartnerCoverage = new() { ParentInventoryComplete = true, ParentRowsRead = 1, SelectedCustomerRows = 1 },
+            Sections = [new() { Id = "partner-relationships", Status = ReportReadState.Collected }, new() { Id = "partner-assignments", Status = ReportReadState.Collected }]
+        };
+        var parent = new PartnerRelationshipRow
+        {
+            Id = "synthetic-parent", Name = "Synthetic selected relationship", CustomerTenantId = Id(892),
+            ResourceType = "#microsoft.graph.delegatedAdminRelationship", Status = "active", CreatedAt = "2026-10-01T00:00:00Z",
+            ActivatedAt = "2026-10-01T00:00:00Z", ModifiedAt = "2026-10-01T00:00:00Z", EndedAt = "2026-10-02T00:00:00Z",
+            Duration = "P180D", AutoExtendDuration = "PT0S", ExpiryAtAsOf = "EndedAtOrBeforeAsOf", RoleDefinitionIds = [],
+            ReadStatus = ReportReadState.Collected, AssignmentReadStatus = ReportReadState.Collected, ReturnedAssignments = 0
+        };
+        partner.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(parent, rowOptions)!.AsObject());
+        OperationalContextSchema.Seal(partner);
+        SyntheticPartnerFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-partner-source.json");
+        File.WriteAllText(SyntheticPartnerFile, OperationalContextSchema.Serialise(partner), new UTF8Encoding(false));
+        File.Copy(SyntheticPartnerFile, Path.Combine(output, "synthetic-partner-source.json"));
     }
     private static void SeedOperationalPage(ShellViewModel shell)
     {
@@ -62,6 +86,18 @@ internal static partial class Program
             if (vm.ReadCommand.CanExecute(null)) throw new InvalidOperationException("Unacknowledged synthetic operational view permitted Read.");
             CaptureReportState(content, output, "operational-deliberate-read", size, checkPageScrolling: false);
             tabs.SelectedIndex = 2; content.UpdateLayout(); Pump(); CaptureReportState(content, output, "operational-original-recovery", size, checkPageScrolling: false);
+            vm.SelectedReportId = "partner-relationships"; vm.CustomerTenantId = Id(892); vm.PartnerDeclared = true;
+            tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+            if (vm.ReadCommand.CanExecute(null)) throw new InvalidOperationException("Unacknowledged partner selection permitted Read.");
+            CaptureReportState(content, output, "partner-deliberate-read", size, checkPageScrolling: false);
+            AwaitReader(vm.OpenSuppliedAsync(SyntheticPartnerFile)); tabs.SelectedIndex = 1; vm.SelectedSection = "partner-relationships";
+            content.UpdateLayout(); Pump();
+            if (vm.Rows?.Count != 1 || !vm.Outcome.Contains(Id(892), StringComparison.Ordinal)) throw new InvalidOperationException("Partner source/customer result meaning was lost.");
+            grid.BringIntoView(); content.UpdateLayout(); Pump();
+            AssertNewPageRowViewport(content, "Operational observations and source provenance", "partner context " + size);
+            CaptureReportState(content, output, "partner-relationship-results", size, checkPageScrolling: false);
+            foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Partner complete export");
+            vm.SelectedReportId = "service-health";
         }
     }
 }

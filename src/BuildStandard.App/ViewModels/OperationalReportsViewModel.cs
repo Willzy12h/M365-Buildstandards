@@ -44,20 +44,30 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public bool CanEdit => Workspace.Idle && !_reading && !_opening && !HasPendingOriginal;
     public bool Acknowledged { get => _acknowledged; set { EnsureContext(); if (SetProperty(ref _acknowledged, value)) Notify(); } }
     public string Notice => RegisteredReportDocuments.OperationalNotice;
-    public string AccessPreview => "Experimental service-health context · fixed overview and issue GETs using actually returned ServiceHealth.Read.All. No sign-in, consent, customer switch or write occurs here. Five minutes total,100requests,5,000rows and16MiB. Original mode/read purpose are not proof that a token has no additional rights. Partner collection is not implemented in this slice.";
+    public sealed record ReportChoice(string Id, string Name);
+    public IReadOnlyList<ReportChoice> ReportChoices { get; } = [new("service-health", "Service health"), new("partner-relationships", "Partner relationships")];
+    public bool IsPartnerReport => SelectedReportId == "partner-relationships";
+    public string ReadLabel => IsPartnerReport ? "Read partner relationships" : "Read service-health context";
+    public string AcknowledgementText => IsPartnerReport
+        ? "I acknowledge the declared partner source, exact selected customer, fixed relationship and assignment reads and limitations. This does not establish effective customer rights or authorise changes."
+        : "I acknowledge this source tenant, the two fixed health reads, actual read-access requirement and limitations. This is not consent or approval to change a tenant.";
+    public string AccessPreview => (IsPartnerReport
+        ? "Experimental partner context · fixed relationship and direct assignment GETs using actually returned DelegatedAdminRelationship.Read.All. The connected source remains the partner; customer selection never connects to that customer. Direct role claims are not effective access. At most 50 child inventories. "
+        : "Experimental service-health context · fixed overview and issue GETs using actually returned ServiceHealth.Read.All. Advisories are not tenant availability. ")
+        + "No sign-in, consent or write occurs here. Five minutes total, 100 requests, 5,000 rows and 16 MiB. Read purpose is not proof that a token has no additional rights.";
     public string ReadGuidance
     {
         get
         {
             EnsureContext();
-            if (_reading || !Workspace.Idle) return _reading ? "Service-health capture/original retention is active. Stop keeps earlier admitted observations; closing waits for recovery bytes." : "Wait for the current operation to finish.";
+            if (_reading || !Workspace.Idle) return _reading ? "Operational capture/original retention is active. Stop keeps earlier admitted observations; closing waits for recovery bytes." : "Wait for the current operation to finish.";
             if (_opening) return "The original operational file is being checked. Wait before another open or read; no service request is made.";
             if (HasPendingOriginal) return "Save, export or explicitly discard the pending original before another read. It retains its original source tenant.";
-            var blocker = _controller.OperationalReadBlocker;
+            var blocker = _controller.OperationalReadBlockerFor(SelectedReportId, IsPartnerReport ? CustomerTenantId : null, IsPartnerReport && PartnerDeclared);
             return blocker.Length != 0 ? blocker : Acknowledged ? "" : "Review the source, fixed reads, access and limitations, then tick acknowledgement before Read.";
         }
     }
-    public string Outcome => _report is null ? "No current operational result." : $"Service-health context · {_report.Status} · as-of {_report.AsOfUtc}\n" + string.Join(" · ", _report.Sections.Select(section => section.Id + ": " + section.Status));
+    public string Outcome => _report is null ? "No current operational result." : $"{_report.ReportId} context · {_report.Status} · source {_report.TenantId}" + (_report.CustomerTenantId is null ? "" : $" · selected customer {_report.CustomerTenantId}") + $" · as-of {_report.AsOfUtc}\n" + string.Join(" · ", _report.Sections.Select(section => section.Id + ": " + section.Status));
     public string Message => _message;
     public string LastExport => _export;
     public IReadOnlyList<string> Sections => _sheets.Select(sheet => sheet.Name).ToArray();
@@ -84,7 +94,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     {
         var reason = ReadGuidance; if (reason.Length != 0) throw new ToolkitException(reason);
         var context = _context; var generation = ++_generation;
-        var reportId=_selectedReportId;var customer=_customerTenantId;var partnerDeclared=_partnerDeclared;
+        var reportId=_selectedReportId;var customer=IsPartnerReport ? _customerTenantId : "";var partnerDeclared=IsPartnerReport && _partnerDeclared;
         _acknowledged = false; _reading = true; ClearResult(); Notify();
         try
         {
@@ -169,7 +179,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public override void Refresh() { if (_controller is null) return; EnsureContext(); Notify(); }
     private void Notify()
     {
-        foreach (var name in new[] { nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(IsPartnerReport), nameof(ReadLabel), nameof(AccessPreview), nameof(AcknowledgementText), nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

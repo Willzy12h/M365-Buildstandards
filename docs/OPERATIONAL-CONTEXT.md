@@ -1,6 +1,6 @@
 # Operational context reports
 
-This in-progress expansion separates service-health observations and partner-relationship context from tenant configuration and deployment evidence. The current G branch implements service-health engine capture, native visibility/original recovery and offline exports. The health milestone287c5bc passed source-matched Windows/native/package checks (PR156/run39485176532); later partner backend/export additions remain separately unverified on Windows and the native partner journey remains incomplete. No live Microsoft behaviour or named safety acceptance is claimed.
+This in-progress expansion separates service-health observations and partner-relationship context from tenant configuration and deployment evidence. The current G branch implements service-health engine capture, native visibility/original recovery and offline exports. The health milestone287c5bc passed source-matched Windows/native/package checks (PR156/run39485176532); later partner backend, export and native additions require their own current-source Windows verification. No live Microsoft behaviour or named safety acceptance is claimed.
 
 ## Native service-health workflow — implemented, live-unverified
 
@@ -12,9 +12,17 @@ This in-progress expansion separates service-health observations and partner-rel
 
 Changing context clears the current display/acknowledgement; pending originals keep their source tenant. Ordinary close waits for owned capture/serialisation and refuses unresolved originals. Opening a supplied file blocks overlapping reads and refuses a late changed-client result. Force-closing the process can lose an in-memory pending original.
 
-These remain experimental paths awaiting named acceptance. The exact health milestone has offline Windows/native/package evidence; human accessibility/workstation policy and live roles/API behaviour remain unverified. The partner access choice is separate and is not needed for service health. Its backend and offline exports are implemented in later source; native collection is not yet enabled at this intermediate milestone.
+These remain experimental paths awaiting named acceptance. The exact health milestone has offline Windows/native/package evidence; human accessibility/workstation policy and live roles/API behaviour remain unverified. The partner access choice is separate and is not needed for service health. Its backend, offline exports and native selection are implemented in later source, with source-matched Windows verification pending.
 
-## Open a saved service-health report offline
+## Native partner workflow — implemented, validation pending
+
+Select **Partner relationships** in the same Read context page. Deliberately request the separate optional `DelegatedAdminRelationship.Read.All` purpose through Connect first; the Reports page never authenticates or grants it. Declare the current verified connection as the partner source and enter the distinct exact customer tenant ID. This is a reporting filter, not a customer connection or proof of delegated access. Acknowledge that exact selection before **Read partner relationships**.
+
+The bounded parent inventory filters by returned customer identity. Only uniquely returned, supported parents from a completed scan admit child assignment reads, at most 50 inventories. Other customers are excluded from persisted rows. Missing identities, unsupported types, inaccessible children and limits remain explicit. Direct role IDs are advertised assignments, not effective rights. Raw relationship status and expiry at the frozen as-of time are separate; `active` does not override an observed past end time. Failed child reads have unknown counts, never an invented zero.
+
+Changing report, customer or declaration invalidates acknowledgement and current display. A late original still belongs to the original partner source and selected customer; it can be recovered without rerunning. The same original save/export, readback, cancellation and complete-export controls apply. The native choice is experimental pending current Windows/native/package checks and named acceptance.
+
+## Open a saved operational report offline
 
 Use the original source tenant GUID recorded in the report, even when reviewing a different client:
 
@@ -32,4 +40,4 @@ The strict `operationalContextReport/1` envelope is separate from configuration 
 
 Managed originals use `operational-context-evidence` under their source tenant and are included in ordinary workspace backup without increasing its32MiB bound. Saves refuse overwrite, links, wrong tenant/record IDs and altered content. Export/save readback must match the original before pending recovery can be cleared. Integrity detects modification; it does not establish Microsoft authenticity.
 
-Native Read/Stop/access and original-recovery are implemented in source, with Windows/native/package verification pending. The CLI remains offline-only; do not infer a connected CLI command or partner report from it. Optional scopes are not granted by source development, and no agent tenant action is authorised. H1, physical accessibility/workstation policy, named runtime acceptance and live delegated-role/API/licence behaviour remain separate.
+Native Read/Stop/access and original-recovery are implemented in source, with Windows/native/package verification pending. The CLI supports strict saved service-health and partner evidence only; it has no connected collection command. Optional scopes are not granted by source development, and no agent tenant action is authorised. H1, physical accessibility/workstation policy, named runtime acceptance and live delegated-role/API/licence behaviour remain separate.

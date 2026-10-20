@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
+
 - In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
 - Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
 
