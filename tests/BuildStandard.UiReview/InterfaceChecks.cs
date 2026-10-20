@@ -1115,6 +1115,9 @@ internal static partial class Program
         var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(shell)!;
         var owners = new List<(string Key, object ViewModel)> { ("overview", shell) };
         owners.AddRange(pages.Select(p => (p.Key, (object)p.Value)));
+        // Authoring is owned by the catalogue page, not registered as a second navigation page.
+        // Include its real command instances so the register still detects missing/stale entries.
+        owners.Add(("standard", shell.Page<StandardViewModel>().Authoring));
 
         var found = new List<(string Name, string Page, ICommand Command)>();
         foreach (var (key, vm) in owners)
