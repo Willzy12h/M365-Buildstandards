@@ -90,8 +90,9 @@ public static partial class OperationalContextSchema
                 if (row is CollaborationGroupRow actualGroup && expected is CollaborationGroupRow expectedGroup
                     && (actualGroup.OwnerReadDisposition != expectedGroup.OwnerReadDisposition || actualGroup.TeamProvisioned != expectedGroup.TeamProvisioned || actualGroup.OwnerCoverage != CollaborationObservations.OwnerCoverage))
                     throw Bad("Group population or Team meaning was changed.");
-                if (row is CollaborationTeamMemberRow actualMember && expected is CollaborationTeamMemberRow expectedMember && actualMember.RoleMeaning != expectedMember.RoleMeaning)
-                    throw Bad("Direct member roles were reinterpreted.");
+                if (row is CollaborationTeamMemberRow actualMember && expected is CollaborationTeamMemberRow expectedMember
+                    && (actualMember.RoleMeaning != expectedMember.RoleMeaning || actualMember.UserId != expectedMember.UserId || actualMember.UserTenantId != expectedMember.UserTenantId))
+                    throw Bad("Direct member roles or user/tenant identifiers were reinterpreted.");
                 if (row is CollaborationOwnerRow owner && owner.Coverage != CollaborationObservations.OwnerCoverage) throw Bad("Owner population coverage is missing.");
                 typedRows.Add(row);
             }

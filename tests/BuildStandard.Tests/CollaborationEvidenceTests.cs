@@ -60,6 +60,28 @@ public sealed class CollaborationEvidenceTests
         if(fault=="raw-property")member["accessToken"]="not-a-token";
         Assert.ThrowsAny<ToolkitException>(()=>OperationalContextSchema.Seal(report));
     }
+    [Theory][InlineData("userId")][InlineData("userTenantId")]
+    public async Task Partial_import_cannot_preserve_malformed_member_identifiers(string field)
+    {
+        var report=await new CollaborationReportService(SystemClock.Instance,"synthetic-test").CaptureAsync(new TeamSource(),Session(),()=>{},default);
+        var section=report.Sections[2];var member=section.Rows.Single();
+        member[field]="not-a-guid";
+        member["readStatus"]="Partial";member["error"]="Synthetic incomplete member";
+        section.Status=ReportReadState.Partial;section.Error="Synthetic incomplete source";
+        report.Status=ReportReadState.Partial;
+        Assert.ThrowsAny<ToolkitException>(()=>OperationalContextSchema.Seal(report));
+    }
+    [Theory][InlineData("userId")][InlineData("userTenantId")]
+    public async Task Missing_partial_member_identifiers_remain_unknown(string field)
+    {
+        var report=await new CollaborationReportService(SystemClock.Instance,"synthetic-test").CaptureAsync(new TeamSource(),Session(),()=>{},default);
+        var section=report.Sections[2];var member=section.Rows.Single();
+        member[field]=null;member["readStatus"]="Partial";member["error"]="Synthetic missing field";
+        section.Status=ReportReadState.Partial;section.Error="Synthetic incomplete source";report.Status=ReportReadState.Partial;
+        OperationalContextSchema.Seal(report);
+        var copy=OperationalContextSchema.Read(OperationalContextSchema.Serialise(report),TestData.TenantA);
+        Assert.Null(copy.Sections[2].Rows.Single()[field]);
+    }
     [Fact]public async Task Known_empty_member_roles_are_member_not_guest_from_other_tenant()
     {
         var report=await new CollaborationReportService(SystemClock.Instance,"synthetic-test").CaptureAsync(new TeamSource(),Session(),()=>{},default);
