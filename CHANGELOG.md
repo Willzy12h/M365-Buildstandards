@@ -2,6 +2,8 @@
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
+- Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
+
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
 
 - Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. Native import/save remains pending.
