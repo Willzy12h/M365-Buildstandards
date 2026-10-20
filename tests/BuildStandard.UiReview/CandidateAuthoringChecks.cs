@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Input;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.ViewModels;
@@ -25,6 +26,16 @@ internal static partial class Program
             var label = $"candidate-authoring {(int)size.Width}x{(int)size.Height}";
             RecordUnnamedControls(content, label); RecordLowContrast(content, label); RecordClipping(content, label);
             SaveImage(content, size, Path.Combine(output, $"candidate-authoring-{(int)size.Width}x{(int)size.Height}.png"));
+            // The compact viewport cannot show the entire editor at once. Capture the actual working
+            // value and final actions as well as the header, rather than calling an off-screen form reviewed.
+            foreach (var (name, suffix) in new[] { ("Candidate proposed setting value", "value"), ("Candidate operation result", "result") })
+            {
+                var target = Descendants(panel).OfType<TextBox>().Single(e => AutomationProperties.GetName(e) == name);
+                target.BringIntoView(); content.UpdateLayout(); Pump();
+                RecordUnnamedControls(content, label + " " + suffix); RecordLowContrast(content, label + " " + suffix);
+                RecordClipping(content, label + " " + suffix);
+                SaveImage(content, size, Path.Combine(output, $"candidate-authoring-{suffix}-{(int)size.Width}x{(int)size.Height}.png"));
+            }
         }
         finally { editor.Discard(); panel.IsExpanded = false; content.UpdateLayout(); Pump(); }
         void RunLocal(ICommand command)
