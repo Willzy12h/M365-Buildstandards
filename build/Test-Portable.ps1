@@ -11,7 +11,7 @@ param([Parameter(Mandatory=$true)][string]$ZipPath,
       [Parameter(Mandatory=$true)][string]$StagePath,
       [Parameter(Mandatory=$true)][string]$ResultPath,
       [string]$UsageFixturePath = "",
-      [string]$OperationalFixturePath = "")
+      [string[]]$OperationalFixturePath = @())
 $ErrorActionPreference = 'Stop'
 $zip = (Resolve-Path -LiteralPath $ZipPath).Path
 $stage = (Resolve-Path -LiteralPath $StagePath).Path.TrimEnd('\')
@@ -116,8 +116,8 @@ try {
         $usageChecked = $true
     }
     $operationalChecked = $false
-    if ($OperationalFixturePath) {
-        $operationalInput = (Resolve-Path -LiteralPath $OperationalFixturePath).Path
+    foreach ($operationalFixture in $OperationalFixturePath) {
+        $operationalInput = (Resolve-Path -LiteralPath $operationalFixture).Path
         $operationalOriginal = (Get-FileHash -LiteralPath $operationalInput -Algorithm SHA256).Hash
         $operational = Invoke-OwnedCli $exe ('--cli operational-report-evidence --input "' + $operationalInput + '" --tenant 11111111-1111-1111-1111-111111111111 --format json') 0
         if ($operational.Error -or $operational.Text -notmatch 'Partial' -or $operational.Text -notmatch 'no live reads or writes') { throw 'Packaged operational CLI lost partial/source limitations.' }
