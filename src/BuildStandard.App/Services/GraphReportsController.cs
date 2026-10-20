@@ -144,7 +144,7 @@ public sealed class GraphReportsController(Workspace workspace)
         }
     }
     public async Task<UsageReviewReport> ReadUsageAsync(IReadOnlyList<string> sources, string period, bool acknowledged,
-        string expectedContext, Func<bool> selectionStillCurrent)
+        string expectedContext, Func<bool> selectionStillCurrent, Func<UsageReviewReport,Task>? retainOriginal = null)
     {
         RequireIdle(expectedContext);
         if (!acknowledged) throw new ToolkitException("Acknowledge the exact experimental usage selection and access first; this grants no consent.");
@@ -170,6 +170,14 @@ public sealed class GraphReportsController(Workspace workspace)
             using var owned = source as IDisposable;
             result = await new UsageReportService(SystemClock.Instance, workspace.Version).CaptureAsync(
                 source, connection.Session, ids, period, AssertCurrent, workspace.OperationToken);
+            AssertCurrent();
+            // The capture remains owned while its original bytes and native projection are prepared. Normal close
+            // waits for this whole operation; a changed current view never discards an already captured original.
+            if(retainOriginal is not null)
+            {
+                progress.Report("Retaining original usage evidence. Stop does not discard sources already captured; closing waits for recovery bytes.");
+                await retainOriginal(result);
+            }
             AssertCurrent();
         });
         AssertCurrent();

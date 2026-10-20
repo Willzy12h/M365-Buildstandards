@@ -46,7 +46,7 @@ public sealed class UsageReportsViewModel : PageViewModel
     public IReadOnlyList<string> Periods {get;}=["D7","D30","D90","D180"];
     public string Period {get=>_period;set{if(!UsageReportRegistry.IsPeriod(value))throw new ConfigurationException("Choose a registered usage period.");if(SetProperty(ref _period,value))SelectionChanged();}}
     public bool Acknowledged {get=>_acknowledged;set{EnsureContext();if(SetProperty(ref _acknowledged,value))Notify();}}
-    public bool CanEdit=>Workspace.Idle&&!HasPendingOriginal;
+    public bool CanEdit=>Workspace.Idle&&!_reading&&!HasPendingOriginal;
     public string PrivacyNotice=>UsageReviewDocuments.PrivacyNotice;
     public string AccessPreview=>"Experimental read-only Graph usage reports · Reports.Read.All must already be returned for this verified account. Separate downloads receive no Graph token. Delegated reporting role/workload licences may still refuse reads. Five minutes total;10MiB per CSV/20,000 rows;40MiB complete pack. No report-settings access, licence changes or identity joins.";
     public string ReadGuidance
@@ -54,7 +54,7 @@ public sealed class UsageReportsViewModel : PageViewModel
         get
         {
             EnsureContext();
-            if(!Workspace.Idle)return _reading?"Usage collection is active. Stop requests cancellation; earlier complete source reads can remain in its final evidence.":"Wait for the current operation to finish.";
+            if(_reading||!Workspace.Idle)return _reading?"Usage collection is active. Stop requests cancellation; earlier complete source reads can remain in its final evidence.":"Wait for the current operation to finish.";
             if(HasPendingOriginal)return "Resolve the original usage report below before another read. Export retains its original client; nothing is rerun.";
             var blocker=_controller.UsageReadBlocker;if(blocker.Length!=0)return blocker;
             if(!Sources.Any(source=>source.Selected))return "Select at least one usage source and its period. Selection makes no request.";
@@ -93,14 +93,15 @@ public sealed class UsageReportsViewModel : PageViewModel
         _acknowledged=false;_reading=true;ClearResult();Notify();
         try
         {
-            var report=await _controller.ReadUsageAsync(ids,period,true,context,()=>version==_selectionVersion);
-            if(_context!=context||version!=_selectionVersion)throw new TenantMismatchException("Usage selection changed. No result was displayed for the new selection.");
-            var original=await SerialiseOriginal(report);
-            _controller.RequireContext(context);
-            if(version!=_selectionVersion)throw new TenantMismatchException("Usage selection changed before original evidence admission.");
-            _pendingOriginal=original.ToArray();_pendingTenant=report.TenantId;_pendingId=report.Id;
-            await SetReportAsync(report,original,false,context,version);
-            _message="Read completed with the source states above. Save or export the original JSON before closing or reading again; HTML/CSV/Excel alone do not preserve the original CSV pack.";
+            await _controller.ReadUsageAsync(ids,period,true,context,()=>version==_selectionVersion,async report=>
+            {
+                var original=await SerialiseOriginal(report);
+                // Install original recovery before current-client admission: late context changes can refuse the
+                // view but must not erase the completed source record. Its own tenant/account remain unchanged.
+                _pendingOriginal=original.ToArray();_pendingTenant=report.TenantId;_pendingId=report.Id;
+                await SetReportAsync(report,original,false,context,version);
+                _message="Read completed with the source states above. Save or export the original JSON before closing or reading again; HTML/CSV/Excel alone do not preserve the original CSV pack.";
+            });
         }
         finally{_reading=false;Notify();}
     }

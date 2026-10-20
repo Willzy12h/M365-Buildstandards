@@ -23,7 +23,7 @@ public sealed class UsageReportsPageTests
         Assert.False(page.ReadCommand.CanExecute(null));await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.Equal(0,reads);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
     }
-    [Fact] public async Task Accepted_capture_remains_owned_until_original_is_retained_for_close_and_client_changes()
+    [Theory][InlineData(false)][InlineData(true)] public async Task Accepted_capture_remains_owned_until_original_is_retained_for_close_and_client_changes(bool changeClient)
     {
         using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Reports.Read.All");
         var page=Page(f,(id,_)=>Task.FromResult(Header(id)));page.Sources[0].Selected=true;page.Acknowledged=true;
@@ -31,9 +31,16 @@ public sealed class UsageReportsPageTests
         var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         page.SerialiseOriginal=async report=>{entered.SetResult(report);await release.Task;return Encoding.UTF8.GetBytes(UsageReviewSchema.Serialise(report));};
         var read=page.ReadAsync();await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        try{Assert.True(f.Workspace.Busy,"The capture-to-original transition must remain owned so normal close waits for it.");Assert.False(page.CanEdit);Assert.False(page.ReadCommand.CanExecute(null));}
-        finally{release.TrySetResult();await read;}
+        var close=f.Workspace.StopAndWaitForEvidenceAsync();
+        try
+        {
+            Assert.True(f.Workspace.Busy,"The capture-to-original transition must remain owned so normal close waits for it.");
+            Assert.False(page.CanEdit);Assert.False(page.ReadCommand.CanExecute(null));Assert.False(close.IsCompleted);
+            if(changeClient){f.ReplaceConnection();page.Refresh();}
+        }
+        finally{release.TrySetResult();if(changeClient)await Assert.ThrowsAnyAsync<ToolkitException>(()=>read);else await read;await close;}
         Assert.True(page.HasPendingOriginal);Assert.False(f.Workspace.Busy);
+        if(changeClient)Assert.Contains("No current",page.Outcome);
     }
     [Fact] public async Task Original_save_and_reopen_preserve_bytes_without_another_source_read_or_snapshot_change()
     {
