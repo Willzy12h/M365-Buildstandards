@@ -14,9 +14,10 @@ internal static class CandidateCommand
         var allowed = action switch
         {
             "create" => new[] { "action", "root", "catalogue", "title" },
+            "import" => ["action", "root", "input", "control", "source", "name", "map"],
             "validate" => ["action", "root", "input"],
             "export" => ["action", "root", "input", "reviewed-digest"],
-            _ => throw new ConfigurationException("Candidate supports create, validate or export; it never installs or publishes a standard.")
+            _ => throw new ConfigurationException("Candidate supports create, import, validate or export; it never installs or publishes a standard.")
         };
         if (options.Any(p => !allowed.Contains(p.Key, StringComparer.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(p.Value)))
             throw new ConfigurationException("Candidate options must be known, unique and have values for the selected action.");
@@ -37,6 +38,20 @@ internal static class CandidateCommand
                 return 0;
             }
             var source = CandidateDraftCodec.ReadFile(Required("input"));
+            if (action == "import")
+            {
+                stop.Token.ThrowIfCancellationRequested();
+                var mappings = options.TryGetValue("map", out var mapFile) ? CandidatePolicyImportService.ReadParameterMappings(mapFile) : null;
+                var imported = new CandidatePolicyImportService(loader, authoring).ImportFile(source,
+                    Required("control"), Required("source"), Required("name"), mappings);
+                stop.Token.ThrowIfCancellationRequested();
+                var file = outputs.ExportDraft(imported, stop.Token);
+                Console.WriteLine(ToolkitJson.Serialize(new { kind = "localCandidateImport", draft = file,
+                    draftDigest = imported.ContentDigest, status = imported.Unresolved.Count == 0 ? "ReadyForValidation" : "Unresolved",
+                    imported.Unresolved, imported.AssignmentObservations, validationRequired = true,
+                    limitation = "Saved local draft only. Assignments are not applied; review and validate before export. No installation or publication." }));
+                return 0;
+            }
             if (action == "export" && Required("reviewed-digest") != source.ContentDigest)
                 throw new ConfigurationException("The explicitly reviewed digest does not match this draft. Validate and review the current draft first.");
             stop.Token.ThrowIfCancellationRequested();

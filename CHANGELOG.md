@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Offline candidate CLI imports now save separate supported-policy drafts with original-byte provenance, explicit unresolved references and strict mappings to existing typed parameters; no catalogue installation or tenant action.
+
 - Guard every local catalogue replacement while candidate edits or unapplied input remain unsaved; retain the current catalogue and explain save/discard. Include the nested editor and scrolled working controls in native UI verification.
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.

@@ -2,7 +2,7 @@
 
 Candidate authoring is offline. It does not connect to a tenant, install a catalogue, change historical standard files or publish a release. A candidate is not deployment approval or a verified successor lineage.
 
-The current source provides a shared draft/validation/output engine, a native offline editor and the CLI commands below. The supported policy-import journey is still being implemented. Native validation results must match the candidate source; source implementation alone is not Windows acceptance.
+The current source provides a shared draft/validation/output engine, a native offline editor and the CLI commands below. Supported policy import is available through the CLI; the native import form is still being implemented. Native validation results must match the candidate source; source implementation alone is not Windows acceptance.
 
 ## Native offline editor
 
@@ -25,6 +25,24 @@ The JSON response names a new local draft under `reports`. Its identity includes
 The editor's draft model supports existing control recipe settings and reviewable parameter defaults. It does not add controls, collections, permissions, execution routes, licence rules or new template syntax. Foreign references need explicit supported mappings. Conditional Access candidates stay disabled and preserve their exact targeting/exclusions; Intune candidates remain unassigned. macOS remains unsupported and blocked. Edited defaults lose their inherited vendor-review date; editing is not a new vendor review.
 
 Do not hand-edit a saved draft's digest to bypass validation. Policy import is not yet exposed in this editor. Saving an unresolved draft will not make it exportable.
+
+## Import a supported policy into a separate draft
+
+```text
+bdit candidate --action import --input "draft.json" --control CFG-WIN-002 --source "policy.json" --name "CFG - Proposed policy - Windows" --root "C:\Tools\BuildStandard"
+```
+
+The source must match the selected control's registered type and supported payload structure. The importer records the original file SHA-256, removes source metadata and keeps assignment observations separate. It never applies assignments or changes the original draft. Controls already edited or imported are refused rather than overwritten.
+
+The response names a new saved draft and reports **ReadyForValidation** or **Unresolved**. Both require explicit review and validation before export. Missing or malformed assignment data stays **Unknown**. An unresolved draft can be saved, but cannot be exported as a candidate catalogue.
+
+For a supported foreign reference, an optional `--map mapping.json` supplies a JSON object from its exact payload pointer to an existing typed parameter, for example:
+
+```json
+{ "/payload/omaSettings/0/displayName": "officeLocationId" }
+```
+
+Use only parameters appropriate to the intended setting. The mapping file cannot supply replacement identifiers, invent parameters or interpolate embedded identifiers. Duplicate paths, unused mappings and incompatible parameter types are refused. To change a mapping, import again from the original unedited draft; an imported draft is not silently replaced.
 
 ## Validate, then explicitly export
 

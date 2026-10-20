@@ -151,6 +151,7 @@ public static class Program
                   Uses the capture's recorded release; --release is not an override for observed data.
 
               buildstandard candidate --action create --catalogue <file.json> --title "<name>" [--root <dir>]
+              buildstandard candidate --action import --input <draft.json> --control <id> --source <policy.json> --name "<name>" [--map <mapping.json>] [--root <dir>]
               buildstandard candidate --action validate --input <draft.json> [--root <dir>]
               buildstandard candidate --action export --input <draft.json> --reviewed-digest <sha256> [--root <dir>]
                   Offline candidate drafts and separate configuration/assignment comparison only.

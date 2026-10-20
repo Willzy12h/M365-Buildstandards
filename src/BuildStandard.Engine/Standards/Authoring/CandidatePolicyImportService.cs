@@ -12,6 +12,22 @@ public sealed class CandidatePolicyImportService(CandidateBaselineLoader baselin
     private static readonly Regex GuidText = new(@"(?i)(?<![0-9a-f])[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?![0-9a-f])", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     private static readonly string[] AssignmentFields = ["assignments", "groupAssignments", "targetAssignments", "_assignments", "_toolkitAssignments"];
 
+    /// <summary>Strict local mapping input; values name existing typed parameters, never replacement literals.</summary>
+    public static IReadOnlyDictionary<string, string> ReadParameterMappings(string file)
+    {
+        var input = JsonNode.Parse(CandidateImportSource.ReadFile(file).Json)!.AsObject();
+        if (input.Count > 200) throw Bad("At most 200 explicit parameter mappings are supported.");
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (path, value) in input)
+        {
+            _ = CandidatePointer.Parse(path);
+            if (value is not JsonValue scalar || !scalar.TryGetValue<string>(out var parameter) || string.IsNullOrWhiteSpace(parameter))
+                throw Bad("Each mapping must name an existing typed parameter as a non-empty string.");
+            result.Add(path, parameter);
+        }
+        return result;
+    }
+
     public StandardCandidateDraft ImportFile(StandardCandidateDraft draft, string controlId, string file, string name,
         IReadOnlyDictionary<string, string>? parameterMappings = null)
     {
