@@ -35,12 +35,12 @@ public sealed class ApplicationSetupTests
         var optionalValidation=await f.Service.ValidateAsync(f.Standard,created.Rows[0].ClientId,created.Rows[1].ClientId,default,OptionalReportAccess.UsageReports);
         Assert.All(optionalValidation.Rows,row=>Assert.Contains("Reports.Read.All",row.RequiredScopes));
     }
-    [Fact] public async Task None_refuses_preview_when_existing_usage_permission_is_advertised_disabled_instead_of_removing_it()
+    [Theory][InlineData(false)][InlineData(true)] public async Task None_refuses_preview_when_existing_usage_permission_is_unavailable_instead_of_removing_it(bool removed)
     {
         using var f=new Fixture();var created=await f.Execute(await f.Preview());
         var optional=f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().OfType<JsonObject>().Single(p=>p["value"]!.GetValue<string>()=="Reports.Read.All");
         foreach(var app in f.Handler.Applications)app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject{["id"]=optional["id"]!.DeepClone(),["type"]="Scope"});
-        optional["isEnabled"]=false;var writes=f.Handler.Writes.Count;
+        if(removed)f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().Remove(optional);else optional["isEnabled"]=false;var writes=f.Handler.Writes.Count;
         await Assert.ThrowsAsync<ConfigurationException>(()=>f.Service.PreviewAsync(f.Standard,"Test",default,created.Rows[0].ClientId,created.Rows[1].ClientId));
         Assert.Equal(writes,f.Handler.Writes.Count);
     }
