@@ -43,19 +43,60 @@ public static class RegisteredReportDocuments
                 .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
             var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)));
             foreach (var row in section.Rows)
-                sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c)).ToArray());
+                sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c,definition.ReportSchemaVersion == 2)).ToArray());
             sheets.Add(sheet);
         }
         return sheets;
     }
-    private static string ExchangeValue(JsonObject row,string column)
+    private static string ExchangeValue(JsonObject row,string column,bool family)
     {
+        if (family && row[column] is JsonObject observed && observed["state"] is JsonValue)
+            return ObservedValue(observed);
         if (row[column] is not null) return Value(row[column]);
         if (column == "error" && row["readStatus"]?.GetValue<string>() == ReportReadState.Collected) return "No read error";
         if ((column is "forwardingAddress" or "forwardingSmtpAddress")
             && row[column + "ReadStatus"]?.GetValue<string>() == ReportReadState.Collected) return "Not set (observed)";
         return Value(null);
     }
+    // Called only after strict report2 validation. This is shared presentation, never evidence mutation or inference.
+    private static string ObservedValue(JsonObject observed)
+    {
+        var state = observed["state"]!.GetValue<string>();
+        if (state != "Value")
+        {
+            var meaning = state switch
+            {
+                "ReturnedNull" => "returned null", "Missing" => "not returned", "Failed" => "read failed",
+                "NotAttempted" => "not attempted", "Unsupported" => "unsupported",
+                _ => "unclassified"
+            };
+            return $"Unknown — {meaning}: {observed["reason"]!.GetValue<string>()}";
+        }
+        var value = observed["value"];
+        if (value is JsonArray references)
+        {
+            if (references.Count == 0) return "No values returned (reported empty list)";
+            return string.Join("; ", references.Select(reference =>
+            {
+                var item = reference!.AsObject();
+                var source = item["namespace"]!.GetValue<string>();
+                var label = source switch
+                {
+                    "UnresolvedDisplayLabel" => "Unresolved display label", "RawIdentity" => "Raw identity",
+                    "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal",
+                    _ => "Returned text"
+                };
+                var unresolved = source == "UnresolvedDisplayLabel" ? " (identity not resolved)" : "";
+                var directoryId = item["externalDirectoryObjectId"]?.GetValue<string>();
+                return $"{label}: {item["value"]!.GetValue<string>()}{unresolved}"
+                    + (directoryId is null ? "" : $" · Returned Entra object ID: {directoryId}");
+            }));
+        }
+        if (value is JsonValue scalar && scalar.TryGetValue<bool>(out var flag))
+            return flag ? "True (reported)" : "False (reported)";
+        return Value(value) + " (reported)";
+    }
+
     public static IReadOnlyList<Sheet> Sheets(ReportEvidence report, bool suppliedFile = false)
     {
         ReportEvidenceSchema.Validate(report, report.TenantId);

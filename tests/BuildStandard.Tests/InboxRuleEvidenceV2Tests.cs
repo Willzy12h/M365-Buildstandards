@@ -37,4 +37,54 @@ public sealed class InboxRuleEvidenceV2Tests
     {var e=Read(Report());var sheets=RegisteredReportDocuments.Sheets(e);Assert.Contains("Local observation key (not a service ID)",sheets[1].Rows[0]);Assert.Contains("Local observation key (not a service ID)",sheets[2].Rows[0]);Assert.DoesNotContain("Exchange mailbox GUID",sheets[2].Rows[0]);Assert.Contains(sheets[0].Rows,row=>row.Any(cell=>cell.Contains("Hidden rules omitted",StringComparison.Ordinal)));}
     [Fact] public void Unsuccessful_target_is_recorded_and_cannot_become_successful_empty_child_section()
     {var e=Report();var target=e.Sections[0].Rows[0];target["observedExchangeGuid"]=null;target["externalDirectoryObjectId"]=null;target["primarySmtpAddress"]=null;target["lookupReadStatus"]="Failed";target["childReadStatus"]="NotAttempted";target["readStatus"]="Failed";target["error"]="Synthetic lookup failed";target["returnedEntries"]=null;target["excludedEntries"]=null;e.Sections[0].Status="Failed";e.Sections[0].Error="Synthetic lookup failed";e.Sections[1].Rows.Clear();e.Sections[1].Status="NotAttempted";e.Sections[1].Error="Lookup failed; no rule read";e.Status=ReportEvidenceSchema.Overall(e.Sections.Select(s=>s.Status));Assert.NotEqual("Collected",Read(e).Status);e.Sections[1].Status="Collected";e.Sections[1].Error=null;e.Status=ReportEvidenceSchema.Overall(e.Sections.Select(s=>s.Status));Assert.ThrowsAny<ToolkitException>(()=>Read(e));}
+    [Fact]
+    public void Observed_values_are_readable_without_conflating_false_zero_and_successful_empty()
+    {
+        var sheets = RegisteredReportDocuments.Sheets(Read(Report()));
+        var rules = sheets.Single(sheet => sheet.Name == "rules");
+        string Cell(string column) => rules.Rows[1][Array.IndexOf(rules.Rows[0], column)];
+        Assert.Equal("False (reported)", Cell("Enabled"));
+        Assert.Equal("0 (reported)", Cell("Priority"));
+        Assert.Equal("No values returned (reported empty list)", Cell("Forward to"));
+        Assert.Equal("True (reported)", Cell("Stop processing rules"));
+    }
+
+    [Theory]
+    [InlineData("ReturnedNull", "Unknown — returned null")]
+    [InlineData("Missing", "Unknown — not returned")]
+    [InlineData("Failed", "Unknown — read failed")]
+    [InlineData("NotAttempted", "Unknown — not attempted")]
+    [InlineData("Unsupported", "Unknown — unsupported")]
+    public void Unknown_value_presentation_keeps_source_state_and_reason(string state, string expected)
+    {
+        var report = Report();
+        Partial(report);
+        report.Sections[1].Rows[0]["enabled"] = new JsonObject
+        {
+            ["state"] = state, ["value"] = null, ["reason"] = "Synthetic unavailable field"
+        };
+        var rules = RegisteredReportDocuments.Sheets(Read(report)).Single(sheet => sheet.Name == "rules");
+        var text = rules.Rows[1][Array.IndexOf(rules.Rows[0], "Enabled")];
+        Assert.Equal(expected + ": Synthetic unavailable field", text);
+        Assert.DoesNotContain("False", text);
+    }
+
+    [Fact]
+    public void Raw_reference_labels_remain_unresolved_and_escaped_in_readable_output()
+    {
+        var report = Report();
+        Partial(report);
+        report.Sections[1].Rows[0]["forwardTo"] = Value(new JsonArray(new JsonObject
+        {
+            ["namespace"] = "UnresolvedDisplayLabel", ["value"] = "<script>label</script>",
+            ["externalDirectoryObjectId"] = null
+        }));
+        var admitted = Read(report);
+        var rules = RegisteredReportDocuments.Sheets(admitted).Single(sheet => sheet.Name == "rules");
+        var text = rules.Rows[1][Array.IndexOf(rules.Rows[0], "Forward to")];
+        Assert.Equal("Unresolved display label: <script>label</script> (identity not resolved)", text);
+        var html = RegisteredReportDocuments.ExchangeHtml(admitted, "Synthetic");
+        Assert.DoesNotContain("<script>label</script>", html);
+        Assert.Contains("&lt;script&gt;label&lt;/script&gt;", html);
+    }
 }
