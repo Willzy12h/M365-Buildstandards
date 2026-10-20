@@ -189,3 +189,6 @@ Owner acceptance update, 15 October 2026: William’s “Accept and merge all Of
 
 
 | 2026-10-20 | GPT/Codex | M365-Buildstandards | Decision only, INT-132: complete approved C trace-clock/request binding and transport-scope/service-GUID admission details; no runtime or access | `astra/bs-exchange-completion-contract` from main6e57758 | [#151](https://github.com/Willzy12h/M365-Buildstandards/pull/151) | Merged decision-only5478973 after fresh-context corrected-head0b8f906 READY and exact-head Windows39442662451 SUCCESS. Actual-main39444862407 SUCCESS at5478973; #149 runtime/named acceptance remains separate. |
+
+
+| 2026-10-20 | GPT/Codex | M365-Buildstandards | Decision-only INT-133: deliberate optional usage-report access through existing connection/setup/cache flows and safe managed-store/transfer bounds; approved F only | `astra/bs-optional-usage-access` from main5478973 | [#153](https://github.com/Willzy12h/M365-Buildstandards/pull/153) | Decision merged2d5693e after independent GPT READY1165cdd; exact-head39465323610 and actual-main39467418339 SUCCESS. No C runtime acceptance implied. |
