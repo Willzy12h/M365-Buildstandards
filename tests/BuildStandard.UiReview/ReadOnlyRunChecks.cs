@@ -48,7 +48,8 @@ internal static partial class Program
                         DeliverToMailboxAndForwardReadStatus = ReportReadState.Collected, DeliverToMailboxAndForward = false
                     })] : [] }]
                 };
-                if (definition.ReportSchemaVersion == 2) PopulateInboxNativeFixture(evidence);
+                if (definition.Id == "exo-inbox-rules") PopulateInboxNativeFixture(evidence);
+                if (definition.Id == "exo-mailbox-permissions") PopulatePermissionNativeFixture(evidence);
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
@@ -115,6 +116,21 @@ internal static partial class Program
             if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  inbox observations {size.Width}x{size.Height} · needs at least100 pixels of visible rows; actual {VisibleBounds(table,content).Height:0.#} pixels.");
             RecordUnnamedControls(content,"inbox observations");RecordLowContrast(content,"inbox observations");RecordClipping(content,"inbox observations");
             SaveImage(content,size,Path.Combine(output,"run-reports-inbox-observations-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.mailbox-permission-observations");
+            page.Fields.Single(field=>field.Name=="MailboxGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            if(page.IsValid || page.CanReview)throw new InvalidOperationException("Permission sources were implicitly selected.");
+            page.Fields.Single(field=>field.Name=="FullAccess").IsChecked=true;
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic permission report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1 || page.OutcomeSections.Count!=2)throw new InvalidOperationException("Permission target diagnostics missing.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="permissions");
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Raw identity: S-1-5-21-123-456-789-1001") || page.CanFilterRuleCues)
+                throw new InvalidOperationException("Native permissions lost original principal meaning or exposed the inbox-only filter.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  permissions {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"permission observations");RecordLowContrast(content,"permission observations");RecordClipping(content,"permission observations");
+            SaveImage(content,size,Path.Combine(output,"run-reports-permissions-"+(int)size.Width+"x"+(int)size.Height+".png"));
 
             populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);

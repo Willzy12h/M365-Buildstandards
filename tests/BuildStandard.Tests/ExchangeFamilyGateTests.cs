@@ -2,12 +2,13 @@ using System.Diagnostics;
 using BuildStandard.Engine.Scripts.Runner;
 using Xunit;
 namespace BuildStandard.Tests;
+[Collection("Exchange PowerShell fixtures")]
 public sealed class ExchangeFamilyGateTests
 {
     [Theory][InlineData("projection")][InlineData("permission-source")][InlineData("permission-unselected")][InlineData("permission-send-as")][InlineData("permission-send-on-behalf")][InlineData("permission-attribute-budget")][InlineData("lower-budget")][InlineData("diagnostic-reserve")][InlineData("wrong-target")][InlineData("unverified-child")][InlineData("wrong-object")][InlineData("extra-parameter")][InlineData("hidden-scope")][InlineData("rows")][InlineData("bytes")][InlineData("calls")][InlineData("actor")][InlineData("stale-parent")][InlineData("failed-lookup-after-good")]
     public Task Fixed_private_family_gate_binds_targets_scope_and_shared_budgets_before_reads(string scenario) => RunFixture("Test-FamilyGate.ps1", scenario);
 
-    [Theory][InlineData("false")][InlineData("missing")][InlineData("empty")][InlineData("reference")][InlineData("counts")][InlineData("blank-name")]
+    [Theory][InlineData("false")][InlineData("permission-principal")][InlineData("permission-rights")][InlineData("permission-false")][InlineData("permission-forged-flag")][InlineData("permission-forged-rights")][InlineData("permission-rights-overflow")][InlineData("permission-unknown-with-value")][InlineData("permission-forged-principal")][InlineData("permission-unknown-column")][InlineData("missing")][InlineData("empty")][InlineData("reference")][InlineData("counts")][InlineData("blank-name")]
     [InlineData("forged-boolean")][InlineData("unknown-with-value")][InlineData("reasonless")][InlineData("unknown-property")][InlineData("list-limit")]
     [InlineData("reference-limit")][InlineData("bad-reference")][InlineData("forged-id")][InlineData("unknown-column")][InlineData("count-overflow")]
     [InlineData("string-overflow")][InlineData("unknown-state")][InlineData("control-identity")][InlineData("priority-type")][InlineData("scalar-flag")][InlineData("read-state")]

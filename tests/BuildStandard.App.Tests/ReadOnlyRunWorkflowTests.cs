@@ -89,6 +89,16 @@ internal sealed class ReadRunFixture : IDisposable
                 new() { Id = "rules", Status = "Collected", Rows = [] }
             ];
         }
+        if (definition.Id == "exo-mailbox-permissions")
+        {
+            var target=report.Sections[0].Rows[0];target.Remove("childReadStatus");target.Remove("returnedEntries");target.Remove("excludedEntries");
+            target["permissionReads"]=new JsonArray(new[]{"FullAccess","SendAs","SendOnBehalf"}.Select(kind=>
+            {
+                var selected=inputs.TryGetValue(kind,out var text)&&bool.TryParse(text,out var flag)&&flag;
+                return (JsonNode)new JsonObject{["kind"]=kind,["selected"]=selected,["status"]=selected?"Collected":"NotAttempted",["error"]=selected?null:"Not selected",["returnedEntries"]=selected?0:null,["excludedEntries"]=selected?0:null};
+            }).ToArray());
+            report.Sections[1].Id="permissions";
+        }
         ExchangeReportEvidenceSchema.Seal(report);
         return new(report.RunId, outcome, "Synthetic safe outcome.", report, false);
     }
@@ -112,7 +122,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(5, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(6, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));

@@ -232,3 +232,14 @@ The approved specification/plan in PR #114 selects native WPF + preserved shared
 ## BuildStandard T1 — technical rename evidence, 12 October 2026
 
 #115 preserves the existing product rather than replacing it. Normalising namespace/technical references against accepted T0 shows changed runtime C# bodies only in ToolkitPaths (approved alias policy), OfflinePackageFiles (exact new launcher admission), and OfflinePrerequisiteService (successor package layout). All other runtime C# bodies are mechanical changes; published standards/lineage, scripts/pins, publisher/release pins and existing evidence schemas remain unchanged. Local source tests/compilation are reported in COMPLETION-REGISTER; Windows/native/package proof and named safety review are separate gates. No new UI design completion is inferred from the rename.
+
+
+## Approved expansion C — current engineering slice,20October2026
+
+| Capability | Source/native/CLI state | Evidence and limitations |
+| --- | --- | --- |
+| Selected mailbox inbox observations | Separate pinned Run body/manifest; native target/rule sections and local cue/unknown filter; existing offline four-format Exchange export | Typed per-value states, original opaque identities, target diagnostics and cancellation tested with synthetic processes. Current Windows/native/package validation pending; named process/context/evidence acceptance remains. |
+| Selected mailbox permission observations | Separate pinned Run body/manifest; explicit false-default FullAccess/SendAs/SendOnBehalf choices; native registered sections; shared offline export | Separate original-principal/rights/flag and per-kind read/count diagnostics. Unsupported ACL-only fields on SendOnBehalf stay null/Partial; no effective-access/AutoMapping inference. Synthetic process cases pass; current Windows/native/package and named acceptance pending. |
+| Calendar permissions, message trace, distribution groups, transport-rule metadata | Remaining contracted C families, not runnable registrations yet | Existing manual Copy/Save items retain their original bodies and limits. A typed key/query helper does not imply a complete adapter. |
+
+These new report records never satisfy complete deployment before-evidence or authorise a tenant change. Original33 script bodies remain byte-identical; the two new bodies are separately pinned. No live acceptance, consent, new permission or publication is claimed.

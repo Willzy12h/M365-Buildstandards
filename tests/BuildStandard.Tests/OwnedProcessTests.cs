@@ -9,6 +9,7 @@ namespace BuildStandard.Tests;
 /// caller's callback does. Each case starts a real, harmless child that prints its own process id and then sleeps, so the
 /// test can prove the child is gone rather than trusting the outcome. No PowerShell module, sign-in or tenant is used.
 /// </summary>
+[Collection("Exchange PowerShell fixtures")]
 public sealed class OwnedProcessTests
 {
     private static readonly TimeSpan Long = TimeSpan.FromSeconds(60);

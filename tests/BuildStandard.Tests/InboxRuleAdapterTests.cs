@@ -6,6 +6,7 @@ using BuildStandard.Engine.Scripts.Runner;
 using Xunit;
 namespace BuildStandard.Tests;
 
+[Collection("Exchange PowerShell fixtures")]
 public sealed class InboxRuleAdapterTests
 {
     public static IEnumerable<object[]> Cases() => ExchangeReportRunnerTests.Runtimes().Cast<object[]>().SelectMany(runtime =>

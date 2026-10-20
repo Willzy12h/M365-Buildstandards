@@ -68,7 +68,12 @@ function Get-EXOMailbox {
     param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails, [string]$Identity)
     $script:Reads++
     Write-FakeLog ('Read Get-EXOMailbox' + $(if ($ResultSize) { ' ResultSize=' + $ResultSize } else { '' }) + $(if ($Properties) { ' Properties=' + ($Properties -join ',') } else { '' }))
-    if ($Identity) { $actual=if($script:Scenario -eq 'inbox-mismatch'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}else{$Identity};return [pscustomobject]@{ExchangeGuid=[guid]$actual;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'} }
+    if ($Identity) {
+        $actual=if($script:Scenario -eq 'inbox-mismatch'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}else{$Identity}
+        $selected=[pscustomobject]@{ExchangeGuid=[guid]$actual;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'}
+        if ($Properties -contains 'GrantSendOnBehalfTo') { $selected | Add-Member -NotePropertyName GrantSendOnBehalfTo -NotePropertyValue @([pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1003'}) }
+        return $selected
+    }
     if ($script:Scenario -eq 'chatty') { [Console]::Out.Write(('x' * 1100000)); [Console]::Out.Flush() }
     if ($script:Scenario -eq 'noisy-errors') { 1..3000 | ForEach-Object { [Console]::Error.WriteLine(('e' * 200)) } }
     if ($script:Scenario -eq 'hang') { Start-Sleep -Seconds 120 }
@@ -191,4 +196,27 @@ function Get-InboxRule {
     if ($script:Scenario -eq 'inbox-duplicate') { $row }
 }
 
-Export-ModuleMember -Function Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-EXOMailboxPermission {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxPermission '+$Identity+' ResultSize='+$ResultSize)
+    if ($script:Scenario -eq 'permission-failed') { throw 'Synthetic permission read failure' }
+    if ($script:Scenario -eq 'permission-empty') { return }
+    $row=[pscustomobject]@{User=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1001';Private='excluded'};AccessRights=@('FullAccess','ReadPermission');IsInherited=$false;Deny=$false}
+    if ($script:Scenario -eq 'permission-missing-flag') { $row.PSObject.Properties.Remove('Deny') }
+    if ($script:Scenario -eq 'permission-null-rights') { $row.AccessRights=$null }
+    if ($script:Scenario -eq 'permission-unresolved') { $row.User=[pscustomobject]@{DisplayName='Synthetic unresolved label'} }
+    $row
+}
+function Get-EXORecipientPermission {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-EXORecipientPermission '+$Identity+' ResultSize='+$ResultSize)
+    if ($script:Scenario -eq 'permission-stop') {
+        for ($n=0;$n -lt 300;$n++) {
+            if (@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0) { break }
+            Start-Sleep -Milliseconds 10
+        }
+    }
+    [pscustomobject]@{Trustee=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1002'};AccessRights=@('SendAs');IsInherited=$false;Deny=$false}
+}
+
+Export-ModuleMember -Function Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

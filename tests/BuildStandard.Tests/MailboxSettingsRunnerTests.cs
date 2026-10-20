@@ -7,6 +7,7 @@ using Xunit;
 
 namespace BuildStandard.Tests;
 
+[Collection("Exchange PowerShell fixtures")]
 public sealed class MailboxSettingsRunnerTests
 {
     public static TheoryData<string,string> Runtimes()

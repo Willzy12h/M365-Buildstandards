@@ -20,6 +20,7 @@ namespace BuildStandard.Tests;
 /// modules: no Microsoft module is loaded, nobody signs in and no tenant is contacted. Each case runs on every PowerShell
 /// found at its standard location: Windows PowerShell 5.1 and PowerShell 7 on Windows, PowerShell 7 elsewhere.
 /// </summary>
+[Collection("Exchange PowerShell fixtures")]
 public sealed class ExchangeReportRunnerTests
 {
     private const string Account = "operator@synthetic.example";
@@ -109,7 +110,7 @@ public sealed class ExchangeReportRunnerTests
         return data;
     }
 
-    private static string RuntimePath(string runtime) => FindRuntimes().Single(r => r.Version == runtime).Path;
+    internal static string RuntimePath(string runtime) => FindRuntimes().Single(r => r.Version == runtime).Path;
 
     /// <summary>The synthetic module first, then only PowerShell's own modules. No user or machine module path.</summary>
     internal static Dictionary<string, string> FakeEnvironment(string runtime, string root, string scenario)

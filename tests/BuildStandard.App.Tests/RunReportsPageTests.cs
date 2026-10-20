@@ -37,6 +37,23 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Permission_choices_are_default_off_and_selection_changes_require_a_new_exact_review()
+    {
+        _page.Selected=_page.Items.Single(item=>item.Id=="exo.mailbox-permission-observations");
+        _page.Fields.Single(field=>field.Name=="MailboxGuids").Value=TestData.Office;
+        _page.ExperimentalReadEnabled=true;
+        Assert.False(_page.IsValid);Assert.False(_page.CanReview);Assert.Equal(0,_f.Calls);
+        Assert.All(_page.Fields.Where(field=>field.IsFlag),field=>Assert.False(field.IsChecked));
+        _page.Fields.Single(field=>field.Name=="FullAccess").IsChecked=true;
+        Assert.True(_page.IsValid);Approve();await _page.RunAsync();
+        Assert.Equal(2,_page.OutcomeSections.Count);Assert.Single(_page.OutcomeRows!.Cast<System.Data.DataRowView>());
+        _page.SelectedOutcomeSection=_page.OutcomeSections.Single(section=>section.Id=="permissions");
+        Assert.Empty(_page.OutcomeRows!.Cast<System.Data.DataRowView>());Assert.Contains("Collected",_page.OutcomeSectionGuidance);
+        _page.Fields.Single(field=>field.Name=="SendAs").IsChecked=true;
+        Assert.False(_page.Approved);Assert.False(_page.HasReview);Assert.False(_page.CanRun);Assert.Null(_page.OutcomeRows);Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
     public async Task Section_and_review_filters_are_local_keep_unknowns_and_export_all_original_rows()
     {
         _page.Selected = _page.Items.Single(item => item.Id == "exo.inbox-rule-observations");

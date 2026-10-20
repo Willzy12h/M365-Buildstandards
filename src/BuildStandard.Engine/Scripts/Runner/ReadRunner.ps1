@@ -634,6 +634,46 @@ function Invoke-BditRunner {
         return [ordered]@{state=$state;value=$actual;reason=$null}
     }
 
+    function Convert-BditPermissionCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Section -cnotin @('target-reads','permissions')) { throw 'output' }
+        if ($Column -cin @('id','name','readStatus','error','mailboxExchangeGuid')) {
+            return Convert-BditInboxRuleCell 'rules' $Column $Value
+        }
+        if ($Section -ceq 'target-reads' -and $Column -cne 'permissionReads') {
+            return Convert-BditInboxRuleCell 'target-reads' $Column $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Value -isnot [array] -or $Value.Count -ne 3) { throw 'output' }
+            $reads = [Collections.Generic.List[object]]::new(); $kinds = @('FullAccess','SendAs','SendOnBehalf')
+            for ($n = 0; $n -lt 3; $n++) {
+                $read = $Value[$n]; Require-BditOutputMap $read @('kind','selected','status','error','returnedEntries','excludedEntries')
+                if ($read['kind'] -isnot [string] -or $read['kind'] -cne $kinds[$n] -or $read['selected'] -isnot [bool]) { throw 'output' }
+                $reads.Add([ordered]@{ kind=$read['kind']; selected=$read['selected'];
+                    status=(Convert-BditInboxRuleCell 'target-reads' 'lookupReadStatus' $read['status']);
+                    error=(Require-BditOutputText $read['error'] 4096 $true $false $true);
+                    returnedEntries=(Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $read['returnedEntries']);
+                    excludedEntries=(Convert-BditInboxRuleCell 'target-reads' 'excludedEntries' $read['excludedEntries']) })
+            }
+            return ,$reads.ToArray()
+        }
+        if ($Column -ceq 'permissionKind') {
+            if ($Value -isnot [string] -or $Value -cnotin @('FullAccess','SendAs','SendOnBehalf')) { throw 'output' }; return $Value
+        }
+        if ($Column -ceq 'principal') {
+            $group = Convert-BditInboxRuleCell 'rules' 'forwardTo' ([ordered]@{state='Value';value=@($Value);reason=$null})
+            return $group.value[0]
+        }
+        if ($Column -cin @('isInherited','deny')) { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($Column -cne 'rights') { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($null -ne $Value['reason'] -or $Value['value'] -isnot [array] -or $Value['value'].Count -gt 100) { throw 'output' }
+        $rights = [Collections.Generic.List[object]]::new()
+        foreach ($right in $Value['value']) { $rights.Add((Require-BditOutputText $right 1024)) }
+        return [ordered]@{state='Value';value=$rights.ToArray();reason=$null}
+    }
+
     # ---- project exactly the registered sections and columns ---------------------------------------------------------
     $failureReason = @{
         Stopped = 'The engineer stopped the run before the read finished; later rows were not read.'
@@ -685,7 +725,9 @@ function Invoke-BditRunner {
                         $value = $row[$column]
                         if ($BditRequest.reportSchemaVersion -eq 2) {
                             if (@($row.PSBase.Keys) -cnotcontains $column) { throw 'output' }
-                            $value = Convert-BditInboxRuleCell -Section ([string]$registered.id) -Column $column -Value $value
+                            if ($BditRequest.reportId -ceq 'exo-mailbox-permissions') {
+                                $value = Convert-BditPermissionCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } else { $value = Convert-BditInboxRuleCell -Section ([string]$registered.id) -Column $column -Value $value }
                         }
                         elseif ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
                             # INT-121's sole collection-valued column. All other non-scalars remain refused.

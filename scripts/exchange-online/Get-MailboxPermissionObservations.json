@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 2,
+  "id": "exo.mailbox-permission-observations",
+  "name": "Mailbox permission observations (selected mailboxes)",
+  "category": "exchange-online",
+  "area": "Mailboxes and calendars",
+  "description": "Explicit FullAccess mailbox-ACL, SendAs and SendOnBehalf source reads. Preserve original principals and rights; no effective-access, AutoMapping or name-resolution claim.",
+  "keywords": [
+    "mailbox",
+    "permissions",
+    "access",
+    "sendas",
+    "sendonbehalf"
+  ],
+  "mode": "readOnly",
+  "scriptPath": "exchange-online/Get-MailboxPermissionObservations.ps1",
+  "scriptSha256": "4127cde20e445b465568bb37d22ad5311128eae20088e5cfac4228cfd1cd5c60",
+  "supportedRuntimes": [
+    "5.1",
+    "7"
+  ],
+  "modules": [
+    {
+      "name": "ExchangeOnlineManagement",
+      "minimumVersion": "3.7.0"
+    }
+  ],
+  "roles": [
+    "View-Only Recipients",
+    "View-Only Organization Management"
+  ],
+  "scopes": [],
+  "resources": [
+    "exchangeOnline"
+  ],
+  "parameters": [
+    {
+      "name": "MailboxGuids",
+      "label": "Exchange mailbox GUIDs",
+      "type": "string",
+      "help": "Choose 1\u201350 exact Exchange mailbox GUIDs, separated by commas. Names, SMTP addresses and Entra object IDs are not substituted.",
+      "required": true,
+      "maxLength": 1849
+    },
+    {
+      "name": "FullAccess",
+      "label": "Mailbox ACL entries (FullAccess source)",
+      "type": "boolean",
+      "help": "Select this source explicitly; unselected sources are not queried. Unavailable flags remain unknown.",
+      "default": "false"
+    },
+    {
+      "name": "SendAs",
+      "label": "SendAs permissions",
+      "type": "boolean",
+      "help": "Select this source explicitly; unselected sources are not queried. Unavailable flags remain unknown.",
+      "default": "false"
+    },
+    {
+      "name": "SendOnBehalf",
+      "label": "SendOnBehalf attribute",
+      "type": "boolean",
+      "help": "Select this source explicitly; unselected sources are not queried. Unavailable flags remain unknown.",
+      "default": "false"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "atLeastOneTrue",
+      "parameters": [
+        "FullAccess",
+        "SendAs",
+        "SendOnBehalf"
+      ]
+    }
+  ],
+  "outputSchema": {
+    "columns": [],
+    "sections": [
+      {
+        "id": "target-reads",
+        "columns": [
+          "requestedExchangeGuid",
+          "observedExchangeGuid",
+          "externalDirectoryObjectId",
+          "primarySmtpAddress",
+          "lookupReadStatus",
+          "permissionReads",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      },
+      {
+        "id": "permissions",
+        "columns": [
+          "mailboxExchangeGuid",
+          "permissionKind",
+          "principal",
+          "rights",
+          "isInherited",
+          "deny",
+          "id",
+          "name",
+          "readStatus",
+          "error"
+        ]
+      }
+    ]
+  },
+  "outputSchemaVersion": 2,
+  "limits": {
+    "maximumRows": 5000,
+    "timeoutSeconds": 300
+  },
+  "prerequisites": "Approved installed ExchangeOnlineManagement 3.7.0 or later and recipient read access. Role names and module output remain live-unverified; the toolkit installs nothing.",
+  "liveStatus": "unverified",
+  "limitations": [
+    "Experimental read-only Run, off by default; selected mailbox GUIDs and at least one explicit source, current verified context, separate Exchange authentication and exact review remain required.",
+    "At most50 targets,5,000 total output rows including target diagnostics,100 source calls,100 values per list,300seconds and32MiB output. Failures, unselected sources and missing counts do not establish zero permissions.",
+    "Raw SID/SELF and unresolved labels remain original references, never Entra joins. Returned rights, inheritance and deny values are observations, not effective access or AutoMapping.",
+    "SendOnBehalf attribute edges do not expose ACL rights/inheritance/deny; these remain explicitly unsupported/null and make their nonempty source partial. Other source fields missing in a module response remain unknown.",
+    "Actual module/RBAC/property shapes and Microsoft behaviour are live-unverified. No permission changes, directory lookup, automatic retry or module installation."
+  ],
+  "execution": {
+    "adapter": "exchangeOnline",
+    "reportId": "exo-mailbox-permissions",
+    "reportSchemaVersion": 2,
+    "outputKind": "scriptReadResult",
+    "outputSchemaVersion": 1,
+    "runnerTemplateSha256": "808f7f4a12efadc2fb829d2f6fd6d31d1213100e2083ca733aff4dbfb37f9504"
+  }
+}

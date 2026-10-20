@@ -2,6 +2,7 @@ using System.Diagnostics;
 using BuildStandard.Engine.Scripts.Runner;
 using Xunit;
 namespace BuildStandard.Tests;
+[Collection("Exchange PowerShell fixtures")]
 public sealed class BoundedExchangeProjectionTests
 {
     [Theory][InlineData("values")][InlineData("rows")][InlineData("field")][InlineData("list")][InlineData("reference")][InlineData("identity")][InlineData("budget")][InlineData("shape")][InlineData("empty-identity")][InlineData("distinguished-reference")][InlineData("special-reference")][InlineData("unresolved-reference")]
