@@ -93,4 +93,28 @@ public sealed class ExchangeReportCliTests
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
         Assert.Empty(Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories));
     }
+    [Fact]
+    public async Task Existing_report1_mailbox_evidence_remains_offline_readable_without_version_conversion()
+    {
+        using var root = new TempRoot();
+        var report = InboxRuleEvidenceV2Tests.Report();
+        var definition = BuildStandard.Core.Reporting.ExchangeReportRegistry.Find("exo-mailbox-inventory");
+        report.ReportId = definition.Id;
+        report.ReportSchemaVersion = definition.ReportSchemaVersion;
+        report.AdapterVersion = definition.AdapterVersion;
+        report.SourceCommands = [.. definition.SourceCommands];
+        report.Parameters = [new() { Name = "IncludeArchive", Type = "Boolean", Value = "false" }];
+        report.Sections = [new() { Id = "mailboxes", Status = "Collected", Rows = [] }];
+        ExchangeReportEvidenceSchema.Seal(report);
+        var input = Path.Combine(root.Root, "synthetic-report1.json");
+        File.WriteAllText(input, ExchangeReportEvidenceSchema.Serialize(report));
+        var result = await RegisteredReportCliTests.Run("exchange-report-evidence", "--input", input,
+            "--tenant", TestData.TenantA, "--format", "json", "--root", root.Root);
+        Assert.True(result.Exit == 0, result.Output + result.Error);
+        using var zip = ZipFile.OpenRead(Assert.Single(Directory.GetFiles(root.Paths.ReportsDirectory)));
+        using var reader = new StreamReader(zip.GetEntry("report.json")!.Open());
+        var exported = ExchangeReportEvidenceSchema.Read(reader.ReadToEnd(), TestData.TenantA);
+        Assert.Equal(1, exported.ReportSchemaVersion);
+        Assert.Equal(report.IntegrityDigest, exported.IntegrityDigest);
+    }
 }
