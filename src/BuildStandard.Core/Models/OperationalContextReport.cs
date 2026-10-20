@@ -59,7 +59,11 @@ public sealed class PartnerRelationshipRow:GraphReportRow
     [JsonRequired] public string? EndedAt {get;set;}
     [JsonRequired] public string? Duration {get;set;}
     [JsonRequired] public string? AutoExtendDuration {get;set;}
+    [JsonRequired] public string ExpiryAtAsOf {get;set;}="Unknown";
     [JsonRequired] public List<string>? RoleDefinitionIds {get;set;}
+    [JsonRequired] public string AssignmentReadStatus {get;set;}=ReportReadState.NotAttempted;
+    [JsonRequired] public string? AssignmentReadError {get;set;}="Child assignments were not attempted.";
+    [JsonRequired] public int? ReturnedAssignments {get;set;}
 }
 public sealed class PartnerAssignmentReadRow:GraphReportRow
 {

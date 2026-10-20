@@ -28,6 +28,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     private bool _disposed;
     public string TenantId { get; }
     public string ReportId { get; }
+    public string? CustomerTenantId => _customerTenantId;
     internal OperationalReportTransport(HttpClient client, IAccessTokenProvider tokens, TenantSession session,
         string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false)
     {

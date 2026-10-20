@@ -8,7 +8,7 @@ using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Evidence;
 namespace BuildStandard.Engine.Reports;
 /// <summary>Explicit independent dispatcher. No operational record can be opened as a snapshot or approval.</summary>
-public static class OperationalContextSchema
+public static partial class OperationalContextSchema
 {
     internal static readonly JsonSerializerOptions CompactOptions = CompactEncoding();
     private static JsonSerializerOptions CompactEncoding()
@@ -51,6 +51,7 @@ public static class OperationalContextSchema
     public static IReadOnlyList<ReportSource> SourceDeclarations(string reportId)=>reportId switch
     {
         "service-health"=>new[]{Source("/admin/serviceAnnouncement/healthOverviews","serviceannouncement-list-healthoverviews"),Source("/admin/serviceAnnouncement/issues","serviceannouncement-list-issues")},
+        "partner-relationships"=>new[]{Source("/tenantRelationships/delegatedAdminRelationships","tenantrelationship-list-delegatedadminrelationships"),Source("/tenantRelationships/delegatedAdminRelationships/{returnedRelationshipId}/accessAssignments","delegatedadminrelationship-list-accessassignments")},
         _=>throw Bad("Operational report source is not implemented yet.")
     };
     private static ReportSource Source(string path,string reference)=>new(){Api="v1.0",RegisteredRoute=path,Reference="https://learn.microsoft.com/en-us/graph/api/"+reference+"?view=graph-rest-1.0"};
@@ -58,12 +59,18 @@ public static class OperationalContextSchema
     {
         if(report.SchemaVersion!=1||report.Kind!="operationalContextReport"||report.AdapterVersion!="1.0"||!ReportValues.IsCanonicalGuid(report.Id)||!ReportValues.IsCanonicalGuid(report.TenantId))throw Bad("Unsupported operational identity/version.");
         if(!ReportValues.IsCanonicalGuid(tenant)||tenant!=report.TenantId)throw new TenantMismatchException("Operational evidence belongs to another source tenant.");
-        if(report.ReportId!="service-health")throw Bad("Operational report is not implemented yet.");
+        if(report.ReportId is not ("service-health" or "partner-relationships"))throw Bad("Operational report is not implemented yet.");
         if(report.AccessIntent!=report.ReportId||report.PermissionMode is not ("Assessment" or "Deployment"))throw Bad("Unsupported original access intent/mode.");
         if(report.SourceMode is not ("live" or "historical")||report.SourceMode=="live"&&(!ReportValues.IsCanonicalGuid(report.AccountObjectId)||!ReportValues.IsCanonicalGuid(report.ClientId))
             ||report.AccountObjectId is not null&&!ReportValues.IsCanonicalGuid(report.AccountObjectId)||report.ClientId is not null&&!ReportValues.IsCanonicalGuid(report.ClientId))throw Bad("Unsupported operational actor provenance.");
         if(!Utc(report.AsOfUtc,out var asOf)||!Utc(report.StartedAt,out var start)||!Utc(report.EndedAt,out var end)||asOf!=start||end<start)throw Bad("Invalid operational collection/as-of interval.");
         if(string.IsNullOrWhiteSpace(report.ToolkitVersion)||report.ToolkitVersion.Length>128||report.ToolkitVersion.Any(char.IsControl))throw Bad("Missing operational toolkit provenance.");
+        if(report.ReportId=="partner-relationships")
+        {
+            ValidatePartner(report,asOf);
+            ValidateFinalEnvelope(report,integrity);
+            return;
+        }
         if(report.CustomerTenantId is not null||report.PartnerCoverage is not null)throw Bad("Health evidence cannot claim selected-customer or partner coverage.");
         var expected=SourceDeclarations(report.ReportId);
         if(report.Sources is null||report.Sources.Count!=expected.Count||report.Sources.Where((source,index)=>source is null||source.Api!=expected[index].Api||source.RegisteredRoute!=expected[index].RegisteredRoute||source.Reference!=expected[index].Reference).Any())throw Bad("Operational source declarations differ from the registered surface.");
@@ -104,6 +111,10 @@ public static class OperationalContextSchema
                 if(duplicate.Any(row=>row.ReadStatus!=ReportReadState.Partial))throw Bad("Duplicate identities must remain explicitly partial.");
             if(section.Status==ReportReadState.Collected&&rows.Any(row=>row.ReadStatus!=ReportReadState.Collected))throw Bad("Section status conceals an incomplete observation.");
         }
+        ValidateFinalEnvelope(report,integrity);
+    }
+    private static void ValidateFinalEnvelope(OperationalContextReport report,bool integrity)
+    {
         if(report.Status!=ReportEvidenceSchema.Overall(report.Sections.Select(section=>section.Status)))throw Bad("Operational overall status conceals a source outcome.");
         using(var budget=new BudgetStream())JsonSerializer.Serialize(budget,report,CompactOptions);
         if(integrity&&!EvidenceIntegrity.Verify(report,report.IntegrityDigest))throw new IntegrityException("Operational evidence digest differs.");
