@@ -61,9 +61,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         catch { await auth.DisconnectAsync().ConfigureAwait(false); throw; }
     }
 
-    public static List<string> RequiredScopes(StandardCatalogue standard, SessionMode mode)
+    public static List<string> RequiredScopes(StandardCatalogue standard, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
-        var scopes = TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes())
+        var scopes = TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes()).Concat(OptionalReportAccessPolicy.Scopes(optionalAccess))
             .Concat(mode == SessionMode.Deployment ? standard.WriteScopes() : Array.Empty<string>())
             .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
         if (mode == SessionMode.Assessment && TokenCapabilityClassifier.Classify(scopes).Classification != TokenCapability.ReadOnlyVerified)
@@ -72,8 +72,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
     }
 
     public async Task<ApplicationSetupPlan> PreviewAsync(StandardCatalogue standard, string namePrefix, CancellationToken ct,
-        string assessmentClientId = "", string deploymentClientId = "", bool assignOperator = false)
+        string assessmentClientId = "", string deploymentClientId = "", bool assignOperator = false, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
+        OptionalReportAccessPolicy.Validate(optionalAccess);
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -92,7 +93,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
             foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
             {
                 var row = new ApplicationSetupRow { Mode = mode, DisplayName = namePrefix + (mode == SessionMode.Assessment ? " Assessment Tool" : " Deployment Tool") };
-                foreach (var scope in RequiredScopes(standard, mode))
+                foreach (var scope in RequiredScopes(standard, mode, optionalAccess))
                 {
                     if (!scopeMap.TryGetValue(scope, out var permission)) throw new ConfigurationException($"Microsoft Graph does not advertise the enabled delegated permission {scope}. Setup is blocked.");
                     row.Permissions.Add(permission);
@@ -103,6 +104,15 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                 {
                     if (Same(assessmentClientId.Trim(), deploymentClientId.Trim())) throw new ConfigurationException("Use different IDs for assessment and deployment.");
                     await PrepareExistingAsync(row, explicitId, ct).ConfigureAwait(false);
+                    // None does not revoke an existing optional permission. Preserve only the reviewed usage scope;
+                    // unknown/other additional scopes retain their ordinary separate review behaviour.
+                    if(optionalAccess==OptionalReportAccess.None && scopeMap.TryGetValue(OptionalReportAccessPolicy.UsageScope,out var usage)
+                        && row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess
+                        && existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
+                            .SelectMany(api=>(api["resourceAccess"] as JsonArray ?? []).OfType<JsonObject>())
+                            .Any(permission=>Text(permission,"type")=="Scope"&&Same(Text(permission,"id"),usage.Id)))
+                    {if(!row.Permissions.Any(permission=>permission.Name==usage.Name))row.Permissions.Add(usage);row.ApplicationPayload=ApplicationPayload(row);}
+
                     plan.Rows.Add(row);
                     continue;
                 }
@@ -279,8 +289,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         finally { _gate.Release(); }
     }
 
-    public async Task<ApplicationSetupValidation> ValidateAsync(StandardCatalogue standard, string assessmentClientId, string deploymentClientId, CancellationToken ct)
+    public async Task<ApplicationSetupValidation> ValidateAsync(StandardCatalogue standard, string assessmentClientId, string deploymentClientId, CancellationToken ct, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
+        OptionalReportAccessPolicy.Validate(optionalAccess);
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -291,7 +302,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
             var validation = new ApplicationSetupValidation { TenantId = Identity.TenantId, CheckedAt = DateTimeOffset.UtcNow };
             foreach (var (mode, clientId) in new[] { (SessionMode.Assessment, assessmentClientId.Trim()), (SessionMode.Deployment, deploymentClientId.Trim()) })
             {
-                var row = new ApplicationPermissionValidation { Mode = mode, ClientId = clientId, RequiredScopes = RequiredScopes(standard, mode) };
+                var row = new ApplicationPermissionValidation { Mode = mode, ClientId = clientId, RequiredScopes = RequiredScopes(standard, mode, optionalAccess) };
                 validation.Rows.Add(row);
                 try
                 {
@@ -321,7 +332,8 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                             row.ConfiguredScopes.Add(byId.GetValueOrDefault(Text(permission, "id"), "Unknown permission " + Text(permission, "id")));
                         }
                     }
-                    if (!new HashSet<string>(row.RequiredScopes, StringComparer.OrdinalIgnoreCase).SetEquals(row.ConfiguredScopes))
+                    var allowedConfigured = row.RequiredScopes.Concat(optionalAccess==OptionalReportAccess.None?new[]{OptionalReportAccessPolicy.UsageScope}:Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    if (row.RequiredScopes.Except(row.ConfiguredScopes,StringComparer.OrdinalIgnoreCase).Any() || row.ConfiguredScopes.Except(allowedConfigured,StringComparer.OrdinalIgnoreCase).Any())
                         row.Issues.Add("Configured delegated permissions differ from the current standard: missing or extra scopes require review.");
                     row.AssignmentRequired = sp["appRoleAssignmentRequired"]?.GetValue<bool>();
                     if (row.AssignmentRequired != true) row.Issues.Add("Enterprise application does not require explicit engineer assignment.");
@@ -343,7 +355,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                     if (!row.ConsentComplete) row.Issues.Add("Tenant-wide administrator consent is missing or not yet visible. Recent grants can take time to replicate; validate again.");
                     var additional = grants.Any(g => Text(g, "resourceId") != graphId)
                         || grants.Where(g => Text(g, "resourceId") == graphId).SelectMany(g => Text(g, "scope").Split(' ', StringSplitOptions.RemoveEmptyEntries))
-                            .Except(row.RequiredScopes.Concat(new[] { "openid", "profile", "email", "offline_access" }), StringComparer.OrdinalIgnoreCase).Any();
+                            .Except(allowedConfigured.Concat(new[] { "openid", "profile", "email", "offline_access" }), StringComparer.OrdinalIgnoreCase).Any();
                     if (additional) { row.Issues.Add("Extra delegated permissions are granted, including possibly user-specific grants. Review and remove unnecessary access explicitly."); row.ConfigurationValid = false; }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException) { row.ConfigurationValid = false; row.Issues.Add(SafeError(ex)); }

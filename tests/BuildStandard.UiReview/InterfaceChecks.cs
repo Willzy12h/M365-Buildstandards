@@ -765,6 +765,17 @@ internal static partial class Program
         ("MailboxCapacityViewModel.CopyRowCommand", Clipboard),
         ("MailboxCapacityViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("UsageReportsViewModel.ReadCommand", TenantRead),
+        ("UsageReportsViewModel.StopCommand", Disabled),
+        ("UsageReportsViewModel.OpenCommand", FilePicker),
+        ("UsageReportsViewModel.HtmlCommand", Press),
+        ("UsageReportsViewModel.JsonCommand", Press),
+        ("UsageReportsViewModel.CsvCommand", Press),
+        ("UsageReportsViewModel.ExcelCommand", Press),
+        ("UsageReportsViewModel.SaveOriginalCommand", Disabled),
+        ("UsageReportsViewModel.ExportOriginalCommand", Disabled),
+        ("UsageReportsViewModel.DiscardOriginalCommand", Disabled),
+        ("UsageReportsViewModel.OpenConnectionCommand", Press),
         ("GraphReportsViewModel.ReadCommand", TenantRead),
         ("GraphReportsViewModel.StopReadCommand", Disabled),
         ("GraphReportsViewModel.RefreshStoredCommand", Press),
@@ -894,6 +905,10 @@ internal static partial class Program
                 && workspace.RequireStandard().FindCollection(c.Collection)?.Writable == true);
         },
         ["RunReportsViewModel.ReviewCommand"] = SeedReadRun,
+        ["UsageReportsViewModel.HtmlCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.JsonCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.CsvCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.ExcelCommand"] = SeedUsagePage,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
         ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,
@@ -1106,6 +1121,7 @@ internal static partial class Program
         var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(shell)!;
         var owners = new List<(string Key, object ViewModel)> { ("overview", shell) };
         owners.AddRange(pages.Select(p => (p.Key, (object)p.Value)));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().Usage));
 
         var found = new List<(string Name, string Page, ICommand Command)>();
         foreach (var (key, vm) in owners)

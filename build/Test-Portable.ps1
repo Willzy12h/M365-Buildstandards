@@ -9,7 +9,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$ZipPath,
       [Parameter(Mandatory=$true)][string]$StagePath,
-      [Parameter(Mandatory=$true)][string]$ResultPath)
+      [Parameter(Mandatory=$true)][string]$ResultPath,
+      [string]$UsageFixturePath = "")
 $ErrorActionPreference = 'Stop'
 $zip = (Resolve-Path -LiteralPath $ZipPath).Path
 $stage = (Resolve-Path -LiteralPath $StagePath).Path.TrimEnd('\')
@@ -100,6 +101,19 @@ try {
     if ($failure.Error -notmatch 'Refused:' -or $failure.Text) { throw 'CLI refusal did not preserve stderr or exit code.' }
     $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
+    $usageChecked = $false
+    if ($UsageFixturePath) {
+        $usageInput = (Resolve-Path -LiteralPath $UsageFixturePath).Path
+        $usageOriginal = (Get-FileHash -LiteralPath $usageInput -Algorithm SHA256).Hash
+        $usage = Invoke-OwnedCli $exe ('--cli usage-report-evidence --input "' + $usageInput + '" --tenant 11111111-1111-1111-1111-111111111111 --format json') 0
+        if ($usage.Error -or $usage.Text -notmatch 'privacy Unknown' -or $usage.Text -notmatch 'no live reads or writes') { throw 'Packaged usage CLI lost source/privacy limitations.' }
+        $usageFile = (($usage.Text -split "`r?`n")[0]).Trim()
+        if (-not (Test-Path -LiteralPath $usageFile) -or (Get-FileHash -LiteralPath $usageFile -Algorithm SHA256).Hash -cne $usageOriginal) { throw 'Packaged usage CLI did not preserve the exact original bytes.' }
+        $usageRefused = Invoke-OwnedCli $exe ('--cli usage-report-evidence --input "' + $usageInput + '" --tenant 22222222-2222-2222-2222-222222222222 --format json') 2
+        if ($usageRefused.Error -notmatch 'Refused:') { throw 'Packaged usage CLI accepted another tenant.' }
+        if ((Get-FileHash -LiteralPath $usageInput -Algorithm SHA256).Hash -cne $usageOriginal) { throw 'Packaged usage CLI changed supplied source bytes.' }
+        $usageChecked = $true
+    }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
     if ($viaLauncher.Text -notmatch 'buildstandard inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
     $viaLegacy = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" --help"') 0
@@ -440,7 +454,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
         portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath

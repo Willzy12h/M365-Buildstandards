@@ -55,6 +55,9 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     public string NamePrefix { get => _namePrefix; set { if (SetProperty(ref _namePrefix, value)) InvalidatePlan(); } }
     public bool PermissionsApproved { get => _permissionsApproved; set => SetProperty(ref _permissionsApproved, value); }
     /// <summary>On by default: without it the engineer who ran setup cannot connect until someone assigns them in Entra.</summary>
+    private bool _includeUsageReports;
+    public bool IncludeUsageReports {get=>_includeUsageReports;set{if(value==_includeUsageReports)return;if(!Workspace.Idle)throw new ToolkitException("Wait for setup to finish before changing access intent.");if(SetProperty(ref _includeUsageReports,value))InvalidatePlan();}}
+    private OptionalReportAccess OptionalAccess=>IncludeUsageReports?OptionalReportAccess.UsageReports:OptionalReportAccess.None;
     public bool AssignOperator { get => _assignOperator; set { if (SetProperty(ref _assignOperator, value)) InvalidatePlan(); } }
     public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
     public string AssessmentClientId { get => _assessmentId; set { if (SetProperty(ref _assessmentId, value)) InvalidatePlan(); } }
@@ -241,7 +244,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     {
         InvalidatePlan();
         _plan = await RequireSetup().PreviewAsync(Workspace.RequireStandard(), NamePrefix, Workspace.OperationToken,
-            AssessmentClientId.Trim(), DeploymentClientId.Trim(), AssignOperator);
+            AssessmentClientId.Trim(), DeploymentClientId.Trim(), AssignOperator, OptionalAccess);
         foreach (var row in _plan.Rows)
         {
             PlanRows.Add(row);
@@ -289,7 +292,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!ReadyForApproval(result))
         {
             var context = ValidationContext;
-            var validation = await service.ValidateAsync(standard, AssessmentClientId, DeploymentClientId, Workspace.OperationToken);
+            var validation = await service.ValidateAsync(standard, AssessmentClientId, DeploymentClientId, Workspace.OperationToken, OptionalAccess);
             GuardContext(context);
             ShowValidation(validation, context);
             Outcome = created + "\nSetup stopped before asking Microsoft to approve any permissions, because not every write was confirmed. Review each outcome above. Nothing is retried automatically: reconcile the applications, then preview again.";
@@ -302,7 +305,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     {
         var context = ValidationContext;
         progress.Report("Checking which applications still need Microsoft's approval.");
-        var current = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken);
+        var current = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken, OptionalAccess);
         GuardContext(context);
         var (needed, blocker) = ApprovalsNeeded(current);
         if (blocker is not null)
@@ -318,13 +321,13 @@ public sealed class ApplicationSetupViewModel : PageViewModel
             GuardContext(context);
         }
         progress.Report("Reading the actual grants from Microsoft Graph.");
-        var validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken);
+        var validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken, OptionalAccess);
         if (needed.Count > 0 && validation.Rows.Any(r => !r.ConsentComplete))
         {
             // A grant can take a short time to appear after approval. This is a read, so reading again is safe.
             progress.Report("Microsoft has not shown every grant yet. Reading them again in 20 seconds.");
             await Task.Delay(TimeSpan.FromSeconds(20), Workspace.OperationToken);
-            validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken);
+            validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken, OptionalAccess);
         }
         GuardContext(context);
         ShowValidation(validation, context);
@@ -340,7 +343,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         var service = RequireSetup();
         Validations.Clear();
         var context = ValidationContext;
-        var validation = await service.ValidateAsync(Workspace.RequireStandard(), AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken);
+        var validation = await service.ValidateAsync(Workspace.RequireStandard(), AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken, OptionalAccess);
         GuardContext(context);
         ShowValidation(validation, context);
         Outcome = validation.Ready ? "Configuration, consent and engineer assignment verified. Select Connect read-only now or Continue to deployment." : "Review what is missing in step 3. Approve each application's permissions under Existing applications and manual steps, or select Preview again to repair registration settings or assign this engineer.";
@@ -361,7 +364,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
             return;
         }
         progress.Report("Browser response received. Reading the actual application configuration and consent grants.");
-        var validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken);
+        var validation = await service.ValidateAsync(standard, AssessmentClientId.Trim(), DeploymentClientId.Trim(), Workspace.OperationToken, OptionalAccess);
         GuardContext(context);
         ShowValidation(validation, context);
         Outcome = validation.Ready ? "Both applications are ready. Select Connect read-only now or Continue to deployment." : "Approval returned. Review the required, granted and missing permissions in step 3; approve the other application if needed, then select Check again.";
@@ -379,14 +382,14 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         var catalogueDigest = standard.IntegrityDigest;
         Workspace.InvalidateExperimentalChanges();
         await Workspace.ReviewPermissionRequestAsync(service.Identity.TenantId, id,
-            ApplicationSetupService.RequiredScopes(standard, mode),
+            ApplicationSetupService.RequiredScopes(standard, mode, OptionalAccess),
             "Administrator consent for the " + name + " application — grant changes are experimental/manual", Workspace.OperationToken,
             knownAccount: service.Identity.Account + " (verified setup operator " + service.Identity.AccountObjectId + ")");
         GuardContext(consentContext);
         if (!ReferenceEquals(service, Workspace.ApplicationSetup) || Workspace.RequireStandard().IntegrityDigest != catalogueDigest)
             throw new SafetyViolationException("Setup identity or standard changed. Review a new consent request.");
         await service.ValidateConsentRedirectAsync(id, Workspace.OperationToken);
-        using var callback = await OpenCallbackAsync(id, ApplicationSetupService.RequiredScopes(standard, mode), progress);
+        using var callback = await OpenCallbackAsync(id, ApplicationSetupService.RequiredScopes(standard, mode, OptionalAccess), progress);
         Outcome = $"Microsoft's approval page for the {name} application is open in your browser. Sign in as an administrator if asked, check the permission list, select Accept, then return here. This is separate from the four temporary setup permissions.";
         progress.Report(Outcome);
         OpenBrowser(callback.ConsentUri.ToString());
@@ -452,12 +455,13 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         RequireSetup();
         if (!Ready(mode, !checkDelegatedAdmin)) throw new ConfigurationException("Validate this application's configuration, consent and engineer assignment first.");
         var connect = Shell.Page<ConnectViewModel>();
+        connect.IncludeUsageReports=IncludeUsageReports;
         connect.UseApplicationIds(TenantId.Trim(), AssessmentClientId.Trim(), DeploymentClientId.Trim());
         await connect.ConnectAsync(mode);
     }
     private static string Name(SessionMode mode) => mode == SessionMode.Assessment ? "assessment" : "deployment";
     private static void OpenBrowser(string uri) => Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
-    private string ValidationContext => $"{TenantId.Trim()}|{Workspace.ApplicationSetup?.Identity.TenantId}|{Workspace.ApplicationSetup?.Identity.AccountObjectId}|{Workspace.Standard?.IntegrityDigest}|{AssessmentClientId}|{DeploymentClientId}";
+    private string ValidationContext => $"{TenantId.Trim()}|{Workspace.ApplicationSetup?.Identity.TenantId}|{Workspace.ApplicationSetup?.Identity.AccountObjectId}|{Workspace.Standard?.IntegrityDigest}|{AssessmentClientId}|{DeploymentClientId}|{OptionalAccess}";
     public override void Refresh()
     {
         if (Workspace.Session is { TenantVerified: true } session && Workspace.Profile is { } profile

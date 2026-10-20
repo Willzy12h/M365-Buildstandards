@@ -5,6 +5,7 @@
       <TextBlock Text="Sign in with Microsoft to find a client, or choose a saved connection. Microsoft handles credentials and MFA in a Windows sign-in window." Style="{StaticResource Lead}"/>
       <Border Style="{StaticResource Card}">
         <StackPanel>
+          <CheckBox IsChecked="{Binding IncludeUsageReports, Mode=TwoWay}" Margin="0,8,0,12" AutomationProperties.Name="Optional usage-report access"><TextBlock Text="Include optional usage-report read access (Reports.Read.All). Default off; reconnect or preview setup deliberately. This never changes licences or report privacy settings, and selecting off does not remove existing consent." TextWrapping="Wrap"/></CheckBox>
           <TextBlock Text="Quick Connect — client's own account" Style="{StaticResource H2}"/>
           <TextBlock Text="{Binding QuickConnectGuidance}" Style="{StaticResource Muted}" Margin="0,0,0,12"/>
           <CheckBox Content="Use external browser instead of Windows sign-in" IsChecked="{Binding UseSystemBrowser, Mode=TwoWay}"/>

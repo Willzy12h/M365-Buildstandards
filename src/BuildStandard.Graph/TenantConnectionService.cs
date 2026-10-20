@@ -69,10 +69,11 @@ public sealed class TenantConnectionService
         _toolkitVersion = toolkitVersion;
     }
 
-    public IReadOnlyList<string> ScopesFor(SessionMode mode, StandardCatalogue standard)
+    public IReadOnlyList<string> ScopesFor(SessionMode mode, StandardCatalogue standard, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
         ArgumentNullException.ThrowIfNull(standard);
         var scopes = new List<string>(DiagnosticScopes);
+        scopes.AddRange(OptionalReportAccessPolicy.Scopes(optionalAccess));
         scopes.AddRange(standard.ReadScopes());
         if (mode == SessionMode.Deployment) scopes.AddRange(standard.WriteScopes());
         var requested = scopes.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
@@ -82,14 +83,14 @@ public sealed class TenantConnectionService
     }
 
     public async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct,
-        DiscoveredTenant? expectedIdentity = null, Func<CancellationToken, Task>? beforeInteractive = null) =>
-        await ConnectAsync(profile, mode, standard, progress, ct, expectedIdentity, beforeInteractive, MsalAuthenticator.SignInAsync);
+        DiscoveredTenant? expectedIdentity = null, Func<CancellationToken, Task>? beforeInteractive = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None) =>
+        await ConnectAsync(profile, mode, standard, progress, ct, expectedIdentity, beforeInteractive, MsalAuthenticator.SignInAsync, optionalAccess);
 
     // Offline tests replace only acquisition; request construction and all pre-acquisition guards remain shared.
     internal async Task<ConnectedTenant> ConnectAsync(TenantProfile profile, SessionMode mode, StandardCatalogue standard,
         IProgress<string>? progress, CancellationToken ct, DiscoveredTenant? expectedIdentity,
         Func<CancellationToken, Task>? beforeInteractive,
-        Func<SignInRequest, IToolkitLog, CancellationToken, Task<MsalAuthenticator>> signIn)
+        Func<SignInRequest, IToolkitLog, CancellationToken, Task<MsalAuthenticator>> signIn, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
         if (expectedIdentity is not null && (mode != SessionMode.Assessment
             || !string.Equals(profile.TenantId, expectedIdentity.TenantId, StringComparison.OrdinalIgnoreCase)))
@@ -99,7 +100,7 @@ public sealed class TenantConnectionService
                 ? "No deployment application is configured. Register the BuildStandard Deployment Tool application and record its client ID in config/toolkit.settings.json (or on the tenant profile) before deployment can be enabled."
                 : "No assessment application is configured and the Microsoft Graph PowerShell fallback is disabled. Record an assessment client ID in config/toolkit.settings.json.");
 
-        var scopes = ScopesFor(mode, standard);
+        var scopes = ScopesFor(mode, standard, optionalAccess);
         var tenantDir = _paths.TenantDirectory(profile.TenantId);
         Directory.CreateDirectory(tenantDir);
         var cacheFile = Path.Combine(tenantDir, $"msal-{mode.ToString().ToLowerInvariant()}.cache");
@@ -118,12 +119,15 @@ public sealed class TenantConnectionService
             ParentWindowHandle = ParentWindowHandle, UseSystemBrowser = _settings.UseSystemBrowser, LoginHint = LoginHint
         }, _log, ct);
 
+        if (!OptionalReportAccessPolicy.IsSatisfied(optionalAccess, authenticator.Outcome.Scopes))
+        {await authenticator.ReleaseAsync();throw new AuthenticationRequiredException("Microsoft did not return the selected usage-report access. Review application consent and reconnect deliberately.");}
         return await VerifyAuthenticatedAsync(profile, mode, standard, client, authenticator, progress, ct, expectedIdentity);
     }
 
     public async Task<ConnectedTenant> ConfirmDiscoveryAsync(PendingTenantDiscovery pending, TenantProfile profile,
-        StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct, Func<CancellationToken, Task>? beforeInteractive = null)
+        StandardCatalogue standard, IProgress<string>? progress, CancellationToken ct, Func<CancellationToken, Task>? beforeInteractive = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
+        pending.RequireAccess(optionalAccess);
         var client = _settings.ResolveClient(SessionMode.Assessment, profile)
             ?? throw new ConfigurationException("No assessment application is configured.");
         PendingTenantDiscovery.VerifyContext(pending.Identity, profile, pending.StandardDigest, standard.IntegrityDigest,
@@ -133,10 +137,12 @@ public sealed class TenantConnectionService
             // A different application needs its own token. Never label a shared token as dedicated access.
             progress?.Report("The configured dedicated assessment application needs its own Microsoft sign-in; cached access is tried first.");
             LoginHint = pending.Identity.Account;
-            try { return await ConnectAsync(profile, SessionMode.Assessment, standard, progress, ct, pending.Identity, beforeInteractive); }
+            try { return await ConnectAsync(profile, SessionMode.Assessment, standard, progress, ct, pending.Identity, beforeInteractive, optionalAccess); }
             finally { await pending.DisposeAsync(); }
         }
         var auth = pending.Take(profile, standard);
+        if(!OptionalReportAccessPolicy.IsSatisfied(optionalAccess,auth.Outcome.Scopes))
+        {await auth.ReleaseAsync();throw new AuthenticationRequiredException("Quick Connect did not return selected usage-report access. Review consent and reconnect deliberately.");}
         progress?.Report("Using your Quick Connect sign-in; rechecking the confirmed tenant and account without another prompt.");
         return await VerifyAuthenticatedAsync(profile, SessionMode.Assessment, standard, client, auth, progress, ct, pending.Identity);
     }

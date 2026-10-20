@@ -54,6 +54,23 @@ public sealed class PermissionAcquisitionTests
             actual.Length == 0 ? Array.Empty<string>() : actual.Split(',')));
     }
 
+    [Theory][InlineData(false)][InlineData(true)]
+    public async Task Explicit_usage_request_checks_actual_returned_access_before_identity_reads(bool returned)
+    {
+        using var root=new TempRoot();using var handler=new IdentityReads();using var http=new HttpClient(handler);
+        var service=new TenantConnectionService(new ToolkitSettings{AssessmentClientId=TestData.ClientId},root.Paths,http,NullLog.Instance,"synthetic");var calls=0;
+        Task<MsalAuthenticator> Acquire(SignInRequest request,IToolkitLog log,CancellationToken ct)
+        {
+            calls++;Assert.Contains("Reports.Read.All",request.Scopes);Assert.Equal(TestData.TenantA,request.TenantId);Assert.Equal(TestData.ClientId,request.ClientId);
+            var scopes=returned?new[]{"User.Read","Reports.Read.All"}:new[]{"User.Read"};
+            var result=new AuthenticationResult("synthetic-token",false,TestData.Operator,DateTimeOffset.UtcNow.AddHours(1),DateTimeOffset.UtcNow.AddHours(1),TestData.TenantA,new ReturnedAccount(),"",scopes,Guid.Empty);
+            return Task.FromResult(new MsalAuthenticator(PublicClientApplicationBuilder.Create(request.ClientId).Build(),request.Scopes.ToArray(),TestData.TenantA,"",log,result,request.ClientId,(_,_)=>throw new InvalidOperationException("Unexpected renewal")));
+        }
+        Task<ConnectedTenant> Connect()=>service.ConnectAsync(TestData.Profile(),SessionMode.Assessment,TestData.Standard(),null,default,null,null,Acquire,OptionalReportAccess.UsageReports);
+        if(!returned){await Assert.ThrowsAsync<AuthenticationRequiredException>(Connect);Assert.Equal(0,handler.Reads);}
+        else{await using var connected=await Connect();Assert.True(connected.Session.TenantVerified);await Assert.ThrowsAsync<WriteDeniedException>(()=>connected.Graph.WriteAsync(GraphApi.V1,GraphWriteMethod.Post,"/identity/conditionalAccess/policies",new JsonObject(),default));}
+        Assert.Equal(1,calls);
+    }
     private sealed class ReturnedAccount : IAccount
     {
         public string Username => "engineer@synthetic.example";

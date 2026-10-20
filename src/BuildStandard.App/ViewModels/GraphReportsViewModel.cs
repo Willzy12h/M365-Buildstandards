@@ -37,6 +37,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     public GraphReportsViewModel(ShellViewModel shell) : base(shell, "Graph reports")
     {
         _controller = new(Workspace); _browser = new(Workspace.Evidence);
+        Usage = new(shell, _controller);
         ReadCommand = Command(ReadAsync, () => ReadGuidance.Length == 0);
         StopReadCommand = Sync(() =>
         {
@@ -67,6 +68,7 @@ public sealed class GraphReportsViewModel : PageViewModel
         Refresh();
     }
 
+    public UsageReportsViewModel Usage { get; }
     public IReadOnlyList<GraphReportPresentation> Reports => GraphReportPresentation.Choices;
     public int SelectedTab { get => _selectedTab; set => SetProperty(ref _selectedTab, value); }
     public GraphReportPresentation SelectedReport

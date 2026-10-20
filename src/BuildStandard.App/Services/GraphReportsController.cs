@@ -129,6 +129,65 @@ public sealed class GraphReportsController(Workspace workspace)
         return result ?? throw new ToolkitException("No report result was accepted.");
     }
 
+    internal Func<ConnectedTenant, Action, IUsageReportSource> UsageSourceFactory { get; set; } =
+        (connection, current) => ((GraphClient)connection.Graph).ForUsageReports(connection.Session, current);
+
+    public string UsageReadBlocker
+    {
+        get
+        {
+            var blocker = ReadBlocker;
+            if (blocker.Length != 0) return blocker;
+            return RequireLive().Session.Scopes.Any(scope => string.Equals(scope, "Reports.Read.All", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scope, "https://graph.microsoft.com/Reports.Read.All", StringComparison.OrdinalIgnoreCase)) ? ""
+                : "This connection has no returned Reports.Read.All access. Enable optional usage-report read access in Connect, review the registration/consent requirements, then reconnect deliberately. This page never signs in or grants access.";
+        }
+    }
+    public async Task<UsageReviewReport> ReadUsageAsync(IReadOnlyList<string> sources, string period, bool acknowledged,
+        string expectedContext, Func<bool> selectionStillCurrent)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge the exact experimental usage selection and access first; this grants no consent.");
+        if (UsageReadBlocker.Length != 0) throw new ToolkitException(UsageReadBlocker);
+        var ids = sources.ToArray();
+        if (ids.Length is < 1 or > 4 || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
+            throw new ConfigurationException("Choose one to four different registered usage sources.");
+        foreach (var id in ids) _ = UsageReportRegistry.Find(id).Route(period);
+        var connection = RequireLive();
+        void AssertCurrent()
+        {
+            RequireContext(expectedContext);
+            if (!ReferenceEquals(workspace.Connection, connection) || !selectionStillCurrent())
+                throw new TenantMismatchException("The usage selection or connection changed. No result was admitted for this client.");
+            RequireLive();
+        }
+        UsageReviewReport? result = null;
+        await workspace.RunExclusiveAsync("Reading selected usage reports", async progress =>
+        {
+            AssertCurrent();
+            progress.Report("Read-only: selected fixed reports, five minutes total,10MiB per original CSV; privacy remains Unknown and no licences change.");
+            var source = UsageSourceFactory(connection, AssertCurrent);
+            using var owned = source as IDisposable;
+            result = await new UsageReportService(SystemClock.Instance, workspace.Version).CaptureAsync(
+                source, connection.Session, ids, period, AssertCurrent, workspace.OperationToken);
+            AssertCurrent();
+        });
+        AssertCurrent();
+        return result ?? throw new ToolkitException("No usage result was admitted.");
+    }
+    public async Task<string> ExportUsageAsync(UsageReviewReport report, ExportFormat format, bool suppliedFile,
+        byte[] originalBytes, string expectedContext)
+    {
+        RequireIdle(expectedContext);
+        _ = UsageReviewSchema.Read(UsageReviewSchema.Serialise(report), workspace.Profile!.TenantId);
+        var file = await workspace.ExportAsync(() =>
+        {
+            RequireContext(expectedContext);
+            return workspace.Exporter.ExportUsageReview(report, format, suppliedFile, originalBytes);
+        }, "Exporting complete usage evidence", "Filters do not limit exports. No usage identities are joined to licences.");
+        RequireContext(expectedContext); return file;
+    }
+
     public async Task<string> ExportAsync(Envelope report, ExportFormat format, bool suppliedFile, string expectedContext)
     {
         RequireIdle(expectedContext);
