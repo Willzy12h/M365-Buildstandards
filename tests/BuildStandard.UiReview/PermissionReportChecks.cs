@@ -3,6 +3,27 @@ using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
 internal static partial class Program
 {
+    private static void PopulateCalendarNativeFixture(ExchangeReportEvidence evidence)
+    {
+        const string mailbox="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",path="/Kalender";
+        var identity=ExchangeCalendarIdentity.FromReturnedPath(mailbox,path);
+        evidence.ReportSchemaVersion=2;evidence.AdapterVersion=ExchangeReportRegistry.FamilyAdapterVersion;
+        evidence.Sections=
+        [
+            new(){Id="target-reads",Status="Partial",Error="Synthetic unavailable ACL rights.",Rows=[ExchangeReportEvidenceSchema.Row(new ExchangeCalendarTargetRow
+            {
+                Id=ExchangeObservationKey.TargetRead(evidence.ReportId,mailbox),Name="Synthetic selected mailbox",ReadStatus="Partial",Error="Synthetic missing rights",
+                RequestedExchangeGuid=mailbox,ObservedExchangeGuid=mailbox,LookupReadStatus="Collected",FolderReadStatus="Collected",ReturnedFolders=1,DefaultFolderMatches=1,
+                FolderId="synthetic-store-folder-id",FolderPath=path,NativeFolderIdentity=identity,PermissionReadStatus="Partial",ReturnedEntries=1,ExcludedEntries=0
+            })]},
+            new(){Id="permissions",Status="Partial",Error="Synthetic unavailable rights; not effective access.",Rows=[ExchangeReportEvidenceSchema.Row(new CalendarPermissionObservationRow
+            {
+                Id=ExchangeObservationKey.CalendarPermission(mailbox,identity,"SpecialPrincipal","Default"),Name=null,ReadStatus="Partial",Error="Synthetic rights not returned",
+                MailboxExchangeGuid=mailbox,NativeFolderIdentity=identity,Principal=new(){Namespace="SpecialPrincipal",Value="Default"},
+                Rights=new(){State="Missing",Reason="Synthetic rights not returned"},SharingPermissionFlags=new(){State="Value",Value=[]}
+            })]}
+        ];
+    }
     private static void PopulatePermissionNativeFixture(ExchangeReportEvidence evidence)
     {
         const string mailbox="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",principal="S-1-5-21-123-456-789-1001";

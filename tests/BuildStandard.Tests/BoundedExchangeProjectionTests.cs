@@ -18,7 +18,17 @@ public sealed class BoundedExchangeProjectionTests
         foreach(var value in new[]{"-NoLogo","-NoProfile","-NonInteractive","-File",Path.Combine(ExchangeReportRunnerTests.FixtureDirectory,"Test-BoundedProjection.ps1"),"-Wrapper",wrapper,"-Case",scenario})start.ArgumentList.Add(value);
         using var process=new Process{StartInfo=start};Assert.True(process.Start());
         var output=process.StandardOutput.ReadToEndAsync();var error=process.StandardError.ReadToEndAsync();
-        try{await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));Assert.True(process.ExitCode==0,await output+await error);Assert.Contains("PASS "+scenario,await output);}
+        try
+        {
+            try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30)); }
+            catch(TimeoutException)
+            {
+                if(!process.HasExited){process.Kill(entireProcessTree:true);await process.WaitForExitAsync();}
+                Assert.Fail("The synthetic projection exceeded the unchanged30-second deadline. Runtime="+runtime+"; scenario="+scenario
+                    +"; startup/projection markers: "+await output+await error);
+            }
+            Assert.True(process.ExitCode==0,await output+await error);Assert.Contains("PASS "+scenario,await output);
+        }
         finally{if(!process.HasExited){process.Kill(entireProcessTree:true);await process.WaitForExitAsync();}}
     }
 }

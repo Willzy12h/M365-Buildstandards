@@ -1,14 +1,17 @@
 param([string]$Wrapper,[string]$Case)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+[Console]::Out.WriteLine('SYNTHETIC: fixture entered');[Console]::Out.Flush()
 $tokens=$null;$errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile($Wrapper,[ref]$tokens,[ref]$errors)
 if($errors.Count -ne 0){throw 'Wrapper parse failed'}
+[Console]::Out.WriteLine('SYNTHETIC: wrapper parsed');[Console]::Out.Flush()
 $definition=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Read-BditBoundedRows'},$true)
 if($null -eq $definition){throw 'Missing private bounded projection'}
 . ([scriptblock]::Create($definition.Extent.Text))
 function Assert-BditGate { }
 function Check([bool]$Value,[string]$Message){if(-not $Value){throw $Message}}
+[Console]::Out.WriteLine('SYNTHETIC: projection defined; scenario '+$Case);[Console]::Out.Flush()
 switch -CaseSensitive ($Case) {
  'values' {
   $rows=Read-BditBoundedRows -Producer { [pscustomobject]@{Id='opaque';Flag=$false;ReturnedNull=$null;Rights=@();Secret='not selected'} } -Properties @('Id','Flag','Missing','ReturnedNull','Rights')

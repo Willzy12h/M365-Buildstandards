@@ -99,6 +99,14 @@ internal sealed class ReadRunFixture : IDisposable
             }).ToArray());
             report.Sections[1].Id="permissions";
         }
+        if(definition.Id=="exo-calendar-permissions")
+        {
+            var target=report.Sections[0].Rows[0];target.Remove("childReadStatus");
+            target["folderReadStatus"]="Collected";target["returnedFolders"]=1;target["defaultFolderMatches"]=1;
+            target["folderId"]="synthetic-folder-id";target["folderPath"]="/Kalender";
+            target["nativeFolderIdentity"]=ExchangeCalendarIdentity.FromReturnedPath(inputs["MailboxGuids"]!,"/Kalender");
+            target["permissionReadStatus"]="Collected";report.Sections[1].Id="permissions";
+        }
         ExchangeReportEvidenceSchema.Seal(report);
         return new(report.RunId, outcome, "Synthetic safe outcome.", report, false);
     }
@@ -122,7 +130,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(6, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(7, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));

@@ -219,4 +219,22 @@ function Get-EXORecipientPermission {
     [pscustomobject]@{Trustee=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1002'};AccessRights=@('SendAs');IsInherited=$false;Deny=$false}
 }
 
-Export-ModuleMember -Function Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-EXOMailboxFolderStatistics {
+    param([string]$Identity,[string]$FolderScope)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxFolderStatistics '+$Identity+' FolderScope='+$FolderScope)
+    if($FolderScope -cne 'Calendar'){throw 'Unexpected synthetic folder scope'}
+    if($script:Scenario -eq 'calendar-missing'){return}
+    [pscustomobject]@{FolderId='returned-store-folder-id';FolderPath='/Kalender';FolderType='Calendar';Identity='original-folder-identity';Private='excluded'}
+    if($script:Scenario -eq 'calendar-ambiguous'){[pscustomobject]@{FolderId='second-id';FolderPath='/Other';FolderType='Calendar';Identity='other-identity'}}
+}
+function Get-EXOMailboxFolderPermission {
+    param([string]$Identity)
+    $script:Reads++;Write-FakeLog ('Read Get-EXOMailboxFolderPermission '+$Identity)
+    if($script:Scenario -eq 'calendar-failed'){throw 'Synthetic ACL failure'}
+    $row=[pscustomobject]@{User=[pscustomobject]@{UserType='Default';DisplayName='Not an identity';Private='excluded'};AccessRights=@('AvailabilityOnly');SharingPermissionFlags=@();Private='excluded'}
+    if($script:Scenario -eq 'calendar-missing-rights'){$row.PSObject.Properties.Remove('AccessRights')}
+    $row
+    if($script:Scenario -eq 'calendar-duplicate'){$row}
+}
+
+Export-ModuleMember -Function Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

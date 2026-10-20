@@ -1,5 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add separate experimental/default-off read-only Run adapters for selected inbox rules, mailbox permission sources and unique default-calendar ACL observations. Preserve original manual scripts, localised folder paths, raw principal namespaces and explicit unknown/partial source outcomes; no effective-access or deployment-evidence claim. Native sections and original exports share existing report projections. Windows/native/package acceptance remains separately recorded.
+
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Prepare exact registered multi-section report2 descriptors while preserving old flat manifests. Metadata alone cannot start an unshipped adapter; target forms validate all50 explicit GUIDs before preparation. No new runnable report2 item is enabled yet.

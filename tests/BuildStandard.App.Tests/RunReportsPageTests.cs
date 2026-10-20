@@ -37,6 +37,21 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Calendar_selection_keeps_localised_discovery_visible_and_context_changes_invalidate_results()
+    {
+        _page.Selected=_page.Items.Single(item=>item.Id=="exo.calendar-permission-observations");
+        _page.Fields.Single(field=>field.Name=="MailboxGuids").Value=TestData.Office;
+        _page.ExperimentalReadEnabled=true;Approve();await _page.RunAsync();
+        Assert.Equal(2,_page.OutcomeSections.Count);var row=Assert.Single(_page.OutcomeRows!.Cast<System.Data.DataRowView>());
+        Assert.Contains(row.Row.ItemArray,value=>value?.ToString()=="/Kalender");
+        _page.SelectedOutcomeSection=_page.OutcomeSections.Single(section=>section.Id=="permissions");
+        Assert.Empty(_page.OutcomeRows!.Cast<System.Data.DataRowView>());Assert.False(_page.CanFilterRuleCues);
+        Assert.Contains("Collected",_page.OutcomeSectionGuidance);Assert.Equal(1,_f.Calls);
+        _page.Fields.Single(field=>field.Name=="MailboxGuids").Value=TestData.TenantB;
+        Assert.False(_page.Approved);Assert.False(_page.HasReview);Assert.Null(_page.OutcomeRows);Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
     public async Task Permission_choices_are_default_off_and_selection_changes_require_a_new_exact_review()
     {
         _page.Selected=_page.Items.Single(item=>item.Id=="exo.mailbox-permission-observations");

@@ -73,6 +73,13 @@ public static class ExchangeReportRegistry
             Array.AsReadOnly(new[] { new Section("target-reads", typeof(ExchangePermissionTargetRow)), new Section("permissions", typeof(MailboxPermissionObservationRow)) }),
             "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailboxpermission",
             "Explicit selected Exchange mailbox GUIDs and permission sources only. Principal namespaces, original rights, inheritance and deny values remain observations, not effective access or AutoMapping. Missing/null/failed values remain unknown; raw SID/SELF and unresolved labels are not directory joins. Per-kind target diagnostics include unselected and failed sources. Typed evidence alone does not enable a runnable adapter. Live/module/RBAC behaviour remains unverified.",
+            ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion),
+        new Definition("exo-calendar-permissions", "Selected default-calendar permission observations", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox", "Get-EXOMailboxFolderStatistics", "Get-EXOMailboxFolderPermission" }),
+            Array.AsReadOnly(new[] { new Parameter("MailboxGuids", ExchangeReportParameterType.Text) }),
+            Array.AsReadOnly(new[] { new Section("target-reads", typeof(ExchangeCalendarTargetRow)), new Section("permissions", typeof(CalendarPermissionObservationRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailboxfolderpermission",
+            "Explicit selected mailbox GUIDs, unique returned default Calendar folder and original ACL principals only. Localised paths are retained, never guessed from an English name. Missing/ambiguous/failed discovery is not an empty ACL. Default and Anonymous remain typed special principals; unresolved labels remain partial. Returned rights and sharing flags do not prove effective delegate access. Live/module/RBAC behaviour remains unverified.",
             ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion)
     });
 

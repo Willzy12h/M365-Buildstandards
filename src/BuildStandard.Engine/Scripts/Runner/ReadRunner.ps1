@@ -74,8 +74,8 @@ function Invoke-BditRunner {
         if ($BditRequest.maximumRows -isnot [int] -and $BditRequest.maximumRows -isnot [long]) { throw 'rows' }
         if (($BditRequest.reportSchemaVersion -isnot [int] -and $BditRequest.reportSchemaVersion -isnot [long]) -or $BditRequest.reportSchemaVersion -notin @(1,2)) { throw 'report' }
         if ($BditRequest.reportSchemaVersion -eq 2) {
-            if (@('exo-inbox-rules','exo-mailbox-permissions') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
-            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } else { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' }
+            if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
+            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' } else { 'Get-EXOMailbox,Get-EXOMailboxFolderStatistics,Get-EXOMailboxFolderPermission' }
             if ((@($BditRequest.sourceCommands) -join ',') -cne $expectedCommands) { throw 'source' }
         }
     }
@@ -119,6 +119,8 @@ function Invoke-BditRunner {
             if ($BditArguments['MailboxGuids'] -isnot [string]) { throw 'scope' }
             if ($BditRequest.reportId -ceq 'exo-inbox-rules') {
                 if ($BditArguments.Count -ne 2 -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
+            } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') {
+                if ($BditArguments.Count -ne 1) { throw 'scope' }
             } else {
                 if ($BditArguments.Count -ne 4) { throw 'scope' }
                 foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($BditArguments[$kind] -isnot [bool]) { throw 'scope' } }
@@ -290,6 +292,7 @@ function Invoke-BditRunner {
             $script:FamilyTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             $script:FamilyPermissionSources = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             $script:FamilyVerifiedTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyCalendarProof = @{}
             $script:FamilyObservationMaximum = 0
             $script:FamilyIncludeHidden = $false
             $script:FamilySourceCalls = 0
@@ -299,7 +302,7 @@ function Invoke-BditRunner {
             if ($ReportVersion -eq 2) {
                 foreach ($target in $ReportArguments['MailboxGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) }
                 if ($ReportId -ceq 'exo-inbox-rules') { $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden'] }
-                else { foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($ReportArguments[$kind]) { $null = $script:FamilyPermissionSources.Add($kind) } } }
+                elseif ($ReportId -ceq 'exo-mailbox-permissions') { foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($ReportArguments[$kind]) { $null = $script:FamilyPermissionSources.Add($kind) } } }
                 # Every selected target retains one diagnostic row, even after failure/cancellation.
                 $script:FamilyObservationMaximum = $MaximumRows - $script:FamilyTargets.Count
             }
@@ -436,7 +439,7 @@ function Invoke-BditRunner {
             function Read-BditFamilyRows {
                 param([string]$Command, [hashtable]$Parameters)
                 Assert-BditGate
-                if (@('exo-inbox-rules','exo-mailbox-permissions') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 if ($script:FamilySourceCalls -ge 100 -or $script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
                 $arguments = @{ ErrorAction = 'Stop' }
                 $observation = $false
@@ -460,10 +463,31 @@ function Invoke-BditRunner {
                         }
                         # A later failed/mismatched lookup cannot leave earlier proof usable for another child read.
                         $null = $script:FamilyVerifiedTargets.Remove($Parameters['Identity'])
+                        $script:FamilyCalendarProof.Remove($Parameters['Identity'])
                         $properties = @('ExchangeGuid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress')
                         if ($script:FamilyReportId -ceq 'exo-mailbox-permissions' -and $script:FamilyPermissionSources.Contains('SendOnBehalf')) { $properties += 'GrantSendOnBehalfTo' }
                         $arguments['Identity'] = $Parameters['Identity']
                         $arguments['Properties'] = $properties
+                    }
+                    'Get-EXOMailboxFolderStatistics' {
+                        if ($script:FamilyReportId -cne 'exo-calendar-permissions' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or
+                            -not $script:FamilyVerifiedTargets.Contains($Parameters['Identity'])) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $script:FamilyCalendarProof.Remove($Parameters['Identity'])
+                        $properties = @('FolderId','FolderPath','FolderType','Identity')
+                        $arguments['Identity'] = $Parameters['Identity']; $arguments['FolderScope'] = 'Calendar'
+                        $observation = $true
+                    }
+                    'Get-EXOMailboxFolderPermission' {
+                        if ($script:FamilyReportId -cne 'exo-calendar-permissions' -or $Parameters.Count -ne 1 -or
+                            -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string]) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $verifiedFolder = $false
+                        foreach ($mailbox in @($script:FamilyCalendarProof.Keys)) {
+                            if ($script:FamilyCalendarProof[$mailbox] -ceq $Parameters['Identity'] -and $script:FamilyVerifiedTargets.Contains($mailbox)) { $verifiedFolder = $true }
+                        }
+                        if (-not $verifiedFolder) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        $properties = @('User','AccessRights','SharingPermissionFlags')
+                        $arguments['Identity'] = $Parameters['Identity']; $observation = $true
                     }
                     'Get-InboxRule' {
                         if ($script:FamilyReportId -cne 'exo-inbox-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
@@ -485,6 +509,23 @@ function Invoke-BditRunner {
                 [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
                 $output = Read-BditBoundedRows -Producer { & $Readers[$Command] @arguments } -Properties $properties -UseSharedBudget $true -CountAsObservation $observation
                 if ($script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                if ($Command -ceq 'Get-EXOMailboxFolderStatistics') {
+                    $calendars = @($output | Where-Object { $p = $_.PSObject.Properties['FolderType']; $null -ne $p -and $p.Value -is [string] -and $p.Value -ceq 'Calendar' })
+                    $typesKnown = $true
+                    foreach ($folder in $output) { $p = $folder.PSObject.Properties['FolderType']; if ($null -eq $p -or $p.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($p.Value)) { $typesKnown = $false } }
+                    if ($typesKnown -and $calendars.Count -eq 1) {
+                        $pathProperty = $calendars[0].PSObject.Properties['FolderPath']; $idProperty = $calendars[0].PSObject.Properties['FolderId']
+                        if ($null -ne $pathProperty -and $pathProperty.Value -is [string] -and $null -ne $idProperty -and $idProperty.Value -is [string] -and
+                            -not [string]::IsNullOrWhiteSpace($idProperty.Value) -and $idProperty.Value -notmatch '[\x00-\x1F\x7F]') {
+                            $path = $pathProperty.Value
+                            if ($path.Length -ge 2 -and $path.Length -le 980 -and $path[0] -ceq '/' -and -not $path.Contains('\') -and -not $path.Contains(':') -and $path -notmatch '[\x00-\x1F\x7F]') {
+                                $validPath = $true
+                                foreach ($part in @($path.Split('/') | Select-Object -Skip 1)) { if ([string]::IsNullOrWhiteSpace($part) -or $part -ceq '.' -or $part -ceq '..') { $validPath = $false } }
+                                if ($validPath) { $script:FamilyCalendarProof[$Parameters['Identity']] = $Parameters['Identity'] + ':' + $path.Replace('/','\') }
+                            }
+                        }
+                    }
+                }
                 if ($Command -ceq 'Get-EXOMailbox' -and $output.Count -eq 1) {
                     $returned = $output[0].PSObject.Properties['ExchangeGuid']
                     $actual = [guid]::Empty
@@ -674,6 +715,25 @@ function Invoke-BditRunner {
         return [ordered]@{state='Value';value=$rights.ToArray();reason=$null}
     }
 
+    function Convert-BditCalendarCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Column -cin @('id','name','readStatus','error','mailboxExchangeGuid')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Column -cin @('requestedExchangeGuid','observedExchangeGuid','externalDirectoryObjectId','primarySmtpAddress','lookupReadStatus','returnedEntries','excludedEntries')) {
+            return Convert-BditInboxRuleCell $Section $Column $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -cin @('folderReadStatus','permissionReadStatus')) { return Convert-BditInboxRuleCell 'target-reads' 'childReadStatus' $Value }
+            if ($Column -cin @('returnedFolders','defaultFolderMatches')) { return Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $Value }
+            if ($Column -cin @('folderId','folderPath','nativeFolderIdentity')) { return Require-BditOutputText $Value 1024 $true }
+        }
+        if ($Section -ceq 'permissions') {
+            if ($Column -ceq 'nativeFolderIdentity') { return Require-BditOutputText $Value 1024 }
+            if ($Column -ceq 'principal') { return Convert-BditPermissionCell 'permissions' 'principal' $Value }
+            if ($Column -cin @('rights','sharingPermissionFlags')) { return Convert-BditPermissionCell 'permissions' 'rights' $Value }
+        }
+        throw 'output'
+    }
+
     # ---- project exactly the registered sections and columns ---------------------------------------------------------
     $failureReason = @{
         Stopped = 'The engineer stopped the run before the read finished; later rows were not read.'
@@ -727,6 +787,8 @@ function Invoke-BditRunner {
                             if (@($row.PSBase.Keys) -cnotcontains $column) { throw 'output' }
                             if ($BditRequest.reportId -ceq 'exo-mailbox-permissions') {
                                 $value = Convert-BditPermissionCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') {
+                                $value = Convert-BditCalendarCell -Section ([string]$registered.id) -Column $column -Value $value
                             } else { $value = Convert-BditInboxRuleCell -Section ([string]$registered.id) -Column $column -Value $value }
                         }
                         elseif ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {

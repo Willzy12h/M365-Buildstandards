@@ -17,6 +17,7 @@ $script:FamilyTargets=[Collections.Generic.HashSet[string]]::new([StringComparer
 $null=$script:FamilyTargets.Add($first)
 $script:FamilyVerifiedTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $script:FamilyPermissionSources=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$script:FamilyCalendarProof=@{}
 $script:FamilyIncludeHidden=$false;$script:FamilySourceCalls=0;$script:FamilyRowsRead=0;$script:FamilyProjectedBytes=2
 $script:FamilyObservationMaximum=4999
 $script:FamilyStarted=[Diagnostics.Stopwatch]::StartNew()
@@ -41,12 +42,55 @@ function Get-FakePermission {
     $script:Reads++;$script:LastSize=$ResultSize
     [pscustomobject]@{User=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1001';Private='excluded'};Trustee='NT AUTHORITY\SELF';AccessRights=@('FullAccess');IsInherited=$false;Deny=$false;Private='excluded'}
 }
-$Readers=@{'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
+function Get-FakeFolders {
+    param([string]$Identity,[string]$FolderScope)
+    $script:Reads++
+    Check ($FolderScope -ceq 'Calendar') 'Calendar scope was not fixed'
+    [pscustomobject]@{FolderId='store-folder';FolderPath='/Kalender';FolderType='Calendar';Identity='returned-raw-folder';Private='excluded'}
+    if($Case -ceq 'calendar-unknown-type'){[pscustomobject]@{FolderId='unknown-folder';FolderPath='/Unknown';Identity='unknown-raw-folder'}}
+    if($Case -ceq 'calendar-ambiguous'){[pscustomobject]@{FolderId='second-folder';FolderPath='/Other';FolderType='Calendar';Identity='second-raw-folder'}}
+}
+function Get-FakeCalendarAcl {
+    param([string]$Identity)
+    $script:Reads++;Check ($Identity -ceq ($first+':\Kalender')) 'A guessed or foreign calendar reached the source'
+    [pscustomobject]@{User=[pscustomobject]@{UserType='Default';Private='excluded'};AccessRights=@('Reviewer');SharingPermissionFlags=@();Private='excluded'}
+}
+$Readers=@{'Get-EXOMailboxFolderStatistics'=(Get-Command Get-FakeFolders);'Get-EXOMailboxFolderPermission'=(Get-Command Get-FakeCalendarAcl);'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
 function Refused([scriptblock]$Work,[int]$ExpectedReads){
     $failed=$false;try{$null=& $Work}catch{$failed=$true}
     Check $failed 'A forbidden/unbounded call was admitted';Check ($script:Reads -eq $ExpectedReads) 'A refused call reached a source reader'
 }
 switch -CaseSensitive ($Case) {
+ 'calendar-source' {
+    $script:FamilyReportId='exo-calendar-permissions'
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    $folders=@(Use-BditRead -Command 'Get-EXOMailboxFolderStatistics' -Parameters @{Identity=$first})
+    Check ($folders.Count -eq 1 -and $folders[0].FolderPath -ceq '/Kalender') 'Localised returned path lost'
+    $acl=@(Use-BditRead -Command 'Get-EXOMailboxFolderPermission' -Parameters @{Identity=($first+':\Kalender')})
+    Check ($acl.Count -eq 1 -and $acl[0].User.Source -ceq 'SpecialPrincipal' -and $acl[0].User.Value -ceq 'Default') 'Default principal lost'
+    Check ($null -eq $acl[0].PSObject.Properties['Private']) 'Unregistered ACL data escaped'
+    Check ($script:FamilyRowsRead -eq 2) 'Folder discovery and ACL did not share the raw observation budget'
+ }
+ 'calendar-unknown-type' {
+    $script:FamilyReportId='exo-calendar-permissions';$null=$script:FamilyVerifiedTargets.Add($first)
+    $null=Use-BditRead -Command 'Get-EXOMailboxFolderStatistics' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-EXOMailboxFolderPermission' -Parameters @{Identity=($first+':\Kalender')}} 1
+ }
+ 'calendar-unverified' {
+    $script:FamilyReportId='exo-calendar-permissions';$null=$script:FamilyVerifiedTargets.Add($first)
+    Refused {Use-BditRead -Command 'Get-EXOMailboxFolderPermission' -Parameters @{Identity=($first+':\Kalender')}} 0
+ }
+ 'calendar-ambiguous' {
+    $script:FamilyReportId='exo-calendar-permissions';$null=$script:FamilyVerifiedTargets.Add($first)
+    $null=Use-BditRead -Command 'Get-EXOMailboxFolderStatistics' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-EXOMailboxFolderPermission' -Parameters @{Identity=($first+':\Kalender')}} 1
+ }
+ 'calendar-stale' {
+    $script:FamilyReportId='exo-calendar-permissions';$null=$script:FamilyVerifiedTargets.Add($first)
+    $null=Use-BditRead -Command 'Get-EXOMailboxFolderStatistics' -Parameters @{Identity=$first}
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-EXOMailboxFolderPermission' -Parameters @{Identity=($first+':\Kalender')}} 2
+ }
  'projection' {
     $rows=@(Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first})
     Check ($rows.Count -eq 1) 'Expected one lookup row'

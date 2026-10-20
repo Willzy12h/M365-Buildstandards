@@ -144,6 +144,8 @@ public static partial class ExchangeReportEvidenceSchema
                 {
                     row.Id = row switch
                     {
+                        ExchangeCalendarTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        CalendarPermissionObservationRow permission => CalendarKey(permission),
                         ExchangePermissionTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
                         MailboxPermissionObservationRow permission => PermissionKey(permission),
                         ExchangeTargetReadRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
