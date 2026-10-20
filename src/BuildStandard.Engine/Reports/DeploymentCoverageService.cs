@@ -34,9 +34,10 @@ public sealed class DeploymentCoverageService
         var objectRequest=DeploymentCoverageReads.Prepare(selection.Family,selection.ObjectId,CoverageReadKind.Object);
         var obj=await Read("object",objectRequest).ConfigureAwait(false);
         if(obj.State!=CoverageSourceState.Complete||!Current()||operation.IsCancellationRequested)return Finish();
+        var observedObject=obj.Rows.Single();
         if(selection.Family==CoverageFamily.ConditionalAccess)
         {
-            var policy=obj.Rows.Single();var state=Text(policy,"state");
+            var policy=observedObject;var state=Text(policy,"state");
             candidate=ConditionalAccessMaterialState.HasPolicyDefinition(policy)?state switch
             {"disabled"=>"Observed disabled CA policy","enabled"=>"Observed enabled CA policy","enabledForReportingButNotEnforced"=>"Observed report-only CA policy",_=>"CA policy state unknown"}:"CA policy definition incomplete";
             Unavailable("service-results",CoverageSourceState.Unsupported,"Actual sign-in/effective protection is not established by policy configuration. Use the separate hypothetical CA evaluation or the documented manual sign-in acceptance.");
@@ -48,6 +49,11 @@ public sealed class DeploymentCoverageService
         {
             foreach(var row in assignmentSource.Rows)assignments.Add(CoverageAssignmentObservation.Read(row));
             candidate=assignmentSource.State==CoverageSourceState.Complete?(assignments.Count==0?"Observed unassigned":"Observed assignment configuration; effectiveness unknown"):"Assignment state unknown";
+            if(assignmentSource.State==CoverageSourceState.Complete&&observedObject["isAssigned"] is JsonValue flag&&flag.TryGetValue<bool>(out var assigned)&&assigned!=(assignments.Count>0))
+            {
+                candidate="Assignment state unknown";
+                warnings.Add("The object's assigned flag and separately read assignment list conflict. Review their intervals/current portal state; no single assignment conclusion is inferred.");
+            }
         }
         catch(ConfigurationException){warnings.Add("An assignment target was malformed; assignment/population completeness is unknown. Original source remains available.");candidate="Assignment state unknown";}
         if(warnings.Count==0)
@@ -110,6 +116,10 @@ public sealed class DeploymentCoverageService
         }
         DeploymentCoverageCapture Finish()
         {
+            if(selection.Family!=CoverageFamily.ConditionalAccess&&!sources.Any(s=>s.Key=="assignments"))
+                Unavailable("assignments",CoverageSourceState.NotAttempted,"Assignments were not reached after the earlier source failure, stop or context change. This is not an empty assignment list.");
+            if(!sources.Any(s=>s.Key=="service-results"))
+                Unavailable("service-results",CoverageSourceState.NotAttempted,"Service results were not reached after the earlier source failure, stop or context change. No successful empty result is inferred.");
             var isCurrent=Current();var complete=isCurrent&&!operation.IsCancellationRequested&&warnings.Count==0&&sources.All(s=>s.Capture.State==CoverageSourceState.Complete);
             var limitations="Source observations, not effective targeting, installation, complete deployment before-evidence or permission to act. Pilot scope is not assignment approval; no unresolved write is cleared. "+string.Join(" ",warnings);
             if(!isCurrent)limitations+=" Client context changed; retain originals separately and do not admit this as current-client coverage.";
