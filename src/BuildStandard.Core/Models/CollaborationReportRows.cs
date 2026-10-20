@@ -48,3 +48,15 @@ public sealed class CollaborationOwnerRow : GraphReportRow
     [JsonRequired] public string? ResourceType { get; set; }
     [JsonRequired] public string Coverage { get; set; } = "Unknown";
 }
+
+/// <summary>Frozen query/selection and source completion counts; no service credentials or execution authority.</summary>
+public sealed class CollaborationReportSelection
+{
+    [JsonRequired] public string? Search { get; set; }
+    [JsonRequired] public List<string> Sites { get; set; } = [];
+    [JsonRequired] public List<string> Groups { get; set; } = [];
+    [JsonRequired] public bool Libraries { get; set; }
+    [JsonRequired] public bool Owners { get; set; }
+    [JsonRequired] public bool Members { get; set; }
+    [JsonRequired] public List<int?> ReturnedCounts { get; set; } = [];
+}

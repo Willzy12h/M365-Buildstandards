@@ -23,6 +23,7 @@ public sealed class OperationalContextReport
     [JsonRequired] public List<ReportSource> Sources {get;set;}=[];
     [JsonRequired] public List<ReportSection> Sections {get;set;}=[];
     [JsonRequired] public PartnerReportCoverage? PartnerCoverage {get;set;}
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public CollaborationReportSelection? CollaborationSelection {get;set;}
     [JsonRequired] public string IntegrityDigest {get;set;}="";
 }
 public sealed class PartnerReportCoverage
