@@ -35,6 +35,15 @@ public sealed class ApplicationSetupTests
         var optionalValidation=await f.Service.ValidateAsync(f.Standard,created.Rows[0].ClientId,created.Rows[1].ClientId,default,OptionalReportAccess.UsageReports);
         Assert.All(optionalValidation.Rows,row=>Assert.Contains("Reports.Read.All",row.RequiredScopes));
     }
+    [Fact] public async Task None_refuses_preview_when_existing_usage_permission_is_advertised_disabled_instead_of_removing_it()
+    {
+        using var f=new Fixture();var created=await f.Execute(await f.Preview());
+        var optional=f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().OfType<JsonObject>().Single(p=>p["value"]!.GetValue<string>()=="Reports.Read.All");
+        foreach(var app in f.Handler.Applications)app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject{["id"]=optional["id"]!.DeepClone(),["type"]="Scope"});
+        optional["isEnabled"]=false;var writes=f.Handler.Writes.Count;
+        await Assert.ThrowsAsync<ConfigurationException>(()=>f.Service.PreviewAsync(f.Standard,"Test",default,created.Rows[0].ClientId,created.Rows[1].ClientId));
+        Assert.Equal(writes,f.Handler.Writes.Count);
+    }
     private const string Tenant = "11111111-1111-1111-1111-111111111111";
     private const string Operator = "22222222-2222-2222-2222-222222222222";
     private const string GraphSp = "33333333-3333-3333-3333-333333333333";

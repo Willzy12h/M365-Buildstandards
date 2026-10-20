@@ -23,6 +23,18 @@ public sealed class UsageReportsPageTests
         Assert.False(page.ReadCommand.CanExecute(null));await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.Equal(0,reads);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
     }
+    [Fact] public async Task Accepted_capture_remains_owned_until_original_is_retained_for_close_and_client_changes()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Reports.Read.All");
+        var page=Page(f,(id,_)=>Task.FromResult(Header(id)));page.Sources[0].Selected=true;page.Acknowledged=true;
+        var entered=new TaskCompletionSource<UsageReviewReport>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        page.SerialiseOriginal=async report=>{entered.SetResult(report);await release.Task;return Encoding.UTF8.GetBytes(UsageReviewSchema.Serialise(report));};
+        var read=page.ReadAsync();await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        try{Assert.True(f.Workspace.Busy,"The capture-to-original transition must remain owned so normal close waits for it.");Assert.False(page.CanEdit);Assert.False(page.ReadCommand.CanExecute(null));}
+        finally{release.TrySetResult();await read;}
+        Assert.True(page.HasPendingOriginal);Assert.False(f.Workspace.Busy);
+    }
     [Fact] public async Task Original_save_and_reopen_preserve_bytes_without_another_source_read_or_snapshot_change()
     {
         using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Reports.Read.All");var reads=0;
@@ -50,7 +62,7 @@ public sealed class UsageReportsPageTests
     {
         using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Reports.Read.All");var reads=0;
         var page=Page(f,(id,_)=>{reads++;return Task.FromResult(Header(id));});page.Sources[0].Selected=true;page.Acknowledged=true;await page.ReadAsync();
-        var blocked=Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA),"usage-review-evidence");File.WriteAllText(blocked,"synthetic file blocks directory");
+        var blocked=Path.Combine(f.Root.Paths.TenantDirectory(TestData.TenantA),"usage-review-evidence");Directory.CreateDirectory(Path.GetDirectoryName(blocked)!);File.WriteAllText(blocked,"synthetic file blocks directory");
         await Assert.ThrowsAnyAsync<IOException>(page.SavePendingOriginalAsync);Assert.True(page.HasPendingOriginal);
         page.ConfirmDiscard=_=>false;page.DiscardOriginalCommand.Execute(null);Assert.True(page.HasPendingOriginal);
         page.ConfirmDiscard=_=>true;page.DiscardOriginalCommand.Execute(null);Assert.False(page.HasPendingOriginal);Assert.Equal(1,reads);

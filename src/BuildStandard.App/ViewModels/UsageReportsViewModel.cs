@@ -85,6 +85,7 @@ public sealed class UsageReportsViewModel : PageViewModel
         _message="Client or evidence context changed. No former result or read acknowledgement applies here; a pending original retains its own client.";
     }
     private bool CanExport()=>Workspace.Idle&&_report is not null&&_context==_controller.ContextKey;
+    internal Func<UsageReviewReport,Task<byte[]>> SerialiseOriginal {get;set;}=report=>Task.Run(()=>new UTF8Encoding(false,true).GetBytes(UsageReviewSchema.Serialise(report)));
     public async Task ReadAsync()
     {
         var reason=ReadGuidance;if(reason.Length!=0)throw new ToolkitException(reason);
@@ -94,7 +95,7 @@ public sealed class UsageReportsViewModel : PageViewModel
         {
             var report=await _controller.ReadUsageAsync(ids,period,true,context,()=>version==_selectionVersion);
             if(_context!=context||version!=_selectionVersion)throw new TenantMismatchException("Usage selection changed. No result was displayed for the new selection.");
-            var original=await Task.Run(()=>new UTF8Encoding(false,true).GetBytes(UsageReviewSchema.Serialise(report)));
+            var original=await SerialiseOriginal(report);
             _controller.RequireContext(context);
             if(version!=_selectionVersion)throw new TenantMismatchException("Usage selection changed before original evidence admission.");
             _pendingOriginal=original.ToArray();_pendingTenant=report.TenantId;_pendingId=report.Id;

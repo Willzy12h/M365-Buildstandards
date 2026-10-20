@@ -106,12 +106,21 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                     await PrepareExistingAsync(row, explicitId, ct).ConfigureAwait(false);
                     // None does not revoke an existing optional permission. Preserve only the reviewed usage scope;
                     // unknown/other additional scopes retain their ordinary separate review behaviour.
-                    if(optionalAccess==OptionalReportAccess.None && scopeMap.TryGetValue(OptionalReportAccessPolicy.UsageScope,out var usage)
-                        && row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess
-                        && existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
+                    if(optionalAccess==OptionalReportAccess.None && row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess)
+                    {
+                        var configuredIds=existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
                             .SelectMany(api=>(api["resourceAccess"] as JsonArray ?? []).OfType<JsonObject>())
-                            .Any(permission=>Text(permission,"type")=="Scope"&&Same(Text(permission,"id"),usage.Id)))
-                    {if(!row.Permissions.Any(permission=>permission.Name==usage.Name))row.Permissions.Add(usage);row.ApplicationPayload=ApplicationPayload(row);}
+                            .Where(permission=>Text(permission,"type")=="Scope").Select(permission=>Text(permission,"id")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        var usageDefinitions=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
+                            .Where(permission=>Same(Text(permission,"value"),OptionalReportAccessPolicy.UsageScope)&&configuredIds.Contains(Text(permission,"id"))).ToArray();
+                        if(usageDefinitions.Length>0)
+                        {
+                            if(usageDefinitions.Length!=1||!scopeMap.TryGetValue(OptionalReportAccessPolicy.UsageScope,out var usage)||!Same(usage.Id,Text(usageDefinitions[0],"id")))
+                                throw new ConfigurationException("Existing usage permission is disabled, ambiguous or unavailable in Graph metadata. Preview refused; selecting off must not remove it. Review the registration separately.");
+                            if(!row.Permissions.Any(permission=>permission.Name==usage.Name))row.Permissions.Add(usage);
+                            row.ApplicationPayload=ApplicationPayload(row);
+                        }
+                    }
 
                     plan.Rows.Add(row);
                     continue;
