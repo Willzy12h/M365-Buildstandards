@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Keep CA/coverage read, import and export actions disabled until background result presentation finishes, including the interval after backend busy clears.
+
 - Native deployment coverage: selected-control provenance, typed pilot IDs, offline original import, per-source states, four local export formats and exact-original recovery, including manual bounded copies when the saved-report cap is exceeded. Prevent normal close from dropping retained CA/coverage originals. Current Windows/native verification remains pending.
 
 - Modern Intune reporting transport: fixed one-shot export jobs with explicit existing broader-access acknowledgement, bounded status polling, one silent renewal and credential-free completed-job download; no configuration-write replay or generic write exception. Validate original archive CRC and retain strict CSV/size/expansion limits. Native/evidence integration and named/live acceptance remain pending.

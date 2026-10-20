@@ -14,20 +14,20 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
 {
     private readonly ConditionalAccessEvaluationController _controller;
     private string _context="",_resultContext="",_user="",_application="",_platform="Windows",_client="Browser",_ip="",_country="",_signInRisk="Omitted",_userRisk="Omitted",_compliant="Omitted",_source="";
-    private bool _acknowledged,_recoveryAcknowledged,_reading,_stopRequested;
+    private bool _acknowledged,_recoveryAcknowledged,_reading,_importing,_stopRequested;
     private int _selection;
     private ConditionalAccessEvaluationCapture? _result;
     public ConditionalAccessEvaluationViewModel(ShellViewModel shell):base(shell,"Hypothetical CA evaluation")
     {
         _controller=new(Workspace);
         ReadCommand=Command(ReadAsync,()=>ReadGuidance.Length==0);
-        StopCommand=Sync(()=>{_stopRequested=true;Workspace.CancelOperation();},()=>_reading&&Workspace.Busy);
+        StopCommand=Sync(()=>{_stopRequested=true;Workspace.CancelOperation();},()=>_reading&&!_importing&&Workspace.Busy);
         ChooseCommand=Sync(()=>
         {
             var dialog=new Microsoft.Win32.OpenFileDialog{Filter="Original evaluation JSON ZIP (*.zip)|*.zip",Title="Open supplied historical CA evaluation"};
             if(dialog.ShowDialog()==true)SourceFile=dialog.FileName;
-        },()=>Workspace.Idle&&Workspace.Profile is not null&&_controller.Pending is null);
-        ImportCommand=Command(ImportAsync,()=>Workspace.Idle&&Workspace.Profile is not null&&_controller.Pending is null&&SourceFile.Length>0);
+        },()=>CanEdit&&Workspace.Profile is not null);
+        ImportCommand=Command(ImportAsync,()=>CanEdit&&Workspace.Profile is not null&&SourceFile.Length>0);
         ExportHtmlCommand=Command(()=>ExportAsync(ExportFormat.Html),CanExport);
         ExportJsonCommand=Command(()=>ExportAsync(ExportFormat.Json),CanExport);
         ExportCsvCommand=Command(()=>ExportAsync(ExportFormat.Csv),CanExport);
@@ -59,13 +59,14 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
     public bool Acknowledged{get=>_acknowledged;set{if(SetProperty(ref _acknowledged,value))Notify();}}
     public bool RecoveryAcknowledged{get=>_recoveryAcknowledged;set{if(SetProperty(ref _recoveryAcknowledged,value))Notify();}}
     public bool HasPending=>_controller.Pending is not null;
-    public bool CanEdit=>Workspace.Idle&&_controller.Pending is null;
+    public bool CanEdit=>!_reading&&Workspace.Idle&&_controller.Pending is null;
     public string Limitations=>ConditionalAccessEvaluationResponseCodec.Limitations+" Microsoft may default omitted conditions. Risk-feature entitlement is not inferred from Business Premium. Experimental / live-unverified; no activation or tenant change.";
     public string ContextSummary=>Workspace.Profile is null?"Select a client in Client and connection. Supplied evidence can be opened offline for that exact tenant.":"Selected client: "+Workspace.Profile.Company+" · "+Workspace.Profile.TenantId+" · "+(Workspace.Session is null?"Offline / no connection":Workspace.Session.Account+" · "+Workspace.Session.Mode);
     public string ReadGuidance
     {
         get
         {
+            if(_reading)return "Wait for the current read, import or display preparation to finish before another action.";
             var blocker=_controller.ReadBlocker;if(blocker.Length>0)return blocker;
             try{_=Prepared();}catch(ToolkitException ex){return ex.Message;}
             return Acknowledged?"":"Review the exact scenario and acknowledge the experimental read first. No new sign-in or consent is requested.";
@@ -96,8 +97,8 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
         Client switch{"Browser"=>"browser","Mobile apps and desktop clients"=>"mobileAppsAndDesktopClients","Exchange ActiveSync"=>"exchangeActiveSync","EAS supported"=>"easSupported","Other"=>"other",_=>"unsupported"},
         Empty(IpAddress),Empty(Country),SignInRisk=="Omitted"?null:SignInRisk,UserRisk=="Omitted"?null:UserRisk,DeviceCompliant switch{"Omitted"=>null,"True"=>true,"False"=>false,_=>throw new ConfigurationException("Choose omitted, true or false compliance explicitly.")}));
     private static string? Empty(string s)=>s.Length==0?null:s;
-    private bool CanExport()=>_result is not null&&Workspace.Idle&&_resultContext==_controller.ContextKey;
-    private bool CanRecover()=>Workspace.Idle&&_controller.Pending is not null&&RecoveryAcknowledged;
+    private bool CanExport()=>_result is not null&&!_reading&&Workspace.Idle&&_resultContext==_controller.ContextKey;
+    private bool CanRecover()=>!_reading&&Workspace.Idle&&_controller.Pending is not null&&RecoveryAcknowledged;
     public async Task ReadAsync()
     {
         if(ReadGuidance.Length>0)throw new ToolkitException(ReadGuidance);
@@ -117,6 +118,8 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
     }
     public async Task ImportAsync()
     {
+        if(!CanEdit||Workspace.Profile is null||SourceFile.Length==0)throw new ToolkitException("Select a client and original ZIP, wait for current display preparation and resolve retained originals before importing.");
+        _reading=true;_importing=true;
         var context=_context;var selection=_selection;ClearResult();_acknowledged=false;
         try
         {
@@ -125,7 +128,7 @@ public sealed class ConditionalAccessEvaluationViewModel:PageViewModel
             await AcceptAsync(report,context);Outcome="Historical / unverified supplied evidence · "+report.Metadata.Status+". No current check, sign-in or deployment authority.";
         }
         catch{Outcome="Could not open supplied evidence. No report was accepted; this is not an empty successful check.";throw;}
-        finally{Notify();}
+        finally{_reading=false;_importing=false;Notify();}
     }
     private async Task AcceptAsync(ConditionalAccessEvaluationCapture capture,string context)
     {

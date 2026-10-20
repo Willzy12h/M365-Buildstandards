@@ -17,14 +17,14 @@ public sealed class DeploymentCoverageViewModel:PageViewModel
     private readonly DeploymentCoverageController _controller;
     private string _context="",_catalogue="",_control="",_users="",_devices="",_source="",_resultContext="",_table="";
     private int _selection;
-    private bool _acknowledged,_modern,_recovery,_reading,_stopped;
+    private bool _acknowledged,_modern,_recovery,_reading,_importing,_stopped;
     private DeploymentCoverageEvidence? _result;
     private Dictionary<string,DataView> _tables=new(StringComparer.Ordinal);
     public DeploymentCoverageViewModel(ShellViewModel shell):base(shell,"Deployment coverage")
     {
         _controller=new(Workspace);
         ReadCommand=Command(ReadAsync,()=>ReadGuidance.Length==0);
-        StopCommand=Sync(()=>{_stopped=true;Workspace.CancelOperation();},()=>_reading&&Workspace.Busy);
+        StopCommand=Sync(()=>{_stopped=true;Workspace.CancelOperation();},()=>_reading&&!_importing&&Workspace.Busy);
         ChooseCommand=Sync(()=>{var dialog=new Microsoft.Win32.OpenFileDialog{Filter="Original coverage JSON ZIP (*.zip)|*.zip",Title="Open historical coverage originals"};if(dialog.ShowDialog()==true)SourceFile=dialog.FileName;},()=>CanEdit&&Workspace.Profile is not null);
         ImportCommand=Command(ImportAsync,()=>CanEdit&&Workspace.Profile is not null&&SourceFile.Length>0);
         ExportHtmlCommand=Command(()=>ExportAsync(ExportFormat.Html),CanExport);ExportJsonCommand=Command(()=>ExportAsync(ExportFormat.Json),CanExport);
@@ -47,7 +47,7 @@ public sealed class DeploymentCoverageViewModel:PageViewModel
     public string SelectedTable {get=>_table;set{if(SetProperty(ref _table,value??""))OnPropertyChanged(nameof(Rows));}}
     public DataView? Rows=>string.IsNullOrEmpty(_table)?null:_tables.GetValueOrDefault(_table);
     public bool HasPending=>_controller.HasPending;
-    public bool CanEdit=>Workspace.Idle&&!HasPending;
+    public bool CanEdit=>!_reading&&Workspace.Idle&&!HasPending;
     private CoverageControlChoice? Choice=>Controls.SingleOrDefault(c=>c.Id==ControlId);
     public bool CanUseModern=>CanEdit&&Choice?.Collection is ("apps" or "configuration")&&Workspace.Session?.Mode==SessionMode.Deployment;
     public string ContextSummary=>Workspace.Profile is null?"Select a client in Client and connection. Historical originals open offline for that exact tenant.":Workspace.Profile.Company+" · "+Workspace.Profile.TenantId+" · "+(Workspace.Session is null?"Offline / no connection":Workspace.Session.Account+" · "+Workspace.Session.Mode);
@@ -57,6 +57,7 @@ public sealed class DeploymentCoverageViewModel:PageViewModel
     {
         get
         {
+            if(_reading)return "Wait for the current read, import or display preparation to finish before another action.";
             var blocker=_controller.ReadBlocker;if(blocker.Length>0)return blocker;
             if(Choice is null)return "Choose one supported standard control. Exact local creation/readback proof must establish its mapped object before any tenant read; names alone are insufficient.";
             try{var users=Pilots(PilotUsers);var devices=Pilots(PilotDevices);if(users.Length+devices.Length>5000)return "Select at most 5,000 pilot IDs across the two explicit namespaces.";}catch(ToolkitException ex){return ex.Message;}
@@ -83,8 +84,8 @@ public sealed class DeploymentCoverageViewModel:PageViewModel
     public ICommand ReadCommand {get;}public ICommand StopCommand {get;}public ICommand ChooseCommand {get;}public ICommand ImportCommand {get;}
     public ICommand ExportHtmlCommand {get;}public ICommand ExportJsonCommand {get;}public ICommand ExportCsvCommand {get;}public ICommand ExportXlsxCommand {get;}
     public ICommand SaveOriginalCommand {get;}public ICommand ExportOriginalCommand {get;}public ICommand ExportFilesCommand {get;}public ICommand DiscardOriginalCommand {get;}
-    private bool CanExport()=>_result is not null&&Workspace.Idle&&_resultContext==_controller.ContextKey;
-    private bool CanRecover()=>Workspace.Idle&&HasPending&&RecoveryAcknowledged;
+    private bool CanExport()=>_result is not null&&!_reading&&Workspace.Idle&&_resultContext==_controller.ContextKey;
+    private bool CanRecover()=>!_reading&&Workspace.Idle&&HasPending&&RecoveryAcknowledged;
     private void Input(ref string field,string value,string name)
     {if(!SetProperty(ref field,value??"",name))return;_selection++;_acknowledged=false;if(name==nameof(ControlId))_modern=false;ClearResult();Notify();}
     private static string[] Pilots(string text)
@@ -113,10 +114,12 @@ public sealed class DeploymentCoverageViewModel:PageViewModel
     }
     public async Task ImportAsync()
     {
+        if(!CanEdit||Workspace.Profile is null||SourceFile.Length==0)throw new ToolkitException("Select a client and original ZIP, wait for current display preparation and resolve retained originals before importing.");
+        _reading=true;_importing=true;
         var context=_context;var generation=_selection;ClearResult();_acknowledged=false;
         try{var result=await _controller.ImportAsync(SourceFile,context);if(_selection!=generation)throw new TenantMismatchException("The supplied selection changed.");await AcceptAsync(result,context);Outcome="Historical / unverified original coverage. No current read, sign-in, approval or deployment authority.";}
         catch{Outcome="Could not open original coverage. No successful empty check is inferred.";throw;}
-        finally{Notify();}
+        finally{_reading=false;_importing=false;Notify();}
     }
     private async Task AcceptAsync(DeploymentCoverageEvidence result,string context)
     {
