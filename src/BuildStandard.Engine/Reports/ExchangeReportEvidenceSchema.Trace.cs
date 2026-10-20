@@ -46,18 +46,31 @@ public static partial class ExchangeReportEvidenceSchema
         if(intervals.Length is <1 or >9||!TraceFrameTime(intervals[0].FrozenAtUtc,out var frozen))throw Bad("Every trace needs its original frozen interval diagnostics.");
         var query=ExchangeTraceQuery.Prepare(evidence.Parameters,frozen);
         if(query.Windows.Count!=intervals.Length||query.MaximumRows<=intervals.Length||intervals.Length+intervals.Sum(i=>i.ReturnedEntries??0)>query.MaximumRows)throw Bad("Trace diagnostics/observations exceed their reviewed total row budget.");
+        var remaining = query.MaximumRows - intervals.Length;
+        var terminal = false;
         for(var index=0;index<intervals.Length;index++)
         {
             var interval=intervals[index];var window=query.Windows[index];
             if(interval.WindowIndex!=index||interval.FrozenAtUtc!=Timestamps.Format(frozen)||interval.StartUtc!=Timestamps.Format(window.Start)||interval.EndUtc!=Timestamps.Format(window.End)||interval.FilterDigest!=query.FilterDigest)
                 throw Bad("Trace diagnostics differ from their frozen date/filter partition.");
+            // GPT-C6-001: derive the private source cap, rather than trusting a child/import to hide saturation.
+            // A failed source may have consumed unknown rows; this adapter stops, leaving later windows unattempted.
+            if (terminal && interval.ReadStatus != ReportReadState.NotAttempted)
+                throw Bad("A later trace read cannot prove its remaining budget after an unsuccessful window.");
+            if (interval.RequestedResultSize is not null && (remaining < 1 || interval.RequestedResultSize != Math.Min(5000, remaining)))
+                throw Bad("Trace source cap differs from its exact reviewed remaining observation budget.");
             var children=traces.Where(t=>t.WindowIndex==index).ToArray();
             if(interval.ReadStatus is ReportReadState.Collected or ReportReadState.Partial)
             {
+                remaining -= interval.ReturnedEntries!.Value;
                 if(interval.ReturnedEntries!=children.Length+interval.ExcludedEntries)throw Bad("Trace interval counts must account for retained/excluded recipients.");
                 if(interval.ReadStatus==ReportReadState.Collected&&children.Any(t=>t.ReadStatus!=ReportReadState.Collected))throw Bad("A complete trace interval cannot hide unknown metadata.");
             }
-            else if(children.Length!=0)throw Bad("Failed/unattempted intervals cannot claim trace recipients.");
+            else
+            {
+                terminal = true;
+                if(children.Length!=0)throw Bad("Failed/unattempted intervals cannot claim trace recipients.");
+            }
             foreach(var trace in children)
             {
                 _=TraceTime(trace.ReceivedUtc,"yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",out var received);

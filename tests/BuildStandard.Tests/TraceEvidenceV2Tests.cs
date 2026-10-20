@@ -24,6 +24,32 @@ public sealed class TraceEvidenceV2Tests
         if(!exact){report.Status="Partial";foreach(var section in report.Sections){section.Status="Partial";section.Error="General query cannot establish exhaustive high-recipient coverage.";}}
         return report;
     }
+    [Fact] public void Later_source_reads_cannot_claim_a_provable_remaining_budget_after_an_unknown_failed_window()
+    {
+        var report=Report();report.Parameters[0].Value="2026-10-01";var original=report.Sections[0].Rows[0];
+        var first=(JsonObject)original.DeepClone();first["startUtc"]="2026-10-01T00:00:00.000Z";first["endUtc"]="2026-10-11T00:00:00.000Z";
+        first["id"]=ExchangeObservationKey.TraceInterval(first["startUtc"]!.GetValue<string>(),first["endUtc"]!.GetValue<string>(),first["filterDigest"]!.GetValue<string>());
+        first["readStatus"]="Failed";first["error"]="Synthetic source failed before its consumed-row count was known.";first["returnedEntries"]=null;first["excludedEntries"]=null;first["requestedResultSize"]=null;
+        original["windowIndex"]=1;original["startUtc"]="2026-10-11T00:00:00.000Z";original["requestedResultSize"]=4998;
+        original["id"]=ExchangeObservationKey.TraceInterval(original["startUtc"]!.GetValue<string>(),End,original["filterDigest"]!.GetValue<string>());
+        report.Sections[0].Rows.Insert(0,first);report.Sections[1].Rows[0]["windowIndex"]=1;report.Status="Partial";
+        foreach(var section in report.Sections){section.Status="Partial";section.Error="Synthetic failed earlier window.";}
+        Assert.ThrowsAny<ToolkitException>(()=>InboxRuleEvidenceV2Tests.Read(report));
+    }
+    // Supplementary review GPT-C6-001 at5cc072f: a forged cap hid actual saturation.
+    [Theory][InlineData(false)][InlineData(true)]
+    public void A_forged_cap_cannot_make_a_saturated_review_complete(bool childAdmission)
+    {
+        var report=Report();report.Parameters[^1].Value="2";
+        var query=ExchangeTraceQuery.Prepare(report.Parameters,DateTimeOffset.Parse(Frozen,System.Globalization.CultureInfo.InvariantCulture));
+        var interval=report.Sections[0].Rows[0];interval["filterDigest"]=query.FilterDigest;interval["id"]=ExchangeObservationKey.TraceInterval(Start,End,query.FilterDigest);interval["requestedResultSize"]=2;
+        if(childAdmission)
+        {
+            foreach(var section in report.Sections)foreach(var row in section.Rows)row["id"]=null;
+            Assert.ThrowsAny<ToolkitException>(()=>ExchangeReportEvidenceSchema.AdmitFamilyRows(ExchangeReportRegistry.Find("exo-message-trace",2,ExchangeReportRegistry.FamilyAdapterVersion),report.Sections,report.Parameters));
+        }
+        else Assert.ThrowsAny<ToolkitException>(()=>InboxRuleEvidenceV2Tests.Read(report));
+    }
     [Fact] public void Shared_trace_tables_lead_with_work_fields_and_do_not_infer_size_units()
     {
         var sheet=RegisteredReportDocuments.Sheets(InboxRuleEvidenceV2Tests.Read(Report())).Single(s=>s.Name=="traces");
