@@ -37,6 +37,21 @@ public sealed class CollaborationReportsPageTests
         var page=Page(f);page.GroupQuery=fault=="query"?"x":"Synthetic";page.Acknowledged=fault!="ack";
         await Assert.ThrowsAnyAsync<ToolkitException>(page.SearchGroupsAsync);Assert.Equal(0,f.Handler.Calls);Assert.Empty(page.GroupMatches);
     }
+    [Fact]public async Task Group_picker_failed_read_is_not_an_empty_success()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.Forbidden){Content=new StringContent("{\"error\":{\"code\":\"Forbidden\"}}")};
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.SearchGroupsAsync);
+        Assert.Empty(page.GroupMatches);Assert.Contains("Could not complete",page.GroupLookupStatus);Assert.False(page.Acknowledged);
+    }
+    [Fact]public async Task Group_picker_connection_replacement_invalidates_selection_without_a_second_request()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent("{\"value\":[{\"id\":\""+TestData.TenantB+"\",\"displayName\":\"Synthetic group\"}]}")};
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;await page.SearchGroupsAsync();page.SelectedGroup=page.GroupMatches.Single();
+        f.ReplaceConnection();Assert.ThrowsAny<ToolkitException>(page.UseSelectedGroup);Assert.Equal("",page.CollaborationGroups);Assert.Equal(1,f.Handler.Calls);
+    }
     private sealed class Source(CollaborationReadSelection selection,Action? before=null):ICollaborationReportSource
     {
         public string TenantId=>TestData.TenantA;public CollaborationReadSelection Selection=>selection;public int Reads;

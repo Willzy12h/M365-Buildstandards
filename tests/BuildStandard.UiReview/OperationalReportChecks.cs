@@ -120,9 +120,9 @@ internal static partial class Program
             foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Partner complete export");
             vm.SelectedReportId = "collaboration-inventory"; vm.CollaborationSearch = "*";
             tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
-            if (vm.ReadCommand.CanExecute(null) || !vm.AccessPreview.Contains("FullControl", StringComparison.Ordinal) || !vm.Notice.Contains("OneDrive", StringComparison.Ordinal))
+            if (vm.ReadCommand.CanExecute(null) || vm.SearchGroupsCommand.CanExecute(null) || vm.UseGroupCommand.CanExecute(null) || !vm.AccessPreview.Contains("FullControl", StringComparison.Ordinal) || !vm.Notice.Contains("OneDrive", StringComparison.Ordinal))
                 throw new InvalidOperationException("Collaboration selection lost acknowledgement or blocked-boundary guidance.");
-            foreach (var label in new[] { "Bounded collaboration site search", "Exact selected collaboration site IDs", "Exact selected collaboration group IDs" })
+            foreach (var label in new[] { "Bounded collaboration site search", "Exact selected collaboration site IDs", "Exact selected collaboration group IDs", "Collaboration group name or ID lookup" })
             {
                 var input = Descendants(content).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == label);
                 input.BringIntoView(); content.UpdateLayout(); Pump();

@@ -27,7 +27,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     {
         _controller = controller;
         ReadCommand = Command(ReadAsync, () => ReadGuidance.Length == 0);
-        StopCommand = Sync(() => { if (!_reading || Workspace.Idle) throw new ToolkitException("No operational read is active."); Workspace.CancelOperation(); }, () => _reading && Workspace.Busy);
+        StopCommand = Sync(() => { if ((!_reading && !_lookingUp) || Workspace.Idle) throw new ToolkitException("No operational read is active."); Workspace.CancelOperation(); }, () => (_reading || _lookingUp) && Workspace.Busy);
         OpenCommand = Command(ChooseAndOpenAsync, () => CanEdit && Workspace.Profile is not null);
         HtmlCommand = Command(() => ExportAsync(ExportFormat.Html), CanExport);
         JsonCommand = Command(() => ExportAsync(ExportFormat.Json), CanExport);
@@ -37,13 +37,77 @@ public sealed class OperationalReportsViewModel : PageViewModel
         ExportOriginalCommand = Command(ExportPendingOriginalAsync, () => Workspace.Idle && HasPendingOriginal);
         DiscardOriginalCommand = Sync(DiscardPending, () => Workspace.Idle && HasPendingOriginal);
         OpenConnectionCommand = Sync(() => Shell.Navigate("connect"), () => Workspace.Idle);
+        SearchGroupsCommand = Command(SearchGroupsAsync, () => GroupSearchGuidance.Length == 0);
+        UseGroupCommand = Sync(UseSelectedGroup, () => GroupSelectionGuidance.Length == 0);
         Refresh();
     }
-    public string GroupQuery { get; set; } = "";
+    private string _groupQuery = "", _groupLookupContext = "", _groupLookupStatus = "Search existing group names, then choose an exact returned name and ID. Team provisioning is checked during capture.", _groupLookupKey = "";
+    private int _groupLookupGeneration;
+    private bool _lookingUp;
+    private ResolvedTenantObject? _selectedGroup;
+    public string GroupQuery { get => _groupQuery; set { if (SetProperty(ref _groupQuery, value)) SelectionChanged(); } }
     public IReadOnlyList<ResolvedTenantObject> GroupMatches { get; private set; } = [];
-    public ResolvedTenantObject? SelectedGroup { get; set; }
-    public Task SearchGroupsAsync() => throw new ToolkitException("Bounded group picker is not connected yet.");
-    public void UseSelectedGroup() => throw new ToolkitException("Resolve an exact group in the current client first.");
+    public ResolvedTenantObject? SelectedGroup { get => _selectedGroup; set { if (SetProperty(ref _selectedGroup, value)) Notify(); } }
+    public string GroupLookupStatus => _groupLookupStatus;
+    public ICommand SearchGroupsCommand { get; }
+    public ICommand UseGroupCommand { get; }
+    public string GroupSearchGuidance
+    {
+        get
+        {
+            EnsureContext();
+            if (!IsCollaborationReport) return "Select Sites, groups and Teams first.";
+            if (!CanEdit) return "Wait for the current operation and resolve any pending original before searching.";
+            var blocker = _controller.CollaborationLookupBlocker;
+            if (blocker.Length != 0) return blocker;
+            if (GroupQuery.Trim().Length is < 2 or > 200 || GroupQuery.Any(char.IsControl)) return "Enter an exact group ID or 2 to 200 name characters.";
+            return Acknowledged ? "" : "Acknowledge the group-name lookup and its Group.Read.All access before Search groups.";
+        }
+    }
+    public string GroupSelectionGuidance => !CanEdit || !IsCollaborationReport ? "Wait for the operation and resolve any pending original."
+        : SelectedGroup is null || !GroupMatches.Contains(SelectedGroup) ? "Select an exact returned group name and ID first."
+        : _groupLookupContext != _controller.ContextKey || _groupLookupGeneration != _generation || _groupLookupKey != GroupQuery
+            ? "Client or search changed. Search again before adding a group." : "";
+    private void ClearGroupLookup()
+    {
+        GroupMatches = []; _selectedGroup = null; _groupLookupContext = ""; _groupLookupKey = "";
+    }
+    public async Task SearchGroupsAsync()
+    {
+        var reason = GroupSearchGuidance;
+        if (reason.Length != 0) throw new ToolkitException(reason);
+        var context = _context; var query = GroupQuery; var generation = ++_generation;
+        _acknowledged = false; _lookingUp = true; ClearGroupLookup();
+        _groupLookupStatus = "Looking up bounded existing groups. No group is selected automatically."; Notify();
+        try
+        {
+            var matches = await _controller.FindCollaborationGroupsAsync(query, true, context, () => generation == _generation);
+            _controller.RequireContext(context);
+            if (generation != _generation) throw new TenantMismatchException("The lookup selection changed; search again.");
+            GroupMatches = matches; _groupLookupContext = context; _groupLookupGeneration = generation; _groupLookupKey = query;
+            _groupLookupStatus = matches.Count == 0 ? "Lookup completed: no matching groups. Try an exact group ID. This does not prove there are no groups in the tenant."
+                : $"{matches.Count} returned groups. Select the exact name and ID, then Add selected group. This does not establish that a Team exists.";
+        }
+        catch
+        {
+            ClearGroupLookup(); _groupLookupStatus = "Could not complete the lookup in the current context. No groups were selected; this is not an empty-success result."; throw;
+        }
+        finally { _lookingUp = false; Notify(); }
+    }
+    public void UseSelectedGroup()
+    {
+        var reason = GroupSelectionGuidance;
+        if (reason.Length != 0) throw new ToolkitException(reason);
+        var selected = SelectedGroup!;
+        if (!string.Equals(selected.TenantId, Workspace.Profile?.TenantId, StringComparison.OrdinalIgnoreCase) || selected.Kind != ObjectLookupKind.Group)
+            throw new TenantMismatchException("The selected group does not belong to this client lookup.");
+        var ids = CollaborationGroups.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ids.Contains(selected.ObjectId, StringComparer.OrdinalIgnoreCase)) throw new ConfigurationException("That exact group is already selected.");
+        var changed = string.Join('\n', ids.Append(selected.ObjectId));
+        _ = CollaborationSelectionInput.Parse(CollaborationSearch, CollaborationSites, changed, IncludeLibraries, IncludeOwners, IncludeMembers);
+        CollaborationGroups = changed;
+        _groupLookupStatus = "Added locally: " + selected.Label + ". Review sections and acknowledge the exact capture; no tenant changes were made."; Notify();
+    }
     private string _collaborationSearch = "", _collaborationSites = "", _collaborationGroups = "";
     private bool _includeLibraries, _includeOwners, _includeMembers;
     public string CollaborationSearch { get => _collaborationSearch; set { if (SetProperty(ref _collaborationSearch, value)) SelectionChanged(); } }
@@ -56,8 +120,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public string SelectedReportId { get=>_selectedReportId; set { if(SetProperty(ref _selectedReportId,value)) SelectionChanged(); } }
     public string CustomerTenantId { get=>_customerTenantId; set { if(SetProperty(ref _customerTenantId,value)) SelectionChanged(); } }
     public bool PartnerDeclared { get=>_partnerDeclared; set { if(SetProperty(ref _partnerDeclared,value)) SelectionChanged(); } }
-    private void SelectionChanged() { _generation++;_acknowledged=false;ClearResult();Notify(); }
-    public bool CanEdit => Workspace.Idle && !_reading && !_opening && !HasPendingOriginal;
+    private void SelectionChanged() { _generation++;_acknowledged=false;ClearResult();ClearGroupLookup();Notify(); }
+    public bool CanEdit => Workspace.Idle && !_reading && !_opening && !_lookingUp && !HasPendingOriginal;
     public bool Acknowledged { get => _acknowledged; set { EnsureContext(); if (SetProperty(ref _acknowledged, value)) Notify(); } }
     public string Notice => IsCollaborationReport || _report?.ReportId == "collaboration-inventory" ? OperationalContextSchema.CollaborationNotice : RegisteredReportDocuments.OperationalNotice;
     public sealed record ReportChoice(string Id, string Name);
@@ -66,7 +130,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public bool IsPartnerReport => SelectedReportId == "partner-relationships";
     public string ReadLabel => IsCollaborationReport ? "Read selected collaboration metadata" : IsPartnerReport ? "Read partner relationships" : "Read service-health context";
     public string AcknowledgementText => IsCollaborationReport
-        ? "I acknowledge this source tenant, the exact search/selected IDs and chosen metadata/direct-role reads. This is not consent, complete estate coverage, effective access or permission to change a tenant."
+        ? "I acknowledge this source tenant, the exact site/group search, selected IDs and chosen metadata/direct-role reads. Group-name lookup uses Group.Read.All and selects nothing automatically. This is not consent, complete estate coverage, effective access or permission to change a tenant."
         : IsPartnerReport
         ? "I acknowledge the declared partner source, exact selected customer, fixed relationship and assignment reads and limitations. This does not establish effective customer rights or authorise changes."
         : "I acknowledge this source tenant, the two fixed health reads, actual read-access requirement and limitations. This is not consent or approval to change a tenant.";
@@ -110,7 +174,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     {
         var context = _controller.ContextKey;
         if (_context == context) return;
-        _context = context; _generation++; _acknowledged = false; ClearResult();
+        _context = context; _generation++; _acknowledged = false; ClearResult(); ClearGroupLookup(); _groupQuery = "";
         _collaborationSearch = ""; _collaborationSites = ""; _collaborationGroups = "";
         _includeLibraries = false; _includeOwners = false; _includeMembers = false;
         _message = "Client, session, catalogue or evidence changed. Former results and acknowledgement were cleared; pending originals retain their source.";
@@ -206,7 +270,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public override void Refresh() { if (_controller is null) return; EnsureContext(); Notify(); }
     private void Notify()
     {
-        foreach (var name in new[] { nameof(IsCollaborationReport), nameof(Notice), nameof(CollaborationSearch), nameof(CollaborationSites), nameof(CollaborationGroups), nameof(IncludeLibraries), nameof(IncludeOwners), nameof(IncludeMembers), nameof(IsPartnerReport), nameof(ReadLabel), nameof(AccessPreview), nameof(AcknowledgementText), nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(GroupQuery), nameof(GroupMatches), nameof(SelectedGroup), nameof(GroupLookupStatus), nameof(GroupSearchGuidance), nameof(GroupSelectionGuidance), nameof(IsCollaborationReport), nameof(Notice), nameof(CollaborationSearch), nameof(CollaborationSites), nameof(CollaborationGroups), nameof(IncludeLibraries), nameof(IncludeOwners), nameof(IncludeMembers), nameof(IsPartnerReport), nameof(ReadLabel), nameof(AccessPreview), nameof(AcknowledgementText), nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

@@ -4,6 +4,7 @@ using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
+using BuildStandard.Engine.Identity;
 using BuildStandard.Graph;
 using Envelope = BuildStandard.Engine.Reports.ReportEnvelopeDispatcher.Envelope;
 
@@ -136,6 +137,46 @@ public sealed class GraphReportsController(Workspace workspace)
             connection.Session, "partner-relationships", current, customer, true);
     internal Func<ConnectedTenant, CollaborationReadSelection, Action, ICollaborationReportSource> CollaborationSourceFactory { get; set; } =
         (connection, selection, current) => ((GraphClient)connection.Graph).ForCollaborationReports(connection.Session, selection, current);
+    public string CollaborationLookupBlocker
+    {
+        get
+        {
+            var blocker = ReadBlocker;
+            if (blocker.Length != 0) return blocker;
+            var scopes = RequireLive().Session.Scopes;
+            return scopes.Contains("Group.Read.All", StringComparer.Ordinal) || scopes.Contains("https://graph.microsoft.com/Group.Read.All", StringComparer.Ordinal)
+                ? "" : "Group.Read.All was not returned. Review access in Connect; lookup never signs in or grants consent.";
+        }
+    }
+    public async Task<IReadOnlyList<ResolvedTenantObject>> FindCollaborationGroupsAsync(string query, bool acknowledged,
+        string expectedContext, Func<bool> selectionStillCurrent)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge this deliberate group-name lookup first.");
+        var blocker = CollaborationLookupBlocker;
+        if (blocker.Length != 0) throw new ToolkitException(blocker);
+        query = query.Trim();
+        if (query.Length is < 2 or > 200 || query.Any(char.IsControl))
+            throw new ConfigurationException("Enter an exact group ID or 2 to 200 name characters.");
+        IReadOnlyList<ResolvedTenantObject> result = [];
+        await workspace.RunExclusiveAsync("Finding existing groups; no changes", async _ =>
+        {
+            RequireContext(expectedContext);
+            if (!selectionStillCurrent()) throw new TenantMismatchException("The group selection changed; search again.");
+            var connection = RequireLive();
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(workspace.OperationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(60));
+            var found = await ObjectResolver.SearchAsync(connection.Graph, connection.Session.TenantId, ObjectLookupKind.Group, query, deadline.Token);
+            deadline.Token.ThrowIfCancellationRequested();
+            RequireContext(expectedContext);
+            if (!selectionStillCurrent()) throw new TenantMismatchException("Client or search changed while finding groups; no results admitted.");
+            result = found.ToArray();
+        });
+        RequireContext(expectedContext);
+        if (!selectionStillCurrent()) throw new TenantMismatchException("The group selection changed; search again.");
+        return result;
+    }
+
     public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
     public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared, CollaborationReadSelection? collaboration = null)
     {
