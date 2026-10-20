@@ -74,6 +74,22 @@ public sealed class UsageReportsPageTests
         page.ConfirmDiscard=_=>false;page.DiscardOriginalCommand.Execute(null);Assert.True(page.HasPendingOriginal);
         page.ConfirmDiscard=_=>true;page.DiscardOriginalCommand.Execute(null);Assert.False(page.HasPendingOriginal);Assert.Equal(1,reads);
     }
+    [Fact]
+    public async Task Parent_refresh_clears_nested_usage_from_the_former_client_without_waiting_for_a_command()
+    {
+        using var f = new ConnectedReportsFixture(); f.Workspace.Session!.Scopes.Add("Reports.Read.All");
+        var shell = new ShellViewModel(f.Workspace); var parent = shell.Page<GraphReportsViewModel>();
+        var report = await new UsageReportService(SystemClock.Instance, "synthetic").CaptureAsync(
+            new Source((id, _) => Task.FromResult(Header(id))), f.Workspace.Session!, ["email-activity"], "D30", () => { }, default);
+        var file = Path.Combine(f.Root.Root, "synthetic usage.json"); File.WriteAllText(file, UsageReviewSchema.Serialise(report));
+        await parent.Usage.OpenSuppliedAsync(file); Assert.DoesNotContain("No current", parent.Usage.Outcome);
+        var changed = new List<string?>(); parent.Usage.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+        f.ReplaceConnection(); parent.Refresh();
+        // Read these before CanExecute: a command predicate must not be needed to clear another client's view.
+        Assert.Contains("No current", parent.Usage.Outcome); Assert.Null(parent.Usage.Rows);
+        Assert.Contains(nameof(UsageReportsViewModel.Outcome), changed);
+        Assert.False(parent.Usage.JsonCommand.CanExecute(null)); Assert.Equal(0, f.Tokens.Calls); Assert.Equal(0, f.Handler.Calls);
+    }
     [Fact] public void Changing_optional_access_cannot_reuse_an_ordinary_session_or_keep_a_setup_preview()
     {
         using var f=new ConnectedReportsFixture();f.Workspace.Session!.ClientId=BuildStandard.Core.Configuration.ToolkitSettings.MicrosoftGraphPowerShellClientId;Assert.True(f.Workspace.CanReuseConnection(f.Workspace.Profile!,SessionMode.Assessment));
