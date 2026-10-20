@@ -37,6 +37,17 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Multiple_registered_sections_do_not_drop_target_diagnostics_or_crash_the_outcome()
+    {
+        _page.Selected = _page.Items.Single(item => item.Id == "exo.inbox-rule-observations");
+        _page.Fields.Single(field => field.Name == "MailboxGuids").Value = TestData.Office;
+        Approve(); await _page.RunAsync();
+        Assert.NotNull(_page.OutcomeRows);
+        Assert.Single(_page.OutcomeRows.Cast<System.Data.DataRowView>());
+        Assert.Equal(1, _f.Calls); Assert.NotNull(_f.Workflow.Result!.Evidence);
+    }
+
+    [Fact]
     public async Task Formatted_report_export_reuses_original_evidence_and_clears_on_disconnect()
     {
         Approve();await _page.RunAsync();var original=_f.Workflow.EvidenceJson;

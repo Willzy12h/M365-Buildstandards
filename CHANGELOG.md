@@ -64,6 +64,8 @@
 
 ### Pending source — mailbox capacity review, PR #94
 
+- Add a separately pinned, experimental selected-mailbox inbox-rule observation adapter with per-value unknown states and target diagnostics; remaining Exchange families and native section integration are still in progress.
+
 - Correct new Exchange report row budgets to include target diagnostics and enforce lower manifest limits before source enumeration; original report bodies remain unchanged.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.

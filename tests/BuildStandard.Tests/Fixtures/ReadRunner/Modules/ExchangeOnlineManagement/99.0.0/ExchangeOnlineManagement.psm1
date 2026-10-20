@@ -65,9 +65,10 @@ function Get-ConnectionInformation {
 }
 
 function Get-EXOMailbox {
-    param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails)
+    param([string]$ResultSize, [string[]]$Properties, [string]$RecipientTypeDetails, [string]$Identity)
     $script:Reads++
     Write-FakeLog ('Read Get-EXOMailbox' + $(if ($ResultSize) { ' ResultSize=' + $ResultSize } else { '' }) + $(if ($Properties) { ' Properties=' + ($Properties -join ',') } else { '' }))
+    if ($Identity) { return [pscustomobject]@{ExchangeGuid=[guid]$Identity;ExternalDirectoryObjectId=$null;DisplayName='Synthetic selected';PrimarySmtpAddress='selected@synthetic.example'} }
     if ($script:Scenario -eq 'chatty') { [Console]::Out.Write(('x' * 1100000)); [Console]::Out.Flush() }
     if ($script:Scenario -eq 'noisy-errors') { 1..3000 | ForEach-Object { [Console]::Error.WriteLine(('e' * 200)) } }
     if ($script:Scenario -eq 'hang') { Start-Sleep -Seconds 120 }
@@ -169,4 +170,14 @@ function Get-TransportConfig {
     [pscustomobject]@{ SmtpClientAuthenticationDisabled = $(if($script:Scenario -eq 'settings-org-null') { $null } else { $true }) }
 }
 
-Export-ModuleMember -Function Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-InboxRule {
+    param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
+    $script:Reads++; Write-FakeLog ('Read Get-InboxRule ' + $Mailbox + ' hidden=' + $IncludeHidden + ' ResultSize=' + $ResultSize)
+    if ($script:Scenario -eq 'inbox-failed') { throw 'Synthetic inbox read failure' }
+    if ($script:Scenario -eq 'inbox-empty') { return }
+    $row=[pscustomobject]@{RuleIdentity=[uint64]::MaxValue;Identity='raw opaque rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true}
+    if ($script:Scenario -eq 'inbox-missing') { $row.PSObject.Properties.Remove('DeleteMessage') }
+    $row
+}
+
+Export-ModuleMember -Function Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

@@ -130,7 +130,7 @@ function Invoke-BditRunner {
     $sourceCommands = @($BditRequest.sourceCommands | ForEach-Object { [string]$_ })
     $allowedCommands = @('Use-BditRead', 'Where-Object', 'ForEach-Object', 'Select-Object', 'Sort-Object', 'Group-Object', 'Measure-Object', 'Set-StrictMode')
     $allowedTypes = @('string', 'int', 'long', 'bool', 'switch', 'datetime', 'guid', 'hashtable', 'ordered', 'pscustomobject', 'array',
-        'object', 'object[]', 'string[]', 'double', 'decimal', 'int32', 'int64', 'boolean', 'System.Collections.Generic.List[object]',
+        'object', 'object[]', 'string[]', 'double', 'decimal', 'uint64', 'int32', 'int64', 'boolean', 'System.Collections.Generic.List[object]',
         'Collections.Generic.List[object]', 'System.Collections.Generic.List[hashtable]', 'Collections.Generic.List[hashtable]')
     $deniedMembers = @('Invoke', 'InvokeReturnAsIs', 'Create', 'GetNewClosure', 'NewBoundScriptBlock', 'InvokeScript', 'AddScript',
         'AddCommand', 'SessionState', 'PSVariable', 'InvokeCommand', 'InvokeProvider', 'Module', 'ScriptBlock', 'GetSteppablePipeline',

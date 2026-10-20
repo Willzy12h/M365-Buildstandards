@@ -73,6 +73,22 @@ internal sealed class ReadRunFixture : IDisposable
             SourceCommands = [.. definition.SourceCommands], Limitations = [definition.Limitations], Status = state,
             Sections = [new ReportSection { Id = "mailboxes", Status = state, Error = state == ReportReadState.Collected ? null : "Synthetic incomplete read.", Limitations = ["Synthetic section coverage limitation."], Rows = [] }]
         };
+        if (definition.ReportSchemaVersion == 2)
+        {
+            report.ReportSchemaVersion = 2; report.AdapterVersion = definition.AdapterVersion;
+            var mailbox = inputs["MailboxGuids"]!;
+            report.Sections =
+            [
+                new() { Id = "target-reads", Status = "Collected", Rows = [new JsonObject
+                {
+                    ["id"] = ExchangeObservationKey.TargetRead(definition.Id, mailbox), ["name"] = "Synthetic selected mailbox",
+                    ["readStatus"] = "Collected", ["error"] = null, ["requestedExchangeGuid"] = mailbox,
+                    ["observedExchangeGuid"] = mailbox, ["externalDirectoryObjectId"] = null, ["primarySmtpAddress"] = null,
+                    ["lookupReadStatus"] = "Collected", ["childReadStatus"] = "Collected", ["returnedEntries"] = 0, ["excludedEntries"] = 0
+                }] },
+                new() { Id = "rules", Status = "Collected", Rows = [] }
+            ];
+        }
         ExchangeReportEvidenceSchema.Seal(report);
         return new(report.RunId, outcome, "Synthetic safe outcome.", report, false);
     }
@@ -96,7 +112,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(4, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(5, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));
