@@ -139,4 +139,26 @@ public sealed class InboxRuleEvidenceV2Tests
         if (unknown) Assert.Contains("Unknown values / unresolved references", detail);
         Assert.Equal(deleteMessage, row["deleteMessage"]!["value"]!.GetValue<bool>());
     }
+    [Theory]
+    [InlineData("", "Empty name (reported)")]
+    [InlineData("   ", "Whitespace name (reported)")]
+    public void A_returned_blank_friendly_name_does_not_replace_or_invalidate_the_actual_rule_identity(string name, string expected)
+    {
+        var report = Report();
+        report.Sections[1].Rows[0]["name"] = name;
+        var admitted = Read(report);
+        Assert.Equal(Rule, admitted.Sections[1].Rows[0]["ruleIdentity"]!.GetValue<string>());
+        Assert.Equal(name, admitted.Sections[1].Rows[0]["name"]!.GetValue<string>());
+        var sheet = RegisteredReportDocuments.Sheets(admitted).Single(table => table.Name == "rules");
+        Assert.Equal(expected, sheet.Rows[1][Array.IndexOf(sheet.Rows[0], "Name")]);
+    }
+    [Fact]
+    public void Mark_as_read_review_cue_matches_the_existing_manual_library_meaning_without_an_incident_verdict()
+    {
+        var report = Report();
+        report.Sections[1].Rows[0]["markAsRead"] = Value(true);
+        var sheet = RegisteredReportDocuments.Sheets(Read(report)).Single(table => table.Name == "rules");
+        Assert.Equal("Reported cues — review context", sheet.Rows[1][Array.IndexOf(sheet.Rows[0], "Local review cue status")]);
+        Assert.Contains("MarkAsRead reported true", sheet.Rows[1][Array.IndexOf(sheet.Rows[0], "Local review cues")]);
+    }
 }

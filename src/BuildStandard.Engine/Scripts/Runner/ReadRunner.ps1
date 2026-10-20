@@ -520,6 +520,78 @@ function Invoke-BditRunner {
     if ($bodyFailed -and $null -eq $gate.Failure) { Stop-BditRun 'BodyFailed' }
     if ($gate.Failure -eq 'Unregistered') { Stop-BditRun 'BodyRefused' }
 
+    # Exact report2 cell projection. Complex module objects never reach serialisation: only these bounded DTO shapes do.
+    function Require-BditOutputText($Text, [int]$Maximum, [bool]$Nullable = $false, [bool]$Blank = $false, [bool]$Newline = $false) {
+        if ($null -eq $Text) { if ($Nullable) { return $null }; throw 'output' }
+        if ($Text -isnot [string] -or $Text.Length -gt $Maximum -or (-not $Blank -and [string]::IsNullOrWhiteSpace($Text))) { throw 'output' }
+        $controls = if ($Newline) { '[\x00-\x09\x0B-\x1F\x7F-\x9F]' } else { '\p{Cc}' }
+        if ($Text -match $controls) { throw 'output' }
+        return $Text
+    }
+    function Require-BditOutputMap($Map, [string[]]$Keys) {
+        if ($Map -isnot [Collections.IDictionary] -or $Map.PSBase.Count -ne $Keys.Count) { throw 'output' }
+        foreach ($key in $Keys) { if (@($Map.PSBase.Keys) -cnotcontains $key) { throw 'output' } }
+    }
+
+    function Convert-BditInboxRuleCell {
+        param([string]$Section, [string]$Column, $Value)
+        if ($Section -cnotin @('target-reads','rules')) { throw 'output' }
+        if ($Column -ceq 'id') { if ($null -ne $Value) { throw 'output' }; return $null }
+        if ($Column -ceq 'name') { return Require-BditOutputText $Value 1024 $true $true }
+        if ($Column -ceq 'error') { return Require-BditOutputText $Value 4096 $true $false $true }
+        $states = @('Collected','Partial','Failed','NotAttempted','Cancelled')
+        if ($Column -ceq 'readStatus' -or ($Section -ceq 'target-reads' -and $Column -cin @('lookupReadStatus','childReadStatus'))) {
+            if ($Value -isnot [string] -or $states -cnotcontains $Value) { throw 'output' }
+            return $Value
+        }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -cin @('returnedEntries','excludedEntries')) {
+                if ($null -eq $Value) { return $null }
+                if (($Value -isnot [int] -and $Value -isnot [long]) -or $Value -lt 0 -or $Value -gt 5000) { throw 'output' }
+                return $Value
+            }
+            if ($Column -cin @('requestedExchangeGuid','observedExchangeGuid','externalDirectoryObjectId','primarySmtpAddress')) {
+                return Require-BditOutputText $Value 1024 ($Column -cne 'requestedExchangeGuid')
+            }
+            throw 'output'
+        }
+        if ($Column -cin @('mailboxExchangeGuid','ruleIdentity','actualIdentityRaw')) {
+            return Require-BditOutputText $Value 1024 ($Column -ceq 'actualIdentityRaw')
+        }
+        $booleans = @('enabled','deleteMessage','markAsRead','stopProcessingRules')
+        $lists = @('forwardTo','forwardAsAttachmentTo','redirectTo')
+        if ($Column -cnotin $booleans -and $Column -cnotin $lists -and $Column -cne 'priority') { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        $state = $Value['state']; $actual = $Value['value']; $reason = $Value['reason']
+        if ($state -isnot [string] -or $state -cnotin @('Value','ReturnedNull','Missing','Failed','NotAttempted','Unsupported')) { throw 'output' }
+        if ($state -cne 'Value') {
+            if ($null -ne $actual) { throw 'output' }
+            $reason = Require-BditOutputText $reason 4096 $false $false $true
+            return [ordered]@{state=$state;value=$null;reason=$reason}
+        }
+        if ($null -ne $reason -or $null -eq $actual) { throw 'output' }
+        if ($Column -cin $booleans) { if ($actual -isnot [bool]) { throw 'output' } }
+        elseif ($Column -ceq 'priority') {
+            if (($actual -isnot [int] -and $actual -isnot [long]) -or $actual -lt 0 -or $actual -gt 2147483647) { throw 'output' }
+        }
+        else {
+            if ($actual -isnot [array] -or $actual.Count -gt 100) { throw 'output' }
+            $references = [Collections.Generic.List[object]]::new()
+            foreach ($reference in $actual) {
+                Require-BditOutputMap $reference @('namespace','value','externalDirectoryObjectId')
+                $source = $reference['namespace']
+                if ($source -isnot [string] -or $source -cnotin @('ReturnedText','RawIdentity','DistinguishedName','SpecialPrincipal','UnresolvedDisplayLabel')) { throw 'output' }
+                $text = Require-BditOutputText $reference['value'] 1024
+                if ($source -ceq 'SpecialPrincipal' -and $text -cnotin @('Default','Anonymous')) { throw 'output' }
+                $directory = $reference['externalDirectoryObjectId']
+                if ($null -ne $directory -and ($directory -isnot [string] -or $directory -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $directory -ceq '00000000-0000-0000-0000-000000000000')) { throw 'output' }
+                $references.Add([ordered]@{namespace=$source;value=$text;externalDirectoryObjectId=$directory})
+            }
+            $actual = $references.ToArray()
+        }
+        return [ordered]@{state=$state;value=$actual;reason=$null}
+    }
+
     # ---- project exactly the registered sections and columns ---------------------------------------------------------
     $failureReason = @{
         Stopped = 'The engineer stopped the run before the read finished; later rows were not read.'
@@ -539,6 +611,9 @@ function Invoke-BditRunner {
             if ($claimedSections.Count -ne @($BditRequest.sections).Count) { throw 'output' }
         }
         $index = 0
+        # Reserve fixed envelope/parameter space and parent-assigned key growth before accumulating report2 rows.
+        $familyOutputBytes = 65536 + ($requestBytes.Length * 2) + (5000 * 96)
+        $outputUtf8 = [Text.UTF8Encoding]::new($false, $true)
         foreach ($registered in @($BditRequest.sections)) {
             $columns = @($registered.columns | ForEach-Object { [string]$_ })
             $rows = New-Object Collections.ArrayList
@@ -558,12 +633,18 @@ function Invoke-BditRunner {
                 $claimedRows = @($section['Rows'])
                 if ($claimedRows.Count -gt $BditRequest.maximumRows) { throw 'rows' }
                 foreach ($row in $claimedRows) {
-                    if ($row -isnot [Collections.IDictionary] -or @($row.Keys).Count -ne $columns.Count) { throw 'output' }
+                    if ($row -isnot [Collections.IDictionary]) { throw 'output' }
+                    $keyCount = if ($BditRequest.reportSchemaVersion -eq 2) { $row.PSBase.Count } else { @($row.Keys).Count }
+                    if ($keyCount -ne $columns.Count) { throw 'output' }
                     $projected = [ordered]@{}
                     foreach ($column in $columns) {
                         if (-not $row.Contains($column)) { throw 'output' }
                         $value = $row[$column]
-                        if ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
+                        if ($BditRequest.reportSchemaVersion -eq 2) {
+                            if (@($row.PSBase.Keys) -cnotcontains $column) { throw 'output' }
+                            $value = Convert-BditInboxRuleCell -Section ([string]$registered.id) -Column $column -Value $value
+                        }
+                        elseif ($null -ne $value -and $value -isnot [string] -and $value -isnot [bool]) {
                             # INT-121's sole collection-valued column. All other non-scalars remain refused.
                             if ([string]$BditRequest.reportId -cne 'exo-mailbox-holds' -or [string]$registered.id -cne 'holds' -or
                                 $column -cne 'inPlaceHoldIds' -or $value -isnot [array] -or $value.Count -gt 100) { throw 'output' }
@@ -573,6 +654,11 @@ function Invoke-BditRunner {
                             }
                         }
                         $projected[$column] = $value
+                    }
+                    if ($BditRequest.reportSchemaVersion -eq 2) {
+                        $size = $outputUtf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 10 -Compress)) + 1
+                        if ($size -gt (33554432 - $familyOutputBytes)) { throw 'output' }
+                        $familyOutputBytes += $size
                     }
                     [void]$rows.Add($projected)
                 }
@@ -595,7 +681,7 @@ function Invoke-BditRunner {
         runnerTemplateSha256 = [string]$BditRequest.runnerTemplateSha256
         adapter = [string]$BditRequest.adapter
         reportId = [string]$BditRequest.reportId
-        reportSchemaVersion = 1
+        reportSchemaVersion = [int]$BditRequest.reportSchemaVersion
         tenantId = [string]$BditRequest.tenantId
         observedAccountUpn = $gate.Observed
         startedAt = $startedAt
@@ -606,8 +692,10 @@ function Invoke-BditRunner {
         sections = @($sections)
     }
     try {
-        $json = ConvertTo-Json -InputObject $envelope -Depth 8 -Compress
+        $depth = if ($BditRequest.reportSchemaVersion -eq 2) { 12 } else { 8 }
+        $json = ConvertTo-Json -InputObject $envelope -Depth $depth -Compress
         $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($json)
+        if ($BditRequest.reportSchemaVersion -eq 2 -and $bytes.Length -gt 33554432) { throw 'output' }
         $stream = New-Object IO.FileStream($Result, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
         try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
     }

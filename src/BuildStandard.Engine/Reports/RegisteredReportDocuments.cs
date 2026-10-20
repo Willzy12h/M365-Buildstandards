@@ -35,7 +35,7 @@ public static class RegisteredReportDocuments
                 ?"Hidden rules omitted; no complete all-rules inventory or incident verdict is claimed."
                 :"Hidden rules requested; source/RBAC/row limits still apply and this is not an incident verdict.");
             if (report.ReportId == "exo-inbox-rules") metadata.Add("Local review cues",
-                "Forwarding recipients and DeleteMessage=true are review cues, including on recorded disabled rules. Unknown values stay visible. Cues do not establish maliciousness, effective behaviour or protection; hidden-rule scope still applies.");
+                "Forwarding recipients, DeleteMessage=true and MarkAsRead=true are review cues, including on recorded disabled rules. Unknown values stay visible. Cues do not establish maliciousness, effective behaviour or protection; hidden-rule scope still applies.");
         }
         var sheets = new List<Sheet> { metadata };
         foreach (var section in report.Sections)
@@ -71,6 +71,8 @@ public static class RegisteredReportDocuments
                 cues.Add(Label(name) + " recipients reported");
         if (row["deleteMessage"]!["state"]!.GetValue<string>() == "Value"
             && row["deleteMessage"]!["value"]!.GetValue<bool>()) cues.Add("DeleteMessage reported true");
+        if (row["markAsRead"]!["state"]!.GetValue<string>() == "Value"
+            && row["markAsRead"]!["value"]!.GetValue<bool>()) cues.Add("MarkAsRead reported true");
         var unknown = row["readStatus"]!.GetValue<string>() != ReportReadState.Collected;
         var status = (cues.Count > 0, unknown) switch
         {
@@ -89,6 +91,9 @@ public static class RegisteredReportDocuments
     }
     private static string ExchangeValue(JsonObject row,string column,bool family)
     {
+        if (family && column == "name" && row[column] is JsonValue label && label.TryGetValue<string>(out var name)
+            && string.IsNullOrWhiteSpace(name))
+            return name.Length == 0 ? "Empty name (reported)" : "Whitespace name (reported)";
         if (family && row[column] is JsonObject observed && observed["state"] is JsonValue)
             return ObservedValue(observed);
         if (row[column] is not null) return Value(row[column]);

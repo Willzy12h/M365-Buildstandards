@@ -20,6 +20,9 @@ public static partial class ExchangeReportEvidenceSchema
         };
         ValidateParameters(definition, candidate.Parameters);
         ValidateRowsAndSections(definition, candidate, normaliseChildKeys: true);
+        // Reserve bounded fixed actor/tool/command provenance for the final evidence envelope. Include the actual
+        // normalised row encoding and keys now: PowerShell and .NET string escaping need not have equal byte lengths.
+        RequireEncodedSize(candidate, MaximumBytes - 64 * 1024);
     }
 
     private static void FamilyIdentity(string? value)

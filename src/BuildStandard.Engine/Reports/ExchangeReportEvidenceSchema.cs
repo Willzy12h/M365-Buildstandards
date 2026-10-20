@@ -64,6 +64,7 @@ public static partial class ExchangeReportEvidenceSchema
 
     public static void Seal(ExchangeReportEvidence evidence)
     {
+        if (evidence.ReportSchemaVersion == 2) RequireEncodedSize(evidence, MaximumBytes - 64);
         evidence.IntegrityDigest = EvidenceIntegrity.Compute(evidence);
         Validate(evidence, evidence.TenantId);
     }
@@ -104,6 +105,7 @@ public static partial class ExchangeReportEvidenceSchema
         ValidateRowsAndSections(definition, e);
         State(e.Status);
         if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
+        if (definition.ReportSchemaVersion == 2) RequireEncodedSize(e, MaximumBytes);
         if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
             throw Bad("Exchange report evidence failed its integrity check. Digests detect change; they do not authenticate source claims.");
     }
@@ -152,7 +154,13 @@ public static partial class ExchangeReportEvidenceSchema
                 if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 ? ReportValues.IsCanonicalGuid(row.Id)
                     : row.Id.StartsWith("sha256:",StringComparison.Ordinal) && IsSha256(row.Id[7..])) || !identities.Add(row.Id)))
                     throw Bad("Duplicate, malformed or empty report identity.");
-                if (row.Name is not null) { if(definition.ReportSchemaVersion == 1) Value(row.Name); else FamilyIdentity(row.Name); }
+                if (row.Name is not null)
+                {
+                    if (definition.ReportSchemaVersion == 1) Value(row.Name);
+                    // A friendly label is not source identity. A reported blank name can accompany an exact rule ID.
+                    else if (row.Name.Length > 1024 || row.Name.Any(char.IsControl))
+                        throw Bad("A reported family name exceeds1,024 characters or contains control characters.");
+                }
                 if (row.Error is not null) Text(row.Error);
                 if (row.ReadStatus == ReportReadState.Collected && (row.Id is null || row.Error is not null))
                     throw Bad("A successful row needs exact identity and no hidden error.");

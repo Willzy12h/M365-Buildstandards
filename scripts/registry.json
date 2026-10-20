@@ -74,7 +74,7 @@
     {
       "id": "exo.mailbox-forwarding-settings",
       "manifest": "exchange-online/Get-MailboxForwardingSettings.json",
-      "manifestSha256": "5423205a79c3385a2211146c1729c1d851a0d5a53f7f9ad3ef0aabd96fbe5804",
+      "manifestSha256": "aac3f1f0fd8c3da191d34a1075d2f1316cb4e9a2558cdb84a0c4caba316887f8",
       "scriptSha256": "6e38171d5b5925b9f626695c50bb1b349523d8117cad242a4f2ae401c5766707",
       "manifestSchemaVersion": 2
     },
@@ -88,7 +88,7 @@
     {
       "id": "exo.mailbox-hold-settings",
       "manifest": "exchange-online/Get-MailboxHoldSettings.json",
-      "manifestSha256": "9f8377d3bebbbf480a5823203c2c43da09785640bd66517aeb836b0961b13f38",
+      "manifestSha256": "a09e7980466682951d2bab4c4ca5ce95d3d39a5642787c25231e3c96915280d6",
       "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
       "manifestSchemaVersion": 2
     },
@@ -123,7 +123,7 @@
     {
       "id": "exo.mailbox-protocol-settings",
       "manifest": "exchange-online/Get-MailboxProtocolSettings.json",
-      "manifestSha256": "3d2edbd76f05a7704f67b6e4acde6c24b3d64bdf4dac2119f72b7943da7fa93a",
+      "manifestSha256": "2192fea5a2a669e111378d2769f5b06dc5e02b332f7d453dc04be0aff70a3886",
       "scriptSha256": "513d488d7bb0a8979f360b1421bc96b0a761d7418486d10f1d46af9bef369a14",
       "manifestSchemaVersion": 2
     },
@@ -137,7 +137,7 @@
     {
       "id": "exo.mailbox-size-quota",
       "manifest": "exchange-online/Get-MailboxSizeAndQuota.json",
-      "manifestSha256": "48e9b3ec93d2f7601938b0d6c1cda2336868e4ad51840bd83942ee952ee4261d",
+      "manifestSha256": "ee0551be3fe1ef73c82fb3ab6a4ea8d3112e832a59ad510eab09ef649e749916",
       "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
       "manifestSchemaVersion": 2
     },
