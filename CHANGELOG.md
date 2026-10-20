@@ -514,3 +514,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.
 
 - Proposed decision INT-136 defines bounded offline standards drafts, supported editing/comparison and validation/export while preserving historical catalogues and separate publication authority; editor implementation is not included.
+
+- Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
