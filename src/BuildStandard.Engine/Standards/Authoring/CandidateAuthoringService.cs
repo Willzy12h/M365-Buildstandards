@@ -18,6 +18,16 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
         var input = CandidateDraftCodec.Read(CandidateDraftCodec.Serialize(draft));
         var baseline = baselines.Load(input);
         if (input.Unresolved.Count != 0) throw Bad("Resolve every imported reference before candidate validation.");
+        foreach (var source in input.Imports)
+        {
+            var control = baseline.Controls.SingleOrDefault(c => c.Id == source.ControlId);
+            var definition = baseline.FindCollection(control?.Collection);
+            var expectedType = control?.Payload?["@odata.type"]?.ToString();
+            if (control is null || definition is null || !definition.Writable || !definition.Assignments
+                || ConditionalAccessSafety.IsConditionalAccess(definition) || string.IsNullOrWhiteSpace(expectedType)
+                || source.PolicyType != expectedType)
+                throw Bad("An import must identify an exact existing Intune candidate control and its registered Graph type.");
+        }
         var candidate = ToolkitJson.Deserialize<StandardCatalogue>(ToolkitJson.Serialize(baseline));
         var edited = new HashSet<string>(StringComparer.Ordinal);
         foreach (var change in input.Changes)

@@ -68,7 +68,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers" or "candidate");
 
         return command switch
         {
@@ -80,6 +80,7 @@ public static class Program
             "check" => Check(options),
             "document" => Document(options),
             "standard" => StandardDefinition(options),
+            "candidate" => CandidateCommand.Run(options),
             "verify-restore" => VerifyRestore(options),
             "upgrade-impact" => UpgradeImpact(options),
             "jobs" => Jobs(options),
@@ -148,6 +149,13 @@ public static class Program
                   Export all captured configuration and collection states; no assessment or live reads.
                   Formats: html, json, csv, xlsx. Default html. No client record is required.
                   Uses the capture's recorded release; --release is not an override for observed data.
+
+              buildstandard candidate --action create --catalogue <file.json> --title "<name>" [--root <dir>]
+              buildstandard candidate --action validate --input <draft.json> [--root <dir>]
+              buildstandard candidate --action export --input <draft.json> --reviewed-digest <sha256> [--root <dir>]
+                  Offline candidate drafts and separate configuration/assignment comparison only.
+                  Validation prints the draft digest to inspect before explicit export. No installation,
+                  publication, sign-in, assessment evidence or tenant-write authority. Ctrl+C cancels local output.
 
               buildstandard standard [--release <r>] [--format <f>] [--root <dir>]
                   Export all standard defaults/settings, with no client data.

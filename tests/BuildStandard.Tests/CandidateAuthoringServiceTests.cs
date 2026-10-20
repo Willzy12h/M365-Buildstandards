@@ -43,6 +43,12 @@ public sealed class CandidateAuthoringServiceTests
         using var root=new TempRoot();var(loader,draft)=Setup(root);Change(draft,"/parameters/minimumVersion/default",JsonValue.Create("14"),JsonValue.Create(value));
         Assert.ThrowsAny<ToolkitException>(()=>new CandidateAuthoringService(loader).Validate(draft));
     }
+    [Theory][InlineData("CA-999","unknown")][InlineData("CA-001","unknown")]
+    public void Imports_must_name_a_registered_importable_control_and_type(string control,string type)
+    {
+        using var root=new TempRoot();var(loader,draft)=Setup(root);draft.Imports.Add(new(new string('b',64),control,type));CandidateDraftCodec.Seal(draft);
+        Assert.ThrowsAny<ToolkitException>(()=>new CandidateAuthoringService(loader).Validate(draft));
+    }
     [Fact]public void Unresolved_source_draft_can_save_but_cannot_validate()
     {
         using var root=new TempRoot();var(loader,draft)=Setup(root);var hash=new string('b',64);draft.Imports.Add(new(hash,"CA-001","conditionalAccess"));draft.Unresolved.Add(new(hash,"CA-001","/payload/conditions","Foreign target"));CandidateDraftCodec.Seal(draft);

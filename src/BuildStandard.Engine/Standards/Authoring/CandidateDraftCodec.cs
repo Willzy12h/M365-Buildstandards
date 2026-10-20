@@ -18,6 +18,17 @@ public static class CandidateDraftCodec
         DefaultIgnoreCondition = JsonIgnoreCondition.Never, MaxDepth = 48,
         RespectRequiredConstructorParameters = true
     };
+    public static StandardCandidateDraft ReadFile(string file)
+    {
+        BuildStandard.Engine.Reports.ReportEnvelopeDispatcher.RefuseLinks(file);
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > MaximumBytes) throw Bad("Draft exceeds 8 MiB.");
+        using var reader = new BinaryReader(stream);
+        var bytes = reader.ReadBytes(MaximumBytes + 1);
+        if (bytes.Length > MaximumBytes) throw Bad("Draft exceeds 8 MiB.");
+        try { return Read(new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF')); }
+        catch (DecoderFallbackException) { throw Bad("Draft must be valid UTF-8."); }
+    }
     public static StandardCandidateDraft Read(string json)
     {
         if (Encoding.UTF8.GetByteCount(json) > MaximumBytes) throw Bad("Draft exceeds 8 MiB.");
