@@ -47,6 +47,8 @@ public sealed class ApplicationSetupTests
     [Theory]
     [InlineData(false, "ServiceHealth.Read.All")][InlineData(true, "ServiceHealth.Read.All")]
     [InlineData(false, "DelegatedAdminRelationship.Read.All")][InlineData(true, "DelegatedAdminRelationship.Read.All")]
+    [InlineData(false, "Sites.Read.All")][InlineData(true, "Sites.Read.All")]
+    [InlineData(false, "TeamMember.Read.All")][InlineData(true, "TeamMember.Read.All")]
     public async Task Selecting_other_optional_purposes_does_not_remove_previously_configured_operational_reads(bool usageSelected, string scope)
     {
         using var f = new Fixture(); var created = await f.Execute(await f.Service.PreviewAsync(f.Standard, "Test", default, optionalAccess: usageSelected ? OptionalReportAccess.UsageReports : OptionalReportAccess.None));

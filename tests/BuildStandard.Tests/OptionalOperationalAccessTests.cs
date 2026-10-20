@@ -41,7 +41,8 @@ public sealed class OptionalOperationalAccessTests
         Assert.False(OptionalReportAccessPolicy.IsSatisfied((OptionalReportAccess)7, ["Reports.Read.All", "ServiceHealth.Read.All"]));
         Assert.True(OptionalReportAccessPolicy.IsSatisfied((OptionalReportAccess)7, ["Reports.Read.All", "https://graph.microsoft.com/ServiceHealth.Read.All", "DelegatedAdminRelationship.Read.All"]));
     }
-    [Theory][InlineData(8)][InlineData(99)][InlineData(-1)]
+    // INT-135 registers bit8 for site metadata; bit32 remains unregistered.
+    [Theory][InlineData(32)][InlineData(99)][InlineData(-1)]
     public void Unknown_purpose_bits_refuse_before_any_authentication_or_registration(int bits)
     { Assert.Throws<ConfigurationException>(() => OptionalReportAccessPolicy.Scopes((OptionalReportAccess)bits).ToArray()); }
 }
