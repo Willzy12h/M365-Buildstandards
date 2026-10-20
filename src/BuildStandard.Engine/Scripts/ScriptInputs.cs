@@ -154,8 +154,9 @@ public static class ScriptInputs
 
         if (rule.Kind == ScriptRuleKind.AtLeastOneTrue)
         {
-            if (!rule.Parameters!.Any(name => Find(name)?.Value is ScriptFlag { Value: true }))
-                problems.Add("Select at least one permission source: " + string.Join(", ", rule.Parameters.Select(Label)) + ".");
+            var names = rule.Parameters!; // The catalogue requires the exact three non-null source names.
+            if (!names.Any(name => Find(name)?.Value is ScriptFlag { Value: true }))
+                problems.Add("Select at least one permission source: " + string.Join(", ", names.Select(Label)) + ".");
             return;
         }
 

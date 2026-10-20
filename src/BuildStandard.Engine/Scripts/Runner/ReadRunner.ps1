@@ -74,8 +74,9 @@ function Invoke-BditRunner {
         if ($BditRequest.maximumRows -isnot [int] -and $BditRequest.maximumRows -isnot [long]) { throw 'rows' }
         if (($BditRequest.reportSchemaVersion -isnot [int] -and $BditRequest.reportSchemaVersion -isnot [long]) -or $BditRequest.reportSchemaVersion -notin @(1,2)) { throw 'report' }
         if ($BditRequest.reportSchemaVersion -eq 2) {
-            if ($BditRequest.reportId -cne 'exo-inbox-rules' -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
-            if ((@($BditRequest.sourceCommands) -join ',') -cne 'Get-EXOMailbox,Get-InboxRule') { throw 'source' }
+            if (@('exo-inbox-rules','exo-mailbox-permissions') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
+            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } else { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' }
+            if ((@($BditRequest.sourceCommands) -join ',') -cne $expectedCommands) { throw 'source' }
         }
     }
     catch { Stop-BditRun 'RequestInvalid' }
@@ -115,7 +116,14 @@ function Invoke-BditRunner {
     catch { Stop-BditRun 'RequestInvalid' }
     if ($BditRequest.reportSchemaVersion -eq 2) {
         try {
-            if ($BditArguments.Count -ne 2 -or $BditArguments['MailboxGuids'] -isnot [string] -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
+            if ($BditArguments['MailboxGuids'] -isnot [string]) { throw 'scope' }
+            if ($BditRequest.reportId -ceq 'exo-inbox-rules') {
+                if ($BditArguments.Count -ne 2 -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
+            } else {
+                if ($BditArguments.Count -ne 4) { throw 'scope' }
+                foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($BditArguments[$kind] -isnot [bool]) { throw 'scope' } }
+                if (-not ($BditArguments['FullAccess'] -or $BditArguments['SendAs'] -or $BditArguments['SendOnBehalf'])) { throw 'scope' }
+            }
             $targetIds = $BditArguments['MailboxGuids'].Split(',')
             if ($targetIds.Count -lt 1 -or $targetIds.Count -gt 50 -or $targetIds.Count -gt $BditRequest.maximumRows) { throw 'scope' }
             $targetSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -280,6 +288,7 @@ function Invoke-BditRunner {
             $script:FamilyVersion = $ReportVersion
             $script:FamilyReportId = $ReportId
             $script:FamilyTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyPermissionSources = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             $script:FamilyVerifiedTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             $script:FamilyObservationMaximum = 0
             $script:FamilyIncludeHidden = $false
@@ -289,7 +298,8 @@ function Invoke-BditRunner {
             $script:FamilyStarted = [Diagnostics.Stopwatch]::StartNew()
             if ($ReportVersion -eq 2) {
                 foreach ($target in $ReportArguments['MailboxGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) }
-                $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden']
+                if ($ReportId -ceq 'exo-inbox-rules') { $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden'] }
+                else { foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($ReportArguments[$kind]) { $null = $script:FamilyPermissionSources.Add($kind) } } }
                 # Every selected target retains one diagnostic row, even after failure/cancellation.
                 $script:FamilyObservationMaximum = $MaximumRows - $script:FamilyTargets.Count
             }
@@ -426,10 +436,23 @@ function Invoke-BditRunner {
             function Read-BditFamilyRows {
                 param([string]$Command, [hashtable]$Parameters)
                 Assert-BditGate
-                if ($script:FamilyReportId -cne 'exo-inbox-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                if (@('exo-inbox-rules','exo-mailbox-permissions') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 if ($script:FamilySourceCalls -ge 100 -or $script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
                 $arguments = @{ ErrorAction = 'Stop' }
                 $observation = $false
+                if ($Command -ceq 'Get-EXOMailboxPermission' -or $Command -ceq 'Get-EXORecipientPermission') {
+                    $kind = if ($Command -ceq 'Get-EXOMailboxPermission') { 'FullAccess' } else { 'SendAs' }
+                    if ($script:FamilyReportId -cne 'exo-mailbox-permissions' -or -not $script:FamilyPermissionSources.Contains($kind) -or
+                        $Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or
+                        -not $script:FamilyTargets.Contains($Parameters['Identity']) -or -not $script:FamilyVerifiedTargets.Contains($Parameters['Identity'])) {
+                        $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                    }
+                    if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                    $properties = if ($kind -ceq 'FullAccess') { @('User','AccessRights','IsInherited','Deny') } else { @('Trustee','AccessRights','IsInherited','Deny') }
+                    $arguments['Identity'] = $Parameters['Identity']
+                    $arguments['ResultSize'] = 1 + $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                    $observation = $true
+                } else {
                 switch -CaseSensitive ($Command) {
                     'Get-EXOMailbox' {
                         if ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
@@ -438,10 +461,12 @@ function Invoke-BditRunner {
                         # A later failed/mismatched lookup cannot leave earlier proof usable for another child read.
                         $null = $script:FamilyVerifiedTargets.Remove($Parameters['Identity'])
                         $properties = @('ExchangeGuid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress')
+                        if ($script:FamilyReportId -ceq 'exo-mailbox-permissions' -and $script:FamilyPermissionSources.Contains('SendOnBehalf')) { $properties += 'GrantSendOnBehalfTo' }
                         $arguments['Identity'] = $Parameters['Identity']
                         $arguments['Properties'] = $properties
                     }
                     'Get-InboxRule' {
+                        if ($script:FamilyReportId -cne 'exo-inbox-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                         if ($Parameters.Count -ne 2 -or -not $Parameters.ContainsKey('Mailbox') -or -not $Parameters.ContainsKey('IncludeHidden') -or
                             $Parameters['Mailbox'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Mailbox']) -or
                             -not $script:FamilyVerifiedTargets.Contains($Parameters['Mailbox']) -or $Parameters['IncludeHidden'] -isnot [bool] -or
@@ -455,6 +480,7 @@ function Invoke-BditRunner {
                     }
                     default { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 }
+                }
                 $script:FamilySourceCalls++
                 [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
                 $output = Read-BditBoundedRows -Producer { & $Readers[$Command] @arguments } -Properties $properties -UseSharedBudget $true -CountAsObservation $observation
@@ -464,6 +490,17 @@ function Invoke-BditRunner {
                     $actual = [guid]::Empty
                     if ($null -ne $returned -and ($returned.Value -is [guid] -or $returned.Value -is [string]) -and
                         [guid]::TryParseExact([string]$returned.Value, 'D', [ref]$actual) -and $actual.ToString('D') -ceq $Parameters['Identity']) {
+                        if ($script:FamilyReportId -ceq 'exo-mailbox-permissions' -and $script:FamilyPermissionSources.Contains('SendOnBehalf')) {
+                            $grants = $output[0].PSObject.Properties['GrantSendOnBehalfTo']
+                            # The projected attribute is independently bounded to100 values. Each resulting edge also
+                            # consumes the shared diagnostic-reserved observation budget before it reaches the body.
+                            if ($null -ne $grants -and $grants.Value -is [array]) {
+                                foreach ($grant in $grants.Value) {
+                                    if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
+                                    $script:FamilyRowsRead++
+                                }
+                            }
+                        }
                         $null = $script:FamilyVerifiedTargets.Add($Parameters['Identity'])
                     }
                 }

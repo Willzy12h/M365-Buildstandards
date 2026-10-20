@@ -46,7 +46,7 @@
     {
       "id": "exo.inbox-rule-observations",
       "manifest": "exchange-online/Get-InboxRuleObservations.json",
-      "manifestSha256": "9917f192f063070e5afa49d7db8f5b83390b5fb388ac8a8c17124c155c1a772d",
+      "manifestSha256": "933d83a01fe034f030a4c2e7e25526a1ae352d52488461a744ab94933da4b346",
       "scriptSha256": "2e8d1d3fa55600d4313dafa1c42a6710acfa1bab6abfbc561de8282b94e7fa40",
       "manifestSchemaVersion": 2
     },
@@ -81,7 +81,7 @@
     {
       "id": "exo.mailbox-forwarding-settings",
       "manifest": "exchange-online/Get-MailboxForwardingSettings.json",
-      "manifestSha256": "1eb7b5ccdcde509723607322f22ddc426b64e26eed1dfde486a4bb7ada616f55",
+      "manifestSha256": "cf26260f25b6ff4abaa3ab715a1e49cd00287f3612d0623e20b720e52d6710cc",
       "scriptSha256": "6e38171d5b5925b9f626695c50bb1b349523d8117cad242a4f2ae401c5766707",
       "manifestSchemaVersion": 2
     },
@@ -95,7 +95,7 @@
     {
       "id": "exo.mailbox-hold-settings",
       "manifest": "exchange-online/Get-MailboxHoldSettings.json",
-      "manifestSha256": "656a4f1ef26d070769d90df74d7cd86ebafab2b1f4d41f7dbd4dca0e504cedb1",
+      "manifestSha256": "ff6e925d0ae258c3ada08df834c863676d17ef0b7420c9a6ff01794657b0d047",
       "scriptSha256": "d09ee6f45ff02ac0e6ecd2accd404d1a00c8da78e92001157143358f5c2eb6de",
       "manifestSchemaVersion": 2
     },
@@ -130,7 +130,7 @@
     {
       "id": "exo.mailbox-protocol-settings",
       "manifest": "exchange-online/Get-MailboxProtocolSettings.json",
-      "manifestSha256": "b44a9a2b79c4dcf5de9756ee4d0e255e07ed4b6c09ad18e61e3e2577b1bd2b5a",
+      "manifestSha256": "532b6945406bde92dd836180cd181439ec1fc6d63eb047b94e57824dc85000bc",
       "scriptSha256": "513d488d7bb0a8979f360b1421bc96b0a761d7418486d10f1d46af9bef369a14",
       "manifestSchemaVersion": 2
     },
@@ -144,7 +144,7 @@
     {
       "id": "exo.mailbox-size-quota",
       "manifest": "exchange-online/Get-MailboxSizeAndQuota.json",
-      "manifestSha256": "c83cc9575a56aeb748f4c198e5337e576dbd5a038c9ebea6f3369d5146b8483c",
+      "manifestSha256": "faa4ac93f53861123d755f6092e12e09f8d9d56e3283426ab4c6272f0d76b0d2",
       "scriptSha256": "e7c822736875405a3f3db6642e45002bec0121b3fd1ef656bc22bb87799b9f1e",
       "manifestSchemaVersion": 2
     },

@@ -16,6 +16,7 @@ $script:FamilyVersion=2;$script:FamilyReportId='exo-inbox-rules'
 $script:FamilyTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $null=$script:FamilyTargets.Add($first)
 $script:FamilyVerifiedTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$script:FamilyPermissionSources=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $script:FamilyIncludeHidden=$false;$script:FamilySourceCalls=0;$script:FamilyRowsRead=0;$script:FamilyProjectedBytes=2
 $script:FamilyObservationMaximum=4999
 $script:FamilyStarted=[Diagnostics.Stopwatch]::StartNew()
@@ -24,7 +25,7 @@ function Get-FakeMailbox {
     $script:Reads++
     if($Case -ceq 'failed-lookup-after-good' -and $script:Reads -ge 2){throw 'Synthetic failed lookup'}
     $guid=if($Case -ceq 'wrong-object' -or ($Case -ceq 'stale-parent' -and $script:Reads -ge 2)){$second}else{$Identity}
-    [pscustomobject]@{ExchangeGuid=[guid]$guid;ExternalDirectoryObjectId=$null;DisplayName='Synthetic';PrimarySmtpAddress='mailbox@synthetic.example';Secret='not selected'}
+    [pscustomobject]@{ExchangeGuid=[guid]$guid;ExternalDirectoryObjectId=$null;DisplayName='Synthetic';PrimarySmtpAddress='mailbox@synthetic.example';GrantSendOnBehalfTo=@([pscustomobject]@{RawIdentity='opaque-principal'});Secret='not selected'}
 }
 function Get-FakeRules {
     param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
@@ -35,7 +36,12 @@ function Get-FakeRules {
         [pscustomobject]@{RuleIdentity=('18446744073709551615'+[string]$n);Identity='raw-rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true;Secret='not selected'}
     }
 }
-$Readers=@{'Get-EXOMailbox'=(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
+function Get-FakePermission {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;$script:LastSize=$ResultSize
+    [pscustomobject]@{User=[pscustomobject]@{RawIdentity='S-1-5-21-123-456-789-1001';Private='excluded'};Trustee='NT AUTHORITY\SELF';AccessRights=@('FullAccess');IsInherited=$false;Deny=$false;Private='excluded'}
+}
+$Readers=@{'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
 function Refused([scriptblock]$Work,[int]$ExpectedReads){
     $failed=$false;try{$null=& $Work}catch{$failed=$true}
     Check $failed 'A forbidden/unbounded call was admitted';Check ($script:Reads -eq $ExpectedReads) 'A refused call reached a source reader'
@@ -61,6 +67,35 @@ switch -CaseSensitive ($Case) {
  'diagnostic-reserve' {
     $script:FamilyObservationMaximum=0;$null=$script:FamilyVerifiedTargets.Add($first)
     Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 0
+ }
+ 'permission-source' {
+    $script:FamilyReportId='exo-mailbox-permissions';$null=$script:FamilyPermissionSources.Add('FullAccess')
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    $rows=@(Use-BditRead -Command 'Get-EXOMailboxPermission' -Parameters @{Identity=$first})
+    Check ($rows.Count -eq 1 -and $rows[0].User.Source -ceq 'RawIdentity' -and $rows[0].User.Value -ceq 'S-1-5-21-123-456-789-1001') 'Approved raw trustee namespace/value was lost'
+    Check ($rows[0].Deny -is [bool] -and -not $rows[0].Deny -and $rows[0].IsInherited -is [bool] -and -not $rows[0].IsInherited) 'Reported false flags were lost'
+    Check ($script:LastSize -eq 5000 -and $script:FamilyRowsRead -eq 1) 'The selected source did not share the diagnostic-reserved row budget'
+    Check ($null -eq $rows[0].PSObject.Properties['Private']) 'Unregistered permission data escaped'
+ }
+ 'permission-unselected' {
+    $script:FamilyReportId='exo-mailbox-permissions';$null=$script:FamilyPermissionSources.Add('SendAs');$null=$script:FamilyVerifiedTargets.Add($first)
+    Refused {Use-BditRead -Command 'Get-EXOMailboxPermission' -Parameters @{Identity=$first}} 0
+ }
+ 'permission-send-as' {
+    $script:FamilyReportId='exo-mailbox-permissions';$null=$script:FamilyPermissionSources.Add('SendAs');$null=$script:FamilyVerifiedTargets.Add($first)
+    $rows=@(Use-BditRead -Command 'Get-EXORecipientPermission' -Parameters @{Identity=$first})
+    Check ($rows.Count -eq 1 -and $rows[0].Trustee -ceq 'NT AUTHORITY\SELF') 'SendAs source was inferred or mixed with FullAccess'
+    Check ($script:FamilyRowsRead -eq 1 -and $script:LastSize -eq 5000) 'SendAs source budget was not fixed'
+ }
+ 'permission-send-on-behalf' {
+    $script:FamilyReportId='exo-mailbox-permissions';$null=$script:FamilyPermissionSources.Add('SendOnBehalf')
+    $rows=@(Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first})
+    Check ($rows.Count -eq 1 -and $rows[0].GrantSendOnBehalfTo.Count -eq 1 -and $rows[0].GrantSendOnBehalfTo[0].Source -ceq 'RawIdentity') 'Attribute principal lost its original source namespace'
+    Check ($script:FamilyRowsRead -eq 1) 'Attribute-derived edges bypassed the shared observation budget'
+ }
+ 'permission-attribute-budget' {
+    $script:FamilyReportId='exo-mailbox-permissions';$null=$script:FamilyPermissionSources.Add('SendOnBehalf');$script:FamilyObservationMaximum=0
+    Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}} 1
  }
  'wrong-target' {Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$second}} 0}
  'unverified-child' {Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 0}
