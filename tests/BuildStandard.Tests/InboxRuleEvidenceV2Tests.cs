@@ -113,4 +113,30 @@ public sealed class InboxRuleEvidenceV2Tests
         report.Sections[0].Rows.RemoveAt(49);
         Assert.ThrowsAny<ToolkitException>(() => Read(report));
     }
+    [Theory]
+    [InlineData(false, false, "No selected cues reported — not a safety verdict")]
+    [InlineData(true, false, "Reported cues — review context")]
+    [InlineData(false, true, "Unable to classify all cues")]
+    [InlineData(true, true, "Reported cues and unknowns — review")]
+    public void Local_rule_review_cues_keep_unknowns_and_do_not_claim_incident_or_protection_status(bool deleteMessage, bool unknown, string expected)
+    {
+        var report = Report();
+        // StopProcessingRules is an observation, but not independently a forwarding/deletion cue.
+        var row = report.Sections[1].Rows[0];
+        row["deleteMessage"] = Value(deleteMessage);
+        if (unknown)
+        {
+            Partial(report);
+            row["forwardTo"] = new JsonObject { ["state"] = "Missing", ["value"] = null, ["reason"] = "Synthetic unavailable recipients" };
+        }
+        var sheets = RegisteredReportDocuments.Sheets(Read(report));
+        var rules = sheets.Single(sheet => sheet.Name == "rules");
+        Assert.Contains("Local review cue status", rules.Rows[0]);
+        Assert.Equal(expected, rules.Rows[1][Array.IndexOf(rules.Rows[0], "Local review cue status")]);
+        var detail = rules.Rows[1][Array.IndexOf(rules.Rows[0], "Local review cues")];
+        Assert.Contains("Recorded disabled", detail);
+        if (deleteMessage) Assert.Contains("DeleteMessage reported true", detail);
+        if (unknown) Assert.Contains("Unknown values / unresolved references", detail);
+        Assert.Equal(deleteMessage, row["deleteMessage"]!["value"]!.GetValue<bool>());
+    }
 }

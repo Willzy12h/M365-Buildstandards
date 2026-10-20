@@ -34,6 +34,8 @@ public static class RegisteredReportDocuments
             if(report.ReportId=="exo-inbox-rules")metadata.Add("Hidden rule scope",report.Parameters.Single(p=>p.Name=="IncludeHidden").Value=="false"
                 ?"Hidden rules omitted; no complete all-rules inventory or incident verdict is claimed."
                 :"Hidden rules requested; source/RBAC/row limits still apply and this is not an incident verdict.");
+            if (report.ReportId == "exo-inbox-rules") metadata.Add("Local review cues",
+                "Forwarding recipients and DeleteMessage=true are review cues, including on recorded disabled rules. Unknown values stay visible. Cues do not establish maliciousness, effective behaviour or protection; hidden-rule scope still applies.");
         }
         var sheets = new List<Sheet> { metadata };
         foreach (var section in report.Sections)
@@ -42,12 +44,48 @@ public static class RegisteredReportDocuments
             foreach (var limitation in report.Limitations.Concat(section.Limitations)) metadata.Add("Limitation", limitation);
             var columns = ExchangeReportEvidenceSchema.Columns(definition.Sections.Single(s => s.Id == section.Id).RowType)
                 .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
-            var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)));
+            var ruleCues = report.ReportId == "exo-inbox-rules" && section.Id == "rules";
+            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)).ToList();
+            if (ruleCues) headings.AddRange(["Local review cue status", "Local review cues"]);
+            var sheet = new Sheet(section.Id, headings);
             foreach (var row in section.Rows)
-                sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c,definition.ReportSchemaVersion == 2)).ToArray());
+            {
+                var cells = columns.Select(c => ExchangeValue(row,c,definition.ReportSchemaVersion == 2)).ToList();
+                if (ruleCues)
+                {
+                    var cue = RuleReviewCue(row);
+                    cells.Add(cue.Status); cells.Add(cue.Detail);
+                }
+                sheet.Rows.Add(cells.ToArray());
+            }
             sheets.Add(sheet);
         }
         return sheets;
+    }
+    private static (string Status, string Detail) RuleReviewCue(JsonObject row)
+    {
+        var cues = new List<string>();
+        foreach (var name in new[] { "forwardTo", "forwardAsAttachmentTo", "redirectTo" })
+            if (row[name]!["state"]!.GetValue<string>() == "Value"
+                && row[name]!["value"] is JsonArray { Count: > 0 })
+                cues.Add(Label(name) + " recipients reported");
+        if (row["deleteMessage"]!["state"]!.GetValue<string>() == "Value"
+            && row["deleteMessage"]!["value"]!.GetValue<bool>()) cues.Add("DeleteMessage reported true");
+        var unknown = row["readStatus"]!.GetValue<string>() != ReportReadState.Collected;
+        var status = (cues.Count > 0, unknown) switch
+        {
+            (true, true) => "Reported cues and unknowns — review",
+            (true, false) => "Reported cues — review context",
+            (false, true) => "Unable to classify all cues",
+            _ => "No selected cues reported — not a safety verdict"
+        };
+        if (cues.Count == 0) cues.Add("No positive cues established from returned values");
+        var enabled = row["enabled"]!;
+        cues.Add(enabled["state"]!.GetValue<string>() == "Value"
+            ? enabled["value"]!.GetValue<bool>() ? "Recorded enabled; effect unverified" : "Recorded disabled; effect unverified"
+            : "Enabled state unknown; effect unverified");
+        if (unknown) cues.Add("Unknown values / unresolved references: " + row["error"]!.GetValue<string>());
+        return (status, string.Join(" · ", cues));
     }
     private static string ExchangeValue(JsonObject row,string column,bool family)
     {
