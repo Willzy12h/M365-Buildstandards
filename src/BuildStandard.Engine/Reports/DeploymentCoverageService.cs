@@ -11,7 +11,10 @@ public sealed record CoverageCapturedSource(string Key,string Path,string Scope,
     public IntuneExportObservation? ModernExport {get;init;}
 }
 public sealed record CoverageCapturedGroup(string GroupObjectId,CoverageMembershipResult Membership);
-public sealed record DeploymentCoverageCapture(DeploymentCoverageSelection Selection,IReadOnlyList<CoverageCapturedSource> Sources,IReadOnlyList<CoverageAssignmentObservation> Assignments,IReadOnlyList<CoverageCapturedGroup> Groups,IReadOnlyList<ComplianceCoverageObservation> ComplianceObservations,string CandidateState,bool IsCurrentAtCompletion,bool SupportedReadsComplete,string Limitations);
+public sealed record DeploymentCoverageCapture(DeploymentCoverageSelection Selection,IReadOnlyList<CoverageCapturedSource> Sources,IReadOnlyList<CoverageAssignmentObservation> Assignments,IReadOnlyList<CoverageCapturedGroup> Groups,IReadOnlyList<ComplianceCoverageObservation> ComplianceObservations,string CandidateState,bool IsCurrentAtCompletion,bool SupportedReadsComplete,string Limitations)
+{
+    public string Id {get;init;}=Guid.NewGuid().ToString();
+}
 
 /// <summary>One read-only selected-control journey, preserving original source states without creating deployment evidence.</summary>
 public sealed class DeploymentCoverageService

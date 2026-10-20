@@ -56,4 +56,6 @@ public sealed class DeploymentCoverageEvidenceTests
     {var e=await Evidence();var bytes=Change(e,n=>{n.Remove("wasCurrentAtCompletion");n.Remove("supportedReadsFinished");n.Remove("analysisLimitations");});var read=DeploymentCoverageEvidence.Read(bytes,e.OriginalPages,TestData.TenantA);Assert.Equal(bytes,read.MetadataBytes);Assert.Null(read.Metadata.WasCurrentAtCompletion);Assert.Null(read.Metadata.SupportedReadsFinished);Assert.Contains("Unknown / not recorded",DeploymentCoverageDocuments.Html(read,"Synthetic"));}
     [Fact] public async Task A_positive_overall_read_claim_cannot_contradict_failed_original_context_admission()
     {var e=await Evidence();var bytes=Change(e,n=>{n["wasCurrentAtCompletion"]=false;n["supportedReadsFinished"]=true;});Assert.Throws<ConfigurationException>(()=>DeploymentCoverageEvidence.Read(bytes,e.OriginalPages,TestData.TenantA));}
+    [Fact] public async Task Repeated_preparation_of_the_same_retained_capture_does_not_create_a_new_report_identity()
+    {var raw=await new DeploymentCoverageServiceTests.Fixture().Capture();var first=DeploymentCoverageEvidence.Create(raw);var second=DeploymentCoverageEvidence.Create(raw);Assert.Equal(first.Metadata.Id,second.Metadata.Id);Assert.Equal(first.MetadataBytes,second.MetadataBytes);}
 }

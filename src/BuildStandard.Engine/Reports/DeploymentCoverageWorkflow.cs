@@ -5,7 +5,7 @@ using BuildStandard.Core.Reporting;
 namespace BuildStandard.Engine.Reports;
 
 /// <summary>Separate unsaved-original handling; carries no authentication or execution authority.</summary>
-public sealed class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,string> save,Func<string> context)
+public sealed partial class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,string> save,Func<string> context)
 {
     public sealed record Outcome(DeploymentCoverageEvidence Capture,string File,string? NotSavedReason);
     private readonly object _gate=new();
@@ -17,7 +17,7 @@ public sealed class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,s
     {
         lock(_gate)
         {
-            if(_running||_pending is not null)throw new SafetyViolationException("Finish the current read or save, export or explicitly discard its original unsaved report before another read.");
+            if(_running||_pending is not null||_pendingCapture is not null)throw new SafetyViolationException("Finish the current read or save, export or explicitly discard its original unsaved report before another read.");
             _running=true;
         }
         try
@@ -51,7 +51,7 @@ public sealed class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,s
                 RequireContext(expectedContext);
                 return new(original,"","NOT SAVED — original report retained. A disk copy may already exist; inspect local evidence before an explicit save or original export. No read is repeated. "+SensitiveDataScrubber.Scrub(ex.Message));
             }
-            lock(_gate)_pending=null;
+            lock(_gate)ClearPending();
             RequireContext(expectedContext);
             return new(original,file,null);
         }
@@ -63,7 +63,7 @@ public sealed class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,s
         {
             var original=RequirePending(expectedId,acknowledged);var file=save(original);
             if(string.IsNullOrWhiteSpace(file))throw new IntegrityException("No saved path was verified; the original remains retained.");
-            _pending=null;return file;
+            ClearPending();return file;
         }
     }
     public string ExportOriginal(ReportExporter exporter,string expectedId,bool acknowledged)
@@ -72,17 +72,22 @@ public sealed class DeploymentCoverageWorkflow(Func<DeploymentCoverageEvidence,s
         {
             var original=RequirePending(expectedId,acknowledged);
             var file=exporter.ExportDeploymentCoverage(original,ExportFormat.Json);
-            _pending=null;return file;
+            ClearPending();return file;
         }
     }
     public void DiscardPending(string expectedId,bool acknowledged)
-    {lock(_gate){_=RequirePending(expectedId,acknowledged);_pending=null;}}
+    {lock(_gate){RequirePendingIdentity(expectedId,acknowledged);ClearPending();}}
     private DeploymentCoverageEvidence RequirePending(string expectedId,bool acknowledged)
     {
-        if(_running||_pending is null||!acknowledged||_pending.Metadata.Id!=expectedId)
-            throw new SafetyViolationException("Review and explicitly acknowledge this exact original unsaved report before saving, exporting or discarding it. This is separate from the current client and cannot run an operation.");
-        return _pending;
+        RequirePendingIdentity(expectedId,acknowledged);
+        return _pending??throw new SafetyViolationException("A conforming saved-report bundle is unavailable. Export the retained original files for manual review or explicitly discard; the strict report cap is unchanged.");
     }
+    private void RequirePendingIdentity(string expectedId,bool acknowledged)
+    {
+        if(_running||!acknowledged||(_pendingCapture?.Id??_pending?.Metadata.Id)!=expectedId)
+            throw new SafetyViolationException("Review and explicitly acknowledge this exact retained original before saving, copying or discarding it. This cannot repeat a tenant operation.");
+    }
+    private void ClearPending(){_pending=null;_pendingCapture=null;}
     private void RequireContext(string expected)
     {
         if(string.IsNullOrWhiteSpace(expected)||context()!=expected)

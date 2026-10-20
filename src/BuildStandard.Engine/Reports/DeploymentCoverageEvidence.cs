@@ -84,7 +84,7 @@ public sealed class DeploymentCoverageEvidence
     public static DeploymentCoverageEvidence Create(DeploymentCoverageCapture capture)
     {
         ArgumentNullException.ThrowIfNull(capture);var s=capture.Selection;
-        var report=new DeploymentCoverageReport{ToolkitVersion=BuildStandard.Engine.ToolkitVersion.Current,Id=Guid.NewGuid().ToString(),TenantId=s.TenantId,AccountObjectId=s.AccountObjectId,ClientId=s.ClientId,
+        var report=new DeploymentCoverageReport{ToolkitVersion=BuildStandard.Engine.ToolkitVersion.Current,Id=capture.Id,TenantId=s.TenantId,AccountObjectId=s.AccountObjectId,ClientId=s.ClientId,
             PermissionMode=s.PermissionMode,Scopes=s.Scopes.ToList(),WasCurrentAtCompletion=capture.IsCurrentAtCompletion,SupportedReadsFinished=capture.SupportedReadsComplete,AnalysisLimitations=capture.Limitations,StartedAt=capture.Sources.Min(s=>s.StartedAt)!,CompletedAt=capture.Sources.Max(s=>s.CompletedAt)!,
             Selection=new(){ControlId=s.ControlId,ControlName=s.ControlName,ControlDigest=s.ControlDigest,ObjectId=s.ObjectId,Collection=s.Collection,Family=s.Family,
                 SourceSnapshotId=s.SourceSnapshotId,SourceSnapshotDigest=s.SourceSnapshotDigest,SourceCapturedAt=s.SourceCapturedAt,SourceRunId=s.SourceRunId,SourceRunDigest=s.SourceRunDigest,

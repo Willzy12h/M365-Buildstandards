@@ -29,6 +29,12 @@ public sealed class IntuneExportObservation
         ValidateJob(receipt.JobId,receipt.StartedAt,receipt.CompletedAt);
         return new(selection.TenantId,selection.AccountObjectId,selection.ClientId,request,receipt.JobId,receipt.StartedAt,receipt.CompletedAt,IntuneExportArchive.Read(receipt.OriginalArchiveBytes,request),false);
     }
+    internal void RequireScope(DeploymentCoverageSelection selection)
+    {
+        if(!Same(TenantId,selection.TenantId)||!Same(AccountObjectId,selection.AccountObjectId)||!Same(ClientId,selection.ClientId)
+            ||Request.Sha256!=IntuneExportRequest.Prepare(selection.Family,selection.ObjectId).Sha256)
+            throw new TenantMismatchException("The original modern source actor/request does not match this frozen control scope.");
+    }
     internal static IntuneExportObservation ReadHistorical(DeploymentCoverageReport report,CoverageReportSource source,byte[] archive)
     {
         var original=source.ModernExport!;var request=IntuneExportRequest.Prepare(report.Selection.Family,report.Selection.ObjectId);
