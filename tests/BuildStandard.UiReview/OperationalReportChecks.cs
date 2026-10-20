@@ -51,7 +51,7 @@ internal static partial class Program
             ResourceType = "#microsoft.graph.delegatedAdminRelationship", Status = "active", CreatedAt = "2026-10-01T00:00:00Z",
             ActivatedAt = "2026-10-01T00:00:00Z", ModifiedAt = "2026-10-01T00:00:00Z", EndedAt = "2026-10-02T00:00:00Z",
             Duration = "P180D", AutoExtendDuration = "PT0S", ExpiryAtAsOf = "EndedAtOrBeforeAsOf", RoleDefinitionIds = [],
-            ReadStatus = ReportReadState.Collected, AssignmentReadStatus = ReportReadState.Collected, ReturnedAssignments = 0
+            ReadStatus = ReportReadState.Collected, AssignmentReadStatus = ReportReadState.Collected, AssignmentReadError = null, ReturnedAssignments = 0
         };
         partner.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(parent, rowOptions)!.AsObject());
         OperationalContextSchema.Seal(partner);
