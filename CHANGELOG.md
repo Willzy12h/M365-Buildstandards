@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Expansion B foundation: validate/freeze one typed CA scenario, preserve omitted versus explicit conditions and reject unsupported platforms/identities. Evaluation transport, coverage collection and native journey remain in progress.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
