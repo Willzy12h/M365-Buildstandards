@@ -112,7 +112,7 @@ internal static partial class Program
             if(page.OutcomeRows?.Count!=1 || calls!=originalCalls || workflow.EvidenceJson!=originalEvidence)
                 throw new InvalidOperationException("The local inbox filter lost unknowns or repeated/changed collection.");
             content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
-            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  inbox observations {size.Width}x{size.Height} · needs at least100 pixels of visible rows.");
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  inbox observations {size.Width}x{size.Height} · needs at least100 pixels of visible rows; actual {VisibleBounds(table,content).Height:0.#} pixels.");
             RecordUnnamedControls(content,"inbox observations");RecordLowContrast(content,"inbox observations");RecordClipping(content,"inbox observations");
             SaveImage(content,size,Path.Combine(output,"run-reports-inbox-observations-"+(int)size.Width+"x"+(int)size.Height+".png"));
 

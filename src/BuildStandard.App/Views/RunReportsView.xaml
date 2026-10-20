@@ -65,7 +65,7 @@
               </TabItem>
               <TabItem Header="Outcome">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <DockPanel Margin="8" MinHeight="360" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+                <DockPanel Margin="8" MinHeight="360">
                   <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                     <WrapPanel><ComboBox ItemsSource="{Binding ExportFormats}" SelectedItem="{Binding SelectedExportFormat}" Width="90" Margin="0,0,8,0" AutomationProperties.Name="Read-only report export format"/><Button Content="Export report" Command="{Binding ExportReportCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Save or export original evidence first, then export the complete report for the current client without another read."/><!-- Existing deliberate copy actions. --><Button Content="Copy outcome" Command="{Binding CopyOutcomeCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Copy evidence JSON" Command="{Binding CopyEvidenceCommand}" Style="{StaticResource SecondaryButton}"/><Button Content="Open mailbox capacity" Command="{Binding OpenMailboxCapacityCommand}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButton}" AutomationProperties.Name="Open mailbox capacity evidence review" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MailboxReviewGuidance}"/></WrapPanel>
                     <TextBox Text="{Binding LastExport, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="48" AutomationProperties.Name="Last successful original report export" Visibility="{Binding HasReportExport, Converter={StaticResource BoolToVis}}"/>
@@ -73,7 +73,7 @@
                     <TextBlock Text="{Binding MailboxReviewGuidance}" Style="{StaticResource Muted}"/>
                   </StackPanel>
                   <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="150"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="150"/><RowDefinition Height="Auto"/><RowDefinition Height="240"/></Grid.RowDefinitions>
                     <TextBox Text="{Binding Output, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" FontSize="12" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Read-only run outcome"/>
                     <StackPanel Grid.Row="1" Margin="0,6,0,6">
                       <TextBlock Text="Report section" Style="{StaticResource FieldLabel}"/>
