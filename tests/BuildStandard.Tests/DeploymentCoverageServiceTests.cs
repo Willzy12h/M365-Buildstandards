@@ -8,7 +8,7 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class DeploymentCoverageServiceTests
 {
-    private sealed class Fixture
+    internal sealed class Fixture
     {
         public DeploymentCoverageSelectionTests.Fixture Data {get;}=new();
         public List<string> Reads {get;}=[];
