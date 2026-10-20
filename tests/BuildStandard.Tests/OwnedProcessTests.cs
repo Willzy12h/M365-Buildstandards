@@ -76,6 +76,52 @@ public sealed class OwnedProcessTests
     private static Task Drain(StreamReader reader) => reader.ReadToEndAsync();
 
     [Fact]
+    public async Task An_owned_resource_limit_samples_only_the_started_process_and_ends_its_tree()
+    {
+        var child = new Child(); var observed = new List<int>();
+        try
+        {
+            var outcome = await OwnedProcess.RunAsync(Sleeper(), child.ReadAsync, Drain,
+                TimeSpan.FromSeconds(10), () => false, () => { }, Grace, CancellationToken.None,
+                terminate: null, terminationWait: null, ownedLimitExceeded: p => { if(!child.Pid.IsCompletedSuccessfully)return false; observed.Add(p.Id); return true; });
+            Assert.Equal(OwnedProcessEnd.LimitExceeded, outcome.End);
+            Assert.True(outcome.Killed); Assert.True(await child.GoneAsync());
+            Assert.NotEmpty(observed); Assert.All(observed, id => Assert.Equal(child.Pid.Result, id));
+        }
+        finally { await child.CleanUpAsync(); }
+    }
+
+    [Fact]
+    public async Task A_failing_owned_resource_sample_still_ends_the_child_before_throwing()
+    {
+        var child = new Child();
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => OwnedProcess.RunAsync(Sleeper(), child.ReadAsync, Drain,
+                TimeSpan.FromSeconds(10), () => false, () => { }, Grace, CancellationToken.None,
+                terminate: null, terminationWait: null, ownedLimitExceeded: _ => child.Pid.IsCompletedSuccessfully ? throw new InvalidOperationException("Synthetic sample refused.") : false));
+            Assert.True(await child.GoneAsync());
+        }
+        finally { await child.CleanUpAsync(); }
+    }
+
+    [Fact]
+    public async Task An_unconfirmed_resource_limit_termination_stays_not_stopped()
+    {
+        var child = new Child();
+        try
+        {
+            var result = await OwnedProcess.RunAsync(Sleeper(), child.ReadAsync, Drain,
+                TimeSpan.FromSeconds(10), () => false, () => { }, Grace, CancellationToken.None,
+                terminate: _ => { }, terminationWait: TimeSpan.FromMilliseconds(200),
+                ownedLimitExceeded: _ => child.Pid.IsCompletedSuccessfully);
+            Assert.Equal(OwnedProcessEnd.NotStopped, result.End); Assert.Null(result.ExitCode);
+            Assert.False(result.Killed); Assert.False(await child.GoneAsync());
+        }
+        finally { await child.CleanUpAsync(); }
+    }
+
+    [Fact]
     public async Task A_stop_request_that_throws_still_ends_the_child_and_reports_a_forced_stop()
     {
         var child = new Child();
