@@ -1,13 +1,28 @@
 namespace BuildStandard.Core.Models;
-/// <summary>Ephemeral, deliberately selected access; never persisted into a standard or tenant profile.</summary>
-public enum OptionalReportAccess { None, UsageReports }
+/// <summary>Ephemeral fixed read purposes, deliberately selected; never persisted into a standard or tenant profile.</summary>
+[Flags]
+public enum OptionalReportAccess { None = 0, UsageReports = 1, ServiceHealth = 2, PartnerRelationships = 4 }
 public static class OptionalReportAccessPolicy
 {
-    public const string UsageScope="Reports.Read.All";
+    public const string UsageScope = "Reports.Read.All";
+    public const string HealthScope = "ServiceHealth.Read.All";
+    public const string PartnerScope = "DelegatedAdminRelationship.Read.All";
+    public static IReadOnlyList<string> PreservedOptionalScopes { get; } = Array.AsReadOnly(new[] { UsageScope, HealthScope, PartnerScope });
+    private const OptionalReportAccess Known = OptionalReportAccess.UsageReports | OptionalReportAccess.ServiceHealth | OptionalReportAccess.PartnerRelationships;
     public static void Validate(OptionalReportAccess access)
-    {if(access is not OptionalReportAccess.None and not OptionalReportAccess.UsageReports)throw new ConfigurationException("Choose a supported optional report access intent.");}
+    { if ((access & ~Known) != 0) throw new ConfigurationException("Choose only supported fixed optional report-access purposes."); }
     public static IEnumerable<string> Scopes(OptionalReportAccess access)
-    {Validate(access);return access==OptionalReportAccess.UsageReports?[UsageScope]:[];}
-    public static bool IsSatisfied(OptionalReportAccess access,IEnumerable<string> returnedScopes)
-    {Validate(access);return access==OptionalReportAccess.None||returnedScopes.Contains(UsageScope,StringComparer.OrdinalIgnoreCase)||returnedScopes.Contains("https://graph.microsoft.com/"+UsageScope,StringComparer.OrdinalIgnoreCase);}
+    {
+        Validate(access);
+        if ((access & OptionalReportAccess.UsageReports) != 0) yield return UsageScope;
+        if ((access & OptionalReportAccess.ServiceHealth) != 0) yield return HealthScope;
+        if ((access & OptionalReportAccess.PartnerRelationships) != 0) yield return PartnerScope;
+    }
+    public static bool IsSatisfied(OptionalReportAccess access, IEnumerable<string> returnedScopes)
+    {
+        Validate(access);
+        if (access == OptionalReportAccess.None) return true;
+        var returned = returnedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return Scopes(access).All(scope => returned.Contains(scope) || returned.Contains("https://graph.microsoft.com/" + scope));
+    }
 }

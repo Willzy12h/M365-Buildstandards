@@ -104,9 +104,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                 {
                     if (Same(assessmentClientId.Trim(), deploymentClientId.Trim())) throw new ConfigurationException("Use different IDs for assessment and deployment.");
                     await PrepareExistingAsync(row, explicitId, ct).ConfigureAwait(false);
-                    // None does not revoke an existing optional permission. Preserve only the reviewed usage scope;
-                    // unknown/other additional scopes retain their ordinary separate review behaviour.
-                    if(optionalAccess==OptionalReportAccess.None && row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess)
+                    // Selecting another read purpose or selecting off does not revoke already configured approved
+                    // optional reads. Preserve only the fixed reviewed purposes; unidentified IDs require manual review.
+                    if(row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess)
                     {
                         var configuredIds=existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
                             .SelectMany(api=>(api["resourceAccess"] as JsonArray ?? []).OfType<JsonObject>())
@@ -117,15 +117,16 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                             .Select(permission=>Text(permission,"id")).ToHashSet(StringComparer.OrdinalIgnoreCase);
                         if(configuredIds.Except(advertisedIds,StringComparer.OrdinalIgnoreCase).Any())
                             throw new ConfigurationException("A configured Graph permission definition is unavailable. Preview refused; existing permissions were retained. Review the registration separately.");
-                        var usageDefinitions=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
-                            .Where(permission=>Same(Text(permission,"value"),OptionalReportAccessPolicy.UsageScope)&&configuredIds.Contains(Text(permission,"id"))).ToArray();
-                        if(usageDefinitions.Length>0)
+                        foreach(var name in OptionalReportAccessPolicy.PreservedOptionalScopes)
                         {
-                            if(usageDefinitions.Length!=1||!scopeMap.TryGetValue(OptionalReportAccessPolicy.UsageScope,out var usage)||!Same(usage.Id,Text(usageDefinitions[0],"id")))
-                                throw new ConfigurationException("Existing usage permission is disabled, ambiguous or unavailable in Graph metadata. Preview refused; selecting off must not remove it. Review the registration separately.");
-                            if(!row.Permissions.Any(permission=>permission.Name==usage.Name))row.Permissions.Add(usage);
-                            row.ApplicationPayload=ApplicationPayload(row);
+                            var definitions=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
+                                .Where(permission=>Same(Text(permission,"value"),name)&&configuredIds.Contains(Text(permission,"id"))).ToArray();
+                            if(definitions.Length==0)continue;
+                            if(definitions.Length!=1||!scopeMap.TryGetValue(name,out var optional)||!Same(optional.Id,Text(definitions[0],"id")))
+                                throw new ConfigurationException("An existing optional read permission is disabled, ambiguous or unavailable in Graph metadata. Preview refused; changing purpose or selecting off must not remove it. Review the registration separately.");
+                            if(!row.Permissions.Any(permission=>Same(permission.Name,optional.Name)))row.Permissions.Add(optional);
                         }
+                        row.ApplicationPayload=ApplicationPayload(row);
                     }
 
                     plan.Rows.Add(row);
@@ -347,7 +348,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                             row.ConfiguredScopes.Add(byId.GetValueOrDefault(Text(permission, "id"), "Unknown permission " + Text(permission, "id")));
                         }
                     }
-                    var allowedConfigured = row.RequiredScopes.Concat(optionalAccess==OptionalReportAccess.None?new[]{OptionalReportAccessPolicy.UsageScope}:Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var preservedOptional = OptionalReportAccessPolicy.PreservedOptionalScopes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    // Previously configured reviewed reads may remain, but an unconfigured grant is still extra access.
+                    var allowedConfigured = row.RequiredScopes.Concat(row.ConfiguredScopes.Where(preservedOptional.Contains)).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     if (row.RequiredScopes.Except(row.ConfiguredScopes,StringComparer.OrdinalIgnoreCase).Any() || row.ConfiguredScopes.Except(allowedConfigured,StringComparer.OrdinalIgnoreCase).Any())
                         row.Issues.Add("Configured delegated permissions differ from the current standard: missing or extra scopes require review.");
                     row.AssignmentRequired = sp["appRoleAssignmentRequired"]?.GetValue<bool>();
