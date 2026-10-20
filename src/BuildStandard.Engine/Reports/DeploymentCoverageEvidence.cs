@@ -60,6 +60,9 @@ public sealed class DeploymentCoverageReport
     [JsonRequired] public List<string> Scopes {get;set;}=[];
     [JsonRequired] public string StartedAt {get;set;}="";
     [JsonRequired] public string CompletedAt {get;set;}="";
+    [JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] public bool? WasCurrentAtCompletion {get;set;}
+    [JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] public bool? SupportedReadsFinished {get;set;}
+    [JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] public string? AnalysisLimitations {get;set;}
     [JsonRequired] public CoverageReportScope Selection {get;set;}=null!;
     [JsonRequired] public List<CoverageReportSource> Sources {get;set;}=[];
     [JsonRequired] public string IntegrityDigest {get;set;}="";
@@ -81,7 +84,7 @@ public sealed class DeploymentCoverageEvidence
     {
         ArgumentNullException.ThrowIfNull(capture);var s=capture.Selection;
         var report=new DeploymentCoverageReport{ToolkitVersion=BuildStandard.Engine.ToolkitVersion.Current,Id=Guid.NewGuid().ToString(),TenantId=s.TenantId,AccountObjectId=s.AccountObjectId,ClientId=s.ClientId,
-            PermissionMode=s.PermissionMode,Scopes=s.Scopes.ToList(),StartedAt=capture.Sources.Min(s=>s.StartedAt)!,CompletedAt=capture.Sources.Max(s=>s.CompletedAt)!,
+            PermissionMode=s.PermissionMode,Scopes=s.Scopes.ToList(),WasCurrentAtCompletion=capture.IsCurrentAtCompletion,SupportedReadsFinished=capture.SupportedReadsComplete,AnalysisLimitations=capture.Limitations,StartedAt=capture.Sources.Min(s=>s.StartedAt)!,CompletedAt=capture.Sources.Max(s=>s.CompletedAt)!,
             Selection=new(){ControlId=s.ControlId,ControlName=s.ControlName,ControlDigest=s.ControlDigest,ObjectId=s.ObjectId,Collection=s.Collection,Family=s.Family,
                 SourceSnapshotId=s.SourceSnapshotId,SourceSnapshotDigest=s.SourceSnapshotDigest,SourceCapturedAt=s.SourceCapturedAt,SourceRunId=s.SourceRunId,SourceRunDigest=s.SourceRunDigest,
                 StandardRelease=s.StandardRelease,StandardDigest=s.StandardDigest,PilotUserObjectIds=s.PilotUserObjectIds.ToList(),PilotDirectoryDeviceObjectIds=s.PilotDirectoryDeviceObjectIds.ToList()}};
@@ -144,7 +147,9 @@ public sealed class DeploymentCoverageEvidence
             if(scope.PilotUserObjectIds.Count+scope.PilotDirectoryDeviceObjectIds.Count>5000)throw Bad("Pilot scope exceeds the report bound.");
             if(r.Sources is not {Count:>0 and <=67}||r.Sources.Any(s=>s is null)||r.Sources.Select(s=>s.Key).Distinct(StringComparer.Ordinal).Count()!=r.Sources.Count)throw Bad("Missing/duplicated source identities.");
             if(!r.Sources.Any(s=>s.Key=="object")||!r.Sources.Any(s=>s.Key=="service-results")||scope.Family!=CoverageFamily.ConditionalAccess&&!r.Sources.Any(s=>s.Key=="assignments"))throw Bad("A required read-state entry is absent; omission is not a successful empty read.");
-            var pageNumber=0;var rowCount=0;var groups=new HashSet<string>(StringComparer.Ordinal);
+            if(r.AnalysisLimitations is not null)Text(r.AnalysisLimitations,16384);
+            if(r.SupportedReadsFinished==true&&(r.WasCurrentAtCompletion!=true||r.Sources.Any(s=>s.State!=CoverageSourceState.Complete)))throw Bad("The recorded overall read completion contradicts original context/source states.");
+            var pageNumber=0;var rowCount=0;var returnedRows=0;var groups=new HashSet<string>(StringComparer.Ordinal);
             for(var sourceIndex=0;sourceIndex<r.Sources.Count;sourceIndex++)
             {
                 var source=r.Sources[sourceIndex];Text(source.Key,128);if(source.Path is null||source.Scope is null)throw Bad("Original source path/scope cannot be null.");ExactEnum(document.RootElement.GetProperty("sources")[sourceIndex].GetProperty("state"),source.State);
@@ -155,13 +160,21 @@ public sealed class DeploymentCoverageEvidence
                 if(source.Path.Length==0&&source.Scope.Length==0)
                 {if(source.Pages.Count!=0||source.RetainedRowIds.Count!=0||source.State==CoverageSourceState.Complete)throw Bad("An unread source cannot contain pages or claim complete.");continue;}
                 if(request is null||source.Path!=request.Path||source.Scope!=request.Scope)throw Bad("A source path/scope differs from its fixed registered relation.");
-                var available=new HashSet<string>(StringComparer.Ordinal);var identities=new HashSet<string>(StringComparer.Ordinal);var allRows=new List<string>();var hasMore=false;var duplicate=false;
+                var available=new HashSet<string>(StringComparer.Ordinal);var identities=new HashSet<string>(StringComparer.Ordinal);var allRows=new List<string>();var hasMore=false;var duplicate=false;var pageRequest=request;var pageIndex=0;var paths=new HashSet<string>(StringComparer.Ordinal){request.Path};
                 foreach(var page in source.Pages)
                 {
                     if(page is null||page.File!=$"page-{pageNumber++:D3}.json"||!pages.TryGetValue(page.File,out var bytes))throw Bad("Original page files are missing, reordered or outside the generated inventory.");
                     if(bytes.Length!=page.Bytes||CanonicalJson.Sha256Hex(bytes)!=page.Sha256)throw new IntegrityException("Coverage original page bytes differ from the recorded length/fingerprint.");
-                    var decoded=CoverageResponseCodec.Read(bytes,request);hasMore=decoded.HasMore;
+                    var decoded=CoverageResponseCodec.Read(bytes,pageRequest);hasMore=decoded.HasMore;
+                    returnedRows+=decoded.Rows.Count;if(returnedRows>5000)throw Bad("Original returned rows exceed the 5,000-row capture limit; NOT SAVED rather than a smaller complete report.");
                     foreach(var row in decoded.Rows){var id=row["id"]!.GetValue<string>();var identity=request.IsGroupMembers&&ReportValues.TryGuid(id,out var canonical)?canonical:id;if(!identities.Add(identity))duplicate=true;else{available.Add(id);allRows.Add(id);}}
+                    if(++pageIndex<source.Pages.Count)
+                    {
+                        if(!hasMore)throw Bad("An extra original page has no preceding continuation declaration.");
+                        using var original=JsonDocument.Parse(bytes);
+                        pageRequest=DeploymentCoverageReads.Continue(pageRequest,original.RootElement.GetProperty("@odata.nextLink").GetString()!);
+                        if(!paths.Add(pageRequest.Path))throw Bad("Original pages claim a continuation loop; no complete source is admitted.");
+                    }
                 }
                 if(source.RetainedRowIds.Any(id=>!available.Contains(id)))throw Bad("An admitted row does not exist in the original source pages.");
                 if(source.State==CoverageSourceState.Complete&&(source.Pages.Count==0||hasMore||duplicate||!allRows.SequenceEqual(source.RetainedRowIds)))throw Bad("A complete source cannot omit rows, contain duplicates or declare an unread further page.");

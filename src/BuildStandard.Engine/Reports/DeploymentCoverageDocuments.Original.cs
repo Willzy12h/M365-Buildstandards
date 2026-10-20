@@ -12,6 +12,9 @@ public static partial class DeploymentCoverageDocuments
         context.Add("Report ID",r.Id);context.Add("Toolkit / adapter",r.ToolkitVersion+" / "+r.AdapterVersion);
         context.Add("Original source mode",r.SourceMode);context.Add("Tenant ID",r.TenantId);context.Add("Engineer account object ID",r.AccountObjectId);context.Add("Application registration",r.ClientId);
         context.Add("Original permission mode",r.PermissionMode);context.Add("Original scopes",string.Join(", ",r.Scopes));context.Add("Original interval",r.StartedAt+" to "+r.CompletedAt);
+        context.Add("Context admitted at collection completion",r.WasCurrentAtCompletion?.ToString()??"Unknown / not recorded by the original adapter");
+        context.Add("Original supported reads finished",r.SupportedReadsFinished?.ToString()??"Unknown / not recorded by the original adapter");
+        context.Add("Original analysis limitations",r.AnalysisLimitations??"Unknown / not recorded; inspect the original per-source states. No effective deployment is inferred.");
         context.Add("Control",s.ControlName);context.Add("Control ID",s.ControlId);context.Add("Exact object ID",s.ObjectId);context.Add("Collection",s.Collection);
         context.Add("Original control digest",s.ControlDigest);context.Add("Standard release",s.StandardRelease);context.Add("Original standard SHA-256",s.StandardDigest);
         context.Add("Source snapshot ID",s.SourceSnapshotId);context.Add("Original snapshot SHA-256",s.SourceSnapshotDigest);context.Add("Source capture time",s.SourceCapturedAt);
