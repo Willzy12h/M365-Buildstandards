@@ -13,6 +13,8 @@ public sealed class ConditionalAccessEvaluationRead
     private readonly byte[] _bytes;
     public string TenantId {get;}
     public string AccountObjectId {get;}
+    public string ClientId {get;}
+    public SessionMode PermissionMode {get;}
     public string Resource=>"https://graph.microsoft.com/";
     public PreparedConditionalAccessScenario Scenario {get;}
     public ConditionalAccessEvaluationResponse Result {get;}
@@ -20,10 +22,10 @@ public sealed class ConditionalAccessEvaluationRead
     public IReadOnlyList<string> Scopes {get;}
     public DateTimeOffset StartedAt {get;}
     public DateTimeOffset CompletedAt {get;}
-    internal ConditionalAccessEvaluationRead(string tenant,string account,PreparedConditionalAccessScenario scenario,
+    internal ConditionalAccessEvaluationRead(string tenant,string account,string client,SessionMode mode,PreparedConditionalAccessScenario scenario,
         ConditionalAccessEvaluationResponse result,byte[] bytes,IEnumerable<string> scopes,DateTimeOffset started,DateTimeOffset completed)
     {
-        TenantId=tenant;AccountObjectId=account;Scenario=scenario;Result=result;_bytes=(byte[])bytes.Clone();
+        TenantId=tenant;AccountObjectId=account;ClientId=client;PermissionMode=mode;Scenario=scenario;Result=result;_bytes=(byte[])bytes.Clone();
         Scopes=Array.AsReadOnly(scopes.ToArray());StartedAt=started;CompletedAt=completed;
     }
 }
@@ -99,7 +101,7 @@ public sealed class ConditionalAccessEvaluator:IDisposable
                     buffer.Write(chunk,0,count);
                 }
                 var bytes=buffer.ToArray();var result=ConditionalAccessEvaluationResponseCodec.Read(bytes);RequireCurrent();
-                var read=new ConditionalAccessEvaluationRead(_tenant,_account,frozen,result,bytes,_scopes,started,_clock.GetUtcNow());
+                var read=new ConditionalAccessEvaluationRead(_tenant,_account,_client,_mode,frozen,result,bytes,_scopes,started,_clock.GetUtcNow());
                 RequireCurrent();return read;
             }
             throw new InvalidOperationException("The evaluation renewal loop did not terminate.");
