@@ -94,8 +94,11 @@ public sealed class ConditionalAccessEvaluationService(TimeProvider? clock=null)
 public sealed class ConditionalAccessEvaluationCapture
 {
     private readonly byte[] _metadata,_response;
+    public bool IsHistorical {get;}
     internal ConditionalAccessEvaluationCapture(ConditionalAccessEvaluationReport report,byte[] response)
     {_metadata=Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report));_response=(byte[])response.Clone();}
+    internal ConditionalAccessEvaluationCapture(byte[] metadata,byte[] response)
+    {ConditionalAccessEvaluationSchema.Read(metadata,response);_metadata=(byte[])metadata.Clone();_response=(byte[])response.Clone();IsHistorical=true;}
     public ConditionalAccessEvaluationReport Metadata=>ConditionalAccessEvaluationSchema.Read(_metadata,_response);
     public byte[] MetadataBytes=>(byte[])_metadata.Clone();
     public byte[] OriginalResponseBytes=>(byte[])_response.Clone();

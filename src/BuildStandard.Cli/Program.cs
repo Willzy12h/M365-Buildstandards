@@ -38,7 +38,7 @@ public static class Program
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow"
+        "RecoveryService", "EntraLapsService", "ConditionalAccessEvaluator", "GraphClient", "TenantConnectionService", "JobWorkflow"
     };
 
     public static int Main(string[] args)
@@ -68,7 +68,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers" or "ca-evaluation");
 
         return command switch
         {
@@ -76,6 +76,7 @@ public static class Program
             "customers" => Customers(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
+            "ca-evaluation" => ConditionalAccessEvaluationExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -121,6 +122,10 @@ public static class Program
                   Invalid/conflicting/existing clients remain visible. No profiles are saved,
                   no tenant is contacted and relationship/tags do not prove access.
                   UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
+
+              buildstandard ca-evaluation --input <original-json.zip> --tenant <guid> [--format html|json|csv|xlsx] [--root <dir>]
+                  Export supplied hypothetical CA evaluation evidence only. Imports stay historical/unverified.
+                  JSON ZIP preserves the original metadata and response. No sign-in, evaluation or tenant action.
 
               buildstandard releases
                   List the Build Standard releases available to this installation.
@@ -419,6 +424,23 @@ public static class Program
         var context = Context.Open(options);
         Console.WriteLine(context.Exporter.ExportSnapshot(capture, null, format));
         Console.WriteLine($"Captured configuration · {capture.CapturedAt} · {(capture.Complete ? "Review collection status" : "INCOMPLETE — unknown reads remain explicit")} · no live reads or writes.");
+        return 0;
+    }
+
+    private static int ConditionalAccessEvaluationExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(k=>!allowed.Contains(k,StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("CA evaluation export accepts only --input, --tenant, --format and --root. No collection or execution is supported.");
+        var tenant=Require(options,"tenant");
+        if(!BuildStandard.Core.Reporting.ReportValues.TryGuid(tenant,out var canonicalTenant))throw new ConfigurationException("--tenant must identify the expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("CA evaluation exports as html, json, csv or xlsx only.");
+        var capture=ConditionalAccessEvaluationBundle.ReadFile(Require(options,"input"),canonicalTenant);
+        var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportConditionalAccessEvaluation(capture,format));
+        Console.WriteLine("Offline historical / unverified hypothetical evaluation · recorded read status "+capture.Metadata.Status+" · no live reads, sign-in or writes. Export success is not proof of applicability or enforcement.");
         return 0;
     }
 
