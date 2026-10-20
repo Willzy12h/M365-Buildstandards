@@ -52,6 +52,13 @@ public sealed class CollaborationReportsPageTests
         var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;await page.SearchGroupsAsync();page.SelectedGroup=page.GroupMatches.Single();
         f.ReplaceConnection();Assert.ThrowsAny<ToolkitException>(page.UseSelectedGroup);Assert.Equal("",page.CollaborationGroups);Assert.Equal(1,f.Handler.Calls);
     }
+    [Fact]public async Task Successfully_completed_empty_lookup_is_still_explicitly_empty()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent("{\"value\":[]}")};
+        await page.SearchGroupsAsync();Assert.Empty(page.GroupMatches);Assert.Contains("Lookup completed: no matching groups",page.GroupLookupStatus);Assert.Equal(1,f.Handler.Calls);
+    }
     [Fact]public async Task Stopping_group_lookup_cannot_be_reported_as_successfully_empty()
     {
         using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");

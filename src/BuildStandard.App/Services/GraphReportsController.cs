@@ -158,7 +158,7 @@ public sealed class GraphReportsController(Workspace workspace)
         query = query.Trim();
         if (query.Length is < 2 or > 200 || query.Any(char.IsControl))
             throw new ConfigurationException("Enter an exact group ID or 2 to 200 name characters.");
-        IReadOnlyList<ResolvedTenantObject> result = [];
+        IReadOnlyList<ResolvedTenantObject>? result = null;
         await workspace.RunExclusiveAsync("Finding existing groups; no changes", async _ =>
         {
             RequireContext(expectedContext);
@@ -174,7 +174,7 @@ public sealed class GraphReportsController(Workspace workspace)
         });
         RequireContext(expectedContext);
         if (!selectionStillCurrent()) throw new TenantMismatchException("The group selection changed; search again.");
-        return result;
+        return result ?? throw new ToolkitException("Group lookup was stopped before completion. No matching-group result was admitted; search again deliberately.");
     }
 
     public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
