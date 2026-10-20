@@ -512,3 +512,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Kept Stable Runtime detection lazy and failed closed on required restrictions or explicit host/profile/debugger overrides; core WPF/CLI do not initialise a browser on startup.
 - Added per-instance transient profile/content ownership and browser-exit retirement; no command bridge, scripts, new permissions or tenant actions.
 - Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.
+
+- Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
