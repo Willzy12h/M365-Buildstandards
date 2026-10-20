@@ -42,7 +42,7 @@ internal static partial class Program
             CustomerTenantId = Id(892), SourceMode = "historical", AsOfUtc = stamp, StartedAt = stamp, EndedAt = stamp,
             ToolkitVersion = workspace.Version, Status = ReportReadState.Collected,
             Sources = OperationalContextSchema.SourceDeclarations("partner-relationships").ToList(),
-            PartnerCoverage = new() { ParentInventoryComplete = true, ParentRowsRead = 1, SelectedCustomerRows = 1 },
+            PartnerCoverage = new() { ParentInventoryComplete = true, ParentRowsRead = 2, SelectedCustomerRows = 2 },
             Sections = [new() { Id = "partner-relationships", Status = ReportReadState.Collected }, new() { Id = "partner-assignments", Status = ReportReadState.Collected }]
         };
         var parent = new PartnerRelationshipRow
@@ -53,6 +53,8 @@ internal static partial class Program
             Duration = "P180D", AutoExtendDuration = "PT0S", ExpiryAtAsOf = "EndedAtOrBeforeAsOf", RoleDefinitionIds = [],
             ReadStatus = ReportReadState.Collected, AssignmentReadStatus = ReportReadState.Collected, AssignmentReadError = null, ReturnedAssignments = 0
         };
+        partner.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(parent, rowOptions)!.AsObject());
+        parent.Id = "synthetic-parent-second"; parent.Name = "Second synthetic selected relationship";
         partner.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(parent, rowOptions)!.AsObject());
         OperationalContextSchema.Seal(partner);
         SyntheticPartnerFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-partner-source.json");
@@ -92,7 +94,7 @@ internal static partial class Program
             CaptureReportState(content, output, "partner-deliberate-read", size, checkPageScrolling: false);
             AwaitReader(vm.OpenSuppliedAsync(SyntheticPartnerFile)); tabs.SelectedIndex = 1; vm.SelectedSection = "partner-relationships";
             content.UpdateLayout(); Pump();
-            if (vm.Rows?.Count != 1 || !vm.Outcome.Contains(Id(892), StringComparison.Ordinal)) throw new InvalidOperationException("Partner source/customer result meaning was lost.");
+            if (vm.Rows?.Count != 2 || !vm.Outcome.Contains(Id(892), StringComparison.Ordinal)) throw new InvalidOperationException("Partner source/customer result meaning was lost.");
             grid.BringIntoView(); content.UpdateLayout(); Pump();
             AssertNewPageRowViewport(content, "Operational observations and source provenance", "partner context " + size);
             CaptureReportState(content, output, "partner-relationship-results", size, checkPageScrolling: false);
