@@ -518,3 +518,4 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.
 
 - Coverage preparation now refuses to infer a static direct-member population from dynamic, hidden or incomplete group metadata; exact returned identity and v1 membership limitations remain explicit. Coverage collection remains in progress and live-unverified.
+- Coverage source preparation now freezes control/catalogue and original evidence identities using the existing creation/readback provenance checks. Bounded same-relation pagination preserves partial/stopped/failed/context-changed states and original pages; duplicate/error envelopes cannot become complete coverage. Native coverage delivery remains unfinished.
