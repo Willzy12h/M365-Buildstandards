@@ -63,6 +63,8 @@
 ### Pending source — mailbox capacity review, PR #94
 
 - In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
+
+- Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 

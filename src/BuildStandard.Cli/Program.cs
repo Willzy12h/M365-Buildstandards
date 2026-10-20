@@ -68,7 +68,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "usage-report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers");
 
         return command switch
         {
@@ -77,6 +77,7 @@ public static class Program
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
             "usage-report-evidence" => UsageReportEvidenceExport(options),
+            "operational-report-evidence" => OperationalReportEvidenceExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -105,6 +106,7 @@ public static class Program
             buildstandard — offline reports and local prerequisite diagnostics. Never connects to a tenant.
 
               buildstandard usage-report-evidence --input <pack.json> --tenant <guid> [--format html|json|csv|xlsx] [--root <folder>]
+              buildstandard operational-report-evidence --input <report.json> --tenant <source-guid> [--format html|json|csv|xlsx] [--root <folder>]
                   Export an admitted supplied usage pack; privacy/identity remain unverified. No tenant connection.
 
               buildstandard doctor [--root <folder>] [--format text|json]
@@ -423,6 +425,23 @@ public static class Program
         var context = Context.Open(options);
         Console.WriteLine(context.Exporter.ExportSnapshot(capture, null, format));
         Console.WriteLine($"Captured configuration · {capture.CapturedAt} · {(capture.Complete ? "Review collection status" : "INCOMPLETE — unknown reads remain explicit")} · no live reads or writes.");
+        return 0;
+    }
+
+    private static int OperationalReportEvidenceExport(IReadOnlyDictionary<string, string> options)
+    {
+        var allowed = new[] { "input", "tenant", "format", "root" };
+        if (options.Keys.Any(key => !allowed.Contains(key, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Operational exports accept only --input, --tenant, --format and --root. No authentication or service read is supported.");
+        var tenant = Require(options, "tenant");
+        if (!BuildStandard.Core.Reporting.ReportValues.IsCanonicalGuid(tenant)) throw new ConfigurationException("Supply the exact original source tenant GUID.");
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Operational reports export as html, json, csv or xlsx.");
+        var file = OperationalContextFile.ReadFile(Require(options, "input"), tenant);
+        var context = Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportOperationalContext(file.Report, format, suppliedFile: true, originalBytes: file.CopyOriginal()));
+        Console.WriteLine($"Offline supplied operational report · read status {file.Report.Status} · no live reads or writes. Export does not establish tenant availability, effective partner access or authenticated source claims.");
         return 0;
     }
 
