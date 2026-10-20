@@ -142,7 +142,7 @@ public sealed class PartnerRelationshipReportService(IClock clock,string toolkit
             if(coverage.UnattributableCustomerRows>0||projected.Any(p=>p.AssignmentReadStatus!=ReportReadState.Collected)||childRows.Any(c=>c.ReadStatus!=ReportReadState.Collected))
             {if(children.Status==ReportReadState.Collected)Incomplete(children,"Some selected or unattributable parent/child observations remain unknown or unattempted. This does not establish effective access.");}
         }
-        if(childRows.Count>0&&children.Status is ReportReadState.Failed or ReportReadState.Cancelled)
+        if((childRows.Count>0||projected.Any(p=>p.AssignmentReadStatus==ReportReadState.Collected))&&children.Status is ReportReadState.Failed or ReportReadState.Cancelled)
             Incomplete(children,"Some assignment reads failed or stopped; earlier admitted observations and each parent's exact read state remain.");
         Current();report.EndedAt=Timestamps.Format(clock.UtcNow);
         await Task.Run(()=>

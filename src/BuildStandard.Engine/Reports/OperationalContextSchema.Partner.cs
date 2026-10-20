@@ -51,11 +51,16 @@ public static partial class OperationalContextSchema
             RequireState(p.AssignmentReadStatus,p.AssignmentReadError);
             if(p.ReturnedAssignments is <0 or >OperationalReportRegistry.MaximumRows||p.AssignmentReadStatus==ReportReadState.Collected&&p.ReturnedAssignments is null
                 ||p.AssignmentReadStatus==ReportReadState.NotAttempted&&p.ReturnedAssignments is not null)throw Bad("Unsupported per-parent child read/count claim.");
+            if(p.AssignmentReadStatus is ReportReadState.Failed or ReportReadState.Cancelled && p.ReturnedAssignments is not null)
+                throw Bad("An unsuccessful child read without retained observations cannot claim a known count.");
             parents.Add(p);
         }
         var uniqueParents=parents.Where(p=>p.Id is not null).GroupBy(p=>p.Id!,StringComparer.Ordinal).ToDictionary(g=>g.Key,g=>g.ToList(),StringComparer.Ordinal);
         foreach(var group in uniqueParents.Values.Where(g=>g.Count>1))
             if(group.Any(p=>p.ReadStatus!=ReportReadState.Partial||p.AssignmentReadStatus!=ReportReadState.NotAttempted))throw Bad("Ambiguous parents cannot authorise child reads or complete observations.");
+        foreach(var p in parents.Where(p=>p.AssignmentReadStatus!=ReportReadState.NotAttempted))
+            if(!coverage.ParentInventoryComplete||p.Id is null||!BaseRelationship(p.ResourceType)||uniqueParents[p.Id].Count!=1)
+                throw Bad("An attempted child read, including an empty result, requires a complete scan and unique identified base parent.");
         foreach(var raw in report.Sections[1].Rows)
         {
             var c=Typed<PartnerAccessAssignmentRow>(raw);Observed(c);

@@ -1,8 +1,8 @@
 # Operational context reports
 
-This in-progress expansion separates service-health observations and partner-relationship context from tenant configuration and deployment evidence. The current G branch implements service-health engine capture, native visibility/original recovery and offline exports. Source-matched Windows/native/package checks are pending; partner reporting remains incomplete. No live Microsoft behaviour or named safety acceptance is claimed.
+This in-progress expansion separates service-health observations and partner-relationship context from tenant configuration and deployment evidence. The current G branch implements service-health engine capture, native visibility/original recovery and offline exports. The health milestone287c5bc passed source-matched Windows/native/package checks (PR156/run39485176532); later partner backend/export additions remain separately unverified on Windows and the native partner journey remains incomplete. No live Microsoft behaviour or named safety acceptance is claimed.
 
-## Native service-health workflow — implemented, validation pending
+## Native service-health workflow — implemented, live-unverified
 
 1. In **Connect**, expand **Optional read access** only if this connection needs service-health reporting. Select the default-off service-health choice, review the exact scope/registration and reconnect deliberately through the existing flow. Missing consent/roles are not repaired from Reports. The summary keeps selected purposes visible when collapsed.
 2. Open **Reports → Tenant reports → Operational context → Read context**. Review the source tenant/account/app in the pinned header, the two fixed reads and the limitations. Tick acknowledgement, then **Read service-health context**. Navigation or selecting a choice makes no request.
@@ -12,7 +12,7 @@ This in-progress expansion separates service-health observations and partner-rel
 
 Changing context clears the current display/acknowledgement; pending originals keep their source tenant. Ordinary close waits for owned capture/serialisation and refuses unresolved originals. Opening a supplied file blocks overlapping reads and refuses a late changed-client result. Force-closing the process can lose an in-memory pending original.
 
-These are experimental source paths awaiting current Windows/native/package and named acceptance. Human accessibility/workstation policy and live roles/API behaviour are not verified. The partner access choice is separate and is not needed for service health; its collector is not yet implemented.
+These remain experimental paths awaiting named acceptance. The exact health milestone has offline Windows/native/package evidence; human accessibility/workstation policy and live roles/API behaviour remain unverified. The partner access choice is separate and is not needed for service health. Its backend and offline exports are implemented in later source; native collection is not yet enabled at this intermediate milestone.
 
 ## Open a saved service-health report offline
 

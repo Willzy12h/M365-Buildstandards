@@ -20,6 +20,25 @@ public sealed class PartnerContextSchemaTests
     {var r=Empty();OperationalContextSchema.Seal(r);var read=OperationalContextSchema.Read(OperationalContextSchema.Serialise(r),TestData.TenantA);Assert.Equal(TestData.TenantB,read.CustomerTenantId);Assert.True(read.PartnerCoverage!.ParentInventoryComplete);Assert.All(read.Sections,s=>Assert.Empty(s.Rows));}
     [Fact]public void Expiry_is_frozen_separately_from_observed_active_status_and_empty_direct_roles()
     {var r=Empty();r.PartnerCoverage!.ParentRowsRead=r.PartnerCoverage.SelectedCustomerRows=1;r.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(ParentRow(),RegisteredReportJson.Strict)!.AsObject());OperationalContextSchema.Seal(r);var read=OperationalContextSchema.Read(OperationalContextSchema.Serialise(r),TestData.TenantA);Assert.Equal("active",read.Sections[0].Rows[0]["status"]!.GetValue<string>());Assert.Equal("EndedAtOrBeforeAsOf",read.Sections[0].Rows[0]["expiryAtAsOf"]!.GetValue<string>());}
+    [Theory][InlineData("Failed")][InlineData("Cancelled")]
+    public void GPT_G_002_failed_or_cancelled_child_read_cannot_be_imported_as_known_zero(string state)
+    {
+        var r=Empty();var p=ParentRow();p.AssignmentReadStatus=state;p.AssignmentReadError="Synthetic unsuccessful read.";
+        r.PartnerCoverage!.ParentRowsRead=r.PartnerCoverage.SelectedCustomerRows=1;r.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(p,RegisteredReportJson.Strict)!.AsObject());
+        r.Sections[1].Status=state;r.Sections[1].Error=p.AssignmentReadError;r.Status=state=="Cancelled"?"Cancelled":"Partial";
+        Assert.ThrowsAny<ToolkitException>(()=>OperationalContextSchema.Seal(r));
+    }
+    [Theory][InlineData("incomplete-scan")][InlineData("missing-id")][InlineData("subtype")]
+    public void GPT_G_003_successful_empty_child_claim_still_requires_an_admitted_parent(string fault)
+    {
+        var r=Empty();var p=ParentRow();r.PartnerCoverage!.ParentRowsRead=r.PartnerCoverage.SelectedCustomerRows=1;
+        if(fault=="incomplete-scan")r.PartnerCoverage.ParentInventoryComplete=false;
+        if(fault=="missing-id")p.Id=null;if(fault=="subtype")p.ResourceType="#microsoft.graph.futureRelationship";
+        p.ReadStatus="Partial";p.Error="Synthetic incomplete observation.";
+        r.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(p,RegisteredReportJson.Strict)!.AsObject());
+        foreach(var section in r.Sections){section.Status="Partial";section.Error="Synthetic incomplete source.";}r.Status="Partial";
+        Assert.ThrowsAny<ToolkitException>(()=>OperationalContextSchema.Seal(r));
+    }
     [Theory][InlineData("customer")][InlineData("coverage")][InlineData("future-complete")][InlineData("false-expiry")][InlineData("missing-roles")][InlineData("invented-child-count")][InlineData("child-without-parent")]
     public void Inconsistent_selected_customer_coverage_roles_expiry_and_child_claims_are_refused(string fault)
     {

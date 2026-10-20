@@ -19,6 +19,19 @@ public sealed class OperationalContextCliTests
         if (format == "html") { Assert.Contains("Offline supplied file", File.ReadAllText(output)); Assert.DoesNotContain("<script>", File.ReadAllText(output)); }
         Assert.Equal(before, Directory.GetFiles(root.Paths.DataDirectory, "*", SearchOption.AllDirectories)); Assert.Equal(original, File.ReadAllBytes(file));
     }
+    [Theory][InlineData("json")][InlineData("html")][InlineData("csv")][InlineData("xlsx")]
+    public async Task Partner_offline_process_preserves_source_customer_separation_without_connecting(string format)
+    {
+        using var root=new TempRoot();var report=PartnerContextOutputTests.Report();var original=Encoding.UTF8.GetBytes("\uFEFF  "+OperationalContextSchema.Serialise(report)+"\n");
+        var file=Path.Combine(root.Root,"supplied partner.json");File.WriteAllBytes(file,original);
+        var wrong=await RegisteredReportCliTests.Run("operational-report-evidence","--input",file,"--tenant",TestData.TenantB,"--format",format,"--root",root.Root);
+        Assert.Equal(2,wrong.Exit);Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
+        var result=await RegisteredReportCliTests.Run("operational-report-evidence","--input",file,"--tenant",TestData.TenantA,"--format",format,"--root",root.Root);
+        Assert.True(result.Exit==0,result.Output+result.Error);Assert.Contains("no live reads",result.Output);var output=Assert.Single(Directory.GetFiles(root.Paths.ReportsDirectory));
+        if(format=="json")Assert.Equal(original,File.ReadAllBytes(output));
+        if(format=="html"){var html=File.ReadAllText(output);Assert.Contains("Selected customer tenant ID",html);Assert.Contains(TestData.TenantB,html);Assert.Contains("not effective access",html);}
+        Assert.Equal(original,File.ReadAllBytes(file));Assert.Empty(Directory.GetFiles(root.Paths.DataDirectory,"*",SearchOption.AllDirectories));
+    }
     [Theory][InlineData("duplicate")][InlineData("tenant")][InlineData("format")][InlineData("unknown")]
     public async Task Wrong_offline_identity_and_options_refuse_before_export(string fault)
     {

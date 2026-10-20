@@ -72,10 +72,10 @@ public sealed class PartnerRelationshipReportServiceTests
         var s=Session();if(fault=="scope")s.Scopes=[];if(fault=="actor")s.OperatorVerified=false;var source=new Source((_,_,_)=>throw new InvalidOperationException("No read permitted."));
         await Assert.ThrowsAnyAsync<ToolkitException>(()=>Service().CaptureAsync(source,s,fault=="customer"?TestData.TenantA:TestData.TenantB,fault!="declaration",()=>{},default));Assert.Empty(source.Reads);
     }
-    [Fact]public async Task Successful_sibling_after_failed_child_gives_partial_not_failed_aggregate_and_preserves_both_states()
+    [Theory][InlineData(false)][InlineData(true)]public async Task Successful_sibling_after_failed_child_gives_partial_not_failed_aggregate_and_preserves_both_states(bool empty)
     {
-        var source=new Source((kind,parent,_)=>{if(kind==OperationalReadKind.PartnerRelationships)return Task.FromResult(new OperationalReportPage([Relationship(),Relationship(Parent+"-two")],false));if(parent==Parent)throw new ToolkitException("synthetic denied");return Task.FromResult(new OperationalReportPage([Assignment()],false));});
-        var r=await Capture(source);Assert.Equal("Partial",r.Sections[1].Status);Assert.Single(r.Sections[1].Rows);Assert.Equal("Failed",r.Sections[0].Rows[0]["assignmentReadStatus"]!.GetValue<string>());Assert.Null(r.Sections[0].Rows[0]["returnedAssignments"]);Assert.Equal("Collected",r.Sections[0].Rows[1]["assignmentReadStatus"]!.GetValue<string>());
+        var source=new Source((kind,parent,_)=>{if(kind==OperationalReadKind.PartnerRelationships)return Task.FromResult(new OperationalReportPage([Relationship(),Relationship(Parent+"-two")],false));if(parent==Parent)throw new ToolkitException("synthetic denied");return Task.FromResult(new OperationalReportPage(empty?[]:[Assignment()],false));});
+        var r=await Capture(source);Assert.Equal("Partial",r.Sections[1].Status);Assert.Equal(empty?0:1,r.Sections[1].Rows.Count);Assert.Equal("Failed",r.Sections[0].Rows[0]["assignmentReadStatus"]!.GetValue<string>());Assert.Null(r.Sections[0].Rows[0]["returnedAssignments"]);Assert.Equal("Collected",r.Sections[0].Rows[1]["assignmentReadStatus"]!.GetValue<string>());
     }
     [Fact]public async Task Bounded_duplicate_parent_bytes_survive_finalisation_without_starting_children()
     {
