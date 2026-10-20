@@ -1,6 +1,6 @@
 # Usage reports and licence review
 
-This experimental reporting work is in progress. Its initial source handles the four fixed Microsoft365 active-user, email, Teams and OneDrive activity CSV schemas and a separate original-data usage pack. Connected collection, native presentation and recovery are not yet complete. It never removes or purchases licences and never changes reporting privacy.
+This experimental reporting work is in progress. Its initial source handles the four fixed Microsoft365 active-user, email, Teams and OneDrive activity CSV schemas and a separate original-data usage pack. The credential-free download transport and engine capture service are implemented with synthetic tests. Their native collection, deliberate optional-access setup and recovery journey are not yet complete. It never removes or purchases licences and never changes reporting privacy.
 
 ## Offline pack exports
 

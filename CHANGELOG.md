@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Implement the fixed usage-report download transport and engine capture service with isolated credential-free302 downloads, one silent401 renewal, exact context/scope checks, bounded original CSV and per-source failure/cancellation evidence. The approved Reports.Read.All capability is classified as read-only; no access is requested or granted by classification. Native collection and its deliberate optional-access setup are still in progress.
+
 - Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
 
 

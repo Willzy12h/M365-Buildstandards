@@ -11,6 +11,8 @@ namespace BuildStandard.Engine.Reports;
 public static class UsageReviewSchema
 {
     public const int MaximumBytes=40*1024*1024;
+    // Size-only staging guard; this is not schema/integrity admission and grants no execution/evidence authority.
+    internal static void RequireCandidateSize(UsageReviewReport report)=>RequireSize(report,MaximumBytes-64*1024);
     public static string Serialise(UsageReviewReport report)
     { Validate(report,report.TenantId,true);return JsonSerializer.Serialize(report,RegisteredReportJson.Strict); }
     public static UsageReviewReport Read(string json,string tenant)
@@ -66,15 +68,15 @@ public static class UsageReviewSchema
     }
     private static bool Utc(string? text,out DateTimeOffset value)=>DateTimeOffset.TryParseExact(text,
         ["yyyy-MM-dd'T'HH:mm:ss'Z'","yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'"],CultureInfo.InvariantCulture,DateTimeStyles.AssumeUniversal|DateTimeStyles.AdjustToUniversal,out value);
-    private static void RequireSize(UsageReviewReport report)
-    {using var size=new SizeOnlyStream();JsonSerializer.Serialize(size,report,RegisteredReportJson.Strict);}
-    private sealed class SizeOnlyStream:Stream
+    private static void RequireSize(UsageReviewReport report,int maximum=MaximumBytes)
+    {using var size=new SizeOnlyStream(maximum);JsonSerializer.Serialize(size,report,RegisteredReportJson.Strict);}
+    private sealed class SizeOnlyStream(int maximum):Stream
     {
         private long _count;
         public override bool CanRead=>false;public override bool CanSeek=>false;public override bool CanWrite=>true;
         public override long Length=>_count;public override long Position{get=>_count;set=>throw new NotSupportedException();}
         public override void Write(byte[] buffer,int offset,int count)=>Write(buffer.AsSpan(offset,count));
-        public override void Write(ReadOnlySpan<byte> buffer){if(buffer.Length>MaximumBytes-_count)throw Bad("The usage pack exceeds40MiB; original bytes were not saved or clipped.");_count+=buffer.Length;}
+        public override void Write(ReadOnlySpan<byte> buffer){if(buffer.Length>maximum-_count)throw Bad("The usage pack exceeds40MiB; original bytes were not saved or clipped.");_count+=buffer.Length;}
         public override void Flush(){}public override int Read(byte[] buffer,int offset,int count)=>throw new NotSupportedException();
         public override long Seek(long offset,SeekOrigin origin)=>throw new NotSupportedException();public override void SetLength(long value)=>throw new NotSupportedException();
     }
