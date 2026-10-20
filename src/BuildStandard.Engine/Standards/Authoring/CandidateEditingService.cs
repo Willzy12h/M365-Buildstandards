@@ -16,10 +16,20 @@ public sealed class CandidateEditingService(CandidateBaselineLoader baselines, C
         var snapshot = Snapshot(draft); var baseline = baselines.Load(snapshot);
         var control = baseline.FindControl(controlId) ?? throw new ConfigurationException("Select an existing control.");
         var fields = new List<CandidateEditableField>();
-        if (control.Payload is not null) Walk(control.Payload, "/payload", fields, snapshot, controlId);
+        if (control.Payload is not null)
+        {
+            var projection = new JsonObject { ["payload"] = control.Payload.DeepClone() };
+            foreach (var change in snapshot.Changes.Where(c => c.ControlId == controlId && c.Path.StartsWith("/payload/", StringComparison.Ordinal)))
+                CandidatePointer.Replace(projection, change.Path, change.ExpectedOriginal, change.Proposed);
+            Walk(control.Payload, "/payload", fields, projection);
+        }
         var used = control.Payload is null ? new HashSet<string>() : ParameterUsage.Keys(control.Payload);
         foreach (var parameter in baseline.Parameters.Where(p => p.HasDefault && used.Contains(p.Key)))
-            Add("/parameters/" + Escape(parameter.Key) + "/default", parameter.Default, fields, snapshot, controlId);
+        {
+            var path = "/parameters/" + Escape(parameter.Key) + "/default";
+            var change = snapshot.Changes.SingleOrDefault(c => c.Path == path);
+            Add(path, parameter.Default, change is null ? parameter.Default : change.Proposed, fields);
+        }
         return fields;
     }
     public StandardCandidateDraft Set(StandardCandidateDraft draft, string controlId, string path, string json)
@@ -36,7 +46,7 @@ public sealed class CandidateEditingService(CandidateBaselineLoader baselines, C
         var snapshot = Snapshot(draft);
         var field = Fields(snapshot, controlId).SingleOrDefault(f => f.Path == path)
             ?? throw new ConfigurationException("Select one existing editable field. Routes, identities and unsupported settings are not editable.");
-        snapshot.Changes.RemoveAll(c => c.ControlId == controlId && c.Path == path);
+        snapshot.Changes.RemoveAll(c => Matches(c, controlId, path));
         var original = JsonNode.Parse(field.OriginalJson);
         if (CanonicalJson.Serialize(original) != CanonicalJson.Serialize(proposed))
             snapshot.Changes.Add(new(controlId, path, original, proposed));
@@ -47,27 +57,26 @@ public sealed class CandidateEditingService(CandidateBaselineLoader baselines, C
     public StandardCandidateDraft Remove(StandardCandidateDraft draft, string controlId, string path)
     {
         var snapshot = Snapshot(draft); _ = baselines.Load(snapshot);
-        if (snapshot.Changes.RemoveAll(c => c.ControlId == controlId && c.Path == path) == 0)
+        if (snapshot.Changes.RemoveAll(c => Matches(c, controlId, path)) == 0)
             throw new ConfigurationException("Select an existing proposed change to remove.");
         CandidateDraftCodec.Seal(snapshot); _ = authoring.Validate(snapshot); return snapshot;
     }
     private static StandardCandidateDraft Snapshot(StandardCandidateDraft draft) => CandidateDraftCodec.Read(CandidateDraftCodec.Serialize(draft));
-    private static void Walk(JsonNode? node, string path, List<CandidateEditableField> fields, StandardCandidateDraft draft, string control)
+    private static void Walk(JsonNode? node, string path, List<CandidateEditableField> fields, JsonObject projection)
     {
         if (node is JsonObject obj)
         {
             foreach (var (key, child) in obj)
             {
                 if (key is "@odata.type" or "omaUri" or "settingDefinitionId" or "assignments" or "state" or "macOSRestriction") continue;
-                Walk(child, path + "/" + Escape(key), fields, draft, control);
+                Walk(child, path + "/" + Escape(key), fields, projection);
             }
         }
-        else Add(path, node, fields, draft, control); // Arrays are one setting, never indexed edits.
+        else Add(path, node, CandidatePointer.Read(projection, path), fields); // Arrays are one setting, never indexed edits.
     }
-    private static void Add(string path, JsonNode? original, List<CandidateEditableField> fields, StandardCandidateDraft draft, string control)
-    {
-        var change = draft.Changes.SingleOrDefault(c => c.ControlId == control && c.Path == path);
-        fields.Add(new(path, CanonicalJson.Serialize(original), CanonicalJson.Serialize(change is null ? original : change.Proposed), original?.GetValueKind().ToString() ?? "Null"));
-    }
+    private static void Add(string path, JsonNode? original, JsonNode? proposed, List<CandidateEditableField> fields)
+        => fields.Add(new(path, CanonicalJson.Serialize(original), CanonicalJson.Serialize(proposed), original?.GetValueKind().ToString() ?? "Null"));
+    private static bool Matches(CandidateChange change, string control, string path)
+        => change.Path == path && (path.StartsWith("/parameters/", StringComparison.Ordinal) || change.ControlId == control);
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
 }

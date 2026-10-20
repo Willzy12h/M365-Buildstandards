@@ -32,8 +32,10 @@ public sealed class CandidateAuthoringWorkflow(Func<PresentationContextKey> cont
     public async Task ValidateAsync(Func<StandardCandidateDraft, CancellationToken, CandidateValidationTicket> validate, CancellationToken ct = default)
     {
         var snapshot = RequireCurrent(); _validation = null;
+        var expectedDraft = snapshot.ContentDigest; var expectedBaseline = snapshot.Baseline.FileSha256;
         var ticket = await RunAsync(token => validate(snapshot, token), ct);
-        if (ticket.DraftDigest != snapshot.ContentDigest || ticket.BaselineDigest != snapshot.Baseline.FileSha256)
+        if (ticket.DraftDigest != expectedDraft || ticket.BaselineDigest != expectedBaseline
+            || _draft?.ContentDigest != expectedDraft || _draft.Baseline.FileSha256 != expectedBaseline)
             throw new IntegrityException("Validation does not identify the reviewed draft and baseline.");
         _validation = ticket;
     }

@@ -56,6 +56,15 @@ public sealed class CandidateAuthoringWorkflowTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => workflow.OpenAsync(_ => { ct.Cancel(); return draft; }, ct.Token)); Assert.Null(workflow.Draft);
         await Assert.ThrowsAnyAsync<ToolkitException>(() => workflow.OpenAsync(_ => { workflow.Discard(); return draft; })); Assert.Null(workflow.Draft);
     }
+    [Fact]public async Task Validation_for_a_mutated_callback_copy_cannot_validate_the_visible_draft()
+    {
+        using var root = new TempRoot(); var draft = Draft(root); var workflow = new CandidateAuthoringWorkflow(() => Context());
+        var service = new CandidateAuthoringService(new(root.Paths, NullLog.Instance));
+        await workflow.OpenAsync(_ => draft);
+        await Assert.ThrowsAsync<IntegrityException>(() => workflow.ValidateAsync((d, _) =>
+        { d.Title = "Different candidate"; CandidateDraftCodec.Seal(d); return CandidateValidationTicket.Create(service, d); }));
+        Assert.Null(workflow.Validation); Assert.Equal(draft.ContentDigest, workflow.Draft!.ContentDigest);
+    }
     [Fact]public async Task Stale_save_notification_does_not_mark_a_newer_draft_saved()
     {
         using var root = new TempRoot(); var draft = Draft(root); var workflow = new CandidateAuthoringWorkflow(() => Context());
