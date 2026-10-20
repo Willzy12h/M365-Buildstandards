@@ -5,7 +5,7 @@ using BuildStandard.Core;
 using BuildStandard.Core.Reporting;
 namespace BuildStandard.Engine.Reports;
 
-public enum CoverageSourceState { Complete,Partial,Failed,Stopped,ContextChanged }
+public enum CoverageSourceState { Complete,Partial,Failed,Stopped,ContextChanged,NotAttempted,Unsupported }
 
 /// <summary>Bounded source evidence only. Complete never means effective deployment or write authority.</summary>
 public sealed class CoverageSourceCapture

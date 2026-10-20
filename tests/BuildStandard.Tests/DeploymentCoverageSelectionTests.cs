@@ -9,7 +9,7 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class DeploymentCoverageSelectionTests
 {
-    private sealed class Fixture
+    internal sealed class Fixture
     {
         public StandardCatalogue Standard {get;}=new(){Release="2026.10.15",IntegrityDigest=new string('a',64),Collections=new(){["compliance"]=new(){Api="v1.0",Path="/deviceManagement/deviceCompliancePolicies",Scope="DeviceManagementConfiguration.Read.All"}},Controls=[new(){Id="CMP-WIN-001",Name="Windows compliance",Collection="compliance"}]};
         public TenantSession Session {get;}=new(){TenantId=TestData.TenantA,AccountObjectId=TestData.Operator,OperatorObjectId=TestData.Operator,ClientId=TestData.Emergency,Mode=SessionMode.Assessment,TenantVerified=true,OperatorVerified=true,Scopes=["DeviceManagementConfiguration.Read.All"]};
