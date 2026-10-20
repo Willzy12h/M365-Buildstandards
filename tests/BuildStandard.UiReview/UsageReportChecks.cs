@@ -18,7 +18,8 @@ internal static partial class Program
         var columns=UsageReportRegistry.Find("email-activity").Columns;
         static string Quote(string value)=>"\""+value.Replace("\"","\"\"")+"\"";
         var csv=Encoding.UTF8.GetBytes(string.Join(',',columns)+"\r\n"+string.Join(',',columns.Select(name=>Quote(name=="Report Refresh Date"?"2026-10-20":name=="Display Name"?"Synthetic engineer":name=="User Principal Name"?"unverified@synthetic.invalid":"")))+"\r\n");
-        var report=new UsageReviewReport{Id=Id(880),TenantId=Tenant,StartedAt=Stamp,EndedAt=Stamp,ToolkitVersion=workspace.Version,Status="Partial",
+        var now=Timestamps.Format(DateTimeOffset.UtcNow);
+        var report=new UsageReviewReport{Id=Id(880),TenantId=Tenant,StartedAt=now,EndedAt=now,ToolkitVersion=workspace.Version,Status="Partial",
             Sources=[new(){SourceId="email-activity",Period="D30",Status="Collected",OriginalCsvBase64=Convert.ToBase64String(csv),CsvSha256=Convert.ToHexStringLower(SHA256.HashData(csv))},new(){SourceId="teams-activity",Period="D30",Status="Failed",Reason="Synthetic access refusal; not a successful empty result."}]};
         UsageReviewSchema.Seal(report);SyntheticUsageFile=Path.Combine(workspace.Paths.ReportsDirectory,"synthetic-usage-source.json");
         Directory.CreateDirectory(workspace.Paths.ReportsDirectory);File.WriteAllText(SyntheticUsageFile,UsageReviewSchema.Serialise(report),new UTF8Encoding(false));
