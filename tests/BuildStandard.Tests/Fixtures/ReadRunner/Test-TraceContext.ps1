@@ -9,6 +9,8 @@ foreach($name in @('Read-BditTraceContext','Assert-BditUniqueJsonMembers','Asser
     if($null -eq $definition){throw ('Missing fixed trace function '+$name)}
     . ([scriptblock]::Create($definition.Extent.Text))
 }
+# A missing framework dependency must fail the fixture, never count as refusing forged input.
+Assert-BditUniqueJsonMembers ([Text.Encoding]::UTF8.GetBytes('{}'))
 $bytes=[Convert]::FromBase64String($Payload)
 $failed=$false;$plan=$null;$failureText=''
 try{

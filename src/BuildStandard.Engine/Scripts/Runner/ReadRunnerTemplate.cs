@@ -24,7 +24,7 @@ public static class ReadRunnerLimits
 /// </summary>
 public static class ReadRunnerTemplate
 {
-    public const string Sha256 = "ecd799452ee169c379c5b435b7a117cf538215da666daec643cebbbdb1ebc93a";
+    public const string Sha256 = "2433af4a5e42a43375993be10e201656624db46578cf221218f1c2e2ed923d53";
     private const string ResourceName = "Runner.ReadRunner.ps1";
 
     /// <summary>The wrapper's exact bytes, verified against <see cref="Sha256"/> on every call.</summary>

@@ -57,6 +57,8 @@ function Assert-BditMembers($Object, [string[]]$Names) {
 
 # BCL JSON reader retains escaped property names without last-value-wins loss; no custom JSON lexer/dependency.
 function Assert-BditUniqueJsonMembers([byte[]]$Bytes) {
+    # Windows PowerShell 5.1 does not preload the framework JSON/XML reader assembly.
+    Add-Type -AssemblyName System.Runtime.Serialization
     if ($Bytes.Length -gt 262144) { throw 'trace-json-limit' }
     $quotas = [Xml.XmlDictionaryReaderQuotas]::new(); $quotas.MaxDepth = 48
     $quotas.MaxStringContentLength = 262144; $quotas.MaxArrayLength = 262144
@@ -82,6 +84,7 @@ function Assert-BditUniqueJsonMembers([byte[]]$Bytes) {
 
 # Read only the fixed traceContext from original JSON tokens: ConvertFrom-Json may coerce ISO text to DateTime.
 function Read-BditTraceContext([byte[]]$Bytes) {
+    Add-Type -AssemblyName System.Runtime.Serialization
     $quotas=[Xml.XmlDictionaryReaderQuotas]::new();$quotas.MaxDepth=48;$quotas.MaxStringContentLength=262144;$quotas.MaxArrayLength=262144
     $reader=[Runtime.Serialization.Json.JsonReaderWriterFactory]::CreateJsonReader($Bytes,$quotas)
     $document=[Xml.XmlDocument]::new();$document.XmlResolver=$null
