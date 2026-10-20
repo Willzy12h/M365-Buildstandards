@@ -102,4 +102,41 @@ public sealed class CandidatePolicyImportTests
         using var f = new Fixture();
         Assert.ThrowsAny<ToolkitException>(() => f.Import(new Dictionary<string, string> { ["/payload/noLongerPresent"] = "officeLocationId" }));
     }
+    [Fact]public void Non_guid_notification_template_reference_is_unresolved_in_the_historical_registered_recipe()
+    {
+        using var root = new TempRoot();
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.09.10.json"));
+        root.WriteStandard("base.json", File.ReadAllText(path)); root.WriteManifest();
+        var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance); var authoring = new CandidateAuthoringService(loader);
+        var draft = loader.Create("base.json", "Notification review"); var source = loader.Load(draft).FindControl("CMP-WIN-001")!.Payload!.DeepClone();
+        source["scheduledActionsForRule"]![0]!["scheduledActionConfigurations"]![0]!["notificationTemplateId"] = "foreign-template";
+        var file = Path.Combine(root.Paths.ReportsDirectory, "source.json"); File.WriteAllText(file, source.ToJsonString());
+        var imported = new CandidatePolicyImportService(loader, authoring).ImportFile(draft, "CMP-WIN-001", file, "CMP - Candidate - Windows");
+        Assert.Single(imported.Unresolved); Assert.ThrowsAny<ToolkitException>(() => authoring.Validate(imported));
+    }
+    [Fact]public void Unresolved_reference_cannot_hide_unsupported_settings_or_embedded_secrets_in_a_saved_draft()
+    {
+        using var root = new TempRoot();
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.10.15.json"));
+        root.WriteStandard("base.json", File.ReadAllText(path)); root.WriteManifest();
+        var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance); var authoring = new CandidateAuthoringService(loader);
+        var draft = loader.Create("base.json", "Refused import"); var source = loader.Load(draft).FindControl("CFG-WIN-005")!.Payload!.DeepClone();
+        source["settings"] = new JsonArray(new JsonObject { ["settingInstance"] = new JsonObject {
+            ["@odata.type"] = "#microsoft.graph.deviceManagementConfigurationSimpleSettingInstance", ["settingDefinitionId"] = "synthetic_setting",
+            ["simpleSettingValue"] = new JsonObject { ["value"] = TestData.Office, ["secretValue"] = "synthetic-not-for-drafts" } } });
+        var file = Path.Combine(root.Paths.ReportsDirectory, "source.json"); File.WriteAllText(file, source.ToJsonString());
+        Assert.ThrowsAny<ToolkitException>(() => new CandidatePolicyImportService(loader, authoring).ImportFile(draft, "CFG-WIN-005", file, "CFG - Candidate - Windows"));
+        Assert.Empty(draft.Changes); Assert.Empty(draft.Imports);
+    }
+    [Fact]public void Unresolved_reference_cannot_hide_unblocked_macOS_in_an_import_draft()
+    {
+        using var root = new TempRoot();
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.10.15.json"));
+        root.WriteStandard("base.json", File.ReadAllText(path)); root.WriteManifest();
+        var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance); var authoring = new CandidateAuthoringService(loader);
+        var draft = loader.Create("base.json", "Refused enrolment import"); var source = loader.Load(draft).FindControl("ENR-002")!.Payload!.DeepClone();
+        source["macOSRestriction"]!["platformBlocked"] = false;
+        var file = Path.Combine(root.Paths.ReportsDirectory, "source.json"); File.WriteAllText(file, source.ToJsonString());
+        Assert.ThrowsAny<ToolkitException>(() => new CandidatePolicyImportService(loader, authoring).ImportFile(draft, "ENR-002", file, "ENR - " + TestData.Office));
+    }
 }

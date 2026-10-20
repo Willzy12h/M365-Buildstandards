@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using BuildStandard.Core;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Safety;
 namespace BuildStandard.Engine.Standards.Authoring;
 
 /// <summary>Local source inspection. An unresolved draft is saveable, never valid for candidate export.</summary>
@@ -28,6 +29,10 @@ public sealed class CandidatePolicyImportService(CandidateBaselineLoader baselin
         var prepared = DevicePolicyImporter.SupportsControl(controlId)
             ? DevicePolicyImporter.Prepare(baseline, controlId, source.Json, name)
             : PolicyImporter.Prepare(baseline, controlId, source.Json, name);
+        // Unresolved references may be saved for review, but cannot hide secrets, unsupported shapes
+        // or a candidate safety violation. These checks run before storing any imported changes.
+        WritePayloadGuard.Assert(baseline.FindCollection(control.Collection)!, prepared.Payload);
+        CandidateAuthoringService.AssertImportStructure(original, prepared.Payload, baseline);
         var mappings = new Dictionary<string, string>(parameterMappings ?? new Dictionary<string, string>(), StringComparer.Ordinal);
         foreach (var path in mappings.Keys) _ = CandidatePointer.Parse(path);
         var used = new HashSet<string>(StringComparer.Ordinal);
@@ -51,7 +56,8 @@ public sealed class CandidatePolicyImportService(CandidateBaselineLoader baselin
                 if (text.Contains("{{", StringComparison.Ordinal) || text.Contains("}}", StringComparison.Ordinal))
                     throw Bad("Source template expressions are not accepted. Select a declared parameter explicitly instead.");
                 if (previous is JsonValue old && old.TryGetValue<string>(out var oldText) && text == oldText) return node.DeepClone();
-                var foreign = GuidText.IsMatch(text) || key is "tenantId" or "groupId" or "userId" or "directoryObjectId";
+                var foreign = GuidText.IsMatch(text) || key is "tenantId" or "groupId" or "userId" or "directoryObjectId"
+                    or "notificationTemplateId" or "notificationMessageCCList";
                 if (!foreign) return node.DeepClone();
                 if (mappings.TryGetValue(path, out var parameter))
                 {

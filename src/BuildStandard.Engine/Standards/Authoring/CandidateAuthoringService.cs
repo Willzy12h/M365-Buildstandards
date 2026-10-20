@@ -68,9 +68,7 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
                 throw Bad("The registered Graph object type cannot change.");
             if (CanonicalJson.Serialize(initial[definition.NameProperty]) != CanonicalJson.Serialize(payload[definition.NameProperty]))
                 NamingConvention.RequireAuthored(control, payload[definition.NameProperty]?.GetValue<string>() ?? "");
-            if (payload["@odata.type"]?.ToString() == "#microsoft.graph.deviceEnrollmentPlatformRestrictionsConfiguration"
-                && payload["macOSRestriction"]?["platformBlocked"]?.GetValueKind() != JsonValueKind.True)
-                throw Bad("macOS enrolment must remain blocked; there is no authoring enable switch.");
+            RequireMacOsBlocked(payload);
             AssertTemplate(candidate, definition, initial, payload);
             control.Payload = payload;
             edited.Add(control.Id);
@@ -101,7 +99,22 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
         WritePayloadGuard.AssertCatalogueTemplate(definition, payload, preserved);
     }
 
-    private static void RequireShape(JsonNode? original, JsonNode? proposed, StandardCatalogue standard)
+    // Import inspection may retain unresolved identifier values, but never unsupported structure. This
+    // is not candidate validation: Validate still performs reference checks and refuses every unresolved draft.
+    internal static void AssertImportStructure(JsonObject original, JsonObject proposed, StandardCatalogue standard)
+    {
+        RequireMacOsBlocked(proposed);
+        RequireShape(original, proposed, standard, inspectForeignReferences: false);
+    }
+
+    private static void RequireMacOsBlocked(JsonObject payload)
+    {
+        if (payload["@odata.type"]?.ToString() == "#microsoft.graph.deviceEnrollmentPlatformRestrictionsConfiguration"
+            && payload["macOSRestriction"]?["platformBlocked"]?.GetValueKind() != JsonValueKind.True)
+            throw Bad("macOS enrolment must remain blocked; there is no authoring enable switch.");
+    }
+
+    private static void RequireShape(JsonNode? original, JsonNode? proposed, StandardCatalogue standard, bool inspectForeignReferences = true)
     {
         if (proposed is JsonValue stringValue && stringValue.TryGetValue<string>(out var text))
         {
@@ -112,9 +125,10 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
                 if (parameter is null || !CompatibleParameter(parameter.Type, original)) throw Bad("Use one existing parameter of the matching type, not a new expression.");
                 return;
             }
-            foreach (Match guid in GuidText.Matches(text))
-                if (!GuidText.Matches(old).Any(m => string.Equals(m.Value, guid.Value, StringComparison.OrdinalIgnoreCase)))
-                    throw Bad("A changed foreign object identifier needs an explicit existing typed parameter mapping.");
+            if (inspectForeignReferences)
+                foreach (Match guid in GuidText.Matches(text))
+                    if (!GuidText.Matches(old).Any(m => string.Equals(m.Value, guid.Value, StringComparison.OrdinalIgnoreCase)))
+                        throw Bad("A changed foreign object identifier needs an explicit existing typed parameter mapping.");
         }
         if (original is null || proposed is null)
         {
@@ -129,14 +143,14 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
             {
                 if (key is "@odata.type" or "omaUri" or "settingDefinitionId"
                     && CanonicalJson.Serialize(value) != CanonicalJson.Serialize(after[key])) throw Bad("Registered types and setting routes cannot change.");
-                RequireShape(value, after[key], standard);
+                RequireShape(value, after[key], standard, inspectForeignReferences);
             }
             return;
         }
         if (original is JsonArray oldArray && proposed is JsonArray newArray)
         {
             if (oldArray.Count != newArray.Count) throw Bad("Array shape changes need a supported import adapter; edit the complete existing array.");
-            for (var i = 0; i < oldArray.Count; i++) RequireShape(oldArray[i], newArray[i], standard);
+            for (var i = 0; i < oldArray.Count; i++) RequireShape(oldArray[i], newArray[i], standard, inspectForeignReferences);
             return;
         }
         if (original.GetValueKind() != proposed.GetValueKind()
