@@ -1,5 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
+
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
