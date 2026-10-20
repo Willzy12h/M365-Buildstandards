@@ -18,26 +18,37 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     private readonly string _binding;
     private readonly bool _ownsClient;
     private readonly CancellationTokenSource _lifetime;
-    private readonly Dictionary<OperationalReadKind, Uri?> _next = [];
+    private readonly Dictionary<string, Uri?> _next = [];
     private readonly HashSet<string> _visited = new(StringComparer.Ordinal);
-    private int _calls, _reading;
+    private int _calls, _reading, _parentRows;
+    private readonly string? _customerTenantId;
+    private readonly Dictionary<string, bool> _parentCandidates = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _children = new(StringComparer.Ordinal);
+    private bool _parentsComplete;
     private bool _disposed;
     public string TenantId { get; }
     public string ReportId { get; }
     internal OperationalReportTransport(HttpClient client, IAccessTokenProvider tokens, TenantSession session,
-        string reportId, Action requireCurrent, bool ownsClient = false)
+        string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false)
     {
         _client = client; _tokens = tokens; _session = session; _requireCurrent = requireCurrent; _ownsClient = ownsClient;
         TenantId = session.TenantId; ReportId = reportId;
-        // Partner parent/customer admission is a separate remaining implementation slice, not a generic read escape.
-        if (reportId != "service-health") throw Refuse("This operational source is not implemented yet.");
+        _ = OperationalReportRegistry.Scope(reportId);
+        if (reportId == "partner-relationships")
+        {
+            if (!partnerDeclared || !ReportValues.IsCanonicalGuid(customerTenantId) || customerTenantId == TenantId)
+                throw Refuse("Declare the connected source as the partner organisation and select a different exact customer tenant. This does not prove effective customer access.");
+            _customerTenantId = customerTenantId;
+        }
+        else if (customerTenantId is not null || partnerDeclared)
+            throw Refuse("Health reads do not accept partner/customer parameters.");
         RequireVerified(); _binding = Binding(session); AssertCurrent(default);
         _lifetime = new(TimeSpan.FromMinutes(5));
     }
-    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent)
+    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent, string? customerTenantId = null, bool partnerDeclared = false)
     {
         var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true); }
+        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true, customerTenantId: customerTenantId, partnerDeclared: partnerDeclared); }
         catch { client.Dispose(); throw; }
     }
     public async Task<OperationalReportPage> ReadNextAsync(OperationalReadKind kind, string? relationshipId, CancellationToken cancellation)
@@ -51,9 +62,20 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
         {
             AssertCurrent(ct);
             var first = new Uri(GraphClient.Host + "/v1.0" + registered);
-            if (!_next.TryGetValue(kind, out var uri)) uri = first;
+            if (kind == OperationalReadKind.PartnerAssignments)
+            {
+                if (!_parentsComplete || !_parentCandidates.TryGetValue(relationshipId!, out var selectedUnique) || !selectedUnique)
+                    throw Refuse("This child is not bound to a unique selected-customer parent from a complete bounded parent scan. No child request was sent.");
+                if (!_next.ContainsKey(registered) && !_children.Contains(relationshipId!))
+                {
+                    if (_children.Count >= OperationalReportRegistry.MaximumRelationships)
+                        throw new OperationalReadLimitException("The 50 selected relationship inventory budget ended. No additional child was requested.");
+                    _children.Add(relationshipId!);
+                }
+            }
+            if (!_next.TryGetValue(registered, out var uri)) uri = first;
             if (uri is null) throw Refuse("This registered source is finished or was refused. Start a deliberate new report; this cursor cannot be replayed.");
-            _next[kind] = null; // Any failure consumes this cursor; there is no repeat/fallback in this operation.
+            _next[registered] = null; // Any failure consumes this cursor; there is no repeat/fallback in this operation.
             if (!_visited.Add(uri.AbsoluteUri)) throw Refuse("The source repeated a pagination cursor. No repeated page was sent or admitted.");
             for (var attempt = 0; attempt < 2; attempt++)
             {
@@ -91,7 +113,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
                 using var document = JsonDocument.Parse(bytes.ToArray(), new JsonDocumentOptions { MaxDepth = 48, AllowDuplicateProperties = false });
                 var root = document.RootElement;
                 if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("value", out var items) || items.ValueKind != JsonValueKind.Array
-                    || items.GetArrayLength() > OperationalReportRegistry.MaximumRows)
+                    || items.GetArrayLength() > PageLimit(kind))
                     throw Refuse("The operational source did not return a bounded collection page.");
                 var result = new List<JsonObject>(items.GetArrayLength());
                 foreach (var item in items.EnumerateArray())
@@ -107,7 +129,26 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
                     if (_visited.Contains(next.AbsoluteUri)) throw Refuse("The operational source repeated a pagination cursor. No repeated page was admitted.");
                 }
                 AssertCurrent(ct);
-                _next[kind] = next;
+                if (kind == OperationalReadKind.PartnerRelationships)
+                {
+                    if (items.GetArrayLength() > OperationalReportRegistry.MaximumRows - _parentRows)
+                        throw new OperationalReadLimitException("The 5,000 parent-row scan budget ended. The parent scan cannot authorise children.");
+                    _parentRows += items.GetArrayLength();
+                    foreach (var item in items.EnumerateArray())
+                    {
+                        if (!item.TryGetProperty("id", out var identity) || identity.ValueKind != JsonValueKind.String) continue;
+                        var id = identity.GetString()!;
+                        try { _ = OperationalReportRegistry.Path(ReportId, OperationalReadKind.PartnerAssignments, id); }
+                        catch (ConfigurationException) { continue; }
+                        var selected = item.TryGetProperty("customer", out var customer) && customer.ValueKind == JsonValueKind.Object
+                            && customer.TryGetProperty("tenantId", out var customerId) && customerId.ValueKind == JsonValueKind.String
+                            && customerId.GetString() == _customerTenantId;
+                        // All repeated IDs are ambiguous, including repeats attributed to another/missing customer.
+                        if (!_parentCandidates.TryAdd(id, selected)) _parentCandidates[id] = false;
+                    }
+                    _parentsComplete = next is null;
+                }
+                _next[registered] = next;
                 return new(result, next is not null);
             }
             throw Refuse("No operational page was admitted.");
@@ -122,6 +163,8 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
         catch (IOException) { throw Refuse("The operational stream could not be read completely. No partial page was admitted."); }
         finally { Volatile.Write(ref _reading, 0); }
     }
+    private static int PageLimit(OperationalReadKind kind) => kind switch
+    { OperationalReadKind.PartnerRelationships => 300, OperationalReadKind.HealthIssues => 1000, _ => OperationalReportRegistry.MaximumRows };
     private static Uri RequireContinuation(string address, Uri first)
     {
         var prefix = first.GetLeftPart(UriPartial.Path) + "?";
@@ -136,7 +179,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
         {
             if (key == "$skiptoken") { if (string.IsNullOrWhiteSpace(value)) throw Refuse("The operational page cursor is empty."); }
             else if (key == "$skip") { if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var skip) || skip < 0) throw Refuse("The operational skip cursor is invalid."); }
-            else if (key == "$top") { if (!int.TryParse(value, out var top) || top is < 1 or > 1000) throw Refuse("The operational page size exceeds its admitted bound."); }
+            else if (key == "$top") { if (!int.TryParse(value, out var top) || top < 1 || top > (first.AbsolutePath == "/v1.0/tenantRelationships/delegatedAdminRelationships" ? 300 : 1000)) throw Refuse("The operational page size exceeds its admitted bound."); }
             else if (key != "$select" || !original.TryGetValue(key, out var expected) || value != expected)
                 throw Refuse("The operational continuation changed the registered query or requested an unsupported option.");
         }
