@@ -4,6 +4,8 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class CollaborationInventoryRegistryTests
 {
+    [Fact]public void Group_projection_uses_only_documented_v1_metadata_without_creation_options()
+    {Assert.DoesNotContain("creationOptions",CollaborationInventoryRegistry.Path(CollaborationReadKind.GroupMetadata,TestData.TenantA));}
     [Fact] public void Search_is_one_bounded_encoded_value_not_an_odata_expression()
     {
         const string text="Finance & legal?x=$expand=permissions";

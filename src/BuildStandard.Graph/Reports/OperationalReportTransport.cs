@@ -22,6 +22,9 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     private readonly HashSet<string> _visited = new(StringComparer.Ordinal);
     private int _calls, _reading, _parentRows;
     private readonly string? _customerTenantId;
+    private readonly CollaborationReadSelection? _collaboration;
+    private readonly HashSet<string> _admittedSites = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (bool Owners, bool Members)> _admittedGroups = new(StringComparer.Ordinal);
     private readonly Dictionary<string, bool> _parentCandidates = new(StringComparer.Ordinal);
     private readonly HashSet<string> _children = new(StringComparer.Ordinal);
     private bool _parentsComplete;
@@ -30,11 +33,17 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     public string ReportId { get; }
     public string? CustomerTenantId => _customerTenantId;
     internal OperationalReportTransport(HttpClient client, IAccessTokenProvider tokens, TenantSession session,
-        string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false)
+        string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null)
     {
         _client = client; _tokens = tokens; _session = session; _requireCurrent = requireCurrent; _ownsClient = ownsClient;
         TenantId = session.TenantId; ReportId = reportId;
-        _ = OperationalReportRegistry.Scope(reportId);
+        if (reportId == "collaboration-inventory")
+            _collaboration = collaboration ?? throw Refuse("An exact frozen collaboration selection is required.");
+        else
+        {
+            if (collaboration is not null) throw Refuse("Collaboration selection is not admitted for this report.");
+            _ = OperationalReportRegistry.Scope(reportId);
+        }
         if (reportId == "partner-relationships")
         {
             if (!partnerDeclared || !ReportValues.IsCanonicalGuid(customerTenantId) || customerTenantId == TenantId)
@@ -46,16 +55,27 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
         RequireVerified(); _binding = Binding(session); AssertCurrent(default);
         _lifetime = new(TimeSpan.FromMinutes(5));
     }
-    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent, string? customerTenantId = null, bool partnerDeclared = false)
+    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null)
     {
         var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true, customerTenantId: customerTenantId, partnerDeclared: partnerDeclared); }
+        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true, customerTenantId: customerTenantId, partnerDeclared: partnerDeclared, collaboration: collaboration); }
         catch { client.Dispose(); throw; }
     }
-    public async Task<OperationalReportPage> ReadNextAsync(OperationalReadKind kind, string? relationshipId, CancellationToken cancellation)
+    public Task<OperationalReportPage> ReadCollaborationNextAsync(CollaborationReadKind kind, string value, CancellationToken cancellation)
+    {
+        var selection = _collaboration ?? throw Refuse("This source has no collaboration selection.");
+        var registered = selection.RequirePath(kind, value);
+        if (kind == CollaborationReadKind.SiteLibraries && !_admittedSites.Contains(value)
+            || kind == CollaborationReadKind.GroupOwners && (!_admittedGroups.TryGetValue(value, out var owners) || !owners.Owners)
+            || kind == CollaborationReadKind.TeamMembers && (!_admittedGroups.TryGetValue(value, out var members) || !members.Members))
+            throw Refuse("The exact selected parent has not admitted this child section. Unsupported or unknown parent facts cannot authorise child requests.");
+        return ReadCoreAsync(null, registered, kind, value, cancellation);
+    }
+    public Task<OperationalReportPage> ReadNextAsync(OperationalReadKind kind, string? relationshipId, CancellationToken cancellation)
+        => ReadCoreAsync(kind, OperationalReportRegistry.Path(ReportId, kind, relationshipId), null, relationshipId, cancellation);
+    private async Task<OperationalReportPage> ReadCoreAsync(OperationalReadKind? kind, string registered, CollaborationReadKind? collaborationKind, string? relationshipId, CancellationToken cancellation)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var registered = OperationalReportRegistry.Path(ReportId, kind, relationshipId);
         if (Interlocked.CompareExchange(ref _reading, 1, 0) != 0) throw Refuse("An operational read is already active. No concurrent cursor or authentication operation was started.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _lifetime.Token);
         var ct = deadline.Token;
@@ -113,14 +133,25 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
                 if (length is not null && length != bytes.Length) throw Refuse("The operational response was incomplete. No empty or truncated success was admitted.");
                 using var document = JsonDocument.Parse(bytes.ToArray(), new JsonDocumentOptions { MaxDepth = 48, AllowDuplicateProperties = false });
                 var root = document.RootElement;
-                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("value", out var items) || items.ValueKind != JsonValueKind.Array
-                    || items.GetArrayLength() > PageLimit(kind))
-                    throw Refuse("The operational source did not return a bounded collection page.");
-                var result = new List<JsonObject>(items.GetArrayLength());
-                foreach (var item in items.EnumerateArray())
+                var singleton = collaborationKind is CollaborationReadKind.SiteMetadata or CollaborationReadKind.GroupMetadata;
+                var result = new List<JsonObject>();
+                JsonElement items = default;
+                if (root.ValueKind != JsonValueKind.Object) throw Refuse("The registered source returned no JSON object.");
+                if (singleton)
                 {
-                    if (item.ValueKind != JsonValueKind.Object) throw Refuse("An operational collection item is not an object.");
-                    result.Add(JsonNode.Parse(item.GetRawText())!.AsObject());
+                    if (root.TryGetProperty("@odata.nextLink", out _) || !root.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String || id.GetString() != relationshipId)
+                        throw Refuse("Returned parent metadata does not identify the exact selected resource. No child was admitted.");
+                    result.Add(JsonNode.Parse(root.GetRawText())!.AsObject());
+                }
+                else
+                {
+                    if (!root.TryGetProperty("value", out items) || items.ValueKind != JsonValueKind.Array || items.GetArrayLength() > PageLimit(kind))
+                        throw Refuse("The operational source did not return a bounded collection page.");
+                    foreach (var item in items.EnumerateArray())
+                    {
+                        if (item.ValueKind != JsonValueKind.Object) throw Refuse("An operational collection item is not an object.");
+                        result.Add(JsonNode.Parse(item.GetRawText())!.AsObject());
+                    }
                 }
                 Uri? next = null;
                 if (root.TryGetProperty("@odata.nextLink", out var nextValue))
@@ -149,6 +180,9 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
                     }
                     _parentsComplete = next is null;
                 }
+                if (collaborationKind == CollaborationReadKind.SiteMetadata) _admittedSites.Add(relationshipId!);
+                if (collaborationKind == CollaborationReadKind.GroupMetadata)
+                    _admittedGroups.Add(relationshipId!, (!CollaborationPopulation.OwnersUnavailable(result[0]), CollaborationPopulation.HasTeam(result[0]) == true));
                 _next[registered] = next;
                 return new(result, next is not null);
             }
@@ -164,8 +198,8 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
         catch (IOException) { throw Refuse("The operational stream could not be read completely. No partial page was admitted."); }
         finally { Volatile.Write(ref _reading, 0); }
     }
-    private static int PageLimit(OperationalReadKind kind) => kind switch
-    { OperationalReadKind.PartnerRelationships => 300, OperationalReadKind.HealthIssues => 1000, _ => OperationalReportRegistry.MaximumRows };
+    private static int PageLimit(OperationalReadKind? kind) => kind switch
+    { OperationalReadKind.PartnerRelationships => 300, OperationalReadKind.HealthIssues => 1000, null => 1000, _ => OperationalReportRegistry.MaximumRows };
     private static Uri RequireContinuation(string address, Uri first)
     {
         var prefix = first.GetLeftPart(UriPartial.Path) + "?";
@@ -181,9 +215,11 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
             if (key == "$skiptoken") { if (string.IsNullOrWhiteSpace(value)) throw Refuse("The operational page cursor is empty."); }
             else if (key == "$skip") { if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var skip) || skip < 0) throw Refuse("The operational skip cursor is invalid."); }
             else if (key == "$top") { if (!int.TryParse(value, out var top) || top < 1 || top > (first.AbsolutePath == "/v1.0/tenantRelationships/delegatedAdminRelationships" ? 300 : 1000)) throw Refuse("The operational page size exceeds its admitted bound."); }
-            else if (key != "$select" || !original.TryGetValue(key, out var expected) || value != expected)
+            else if (key is not ("$select" or "search") || !original.TryGetValue(key, out var expected) || value != expected)
                 throw Refuse("The operational continuation changed the registered query or requested an unsupported option.");
         }
+        if (original.TryGetValue("search", out var search) && (!query.TryGetValue("search", out var continuedSearch) || search != continuedSearch))
+            throw Refuse("Search continuation changed or omitted the frozen search scope.");
         return next;
     }
     private static Dictionary<string, string> Query(string query)
@@ -200,11 +236,11 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
     }
     private void RequireVerified()
     {
-        var scope = OperationalReportRegistry.Scope(ReportId);
+        var scopes = _collaboration?.Scopes() ?? new[] { OperationalReportRegistry.Scope(ReportId) };
         if (!_session.TenantVerified || !_session.OperatorVerified || !ReportValues.IsCanonicalGuid(_session.TenantId)
             || !ReportValues.IsCanonicalGuid(_session.AccountObjectId) || _session.OperatorObjectId != _session.AccountObjectId
             || !ReportValues.IsCanonicalGuid(_session.ClientId) || string.IsNullOrWhiteSpace(_session.Account) || !Enum.IsDefined(_session.Mode)
-            || _session.Scopes is null || !_session.Scopes.Any(value => value == scope || value == "https://graph.microsoft.com/" + scope))
+            || _session.Scopes is null || !scopes.All(scope => _session.Scopes.Any(value => value == scope || value == "https://graph.microsoft.com/" + scope)))
             throw Refuse("The operational source requires its verified delegated account, registration and actually returned optional read scope. No consent or privilege fallback occurs.");
     }
     private void AssertCurrent(CancellationToken cancellation)

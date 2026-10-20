@@ -32,7 +32,7 @@ public static class CollaborationInventoryRegistry
         if (!ReportValues.IsCanonicalGuid(value)) throw new ConfigurationException("Use an exact selected group GUID, never a name or URL.");
         return kind switch
         {
-            CollaborationReadKind.GroupMetadata => "/groups/" + value + "?$select=id,displayName,groupTypes,mailEnabled,securityEnabled,onPremisesSyncEnabled,resourceProvisioningOptions,creationOptions",
+            CollaborationReadKind.GroupMetadata => "/groups/" + value + "?$select=id,displayName,groupTypes,mailEnabled,securityEnabled,onPremisesSyncEnabled,resourceProvisioningOptions",
             CollaborationReadKind.GroupOwners => "/groups/" + value + "/owners?$select=id,displayName",
             CollaborationReadKind.TeamMembers => "/teams/" + value + "/members?$select=id,displayName,roles,userId,tenantId",
             _ => throw new ConfigurationException("This collaboration source is not registered.")
