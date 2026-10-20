@@ -1,6 +1,6 @@
 # Proposed registered Exchange report families — INT-128
 
-Status: decision-only expansion C, recommendation 2, from canonical main `4cab5de3e71fcb0e17d47f4d725b304bfc2a0ba9`. No runtime capability, consent, tenant read or acceptance is introduced. This shared contract needs independent review and owner-authorised merge before dependent implementation. Named runner/evidence/context safety acceptance remains separate.
+Status: decision-only expansion C, recommendation 2; accepted prospectively by William on20October2026 for merge through #145 after actual checks, from canonical main `4cab5de3e71fcb0e17d47f4d725b304bfc2a0ba9`. No runtime capability, consent, tenant read or acceptance is introduced. Supplementary independent contract findings C-CONTRACT-001/002 are addressed at ec2c3bb; actual owner-authorised merge must complete before dependent implementation. Named runner/evidence/context safety acceptance remains separate.
 
 ## Purpose and existing boundaries
 
