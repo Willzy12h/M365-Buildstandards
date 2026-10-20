@@ -37,6 +37,12 @@ public sealed class OperationalReportsViewModel : PageViewModel
         OpenConnectionCommand = Sync(() => Shell.Navigate("connect"), () => Workspace.Idle);
         Refresh();
     }
+    public string CollaborationSearch { get; set; } = "";
+    public string CollaborationSites { get; set; } = "";
+    public string CollaborationGroups { get; set; } = "";
+    public bool IncludeLibraries { get; set; }
+    public bool IncludeOwners { get; set; }
+    public bool IncludeMembers { get; set; }
     public string SelectedReportId { get=>_selectedReportId; set { if(SetProperty(ref _selectedReportId,value)) SelectionChanged(); } }
     public string CustomerTenantId { get=>_customerTenantId; set { if(SetProperty(ref _customerTenantId,value)) SelectionChanged(); } }
     public bool PartnerDeclared { get=>_partnerDeclared; set { if(SetProperty(ref _partnerDeclared,value)) SelectionChanged(); } }

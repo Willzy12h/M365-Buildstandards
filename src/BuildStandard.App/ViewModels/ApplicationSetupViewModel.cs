@@ -57,6 +57,8 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     /// <summary>On by default: without it the engineer who ran setup cannot connect until someone assigns them in Entra.</summary>
     private bool _includeUsageReports;
     public bool IncludeUsageReports {get=>_includeUsageReports;set{if(value==_includeUsageReports)return;if(!Workspace.Idle)throw new ToolkitException("Wait for setup to finish before changing access intent.");if(SetProperty(ref _includeUsageReports,value))InvalidatePlan();}}
+    public bool IncludeCollaborationSites { get; set; }
+    public bool IncludeCollaborationTeams { get; set; }
     private bool _includeServiceHealth, _includePartnerRelationships;
     public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
     public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }

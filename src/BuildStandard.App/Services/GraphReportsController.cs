@@ -134,6 +134,8 @@ public sealed class GraphReportsController(Workspace workspace)
     internal Func<ConnectedTenant, string, Action, IOperationalReportSource> PartnerSourceFactory { get; set; } =
         (connection, customer, current) => ((GraphClient)connection.Graph).ForOperationalReports(
             connection.Session, "partner-relationships", current, customer, true);
+    internal Func<ConnectedTenant, CollaborationReadSelection, Action, ICollaborationReportSource> CollaborationSourceFactory { get; set; } =
+        (_, _, _) => throw new ConfigurationException("Native collaboration read is not implemented yet.");
     public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
     public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared)
     {

@@ -118,6 +118,8 @@ public sealed class ConnectViewModel : PageViewModel
             SetProperty(ref _includeUsageReports,value);Workspace.CancelPendingDiscovery();SetDiscovery(null);OnPropertyChanged(nameof(OptionalAccessSummary));
         }
     }
+    public bool IncludeCollaborationSites { get; set; }
+    public bool IncludeCollaborationTeams { get; set; }
     private bool _includeServiceHealth, _includePartnerRelationships;
     public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
     public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }
