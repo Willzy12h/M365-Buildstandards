@@ -40,6 +40,14 @@ public sealed class ExchangeFamilyResultTests
         Encoding.UTF8.GetBytes(envelope.ToJsonString()), envelope["runId"]!.GetValue<string>(), entry, Context, Parameters,
         Started, Started.AddMinutes(2));
 
+    [Fact]
+    public void Lower_manifest_limit_counts_target_and_rule_rows_together()
+    {
+        var entry = Assert.Single(ScriptCatalogue.Load(ScriptLibraryReport2Tests.Library(m => m["limits"]!["maximumRows"] = 1)).Entries);
+        var envelope = Envelope(entry);
+        Assert.ThrowsAny<ToolkitException>(() => Read(envelope, entry));
+    }
+
     [Theory]
     [InlineData("184467440737095516150000")]
     [InlineData("opaque-é-🍵-\"-\\-<&")]

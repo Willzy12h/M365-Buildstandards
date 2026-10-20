@@ -23,6 +23,20 @@ public sealed class InboxRuleEvidenceV2Tests
     {e.IntegrityDigest=EvidenceIntegrity.Compute(e);return ExchangeReportEvidenceSchema.Read(ExchangeReportEvidenceSchema.Serialize(e),TestData.TenantA);}
     [Fact] public void Exact_registration_roundtrips_opaque_rule_identity_and_composite_keys()
     {var e=Read(Report());Assert.Equal(2,e.ReportSchemaVersion);Assert.Equal(Rule,e.Sections[1].Rows[0]["ruleIdentity"]!.GetValue<string>());Assert.False(e.Sections[1].Rows[0]["enabled"]!["value"]!.GetValue<bool>());Assert.Empty(e.Sections[1].Rows[0]["forwardTo"]!["value"]!.AsArray());}
+    [Theory][InlineData(4999, true)][InlineData(5000, false)]
+    public void Aggregate_budget_includes_target_diagnostics(int rules, bool accepted)
+    {
+        var report = Report(); var prototype = report.Sections[1].Rows[0];
+        report.Sections[1].Rows = Enumerable.Range(0, rules).Select(index =>
+        {
+            var row = (JsonObject)prototype.DeepClone(); var identity = "synthetic-" + index;
+            row["ruleIdentity"] = identity; row["id"] = ExchangeObservationKey.InboxRule(Mailbox, identity);
+            return row;
+        }).ToList();
+        report.Sections[0].Rows[0]["returnedEntries"] = rules;
+        if (accepted) Assert.Equal(5000, Read(report).Sections.Sum(section => section.Rows.Count));
+        else Assert.ThrowsAny<ToolkitException>(() => Read(report));
+    }
     [Theory][InlineData("adapter")][InlineData("revision")][InlineData("guid-key")][InlineData("changed-rule")][InlineData("foreign-mailbox")][InlineData("duplicate")][InlineData("missing-target")][InlineData("failed-parent")][InlineData("hidden-relabel")][InlineData("invented-value")][InlineData("content")]
     public void Resealed_unsupported_versions_identity_scope_and_value_claims_are_refused(string defect)
     {var e=Report();var row=e.Sections[1].Rows[0];switch(defect){case "adapter":e.AdapterVersion="registered-exchange-report/1";break;case "revision":e.ReportSchemaVersion=1;break;case "guid-key":row["id"]=TestData.TenantB;break;case "changed-rule":row["ruleIdentity"]="different opaque identity";break;case "foreign-mailbox":row["mailboxExchangeGuid"]=TestData.TenantB;break;case "duplicate":e.Sections[1].Rows.Add((JsonObject)row.DeepClone());break;case "missing-target":e.Sections[0].Rows.Clear();break;case "failed-parent":e.Sections[0].Rows[0]["lookupReadStatus"]="Failed";break;case "hidden-relabel":e.Parameters[1].Value="False";break;case "invented-value":row["enabled"]!["state"]="Missing";break;case "content":row["subjectContainsWords"]=new JsonArray("unnecessary content");break;}Assert.ThrowsAny<ToolkitException>(()=>Read(e));}

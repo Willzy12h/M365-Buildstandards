@@ -90,6 +90,8 @@ public sealed class ScriptReadResult
             throw Bad("The result's sections are not the registered sections.");
         var maximum = Math.Min(m.Limits.MaximumRows, report.RowLimit);
         if (r.Sections.Any(s => s.Rows is null || s.Rows.Count > maximum)) throw Bad("The result has more rows than the item allows.");
+        if (report.ReportSchemaVersion == 2 && r.Sections.Sum(section => section.Rows.Count) > maximum)
+            throw Bad("Combined report sections exceed the item row budget, including target diagnostics.");
         if (report.ReportSchemaVersion == 2)
             ExchangeReportEvidenceSchema.AdmitFamilyRows(report, r.Sections, parameters.Select(parameter =>
                 new ExchangeReportParameter { Name = parameter.Name, Type = parameter.Type, Value = parameter.Value }).ToList());

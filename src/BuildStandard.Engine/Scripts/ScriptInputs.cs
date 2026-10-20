@@ -59,7 +59,12 @@ public static class ScriptInputs
                 problems.Add($"{argument.Name}: use an exact bounded Exchange GUID selection.");
             else
             {
-                try { _ = BuildStandard.Core.Reporting.ExchangeTargetSelection.Parse(targets.Value); }
+                try
+                {
+                    var selection = BuildStandard.Core.Reporting.ExchangeTargetSelection.Parse(targets.Value);
+                    if (selection.Count > manifest.Limits.MaximumRows)
+                        problems.Add($"{argument.Name}: the row budget must retain a diagnostic row for every selected target.");
+                }
                 catch (BuildStandard.Core.ConfigurationException error) { problems.Add($"{argument.Name}: {error.Message}"); }
             }
         }

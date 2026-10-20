@@ -17,6 +17,7 @@ $script:FamilyTargets=[Collections.Generic.HashSet[string]]::new([StringComparer
 $null=$script:FamilyTargets.Add($first)
 $script:FamilyVerifiedTargets=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $script:FamilyIncludeHidden=$false;$script:FamilySourceCalls=0;$script:FamilyRowsRead=0;$script:FamilyProjectedBytes=2
+$script:FamilyObservationMaximum=4999
 $script:FamilyStarted=[Diagnostics.Stopwatch]::StartNew()
 function Get-FakeMailbox {
     param([string]$Identity,[string[]]$Properties)
@@ -28,7 +29,7 @@ function Get-FakeMailbox {
 function Get-FakeRules {
     param([string]$Mailbox,[bool]$IncludeHidden,[int]$ResultSize)
     $script:Reads++;$script:LastSize=$ResultSize
-    $count=if($Case -ceq 'rows'){2}else{1}
+    $count=if($Case -ceq 'rows' -or $Case -ceq 'lower-budget'){2}else{1}
     for($n=0;$n -lt $count;$n++){
         $script:Produced++
         [pscustomobject]@{RuleIdentity=('18446744073709551615'+[string]$n);Identity='raw-rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true;Secret='not selected'}
@@ -46,9 +47,20 @@ switch -CaseSensitive ($Case) {
     Check ($null -eq $rows[0].PSObject.Properties['Secret']) 'Unselected source data escaped'
     $rules=@(Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false})
     Check ($rules.Count -eq 1 -and $rules[0].Enabled -is [bool] -and -not $rules[0].Enabled) 'False was lost'
-    Check ($script:LastSize -eq 5001) 'ResultSize is not the gate-owned remaining cap plus sentinel'
+    Check ($script:LastSize -eq 5000) 'ResultSize is not the gate-owned remaining cap plus sentinel'
     Check ($script:FamilyRowsRead -eq 1 -and $script:FamilyProjectedBytes -gt 2) 'Shared budgets were not charged'
     Check ($null -eq $rules[0].PSObject.Properties['Secret']) 'Unselected rule data escaped'
+ }
+ 'lower-budget' {
+    $script:FamilyObservationMaximum=99;$script:FamilyRowsRead=98
+    $null=$script:FamilyVerifiedTargets.Add($first)
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+    Check ($script:LastSize -eq 2 -and $script:FamilyRowsRead -eq 99) 'Lower source cap was not enforced before projection'
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+ }
+ 'diagnostic-reserve' {
+    $script:FamilyObservationMaximum=0;$null=$script:FamilyVerifiedTargets.Add($first)
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 0
  }
  'wrong-target' {Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$second}} 0}
  'unverified-child' {Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 0}
@@ -72,9 +84,9 @@ switch -CaseSensitive ($Case) {
     Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$true}} 1
  }
  'rows' {
-    $null=$script:FamilyVerifiedTargets.Add($first);$script:FamilyRowsRead=4999
+    $null=$script:FamilyVerifiedTargets.Add($first);$script:FamilyRowsRead=4998
     Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
-    Check ($script:Produced -eq 2 -and $script:FamilyRowsRead -eq 5000) 'Shared row sentinel was not bounded before materialisation'
+    Check ($script:Produced -eq 2 -and $script:FamilyRowsRead -eq 4999) 'Shared row sentinel was not bounded before materialisation'
     Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
  }
  'bytes' {

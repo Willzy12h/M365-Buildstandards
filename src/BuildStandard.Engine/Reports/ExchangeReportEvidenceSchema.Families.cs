@@ -111,7 +111,7 @@ public static partial class ExchangeReportEvidenceSchema
             ||!selected.ToHashSet(StringComparer.Ordinal).SetEquals(targets.Select(t=>t.RequestedExchangeGuid)))
             throw Bad("Every selected target needs exactly one read-state row; omission is not a successful empty source.");
         if(rules.Any(r=>!selected.Contains(r.MailboxExchangeGuid,StringComparer.Ordinal)))throw Bad("A rule belongs to an unselected mailbox.");
-        if(targets.Sum(t=>t.ReturnedEntries??0)>5000)throw Bad("Original rule rows exceed the shared5,000-row report budget.");
+        if(targets.Length + targets.Sum(t=>t.ReturnedEntries??0)>5000)throw Bad("Target diagnostics and original rule rows exceed the shared 5,000-row report budget.");
         foreach(var target in targets)
         {
             var children=rules.Where(r=>r.MailboxExchangeGuid==target.RequestedExchangeGuid).ToArray();

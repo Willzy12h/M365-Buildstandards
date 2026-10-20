@@ -117,7 +117,7 @@ function Invoke-BditRunner {
         try {
             if ($BditArguments.Count -ne 2 -or $BditArguments['MailboxGuids'] -isnot [string] -or $BditArguments['IncludeHidden'] -isnot [bool]) { throw 'scope' }
             $targetIds = $BditArguments['MailboxGuids'].Split(',')
-            if ($targetIds.Count -lt 1 -or $targetIds.Count -gt 50) { throw 'scope' }
+            if ($targetIds.Count -lt 1 -or $targetIds.Count -gt 50 -or $targetIds.Count -gt $BditRequest.maximumRows) { throw 'scope' }
             $targetSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             foreach ($target in $targetIds) {
                 if ($target -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $target -ceq '00000000-0000-0000-0000-000000000000' -or -not $targetSet.Add($target)) { throw 'scope' }
@@ -273,14 +273,15 @@ function Invoke-BditRunner {
     # ---- the private gate --------------------------------------------------------------------------------------------
     New-Variable -Name BditGate -Option Private -Value (New-Module -Name BditReadGate -ArgumentList @(
             [guid][string]$BditRequest.tenantId, ([string]$BditRequest.expectedAccountUpn).Trim(), $identity['Get-ConnectionInformation'], $readers, $Stop,
-            [int]$BditRequest.reportSchemaVersion, [string]$BditRequest.reportId, $BditArguments) -ScriptBlock {
-            param($Tenant, $Account, $Connections, $Readers, $StopFile, $ReportVersion, $ReportId, $ReportArguments)
+            [int]$BditRequest.reportSchemaVersion, [string]$BditRequest.reportId, $BditArguments, [int]$BditRequest.maximumRows) -ScriptBlock {
+            param($Tenant, $Account, $Connections, $Readers, $StopFile, $ReportVersion, $ReportId, $ReportArguments, $MaximumRows)
             $script:Failure = $null
             $script:Observed = $null
             $script:FamilyVersion = $ReportVersion
             $script:FamilyReportId = $ReportId
             $script:FamilyTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             $script:FamilyVerifiedTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $script:FamilyObservationMaximum = 0
             $script:FamilyIncludeHidden = $false
             $script:FamilySourceCalls = 0
             $script:FamilyRowsRead = 0
@@ -289,6 +290,8 @@ function Invoke-BditRunner {
             if ($ReportVersion -eq 2) {
                 foreach ($target in $ReportArguments['MailboxGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) }
                 $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden']
+                # Every selected target retains one diagnostic row, even after failure/cancellation.
+                $script:FamilyObservationMaximum = $MaximumRows - $script:FamilyTargets.Count
             }
             # A token is usable only when it is reported Active and its expiry is read as a time after now. A missing, null,
             # malformed or ambiguous status or expiry is never guessed usable. Typed values keep their own meaning: a
@@ -399,7 +402,7 @@ function Invoke-BditRunner {
                     if ($rows.Count -ge 5000) { throw 'BDIT-READ-LIMIT' }
                     Assert-BditGate
                     if ($CountAsObservation) {
-                        if ($script:FamilyRowsRead -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                        if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
                         $script:FamilyRowsRead++
                     }
                     if ($null -eq $_ -or $_ -is [Collections.IDictionary]) { throw 'BDIT-READ-SHAPE' }
@@ -443,11 +446,11 @@ function Invoke-BditRunner {
                             $Parameters['Mailbox'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Mailbox']) -or
                             -not $script:FamilyVerifiedTargets.Contains($Parameters['Mailbox']) -or $Parameters['IncludeHidden'] -isnot [bool] -or
                             $Parameters['IncludeHidden'] -ne $script:FamilyIncludeHidden) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
-                        if ($script:FamilyRowsRead -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                        if ($script:FamilyRowsRead -ge $script:FamilyObservationMaximum) { throw 'BDIT-READ-LIMIT' }
                         $properties = @('RuleIdentity','Identity','Name','Enabled','Priority','ForwardTo','ForwardAsAttachmentTo','RedirectTo','DeleteMessage','MarkAsRead','StopProcessingRules')
                         $arguments['Mailbox'] = $Parameters['Mailbox']
                         $arguments['IncludeHidden'] = $script:FamilyIncludeHidden
-                        $arguments['ResultSize'] = 5001 - $script:FamilyRowsRead
+                        $arguments['ResultSize'] = 1 + $script:FamilyObservationMaximum - $script:FamilyRowsRead
                         $observation = $true
                     }
                     default { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
@@ -614,6 +617,7 @@ function Invoke-BditRunner {
         }
         $index = 0
         # Reserve fixed envelope/parameter space and parent-assigned key growth before accumulating report2 rows.
+        $familyOutputRows = 0
         $familyOutputBytes = 65536 + ($requestBytes.Length * 2) + (5000 * 96)
         $outputUtf8 = [Text.UTF8Encoding]::new($false, $true)
         foreach ($registered in @($BditRequest.sections)) {
@@ -659,6 +663,8 @@ function Invoke-BditRunner {
                     }
                     if ($BditRequest.reportSchemaVersion -eq 2) {
                         $size = $outputUtf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 10 -Compress)) + 1
+                        if ($familyOutputRows -ge $BditRequest.maximumRows) { throw 'rows' }
+                        $familyOutputRows++
                         if ($size -gt (33554432 - $familyOutputBytes)) { throw 'output' }
                         $familyOutputBytes += $size
                     }
