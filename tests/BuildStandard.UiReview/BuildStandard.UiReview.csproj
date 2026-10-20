@@ -11,4 +11,5 @@
     <ProjectReference Include="..\..\src\BuildStandard.App\BuildStandard.App.csproj" />
     <Compile Include="..\BuildStandard.App.Tests\ApplicationReportUiFixtures.cs" Link="ApplicationReportUiFixtures.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="..\BuildStandard.Tests\CoverageTestData.cs" Link="CoverageTestData.cs" /></ItemGroup>
 </Project>

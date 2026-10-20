@@ -83,4 +83,6 @@ public sealed class ConditionalAccessEvaluationPageTests
     }
     [Fact] public void Coverage_navigation_exists_without_authentication_or_collection_on_selection()
     {using var f=new ConnectedReportsFixture(connect:false);var shell=new ShellViewModel(f.Workspace);shell.Navigate("coverage");Assert.Equal("Deployment coverage",Assert.IsAssignableFrom<PageViewModel>(shell.CurrentPage).Title);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Projection_in_progress_keeps_scenario_import_and_exports_disabled_even_after_backend_is_idle()
+    {using var f=new ConnectedReportsFixture(connect:false);var page=new ConditionalAccessEvaluationViewModel(new(f.Workspace)){SourceFile=Original(f)};await page.ImportAsync();Assert.True(page.ExportHtmlCommand.CanExecute(null));typeof(ConditionalAccessEvaluationViewModel).GetField("_reading",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(page,true);Assert.True(f.Workspace.Idle);Assert.False(page.CanEdit);Assert.False(page.ImportCommand.CanExecute(null));Assert.False(page.ExportHtmlCommand.CanExecute(null));Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
 }

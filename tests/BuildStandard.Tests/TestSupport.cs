@@ -53,7 +53,7 @@ internal static class TestData
     public static IReadOnlyList<string> NativeRouteKeys { get; }=Array.AsReadOnly(new[]
     {
         "home","overview","recovery","connect","setup","automation","configuration","assessment","deviations","plan","deploy",
-        "history","jobs","checks","scripts","run-reports","reports","ca-evaluation","mailbox-capacity","naming","standard","settings"
+        "history","jobs","checks","scripts","run-reports","reports","ca-evaluation","coverage","mailbox-capacity","naming","standard","settings"
     });
     public const string TenantA = "11111111-1111-4111-8111-111111111111";
     public const string TenantB = "22222222-2222-4222-8222-222222222222";

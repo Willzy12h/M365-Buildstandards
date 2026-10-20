@@ -24,6 +24,7 @@ public static class RouteCatalog
         new("Build standard", "standard", "", "Catalogue reference"),
         new("Reports", "reports", "", "Tenant reports"),
         new("Reports", "ca-evaluation", "", "Hypothetical CA evaluation"),
+        new("Reports", "coverage", "", "Deployment coverage"),
         new("Reports", "naming", "", "Naming and ownership"),
         new("Reports", "mailbox-capacity", "", "Mailbox capacity"),
         new("Scripts", "scripts", "", "Script library"),

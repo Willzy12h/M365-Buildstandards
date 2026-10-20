@@ -75,6 +75,12 @@ public partial class MainWindow : Window
             shell.ShowError(new InvalidOperationException("An original CA evaluation is still unsaved. Save, export or explicitly discard its exact original in Hypothetical CA evaluation before closing. No report is repeated."));
             return true;
         }
+        if (shell.Page<DeploymentCoverageViewModel>().HasPending)
+        {
+            shell.Navigate("coverage");
+            shell.ShowError(new InvalidOperationException("Original coverage is still unsaved. Recover its exact original report/files or explicitly discard it in Deployment coverage before closing. No query is repeated."));
+            return true;
+        }
         return false;
     }
 

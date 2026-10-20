@@ -20,7 +20,7 @@ public sealed class ReportNavigationTests
         Assert.IsType<HomeViewModel>(shell.CurrentPage);
         Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, shell.NavItems.Select(n => n.Group).Distinct());
         Assert.Equal(new[] { "home", "connect", "overview" }, shell.NavItems.Where(n => n.Group == "Workspace").Select(n => n.Key));
-        Assert.Equal(new[] { "reports", "ca-evaluation", "naming", "mailbox-capacity" }, shell.NavItems.Where(n => n.Group == "Reports").Select(n => n.Key));
+        Assert.Equal(new[] { "reports", "ca-evaluation", "coverage", "naming", "mailbox-capacity" }, shell.NavItems.Where(n => n.Group == "Reports").Select(n => n.Key));
         foreach (var group in shell.NavItems.GroupBy(n => n.Group))
         {
             Assert.True(group.First().IsGroupStart);
@@ -40,6 +40,7 @@ public sealed class ReportNavigationTests
         shell.Navigate("naming"); Assert.Same(shell.Page<NamingAuditViewModel>(), shell.CurrentPage);
         shell.Navigate("mailbox-capacity"); Assert.Same(shell.Page<MailboxCapacityViewModel>(), shell.CurrentPage);
         shell.Navigate("ca-evaluation"); Assert.Same(shell.Page<ConditionalAccessEvaluationViewModel>(), shell.CurrentPage);
+        shell.Navigate("coverage"); Assert.Same(shell.Page<DeploymentCoverageViewModel>(), shell.CurrentPage);
         shell.Navigate("scripts"); Assert.Same(shell.Page<ScriptsViewModel>(), shell.CurrentPage);
         shell.Navigate("run-reports"); Assert.Same(shell.Page<RunReportsViewModel>(), shell.CurrentPage);
         // Run reports sits directly after the Copy-only library it extends.
@@ -55,7 +56,7 @@ public sealed class ReportNavigationTests
         var capture = TestData.Snapshot(f.Workspace.RequireStandard());
         f.Set(nameof(Workspace.Snapshot), capture); f.Set(nameof(Workspace.AcknowledgedSnapshotId), capture.Id);
         var shell = new ShellViewModel(f.Workspace); var before = ToolkitJson.Serialize(f.Workspace.Snapshot); var plan = f.Workspace.Plan;
-        foreach (var key in new[] { "reports", "ca-evaluation", "naming", "run-reports", "mailbox-capacity", "configuration", "reports", "mailbox-capacity", "run-reports", "ca-evaluation", "naming" }) shell.Navigate(key);
+        foreach (var key in new[] { "reports", "ca-evaluation", "naming", "run-reports", "mailbox-capacity", "configuration", "reports", "mailbox-capacity", "run-reports", "ca-evaluation", "coverage", "naming" }) shell.Navigate(key);
         Assert.Empty(shell.Page<NamingAuditViewModel>().Rows);
         Assert.Equal(before, ToolkitJson.Serialize(f.Workspace.Snapshot)); Assert.Same(plan, f.Workspace.Plan);
         Assert.Equal(capture.Id, f.Workspace.AcknowledgedSnapshotId);
