@@ -57,7 +57,19 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     /// <summary>On by default: without it the engineer who ran setup cannot connect until someone assigns them in Entra.</summary>
     private bool _includeUsageReports;
     public bool IncludeUsageReports {get=>_includeUsageReports;set{if(value==_includeUsageReports)return;if(!Workspace.Idle)throw new ToolkitException("Wait for setup to finish before changing access intent.");if(SetProperty(ref _includeUsageReports,value))InvalidatePlan();}}
-    private OptionalReportAccess OptionalAccess=>IncludeUsageReports?OptionalReportAccess.UsageReports:OptionalReportAccess.None;
+    private bool _includeServiceHealth, _includePartnerRelationships;
+    public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
+    public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }
+    private void SetOperationalAccess(ref bool field, bool value, string name)
+    {
+        if (value == field) return;
+        if (!Workspace.Idle) throw new ToolkitException("Wait for setup to finish before changing access intent.");
+        if (SetProperty(ref field, value, name)) InvalidatePlan();
+    }
+    public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
+    private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
+        | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
+        | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None);
     public bool AssignOperator { get => _assignOperator; set { if (SetProperty(ref _assignOperator, value)) InvalidatePlan(); } }
     public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
     public string AssessmentClientId { get => _assessmentId; set { if (SetProperty(ref _assessmentId, value)) InvalidatePlan(); } }
@@ -204,7 +216,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!string.Equals(setup.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The setup session is connected to another tenant. Sign in again.");
         return setup;
     }
-    private void InvalidatePlan() { ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
+    private void InvalidatePlan() { OnPropertyChanged(nameof(OptionalAccessSummary)); ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
     private async Task QuickSetupAsync()
     {
         await Workspace.ConnectApplicationSetupAsync(TenantId);
@@ -456,6 +468,8 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!Ready(mode, !checkDelegatedAdmin)) throw new ConfigurationException("Validate this application's configuration, consent and engineer assignment first.");
         var connect = Shell.Page<ConnectViewModel>();
         connect.IncludeUsageReports=IncludeUsageReports;
+        connect.IncludeServiceHealth=IncludeServiceHealth;
+        connect.IncludePartnerRelationships=IncludePartnerRelationships;
         connect.UseApplicationIds(TenantId.Trim(), AssessmentClientId.Trim(), DeploymentClientId.Trim());
         await connect.ConnectAsync(mode);
     }

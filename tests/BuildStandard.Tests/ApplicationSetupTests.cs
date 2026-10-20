@@ -44,6 +44,36 @@ public sealed class ApplicationSetupTests
         await Assert.ThrowsAsync<ConfigurationException>(()=>f.Service.PreviewAsync(f.Standard,"Test",default,created.Rows[0].ClientId,created.Rows[1].ClientId));
         Assert.Equal(writes,f.Handler.Writes.Count);
     }
+    [Theory]
+    [InlineData(false, "ServiceHealth.Read.All")][InlineData(true, "ServiceHealth.Read.All")]
+    [InlineData(false, "DelegatedAdminRelationship.Read.All")][InlineData(true, "DelegatedAdminRelationship.Read.All")]
+    public async Task Selecting_other_optional_purposes_does_not_remove_previously_configured_operational_reads(bool usageSelected, string scope)
+    {
+        using var f = new Fixture(); var created = await f.Execute(await f.Service.PreviewAsync(f.Standard, "Test", default, optionalAccess: usageSelected ? OptionalReportAccess.UsageReports : OptionalReportAccess.None));
+        var definition = new JsonObject { ["id"] = Guid.NewGuid().ToString("D"), ["value"] = scope, ["isEnabled"] = true, ["type"] = "Admin", ["adminConsentDescription"] = "Synthetic read purpose" };
+        f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().Add(definition);
+        foreach (var app in f.Handler.Applications) app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject { ["id"] = definition["id"]!.DeepClone(), ["type"] = "Scope" });
+        var writes = f.Handler.Writes.Count;
+        var intent = usageSelected ? OptionalReportAccess.UsageReports : OptionalReportAccess.None;
+        var plan = await f.Service.PreviewAsync(f.Standard, "Test", default, created.Rows[0].ClientId, created.Rows[1].ClientId, optionalAccess: intent);
+        Assert.All(plan.Rows, row => Assert.Contains(row.Permissions, permission => permission.Name == scope));
+        var validation = await f.Service.ValidateAsync(f.Standard, created.Rows[0].ClientId, created.Rows[1].ClientId, default, intent);
+        Assert.All(validation.Rows, row => Assert.DoesNotContain(row.Issues, issue => issue.Contains("Configured delegated permissions differ", StringComparison.Ordinal)));
+        Assert.Equal(writes, f.Handler.Writes.Count);
+    }
+    [Theory]
+    [InlineData(false, false)][InlineData(false, true)][InlineData(true, false)][InlineData(true, true)]
+    public async Task Unavailable_configured_operational_definition_is_not_removed_when_another_purpose_is_selected(bool removed, bool usageSelected)
+    {
+        using var f = new Fixture(); var created = await f.Execute(await f.Preview());
+        var definition = new JsonObject { ["id"] = Guid.NewGuid().ToString("D"), ["value"] = "ServiceHealth.Read.All", ["isEnabled"] = !removed, ["type"] = "Admin" };
+        if (!removed) f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().Add(definition);
+        definition["isEnabled"] = false;
+        foreach (var app in f.Handler.Applications) app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject { ["id"] = definition["id"]!.DeepClone(), ["type"] = "Scope" });
+        var writes = f.Handler.Writes.Count;
+        await Assert.ThrowsAsync<ConfigurationException>(() => f.Service.PreviewAsync(f.Standard, "Test", default, created.Rows[0].ClientId, created.Rows[1].ClientId, optionalAccess: usageSelected ? OptionalReportAccess.UsageReports : OptionalReportAccess.None));
+        Assert.Equal(writes, f.Handler.Writes.Count);
+    }
     private const string Tenant = "11111111-1111-1111-1111-111111111111";
     private const string Operator = "22222222-2222-2222-2222-222222222222";
     private const string GraphSp = "33333333-3333-3333-3333-333333333333";

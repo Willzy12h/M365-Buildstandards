@@ -75,6 +75,15 @@ public sealed class GraphClient : IGraphClient
         return Reports.UsageReportTransport.Create(_tokens, session, requireCurrent);
     }
 
+    /// <summary>Fixed operational GET pages over the existing verified provider; no authentication or cache is created.</summary>
+    public Reports.OperationalReportTransport ForOperationalReports(TenantSession session, string reportId, Action requireCurrent,
+        string? customerTenantId = null, bool partnerDeclared = false)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Operational access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, reportId, requireCurrent, customerTenantId, partnerDeclared);
+    }
+
     /// <summary>Schema/ID-pinned application metadata routes, reusing the current provider and transport.</summary>
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);

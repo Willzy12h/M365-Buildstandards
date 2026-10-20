@@ -38,6 +38,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     {
         _controller = new(Workspace); _browser = new(Workspace.Evidence);
         Usage = new(shell, _controller);
+        Operational = new(shell, _controller);
         ReadCommand = Command(ReadAsync, () => ReadGuidance.Length == 0);
         StopReadCommand = Sync(() =>
         {
@@ -69,6 +70,7 @@ public sealed class GraphReportsViewModel : PageViewModel
     }
 
     public UsageReportsViewModel Usage { get; }
+    public OperationalReportsViewModel Operational { get; }
     public IReadOnlyList<GraphReportPresentation> Reports => GraphReportPresentation.Choices;
     public int SelectedTab { get => _selectedTab; set => SetProperty(ref _selectedTab, value); }
     public GraphReportPresentation SelectedReport
@@ -307,7 +309,7 @@ public sealed class GraphReportsViewModel : PageViewModel
         }
         Rows = table.DefaultView; NotifyPage();
     }
-    public override void Refresh() { if (_controller is null) return; EnsureCurrent(); Usage?.Refresh(); NotifyPage(); }
+    public override void Refresh() { if (_controller is null) return; EnsureCurrent(); Usage?.Refresh(); Operational?.Refresh(); NotifyPage(); }
     private void NotifyPage()
     {
         foreach (var name in new[] { nameof(RequiresDates), nameof(RequiresHorizon), nameof(HorizonDays), nameof(RowState), nameof(CanFilterReadState), nameof(ReadStateFilterGuidance), nameof(ReadAcknowledged), nameof(ReadGuidance), nameof(ScopeExplanation), nameof(Limitations), nameof(ContextSummary), nameof(StoredStatus), nameof(Outcome), nameof(Details), nameof(ProvenanceNotice), nameof(SourceSummary), nameof(Sections), nameof(SelectedSection), nameof(Rows), nameof(SectionSummary), nameof(FilterSummary), nameof(SelectedRowDetails), nameof(LastExport), nameof(ExportGuidance), nameof(SuppliedFile), nameof(SelectedStored) }) OnPropertyChanged(name);

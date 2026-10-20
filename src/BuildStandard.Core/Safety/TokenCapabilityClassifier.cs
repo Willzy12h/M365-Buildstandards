@@ -23,6 +23,7 @@ public static class TokenCapabilityClassifier
     {
         "User.Read", "User.Read.All", "Organization.Read.All", "RoleManagement.Read.Directory",
         "Application.Read.All", "Group.Read.All", "Directory.Read.All", "AuditLog.Read.All", "Reports.Read.All",
+        "ServiceHealth.Read.All", "DelegatedAdminRelationship.Read.All",
         "DeviceManagementApps.Read.All", "DeviceManagementConfiguration.Read.All",
         "DeviceManagementManagedDevices.Read.All", "DeviceManagementServiceConfig.Read.All",
         "Policy.Read.All", "Policy.Read.AuthenticationMethod", "Policy.Read.DeviceConfiguration"

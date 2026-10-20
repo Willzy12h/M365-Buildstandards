@@ -10,7 +10,8 @@
 param([Parameter(Mandatory=$true)][string]$ZipPath,
       [Parameter(Mandatory=$true)][string]$StagePath,
       [Parameter(Mandatory=$true)][string]$ResultPath,
-      [string]$UsageFixturePath = "")
+      [string]$UsageFixturePath = "",
+      [string[]]$OperationalFixturePath = @())
 $ErrorActionPreference = 'Stop'
 $zip = (Resolve-Path -LiteralPath $ZipPath).Path
 $stage = (Resolve-Path -LiteralPath $StagePath).Path.TrimEnd('\')
@@ -113,6 +114,20 @@ try {
         if ($usageRefused.Error -notmatch 'Refused:') { throw 'Packaged usage CLI accepted another tenant.' }
         if ((Get-FileHash -LiteralPath $usageInput -Algorithm SHA256).Hash -cne $usageOriginal) { throw 'Packaged usage CLI changed supplied source bytes.' }
         $usageChecked = $true
+    }
+    $operationalChecked = $false
+    foreach ($operationalFixture in $OperationalFixturePath) {
+        $operationalInput = (Resolve-Path -LiteralPath $operationalFixture).Path
+        $operationalOriginal = (Get-FileHash -LiteralPath $operationalInput -Algorithm SHA256).Hash
+        $operationalStatus = (Get-Content -LiteralPath $operationalInput -Raw | ConvertFrom-Json).status
+        $operational = Invoke-OwnedCli $exe ('--cli operational-report-evidence --input "' + $operationalInput + '" --tenant 11111111-1111-1111-1111-111111111111 --format json') 0
+        if ($operational.Error -or [string]::IsNullOrWhiteSpace($operationalStatus) -or $operational.Text -notmatch ('read status ' + [regex]::Escape($operationalStatus) + '\b') -or $operational.Text -notmatch 'no live reads or writes') { throw 'Packaged operational CLI lost its original read status/source limitations.' }
+        $operationalFile = (($operational.Text -split "`r?`n")[0]).Trim()
+        if (-not (Test-Path -LiteralPath $operationalFile) -or (Get-FileHash -LiteralPath $operationalFile -Algorithm SHA256).Hash -cne $operationalOriginal) { throw 'Packaged operational CLI did not preserve original bytes.' }
+        $operationalRefused = Invoke-OwnedCli $exe ('--cli operational-report-evidence --input "' + $operationalInput + '" --tenant 22222222-2222-2222-2222-222222222222 --format json') 2
+        if ($operationalRefused.Error -notmatch 'Refused:') { throw 'Packaged operational CLI accepted another source tenant.' }
+        if ((Get-FileHash -LiteralPath $operationalInput -Algorithm SHA256).Hash -cne $operationalOriginal) { throw 'Packaged operational CLI changed source bytes.' }
+        $operationalChecked = $true
     }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
     if ($viaLauncher.Text -notmatch 'buildstandard inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
@@ -454,7 +469,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliOperationalOriginalAndTenantRefusal=$operationalChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
         portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
