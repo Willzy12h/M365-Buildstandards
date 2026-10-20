@@ -151,6 +151,19 @@ public sealed class ReadOnlyRunWorkflowTests
     }
 
     [Theory]
+    [InlineData("exo.mailbox-size-quota", false)]
+    [InlineData("exo.distribution-group-observations", true)]
+    public void Exact_review_distinguishes_total_family_budget_from_legacy_section_budget(string id, bool total)
+    {
+        using var f=new ReadRunFixture();
+        f.Workflow.SetSelection(id,"7",id=="exo.mailbox-size-quota" ? f.Inputs : new Dictionary<string,string?> { ["GroupGuids"]=TestData.Office });
+        var text=f.Review().Text;
+        Assert.Contains(total?"rows total across all sections":"rows per section",text);
+        if(total)Assert.DoesNotContain("rows per section",text);
+        Assert.Equal(0,f.Calls);
+    }
+
+    [Theory]
     [InlineData("profile-only")][InlineData("no-profile")][InlineData("tenant-unverified")][InlineData("account-unverified")]
     [InlineData("missing-object")][InlineData("operator-mismatch")][InlineData("missing-upn")][InlineData("bad-upn")]
     [InlineData("profile-tenant")][InlineData("graph-tenant")][InlineData("graph-mode")][InlineData("bad-expiry")]

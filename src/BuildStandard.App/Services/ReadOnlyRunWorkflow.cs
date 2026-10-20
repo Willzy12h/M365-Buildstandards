@@ -179,7 +179,7 @@ public sealed class ReadOnlyRunWorkflow
             .Append(m.Name).Append(" (").Append(m.Id).Append(")\nPurpose: ").Append(m.Description)
             .Append("\nResource: ").Append(report.Resource).Append(" · adapter ").Append(m.Execution!.Adapter)
             .Append("\nPowerShell ").Append(_runtime).Append(" at its standard location · timeout ").Append(m.Limits.TimeoutSeconds)
-            .Append(" seconds · at most ").Append(m.Limits.MaximumRows).Append(" rows per section\nModules: ")
+            .Append(" seconds · at most ").Append(m.Limits.MaximumRows).Append(report.ReportSchemaVersion == 2 ? " rows total across all sections\nModules: " : " rows per section\nModules: ")
             .AppendJoin("; ", m.Modules.Select(x => x.Name + " " + x.MinimumVersion + " or later"))
             .Append("\nRole requirements: ").AppendJoin(" or ", m.Roles).Append("\nRole names do not establish effective Exchange permission.\nRegistered reads: ").AppendJoin(", ", report.SourceCommands).Append("\n").Append(m.Prerequisites)
             .Append("\nSeparate Microsoft Exchange sign-in may request CA/MFA/consent. Graph sign-in does not establish Exchange access.\n")

@@ -65,7 +65,9 @@
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
-### Pending source — mailbox capacity review, PR #94
+#- Exchange group report tables now label original recipient identities and independently returned Entra IDs instead of displaying raw JSON. New-family exact reviews describe the shared total row budget accurately; original evidence is unchanged.
+
+## Pending source — mailbox capacity review, PR #94
 
 - Preserve readable outcome/table space for multi-section reports; section and cue filters remain display-only.
 - Add strict offline mailbox-permission evidence with separate source diagnostics and the approved explicit permission-selection rule; the separate permission Run adapter is experimental and live-unverified.

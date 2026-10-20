@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using BuildStandard.Core;
 using BuildStandard.Core.Models;
 using BuildStandard.Core.Reporting;
+using BuildStandard.Engine.Reports;
 using Xunit;
 namespace BuildStandard.Tests;
 public sealed class DistributionGroupEvidenceV2Tests
@@ -30,6 +31,12 @@ public sealed class DistributionGroupEvidenceV2Tests
         Assert.Equal(TestData.Operator,member["sourceIdentity"]!["value"]!.GetValue<string>());
         Assert.Equal(TestData.TenantB,member["sourceIdentity"]!["externalDirectoryObjectId"]!.GetValue<string>());
         Assert.False(report.Sections[0].Rows[0]["requireSenderAuthenticationEnabled"]!["value"]!.GetValue<bool>());
+    }
+    [Fact] public void Human_exports_show_original_member_namespace_and_separate_directory_identity()
+    {
+        var sheet=RegisteredReportDocuments.Sheets(InboxRuleEvidenceV2Tests.Read(Report())).Single(s=>s.Name=="members");
+        var cells=Assert.Single(sheet.Rows.Skip(1));
+        Assert.Contains($"Exchange recipient GUID: {TestData.Operator} · Returned Entra object ID: {TestData.TenantB}",cells);
     }
     [Fact] public void Failed_membership_remains_unknown_despite_a_successful_group_lookup()
     {

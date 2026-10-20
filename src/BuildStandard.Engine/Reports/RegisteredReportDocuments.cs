@@ -110,7 +110,7 @@ public static class RegisteredReportDocuments
         if (family && column == "name" && row[column] is JsonValue label && label.TryGetValue<string>(out var name)
             && string.IsNullOrWhiteSpace(name))
             return name.Length == 0 ? "Empty name (reported)" : "Whitespace name (reported)";
-        if (family && column == "principal" && row[column] is JsonObject principal) return ReferenceValue(principal);
+        if (family && (column is "principal" or "sourceIdentity") && row[column] is JsonObject principal) return ReferenceValue(principal);
         if (family && column == "permissionReads" && row[column] is JsonArray reads)
             return string.Join("\n", reads.Select(node =>
             {
