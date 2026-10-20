@@ -71,6 +71,18 @@ public sealed class Workspace : ObservableObject
     public ObservableCollection<LogEntry> Activity { get; } = new();
 
     public StandardCatalogue? Standard { get; private set; }
+    private readonly List<Func<bool>> _unsavedStandardGuards = new();
+    public bool StandardReplacementBlocked => _unsavedStandardGuards.Any(hasUnsaved => hasUnsaved());
+    public const string StandardReplacementGuidance = "Keep, save or explicitly discard the local candidate draft in Catalogue before replacing the standard. The current catalogue is retained.";
+    public event Action? StandardReplacementChanged;
+    // Editors have the same workspace lifetime as their existing StateChanged subscriptions. Register each
+    // editor, rather than allowing a later clean editor to overwrite an earlier editor's unsaved-work guard.
+    public void RegisterUnsavedStandardGuard(Func<bool> hasUnsaved) => _unsavedStandardGuards.Add(hasUnsaved);
+    public void NotifyStandardReplacementChanged() => StandardReplacementChanged?.Invoke();
+    public void RequireStandardReplaceable()
+    {
+        if (StandardReplacementBlocked) throw new ConfigurationException(StandardReplacementGuidance);
+    }
     public string? StandardError { get; private set; }
     public TenantProfile? Profile { get; private set; }
     public ConnectedTenant? Connection { get; private set; }
@@ -260,6 +272,13 @@ public sealed class Workspace : ObservableObject
 
     public bool TrySelectStandard(string fileName)
     {
+        // Refusal is not a broken catalogue load: do not enter the catch path that clears Standard.
+        if (StandardReplacementBlocked)
+        {
+            StandardError = StandardReplacementGuidance;
+            Notify();
+            return false;
+        }
         try
         {
             CancelPendingDiscovery();
@@ -344,6 +363,7 @@ public sealed class Workspace : ObservableObject
 
     public void UseImportedStandard(DevicePolicyImport import)
     {
+        RequireStandardReplaceable();
         if (Busy || IsConnected) throw new ToolkitException("Disconnect before changing the standard so the next connection requests the correct routes and permissions.");
         var tenant = Profile?.TenantId ?? throw new ToolkitException("Select the target tenant profile first.");
         var directory = Path.Combine(Paths.TenantDirectory(tenant), "catalogues");
@@ -365,6 +385,7 @@ public sealed class Workspace : ObservableObject
 
     public void LoadLocalCandidate(string fileName)
     {
+        RequireStandardReplaceable();
         if (Busy || IsConnected) throw new ToolkitException("Disconnect before loading another candidate standard.");
         if (!LocalCandidates().Contains(fileName, StringComparer.Ordinal)) throw new ConfigurationException("Select a saved candidate from this tenant.");
         var file = Path.Combine(Paths.TenantDirectory(Profile!.TenantId), "catalogues", fileName);

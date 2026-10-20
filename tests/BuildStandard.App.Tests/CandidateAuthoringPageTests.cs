@@ -43,6 +43,8 @@ public sealed class CandidateAuthoringPageTests
         f.Workspace.SelectRelease("test.json");
         var shell = new ShellViewModel(f.Workspace); var editor = shell.Page<StandardViewModel>().Authoring;
         await editor.CreateAsync(); var original = f.Workspace.Standard;
+        var files = Directory.GetFiles(f.Root.Paths.TenantDirectory(f.Workspace.Profile!.TenantId), "*", SearchOption.AllDirectories)
+            .ToDictionary(p => p, File.ReadAllBytes);
         switch (route)
         {
             case "load": Assert.ThrowsAny<ToolkitException>(() => f.Workspace.LoadLocalCandidate(filename)); break;
@@ -50,9 +52,12 @@ public sealed class CandidateAuthoringPageTests
             case "select": Assert.False(f.Workspace.TrySelectStandard("test.json")); break;
             case "command":
                 var automation = shell.Page<AutomationViewModel>(); automation.SavedCandidate = filename;
+                Assert.False(automation.LoadCandidateCommand.CanExecute(null));
+                Assert.Contains("save or explicitly discard", automation.ImportGuidance);
                 automation.LoadCandidateCommand.Execute(null); Assert.True(shell.HasError); break;
         }
         Assert.Same(original, f.Workspace.Standard); Assert.True(editor.HasUnsavedChanges);
+        foreach (var (path, bytes) in files) Assert.Equal(bytes, File.ReadAllBytes(path));
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
     [Fact]public async Task Context_change_revokes_editor_validation_but_preserves_a_saveable_draft()
@@ -63,6 +68,28 @@ public sealed class CandidateAuthoringPageTests
         Assert.False(page.ExportCandidateCommand.CanExecute(null)); Assert.Empty(page.Fields); Assert.True(page.HasUnsavedChanges);
         await Assert.ThrowsAnyAsync<ToolkitException>(page.ValidateAsync); await page.SaveAsync();
         Assert.False(page.HasUnsavedChanges); Assert.Contains("Draft saved:", page.Message);
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
+    [Fact]public async Task Saved_draft_with_unapplied_input_blocks_replacement_until_reset()
+    {
+        using var f = new ConnectedReportsFixture(false); var shell = new ShellViewModel(f.Workspace);
+        var editor = shell.Page<StandardViewModel>().Authoring;
+        await editor.CreateAsync(); await editor.SaveAsync(); Assert.False(editor.HasUnsavedChanges);
+        editor.SelectedControl = editor.Controls.Single(c => c.Id == "CA-001"); await editor.LoadFieldsAsync();
+        editor.SelectedField = editor.Fields.Single(p => p.Path == "/payload/displayName"); editor.ValueText = "CA - Pending input";
+        var original = f.Workspace.Standard;
+        Assert.False(f.Workspace.TrySelectStandard("test.json")); Assert.Same(original, f.Workspace.Standard);
+        editor.ResetInputCommand.Execute(null); Assert.False(editor.HasUnsavedChanges);
+        Assert.True(f.Workspace.TrySelectStandard("test.json"));
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
+    [Fact]public async Task Another_editor_cannot_replace_the_first_editors_unsaved_guard()
+    {
+        using var f = new ConnectedReportsFixture(false); var first = new ShellViewModel(f.Workspace);
+        var editor = first.Page<StandardViewModel>().Authoring; await editor.CreateAsync();
+        _ = new ShellViewModel(f.Workspace); var original = f.Workspace.Standard;
+        Assert.False(f.Workspace.TrySelectStandard("test.json")); Assert.Same(original, f.Workspace.Standard);
+        editor.Discard(); Assert.True(f.Workspace.TrySelectStandard("test.json"));
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
 }

@@ -23,6 +23,8 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     public CandidateAuthoringViewModel(ShellViewModel shell) : base(shell, "Local candidate authoring")
     {
         _workflow = new(Workspace.CapturePresentationContext);
+        Workspace.RegisterUnsavedStandardGuard(() => HasUnsavedChanges);
+        PropertyChanged += (_, _) => Workspace.NotifyStandardReplacementChanged();
         _baselines = new(Workspace.Paths, Workspace.Logger); _authoring = new(_baselines);
         _editing = new(_baselines, _authoring); _outputs = new(Workspace.Paths, _authoring);
         NewDraftCommand = Command(CreateAsync, () => Workspace.Idle && Workspace.Standard is not null && !HasUnsavedChanges);
