@@ -90,7 +90,12 @@ public sealed class ExchangeReportRunnerTests
         }
         else
         {
-            var pwsh = new[] { "/opt/microsoft/powershell/7/pwsh", "/usr/bin/pwsh", "/usr/local/bin/pwsh" }.FirstOrDefault(File.Exists);
+            // Test-only host injection can use an already provisioned Linux runtime outside system folders. This runs
+            // the same synthetic module/assertions; production DefaultRuntime remains fixed Windows locations only.
+            var candidates = new[] { "/opt/microsoft/powershell/7/pwsh", "/usr/bin/pwsh", "/usr/local/bin/pwsh" }
+                .Concat((Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
+                    .Where(directory => directory.Length > 0).Select(directory => Path.Combine(directory, "pwsh")));
+            var pwsh = candidates.FirstOrDefault(File.Exists);
             if (pwsh is not null) found.Add(("7", pwsh));
         }
         return found;

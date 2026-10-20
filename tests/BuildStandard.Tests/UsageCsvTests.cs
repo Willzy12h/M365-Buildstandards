@@ -34,11 +34,11 @@ public sealed class UsageCsvTests
         var result=UsageCsv.Parse("email-activity","D30",Csv("email-activity",extra:"do not retain this"));
         Assert.Equal(new[]{"Future column"},result.ExtraColumns);Assert.DoesNotContain("Future column",result.Rows[0].Cells.Keys);
     }
-    [Theory][InlineData("negative")][InlineData("fraction")][InlineData("date")][InlineData("bool")][InlineData("duplicate")][InlineData("missing")][InlineData("utf8")][InlineData("quote")][InlineData("width")][InlineData("period")][InlineData("source")]
+    [Theory][InlineData("negative")][InlineData("fraction")][InlineData("date")][InlineData("bool")][InlineData("bool-padding")][InlineData("duplicate")][InlineData("missing")][InlineData("utf8")][InlineData("quote")][InlineData("width")][InlineData("period")][InlineData("source")]
     public void Malformed_data_is_refused_instead_of_coerced_or_empty(string fault)
     {
         var source="email-activity";var period="D30";var values=new Dictionary<string,string>();
-        switch(fault){case "negative":values["Send Count"]="-1";break;case "fraction":values["Send Count"]="1.1";break;case "date":values["Last Activity Date"]="10/11/2026";break;case "bool":values["Is Deleted"]="maybe";break;case "period":period="D31";break;case "source":source="arbitrary";break;}
+        switch(fault){case "negative":values["Send Count"]="-1";break;case "fraction":values["Send Count"]="1.1";break;case "date":values["Last Activity Date"]="10/11/2026";break;case "bool":values["Is Deleted"]="maybe";break;case "bool-padding":values["Is Deleted"]=" True ";break;case "period":period="D31";break;case "source":source="arbitrary";break;}
         var bytes=Csv("email-activity",values);var text=Encoding.UTF8.GetString(bytes);
         if(fault=="duplicate")bytes=Encoding.UTF8.GetBytes(text.Replace("Display Name","User Principal Name"));
         if(fault=="missing")bytes=Encoding.UTF8.GetBytes(text.Replace("User Principal Name","Renamed"));

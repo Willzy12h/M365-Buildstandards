@@ -53,4 +53,18 @@ public sealed class UsageReviewSchemaTests
         UsageReviewSchema.Seal(report);var read=UsageReviewSchema.Read(UsageReviewSchema.Serialise(report),TestData.TenantA);
         Assert.Null(read.Sources[1].OriginalCsvBase64);Assert.Single(UsageReviewSchema.Project(read));Assert.Equal("Failed",read.Sources[1].Status);
     }
+    [Fact] public void Encoded_pack_budget_refuses_four_individually_valid_sources_without_clipping_originals()
+    {
+        var report=Report();report.Sources.Clear();
+        foreach(var definition in UsageReportRegistry.Definitions)
+        {
+            var row=string.Join(',',definition.Columns.Select(name=>name=="Report Refresh Date"?"2026-10-20":name=="Assigned Products"?new string('x',3000):""))+"\r\n";
+            var csv=Encoding.UTF8.GetBytes(string.Join(',',definition.Columns)+"\r\n"+string.Concat(Enumerable.Repeat(row,3000)));
+            Assert.True(csv.Length<UsageCsv.MaximumBytes);
+            report.Sources.Add(new(){SourceId=definition.Id,Status="Collected",Period="D30",OriginalCsvBase64=Convert.ToBase64String(csv),CsvSha256=Convert.ToHexStringLower(SHA256.HashData(csv))});
+        }
+        var originals=report.Sources.Select(source=>source.OriginalCsvBase64).ToArray();
+        var error=Assert.ThrowsAny<ToolkitException>(()=>UsageReviewSchema.Seal(report));Assert.Contains("40MiB",error.Message);
+        Assert.Equal(originals,report.Sources.Select(source=>source.OriginalCsvBase64));
+    }
 }

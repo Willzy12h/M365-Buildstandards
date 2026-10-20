@@ -1,5 +1,8 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
+
+
 - Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
 
 

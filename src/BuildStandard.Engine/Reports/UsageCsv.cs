@@ -71,7 +71,8 @@ public static class UsageCsv
         }
         if(kind=="Boolean")
         {
-            if(!bool.TryParse(value,out var flag))throw Bad("A reported usage flag is not a supported boolean.");
+            if(!value.Equals("true",StringComparison.OrdinalIgnoreCase)&&!value.Equals("false",StringComparison.OrdinalIgnoreCase))throw Bad("A reported usage flag is not an exact supported boolean.");
+            var flag=value.Equals("true",StringComparison.OrdinalIgnoreCase);
             return new(kind,"Value",flag?"true":"false");
         }
         return new(kind,"Value",value);
