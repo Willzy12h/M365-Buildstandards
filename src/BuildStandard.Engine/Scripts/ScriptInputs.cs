@@ -152,6 +152,13 @@ public static class ScriptInputs
         string Label(string name) => manifest.Parameters.First(p => p.Name == name).Label;
         ScriptArgument? Find(string name) => arguments.FirstOrDefault(a => a.Name == name);
 
+        if (rule.Kind == ScriptRuleKind.AtLeastOneTrue)
+        {
+            if (!rule.Parameters!.Any(name => Find(name)?.Value is ScriptFlag { Value: true }))
+                problems.Add("Select at least one permission source: " + string.Join(", ", rule.Parameters.Select(Label)) + ".");
+            return;
+        }
+
         if (rule.Kind == ScriptRuleKind.AtLeastOne)
         {
             if (!rule.Parameters!.Any(n => Find(n) is not null))

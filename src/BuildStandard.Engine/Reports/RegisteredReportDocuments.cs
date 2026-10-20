@@ -94,6 +94,17 @@ public static class RegisteredReportDocuments
         if (family && column == "name" && row[column] is JsonValue label && label.TryGetValue<string>(out var name)
             && string.IsNullOrWhiteSpace(name))
             return name.Length == 0 ? "Empty name (reported)" : "Whitespace name (reported)";
+        if (family && column == "principal" && row[column] is JsonObject principal) return ReferenceValue(principal);
+        if (family && column == "permissionReads" && row[column] is JsonArray reads)
+            return string.Join("\n", reads.Select(node =>
+            {
+                var read = node!.AsObject(); var kind = read["kind"]!.GetValue<string>();
+                if (!read["selected"]!.GetValue<bool>()) return kind + ": Not selected — not attempted";
+                return kind + ": " + read["status"]!.GetValue<string>()
+                    + " · returned entries: " + (read["returnedEntries"] is null ? "Unknown" : Value(read["returnedEntries"]))
+                    + " · excluded entries: " + (read["excludedEntries"] is null ? "Unknown" : Value(read["excludedEntries"]))
+                    + (read["error"] is null ? "" : " · " + read["error"]!.GetValue<string>());
+            }));
         if (family && row[column] is JsonObject observed && observed["state"] is JsonValue)
             return ObservedValue(observed);
         if (row[column] is not null) return Value(row[column]);
@@ -120,25 +131,27 @@ public static class RegisteredReportDocuments
         if (value is JsonArray references)
         {
             if (references.Count == 0) return "No values returned (reported empty list)";
-            return string.Join("; ", references.Select(reference =>
-            {
-                var item = reference!.AsObject();
-                var source = item["namespace"]!.GetValue<string>();
-                var label = source switch
-                {
-                    "UnresolvedDisplayLabel" => "Unresolved display label", "RawIdentity" => "Raw identity",
-                    "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal",
-                    _ => "Returned text"
-                };
-                var unresolved = source == "UnresolvedDisplayLabel" ? " (identity not resolved)" : "";
-                var directoryId = item["externalDirectoryObjectId"]?.GetValue<string>();
-                return $"{label}: {item["value"]!.GetValue<string>()}{unresolved}"
-                    + (directoryId is null ? "" : $" · Returned Entra object ID: {directoryId}");
-            }));
+            if (references.All(item => item is JsonValue scalar && scalar.TryGetValue<string>(out _)))
+                return string.Join("; ", references.Select(Value)) + " (reported)";
+            return string.Join("; ", references.Select(reference => ReferenceValue(reference!.AsObject())));
         }
         if (value is JsonValue scalar && scalar.TryGetValue<bool>(out var flag))
             return flag ? "True (reported)" : "False (reported)";
         return Value(value) + " (reported)";
+    }
+
+    private static string ReferenceValue(JsonObject item)
+    {
+        var source = item["namespace"]!.GetValue<string>();
+        var label = source switch
+        {
+            "UnresolvedDisplayLabel" => "Unresolved display label", "RawIdentity" => "Raw identity",
+            "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal", _ => "Returned text"
+        };
+        var unresolved = source == "UnresolvedDisplayLabel" ? " (identity not resolved)" : "";
+        var directoryId = item["externalDirectoryObjectId"]?.GetValue<string>();
+        return $"{label}: {item["value"]!.GetValue<string>()}{unresolved}"
+            + (directoryId is null ? "" : $" · Returned Entra object ID: {directoryId}");
     }
 
     public static IReadOnlyList<Sheet> Sheets(ReportEvidence report, bool suppliedFile = false)

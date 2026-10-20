@@ -66,6 +66,13 @@ public static class ExchangeReportRegistry
             Array.AsReadOnly(new[] {new Section("target-reads", typeof(ExchangeTargetReadRow)), new Section("rules", typeof(InboxRuleObservationRow))}),
             "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-inboxrule",
             "One to 50 explicitly selected Exchange mailbox GUIDs, not an implicit estate scan. Opaque RuleIdentity and raw recipient references remain distinct from names/Entra identities. Hidden rules are omitted unless explicitly selected. Unknown values and unsuccessful target reads are not successful empty results; no incident verdict or change authority. The separately pinned selected-mailbox adapter is experimental and off by default; its library registration, exact review and supported installed runtime/module are required. Live/module/RBAC behaviour is unverified.",
+            ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion),
+        new Definition("exo-mailbox-permissions", "Selected mailbox permission observations", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox", "Get-EXOMailboxPermission", "Get-EXORecipientPermission" }),
+            Array.AsReadOnly(new[] { new Parameter("MailboxGuids", ExchangeReportParameterType.Text), new Parameter("FullAccess", ExchangeReportParameterType.Boolean), new Parameter("SendAs", ExchangeReportParameterType.Boolean), new Parameter("SendOnBehalf", ExchangeReportParameterType.Boolean) }),
+            Array.AsReadOnly(new[] { new Section("target-reads", typeof(ExchangePermissionTargetRow)), new Section("permissions", typeof(MailboxPermissionObservationRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailboxpermission",
+            "Explicit selected Exchange mailbox GUIDs and permission sources only. Principal namespaces, original rights, inheritance and deny values remain observations, not effective access or AutoMapping. Missing/null/failed values remain unknown; raw SID/SELF and unresolved labels are not directory joins. Per-kind target diagnostics include unselected and failed sources. Typed evidence alone does not enable a runnable adapter. Live/module/RBAC behaviour remains unverified.",
             ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion)
     });
 

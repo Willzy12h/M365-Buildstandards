@@ -64,6 +64,9 @@
 
 ### Pending source — mailbox capacity review, PR #94
 
+- Preserve readable outcome/table space for multi-section reports; section and cue filters remain display-only.
+- Add strict offline mailbox-permission evidence with separate source diagnostics and the approved explicit permission-selection rule; the permission Run adapter remains pending.
+
 - Add a separately pinned, experimental selected-mailbox inbox-rule observation adapter with per-value unknown states and target diagnostics; remaining Exchange families and native section integration are still in progress.
 
 - Correct new Exchange report row budgets to include target diagnostics and enforce lower manifest limits before source enumeration; original report bodies remain unchanged.

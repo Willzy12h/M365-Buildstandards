@@ -144,6 +144,8 @@ public static partial class ExchangeReportEvidenceSchema
                 {
                     row.Id = row switch
                     {
+                        ExchangePermissionTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        MailboxPermissionObservationRow permission => PermissionKey(permission),
                         ExchangeTargetReadRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
                         InboxRuleObservationRow rule => ExchangeObservationKey.InboxRule(rule.MailboxExchangeGuid, rule.RuleIdentity),
                         _ => throw Bad("No parent observation-key encoder is registered for this family row.")

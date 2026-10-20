@@ -10,7 +10,7 @@ public enum ScriptParameterType { String, Boolean, Integer, Date, Guid, Enum }
 /// <summary>How a string parameter is checked. Text is any single line without control or formatting characters.</summary>
 public enum ScriptValueFormat { Text, Upn, Smtp, Mailbox, Domain, IpAddress }
 
-public enum ScriptRuleKind { AtLeastOne, DateRange }
+public enum ScriptRuleKind { AtLeastOne, DateRange, AtLeastOneTrue }
 
 public enum ScriptLiveStatus { Unverified, Verified }
 

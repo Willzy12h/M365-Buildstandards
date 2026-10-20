@@ -216,10 +216,26 @@ public sealed class ScriptCatalogue
             }
         }
         if (m.SchemaVersion == 2) ValidateExecution(m);
+        if (m.SchemaVersion == 2 && m.Execution?.ReportId == "exo-mailbox-permissions"
+            && (m.Rules.Count != 1 || m.Rules[0].Kind != ScriptRuleKind.AtLeastOneTrue))
+            throw Refuse($"{at}: mailbox permissions require exactly one explicit atLeastOneTrue source-selection rule.");
         foreach (var rule in m.Rules)
         {
             switch (rule.Kind)
             {
+                case ScriptRuleKind.AtLeastOneTrue:
+                    if (m.SchemaVersion != 2 || m.Execution?.ReportId != "exo-mailbox-permissions"
+                        || ReportFor(m).ReportSchemaVersion != 2 || rule.Parameters is null
+                        || !rule.Parameters.SequenceEqual(new[] { "FullAccess", "SendAs", "SendOnBehalf" }, StringComparer.Ordinal)
+                        || rule.Start is not null || rule.End is not null || rule.MaximumDays is not null || rule.MaximumAgeDays is not null)
+                        throw Refuse($"{at}: atLeastOneTrue is restricted to the exact registered mailbox-permission source choices.");
+                    foreach (var name in rule.Parameters)
+                    {
+                        var p = m.Parameters.Single(parameter => parameter.Name == name);
+                        if (p.Type != ScriptParameterType.Boolean || p.Required || p.Array || p.Default != "false")
+                            throw Refuse($"{at}: permission source choices must be optional booleans explicitly off by default.");
+                    }
+                    break;
                 case ScriptRuleKind.AtLeastOne:
                     if (rule.Parameters is null || rule.Parameters.Count < 2 || rule.Start is not null || rule.End is not null || rule.MaximumDays is not null || rule.MaximumAgeDays is not null)
                         throw Refuse($"{at}: an atLeastOne rule names two or more parameters and nothing else.");

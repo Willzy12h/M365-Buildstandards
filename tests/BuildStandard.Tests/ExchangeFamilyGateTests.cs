@@ -14,6 +14,10 @@ public sealed class ExchangeFamilyGateTests
     public Task Fixed_family_output_preserves_typed_states_and_refuses_arbitrary_values(string scenario) =>
         RunFixture("Test-FamilyOutput.ps1", scenario);
 
+    [Theory][InlineData("raw-sid")][InlineData("self")][InlineData("label")][InlineData("missing")]
+    public Task Pinned_permission_source_projection_preserves_principal_namespace_and_unknown_flags(string scenario) =>
+        RunFixture("Test-PermissionProjection.ps1", scenario);
+
     private static async Task RunFixture(string fixture, string scenario)
     {
         var runtime=OperatingSystem.IsWindows()?Path.Combine(Environment.SystemDirectory,"WindowsPowerShell","v1.0","powershell.exe")
