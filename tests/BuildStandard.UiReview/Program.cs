@@ -89,7 +89,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "ca-evaluation", "naming" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -612,6 +612,7 @@ internal static partial class Program
         if (key == "scripts") SeedScripts(shell);
         if (key == "run-reports") SeedReadRun(shell);
         if (key == "reports") SeedGraphReportsPage(shell);
+        if (key == "ca-evaluation") SeedConditionalAccessPage(shell);
         if (key == "naming") SeedNamingPage(shell);
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();

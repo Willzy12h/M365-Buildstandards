@@ -38,7 +38,7 @@ public static class Program
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "ConditionalAccessEvaluator", "GraphClient", "TenantConnectionService", "JobWorkflow"
+        "RecoveryService", "EntraLapsService", "ConditionalAccessEvaluator", "ConditionalAccessEvaluationService", "GraphClient", "TenantConnectionService", "JobWorkflow"
     };
 
     public static int Main(string[] args)

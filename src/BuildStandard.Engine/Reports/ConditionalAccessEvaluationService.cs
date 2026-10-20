@@ -46,8 +46,8 @@ public sealed class ConditionalAccessEvaluationService(TimeProvider? clock=null)
                 Scenario=prepared.Scenario,RequestSha256=prepared.Sha256,ResponseSha256=read.Result.OriginalSha256,ResponseBytes=raw.Length,
                 Status=read.Result.IsPartial?"Partial":"Complete"
             };
-            ConditionalAccessEvaluationSchema.Seal(report,raw);RequireCurrent();
-            return new(report,raw);
+            ConditionalAccessEvaluationSchema.Seal(report,raw);var capture=new ConditionalAccessEvaluationCapture(report,raw);
+            RequireCurrent();return capture;
         }
         catch(OperationCanceledException)when(!ct.IsCancellationRequested&&Expired())
         {throw Timeout();}
@@ -94,12 +94,20 @@ public sealed class ConditionalAccessEvaluationService(TimeProvider? clock=null)
 public sealed class ConditionalAccessEvaluationCapture
 {
     private readonly byte[] _metadata,_response;
+    private readonly string _metadataJson;
     public bool IsHistorical {get;}
     internal ConditionalAccessEvaluationCapture(ConditionalAccessEvaluationReport report,byte[] response)
-    {_metadata=Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report));_response=(byte[])response.Clone();}
-    internal ConditionalAccessEvaluationCapture(byte[] metadata,byte[] response)
-    {ConditionalAccessEvaluationSchema.Read(metadata,response);_metadata=(byte[])metadata.Clone();_response=(byte[])response.Clone();IsHistorical=true;}
-    public ConditionalAccessEvaluationReport Metadata=>ConditionalAccessEvaluationSchema.Read(_metadata,_response);
+        :this(Encoding.UTF8.GetBytes(ToolkitJson.Serialize(report)),response,false){}
+    internal ConditionalAccessEvaluationCapture(byte[] metadata,byte[] response):this(metadata,response,true){}
+    private ConditionalAccessEvaluationCapture(byte[] metadata,byte[] response,bool historical)
+    {
+        _metadata=(byte[])metadata.Clone();_response=(byte[])response.Clone();
+        ConditionalAccessEvaluationSchema.Read(_metadata,_response);
+        _metadataJson=Encoding.UTF8.GetString(_metadata);IsHistorical=historical;
+    }
+    // Both private original arrays are immutable. Clone the validated small header for presentation;
+    // repeated native refresh must not parse/hash the whole source response on the UI thread.
+    public ConditionalAccessEvaluationReport Metadata=>ToolkitJson.Deserialize<ConditionalAccessEvaluationReport>(_metadataJson);
     public byte[] MetadataBytes=>(byte[])_metadata.Clone();
     public byte[] OriginalResponseBytes=>(byte[])_response.Clone();
 }

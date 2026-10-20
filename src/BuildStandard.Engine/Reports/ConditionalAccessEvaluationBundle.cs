@@ -41,6 +41,8 @@ public static class ConditionalAccessEvaluationBundle
     }
     public static ConditionalAccessEvaluationCapture ReadFile(string file,string expectedTenantId)
     {
+        ReportEnvelopeDispatcher.RefuseLinks(file);
+        if(!File.Exists(file))throw new ConfigurationException("The original evaluation ZIP was not found. Choose an existing report for the selected client.");
         using var input=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read);
         return Read(Read(input,MaximumZipBytes),expectedTenantId);
     }

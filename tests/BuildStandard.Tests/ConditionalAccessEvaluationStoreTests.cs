@@ -28,4 +28,17 @@ public sealed class ConditionalAccessEvaluationStoreTests
         File.Move(file,Path.Combine(Path.GetDirectoryName(file)!,TestData.Office+".json.zip"));
         Assert.Throws<IntegrityException>(()=>store.LoadConditionalAccessEvaluation(TestData.TenantA,TestData.Office));
     }
+    [Fact] public void Protected_workspace_handover_preserves_the_new_original_pair_without_extracting_it()
+    {
+        using var root=new TempRoot();var store=new EvidenceStore(root.Paths,BuildStandard.Core.Diagnostics.NullLog.Instance);var capture=ConditionalAccessEvaluationExportTests.Capture();var file=store.SaveConditionalAccessEvaluation(capture);var original=File.ReadAllBytes(file);
+        var backup=new WorkspaceBackup(root.Paths);var archive=backup.Create();var destination=Path.Combine(root.Root,"separate-restored");backup.RestoreSeparate(archive,destination,WorkspaceBackup.ArchiveDigest(archive));
+        var restored=Path.Combine(destination,"data",Path.GetRelativePath(root.Paths.DataDirectory,file));Assert.Equal(original,File.ReadAllBytes(restored));Assert.True(WorkspaceBackup.VerifyRestored(destination)>0);
+    }
+    [Theory][InlineData("other.zip")][InlineData("elsewhere/original.json.zip")][InlineData("tenants/unknown/ca-evaluations/00000000-0000-0000-0000-000000000000.json.zip")]
+    public void Adding_one_registered_bundle_does_not_allow_arbitrary_archives_in_a_handover(string relative)
+    {
+        using var root=new TempRoot();var file=Path.Combine(root.Paths.DataDirectory,relative.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(file)!);File.WriteAllBytes(file,[1,2,3]);
+        Assert.Throws<ConfigurationException>(()=>new WorkspaceBackup(root.Paths).Create());
+    }
+
 }
