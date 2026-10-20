@@ -432,6 +432,8 @@ function Invoke-BditRunner {
                         if ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
                             $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
                         }
+                        # A later failed/mismatched lookup cannot leave earlier proof usable for another child read.
+                        $null = $script:FamilyVerifiedTargets.Remove($Parameters['Identity'])
                         $properties = @('ExchangeGuid','ExternalDirectoryObjectId','DisplayName','PrimarySmtpAddress')
                         $arguments['Identity'] = $Parameters['Identity']
                         $arguments['Properties'] = $properties

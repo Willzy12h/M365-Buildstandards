@@ -21,7 +21,8 @@ $script:FamilyStarted=[Diagnostics.Stopwatch]::StartNew()
 function Get-FakeMailbox {
     param([string]$Identity,[string[]]$Properties)
     $script:Reads++
-    $guid=if($Case -ceq 'wrong-object'){$second}else{$Identity}
+    if($Case -ceq 'failed-lookup-after-good' -and $script:Reads -ge 2){throw 'Synthetic failed lookup'}
+    $guid=if($Case -ceq 'wrong-object' -or ($Case -ceq 'stale-parent' -and $script:Reads -ge 2)){$second}else{$Identity}
     [pscustomobject]@{ExchangeGuid=[guid]$guid;ExternalDirectoryObjectId=$null;DisplayName='Synthetic';PrimarySmtpAddress='mailbox@synthetic.example';Secret='not selected'}
 }
 function Get-FakeRules {
@@ -54,6 +55,16 @@ switch -CaseSensitive ($Case) {
  'wrong-object' {
     $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
     Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 1
+ }
+ 'stale-parent' {
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 2
+ }
+ 'failed-lookup-after-good' {
+    $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}
+    try{$null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}}catch{}
+    Refused {Use-BditRead -Command 'Get-InboxRule' -Parameters @{Mailbox=$first;IncludeHidden=$false}} 2
  }
  'extra-parameter' {Refused {Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first;ResultSize='Unlimited'}} 0}
  'hidden-scope' {

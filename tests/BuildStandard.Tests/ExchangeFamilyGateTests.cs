@@ -4,7 +4,7 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class ExchangeFamilyGateTests
 {
-    [Theory][InlineData("projection")][InlineData("wrong-target")][InlineData("unverified-child")][InlineData("wrong-object")][InlineData("extra-parameter")][InlineData("hidden-scope")][InlineData("rows")][InlineData("bytes")][InlineData("calls")][InlineData("actor")]
+    [Theory][InlineData("projection")][InlineData("wrong-target")][InlineData("unverified-child")][InlineData("wrong-object")][InlineData("extra-parameter")][InlineData("hidden-scope")][InlineData("rows")][InlineData("bytes")][InlineData("calls")][InlineData("actor")][InlineData("stale-parent")][InlineData("failed-lookup-after-good")]
     public Task Fixed_private_family_gate_binds_targets_scope_and_shared_budgets_before_reads(string scenario) => RunFixture("Test-FamilyGate.ps1", scenario);
 
     [Theory][InlineData("false")][InlineData("missing")][InlineData("empty")][InlineData("reference")][InlineData("counts")][InlineData("blank-name")]

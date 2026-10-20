@@ -52,7 +52,7 @@ public sealed class ScriptLibraryReport2Tests
     [InlineData("reordered-column")][InlineData("union")][InlineData("description-version")]
     [InlineData("child-version")][InlineData("report-version")][InlineData("cap")]
     [InlineData("unknown-section-field")][InlineData("missing-columns")][InlineData("string-description-version")]
-    [InlineData("optional-targets")][InlineData("short-target-field")]
+    [InlineData("optional-targets")][InlineData("short-target-field")][InlineData("family-timeout")]
     public void Resealed_malformed_descriptors_and_incompatible_versions_are_refused(string fault)
     {
         var files = Library(manifest =>
@@ -79,6 +79,7 @@ public sealed class ScriptLibraryReport2Tests
                 case "string-description-version": manifest["outputSchemaVersion"] = "2"; break;
                 case "optional-targets": manifest["parameters"]![0]!["required"] = false; break;
                 case "short-target-field": manifest["parameters"]![0]!["maxLength"] = 1000; break;
+                case "family-timeout": manifest["limits"]!["timeoutSeconds"] = 301; break;
             }
         });
         Assert.Throws<ConfigurationException>(() => ScriptCatalogue.Load(files));

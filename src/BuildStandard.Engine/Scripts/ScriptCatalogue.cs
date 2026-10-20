@@ -324,6 +324,8 @@ public sealed class ScriptCatalogue
         if (!string.Equals(m.Resources[0], e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the execution adapter must be the item's resource.");
         var report = ReportFor(m);
         if (m.Limits.MaximumRows > report.RowLimit) throw Refuse($"{at}: the row limit exceeds this report's fixed bound.");
+        if (report.ReportSchemaVersion == 2 && m.Limits.TimeoutSeconds > ReadRunnerLimits.MaximumFamilyTimeoutSeconds)
+            throw Refuse($"{at}: a report2 run has at most300 seconds including authentication, so a blocked source read cannot extend the collection budget.");
         if (!string.Equals(report.Adapter, e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the report belongs to another adapter.");
         if (e.ReportSchemaVersion != report.ReportSchemaVersion || e.OutputSchemaVersion != 1 || !string.Equals(e.OutputKind, ReadRunnerLimits.OutputKind, StringComparison.Ordinal))
             throw Refuse($"{at}: execution requires scriptReadResult schema1 and the exact registered report version.");

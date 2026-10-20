@@ -8,6 +8,8 @@ public static class ReadRunnerLimits
 {
     public const string OutputKind = "scriptReadResult";
     public const int MaximumTimeoutSeconds = 1800;
+    /// <summary>New report2 runs include authentication in their five-minute owned-host bound.</summary>
+    public const int MaximumFamilyTimeoutSeconds = 300;
     public const int MaximumResultBytes = 32 * 1024 * 1024;
     public const int MaximumRequestBytes = 1024 * 1024;
     public const int MaximumProgressBytes = 1024 * 1024;
@@ -22,7 +24,7 @@ public static class ReadRunnerLimits
 /// </summary>
 public static class ReadRunnerTemplate
 {
-    public const string Sha256 = "f09a0ba22cbf4ce46c3f9ab2adf1f3f936cf61946a87982083d2ed1132abbae2";
+    public const string Sha256 = "3a387437c3f7ccbba4244452819f074bbd2db37974706c5e3e81a1ba3f6fbe7a";
     private const string ResourceName = "Runner.ReadRunner.ps1";
 
     /// <summary>The wrapper's exact bytes, verified against <see cref="Sha256"/> on every call.</summary>
