@@ -41,3 +41,31 @@ The strict `operationalContextReport/1` envelope is separate from configuration 
 Managed originals use `operational-context-evidence` under their source tenant and are included in ordinary workspace backup without increasing its32MiB bound. Saves refuse overwrite, links, wrong tenant/record IDs and altered content. Export/save readback must match the original before pending recovery can be cleared. Integrity detects modification; it does not establish Microsoft authenticity.
 
 Native Read/Stop/access and original-recovery are implemented in source, with Windows/native/package verification pending. The CLI supports strict saved service-health and partner evidence only; it has no connected collection command. Optional scopes are not granted by source development, and no agent tenant action is authorised. H1, physical accessibility/workstation policy, named runtime acceptance and live delegated-role/API/licence behaviour remain separate.
+
+## Collaboration metadata — E implementation checkpoint
+
+The registered `collaboration-inventory` original records a bounded site search, exact selected sites/groups and independently chosen existing-library, group-owner and Team-member reads. Its engine, original JSON, offline HTML/CSV/Excel exports and native read controls are implemented in source on #157; current composed Windows/native/package checks and named acceptance remain pending. This is experimental and live-unverified.
+
+Use the same offline command for a supplied original:
+
+```text
+bdit operational-report-evidence --input collaboration.json --tenant <original-source-tenant-id> --format html
+```
+
+Use `json` to preserve exact original bytes, `csv` for all tables in a ZIP, or `xlsx` for Excel. The source tenant is the connection that captured the record, not a hostname or guessed resource owner. Imported source claims remain historical/unverified; an integrity digest does not authenticate Microsoft or the author.
+
+Each selected source has its own status/reason and returned count. A known count of0 means that source completed and returned no rows; an unknown count means it did not complete. Group-owner coverage remains Partial even when the returned list is empty: Microsoft Graph v1.0 omits service-principal owners and has unsupported group populations. An unestablished Team is not an empty Team. Direct roles do not establish effective permissions, and another recorded user tenant does not itself establish a guest role.
+
+Site search is not a complete estate. Library rows cover existing libraries of the selected sites only. Full site permissions require unapproved Sites.FullControl.All and are blocked. User/me OneDrive discovery can provision storage and is blocked. Content, sharing links, inheritance and tenant-wide OneDrive ownership are not checked. These limitations are retained in every export.
+
+Keep exact original JSON before replacing a result. Collaboration uses the same source-bound immutable operational evidence and unchanged workspace-backup limit; it never becomes configuration before-evidence, a deployment approval or a completion claim.
+
+### Native collaboration journey
+
+1. In Connect or application setup, deliberately select optional site metadata and/or direct Team membership access, then use the existing preview/reconnect flow. Both default off. Sites.Read.All permits content access, although the registered inventory reads metadata only; selecting a checkbox never grants consent.
+2. Open **Reports → Tenant reports → Operational context → Sites, groups and Teams**. For discovery, enter a bounded site search such as `*`, leaving exact IDs and child options empty. Review the displayed access/limits, acknowledge, then **Read selected collaboration metadata**. Nothing runs from navigation.
+3. Save or export original JSON through **Original context**. In **Context results**, copy exact returned site IDs from `site-search`; their commas are part of SharePoint identity. Return to **Read context**, clear the search if it is no longer needed and paste exact site IDs one per line. Group/Team inputs accept exact canonical GUIDs one per line. Select only the child sections needed, up to50 combined parents.
+4. Changed input clears acknowledgement and the current view; a changed client also clears the collaboration input. Review the new exact selection and acknowledge again before reading. Missing access and invalid selections explain why Read is unavailable. Stop preserves already admitted rows; failed or unsupported children are shown independently rather than as empty lists.
+5. Review each source and its original count/coverage in **Context results**, then Save/Export the original before replacing it. HTML/CSV/Excel include all source tables regardless of the display filter. Normal close waits for capture/original recovery; forced termination can lose an unsaved in-memory original.
+
+Selection currently uses exact IDs copied from results or existing tenant records; it does not guess sites or group identities from display names. Human accessibility, workstation policy and live Microsoft behaviour remain unverified.

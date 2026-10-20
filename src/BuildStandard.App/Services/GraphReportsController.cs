@@ -135,12 +135,20 @@ public sealed class GraphReportsController(Workspace workspace)
         (connection, customer, current) => ((GraphClient)connection.Graph).ForOperationalReports(
             connection.Session, "partner-relationships", current, customer, true);
     internal Func<ConnectedTenant, CollaborationReadSelection, Action, ICollaborationReportSource> CollaborationSourceFactory { get; set; } =
-        (_, _, _) => throw new ConfigurationException("Native collaboration read is not implemented yet.");
+        (connection, selection, current) => ((GraphClient)connection.Graph).ForCollaborationReports(connection.Session, selection, current);
     public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
-    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared)
+    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared, CollaborationReadSelection? collaboration = null)
     {
         var blocker = ReadBlocker;
         if (blocker.Length != 0) return blocker;
+        if (reportId == "collaboration-inventory")
+        {
+            if (collaboration is null || customerTenantId is not null || partnerDeclared) return "Select exact collaboration sources without partner/customer parameters.";
+            var actual = RequireLive().Session.Scopes;
+            var missing = collaboration.Scopes().Where(scope => !actual.Contains(scope, StringComparer.Ordinal) && !actual.Contains("https://graph.microsoft.com/" + scope, StringComparer.Ordinal)).ToArray();
+            return missing.Length == 0 ? "" : "Missing returned read access: " + string.Join(", ", missing) + ". Review optional access in Connect and reconnect deliberately; this page never consents or signs in.";
+        }
+        if (collaboration is not null) return "Collaboration selection is not valid for another report.";
         if (reportId is not ("service-health" or "partner-relationships")) return "Select a registered operational report.";
         var session = RequireLive().Session;
         if (reportId == "partner-relationships")
@@ -156,11 +164,11 @@ public sealed class GraphReportsController(Workspace workspace)
     }
     public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
         Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal,
-        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false)
+        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false, CollaborationReadSelection? collaboration=null)
     {
         RequireIdle(expectedContext);
         if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental operational read and its limitations first.");
-        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared);
+        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared, collaboration);
         if (blocker.Length != 0) throw new ToolkitException(blocker);
         var connection = RequireLive();
         void AssertCurrent()
@@ -175,12 +183,21 @@ public sealed class GraphReportsController(Workspace workspace)
         {
             AssertCurrent();
             progress.Report("Registered read-only routes; five minutes, 100 requests, 5,000 rows and 16 MiB. Observations do not prove availability or effective customer access.");
+            if (reportId == "collaboration-inventory")
+            {
+                var source = CollaborationSourceFactory(connection, collaboration!, AssertCurrent);
+                using var owned = source as IDisposable;
+                result = await new CollaborationReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken);
+            }
+            else
+            {
             var source = reportId == "service-health" ? OperationalSourceFactory(connection, AssertCurrent)
                 : PartnerSourceFactory(connection, customerTenantId!, AssertCurrent);
             using var owned = source as IDisposable;
             result = reportId == "service-health"
                 ? await new ServiceHealthReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken)
                 : await new PartnerRelationshipReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, customerTenantId!, partnerDeclared, AssertCurrent, workspace.OperationToken);
+            }
             // A returned admitted original belongs to the captured source. Preserve it before current-view admission,
             // including the dispatcher transition after capture; ownership continues through serialisation/projection.
             progress.Report("Retaining original operational evidence. Closing waits for the original; Stop does not discard already captured observations.");

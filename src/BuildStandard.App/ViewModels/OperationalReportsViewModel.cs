@@ -5,6 +5,7 @@ using System.Windows.Input;
 using BuildStandard.App.Services;
 using BuildStandard.Core;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
 namespace BuildStandard.App.ViewModels;
 
@@ -37,27 +38,35 @@ public sealed class OperationalReportsViewModel : PageViewModel
         OpenConnectionCommand = Sync(() => Shell.Navigate("connect"), () => Workspace.Idle);
         Refresh();
     }
-    public string CollaborationSearch { get; set; } = "";
-    public string CollaborationSites { get; set; } = "";
-    public string CollaborationGroups { get; set; } = "";
-    public bool IncludeLibraries { get; set; }
-    public bool IncludeOwners { get; set; }
-    public bool IncludeMembers { get; set; }
+    private string _collaborationSearch = "", _collaborationSites = "", _collaborationGroups = "";
+    private bool _includeLibraries, _includeOwners, _includeMembers;
+    public string CollaborationSearch { get => _collaborationSearch; set { if (SetProperty(ref _collaborationSearch, value)) SelectionChanged(); } }
+    public string CollaborationSites { get => _collaborationSites; set { if (SetProperty(ref _collaborationSites, value)) SelectionChanged(); } }
+    public string CollaborationGroups { get => _collaborationGroups; set { if (SetProperty(ref _collaborationGroups, value)) SelectionChanged(); } }
+    public bool IncludeLibraries { get => _includeLibraries; set { if (SetProperty(ref _includeLibraries, value)) SelectionChanged(); } }
+    public bool IncludeOwners { get => _includeOwners; set { if (SetProperty(ref _includeOwners, value)) SelectionChanged(); } }
+    public bool IncludeMembers { get => _includeMembers; set { if (SetProperty(ref _includeMembers, value)) SelectionChanged(); } }
+    private CollaborationReadSelection CollaborationSelection() => CollaborationSelectionInput.Parse(CollaborationSearch, CollaborationSites, CollaborationGroups, IncludeLibraries, IncludeOwners, IncludeMembers);
     public string SelectedReportId { get=>_selectedReportId; set { if(SetProperty(ref _selectedReportId,value)) SelectionChanged(); } }
     public string CustomerTenantId { get=>_customerTenantId; set { if(SetProperty(ref _customerTenantId,value)) SelectionChanged(); } }
     public bool PartnerDeclared { get=>_partnerDeclared; set { if(SetProperty(ref _partnerDeclared,value)) SelectionChanged(); } }
     private void SelectionChanged() { _generation++;_acknowledged=false;ClearResult();Notify(); }
     public bool CanEdit => Workspace.Idle && !_reading && !_opening && !HasPendingOriginal;
     public bool Acknowledged { get => _acknowledged; set { EnsureContext(); if (SetProperty(ref _acknowledged, value)) Notify(); } }
-    public string Notice => RegisteredReportDocuments.OperationalNotice;
+    public string Notice => IsCollaborationReport || _report?.ReportId == "collaboration-inventory" ? OperationalContextSchema.CollaborationNotice : RegisteredReportDocuments.OperationalNotice;
     public sealed record ReportChoice(string Id, string Name);
-    public IReadOnlyList<ReportChoice> ReportChoices { get; } = [new("service-health", "Service health"), new("partner-relationships", "Partner relationships")];
+    public IReadOnlyList<ReportChoice> ReportChoices { get; } = [new("service-health", "Service health"), new("partner-relationships", "Partner relationships"), new("collaboration-inventory", "Sites, groups and Teams")];
+    public bool IsCollaborationReport => SelectedReportId == "collaboration-inventory";
     public bool IsPartnerReport => SelectedReportId == "partner-relationships";
-    public string ReadLabel => IsPartnerReport ? "Read partner relationships" : "Read service-health context";
-    public string AcknowledgementText => IsPartnerReport
+    public string ReadLabel => IsCollaborationReport ? "Read selected collaboration metadata" : IsPartnerReport ? "Read partner relationships" : "Read service-health context";
+    public string AcknowledgementText => IsCollaborationReport
+        ? "I acknowledge this source tenant, the exact search/selected IDs and chosen metadata/direct-role reads. This is not consent, complete estate coverage, effective access or permission to change a tenant."
+        : IsPartnerReport
         ? "I acknowledge the declared partner source, exact selected customer, fixed relationship and assignment reads and limitations. This does not establish effective customer rights or authorise changes."
         : "I acknowledge this source tenant, the two fixed health reads, actual read-access requirement and limitations. This is not consent or approval to change a tenant.";
-    public string AccessPreview => (IsPartnerReport
+    public string AccessPreview => (IsCollaborationReport
+        ? "Experimental collaboration inventory. Selected site search/metadata/libraries use Sites.Read.All (the permission permits content access; this adapter reads metadata only). Selected groups/owners use existing Group.Read.All; direct Team members use TeamMember.Read.All. Optional site/Team access is default off. FullControl permissions, OneDrive provisioning routes, content and inherited permissions are blocked. "
+        : IsPartnerReport
         ? "Experimental partner context · fixed relationship and direct assignment GETs using actually returned DelegatedAdminRelationship.Read.All. The connected source remains the partner; customer selection never connects to that customer. Direct role claims are not effective access. At most 50 child inventories. "
         : "Experimental service-health context · fixed overview and issue GETs using actually returned ServiceHealth.Read.All. Advisories are not tenant availability. ")
         + "No sign-in, consent or write occurs here. Five minutes total, 100 requests, 5,000 rows and 16 MiB. Read purpose is not proof that a token has no additional rights.";
@@ -69,7 +78,10 @@ public sealed class OperationalReportsViewModel : PageViewModel
             if (_reading || !Workspace.Idle) return _reading ? "Operational capture/original retention is active. Stop keeps earlier admitted observations; closing waits for recovery bytes." : "Wait for the current operation to finish.";
             if (_opening) return "The original operational file is being checked. Wait before another open or read; no service request is made.";
             if (HasPendingOriginal) return "Save, export or explicitly discard the pending original before another read. It retains its original source tenant.";
-            var blocker = _controller.OperationalReadBlockerFor(SelectedReportId, IsPartnerReport ? CustomerTenantId : null, IsPartnerReport && PartnerDeclared);
+            CollaborationReadSelection? choice = null;
+            try { if (IsCollaborationReport) choice = CollaborationSelection(); }
+            catch (ToolkitException error) { return error.Message; }
+            var blocker = _controller.OperationalReadBlockerFor(SelectedReportId, IsPartnerReport ? CustomerTenantId : null, IsPartnerReport && PartnerDeclared, choice);
             return blocker.Length != 0 ? blocker : Acknowledged ? "" : "Review the source, fixed reads, access and limitations, then tick acknowledgement before Read.";
         }
     }
@@ -93,6 +105,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
         var context = _controller.ContextKey;
         if (_context == context) return;
         _context = context; _generation++; _acknowledged = false; ClearResult();
+        _collaborationSearch = ""; _collaborationSites = ""; _collaborationGroups = "";
+        _includeLibraries = false; _includeOwners = false; _includeMembers = false;
         _message = "Client, session, catalogue or evidence changed. Former results and acknowledgement were cleared; pending originals retain their source.";
     }
     private bool CanExport() => Workspace.Idle && _report is not null && _context == _controller.ContextKey;
@@ -100,6 +114,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     {
         var reason = ReadGuidance; if (reason.Length != 0) throw new ToolkitException(reason);
         var context = _context; var generation = ++_generation;
+        var collaboration = IsCollaborationReport ? CollaborationSelection() : null;
         var reportId=_selectedReportId;var customer=IsPartnerReport ? _customerTenantId : "";var partnerDeclared=IsPartnerReport && _partnerDeclared;
         _acknowledged = false; _reading = true; ClearResult(); Notify();
         try
@@ -110,7 +125,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
                 _pending = original.ToArray(); _pendingTenant = report.TenantId; _pendingId = report.Id;
                 await SetReportAsync(report, original, false, context, generation);
                 _message = "Source reads finished with the states above. Save or export original JSON before closing or reading again. Other formats do not replace the original.";
-            },reportId,customer.Length==0?null:customer,partnerDeclared);
+            },reportId,customer.Length==0?null:customer,partnerDeclared,collaboration);
         }
         finally { _reading = false; Notify(); }
     }
@@ -185,7 +200,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public override void Refresh() { if (_controller is null) return; EnsureContext(); Notify(); }
     private void Notify()
     {
-        foreach (var name in new[] { nameof(IsPartnerReport), nameof(ReadLabel), nameof(AccessPreview), nameof(AcknowledgementText), nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(IsCollaborationReport), nameof(Notice), nameof(CollaborationSearch), nameof(CollaborationSites), nameof(CollaborationGroups), nameof(IncludeLibraries), nameof(IncludeOwners), nameof(IncludeMembers), nameof(IsPartnerReport), nameof(ReadLabel), nameof(AccessPreview), nameof(AcknowledgementText), nameof(CanEdit), nameof(Acknowledged), nameof(ReadGuidance), nameof(Outcome), nameof(Message), nameof(LastExport), nameof(Sections), nameof(SelectedSection), nameof(Search), nameof(Rows), nameof(HasPendingOriginal), nameof(PendingSummary) }) OnPropertyChanged(name);
         CommandManager.InvalidateRequerySuggested();
     }
 }

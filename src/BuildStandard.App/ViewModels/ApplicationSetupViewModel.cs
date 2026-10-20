@@ -57,8 +57,9 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     /// <summary>On by default: without it the engineer who ran setup cannot connect until someone assigns them in Entra.</summary>
     private bool _includeUsageReports;
     public bool IncludeUsageReports {get=>_includeUsageReports;set{if(value==_includeUsageReports)return;if(!Workspace.Idle)throw new ToolkitException("Wait for setup to finish before changing access intent.");if(SetProperty(ref _includeUsageReports,value))InvalidatePlan();}}
-    public bool IncludeCollaborationSites { get; set; }
-    public bool IncludeCollaborationTeams { get; set; }
+    private bool _includeCollaborationSites, _includeCollaborationTeams;
+    public bool IncludeCollaborationSites { get => _includeCollaborationSites; set => SetOperationalAccess(ref _includeCollaborationSites, value, nameof(IncludeCollaborationSites)); }
+    public bool IncludeCollaborationTeams { get => _includeCollaborationTeams; set => SetOperationalAccess(ref _includeCollaborationTeams, value, nameof(IncludeCollaborationTeams)); }
     private bool _includeServiceHealth, _includePartnerRelationships;
     public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
     public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }
@@ -71,7 +72,9 @@ public sealed class ApplicationSetupViewModel : PageViewModel
     public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
-        | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None);
+        | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None)
+        | (IncludeCollaborationSites ? OptionalReportAccess.CollaborationSites : OptionalReportAccess.None)
+        | (IncludeCollaborationTeams ? OptionalReportAccess.CollaborationTeams : OptionalReportAccess.None);
     public bool AssignOperator { get => _assignOperator; set { if (SetProperty(ref _assignOperator, value)) InvalidatePlan(); } }
     public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
     public string AssessmentClientId { get => _assessmentId; set { if (SetProperty(ref _assessmentId, value)) InvalidatePlan(); } }
@@ -472,6 +475,8 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         connect.IncludeUsageReports=IncludeUsageReports;
         connect.IncludeServiceHealth=IncludeServiceHealth;
         connect.IncludePartnerRelationships=IncludePartnerRelationships;
+        connect.IncludeCollaborationSites=IncludeCollaborationSites;
+        connect.IncludeCollaborationTeams=IncludeCollaborationTeams;
         connect.UseApplicationIds(TenantId.Trim(), AssessmentClientId.Trim(), DeploymentClientId.Trim());
         await connect.ConnectAsync(mode);
     }

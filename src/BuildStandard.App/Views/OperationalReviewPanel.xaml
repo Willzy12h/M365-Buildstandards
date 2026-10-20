@@ -11,6 +11,17 @@
     <TextBox Text="{Binding CustomerTenantId, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="36" MaxWidth="420" HorizontalAlignment="Stretch" AutomationProperties.Name="Partner report customer tenant ID"/>
     <CheckBox IsChecked="{Binding PartnerDeclared}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0" AutomationProperties.Name="Declare connected partner source"><TextBlock Text="I declare the current verified connection as the partner source. This does not prove customer rights." TextWrapping="Wrap"/></CheckBox>
    </StackPanel>
+   <StackPanel Margin="0,8,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsCollaborationReport}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+    <TextBlock Text="Site search (optional, up to 256 characters; * is a bounded visible-site search, not a full estate)" TextWrapping="Wrap"/>
+    <TextBox Text="{Binding CollaborationSearch, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" AutomationProperties.Name="Bounded collaboration site search"/>
+    <TextBlock Text="Exact selected site IDs, one per line. Keep SharePoint commas intact. Copy IDs from a saved search result; never enter a URL." TextWrapping="Wrap" Margin="0,8,0,0"/>
+    <TextBox Text="{Binding CollaborationSites, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" AcceptsReturn="True" Height="70" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Exact selected collaboration site IDs"/>
+    <CheckBox IsChecked="{Binding IncludeLibraries}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0" AutomationProperties.Name="Include existing selected-site libraries"><TextBlock Text="Read existing libraries for the selected sites. This does not discover or provision user OneDrive storage." TextWrapping="Wrap"/></CheckBox>
+    <TextBlock Text="Exact selected group or Team GUIDs, one per line. At most 50 sites and groups combined." TextWrapping="Wrap" Margin="0,8,0,0"/>
+    <TextBox Text="{Binding CollaborationGroups, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" AcceptsReturn="True" Height="70" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Exact selected collaboration group IDs"/>
+    <CheckBox IsChecked="{Binding IncludeOwners}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0" AutomationProperties.Name="Include direct group owners"><TextBlock Text="Read supported direct group owners. Service-principal owners are omitted by Graph v1.0; unknown or unsupported populations never become complete." TextWrapping="Wrap"/></CheckBox>
+    <CheckBox IsChecked="{Binding IncludeMembers}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0" AutomationProperties.Name="Include direct Team members"><TextBlock Text="Read direct Team members only where the returned group metadata establishes Team provisioning. Missing roles stay unknown." TextWrapping="Wrap"/></CheckBox>
+   </StackPanel>
    <TextBlock Text="{Binding AccessPreview}" TextWrapping="Wrap" Margin="0,6,0,8"/>
    <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,0,0,8"/>
    <Button Content="Connection and read access" Command="{Binding OpenConnectionCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" ToolTipService.ShowOnDisabled="True" ToolTip="Open Connect when idle. Navigation does not authenticate or consent."/>

@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- In-progress collaboration inventory: bounded selected-site/group/Team collection retains per-source failures, stopped reads and owner-population limitations; no effective-access or tenant-wide OneDrive claim. Native and original-evidence integration remain incomplete.
+- Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
 
 - G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
 

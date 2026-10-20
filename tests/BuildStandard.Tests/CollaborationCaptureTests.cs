@@ -96,6 +96,16 @@ public sealed class CollaborationCaptureTests
         var result=await new CollaborationInventoryCapture().CaptureAsync(source,Session(),()=>{},default);
         Assert.Equal(2,source.Calls.Count);Assert.Single(result.Sources[0].Rows);Assert.Equal(ReportReadState.Failed,result.Sources[1].Status);Assert.Equal(ReportReadState.NotAttempted,result.Sources[2].Status);
     }
+    [Fact]public async Task Byte_limit_retains_whole_rows_and_final_evidence_can_still_be_sealed()
+    {
+        var text=new string('x',4096);
+        var values=Enumerable.Range(0,1100).Select(i=>{var site=Site("site"+i);site["displayName"]=text;site["name"]=text;site["webUrl"]=text;site["siteCollection"]=new JsonObject{["hostname"]=text};return site;}).ToArray();
+        var source=new Source(new("*",[],[],false,false,false),(_,_)=>Task.FromResult(Page(values)));
+        var report=await new CollaborationReportService(SystemClock.Instance,"synthetic-test").CaptureAsync(source,Session(),()=>{},default);
+        Assert.Equal(ReportReadState.Partial,report.Status);Assert.InRange(report.Sections[0].Rows.Count,1,1099);Assert.Null(report.CollaborationSelection!.ReturnedCounts[0]);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(OperationalContextSchema.Serialise(report))<=OperationalReportRegistry.MaximumBytes);
+        Assert.All(report.Sections[0].Rows,row=>Assert.Equal(text,row["name"]!.GetValue<string>()));
+    }
     private sealed class Source(CollaborationReadSelection selection,Func<CollaborationReadKind,string,Task<OperationalReportPage>> read):ICollaborationReportSource
     {
         public string TenantId=>TestData.TenantA;public CollaborationReadSelection Selection=>selection;public List<CollaborationReadKind> Calls{get;}=[];
