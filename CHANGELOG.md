@@ -1,5 +1,9 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
+- Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
+
+
 - Implement the fixed usage-report download transport and engine capture service with isolated credential-free302 downloads, one silent401 renewal, exact context/scope checks, bounded original CSV and per-source failure/cancellation evidence. The approved Reports.Read.All capability is classified as read-only; no access is requested or granted by classification. Native collection and its deliberate optional-access setup are still in progress.
 
 - Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
@@ -62,9 +66,7 @@
 
 ### Pending source — mailbox capacity review, PR #94
 
-- In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
 
-- Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
