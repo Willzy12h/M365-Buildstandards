@@ -66,6 +66,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!Workspace.Idle) throw new ToolkitException("Wait for setup to finish before changing access intent.");
         if (SetProperty(ref field, value, name)) InvalidatePlan();
     }
+    public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
         | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None);
@@ -215,7 +216,7 @@ public sealed class ApplicationSetupViewModel : PageViewModel
         if (!string.Equals(setup.Identity.TenantId, TenantId.Trim(), StringComparison.OrdinalIgnoreCase)) throw new TenantMismatchException("The setup session is connected to another tenant. Sign in again.");
         return setup;
     }
-    private void InvalidatePlan() { ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
+    private void InvalidatePlan() { OnPropertyChanged(nameof(OptionalAccessSummary)); ExistingApplications.Clear(); SelectedExisting = null; _plan = null; PlanRows.Clear(); SelectedRow = null; PermissionsApproved = false; Validations.Clear(); OnPropertyChanged(nameof(PlanSummary)); OnPropertyChanged(nameof(NextStep)); OnPropertyChanged(nameof(ApplicationGuide)); }
     private async Task QuickSetupAsync()
     {
         await Workspace.ConnectApplicationSetupAsync(TenantId);

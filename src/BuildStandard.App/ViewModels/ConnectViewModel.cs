@@ -115,7 +115,7 @@ public sealed class ConnectViewModel : PageViewModel
         {
             if(value==_includeUsageReports)return;
             if(!Workspace.Idle)throw new ToolkitException("Wait for the active operation before changing report-access intent.");
-            SetProperty(ref _includeUsageReports,value);Workspace.CancelPendingDiscovery();SetDiscovery(null);
+            SetProperty(ref _includeUsageReports,value);Workspace.CancelPendingDiscovery();SetDiscovery(null);OnPropertyChanged(nameof(OptionalAccessSummary));
         }
     }
     private bool _includeServiceHealth, _includePartnerRelationships;
@@ -125,8 +125,9 @@ public sealed class ConnectViewModel : PageViewModel
     {
         if (value == field) return;
         if (!Workspace.Idle) throw new ToolkitException("Wait for the active operation before changing report-access intent.");
-        SetProperty(ref field, value, name); Workspace.CancelPendingDiscovery(); SetDiscovery(null);
+        SetProperty(ref field, value, name); Workspace.CancelPendingDiscovery(); SetDiscovery(null); OnPropertyChanged(nameof(OptionalAccessSummary));
     }
+    public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
         | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None);

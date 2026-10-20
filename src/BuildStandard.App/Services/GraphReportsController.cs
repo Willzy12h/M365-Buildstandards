@@ -129,6 +129,62 @@ public sealed class GraphReportsController(Workspace workspace)
         return result ?? throw new ToolkitException("No report result was accepted.");
     }
 
+    internal Func<ConnectedTenant, Action, IOperationalReportSource> OperationalSourceFactory { get; set; } =
+        (connection, current) => ((GraphClient)connection.Graph).ForOperationalReports(connection.Session, "service-health", current);
+    public string OperationalReadBlocker
+    {
+        get
+        {
+            var blocker = ReadBlocker;
+            if (blocker.Length != 0) return blocker;
+            return RequireLive().Session.Scopes.Any(scope => scope is "ServiceHealth.Read.All" or "https://graph.microsoft.com/ServiceHealth.Read.All") ? ""
+                : "No ServiceHealth.Read.All scope was returned for this connection. Review optional service-health access in Connect and reconnect deliberately. This page never signs in or grants consent.";
+        }
+    }
+    public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
+        Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental service-health read and its limitations first.");
+        if (OperationalReadBlocker.Length != 0) throw new ToolkitException(OperationalReadBlocker);
+        var connection = RequireLive();
+        void AssertCurrent()
+        {
+            RequireContext(expectedContext);
+            if (!ReferenceEquals(workspace.Connection, connection) || !selectionStillCurrent())
+                throw new TenantMismatchException("The operational read context changed. No result was admitted for the current client.");
+            RequireLive();
+        }
+        OperationalContextReport? result = null;
+        await workspace.RunExclusiveAsync("Reading service-health context", async progress =>
+        {
+            AssertCurrent();
+            progress.Report("Read-only registered overview and issue GETs; five minutes,100requests,5,000rows and16MiB. Advisories do not prove this tenant's availability.");
+            var source = OperationalSourceFactory(connection, AssertCurrent);
+            using var owned = source as IDisposable;
+            result = await new ServiceHealthReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken);
+            // A returned admitted original belongs to the captured source. Preserve it before current-view admission,
+            // including the dispatcher transition after capture; ownership continues through serialisation/projection.
+            progress.Report("Retaining original operational evidence. Closing waits for the original; Stop does not discard already captured observations.");
+            await retainOriginal(result);
+            AssertCurrent();
+        });
+        AssertCurrent();
+        return result ?? throw new ToolkitException("No operational result was admitted.");
+    }
+    public async Task<string> ExportOperationalAsync(OperationalContextReport report, ExportFormat format, bool suppliedFile,
+        byte[] originalBytes, string expectedContext)
+    {
+        RequireIdle(expectedContext);
+        var file = await workspace.ExportAsync(() =>
+        {
+            RequireContext(expectedContext);
+            if (report.TenantId != workspace.Profile!.TenantId) throw new TenantMismatchException("The operational report belongs to another source tenant.");
+            return workspace.Exporter.ExportOperationalContext(report, format, suppliedFile, originalBytes);
+        }, "Exporting the complete operational report", "Preserving original source context and every read state; visual filters do not limit exports.");
+        RequireContext(expectedContext); return file;
+    }
+
     internal Func<ConnectedTenant, Action, IUsageReportSource> UsageSourceFactory { get; set; } =
         (connection, current) => ((GraphClient)connection.Graph).ForUsageReports(connection.Session, current);
 

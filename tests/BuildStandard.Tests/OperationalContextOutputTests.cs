@@ -27,9 +27,14 @@ public sealed class OperationalContextOutputTests
         Assert.Equal(bytes, File.ReadAllBytes(file)); Assert.Contains("operational-context-evidence", file); Assert.DoesNotContain("snapshots", file);
         Assert.Equal(report.Id, OperationalContextFile.ReadFile(file, TestData.TenantA).Report.Id);
         var copy = OperationalContextFile.ReadFile(file, TestData.TenantA).CopyOriginal(); copy[0] ^= 1; Assert.Equal(bytes, File.ReadAllBytes(file));
-        using var backup = ZipFile.OpenRead(new WorkspaceBackup(root.Paths).Create());
+        var backupFile = new WorkspaceBackup(root.Paths).Create();
+        using var backup = ZipFile.OpenRead(backupFile);
         var entry = Assert.Single(backup.Entries, item => item.FullName.EndsWith("/operational-context-evidence/" + report.Id + ".json", StringComparison.Ordinal));
         using var stream = entry.Open(); using var memory = new MemoryStream(); stream.CopyTo(memory); Assert.Equal(bytes, memory.ToArray());
+        var restored = new WorkspaceBackup(root.Paths).RestoreSeparate(backupFile, Path.Combine(root.Root, "restored operational"), WorkspaceBackup.ArchiveDigest(backupFile));
+        var restoredFile = Path.Combine(restored, "data", Path.GetRelativePath(root.Paths.DataDirectory, file));
+        Assert.Equal(bytes, OperationalContextFile.ReadFile(restoredFile, TestData.TenantA).CopyOriginal());
+        Assert.True(WorkspaceBackup.VerifyRestored(restored) > 0);
         Assert.ThrowsAny<ToolkitException>(() => store.SaveOperationalContext(bytes, TestData.TenantA, report.Id)); Assert.Equal(bytes, File.ReadAllBytes(file));
     }
     [Theory][InlineData(ExportFormat.Html)][InlineData(ExportFormat.Json)][InlineData(ExportFormat.Csv)][InlineData(ExportFormat.Xlsx)]

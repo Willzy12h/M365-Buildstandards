@@ -58,7 +58,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
             for (var attempt = 0; attempt < 2; attempt++)
             {
                 AssertCurrent(ct);
-                if (_calls >= OperationalReportRegistry.MaximumCalls) throw Refuse("The shared 100-request budget ended. No further request was sent.");
+                if (_calls >= OperationalReportRegistry.MaximumCalls) throw new OperationalReadLimitException("The shared 100-request budget ended. No further request was sent.");
                 var token = await _tokens.GetAccessTokenAsync(attempt == 1, ct).ConfigureAwait(false);
                 AssertCurrent(ct);
                 using var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -112,8 +112,10 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IDisp
             }
             throw Refuse("No operational page was admitted.");
         }
+        catch (OperationCanceledException) when (!cancellation.IsCancellationRequested && _lifetime.IsCancellationRequested)
+        { throw new OperationalReadLimitException("The combined five-minute operational read budget ended. No partial page was admitted."); }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested)
-        { throw Refuse("The combined five-minute operational read budget ended. No partial page was admitted."); }
+        { throw new AuthenticationRequiredException("The operational read was interrupted before a complete page was admitted. Reconnect deliberately; no interactive retry occurred."); }
         catch (JsonException) { throw Refuse("The operational response contains invalid, duplicate or overly nested JSON. No page was admitted."); }
         catch (FormatException) { throw Refuse("The operational response contains malformed headers or continuation data. No page was admitted."); }
         catch (HttpRequestException) { throw Refuse("The operational transport failed. No raw response or continuation was retained in the error."); }

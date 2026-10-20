@@ -101,6 +101,8 @@ public sealed class ServiceHealthReportService(IClock clock, string toolkitVersi
                     : "The shared five-minute read budget ended. Earlier observations remain; later sources were not attempted.";
                 stop = true;
             }
+            catch (OperationalReadLimitException)
+            { AssertCurrent(); Incomplete(section, "The shared operational request/time budget ended. Earlier admitted observations remain; later sources were not attempted."); stop = true; }
             catch (AuthenticationRequiredException)
             { AssertCurrent(); Fail(section, "A deliberate reconnect is required. No interactive retry occurred; later sources were not attempted."); stop = true; }
             catch (ToolkitException)

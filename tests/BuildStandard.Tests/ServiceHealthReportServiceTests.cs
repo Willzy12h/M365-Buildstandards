@@ -119,6 +119,15 @@ public sealed class ServiceHealthReportServiceTests
         Assert.Equal("NotAttempted", report.Sections[1].Status);
         Assert.Equal("Partial", report.Status);
     }
+    [Fact]
+    public async Task Transport_shared_budget_stops_later_sources_without_fabricating_an_attempt()
+    {
+        var calls = 0;
+        var source = new Source((_, _) => { calls++; throw new OperationalReadLimitException("Synthetic shared request budget ended."); });
+        var report = await Service().CaptureAsync(source, Session(), () => { }, default);
+        Assert.Equal(1, calls); Assert.Equal("Partial", report.Sections[0].Status); Assert.Equal("NotAttempted", report.Sections[1].Status);
+        Assert.Contains("budget", report.Sections[0].Error!, StringComparison.OrdinalIgnoreCase);
+    }
     [Theory]
     [InlineData("tenant")]
     [InlineData("actor")]

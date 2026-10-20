@@ -91,6 +91,22 @@ public sealed class OperationalReportTransportTests
         });
         Assert.Equal(fault is "scope" or "actor" or "kind" or "parent" or "context-after-token" ? 0 : fault is "double-401" or "repeated-cursor" ? 2 : 1, calls);
     }
+    [Fact]
+    public async Task Actual_request_budget_includes_silent_renewal_and_stops_before_another_token_or_source_request()
+    {
+        var calls = 0; var tokens = new Tokens();
+        using var client = new HttpClient(new Handler(_ =>
+        {
+            calls++;
+            return calls == 1 ? new(HttpStatusCode.Unauthorized) : Json("{\"value\":[],\"@odata.nextLink\":\"" + Next + calls + "\"}");
+        }));
+        using var transport = new OperationalReportTransport(client, tokens, Session(), "service-health", () => { });
+        for (var page = 0; page < OperationalReportRegistry.MaximumCalls - 1; page++)
+            Assert.True((await transport.ReadNextAsync(OperationalReadKind.HealthOverviews, null, default)).HasMore);
+        await Assert.ThrowsAsync<OperationalReadLimitException>(() => transport.ReadNextAsync(OperationalReadKind.HealthOverviews, null, default));
+        await Assert.ThrowsAsync<OperationalReadLimitException>(() => transport.ReadNextAsync(OperationalReadKind.HealthIssues, null, default));
+        Assert.Equal(OperationalReportRegistry.MaximumCalls, calls); Assert.Equal(OperationalReportRegistry.MaximumCalls, tokens.Refreshes.Count);
+    }
     private sealed class Tokens : IAccessTokenProvider
     {
         public List<bool> Refreshes { get; } = []; public Action? After { get; set; }
