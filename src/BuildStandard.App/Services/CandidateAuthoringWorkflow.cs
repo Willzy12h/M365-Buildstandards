@@ -12,6 +12,10 @@ public sealed class CandidateAuthoringWorkflow(Func<PresentationContextKey> cont
     private string? _savedDigest;
     private long _generation;
     private bool _busy;
+    public bool HasDraft => _draft is not null;
+    public string DraftTitle => _draft?.Title ?? "";
+    public string DraftDigest => _draft?.ContentDigest ?? "";
+    public CandidateBaseline? Baseline => _draft?.Baseline;
     public StandardCandidateDraft? Draft => _draft is { } draft ? Copy(draft) : null;
     public CandidateValidationTicket? Validation => ContextCurrent ? _validation : null;
     public bool HasUnsavedChanges => _draft is { } draft && draft.ContentDigest != _savedDigest;

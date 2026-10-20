@@ -2,7 +2,15 @@
 
 Candidate authoring is offline. It does not connect to a tenant, install a catalogue, change historical standard files or publish a release. A candidate is not deployment approval or a verified successor lineage.
 
-The current source provides a shared draft/validation/output engine and these CLI commands. The native editor and supported policy-import journey are still being implemented; this page does not claim they are available.
+The current source provides a shared draft/validation/output engine, a native offline editor and the CLI commands below. The supported policy-import journey is still being implemented. Native validation results must match the candidate source; source implementation alone is not Windows acceptance.
+
+## Native offline editor
+
+Open **Catalogue reference → Create or edit a local candidate standard — offline**. Choose **Create from loaded standard**, select a control and choose **Show settings**. The editor shows the published baseline value separately from the proposed value. Text settings accept plain text; other settings use their existing JSON value type, with whole arrays edited together. Unsupported routes, fields, safety changes and incompatible values are refused by the shared engine.
+
+Choose **Apply to draft**, then **Validate candidate**. **Save draft** writes a new local draft; **Export candidate and comparison** creates the four-file set described below. Neither action loads the candidate into the active tenant session. To undo an applied value, set it back to the displayed baseline value and apply it. **Reset input** discards only un-applied typing.
+
+Keep working, save, or explicitly **Discard unsaved draft** before replacing its baseline or closing the application. Navigating away keeps the draft in memory; closing with unsaved edits returns to the expanded editor. A client/session/catalogue context change clears comparison and validation but preserves the draft: save it, then deliberately reopen that file. Existing files are never deleted by Discard.
 
 ## Create a draft
 
@@ -16,7 +24,7 @@ The JSON response names a new local draft under `reports`. Its identity includes
 
 The editor's draft model supports existing control recipe settings and reviewable parameter defaults. It does not add controls, collections, permissions, execution routes, licence rules or new template syntax. Foreign references need explicit supported mappings. Conditional Access candidates stay disabled and preserve their exact targeting/exclusions; Intune candidates remain unassigned. macOS remains unsupported and blocked. Edited defaults lose their inherited vendor-review date; editing is not a new vendor review.
 
-Do not hand-edit a saved draft's digest to bypass validation. The native editing/import surface is not yet available in this source milestone. Saving an unresolved draft will not make it exportable.
+Do not hand-edit a saved draft's digest to bypass validation. Policy import is not yet exposed in this editor. Saving an unresolved draft will not make it exportable.
 
 ## Validate, then explicitly export
 

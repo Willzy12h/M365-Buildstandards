@@ -25,12 +25,17 @@
               <WrapPanel Margin="0,10,0,0">
                 <TextBlock Text="Release" VerticalAlignment="Center" Margin="0,0,6,10"/>
                 <ComboBox AutomationProperties.Name="Build Standard release" ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease, Mode=TwoWay}" DisplayMemberPath="Release" Width="180" Margin="0,0,12,10"/>
-                <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" Style="{StaticResource SecondaryButton}"/>
+                <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Select a release, disconnect and finish current work. Save or discard unsaved candidate edits first." Style="{StaticResource SecondaryButton}"/>
                 <TextBlock Text="Category" VerticalAlignment="Center" Margin="12,0,6,10"/>
                 <ComboBox AutomationProperties.Name="Control category" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
                 <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
               </WrapPanel>
               <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Latest standard export result" Style="{StaticResource ReadOnlyDetail}" Visibility="{Binding HasExport, Converter={StaticResource BoolToVis}}"/>
+              <Expander Header="Create or edit a local candidate standard — offline" IsExpanded="{Binding Authoring.IsExpanded, Mode=TwoWay}" Margin="0,8,0,0">
+                <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <views:CandidateAuthoringPanel DataContext="{Binding Authoring}"/>
+                </ScrollViewer>
+              </Expander>
               <Expander Header="More export formats and engineer guides" IsExpanded="False" Margin="0,8,0,0"><ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
               <Expander Header="Defaults and settings — HTML, reusable JSON and document source" IsExpanded="False" Margin="0,8,0,0">
                 <StackPanel Margin="0,8,0,0">

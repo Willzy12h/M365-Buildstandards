@@ -61,6 +61,15 @@ public partial class MainWindow : Window
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
     }
 
+    private static bool ShowPendingCandidate(ShellViewModel shell)
+    {
+        if (!shell.Page<StandardViewModel>().Authoring.HasUnsavedChanges) return false;
+        shell.Page<StandardViewModel>().Authoring.IsExpanded = true;
+        shell.Navigate("standard");
+        shell.ShowError(new InvalidOperationException("A local candidate draft has unsaved edits. Open the offline candidate editor: keep working, save the draft, or explicitly discard it before closing. No standard or tenant was changed."));
+        return true;
+    }
+
     private static bool ShowPendingReport(ShellViewModel shell)
     {
         if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
@@ -80,7 +89,7 @@ public partial class MainWindow : Window
             if (shell is null) return;
             e.Cancel = true;
             if (_closing) return;
-            if (ShowPendingReport(shell)) return;
+            if (ShowPendingReport(shell) || ShowPendingCandidate(shell)) return;
             if (shell.Workspace.Busy)
             {
                 var message = "An operation is in progress.\n\n" + shell.Workspace.StopGuidance + "\n\nStop and close?";
@@ -92,7 +101,7 @@ public partial class MainWindow : Window
             await shell.Workspace.StopAndWaitForEvidenceAsync();
             // A stopped runner may return truthful partial evidence whose local save failed.
             // Keep the workspace open for recovery before committing to shutdown/disconnect.
-            if (ShowPendingReport(shell))
+            if (ShowPendingReport(shell) || ShowPendingCandidate(shell))
             {
                 _closing = false; IsEnabled = true; Title = shell.WindowTitle;
                 return;

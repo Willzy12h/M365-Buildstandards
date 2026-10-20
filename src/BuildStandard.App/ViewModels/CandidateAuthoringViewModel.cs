@@ -1,0 +1,193 @@
+using System.Collections.ObjectModel;
+using System.Text.Json;
+using System.Windows.Input;
+using Microsoft.Win32;
+using BuildStandard.App.Services;
+using BuildStandard.Core;
+using BuildStandard.Core.Models;
+using BuildStandard.Engine.Standards.Authoring;
+namespace BuildStandard.App.ViewModels;
+
+/// <summary>Native local authoring controls. All catalogue rules and output validation remain in the engine.</summary>
+public sealed class CandidateAuthoringViewModel : PageViewModel
+{
+    private readonly CandidateAuthoringWorkflow _workflow;
+    private readonly CandidateBaselineLoader _baselines;
+    private readonly CandidateAuthoringService _authoring;
+    private readonly CandidateEditingService _editing;
+    private readonly CandidateLocalOutputs _outputs;
+    private bool _expanded;
+    private ControlDefinition? _control;
+    private CandidateEditableField? _field;
+    private string _value = "", _initialValue = "", _title = "Proposed build standard", _message = "No local draft opened.";
+    public CandidateAuthoringViewModel(ShellViewModel shell) : base(shell, "Local candidate authoring")
+    {
+        _workflow = new(Workspace.CapturePresentationContext);
+        _baselines = new(Workspace.Paths, Workspace.Logger); _authoring = new(_baselines);
+        _editing = new(_baselines, _authoring); _outputs = new(Workspace.Paths, _authoring);
+        NewDraftCommand = Command(CreateAsync, () => Workspace.Idle && Workspace.Standard is not null && !HasUnsavedChanges);
+        OpenDraftCommand = Command(async () =>
+        {
+            RequireReplaceable();
+            var dialog = new OpenFileDialog { Filter = "Candidate draft (*.json)|*.json", Title = "Open a local candidate draft" };
+            if (dialog.ShowDialog() == true) await OpenAsync(dialog.FileName);
+        }, () => Workspace.Idle && !HasUnsavedChanges);
+        LoadFieldsCommand = Command(LoadFieldsAsync, () => CanEdit && SelectedControl is not null && !HasPendingInput);
+        ApplyCommand = Command(ApplyAsync, () => CanEdit && SelectedField is not null && HasPendingInput);
+        ResetInputCommand = Sync(() => { ValueText = _initialValue; }, () => Workspace.Idle && HasPendingInput);
+        ValidateCommand = Command(ValidateAsync, () => CanEdit && !HasPendingInput);
+        SaveDraftCommand = Command(SaveAsync, () => Workspace.Idle && _workflow.HasDraft && !HasPendingInput);
+        ExportCandidateCommand = Command(ExportAsync, () => CanEdit && !HasPendingInput && _workflow.Validation is not null);
+        DiscardDraftCommand = Sync(Discard, () => Workspace.Idle && (_workflow.HasDraft || HasPendingInput));
+    }
+    public ICommand NewDraftCommand { get; }
+    public ICommand OpenDraftCommand { get; }
+    public ICommand LoadFieldsCommand { get; }
+    public ICommand ApplyCommand { get; }
+    public ICommand ResetInputCommand { get; }
+    public ICommand ValidateCommand { get; }
+    public ICommand SaveDraftCommand { get; }
+    public ICommand ExportCandidateCommand { get; }
+    public ICommand DiscardDraftCommand { get; }
+    public ObservableCollection<ControlDefinition> Controls { get; } = new();
+    public ObservableCollection<CandidateEditableField> Fields { get; } = new();
+    public bool IsExpanded { get => _expanded; set => SetProperty(ref _expanded, value); }
+    public string DraftTitle { get => _title; set => SetProperty(ref _title, value); }
+    public string Message { get => _message; private set => SetProperty(ref _message, value); }
+    public bool HasPendingInput => _value != _initialValue;
+    public bool HasUnsavedChanges => HasPendingInput || _workflow.HasUnsavedChanges;
+    public bool CanEdit => Workspace.Idle && _workflow.ContextCurrent;
+    public string Guidance => Workspace.Busy ? "Wait for the current operation, or use Stop."
+        : HasPendingInput ? "Apply the proposed value, or reset it, before selecting another setting, saving or exporting."
+        : !_workflow.HasDraft ? "Create a draft from the loaded verified catalogue, or open a saved draft. This is entirely offline."
+        : !_workflow.ContextCurrent ? "The working context changed. Save this draft, then reopen it deliberately; comparison and validation have been cleared."
+        : _workflow.Validation is null ? "Edit existing settings, review the comparison, then Validate. Export stays unavailable until validation succeeds. Save preserves a draft; it does not publish or deploy it."
+        : "Validated local candidate. Export writes separate catalogue, draft, comparison and checksums. Publication and deployment remain separate reviewed workflows.";
+    public string Identity => _workflow.Baseline is { } baseline
+        ? $"{_workflow.DraftTitle}\nBaseline {baseline.Release} · SHA-256 {baseline.FileSha256}\nDraft SHA-256 {_workflow.DraftDigest}\n{(HasUnsavedChanges ? "Unsaved local edits" : "Draft saved locally")} · not a published standard"
+        : "No draft. Published standards are never edited by these controls.";
+    public ControlDefinition? SelectedControl
+    {
+        get => _control;
+        set
+        {
+            if (HasPendingInput) { Message = "Apply or reset the current input before changing controls."; OnPropertyChanged(); return; }
+            if (SetProperty(ref _control, value)) { Fields.Clear(); SetField(null); }
+        }
+    }
+    public CandidateEditableField? SelectedField
+    {
+        get => _field;
+        set
+        {
+            if (HasPendingInput) { Message = "Apply or reset the current input before changing settings."; OnPropertyChanged(); return; }
+            SetField(value);
+        }
+    }
+    public string ValueText { get => _value; set { if (SetProperty(ref _value, value)) RaiseAll(); } }
+    public string OriginalValue => _field?.OriginalJson ?? "Select a setting to compare its baseline and proposed values.";
+    public string ValueHint => _field?.ValueType == "String" ? "Enter text without JSON quotes."
+        : "Enter one JSON value of the existing type (for example true, false, 30 or the complete existing array). Unsupported shapes are refused.";
+    public async Task CreateAsync()
+    {
+        RequireReplaceable(); var file = Workspace.RequireStandard().SourceFileName; var title = DraftTitle;
+        await LocalAsync("Opening local candidate baseline", async ct =>
+        { await _workflow.OpenAsync(_ => _baselines.Create(file, title), ct); await LoadControlsAsync(ct); });
+        Message = "Local draft created. Select a control, then Show settings. Nothing has been changed in the published catalogue.";
+    }
+    public async Task OpenAsync(string file)
+    {
+        RequireReplaceable();
+        await LocalAsync("Opening local candidate draft", async ct =>
+        {
+            await _workflow.OpenAsync(_ => { var draft = CandidateDraftCodec.ReadFile(file); _baselines.Load(draft); return draft; }, ct);
+            await LoadControlsAsync(ct);
+        });
+        _workflow.MarkSaved(_workflow.DraftDigest);
+        Message = "Draft opened against its exact verified baseline. Validate again before export."; RaiseAll();
+    }
+    public async Task LoadFieldsAsync()
+    {
+        RequireEditable(); var control = SelectedControl?.Id ?? throw new ConfigurationException("Select a control first.");
+        var draft = _workflow.Draft!; var selectedPath = SelectedField?.Path;
+        await LocalAsync("Reading local candidate settings", async ct =>
+        {
+            var fields = await Task.Run(() => _editing.Fields(draft, control), ct);
+            ct.ThrowIfCancellationRequested();
+            if (!_workflow.ContextCurrent || SelectedControl?.Id != control) throw new ConfigurationException("The selection changed; show its settings again.");
+            Fields.Clear(); foreach (var field in fields) Fields.Add(field); SetField(Fields.FirstOrDefault(f => f.Path == selectedPath) ?? Fields.FirstOrDefault());
+        });
+    }
+    public async Task ApplyAsync()
+    {
+        RequireEditable(allowPending: true); var control = SelectedControl?.Id ?? throw new ConfigurationException("Select a control.");
+        var field = SelectedField ?? throw new ConfigurationException("Select a field.");
+        var json = field.ValueType == "String" ? JsonSerializer.Serialize(ValueText) : ValueText;
+        await LocalAsync("Validating proposed local setting", ct => _workflow.EditAsync((draft, _) => _editing.Set(draft, control, field.Path, json), ct));
+        _initialValue = _value; await LoadFieldsAsync();
+        Message = "Proposed setting applied to this draft only. Validate the complete draft before export.";
+    }
+    public async Task ValidateAsync()
+    {
+        RequireEditable();
+        await LocalAsync("Validating local candidate", ct => _workflow.ValidateAsync((draft, _) => CandidateValidationTicket.Create(_authoring, draft), ct));
+        Message = "Candidate validated locally. No publication, tenant action or live behaviour is implied.";
+    }
+    public async Task SaveAsync()
+    {
+        if (HasPendingInput) throw new ConfigurationException("Apply or reset the pending input before saving.");
+        var draft = _workflow.Draft ?? throw new ConfigurationException("Open a draft first.");
+        var path = await Workspace.ExportAsync(() => _outputs.ExportDraft(draft, Workspace.OperationToken), "Saving local candidate draft", "Writing a fresh draft without changing standards or tenant evidence.");
+        if (string.IsNullOrEmpty(path)) throw new ConfigurationException("Draft save did not complete.");
+        _workflow.MarkSaved(draft.ContentDigest); Message = "Draft saved: " + path; RaiseAll();
+    }
+    public async Task ExportAsync()
+    {
+        RequireEditable(); var draft = _workflow.Draft!;
+        var ticket = _workflow.Validation ?? throw new ConfigurationException("Validate this exact draft before export.");
+        var path = await Workspace.ExportAsync(() => _outputs.Export(draft, ticket, Workspace.OperationToken).Checksums,
+            "Exporting local candidate", "Writing a candidate, draft, comparison and checksums. This does not publish a standard.");
+        if (string.IsNullOrEmpty(path)) throw new ConfigurationException("Candidate export did not complete.");
+        _workflow.MarkSaved(draft.ContentDigest); Message = "Candidate set exported. Checksums and filenames: " + path; RaiseAll();
+    }
+    public void Discard()
+    {
+        if (!Workspace.Idle) throw new ConfigurationException("Wait for the current operation before discarding local edits.");
+        _workflow.Discard(); Controls.Clear(); Fields.Clear(); _control = null; SetField(null);
+        Message = "Unsaved local draft discarded explicitly. Existing files and published standards were not deleted."; RaiseAll();
+    }
+    public override void Refresh()
+    {
+        if (_workflow is null) return;
+        _workflow.Refresh();
+        if (!_workflow.ContextCurrent) { Fields.Clear(); if (!HasPendingInput) SetField(null); }
+        RaiseAll();
+    }
+    private void RequireReplaceable()
+    {
+        if (!Workspace.Idle || HasUnsavedChanges) throw new ConfigurationException("Wait for current work. Keep, save or explicitly discard the current draft before replacing it.");
+    }
+    private void RequireEditable(bool allowPending = false)
+    {
+        if (!CanEdit || !allowPending && HasPendingInput) throw new ConfigurationException(Guidance);
+    }
+    private async Task LoadControlsAsync(CancellationToken ct)
+    {
+        var draft = _workflow.Draft!; var baseline = await Task.Run(() => _baselines.Load(draft), ct);
+        ct.ThrowIfCancellationRequested(); if (!_workflow.ContextCurrent) throw new ConfigurationException("Context changed while loading draft controls.");
+        Controls.Clear(); foreach (var control in baseline.Controls.Where(c => c.HasRecipe)) Controls.Add(control);
+        Fields.Clear(); _control = Controls.FirstOrDefault(); SetField(null); RaiseAll();
+    }
+    private async Task LocalAsync(string title, Func<CancellationToken, Task> work)
+    {
+        var completed = false;
+        await Workspace.RunExclusiveAsync(title, async _ => { await work(Workspace.OperationToken); Workspace.OperationToken.ThrowIfCancellationRequested(); completed = true; });
+        if (!completed) throw new OperationCanceledException("Local authoring stopped; no new result was accepted.");
+        RaiseAll();
+    }
+    private void SetField(CandidateEditableField? field)
+    {
+        _field = field; _value = field is null ? "" : field.ValueType == "String" ? JsonSerializer.Deserialize<string>(field.ProposedJson) ?? "" : field.ProposedJson;
+        _initialValue = _value; RaiseAll();
+    }
+}
