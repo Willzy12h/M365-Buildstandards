@@ -71,6 +71,28 @@ public sealed class GraphClient : IGraphClient
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);
 
+    /// <summary>Dedicated typed evaluation; generic assessment/write routes remain unchanged. Caller owns disposal.</summary>
+    public ConditionalAccessEvaluator ForConditionalAccessEvaluation(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new ConditionalAccessEvaluator(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
+    /// <summary>One bounded selected-control capture, using fixed descriptors and the existing provider. Caller owns disposal.</summary>
+    public DeploymentCoverageReader ForDeploymentCoverage(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new DeploymentCoverageReader(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
+    /// <summary>Fixed reporting-only modern Intune jobs; caller explicitly acknowledges existing broader access and owns disposal.</summary>
+    public IntuneExportReader ForIntuneExports(TenantSession session,Func<bool> isCurrent,bool broaderTokenAcknowledged,int remainingRequests=100)
+    {
+        var graph=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        var download=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new IntuneExportReader(graph,download,_tokens,TenantId,Mode,session,isCurrent,broaderTokenAcknowledged,maximumRequests:remainingRequests);
+    }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);

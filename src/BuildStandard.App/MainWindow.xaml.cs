@@ -63,10 +63,25 @@ public partial class MainWindow : Window
 
     private static bool ShowPendingReport(ShellViewModel shell)
     {
-        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
-        shell.Navigate("run-reports");
-        shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
-        return true;
+        if (shell.Page<RunReportsViewModel>().HasPendingEvidence)
+        {
+            shell.Navigate("run-reports");
+            shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
+            return true;
+        }
+        if (shell.Page<ConditionalAccessEvaluationViewModel>().HasPending)
+        {
+            shell.Navigate("ca-evaluation");
+            shell.ShowError(new InvalidOperationException("An original CA evaluation is still unsaved. Save, export or explicitly discard its exact original in Hypothetical CA evaluation before closing. No report is repeated."));
+            return true;
+        }
+        if (shell.Page<DeploymentCoverageViewModel>().HasPending)
+        {
+            shell.Navigate("coverage");
+            shell.ShowError(new InvalidOperationException("Original coverage is still unsaved. Recover its exact original report/files or explicitly discard it in Deployment coverage before closing. No query is repeated."));
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Never abandons an in-flight tenant write: closing waits for the executor to reach a safe boundary and finish evidence.</summary>

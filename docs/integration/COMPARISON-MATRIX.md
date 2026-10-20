@@ -232,3 +232,19 @@ The approved specification/plan in PR #114 selects native WPF + preserved shared
 ## BuildStandard T1 — technical rename evidence, 12 October 2026
 
 #115 preserves the existing product rather than replacing it. Normalising namespace/technical references against accepted T0 shows changed runtime C# bodies only in ToolkitPaths (approved alias policy), OfflinePackageFiles (exact new launcher admission), and OfflinePrerequisiteService (successor package layout). All other runtime C# bodies are mechanical changes; published standards/lineage, scripts/pins, publisher/release pins and existing evidence schemas remain unchanged. Local source tests/compilation are reported in COMPLETION-REGISTER; Windows/native/package proof and named safety review are separate gates. No new UI design completion is inferred from the rename.
+
+
+### Expansion B source checkpoint — 20 October 2026 (#147, not accepted release)
+
+| Capability | Implemented / exposed | Validation / remaining limit |
+| --- | --- | --- |
+| Hypothetical CA evaluation | Shared fixed transport, original evidence and native Reports journey; default-off acknowledgement, no activation | Windows39383074250 at99434f6 passed; live Microsoft and named Graph/context/transfer acceptance unrun |
+| Selected-control coverage | Shared provenance-bound collector, assignment/group/service observations and conservative documents | b2978b4 Windows39401337055 passed3331 Engine/CLI +536 App,69 native layouts/147 commands; subsequent review repairs have806 affected local Engine passes and need fresh Windows/package proof |
+| Original coverage history | Strict metadata/exact-page ZIP, tenant-bound non-overwriting store, protected opaque handover, original save/export/discard recovery; offline `buildstandard coverage` HTML/JSON ZIP/CSV/XLSX |73af918 Windows39386913347 passed (3204 Engine/CLI +522 App); newer composed source needs fresh Windows/package proof; history cannot confer collection/deployment authority |
+| Modern Intune exports | Fixed two-report CSV request, strict archive/CSV, one-shot create/poll and credential-free download, composed original evidence and native deliberate-access form |Synthetic transport/budget/actor/archive/CRC/original/recovery checks passed; no live service verification. Current native integration checks pending |
+
+These implementation checkpoints preserve historical comparisons above. No source/report class alone establishes an end-to-end journey, source authenticity, effective deployment, human/live acceptance or final product completion.
+
+Native concurrency follow-up B-PRESENT-001: page display projection can outlive backend busy state. Windows39400276346 reproduced both failing-first App assertions (534 other App tests passed). Source repair keeps read/import/display admission busy through presentation; current repaired Windows proof is pending. Earlier Windows39393520857 reproduced unsaved-CA close/navigation defects; their source corrections are included, current Windows proof pending.
+
+Supplementary GPT review ofb2978b4 confirmed B-ENG-001 (cancelled raw handoff loses originals) and B-ENG-002 (production evidence presentation omits interpreted dimensions). Original findings and limits are attributed on #147/comment6288265504. Source fixes preserve original bytes/legacy typed-stop semantics and add shared historical-only assignment/group/pilot/service/candidate projections; no live selection is recreated. Repaired source still needs Windows/package proof and named acceptance.

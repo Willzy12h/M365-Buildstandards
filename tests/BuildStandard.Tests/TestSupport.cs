@@ -48,6 +48,13 @@ internal sealed class TempRoot : IDisposable
 
 internal static class TestData
 {
+    // Independent expected route inventory shared by Engine and App tests; adding a page updates this one fixture.
+    // Keep it independent of the production RouteCatalog so missing/unexpected routes are still detected.
+    public static IReadOnlyList<string> NativeRouteKeys { get; }=Array.AsReadOnly(new[]
+    {
+        "home","overview","recovery","connect","setup","automation","configuration","assessment","deviations","plan","deploy",
+        "history","jobs","checks","scripts","run-reports","reports","ca-evaluation","coverage","mailbox-capacity","naming","standard","settings"
+    });
     public const string TenantA = "11111111-1111-4111-8111-111111111111";
     public const string TenantB = "22222222-2222-4222-8222-222222222222";
     public const string Emergency = "33333333-3333-4333-8333-333333333333";

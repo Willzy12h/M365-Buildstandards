@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BuildStandard.Core;
 using BuildStandard.Core.Configuration;
+using BuildStandard.Core.Reporting;
 
 namespace BuildStandard.Engine.Evidence;
 
@@ -14,7 +15,7 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
     private const long MaxTotalBytes = 1024L * 1024 * 1024;
     private const int MaxChecksumListBytes = 4 * 1024 * 1024;
     private readonly long _maximumBytes = maximumBytes > 0 && maximumBytes <= MaxTotalBytes ? maximumBytes : throw new ArgumentOutOfRangeException(nameof(maximumBytes), "Transfer limit must be positive and at most 1 GiB.");
-    public const string Guide = "Sensitive local evidence backup. Close other copies of the tool and disconnect before backing up. Includes every JSON/JSONL/NDJSON record under data/, including historical and unresolved writes, profiles, imported catalogues and application setup evidence. Authentication caches and policy-write locks are excluded. Unknown file types and links cause refusal rather than silent loss. Logs, reports, config and binaries are excluded; retain the original approved package separately. Restore checks the archive against the trusted SHA-256 received through the approved handoff channel, verifies every file checksum and extracts into a new separate folder only. Adoption extracts the archive, checked against the same trusted SHA-256, into an empty evidence folder and re-verifies every file in place. Neither overwrites existing evidence or makes old captures, plans or approvals live. Checksums detect modification against a trusted reference; they are not a publisher signature. Store and share this archive under the organisation's client-evidence policy.";
+    public const string Guide = "Sensitive local evidence backup. Close other copies of the tool and disconnect before backing up. Includes every JSON/JSONL/NDJSON record and the exact registered tenants/<tenant-guid>/{ca-evaluations|coverage-reports}/<report-guid>.json.zip original-byte records under data/, including historical and unresolved writes, profiles, imported catalogues and application setup evidence. Authentication caches and policy-write locks are excluded. Unknown file types and links cause refusal rather than silent loss. Logs, reports, config and binaries are excluded; retain the original approved package separately. Restore checks the archive against the trusted SHA-256 received through the approved handoff channel, verifies every file checksum and extracts into a new separate folder only. Adoption extracts the archive, checked against the same trusted SHA-256, into an empty evidence folder and re-verifies every file in place. Neither overwrites existing evidence or makes old captures, plans or approvals live. Checksums detect modification against a trusted reference; they are not a publisher signature. Store and share this archive under the organisation's client-evidence policy.";
 
     public string Create()
     {
@@ -295,8 +296,9 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
                 var name = Path.GetFileName(entry);
                 if (name.StartsWith("msal-", StringComparison.OrdinalIgnoreCase) && (name.EndsWith(".cache", StringComparison.OrdinalIgnoreCase) || name.Contains(".cache.", StringComparison.OrdinalIgnoreCase))) continue;
                 if (name == "policy-write.lock") { AssertNoWriteInProgress(entry); continue; }
-                if (!Record(entry)) throw new ConfigurationException("An unsupported file is present in data/. Backup stopped to avoid incomplete transfer. Preserve it separately and ask the workspace custodian to review it.");
-                ValidatePath("data/" + Path.GetRelativePath(paths.DataDirectory, entry).Replace('\\', '/'));
+                var relative = "data/" + Path.GetRelativePath(paths.DataDirectory, entry).Replace('\\', '/');
+                if (!Record(relative)) throw new ConfigurationException("An unsupported file is present in data/. Backup stopped to avoid incomplete transfer. Preserve it separately and ask the workspace custodian to review it.");
+                ValidatePath(relative);
                 files.Add(entry);
                 if (files.Count > MaxFiles) throw new ConfigurationException("Too many evidence files for one backup.");
             }
@@ -325,7 +327,15 @@ public sealed class WorkspaceBackup(ToolkitPaths paths, long maximumBytes = 1024
         return hashes;
     }
 
-    private static bool Record(string file) => Path.GetExtension(file).ToLowerInvariant() is ".json" or ".jsonl" or ".ndjson";
+    private static bool Record(string relative)
+    {
+        if(Path.GetExtension(relative).ToLowerInvariant() is ".json" or ".jsonl" or ".ndjson")return true;
+        // Opaque original bytes only, never nested extraction or a general ZIP allowance.
+        var parts=relative.Split('/');
+        return parts.Length==5&&parts[0]=="data"&&parts[1]=="tenants"&&ReportValues.IsCanonicalGuid(parts[2])
+            &&parts[3] is ("ca-evaluations" or "coverage-reports")&&parts[4].Length==45&&parts[4].EndsWith(".json.zip",StringComparison.Ordinal)
+            &&ReportValues.IsCanonicalGuid(parts[4][..^9]);
+    }
     private static void ValidatePath(string name)
     {
         if (name == "README.txt" || name == "SHA256SUMS.txt") return;
