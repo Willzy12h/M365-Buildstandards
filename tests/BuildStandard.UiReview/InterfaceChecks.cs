@@ -766,6 +766,8 @@ internal static partial class Program
         ("MailboxCapacityViewModel.CopyProvenanceCommand", Clipboard),
 
         ("OperationalReportsViewModel.ReadCommand", TenantRead),
+        ("OperationalReportsViewModel.SearchGroupsCommand", TenantRead),
+        ("OperationalReportsViewModel.UseGroupCommand", Disabled),
         ("OperationalReportsViewModel.StopCommand", Disabled),
         ("OperationalReportsViewModel.OpenCommand", FilePicker),
         ("OperationalReportsViewModel.HtmlCommand", Press),

@@ -14,6 +14,7 @@ internal static partial class Program
 {
     private static string SyntheticOperationalFile = "";
     private static string SyntheticPartnerFile = "";
+    private static string SyntheticCollaborationFile = "";
     private static void SeedOperationalEvidence(Workspace workspace, string output)
     {
         var stamp = Timestamps.Format(DateTimeOffset.UtcNow);
@@ -60,6 +61,24 @@ internal static partial class Program
         SyntheticPartnerFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-partner-source.json");
         File.WriteAllText(SyntheticPartnerFile, OperationalContextSchema.Serialise(partner), new UTF8Encoding(false));
         File.Copy(SyntheticPartnerFile, Path.Combine(output, "synthetic-partner-source.json"));
+        var collaboration = new OperationalContextReport
+        {
+            Id = Id(893), ReportId = "collaboration-inventory", AccessIntent = "collaboration-inventory", TenantId = Tenant,
+            SourceMode = "historical", AsOfUtc = stamp, StartedAt = stamp, EndedAt = stamp, ToolkitVersion = workspace.Version,
+            Status = ReportReadState.Collected, Sources = OperationalContextSchema.SourceDeclarations("collaboration-inventory").ToList(),
+            CollaborationSelection = new() { Search = "*", ReturnedCounts = [2] },
+            Sections = [new() { Id = "site-search", Status = ReportReadState.Collected, Limitations = [OperationalContextSchema.CollaborationNotice] }]
+        };
+        foreach (var id in new[] { "synthetic-site-one", "synthetic-site-two" })
+            collaboration.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(new CollaborationSiteRow
+            {
+                Id = id, Name = "Synthetic " + id, ReportedName = id, SiteCollectionHost = "example.invalid", WebUrl = "https://example.invalid/" + id,
+                CreatedAt = stamp, ModifiedAt = stamp, ReadStatus = ReportReadState.Collected
+            }, rowOptions)!.AsObject());
+        OperationalContextSchema.Seal(collaboration);
+        SyntheticCollaborationFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-collaboration-source.json");
+        File.WriteAllText(SyntheticCollaborationFile, OperationalContextSchema.Serialise(collaboration), new UTF8Encoding(false));
+        File.Copy(SyntheticCollaborationFile, Path.Combine(output, "synthetic-collaboration-source.json"));
     }
     private static void SeedOperationalPage(ShellViewModel shell)
     {
@@ -99,6 +118,24 @@ internal static partial class Program
             AssertNewPageRowViewport(content, "Operational observations and source provenance", "partner context " + size);
             CaptureReportState(content, output, "partner-relationship-results", size, checkPageScrolling: false);
             foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Partner complete export");
+            vm.SelectedReportId = "collaboration-inventory"; vm.CollaborationSearch = "*";
+            tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+            if (vm.ReadCommand.CanExecute(null) || vm.SearchGroupsCommand.CanExecute(null) || vm.UseGroupCommand.CanExecute(null) || !vm.AccessPreview.Contains("FullControl", StringComparison.Ordinal) || !vm.Notice.Contains("OneDrive", StringComparison.Ordinal))
+                throw new InvalidOperationException("Collaboration selection lost acknowledgement or blocked-boundary guidance.");
+            foreach (var label in new[] { "Bounded collaboration site search", "Exact selected collaboration site IDs", "Exact selected collaboration group IDs", "Collaboration group name or ID lookup" })
+            {
+                var input = Descendants(content).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == label);
+                input.BringIntoView(); content.UpdateLayout(); Pump();
+                if (!input.IsTabStop || !input.Focus()) throw new InvalidOperationException("Collaboration input is not keyboard reachable: " + label);
+            }
+            CaptureReportState(content, output, "collaboration-selection", size, checkPageScrolling: false);
+            AwaitReader(vm.OpenSuppliedAsync(SyntheticCollaborationFile)); tabs.SelectedIndex = 1; vm.SelectedSection = "site-search";
+            content.UpdateLayout(); Pump();
+            if (vm.Rows?.Count != 2 || !vm.Outcome.Contains("collaboration-inventory", StringComparison.Ordinal)) throw new InvalidOperationException("Collaboration source selection or complete results were lost.");
+            grid.BringIntoView(); content.UpdateLayout(); Pump();
+            AssertNewPageRowViewport(content, "Operational observations and source provenance", "collaboration context " + size);
+            CaptureReportState(content, output, "collaboration-site-results", size, checkPageScrolling: false);
+            foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Collaboration complete export");
             vm.SelectedReportId = "service-health";
         }
     }

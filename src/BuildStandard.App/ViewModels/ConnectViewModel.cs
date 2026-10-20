@@ -118,6 +118,9 @@ public sealed class ConnectViewModel : PageViewModel
             SetProperty(ref _includeUsageReports,value);Workspace.CancelPendingDiscovery();SetDiscovery(null);OnPropertyChanged(nameof(OptionalAccessSummary));
         }
     }
+    private bool _includeCollaborationSites, _includeCollaborationTeams;
+    public bool IncludeCollaborationSites { get => _includeCollaborationSites; set => SetOperationalAccess(ref _includeCollaborationSites, value, nameof(IncludeCollaborationSites)); }
+    public bool IncludeCollaborationTeams { get => _includeCollaborationTeams; set => SetOperationalAccess(ref _includeCollaborationTeams, value, nameof(IncludeCollaborationTeams)); }
     private bool _includeServiceHealth, _includePartnerRelationships;
     public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
     public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }
@@ -130,7 +133,9 @@ public sealed class ConnectViewModel : PageViewModel
     public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
-        | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None);
+        | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None)
+        | (IncludeCollaborationSites ? OptionalReportAccess.CollaborationSites : OptionalReportAccess.None)
+        | (IncludeCollaborationTeams ? OptionalReportAccess.CollaborationTeams : OptionalReportAccess.None);
     public bool RememberConnection { get => _rememberConnection; set => SetProperty(ref _rememberConnection, value); }
     public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
     private void OpenSetup()
@@ -145,6 +150,8 @@ public sealed class ConnectViewModel : PageViewModel
         setup.IncludeUsageReports=IncludeUsageReports;
         setup.IncludeServiceHealth=IncludeServiceHealth;
         setup.IncludePartnerRelationships=IncludePartnerRelationships;
+        setup.IncludeCollaborationSites=IncludeCollaborationSites;
+        setup.IncludeCollaborationTeams=IncludeCollaborationTeams;
         setup.AssessmentClientId = assessmentId;
         setup.DeploymentClientId = deploymentId;
         Shell.Navigate("setup");

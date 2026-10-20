@@ -23,6 +23,14 @@ public static partial class RegisteredReportDocuments
                 .Add("Selected-customer rows",coverage.SelectedCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture)).Add("Excluded other-customer rows",coverage.ExcludedOtherCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Add("Unattributable customer rows",coverage.UnattributableCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+        if (report.ReportId == "collaboration-inventory")
+        {
+            var choice = report.CollaborationSelection!;
+            metadata.Add("Collaboration coverage", OperationalContextSchema.CollaborationNotice).Add("Bounded site search", choice.Search ?? "Not selected");
+            foreach (var id in choice.Sites) metadata.Add("Selected site", id);
+            foreach (var id in choice.Groups) metadata.Add("Selected group/Team", id);
+            for (var i = 0; i < report.Sections.Count; i++) metadata.Add("Returned count " + report.Sections[i].Id, choice.ReturnedCounts[i]?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "Unknown / source did not complete");
+        }
         if (suppliedFile) metadata.Add("Supplied-file provenance", SuppliedFileNotice);
         foreach (var source in report.Sources) metadata.Add("Registered source", source.Api + " " + source.RegisteredRoute + " · " + source.Reference);
         var sheets = new List<Sheet> { metadata };
@@ -32,7 +40,9 @@ public static partial class RegisteredReportDocuments
             foreach (var limitation in section.Limitations) metadata.Add("Section limitation", limitation);
             if (section.Rows.Count == 0) metadata.Add("Empty section " + section.Id, section.Status == ReportReadState.Collected
                 ? "Checked successfully; no objects returned." : "Could not check completely; this is not an empty successful result.");
-            var type = section.Id switch
+            var type = report.ReportId == "collaboration-inventory"
+                ? OperationalContextSchema.CollaborationSections(OperationalContextSchema.FrozenSelection(report.CollaborationSelection)).Single(s => s.Id == section.Id).RowType
+                : section.Id switch
             {
                 "health-overviews" => typeof(ServiceHealthOverviewRow), "health-issues" => typeof(ServiceHealthIssueRow),
                 "partner-relationships" => typeof(PartnerRelationshipRow), "partner-assignments" => typeof(PartnerAccessAssignmentRow),

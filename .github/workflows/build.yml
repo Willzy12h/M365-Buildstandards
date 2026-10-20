@@ -140,7 +140,7 @@ jobs:
           if ($zips.Count -ne 1) { throw 'Expected exactly one portable review ZIP.' }
           $zip = $zips[0]
           try {
-            ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json" -UsageFixturePath "$pwd/dist/ui-review/synthetic-usage-source.json" -OperationalFixturePath @("$pwd/dist/ui-review/synthetic-operational-source.json", "$pwd/dist/ui-review/synthetic-partner-source.json")
+            ./build/Test-Portable.ps1 -ZipPath $zip.FullName -StagePath (Join-Path $pwd ('dist/' + $zip.BaseName)) -ResultPath "$pwd/dist/portable-verification.json" -UsageFixturePath "$pwd/dist/ui-review/synthetic-usage-source.json" -OperationalFixturePath @("$pwd/dist/ui-review/synthetic-operational-source.json", "$pwd/dist/ui-review/synthetic-partner-source.json", "$pwd/dist/ui-review/synthetic-collaboration-source.json")
           } catch {
             $detail = ($_ | Out-String) + $_.ScriptStackTrace
             $detail = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
