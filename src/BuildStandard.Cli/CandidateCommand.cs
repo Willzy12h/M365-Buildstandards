@@ -32,7 +32,7 @@ internal static class CandidateCommand
             if (action == "create")
             {
                 var draft = loader.Create(Required("catalogue"), Required("title"));
-                var file = outputs.SaveDraft(draft, stop.Token);
+                var file = outputs.ExportDraft(draft, stop.Token);
                 Console.WriteLine(ToolkitJson.Serialize(new { kind = "candidateDraftSaved", draft = file, draft.ContentDigest, limitation = "Saved draft, not a validated or published standard." }));
                 return 0;
             }

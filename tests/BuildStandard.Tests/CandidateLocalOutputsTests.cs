@@ -22,7 +22,7 @@ public sealed class CandidateLocalOutputsTests
     [Fact]public void Unresolved_draft_is_saveable_to_new_files_without_candidate_export()
     {
         using var root=new TempRoot();var(o,d,_)=Setup(root);var hash=new string('a',64);d.Imports.Add(new(hash,"CA-001","conditionalAccess"));d.Unresolved.Add(new(hash,"CA-001","/payload/conditions","Unknown imported target"));CandidateDraftCodec.Seal(d);
-        var first=o.SaveDraft(d);var original=File.ReadAllBytes(first);var second=o.SaveDraft(d);Assert.NotEqual(first,second);Assert.Equal(original,File.ReadAllBytes(first));Assert.Single(CandidateDraftCodec.Read(File.ReadAllText(first)).Unresolved);
+        var first=o.ExportDraft(d);var original=File.ReadAllBytes(first);var second=o.ExportDraft(d);Assert.NotEqual(first,second);Assert.Equal(original,File.ReadAllBytes(first));Assert.Single(CandidateDraftCodec.Read(File.ReadAllText(first)).Unresolved);
     }
     [Fact]public void Stale_ticket_writes_nothing()
     {using var root=new TempRoot();var(o,d,t)=Setup(root);d.Title="Changed";CandidateDraftCodec.Seal(d);Assert.ThrowsAny<ToolkitException>(()=>o.Export(d,t));Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));}

@@ -12,7 +12,7 @@ public sealed record CandidateExportFiles(string Catalogue, string Draft, string
 /// <summary>Fresh local outputs only, using the existing report directory and create-new/readback convention.</summary>
 public sealed class CandidateLocalOutputs(ToolkitPaths paths, CandidateAuthoringService authoring)
 {
-    public string SaveDraft(StandardCandidateDraft draft, CancellationToken ct = default)
+    public string ExportDraft(StandardCandidateDraft draft, CancellationToken ct = default)
     {
         var json = CandidateDraftCodec.Serialize(draft);
         _ = CandidateDraftCodec.Read(json);
