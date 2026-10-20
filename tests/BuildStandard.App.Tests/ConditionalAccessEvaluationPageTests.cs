@@ -1,5 +1,7 @@
 using System.IO.Compression;
 using System.Text;
+using System.Reflection;
+using BuildStandard.App.Services;
 using BuildStandard.App.ViewModels;
 using BuildStandard.Core;
 using BuildStandard.Core.Json;
@@ -64,4 +66,21 @@ public sealed class ConditionalAccessEvaluationPageTests
         using var f=new ConnectedReportsFixture(connect:false);var file=Original(f);var bytes=File.ReadAllBytes(file);var page=new ConditionalAccessEvaluationViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();
         f.Workspace.Profile!.Notes="Changed context";page.Refresh();Assert.Null(page.Rows);Assert.False(page.ExportJsonCommand.CanExecute(null));Assert.Equal(bytes,File.ReadAllBytes(file));
     }
+    [Fact] public async Task Pending_evaluation_close_guard_routes_to_original_recovery_until_explicit_discard()
+    {
+        using var f=new ConnectedReportsFixture(connect:false);var shell=new ShellViewModel(f.Workspace);var page=shell.Page<ConditionalAccessEvaluationViewModel>();
+        var imported=ConditionalAccessEvaluationBundle.ReadFile(Original(f),TestData.TenantA);
+        var constructor=typeof(ConditionalAccessEvaluationCapture).GetConstructor(BindingFlags.NonPublic|BindingFlags.Instance,null,[typeof(ConditionalAccessEvaluationReport),typeof(byte[])],null)!;
+        var original=(ConditionalAccessEvaluationCapture)constructor.Invoke([imported.Metadata,imported.OriginalResponseBytes]);
+        var controller=typeof(ConditionalAccessEvaluationViewModel).GetField("_controller",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(page)!;
+        var flow=(ConditionalAccessEvaluationWorkflow)typeof(ConditionalAccessEvaluationController).GetField("_workflow",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(controller)!;
+        var directory=Path.Combine(f.Root.Paths.TenantsDirectory,TestData.TenantA);Directory.CreateDirectory(directory);File.WriteAllText(Path.Combine(directory,"ca-evaluations"),"Synthetic blocked storage.");
+        var context=new GraphReportsController(f.Workspace).ContextKey;
+        await flow.ReadAsync(_=>Task.FromResult(original),context,TestData.TenantA,true,default);Assert.True(page.HasPending);shell.Navigate("home");
+        var guard=typeof(BuildStandard.App.MainWindow).GetMethod("ShowPendingReport",BindingFlags.NonPublic|BindingFlags.Static)!;
+        Assert.True((bool)guard.Invoke(null,[shell])!);Assert.Same(page,shell.CurrentPage);Assert.False(f.Workspace.ShutdownComplete);Assert.Contains("unsaved",shell.ErrorMessage,StringComparison.OrdinalIgnoreCase);
+        flow.DiscardPending(original.Metadata.Id,true);Assert.False((bool)guard.Invoke(null,[shell])!);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
+    [Fact] public void Coverage_navigation_exists_without_authentication_or_collection_on_selection()
+    {using var f=new ConnectedReportsFixture(connect:false);var shell=new ShellViewModel(f.Workspace);shell.Navigate("coverage");Assert.Equal("Deployment coverage",Assert.IsAssignableFrom<PageViewModel>(shell.CurrentPage).Title);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
 }
