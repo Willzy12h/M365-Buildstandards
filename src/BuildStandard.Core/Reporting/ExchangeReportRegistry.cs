@@ -20,7 +20,8 @@ public static class ExchangeReportRegistry
     public sealed record Section(string Id, Type RowType);
     public sealed record Parameter(string Name, string Type);
     public sealed record Definition(string Id, string Name, string Adapter, IReadOnlyList<string> SourceCommands,
-        IReadOnlyList<Parameter> Parameters, IReadOnlyList<Section> Sections, string Reference, string Limitations)
+        IReadOnlyList<Parameter> Parameters, IReadOnlyList<Section> Sections, string Reference, string Limitations,
+        int ReportSchemaVersion = 1, string AdapterVersion = ExchangeReportRegistry.AdapterVersion)
     {
         /// <summary>The evidence resource for this adapter. Only the two exact pairs exist; anything else is refused.</summary>
         public string Resource => ResourceFor(Adapter);
@@ -61,6 +62,16 @@ public static class ExchangeReportRegistry
 
     public static Definition Find(string id) => Definitions.SingleOrDefault(d => d.Id == id)
         ?? throw new ConfigurationException("Unknown registered Exchange report: " + id + ".");
+
+    /// <summary>Exact registered identity/version dispatch; never infer a schema from the supplied row columns.</summary>
+    public static Definition Find(string id, int reportSchemaVersion, string adapterVersion)
+    {
+        var definition = Find(id);
+        if (definition.ReportSchemaVersion != reportSchemaVersion
+            || !string.Equals(definition.AdapterVersion, adapterVersion, StringComparison.Ordinal))
+            throw new ConfigurationException("The report schema/adapter version does not match its exact registration.");
+        return definition;
+    }
 
     /// <summary>Maps an adapter to its evidence resource: exchangeOnline to ExchangeOnline and purview to Purview, ordinally.</summary>
     public static string ResourceFor(string adapter) => adapter switch

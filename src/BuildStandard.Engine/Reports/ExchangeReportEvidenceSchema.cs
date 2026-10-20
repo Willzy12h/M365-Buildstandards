@@ -70,12 +70,12 @@ public static class ExchangeReportEvidenceSchema
 
     public static void Validate(ExchangeReportEvidence e, string expectedTenantId)
     {
-        if (e.SchemaVersion != 1 || e.Kind != "exchangeReportEvidence" || e.ReportSchemaVersion != 1)
+        if (e.SchemaVersion != 1 || e.Kind != "exchangeReportEvidence")
             throw Bad("Unsupported Exchange report evidence kind or schema.");
         CanonicalGuid(e.Id); CanonicalGuid(e.RunId); CanonicalGuid(e.TenantId);
         if (!ReportValues.TryGuid(expectedTenantId, out var expected) || !string.Equals(e.TenantId, expected, StringComparison.Ordinal))
             throw new TenantMismatchException("Exchange report evidence belongs to another tenant.");
-        var definition = ExchangeReportRegistry.Find(e.ReportId);
+        var definition = ExchangeReportRegistry.Find(e.ReportId, e.ReportSchemaVersion, e.AdapterVersion);
         if (!string.Equals(e.Resource, definition.Resource, StringComparison.Ordinal))
             throw Bad("The evidence resource does not match the registered adapter.");
         switch (e.SourceMode)
@@ -93,8 +93,6 @@ public static class ExchangeReportEvidenceSchema
         }
         if (!Utc(e.StartedAt, out var started) || !Utc(e.EndedAt, out var ended) || ended < started)
             throw Bad("The report collection interval is invalid.");
-        if (!string.Equals(e.AdapterVersion, ExchangeReportRegistry.AdapterVersion, StringComparison.Ordinal))
-            throw Bad("The report adapter version is not registered.");
         foreach (var version in new[] { e.ToolkitVersion, e.ModuleVersion, e.RuntimeVersion })
             if (string.IsNullOrWhiteSpace(version) || version.Length > 128 || version.Any(char.IsControl)) throw Bad("Missing report tool, module or runtime provenance.");
         foreach (var digest in new[] { e.ScriptSha256, e.ManifestSha256, e.RunnerTemplateSha256 })

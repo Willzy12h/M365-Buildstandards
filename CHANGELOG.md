@@ -2,6 +2,8 @@
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
+- Exchange-report foundations: explicit per-registration schema/adapter admission and deterministic typed observation keys preserve old report semantics while preparing the approved composite-identity families. No new runnable registration is enabled by this slice.
+
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
 
 - Propose privacy-safe usage/licence review and bounded token-free report downloads; no runtime feature or consent is claimed.
