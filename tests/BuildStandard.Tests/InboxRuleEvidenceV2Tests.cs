@@ -87,4 +87,30 @@ public sealed class InboxRuleEvidenceV2Tests
         Assert.DoesNotContain("<script>label</script>", html);
         Assert.Contains("&lt;script&gt;label&lt;/script&gt;", html);
     }
+    [Fact]
+    public void All_fifty_explicit_mailboxes_keep_a_read_row_even_when_the_rule_inventories_are_empty()
+    {
+        var report = Report();
+        var ids = Enumerable.Range(1, 50).Select(number => $"12345678-1234-1234-1234-{number:000000000000}").ToArray();
+        report.Parameters[0].Value = string.Join(',', ids);
+        var prototype = report.Sections[0].Rows[0];
+        report.Sections[0].Rows = ids.Select(id =>
+        {
+            var target = (JsonObject)prototype.DeepClone();
+            target["id"] = ExchangeObservationKey.TargetRead(report.ReportId, id);
+            target["requestedExchangeGuid"] = id;
+            target["observedExchangeGuid"] = id;
+            target["externalDirectoryObjectId"] = null;
+            target["primarySmtpAddress"] = null;
+            target["returnedEntries"] = 0;
+            return target;
+        }).ToList();
+        report.Sections[1].Rows.Clear();
+        var admitted = Read(report);
+        Assert.Equal(50, admitted.Sections[0].Rows.Count);
+        Assert.Empty(admitted.Sections[1].Rows);
+        Assert.Equal("Collected", admitted.Sections[1].Status);
+        report.Sections[0].Rows.RemoveAt(49);
+        Assert.ThrowsAny<ToolkitException>(() => Read(report));
+    }
 }

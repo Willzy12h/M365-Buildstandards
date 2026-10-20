@@ -83,13 +83,11 @@ public static partial class ExchangeReportEvidenceSchema
     {
         if(evidence.ReportId!="exo-inbox-rules")throw Bad("Unregistered report2 family.");
         var raw=evidence.Parameters.Single(p=>p.Name=="MailboxGuids").Value;
-        var selected=raw.Split(',');
-        if(selected.Length is <1 or >50||selected.Any(id=>!ReportValues.IsCanonicalGuid(id))||selected.Distinct(StringComparer.Ordinal).Count()!=selected.Length)
-            throw Bad("Choose1–50 unique exact Exchange mailbox GUIDs, not names, addresses or an implicit estate scan.");
+        var selected=ExchangeTargetSelection.Parse(raw);
         var targetSection=evidence.Sections.Single(s=>s.Id=="target-reads");var ruleSection=evidence.Sections.Single(s=>s.Id=="rules");
         var targets=targetSection.Rows.Select(row=>JsonSerializer.Deserialize<ExchangeTargetReadRow>(row.ToJsonString(),Strict)!).ToArray();
         var rules=ruleSection.Rows.Select(row=>JsonSerializer.Deserialize<InboxRuleObservationRow>(row.ToJsonString(),Strict)!).ToArray();
-        if(targets.Length!=selected.Length||targets.Select(t=>t.RequestedExchangeGuid).Distinct(StringComparer.Ordinal).Count()!=targets.Length
+        if(targets.Length!=selected.Count||targets.Select(t=>t.RequestedExchangeGuid).Distinct(StringComparer.Ordinal).Count()!=targets.Length
             ||!selected.ToHashSet(StringComparer.Ordinal).SetEquals(targets.Select(t=>t.RequestedExchangeGuid)))
             throw Bad("Every selected target needs exactly one read-state row; omission is not a successful empty source.");
         if(rules.Any(r=>!selected.Contains(r.MailboxExchangeGuid,StringComparer.Ordinal)))throw Bad("A rule belongs to an unselected mailbox.");
