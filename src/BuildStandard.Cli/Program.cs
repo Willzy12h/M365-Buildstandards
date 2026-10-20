@@ -68,7 +68,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "exchange-report-evidence" or "customers");
 
         return command switch
         {
@@ -76,6 +76,7 @@ public static class Program
             "customers" => Customers(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
+            "exchange-report-evidence" => ExchangeReportEvidenceExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -133,6 +134,7 @@ public static class Program
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
 
+              buildstandard exchange-report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>]
               buildstandard report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
                   Validates its recorded tenant, schema and integrity before writing an export.
@@ -419,6 +421,31 @@ public static class Program
         var context = Context.Open(options);
         Console.WriteLine(context.Exporter.ExportSnapshot(capture, null, format));
         Console.WriteLine($"Captured configuration · {capture.CapturedAt} · {(capture.Complete ? "Review collection status" : "INCOMPLETE — unknown reads remain explicit")} · no live reads or writes.");
+        return 0;
+    }
+
+    private static int ExchangeReportEvidenceExport(IReadOnlyDictionary<string, string> options)
+    {
+        var allowed = new[] { "input", "tenant", "format", "root" };
+        if (options.Keys.Any(key => !allowed.Contains(key, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Exchange report exports accept only --input, --tenant, --format and --root. No collection, authentication or execution is supported.");
+        var tenant = Require(options, "tenant");
+        if (!ProfileValidator.IsGuid(tenant)) throw new ConfigurationException("--tenant must name the expected tenant GUID.");
+        var file = Require(options, "input");
+        if (!File.Exists(file)) throw new ConfigurationException("Exchange report evidence file not found.");
+        var format = Format(options, ExportFormat.Html);
+        if (options.TryGetValue("format", out var requestedFormat)
+            && !new[] { "html", "json", "csv", "xlsx" }.Contains(requestedFormat, StringComparer.OrdinalIgnoreCase))
+            throw new ConfigurationException("Exchange report evidence exports as html, json, csv or xlsx.");
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Exchange report evidence exports as html, json, csv or xlsx.");
+        var original = ExchangeReportImport.ReadFile(file, tenant);
+        var report = original.ReadEvidence();
+        var context = Context.Open(options);
+        var output = context.Exporter.ExportSuppliedExchangeReport(original, format);
+        Console.WriteLine(output);
+        Console.WriteLine(RegisteredReportDocuments.SuppliedFileNotice);
+        Console.WriteLine($"Offline export · read status {report.Status} · recorded {report.StartedAt} to {report.EndedAt} · no live reads or writes. Export success does not prove collection success.");
         return 0;
     }
 

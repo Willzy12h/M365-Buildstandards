@@ -11,11 +11,12 @@ namespace BuildStandard.Engine.Reports;
 public static class RegisteredReportDocuments
 {
     public const string SuppliedFileNotice = "Offline supplied file: source, account and live-mode claims have not been independently verified. No live reads were performed for this export. A digest detects modification; it does not authenticate the source.";
-    public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report)
+    public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report, bool suppliedFile = false)
     {
         ExchangeReportEvidenceSchema.Validate(report, report.TenantId);
         var definition = ExchangeReportRegistry.Find(report.ReportId);
         var metadata = new Sheet("Report provenance", ["Field", "Value"]);
+        if (suppliedFile) metadata.Add("Export provenance", SuppliedFileNotice);
         metadata.Add("Report", definition.Name); metadata.Add("Report ID", report.ReportId); metadata.Add("Record ID", report.Id);
         metadata.Add("Tenant ID", report.TenantId); metadata.Add("Observed account", report.ObservedAccountUpn ?? "Unknown");
         metadata.Add("Source mode", report.SourceMode); metadata.Add("Read status", report.Status);
@@ -149,9 +150,20 @@ public static class RegisteredReportDocuments
         return html.Append("</body></html>").ToString();
     }
 
-    public static string ExchangeHtml(ExchangeReportEvidence report,string companyName)
+    public static string ExchangeHtml(ExchangeReportEvidence report,string companyName,bool suppliedFile = false)
     {
-        var sheets=Sheets(report);
+        var sheets=Sheets(report,suppliedFile);
+        return ExchangeHtmlCore(report, companyName, sheets);
+    }
+    public static string SuppliedExchangeHtml(ExchangeReportImport original, string companyName)
+    {
+        var report = original.ReadEvidence();
+        var sheets = Sheets(report, suppliedFile: true);
+        sheets[0].Add("Original file SHA-256", original.OriginalSha256);
+        return ExchangeHtmlCore(report, companyName, sheets);
+    }
+    private static string ExchangeHtmlCore(ExchangeReportEvidence report, string companyName, IReadOnlyList<Sheet> sheets)
+    {
         var html=StartDocument(ExchangeReportRegistry.Find(report.ReportId).Name,companyName);
         html.Append("<p class=\"notice\">Read status: ").Append(E(report.Status)).Append(". Separate report evidence; cannot authorise deployment. Unknown is not false or proof of absence. A digest verifies integrity, not Microsoft acceptance. This export does not refresh the data.</p>");
         foreach(var sheet in sheets) { html.Append("<h2>").Append(E(sheet.Name)).Append("</h2>");Table(html,sheet); }
