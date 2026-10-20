@@ -232,3 +232,15 @@ The approved specification/plan in PR #114 selects native WPF + preserved shared
 ## BuildStandard T1 — technical rename evidence, 12 October 2026
 
 #115 preserves the existing product rather than replacing it. Normalising namespace/technical references against accepted T0 shows changed runtime C# bodies only in ToolkitPaths (approved alias policy), OfflinePackageFiles (exact new launcher admission), and OfflinePrerequisiteService (successor package layout). All other runtime C# bodies are mechanical changes; published standards/lineage, scripts/pins, publisher/release pins and existing evidence schemas remain unchanged. Local source tests/compilation are reported in COMPLETION-REGISTER; Windows/native/package proof and named safety review are separate gates. No new UI design completion is inferred from the rename.
+
+
+### Expansion B source checkpoint — 20 October 2026 (#147, not accepted release)
+
+| Capability | Implemented / exposed | Validation / remaining limit |
+| --- | --- | --- |
+| Hypothetical CA evaluation | Shared fixed transport, original evidence and native Reports journey; default-off acknowledgement, no activation | Windows39383074250 at99434f6 passed; live Microsoft and named Graph/context/transfer acceptance unrun |
+| Selected-control coverage | Shared provenance-bound collector, assignment/group/service observations and conservative documents | Synthetic collection tested; connected native coverage journey not yet wired |
+| Original coverage history | Strict metadata/exact-page ZIP, tenant-bound non-overwriting store, protected opaque handover, original save/export/discard recovery; offline `buildstandard coverage` HTML/JSON ZIP/CSV/XLSX |014947f:710 affected local Release tests passed; composed native/package proof still required; history cannot confer collection/deployment authority |
+| Modern Intune exports | Fixed two-report CSV request, strict CSV and bounded single-file archive admission |bf6c604:589 affected local checks passed; create/poll/credential-free download and native integration not implemented yet |
+
+These implementation checkpoints preserve historical comparisons above. No source/report class alone establishes an end-to-end journey, source authenticity, effective deployment, human/live acceptance or final product completion.
