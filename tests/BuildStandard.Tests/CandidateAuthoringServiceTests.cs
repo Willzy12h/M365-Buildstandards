@@ -3,6 +3,7 @@ using BuildStandard.Core;
 using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Safety;
 using BuildStandard.Engine.Standards.Authoring;
 using Xunit;
 namespace BuildStandard.Tests;
@@ -15,6 +16,55 @@ public sealed class CandidateAuthoringServiceTests
     }
     private static void Change(StandardCandidateDraft draft,string path,JsonNode? old,JsonNode? value)
     {draft.Changes.Add(new("CA-001",path,old,value));CandidateDraftCodec.Seal(draft);}
+    private static (CandidateBaselineLoader Loader, StandardCandidateDraft Draft) Published(TempRoot root)
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.10.15.json"));
+        root.WriteStandard("base.json", File.ReadAllText(path)); root.WriteManifest();
+        var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance);
+        return (loader, loader.Create("base.json", "Offline regression"));
+    }
+    [Theory][InlineData(false)][InlineData(true)]
+    public void Authoring_cannot_unblock_macOS_by_leaf_or_parent_overlay(bool parent)
+    {
+        using var root = new TempRoot(); var (loader, draft) = Published(root);
+        var payload = loader.Load(draft).FindControl("ENR-002")!.Payload!;
+        var path = parent ? "/payload/macOSRestriction" : "/payload/macOSRestriction/platformBlocked";
+        var original = parent ? payload["macOSRestriction"]!.DeepClone() : payload["macOSRestriction"]!["platformBlocked"]!.DeepClone();
+        var proposed = original.DeepClone();
+        if (parent) proposed["platformBlocked"] = false; else proposed = JsonValue.Create(false)!;
+        draft.Changes.Add(new("ENR-002", path, original, proposed)); CandidateDraftCodec.Seal(draft);
+        Assert.ThrowsAny<ToolkitException>(() => new CandidateAuthoringService(loader).Validate(draft));
+    }
+    [Theory][InlineData("emergencyAccountIds")][InlineData("oneDriveSettings")]
+    public void Structured_OMA_settings_cannot_be_replaced_by_an_unrelated_array_parameter(string parameter)
+    {
+        using var root = new TempRoot(); var (loader, draft) = Published(root);
+        var original = loader.Load(draft).FindControl("CFG-WIN-002")!.Payload!["omaSettings"]!.DeepClone();
+        draft.Changes.Add(new("CFG-WIN-002", "/payload/omaSettings", original, JsonValue.Create("{{" + parameter + "}}"))); CandidateDraftCodec.Seal(draft);
+        Assert.ThrowsAny<ToolkitException>(() => new CandidateAuthoringService(loader).Validate(draft));
+    }
+    [Theory][InlineData("CFG-WIN-005")][InlineData("APP-WIN-002")][InlineData("APP-WIN-003")]
+    public void Description_edit_preserves_existing_supported_parameterised_recipe(string id)
+    {
+        using var root = new TempRoot(); var (loader, draft) = Published(root);
+        var original = loader.Load(draft).FindControl(id)!.Payload!;
+        draft.Changes.Add(new(id, "/payload/description", original["description"]!.DeepClone(), JsonValue.Create("Reviewed local description"))); CandidateDraftCodec.Seal(draft);
+        var result = new CandidateAuthoringService(loader).Validate(draft).FindControl(id)!.Payload!;
+        Assert.Equal("Reviewed local description", result["description"]!.GetValue<string>());
+        var expected = original.DeepClone(); expected["description"] = "Reviewed local description";
+        Assert.Equal(CanonicalJson.Serialize(expected), CanonicalJson.Serialize(result));
+    }
+    [Theory][InlineData("CFG-WIN-005")][InlineData("APP-WIN-003")]
+    public void Authoring_admission_never_weakens_resolved_write_guards(string id)
+    {
+        using var root = new TempRoot(); var (loader, draft) = Published(root);
+        var baseline = loader.Load(draft); var control = baseline.FindControl(id)!;
+        Assert.Throws<SafetyViolationException>(() => WritePayloadGuard.Assert(baseline.FindCollection(control.Collection)!, control.Payload!));
+        var field = id == "CFG-WIN-005" ? "settings" : "packageIdentifier";
+        draft.Changes.Add(new(id, "/payload/" + field, control.Payload![field]!.DeepClone(), JsonValue.Create("{{emergencyAccountIds}}")));
+        CandidateDraftCodec.Seal(draft);
+        Assert.ThrowsAny<ToolkitException>(() => new CandidateAuthoringService(loader).Validate(draft));
+    }
     [Fact]public void Valid_name_edit_returns_deterministic_inert_candidate_without_altering_base_or_draft()
     {
         using var root=new TempRoot();var(loader,draft)=Setup(root);var baseline=loader.Load(draft);var old=baseline.FindControl("CA-001")!.Payload!["displayName"];

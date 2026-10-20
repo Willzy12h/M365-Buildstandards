@@ -68,7 +68,10 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
                 throw Bad("The registered Graph object type cannot change.");
             if (CanonicalJson.Serialize(initial[definition.NameProperty]) != CanonicalJson.Serialize(payload[definition.NameProperty]))
                 NamingConvention.RequireAuthored(control, payload[definition.NameProperty]?.GetValue<string>() ?? "");
-            WritePayloadGuard.Assert(definition, payload);
+            if (payload["@odata.type"]?.ToString() == "#microsoft.graph.deviceEnrollmentPlatformRestrictionsConfiguration"
+                && payload["macOSRestriction"]?["platformBlocked"]?.GetValueKind() != JsonValueKind.True)
+                throw Bad("macOS enrolment must remain blocked; there is no authoring enable switch.");
+            AssertTemplate(candidate, definition, initial, payload);
             control.Payload = payload;
             edited.Add(control.Id);
         }
@@ -76,13 +79,26 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
         {
             var defaults = candidate.Parameters.Where(p => p.HasDefault).ToDictionary(p => p.Key, p => p.Default, StringComparer.Ordinal);
             PolicyInputValidator.ValidateUsed(control.Payload!, candidate, defaults);
-            if (edited.Contains(control.Id)) WritePayloadGuard.Assert(candidate.FindCollection(control.Collection)!, control.Payload!);
+            if (edited.Contains(control.Id)) AssertTemplate(candidate, candidate.FindCollection(control.Collection)!, baseline.FindControl(control.Id)!.Payload!, control.Payload!);
         }
         candidate.Status = "Candidate"; candidate.Release = "candidate"; candidate.Description = input.Title;
         candidate.PublishedOn = ""; candidate.IntegrityDigest = ""; candidate.SourceFileName = "";
         StandardsLoader.Validate(candidate);
         candidate.Release = "candidate-" + CanonicalJson.Sha256Value(candidate)[..24];
         return candidate;
+    }
+
+    private static void AssertTemplate(StandardCatalogue standard, CollectionDefinition definition, JsonObject original, JsonObject payload)
+    {
+        var preserved = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (field, type) in new[] { ("settings", "jsonArray"), ("packageIdentifier", "string") })
+        {
+            if (CanonicalJson.Serialize(original[field]) != CanonicalJson.Serialize(payload[field])) continue;
+            if (payload[field] is JsonValue value && value.TryGetValue<string>(out var text)
+                && standard.Parameters.Any(p => p.Type == type && text == "{{" + p.Key + "}}")) preserved.Add(field);
+        }
+        // Only exact, declared, unchanged baseline inputs are deferred to execution-time resolution.
+        WritePayloadGuard.AssertCatalogueTemplate(definition, payload, preserved);
     }
 
     private static void RequireShape(JsonNode? original, JsonNode? proposed, StandardCatalogue standard)
@@ -132,7 +148,10 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
         "string" or "mailDomain" or "guid" => node is JsonValue value && value.TryGetValue<string>(out _),
         "integer" => node is JsonValue value && value.TryGetValue<int>(out _),
         "boolean" => node?.GetValueKind() is JsonValueKind.True or JsonValueKind.False,
-        "guidList" or "jsonArray" => node is JsonArray,
+        "guidList" => node is JsonArray { Count: > 0 } array && array.All(item => item is JsonValue value
+            && value.TryGetValue<string>(out var id) && Guid.TryParse(id, out _)),
+        // A generic JSON array declaration cannot preserve registered setting IDs or object shape.
+        "jsonArray" => false,
         _ => false
     };
     private static ConfigurationException Bad(string message) => new("Candidate validation: " + message);

@@ -66,13 +66,12 @@ public sealed class CandidateLocalOutputs(ToolkitPaths paths, CandidateAuthoring
         }
         catch (Exception failure)
         {
-            var remaining = new List<string>();
-            foreach (var file in owned)
-            {
-                try { ReportEnvelopeDispatcher.RefuseLinks(file); File.Delete(file); }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ToolkitException) { remaining.Add(file); }
-            }
-            if (remaining.Count != 0) throw new IOException("Candidate output failed; cleanup could not remove these incomplete local files: " + string.Join(", ", remaining), failure);
+            // A closed file handle no longer proves pathname ownership. Do not delete by name,
+            // even after a matching hash: replacement between checking and unlinking remains possible.
+            if (owned.Count != 0)
+                throw new IOException("Candidate output did not complete. No complete export was returned. "
+                    + "These paths may contain partial output or replacements; no files were deleted. Review them locally: "
+                    + string.Join(", ", owned), failure);
             throw;
         }
     }

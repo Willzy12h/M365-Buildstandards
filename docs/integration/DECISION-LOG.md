@@ -1040,3 +1040,11 @@ INT-137 review correction: supplementary GPT contract review of ca64c20 found th
 ## INT-138 — security context and external result meaning (20 October)
 
 Proposed [J contract](SECURITY-CONTEXT-CONTRACT-2026.10.20.md): owner-approved SecurityIncident.Read.All only, fixed bounded created-time report, explicit workload/RBAC/retention limits and no P1-to-P2 inference. Neutral versioned external-results interchange remains untrusted and never native assessment/write/completion authority; no claim of a direct arbitrary Maester JSON adapter. Exact-base control links are reference-only. No runtime/access grant/publication in this decision; reviewed merge precedes dependent implementation.
+
+### I supplementary review corrections — 20 October 2026
+
+At authoring head3c97eba, supplementary GPT source review identified GPT-I-001 (macOS enrolment leaf/parent overlays could unblock), GPT-I-002 (structured OMA arrays accepted unrelated array parameters), GPT-I-003 (unchanged parameterised recipes reached resolved-write guards), and GPT-I-004 (cancellation cleanup trusted a released pathname). These are engineering findings, not named safety acceptance. Published-baseline regressions reproduced001/002 and003 for CFG-WIN-005 and APP-WIN-003; the review's APP-WIN-002 example is a literal Company Portal ID and already passes, retained as a positive counterexample.
+
+Authoring now requires macOS enrolment restrictions to stay blocked, rejects generic jsonArray substitution and permits guidList replacement only for existing non-empty GUID arrays. Only exact unchanged declared baseline settings/packageIdentifier inputs are deferred by the separate catalogue-template validator; ordinary resolved-write admission remains strict and unchanged. No payload sent to Graph uses the template validator.
+
+After local output handles close, cancellation/error reports the possibly incomplete paths without deleting them. A hash comparison followed by unlink would retain a replacement race; leaving explicit partial output is the smallest safe cross-platform policy. The prior cleanup test is retained with the corrected no-delete/explicit-incomplete expectation, plus a failing-first replacement regression. No export success, checksum-set completion or publication is claimed on failure. Historical records above describe earlier implementation states.

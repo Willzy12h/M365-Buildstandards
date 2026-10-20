@@ -39,6 +39,6 @@ The JSON response names four fresh local files:
 
 The comparison HTML uses local inline styling, with no scripts or external assets. It is a separate saved document, not another embedded-browser command surface. Unknown assignment observations are not an empty assignment inventory, and import digests do not authenticate a source.
 
-Outputs are created without overwriting earlier files and are read back before success is reported. Ctrl+C requests cancellation; the operation removes only its newly created incomplete files. If cleanup cannot complete, the error identifies the remaining files. No completed export is claimed after cancellation or failure.
+Outputs are created without overwriting earlier files and are read back before success is reported. Ctrl+C requests cancellation. If any file has been created, the error identifies the possibly incomplete paths for local review. The tool does not delete by pathname after releasing a file handle, because another process could have replaced that file. No completed export is claimed after cancellation or failure.
 
 A changed draft, mismatched validation result, unavailable baseline, unsupported shape or unresolved reference refuses export. The CLI never creates client profiles, tenant evidence, approvals or execution plans. Publication, independent review and human/live acceptance retain their separate processes.

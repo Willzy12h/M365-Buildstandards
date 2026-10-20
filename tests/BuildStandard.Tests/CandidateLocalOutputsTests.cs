@@ -26,10 +26,29 @@ public sealed class CandidateLocalOutputsTests
     }
     [Fact]public void Stale_ticket_writes_nothing()
     {using var root=new TempRoot();var(o,d,t)=Setup(root);d.Title="Changed";CandidateDraftCodec.Seal(d);Assert.ThrowsAny<ToolkitException>(()=>o.Export(d,t));Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));}
-    [Fact]public void Cancellation_after_first_output_removes_only_owned_outputs()
+    [Fact]public void Cancellation_after_first_output_reports_incomplete_paths_without_deleting_files()
     {
         using var root=new TempRoot();var(o,d,t)=Setup(root);var previous=Path.Combine(root.Paths.ReportsDirectory,"previous.txt");File.WriteAllText(previous,"Keep");using var ct=new CancellationTokenSource();
-        Assert.ThrowsAny<OperationCanceledException>(()=>o.Export(d,t,ct.Token,new InlineProgress(_=>ct.Cancel())));Assert.Equal(new[]{previous},Directory.GetFiles(root.Paths.ReportsDirectory));Assert.Equal("Keep",File.ReadAllText(previous));
+        var failure = Assert.Throws<IOException>(() => o.Export(d, t, ct.Token, new InlineProgress(_ => ct.Cancel())));
+        Assert.IsAssignableFrom<OperationCanceledException>(failure.InnerException);
+        var created = Directory.GetFiles(root.Paths.ReportsDirectory).Single(path => path != previous);
+        Assert.Contains(created, failure.Message); Assert.Contains("No complete export", failure.Message);
+        Assert.Equal("Keep", File.ReadAllText(previous));
+        Assert.DoesNotContain(Directory.GetFiles(root.Paths.ReportsDirectory), path => path.EndsWith(".sha256", StringComparison.Ordinal));
+    }
+    [Fact]public void Cancellation_never_deletes_a_replacement_at_an_output_path()
+    {
+        using var root = new TempRoot(); var (outputs, draft, ticket) = Setup(root);
+        using var cancellation = new CancellationTokenSource(); string? replaced = null;
+        var failure = Record.Exception(() => outputs.Export(draft, ticket, cancellation.Token, new InlineProgress(_ =>
+        {
+            replaced = Directory.GetFiles(root.Paths.ReportsDirectory).Single();
+            File.Delete(replaced); File.WriteAllText(replaced, "Unrelated replacement"); cancellation.Cancel();
+        })));
+        Assert.NotNull(failure); Assert.NotNull(replaced);
+        Assert.True(File.Exists(replaced), "Cancellation must not delete a replacement owned by another writer.");
+        Assert.Equal("Unrelated replacement", File.ReadAllText(replaced));
+        Assert.Contains(replaced, failure.Message);
     }
     [Fact]public void A_failed_output_location_does_not_change_the_original_catalogue()
     {
