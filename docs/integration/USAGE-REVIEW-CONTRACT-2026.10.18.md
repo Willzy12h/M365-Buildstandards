@@ -1,6 +1,6 @@
 # Proposed usage-based licence review — INT-129
 
-Decision-only expansion F, recommendation 5. Base canonical main `4cab5de3e71fcb0e17d47f4d725b304bfc2a0ba9`. William already authorised source development with optional `Reports.Read.All`; no consent/live read or new scope is requested here. Shared-contract review and owner-authorised merge precede dependent implementation; named Graph/context review remains. This report suggests review, never removes licences or changes a privacy setting.
+Decision-only expansion F, recommendation 5. William prospectively accepted #146/d0c978e on20October2026 for checked merge; earlier pending/proposal wording is historical. Base canonical main `4cab5de3e71fcb0e17d47f4d725b304bfc2a0ba9`. William already authorised source development with optional `Reports.Read.All`; no consent/live read or new scope is requested here. Shared-contract review and owner-authorised merge precede dependent implementation; named Graph/context review remains. This report suggests review, never removes licences or changes a privacy setting.
 
 ## Reuse and exact read surface
 

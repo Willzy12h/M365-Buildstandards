@@ -1,5 +1,11 @@
 # Current goal
 
+## Owner contract acceptance and recommendation delegation — 20 October 2026
+
+William explicitly approved decision PRs #144/f0e557a, #145/ec2c3bb and #146/d0c978e for normal main merges after actual checks, including report-only reuse of existing DeviceManagementApps.ReadWrite.All / DeviceManagementConfiguration.ReadWrite.All in INT-127. This resolves those contracts' pending owner decisions prospectively, not earlier assertions. Compose owned branches without losing either record, keep merge commits and verify the actual resulting main checks. Shared decisions still merge before dependent code.
+
+William subsequently said **“You can approve your recommendations for this task so nothing is needed from me.”** GPT may settle and document recommendations and routine source/integration decisions within the finite approved A–J task without repeated owner questions. Preserve the approved architecture, original evidence/history, existing coordination and actual review/check gates. This is not a fabricated named independent review, consent or live acceptance. No live tenant/device/DNS action, actual permission grant, publication, protection bypass or unrelated backlog is authorised. Reviewers' identities and pending named safety requirements remain explicit.
+
 ## Owner approval of expansion decisions — 18 October 2026
 
 William subsequently said **“Approve all three, keeping live actions and consent separately approved.”** This prospectively accepts normal merge-commit integration of PRs #139, #140 and #141 after their actual checks and review gates, including necessary owned-branch conflict resolution. It is not blanket acceptance of later main merges.

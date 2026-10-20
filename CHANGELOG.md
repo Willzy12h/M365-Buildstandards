@@ -1,5 +1,9 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
+
+- Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
+
 - Propose privacy-safe usage/licence review and bounded token-free report downloads; no runtime feature or consent is claimed.
 
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
