@@ -90,6 +90,25 @@ public sealed class ServiceHealthReportServiceTests
         if (fault == "date-only") Assert.Null(report.Sections[1].Rows.Single()["startedAt"]);
         if (fault == "future-classification") Assert.Equal("futureClassification", report.Sections[1].Rows.Single()["classification"]!.GetValue<string>());
     }
+    [Theory][InlineData(false)][InlineData(true)]
+    public async Task Duplicate_identity_annotations_are_budgeted_before_admission_and_keep_earlier_observations(bool paginated)
+    {
+        var rows = Enumerable.Range(0, 5000).Select(_ => { var row = Overview(); row["service"] = new string('x', 3200); return row; }).ToArray();
+        var pages = 0;
+        var source = new Source((kind, _) =>
+        {
+            Assert.Equal(OperationalReadKind.HealthOverviews, kind);
+            pages++;
+            return Task.FromResult(new OperationalReportPage(paginated ? rows.Skip((pages - 1) * 2500).Take(2500).ToArray() : rows, paginated && pages == 1));
+        });
+        var report = await Service().CaptureAsync(source, Session(), () => { }, default);
+        var json = OperationalContextSchema.Serialise(report);
+        Assert.Equal("Partial", report.Status);
+        Assert.InRange(report.Sections[0].Rows.Count, 1, 4999);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json) <= OperationalReportRegistry.MaximumBytes);
+        Assert.All(report.Sections[0].Rows, row => Assert.Equal("Partial", row["readStatus"]!.GetValue<string>()));
+        Assert.Equal("NotAttempted", report.Sections[1].Status);
+    }
     [Fact]
     public async Task Fixed_request_budget_stops_pagination_and_does_not_turn_unattempted_source_into_empty_success()
     {

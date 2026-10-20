@@ -10,13 +10,19 @@ namespace BuildStandard.Engine.Reports;
 /// <summary>Explicit independent dispatcher. No operational record can be opened as a snapshot or approval.</summary>
 public static class OperationalContextSchema
 {
+    internal static readonly JsonSerializerOptions CompactOptions = CompactEncoding();
+    private static JsonSerializerOptions CompactEncoding()
+    {
+        var options = new JsonSerializerOptions(RegisteredReportJson.Strict) { WriteIndented = false };
+        options.MakeReadOnly(); return options;
+    }
     private static readonly HashSet<string> HealthStatuses=new(StringComparer.Ordinal)
     {"serviceOperational","investigating","restoringService","verifyingService","serviceRestored","postIncidentReviewPublished","serviceDegradation","serviceInterruption","extendedRecovery","falsePositive","investigationSuspended","resolved","mitigatedExternal","mitigated","resolvedExternal","confirmed","reported"};
     internal static bool IsKnownHealthStatus(string? value) => value is not null && HealthStatuses.Contains(value);
     public static void Seal(OperationalContextReport report)
     {Validate(report,report.TenantId,false);report.IntegrityDigest=EvidenceIntegrity.Compute(report);Validate(report,report.TenantId,true);}
     public static string Serialise(OperationalContextReport report)
-    {Validate(report,report.TenantId,true);return JsonSerializer.Serialize(report,RegisteredReportJson.Strict);}
+    {Validate(report,report.TenantId,true);return JsonSerializer.Serialize(report,CompactOptions);}
     public static OperationalContextReport Read(string json,string tenant)
     {
         if(Encoding.UTF8.GetByteCount(json)>OperationalReportRegistry.MaximumBytes)throw Bad("Operational evidence exceeds16MiB.");
@@ -99,7 +105,7 @@ public static class OperationalContextSchema
             if(section.Status==ReportReadState.Collected&&rows.Any(row=>row.ReadStatus!=ReportReadState.Collected))throw Bad("Section status conceals an incomplete observation.");
         }
         if(report.Status!=ReportEvidenceSchema.Overall(report.Sections.Select(section=>section.Status)))throw Bad("Operational overall status conceals a source outcome.");
-        using(var budget=new BudgetStream())JsonSerializer.Serialize(budget,report,RegisteredReportJson.Strict);
+        using(var budget=new BudgetStream())JsonSerializer.Serialize(budget,report,CompactOptions);
         if(integrity&&!EvidenceIntegrity.Verify(report,report.IntegrityDigest))throw new IntegrityException("Operational evidence digest differs.");
     }
     private static bool Identity(string value)=>!string.IsNullOrWhiteSpace(value)&&value.Length<=512&&!value.Any(char.IsControl);

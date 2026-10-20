@@ -9,6 +9,7 @@ namespace BuildStandard.Engine.Reports;
 /// <summary>Tenant-scoped service observations, never a tenant-availability or root-cause assurance.</summary>
 public sealed class ServiceHealthReportService(IClock clock, string toolkitVersion)
 {
+    private const string DuplicateReason = "The source returned a duplicate identity; every original observation remains explicitly partial.";
     public async Task<OperationalContextReport> CaptureAsync(IOperationalReportSource source, TenantSession session,
         Action requireCurrent, CancellationToken cancellation)
     {
@@ -77,7 +78,7 @@ public sealed class ServiceHealthReportService(IClock clock, string toolkitVersi
                         { Incomplete(section, "The shared 5,000-row budget ended. Later observations were not retained or inferred."); stop = true; break; }
                         var projected = Project(item, kind);
                         var encoded = JsonSerializer.SerializeToNode(projected, projected.GetType(), RegisteredReportJson.Strict)!.AsObject();
-                        var bytes = JsonSerializer.SerializeToUtf8Bytes(encoded, RegisteredReportJson.Strict).Length;
+                        var bytes = EncodedBudget(encoded);
                         // Keep bounded finalisation space for source states, diagnostics and the digest.
                         if (rowBytes + bytes > OperationalReportRegistry.MaximumBytes - 128 * 1024)
                         { Incomplete(section, "The combined 16 MiB evidence budget ended. Earlier admitted observations remain; no row was truncated."); stop = true; break; }
@@ -126,9 +127,19 @@ public sealed class ServiceHealthReportService(IClock clock, string toolkitVersi
     {
         foreach (var group in section.Rows.Where(row => row["id"] is not null).GroupBy(row => row["id"]!.GetValue<string>(), StringComparer.Ordinal).Where(group => group.Count() > 1))
         {
-            foreach (var row in group) { row["readStatus"] = ReportReadState.Partial; row["error"] = "The source returned a duplicate identity; every original observation remains explicitly partial."; }
+            foreach (var row in group) { row["readStatus"] = ReportReadState.Partial; row["error"] = DuplicateReason; }
             Incomplete(section, "Duplicate identities were observed. No complete or deduplicated result was inferred.");
         }
+    }
+    private static int EncodedBudget(JsonObject row)
+    {
+        var actual = JsonSerializer.SerializeToUtf8Bytes(row, OperationalContextSchema.CompactOptions).Length;
+        // A later page may repeat this identity. Reserve its final diagnostic shape at initial admission,
+        // before any duplicate annotation, rather than relying on a fixed whole-envelope reserve.
+        var duplicate = (JsonObject)row.DeepClone();
+        duplicate["readStatus"] = ReportReadState.Partial;
+        duplicate["error"] = DuplicateReason;
+        return Math.Max(actual, JsonSerializer.SerializeToUtf8Bytes(duplicate, OperationalContextSchema.CompactOptions).Length);
     }
     private static GraphReportRow Project(JsonObject raw, OperationalReadKind kind)
     {
