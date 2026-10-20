@@ -22,7 +22,7 @@ public sealed class ScriptLibrarySchema2Tests
         var entry = ScriptCatalogue.Load(Library()).Find("exo.synthetic-mailbox-inventory");
         Assert.Equal(2, entry.Manifest.SchemaVersion);
         Assert.Equal("exo-mailbox-inventory", ScriptCatalogue.ReportFor(entry.Manifest).Id);
-        Assert.Equal(new[] { "exo.calendar-permission-observations", "exo.distribution-group-observations", "exo.inbox-rule-observations", "exo.mailbox-forwarding-settings", "exo.mailbox-hold-settings", "exo.mailbox-permission-observations", "exo.mailbox-protocol-settings", "exo.mailbox-size-quota" },
+        Assert.Equal(new[] { "exo.calendar-permission-observations", "exo.distribution-group-observations", "exo.inbox-rule-observations", "exo.mailbox-forwarding-settings", "exo.mailbox-hold-settings", "exo.mailbox-permission-observations", "exo.mailbox-protocol-settings", "exo.mailbox-size-quota", "exo.transport-rule-observations" },
             ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 2).Select(e => e.Manifest.Id).OrderBy(id => id,StringComparer.Ordinal));
         var manual = ScriptCatalogue.Shipped.Entries.Where(e => e.Manifest.SchemaVersion == 1).ToArray();
         Assert.Equal(29,manual.Length);Assert.All(manual,e => Assert.Null(e.Manifest.Execution));

@@ -17,6 +17,13 @@ public static class ExchangeObservationKey
         return Hash(reportId, GuidIdentity(exchangeGuid));
     }
 
+    public static string TransportRead(string scope,string? requestedRuleGuid)
+    {
+        if(scope=="OrganisationInventory"&&requestedRuleGuid is null)return Hash("exo-transport-rules",scope,null);
+        if(scope=="SelectedRule"&&requestedRuleGuid is not null)return Hash("exo-transport-rules",scope,GuidIdentity(requestedRuleGuid));
+        throw new ConfigurationException("Transport diagnostic scope and requested GUID do not match.");
+    }
+
     public static string InboxRule(string mailboxGuid, string ruleIdentity) =>
         Hash(GuidIdentity(mailboxGuid), Identity(ruleIdentity));
 

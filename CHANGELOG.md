@@ -1,5 +1,10 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add a separately pinned experimental transport-rule metadata adapter with selected-GUID or explicit inventory scope, bounded ResultSize/cap diagnostics, original service GUIDs, truthful unknowns and shared native/offline exports. No rule content or changes. Live behaviour and named acceptance remain unverified.
+
+- Exchange group report tables now label original recipient identities and independently returned Entra IDs instead of displaying raw JSON. New-family exact reviews describe the shared total row budget accurately; original evidence is unchanged.
+
+
 - Add separate experimental/default-off read-only Run adapters for selected inbox rules, mailbox permission sources, unique default-calendar ACL observations and direct distribution-group membership. Preserve original manual scripts, localised folder paths, raw principal namespaces and explicit unknown/partial source outcomes; no effective-access or deployment-evidence claim. Native sections and original exports share existing report projections. Windows/native/package acceptance remains separately recorded.
 
 
@@ -65,9 +70,7 @@
 - Add a shared offline prerequisite diagnostic engine and sanitised, callable doctor handler: bounded package/catalogue integrity checks, separately validated editable settings, owned non-overwriting write probes and optional host-presence observations. This slice does not yet wire CLI dispatch or the desktop; local results never establish publisher trust, tenant access or deployment approval.
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
-#- Exchange group report tables now label original recipient identities and independently returned Entra IDs instead of displaying raw JSON. New-family exact reviews describe the shared total row budget accurately; original evidence is unchanged.
-
-## Pending source — mailbox capacity review, PR #94
+### Pending source — mailbox capacity review, PR #94
 
 - Preserve readable outcome/table space for multi-section reports; section and cue filters remain display-only.
 - Add strict offline mailbox-permission evidence with separate source diagnostics and the approved explicit permission-selection rule; the separate permission Run adapter is experimental and live-unverified.

@@ -74,8 +74,8 @@ function Invoke-BditRunner {
         if ($BditRequest.maximumRows -isnot [int] -and $BditRequest.maximumRows -isnot [long]) { throw 'rows' }
         if (($BditRequest.reportSchemaVersion -isnot [int] -and $BditRequest.reportSchemaVersion -isnot [long]) -or $BditRequest.reportSchemaVersion -notin @(1,2)) { throw 'report' }
         if ($BditRequest.reportSchemaVersion -eq 2) {
-            if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
-            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') { 'Get-EXOMailbox,Get-EXOMailboxFolderStatistics,Get-EXOMailboxFolderPermission' } else { 'Get-DistributionGroup,Get-DistributionGroupMember' }
+            if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups','exo-transport-rules') -cnotcontains $BditRequest.reportId -or $BditRequest.maximumRows -lt 1 -or $BditRequest.maximumRows -gt 5000) { throw 'report' }
+            $expectedCommands = if ($BditRequest.reportId -ceq 'exo-inbox-rules') { 'Get-EXOMailbox,Get-InboxRule' } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') { 'Get-EXOMailbox,Get-EXOMailboxPermission,Get-EXORecipientPermission' } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') { 'Get-EXOMailbox,Get-EXOMailboxFolderStatistics,Get-EXOMailboxFolderPermission' } elseif ($BditRequest.reportId -ceq 'exo-distribution-groups') { 'Get-DistributionGroup,Get-DistributionGroupMember' } else { 'Get-TransportRule' }
             if ((@($BditRequest.sourceCommands) -join ',') -cne $expectedCommands) { throw 'source' }
         }
     }
@@ -116,6 +116,13 @@ function Invoke-BditRunner {
     catch { Stop-BditRun 'RequestInvalid' }
     if ($BditRequest.reportSchemaVersion -eq 2) {
         try {
+            if ($BditRequest.reportId -ceq 'exo-transport-rules') {
+                if ($BditArguments['OrganisationInventory'] -isnot [bool]) { throw 'scope' }
+                $hasRules = $BditArguments.ContainsKey('RuleGuids')
+                if ($hasRules -eq $BditArguments['OrganisationInventory'] -or $BditArguments.Count -ne (1 + [int]$hasRules)) { throw 'scope' }
+                if ($hasRules -and $BditArguments['RuleGuids'] -isnot [string]) { throw 'scope' }
+                $targetIds = @(); if ($hasRules) { $targetIds = @($BditArguments['RuleGuids'].Split(',')) }
+            } else {
             $targetParameter = if ($BditRequest.reportId -ceq 'exo-distribution-groups') { 'GroupGuids' } else { 'MailboxGuids' }
             if ($BditArguments[$targetParameter] -isnot [string]) { throw 'scope' }
             if ($BditRequest.reportId -ceq 'exo-inbox-rules') {
@@ -128,7 +135,8 @@ function Invoke-BditRunner {
                 if (-not ($BditArguments['FullAccess'] -or $BditArguments['SendAs'] -or $BditArguments['SendOnBehalf'])) { throw 'scope' }
             }
             $targetIds = $BditArguments[$targetParameter].Split(',')
-            if ($targetIds.Count -lt 1 -or $targetIds.Count -gt 50 -or $targetIds.Count -gt $BditRequest.maximumRows) { throw 'scope' }
+            }
+            if (($targetIds.Count -lt 1 -and $BditRequest.reportId -cne 'exo-transport-rules') -or $targetIds.Count -gt 50 -or $targetIds.Count -gt $BditRequest.maximumRows) { throw 'scope' }
             $targetSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             foreach ($target in $targetIds) {
                 if ($target -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -or $target -ceq '00000000-0000-0000-0000-000000000000' -or -not $targetSet.Add($target)) { throw 'scope' }
@@ -296,17 +304,23 @@ function Invoke-BditRunner {
             $script:FamilyCalendarProof = @{}
             $script:FamilyObservationMaximum = 0
             $script:FamilyIncludeHidden = $false
+            $script:FamilyTransportInventory = $false
             $script:FamilySourceCalls = 0
             $script:FamilyRowsRead = 0
             $script:FamilyProjectedBytes = 2
             $script:FamilyStarted = [Diagnostics.Stopwatch]::StartNew()
             if ($ReportVersion -eq 2) {
-                $targetParameter = if ($ReportId -ceq 'exo-distribution-groups') { 'GroupGuids' } else { 'MailboxGuids' }
-                foreach ($target in $ReportArguments[$targetParameter].Split(',')) { $null = $script:FamilyTargets.Add($target) }
+                if ($ReportId -ceq 'exo-transport-rules') {
+                    $script:FamilyTransportInventory = $ReportArguments['OrganisationInventory']
+                    if (-not $script:FamilyTransportInventory) { foreach ($target in $ReportArguments['RuleGuids'].Split(',')) { $null = $script:FamilyTargets.Add($target) } }
+                } else {
+                    $targetParameter = if ($ReportId -ceq 'exo-distribution-groups') { 'GroupGuids' } else { 'MailboxGuids' }
+                    foreach ($target in $ReportArguments[$targetParameter].Split(',')) { $null = $script:FamilyTargets.Add($target) }
+                }
                 if ($ReportId -ceq 'exo-inbox-rules') { $script:FamilyIncludeHidden = $ReportArguments['IncludeHidden'] }
                 elseif ($ReportId -ceq 'exo-mailbox-permissions') { foreach ($kind in @('FullAccess','SendAs','SendOnBehalf')) { if ($ReportArguments[$kind]) { $null = $script:FamilyPermissionSources.Add($kind) } } }
                 # Every selected target retains one diagnostic row, even after failure/cancellation.
-                $script:FamilyObservationMaximum = $MaximumRows - $script:FamilyTargets.Count
+                $script:FamilyObservationMaximum = $MaximumRows - [Math]::Max(1, $script:FamilyTargets.Count)
             }
             # A token is usable only when it is reported Active and its expiry is read as a time after now. A missing, null,
             # malformed or ambiguous status or expiry is never guessed usable. Typed values keep their own meaning: a
@@ -441,7 +455,7 @@ function Invoke-BditRunner {
             function Read-BditFamilyRows {
                 param([string]$Command, [hashtable]$Parameters)
                 Assert-BditGate
-                if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                if (@('exo-inbox-rules','exo-mailbox-permissions','exo-calendar-permissions','exo-distribution-groups','exo-transport-rules') -cnotcontains $script:FamilyReportId) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
                 if ($script:FamilySourceCalls -ge 100 -or $script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
                 $arguments = @{ ErrorAction = 'Stop' }
                 $observation = $false
@@ -459,6 +473,21 @@ function Invoke-BditRunner {
                     $observation = $true
                 } else {
                 switch -CaseSensitive ($Command) {
+                    'Get-TransportRule' {
+                        if ($script:FamilyReportId -cne 'exo-transport-rules') { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        if ($script:FamilyTransportInventory) {
+                            if ($Parameters.Count -ne 0) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
+                        } elseif ($Parameters.Count -ne 1 -or -not $Parameters.ContainsKey('Identity') -or
+                            $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
+                            $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED'
+                        } else { $arguments['Identity'] = $Parameters['Identity'] }
+                        $remaining = $script:FamilyObservationMaximum - $script:FamilyRowsRead
+                        if ($remaining -lt 1) { throw 'BDIT-READ-LIMIT' }
+                        $arguments['ResultSize'] = if ($script:FamilyTransportInventory) { $remaining } else { [Math]::Min(2, $remaining) }
+                        $arguments['ExcludeConditionActionDetails'] = $true
+                        $properties = @('Guid','Name','Priority','State','Mode','ActivationDate','ExpiryDate')
+                        $observation = $true
+                    }
                     'Get-DistributionGroup' {
                         if ($script:FamilyReportId -cne 'exo-distribution-groups' -or $Parameters.Count -ne 1 -or
                             -not $Parameters.ContainsKey('Identity') -or $Parameters['Identity'] -isnot [string] -or -not $script:FamilyTargets.Contains($Parameters['Identity'])) {
@@ -529,6 +558,10 @@ function Invoke-BditRunner {
                 [Console]::Out.WriteLine('BDIT:READ:' + $Command); [Console]::Out.Flush()
                 $output = Read-BditBoundedRows -Producer { & $Readers[$Command] @arguments } -Properties $properties -UseSharedBudget $true -CountAsObservation $observation
                 if ($script:FamilyStarted.Elapsed.TotalSeconds -ge 300) { throw 'BDIT-READ-LIMIT' }
+                if ($Command -ceq 'Get-TransportRule') {
+                    # Fixed source-only envelope exposes the actual bounded cap, including a successful empty read.
+                    return [pscustomobject]@{ Rows = $output; ResultSize = [int]$arguments['ResultSize'] }
+                }
                 if ($Command -ceq 'Get-DistributionGroup' -and $output.Count -eq 1) {
                     $guidProperty = $output[0].PSObject.Properties['Guid']; $actual = [guid]::Empty
                     $kindProperty = $output[0].PSObject.Properties['RecipientTypeDetails']
@@ -768,6 +801,26 @@ function Invoke-BditRunner {
         throw 'output'
     }
 
+    function Convert-BditTransportCell {
+        param([string]$Section,[string]$Column,$Value)
+        if ($Section -cnotin @('target-reads','policies')) { throw 'output' }
+        if ($Column -cin @('id','name','readStatus','error')) { return Convert-BditInboxRuleCell 'rules' $Column $Value }
+        if ($Section -ceq 'target-reads') {
+            if ($Column -ceq 'scope') { if ($Value -cnotin @('SelectedRule','OrganisationInventory')) { throw 'output' }; return $Value }
+            if ($Column -ceq 'requestedRuleGuid') { return Require-BditOutputText $Value 36 $true }
+            if ($Column -cin @('requestedResultSize','returnedEntries','excludedEntries')) { return Convert-BditInboxRuleCell 'target-reads' 'returnedEntries' $Value }
+            throw 'output'
+        }
+        if ($Column -ceq 'ruleGuid') { return Require-BditOutputText $Value 36 }
+        if ($Column -ceq 'priority') { return Convert-BditInboxRuleCell 'rules' 'priority' $Value }
+        if ($Column -cnotin @('state','mode','activationDate','expiryDate')) { throw 'output' }
+        Require-BditOutputMap $Value @('state','value','reason')
+        if ($Value['state'] -cne 'Value') { return Convert-BditInboxRuleCell 'rules' 'enabled' $Value }
+        if ($null -ne $Value['reason']) { throw 'output' }
+        $text = Require-BditOutputText $Value['value'] 1024 $false ($Column -cin @('activationDate','expiryDate'))
+        return [ordered]@{state='Value';value=$text;reason=$null}
+    }
+
     function Convert-BditGroupCell {
         param([string]$Section, [string]$Column, $Value)
         if ($Section -cnotin @('target-reads','members')) { throw 'output' }
@@ -852,7 +905,9 @@ function Invoke-BditRunner {
                         $value = $row[$column]
                         if ($BditRequest.reportSchemaVersion -eq 2) {
                             if (@($row.PSBase.Keys) -cnotcontains $column) { throw 'output' }
-                            if ($BditRequest.reportId -ceq 'exo-mailbox-permissions') {
+                            if ($BditRequest.reportId -ceq 'exo-transport-rules') {
+                                $value = Convert-BditTransportCell -Section ([string]$registered.id) -Column $column -Value $value
+                            } elseif ($BditRequest.reportId -ceq 'exo-mailbox-permissions') {
                                 $value = Convert-BditPermissionCell -Section ([string]$registered.id) -Column $column -Value $value
                             } elseif ($BditRequest.reportId -ceq 'exo-calendar-permissions') {
                                 $value = Convert-BditCalendarCell -Section ([string]$registered.id) -Column $column -Value $value

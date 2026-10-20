@@ -67,12 +67,43 @@ function Get-FakeMembers {
     $script:Reads++;$script:LastSize=$ResultSize
     [pscustomobject]@{Guid=[guid]$second;ExternalDirectoryObjectId=$null;Identity=[pscustomobject]@{RawIdentity='member-reference'};DisplayName='Synthetic member';PrimarySmtpAddress='member@synthetic.example';RecipientTypeDetails='UserMailbox';Private='excluded'}
 }
-$Readers=@{'Get-DistributionGroup'=(Get-Command Get-FakeGroup);'Get-DistributionGroupMember'=(Get-Command Get-FakeMembers);'Get-EXOMailboxFolderStatistics'=(Get-Command Get-FakeFolders);'Get-EXOMailboxFolderPermission'=(Get-Command Get-FakeCalendarAcl);'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
+function Get-FakeTransport {
+    param([string]$Identity,[int]$ResultSize,[bool]$ExcludeConditionActionDetails)
+    $script:Reads++;$script:LastSize=$ResultSize
+    Check $ExcludeConditionActionDetails 'Rule content was not excluded at the source'
+    [pscustomobject]@{Guid=[guid]$first;Name='Synthetic rule';Priority=0;State='Disabled';Mode='Audit';ActivationDate=$null;ExpiryDate=$null;Actions='not selected';Private='not selected'}
+}
+$Readers=@{'Get-TransportRule'=(Get-Command Get-FakeTransport);'Get-DistributionGroup'=(Get-Command Get-FakeGroup);'Get-DistributionGroupMember'=(Get-Command Get-FakeMembers);'Get-EXOMailboxFolderStatistics'=(Get-Command Get-FakeFolders);'Get-EXOMailboxFolderPermission'=(Get-Command Get-FakeCalendarAcl);'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
 function Refused([scriptblock]$Work,[int]$ExpectedReads){
     $failed=$false;try{$null=& $Work}catch{$failed=$true}
     Check $failed 'A forbidden/unbounded call was admitted';Check ($script:Reads -eq $ExpectedReads) 'A refused call reached a source reader'
 }
 switch -CaseSensitive ($Case) {
+ 'transport-source' {
+    $script:FamilyReportId='exo-transport-rules';$script:FamilyTransportInventory=$false
+    $read=Use-BditRead -Command 'Get-TransportRule' -Parameters @{Identity=$first}
+    Check ($read.Rows.Count -eq 1 -and $read.Rows[0].Guid -is [guid]) 'Original rule GUID lost'
+    Check ($read.ResultSize -eq 2 -and $script:LastSize -eq 2) 'Selected rule read did not request a bounded uniqueness check'
+    Check ($null -eq $read.Rows[0].PSObject.Properties['Actions']) 'Unnecessary rule content escaped the projection'
+ }
+ 'transport-inventory' {
+    $script:FamilyReportId='exo-transport-rules';$script:FamilyTransportInventory=$true;$script:FamilyTargets.Clear()
+    $read=Use-BditRead -Command 'Get-TransportRule' -Parameters @{}
+    Check ($read.Rows.Count -eq 1 -and $read.ResultSize -eq 4999) 'Inventory lost the diagnostic-reserved limit'
+ }
+ 'transport-scope' {
+    $script:FamilyReportId='exo-transport-rules';$script:FamilyTransportInventory=$false
+    Refused {Use-BditRead -Command 'Get-TransportRule' -Parameters @{}} 0
+ }
+ 'transport-extra' {
+    $script:FamilyReportId='exo-transport-rules';$script:FamilyTransportInventory=$true
+    Refused {Use-BditRead -Command 'Get-TransportRule' -Parameters @{ResultSize=5000}} 0
+ }
+ 'transport-cap' {
+    $script:FamilyReportId='exo-transport-rules';$script:FamilyTransportInventory=$true;$script:FamilyObservationMaximum=1
+    $read=Use-BditRead -Command 'Get-TransportRule' -Parameters @{}
+    Check ($read.Rows.Count -eq $read.ResultSize -and $read.ResultSize -eq 1) 'Saturation must remain detectable at the exact cap'
+ }
  'group-source' {
     $script:FamilyReportId='exo-distribution-groups'
     $groups=@(Use-BditRead -Command 'Get-DistributionGroup' -Parameters @{Identity=$first})

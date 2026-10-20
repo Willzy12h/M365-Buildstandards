@@ -245,3 +245,5 @@ The approved specification/plan in PR #114 selects native WPF + preserved shared
 | Message trace, transport-rule metadata | Remaining contracted C families, not runnable registrations yet | Existing manual Copy/Save items retain their original bodies and limits. A typed key/query helper does not imply a complete adapter. |
 
 These new report records never satisfy complete deployment before-evidence or authorise a tenant change. Original33 script bodies remain byte-identical; the two new bodies are separately pinned. No live acceptance, consent, new permission or publication is claimed.
+
+C5 transport metadata: implemented engine/registered Run/native/offline export source;9executable+29manual library items. Original rule GUIDs versus local diagnostic hashes, explicit scope and total cap with unknown-preserving metadata.107affected new-source testsPASS;186post-registration library/workflow casesPASS. Native fixtures/Windows/package proof and named safety acceptance pending at C5; live/module/RBAC/H1 unrun. C4 intermediate original ZIP verified separately, never reused as C5 fingerprint. Message trace and overall A–J remain incomplete.

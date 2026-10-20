@@ -144,6 +144,8 @@ public static partial class ExchangeReportEvidenceSchema
                 {
                     row.Id = row switch
                     {
+                        ExchangeTransportReadRow target => ExchangeObservationKey.TransportRead(target.Scope,target.RequestedRuleGuid),
+                        TransportRuleObservationRow rule => rule.RuleGuid,
                         ExchangeGroupTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedGroupGuid),
                         ExchangeGroupMemberRow member => GroupKey(member),
                         ExchangeCalendarTargetRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
@@ -157,7 +159,7 @@ public static partial class ExchangeReportEvidenceSchema
                     node["id"] = row.Id;
                 }
                 State(row.ReadStatus);
-                if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 ? ReportValues.IsCanonicalGuid(row.Id)
+                if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 || (definition.Id=="exo-transport-rules" && schema.RowType==typeof(TransportRuleObservationRow)) ? ReportValues.IsCanonicalGuid(row.Id)
                     : row.Id.StartsWith("sha256:",StringComparison.Ordinal) && IsSha256(row.Id[7..])) || !identities.Add(row.Id)))
                     throw Bad("Duplicate, malformed or empty report identity.");
                 if (row.Name is not null)

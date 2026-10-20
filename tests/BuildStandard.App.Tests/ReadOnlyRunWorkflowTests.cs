@@ -138,11 +138,17 @@ internal sealed class ReadRunFixture : IDisposable
 
 public sealed class ReadOnlyRunWorkflowTests
 {
+    [Fact] public void Transport_inventory_review_names_explicit_scope_and_has_no_implicit_service_call()
+    {
+        using var f=new ReadRunFixture();f.Workflow.SetSelection("exo.transport-rule-observations","7",new Dictionary<string,string?>{["RuleGuids"]="",["OrganisationInventory"]="true"});
+        var text=f.Review().Text;Assert.Contains("OrganisationInventory (Boolean): true",text);Assert.Contains("rows total across all sections",text);Assert.Contains("Get-TransportRule",text);
+        Assert.Equal(0,f.Calls);Assert.Equal(0,f.Saves);
+    }
     [Fact]
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(8, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(9, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));

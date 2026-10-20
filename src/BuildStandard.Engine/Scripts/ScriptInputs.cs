@@ -68,6 +68,16 @@ public static class ScriptInputs
                 catch (BuildStandard.Core.ConfigurationException error) { problems.Add($"{argument.Name}: {error.Message}"); }
             }
         }
+        if(manifest.SchemaVersion==2&&manifest.Execution?.ReportId=="exo-transport-rules")
+        {
+            try
+            {
+                var rules=(arguments.SingleOrDefault(a=>a.Name=="RuleGuids")?.Value as ScriptText)?.Value;
+                var inventory=arguments.SingleOrDefault(a=>a.Name=="OrganisationInventory")?.Value is ScriptFlag {Value:true};
+                _=BuildStandard.Core.Reporting.ExchangeTransportScope.Parse(rules,inventory);
+            }
+            catch(BuildStandard.Core.ConfigurationException error){problems.Add(error.Message);}
+        }
         foreach (var rule in manifest.Rules) CheckRule(manifest, rule, arguments, now, problems);
         return new ScriptBinding(arguments, problems);
     }

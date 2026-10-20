@@ -261,4 +261,24 @@ function Get-DistributionGroupMember {
     if($script:Scenario -eq 'group-duplicate'){$row}
 }
 
-Export-ModuleMember -Function Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-TransportRule {
+    param([string]$Identity,[int]$ResultSize,[bool]$ExcludeConditionActionDetails)
+    $script:Reads++;Write-FakeLog ('Read Get-TransportRule Identity='+$Identity+' ResultSize='+$ResultSize+' ExcludeDetails='+$ExcludeConditionActionDetails)
+    if(-not $ExcludeConditionActionDetails){throw 'Synthetic content exclusion missing'}
+    if($script:Scenario -eq 'transport-failed'){throw 'Synthetic transport read failure'}
+    if($script:Scenario -eq 'transport-stop' -and $Identity -ne '44444444-4444-4444-8444-444444444444') {
+        for($n=0;$n -lt 300;$n++){if(@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0){break};Start-Sleep -Milliseconds 10}
+    }
+    if($script:Scenario -eq 'transport-empty'){return}
+    $guid=if($script:Scenario -eq 'transport-broad'){'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}elseif($Identity){$Identity}else{'44444444-4444-4444-8444-444444444444'}
+    $count=if($script:Scenario -eq 'transport-cap'){$ResultSize}elseif($script:Scenario -eq 'transport-duplicate'){2}else{1}
+    for($n=0;$n -lt $count;$n++) {
+        $actual=if($script:Scenario -eq 'transport-cap'){('10000000-0000-4000-8000-{0:d12}' -f $n)}else{$guid}
+        $row=[pscustomobject]@{Guid=[guid]$actual;Name='Synthetic rule';Priority=0;State='Disabled';Mode='Audit';ActivationDate='';ExpiryDate='';Actions='excluded';Private='excluded'}
+        if($script:Scenario -eq 'transport-missing-guid'){$row.PSObject.Properties.Remove('Guid')}
+        if($script:Scenario -eq 'transport-null-state'){$row.State=$null}
+        $row
+    }
+}
+
+Export-ModuleMember -Function Get-TransportRule, Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

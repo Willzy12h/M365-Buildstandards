@@ -3,6 +3,25 @@ using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
 internal static partial class Program
 {
+    private static void PopulateTransportNativeFixture(ExchangeReportEvidence evidence)
+    {
+        const string rule="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+        evidence.ReportSchemaVersion=2;evidence.AdapterVersion=ExchangeReportRegistry.FamilyAdapterVersion;
+        evidence.Sections=
+        [
+            new(){Id="target-reads",Status="Partial",Error="Synthetic missing metadata; no protection claim.",Rows=[ExchangeReportEvidenceSchema.Row(new ExchangeTransportReadRow
+            {
+                Id=ExchangeObservationKey.TransportRead("SelectedRule",rule),Name="Synthetic selected rule",ReadStatus="Partial",Error="Synthetic rule state not returned",
+                Scope="SelectedRule",RequestedRuleGuid=rule,RequestedResultSize=2,ReturnedEntries=1,ExcludedEntries=0
+            })]},
+            new(){Id="policies",Status="Partial",Error="Synthetic missing metadata; no protection claim.",Rows=[ExchangeReportEvidenceSchema.Row(new TransportRuleObservationRow
+            {
+                Id=rule,RuleGuid=rule,Name="Synthetic transport rule",ReadStatus="Partial",Error="Synthetic rule state not returned",
+                Priority=new(){State="Value",Value=0},State=new(){State="Missing",Reason="Synthetic rule state not returned"},Mode=new(){State="Value",Value="Audit"},
+                ActivationDate=new(){State="Value",Value=""},ExpiryDate=new(){State="ReturnedNull",Reason="Synthetic expiry returned null"}
+            })]}
+        ];
+    }
     private static void PopulateGroupNativeFixture(ExchangeReportEvidence evidence)
     {
         const string group="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",member="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";

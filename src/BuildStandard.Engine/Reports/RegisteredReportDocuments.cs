@@ -29,7 +29,7 @@ public static class RegisteredReportDocuments
         metadata.Add("Integrity digest", report.IntegrityDigest);
         if(definition.ReportSchemaVersion==2)
         {
-            metadata.Add("Identity meaning","sha256 keys identify local observation tuples, not Microsoft service IDs, ownership, permissions or execution targets. Source namespaces remain separate.");
+            metadata.Add("Identity meaning",report.ReportId=="exo-transport-rules" ? "Policy IDs are original Exchange transport-rule GUIDs. sha256 diagnostic keys identify local scope observations, never service IDs or execution authority." : "sha256 keys identify local observation tuples, not Microsoft service IDs, ownership, permissions or execution targets. Source namespaces remain separate.");
             metadata.Add("Registered limitation",definition.Limitations);
             if(report.ReportId=="exo-inbox-rules")metadata.Add("Hidden rule scope",report.Parameters.Single(p=>p.Name=="IncludeHidden").Value=="false"
                 ?"Hidden rules omitted; no complete all-rules inventory or incident verdict is claimed."
@@ -46,7 +46,7 @@ public static class RegisteredReportDocuments
                 .OrderBy(k => definition.ReportSchemaVersion == 2 ? FamilyColumnPriority(section.Id, k)
                     : k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
             var ruleCues = report.ReportId == "exo-inbox-rules" && section.Id == "rules";
-            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)).ToList();
+            var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? report.ReportId=="exo-transport-rules" && section.Id=="policies" ? "Exchange transport-rule GUID" : "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)).ToList();
             if (ruleCues) headings.InsertRange(1, ["Local review cue status", "Local review cues"]);
             var sheet = new Sheet(section.Id, headings);
             foreach (var row in section.Rows)
@@ -71,6 +71,7 @@ public static class RegisteredReportDocuments
         string[] priority = section switch
         {
             "permissions" => ["principal", "rights", "readStatus", "permissionKind", "sharingPermissionFlags", "isInherited", "deny", "error"],
+            "policies" => ["name", "state", "mode", "priority", "readStatus", "activationDate", "expiryDate", "error"],
             "members" => ["name", "sourceIdentity", "recipientTypeDetails", "primarySmtpAddress", "readStatus", "error"],
             "rules" => ["name", "enabled", "readStatus", "priority", "error"],
             _ => ["name", "readStatus", "lookupReadStatus", "folderReadStatus", "permissionReadStatus", "membershipReadStatus", "childReadStatus", "error", "permissionReads", "managedBy"]
@@ -153,6 +154,7 @@ public static class RegisteredReportDocuments
         }
         if (value is JsonValue scalar && scalar.TryGetValue<bool>(out var flag))
             return flag ? "True (reported)" : "False (reported)";
+        if(value is JsonValue textValue && textValue.TryGetValue<string>(out var text) && text.Length==0)return "Empty text (reported)";
         return Value(value) + " (reported)";
     }
 
