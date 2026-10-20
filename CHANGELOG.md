@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Add separate experimental/default-off read-only Run adapters for selected inbox rules, mailbox permission sources and unique default-calendar ACL observations. Preserve original manual scripts, localised folder paths, raw principal namespaces and explicit unknown/partial source outcomes; no effective-access or deployment-evidence claim. Native sections and original exports share existing report projections. Windows/native/package acceptance remains separately recorded.
+- Add separate experimental/default-off read-only Run adapters for selected inbox rules, mailbox permission sources, unique default-calendar ACL observations and direct distribution-group membership. Preserve original manual scripts, localised folder paths, raw principal namespaces and explicit unknown/partial source outcomes; no effective-access or deployment-evidence claim. Native sections and original exports share existing report projections. Windows/native/package acceptance remains separately recorded.
 
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.

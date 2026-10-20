@@ -5,7 +5,7 @@ namespace BuildStandard.Tests;
 [Collection("Exchange PowerShell fixtures")]
 public sealed class ExchangeFamilyGateTests
 {
-    [Theory][InlineData("calendar-unknown-type")][InlineData("calendar-source")][InlineData("calendar-unverified")][InlineData("calendar-ambiguous")][InlineData("calendar-stale")][InlineData("projection")][InlineData("permission-source")][InlineData("permission-unselected")][InlineData("permission-send-as")][InlineData("permission-send-on-behalf")][InlineData("permission-attribute-budget")][InlineData("lower-budget")][InlineData("diagnostic-reserve")][InlineData("wrong-target")][InlineData("unverified-child")][InlineData("wrong-object")][InlineData("extra-parameter")][InlineData("hidden-scope")][InlineData("rows")][InlineData("bytes")][InlineData("calls")][InlineData("actor")][InlineData("stale-parent")][InlineData("failed-lookup-after-good")]
+    [Theory][InlineData("group-source")][InlineData("group-unverified")][InlineData("group-unsupported")][InlineData("group-owner-budget")][InlineData("calendar-unknown-type")][InlineData("calendar-source")][InlineData("calendar-unverified")][InlineData("calendar-ambiguous")][InlineData("calendar-stale")][InlineData("projection")][InlineData("permission-source")][InlineData("permission-unselected")][InlineData("permission-send-as")][InlineData("permission-send-on-behalf")][InlineData("permission-attribute-budget")][InlineData("lower-budget")][InlineData("diagnostic-reserve")][InlineData("wrong-target")][InlineData("unverified-child")][InlineData("wrong-object")][InlineData("extra-parameter")][InlineData("hidden-scope")][InlineData("rows")][InlineData("bytes")][InlineData("calls")][InlineData("actor")][InlineData("stale-parent")][InlineData("failed-lookup-after-good")]
     public Task Fixed_private_family_gate_binds_targets_scope_and_shared_budgets_before_reads(string scenario) => RunFixture("Test-FamilyGate.ps1", scenario);
 
     [Theory][InlineData("false")][InlineData("permission-principal")][InlineData("permission-rights")][InlineData("permission-false")][InlineData("permission-forged-flag")][InlineData("permission-forged-rights")][InlineData("permission-rights-overflow")][InlineData("permission-unknown-with-value")][InlineData("permission-forged-principal")][InlineData("permission-unknown-column")][InlineData("missing")][InlineData("empty")][InlineData("reference")][InlineData("counts")][InlineData("blank-name")]
@@ -21,6 +21,9 @@ public sealed class ExchangeFamilyGateTests
 
     [Theory][InlineData("Default")][InlineData("Anonymous")][InlineData("label")]
     public Task Calendar_principal_shapes_are_pinned_before_schema_admission(string scenario) => RunFixture("Test-CalendarProjection.ps1", scenario);
+
+    [Theory][InlineData("raw-owner")][InlineData("unknown-owner")]
+    public Task Group_source_shapes_are_pinned_before_schema_admission(string scenario) => RunFixture("Test-GroupProjection.ps1", scenario);
 
     private static async Task RunFixture(string fixture, string scenario)
     {

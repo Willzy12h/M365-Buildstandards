@@ -51,6 +51,7 @@ internal static partial class Program
                 if (definition.Id == "exo-inbox-rules") PopulateInboxNativeFixture(evidence);
                 if (definition.Id == "exo-mailbox-permissions") PopulatePermissionNativeFixture(evidence);
                 if (definition.Id == "exo-calendar-permissions") PopulateCalendarNativeFixture(evidence);
+                if (definition.Id == "exo-distribution-groups") PopulateGroupNativeFixture(evidence);
                 ExchangeReportEvidenceSchema.Seal(evidence);
                 return Task.FromResult(new ReadRunResult(evidence.RunId, ReadRunOutcome.Completed, "Synthetic process completed with a Partial report.", evidence, false));
             };
@@ -146,6 +147,19 @@ internal static partial class Program
             if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  calendar permissions {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
             RecordUnnamedControls(content,"calendar permissions");RecordLowContrast(content,"calendar permissions");RecordClipping(content,"calendar permissions");
             SaveImage(content,size,Path.Combine(output,"run-reports-calendar-permissions-"+(int)size.Width+"x"+(int)size.Height+".png"));
+
+            page.Selected=page.Items.Single(item=>item.Id=="exo.distribution-group-observations");
+            page.Fields.Single(field=>field.Name=="GroupGuids").Value="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+            page.PrepareReview();page.Approved=true;command.Execute(null);deadline.Restart();
+            while(command.IsRunning){if(deadline.Elapsed>TimeSpan.FromSeconds(10))throw new InvalidOperationException("Synthetic group report did not complete.");Pump();}
+            if(page.OutcomeRows?.Count!=1 || page.OutcomeSections.Count!=2)throw new InvalidOperationException("Native group target diagnostics missing.");
+            page.SelectedOutcomeSection=page.OutcomeSections.Single(section=>section.Id=="members");
+            if(page.OutcomeRows?.Count!=1 || !page.OutcomeRows[0].Row.ItemArray.Contains("Exchange recipient GUID: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb") || page.CanFilterRuleCues)
+                throw new InvalidOperationException("Native group lost original member namespace or exposed inbox-only filtering.");
+            content.UpdateLayout();Pump();table.BringIntoView();content.UpdateLayout();Pump();
+            if(VisibleBounds(table,content).Height<100)CrampedCurrentPages.Add($"  group members {size.Width}x{size.Height} · needs100 visible row pixels; actual{VisibleBounds(table,content).Height:0.#}.");
+            RecordUnnamedControls(content,"group members");RecordLowContrast(content,"group members");RecordClipping(content,"group members");
+            SaveImage(content,size,Path.Combine(output,"run-reports-group-members-"+(int)size.Width+"x"+(int)size.Height+".png"));
 
             populated = false; page.Selected = page.Items.Single(i => i.Id == "exo.mailbox-size-quota");
             failSave = true; page.PrepareReview(); page.Approved = true; command.Execute(null);

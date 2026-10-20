@@ -80,6 +80,13 @@ public static class ExchangeReportRegistry
             Array.AsReadOnly(new[] { new Section("target-reads", typeof(ExchangeCalendarTargetRow)), new Section("permissions", typeof(CalendarPermissionObservationRow)) }),
             "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailboxfolderpermission",
             "Explicit selected mailbox GUIDs, unique returned default Calendar folder and original ACL principals only. Localised paths are retained, never guessed from an English name. Missing/ambiguous/failed discovery is not an empty ACL. Default and Anonymous remain typed special principals; unresolved labels remain partial. Returned rights and sharing flags do not prove effective delegate access. Live/module/RBAC behaviour remains unverified.",
+            ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion),
+        new Definition("exo-distribution-groups", "Selected distribution-group configuration and direct members", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-DistributionGroup", "Get-DistributionGroupMember" }),
+            Array.AsReadOnly(new[] { new Parameter("GroupGuids", ExchangeReportParameterType.Text) }),
+            Array.AsReadOnly(new[] { new Section("target-reads", typeof(ExchangeGroupTargetRow)), new Section("members", typeof(ExchangeGroupMemberRow)) }),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-distributiongroupmember",
+            "Explicit selected Exchange group GUIDs only. Original owner/member namespaces and membership settings remain observations, not effective access or delivery. No recursion, name resolution, Microsoft365 or dynamic-group expansion. Missing/null/failed values remain unknown; unresolved labels remain partial. Live/module/RBAC behaviour remains unverified.",
             ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion)
     });
 

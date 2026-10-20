@@ -237,4 +237,28 @@ function Get-EXOMailboxFolderPermission {
     if($script:Scenario -eq 'calendar-duplicate'){$row}
 }
 
-Export-ModuleMember -Function Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox
+function Get-DistributionGroup {
+    param([string]$Identity)
+    $script:Reads++;Write-FakeLog ('Read Get-DistributionGroup '+$Identity)
+    $row=[pscustomobject]@{Guid=[guid]$Identity;ExternalDirectoryObjectId=$null;DisplayName='Synthetic group';PrimarySmtpAddress='group@synthetic.example';RecipientTypeDetails='MailUniversalDistributionGroup';ManagedBy=@([pscustomobject]@{RawIdentity='original-owner';Private='excluded'});MemberJoinRestriction='Closed';MemberDepartRestriction='Open';RequireSenderAuthenticationEnabled=$false;HiddenFromAddressListsEnabled=$false;Private='excluded'}
+    if($script:Scenario -eq 'group-unsupported'){$row.RecipientTypeDetails='GroupMailbox'}
+    if($script:Scenario -eq 'group-unresolved-owner'){$row.ManagedBy=@([pscustomobject]@{DisplayName='Unresolved owner label'})}
+    if($script:Scenario -eq 'group-null-flag'){$row.RequireSenderAuthenticationEnabled=$null}
+    $row
+}
+function Get-DistributionGroupMember {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;Write-FakeLog ('Read Get-DistributionGroupMember '+$Identity+' ResultSize='+$ResultSize)
+    if($script:Scenario -eq 'group-failed'){throw 'Synthetic member read failure'}
+    if($script:Scenario -eq 'group-stop' -and $Identity -ne '44444444-4444-4444-8444-444444444444') {
+        for($n=0;$n -lt 300;$n++) { if(@(Get-ChildItem -LiteralPath $env:BDIT_FAKE_STAGING -Recurse -File -Filter 'stop-*.flag').Count -gt 0){break};Start-Sleep -Milliseconds 10 }
+    }
+    if($script:Scenario -eq 'group-empty'){return}
+    $row=[pscustomobject]@{Guid=[guid]'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';ExternalDirectoryObjectId=$null;Identity=[pscustomobject]@{RawIdentity='original-member'};DisplayName='Synthetic member';PrimarySmtpAddress='member@synthetic.example';RecipientTypeDetails='UserMailbox';Private='excluded'}
+    if($script:Scenario -eq 'group-unresolved-member'){$row.PSObject.Properties.Remove('Guid');$row.Identity=[pscustomobject]@{DisplayName='Unresolved member label'}}
+    if($script:Scenario -eq 'group-raw-member'){$row.PSObject.Properties.Remove('Guid');$row.ExternalDirectoryObjectId=[guid]'55555555-5555-4555-8555-555555555555'}
+    $row
+    if($script:Scenario -eq 'group-duplicate'){$row}
+}
+
+Export-ModuleMember -Function Get-DistributionGroup, Get-DistributionGroupMember, Get-EXOMailboxFolderStatistics, Get-EXOMailboxFolderPermission, Get-EXOMailboxPermission, Get-EXORecipientPermission, Get-InboxRule, Get-CASMailbox, Get-TransportConfig, Connect-ExchangeOnline, Disconnect-ExchangeOnline, Get-ConnectionInformation, Get-EXOMailbox, Get-EXOMailboxStatistics, Set-Mailbox

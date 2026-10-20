@@ -59,6 +59,7 @@ public static partial class ExchangeReportEvidenceSchema
     }
     private static void ValidateFamilyRow(ExchangeReportRow row,string reportId)
     {
+        if(reportId=="exo-distribution-groups"){ValidateGroupRow(row);return;}
         if(reportId=="exo-calendar-permissions"){ValidateCalendarRow(row);return;}
         if(reportId=="exo-mailbox-permissions"){ValidatePermissionRow(row);return;}
         if(reportId!="exo-inbox-rules")throw Bad("Unregistered report2 family projection.");
@@ -103,6 +104,7 @@ public static partial class ExchangeReportEvidenceSchema
     }
     private static void ValidateFamilyReport(ExchangeReportEvidence evidence)
     {
+        if(evidence.ReportId=="exo-distribution-groups"){ValidateGroupReport(evidence);return;}
         if(evidence.ReportId=="exo-calendar-permissions"){ValidateCalendarReport(evidence);return;}
         if(evidence.ReportId=="exo-mailbox-permissions"){ValidatePermissionReport(evidence);return;}
         if(evidence.ReportId!="exo-inbox-rules")throw Bad("Unregistered report2 family.");

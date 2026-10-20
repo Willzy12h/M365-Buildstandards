@@ -48,7 +48,7 @@ public sealed class ScriptLibraryTests
     public void The_shipped_library_loads_and_every_item_is_read_only_and_unverified()
     {
         var entries = ScriptCatalogue.Shipped.Entries;
-        Assert.Equal(36, entries.Count);
+        Assert.Equal(37, entries.Count);
         Assert.Equal(29, entries.Count(e => e.Manifest.SchemaVersion == 1));
         Assert.All(entries, e =>
         {
@@ -285,7 +285,7 @@ public sealed class ScriptLibraryTests
         Assert.Contains("does not match the SHA-256", ex.Message, StringComparison.Ordinal);
 
         Repin(files, "exchange-online/Get-InboxRuleReport.json");
-        Assert.Equal(36, ScriptCatalogue.Load(files).Entries.Count);
+        Assert.Equal(37, ScriptCatalogue.Load(files).Entries.Count);
     }
 
     [Theory]

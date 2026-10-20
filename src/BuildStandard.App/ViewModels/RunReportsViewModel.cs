@@ -262,7 +262,7 @@ public sealed class RunReportsViewModel : PageViewModel
     }
     private static string SectionLabel(string id) => id switch
     {
-        "permissions" => "Mailbox permission observations", "target-reads" => "Target read status", "rules" => "Inbox-rule observations", "mailboxes" => "Mailboxes",
+        "members" => "Direct group members", "permissions" => "Permission observations", "target-reads" => "Target read status", "rules" => "Inbox-rule observations", "mailboxes" => "Mailboxes",
         "protocols" => "Mailbox protocols", "forwarding" => "Mailbox forwarding", "holds" => "Mailbox holds", _ => id
     };
     private void BuildOutcomeRows()

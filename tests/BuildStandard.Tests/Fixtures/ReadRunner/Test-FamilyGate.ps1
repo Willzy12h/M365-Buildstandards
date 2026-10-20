@@ -55,12 +55,46 @@ function Get-FakeCalendarAcl {
     $script:Reads++;Check ($Identity -ceq ($first+':\Kalender')) 'A guessed or foreign calendar reached the source'
     [pscustomobject]@{User=[pscustomobject]@{UserType='Default';Private='excluded'};AccessRights=@('Reviewer');SharingPermissionFlags=@();Private='excluded'}
 }
-$Readers=@{'Get-EXOMailboxFolderStatistics'=(Get-Command Get-FakeFolders);'Get-EXOMailboxFolderPermission'=(Get-Command Get-FakeCalendarAcl);'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
+function Get-FakeGroup {
+    param([string]$Identity)
+    $script:Reads++
+    $kind=if($Case -ceq 'group-unsupported'){'GroupMailbox'}else{'MailUniversalDistributionGroup'}
+    [pscustomobject]@{Guid=[guid]$Identity;ExternalDirectoryObjectId=$null;DisplayName='Synthetic group';PrimarySmtpAddress='group@synthetic.example';RecipientTypeDetails=$kind;
+        ManagedBy=@([pscustomobject]@{RawIdentity='owner-reference';Private='excluded'});MemberJoinRestriction='Closed';MemberDepartRestriction='Open';RequireSenderAuthenticationEnabled=$false;HiddenFromAddressListsEnabled=$false;Private='excluded'}
+}
+function Get-FakeMembers {
+    param([string]$Identity,[int]$ResultSize)
+    $script:Reads++;$script:LastSize=$ResultSize
+    [pscustomobject]@{Guid=[guid]$second;ExternalDirectoryObjectId=$null;Identity=[pscustomobject]@{RawIdentity='member-reference'};DisplayName='Synthetic member';PrimarySmtpAddress='member@synthetic.example';RecipientTypeDetails='UserMailbox';Private='excluded'}
+}
+$Readers=@{'Get-DistributionGroup'=(Get-Command Get-FakeGroup);'Get-DistributionGroupMember'=(Get-Command Get-FakeMembers);'Get-EXOMailboxFolderStatistics'=(Get-Command Get-FakeFolders);'Get-EXOMailboxFolderPermission'=(Get-Command Get-FakeCalendarAcl);'Get-EXOMailboxPermission'=(Get-Command Get-FakePermission);'Get-EXORecipientPermission'=(Get-Command Get-FakePermission);'Get-EXOMailbox' =(Get-Command Get-FakeMailbox);'Get-InboxRule'=(Get-Command Get-FakeRules)}
 function Refused([scriptblock]$Work,[int]$ExpectedReads){
     $failed=$false;try{$null=& $Work}catch{$failed=$true}
     Check $failed 'A forbidden/unbounded call was admitted';Check ($script:Reads -eq $ExpectedReads) 'A refused call reached a source reader'
 }
 switch -CaseSensitive ($Case) {
+ 'group-source' {
+    $script:FamilyReportId='exo-distribution-groups'
+    $groups=@(Use-BditRead -Command 'Get-DistributionGroup' -Parameters @{Identity=$first})
+    Check ($groups.Count -eq 1 -and $groups[0].ManagedBy[0].Source -ceq 'RawIdentity' -and -not $groups[0].RequireSenderAuthenticationEnabled) 'Original owner namespace or false setting lost'
+    $members=@(Use-BditRead -Command 'Get-DistributionGroupMember' -Parameters @{Identity=$first})
+    Check ($members.Count -eq 1 -and $members[0].Guid -is [guid]) 'Member service GUID lost'
+    Check ($null -eq $members[0].PSObject.Properties['Private']) 'Arbitrary member data escaped'
+    Check ($script:FamilyRowsRead -eq 2 -and $script:LastSize -eq 4999) 'Owner/member reads did not share the diagnostic-reserved row budget'
+ }
+ 'group-unverified' {
+    $script:FamilyReportId='exo-distribution-groups'
+    Refused {Use-BditRead -Command 'Get-DistributionGroupMember' -Parameters @{Identity=$first}} 0
+ }
+ 'group-unsupported' {
+    $script:FamilyReportId='exo-distribution-groups'
+    $null=Use-BditRead -Command 'Get-DistributionGroup' -Parameters @{Identity=$first}
+    Refused {Use-BditRead -Command 'Get-DistributionGroupMember' -Parameters @{Identity=$first}} 1
+ }
+ 'group-owner-budget' {
+    $script:FamilyReportId='exo-distribution-groups';$script:FamilyObservationMaximum=0
+    Refused {Use-BditRead -Command 'Get-DistributionGroup' -Parameters @{Identity=$first}} 1
+ }
  'calendar-source' {
     $script:FamilyReportId='exo-calendar-permissions'
     $null=Use-BditRead -Command 'Get-EXOMailbox' -Parameters @{Identity=$first}

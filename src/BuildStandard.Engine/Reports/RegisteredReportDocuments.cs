@@ -43,10 +43,11 @@ public static class RegisteredReportDocuments
             metadata.Add("Section " + section.Id, section.Status + " · " + section.Rows.Count + " returned rows · " + (section.Error ?? "Read completed"));
             foreach (var limitation in report.Limitations.Concat(section.Limitations)) metadata.Add("Limitation", limitation);
             var columns = ExchangeReportEvidenceSchema.Columns(definition.Sections.Single(s => s.Id == section.Id).RowType)
-                .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
+                .OrderBy(k => definition.ReportSchemaVersion == 2 ? FamilyColumnPriority(section.Id, k)
+                    : k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
             var ruleCues = report.ReportId == "exo-inbox-rules" && section.Id == "rules";
             var headings = columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)).ToList();
-            if (ruleCues) headings.AddRange(["Local review cue status", "Local review cues"]);
+            if (ruleCues) headings.InsertRange(1, ["Local review cue status", "Local review cues"]);
             var sheet = new Sheet(section.Id, headings);
             foreach (var row in section.Rows)
             {
@@ -54,13 +55,28 @@ public static class RegisteredReportDocuments
                 if (ruleCues)
                 {
                     var cue = RuleReviewCue(row);
-                    cells.Add(cue.Status); cells.Add(cue.Detail);
+                    cells.InsertRange(1, [cue.Status, cue.Detail]);
                 }
                 sheet.Rows.Add(cells.ToArray());
             }
             sheets.Add(sheet);
         }
         return sheets;
+    }
+    // Presentation order only: retain every registered column and the unchanged original evidence/JSON.
+    // Work fields lead the native and human-readable export table; local hashes remain available at the end.
+    private static int FamilyColumnPriority(string section, string column)
+    {
+        if (column == "id") return 99;
+        string[] priority = section switch
+        {
+            "permissions" => ["principal", "rights", "readStatus", "permissionKind", "sharingPermissionFlags", "isInherited", "deny", "error"],
+            "members" => ["name", "sourceIdentity", "recipientTypeDetails", "primarySmtpAddress", "readStatus", "error"],
+            "rules" => ["name", "enabled", "readStatus", "priority", "error"],
+            _ => ["name", "readStatus", "lookupReadStatus", "folderReadStatus", "permissionReadStatus", "membershipReadStatus", "childReadStatus", "error", "permissionReads", "managedBy"]
+        };
+        var index = Array.IndexOf(priority, column);
+        return index < 0 ? 80 : index;
     }
     private static (string Status, string Detail) RuleReviewCue(JsonObject row)
     {
@@ -146,7 +162,7 @@ public static class RegisteredReportDocuments
         var label = source switch
         {
             "UnresolvedDisplayLabel" => "Unresolved display label", "RawIdentity" => "Raw identity",
-            "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal", _ => "Returned text"
+            "ExchangeRecipientGuid" => "Exchange recipient GUID", "DistinguishedName" => "Distinguished name", "SpecialPrincipal" => "Special principal", _ => "Returned text"
         };
         var unresolved = source == "UnresolvedDisplayLabel" ? " (identity not resolved)" : "";
         var directoryId = item["externalDirectoryObjectId"]?.GetValue<string>();

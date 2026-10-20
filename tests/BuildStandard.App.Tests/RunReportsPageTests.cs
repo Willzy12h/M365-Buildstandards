@@ -37,6 +37,21 @@ public sealed class RunReportsPageTests : IDisposable
     { using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10)); while (command.IsRunning) await Task.Delay(10, stop.Token); }
 
     [Fact]
+    public async Task Group_selection_exposes_read_diagnostics_and_successful_empty_direct_members_without_a_second_call()
+    {
+        _page.Selected=_page.Items.Single(item=>item.Id=="exo.distribution-group-observations");
+        _page.Fields.Single(field=>field.Name=="GroupGuids").Value=TestData.Office;
+        _page.ExperimentalReadEnabled=true;Approve();await _page.RunAsync();
+        Assert.Equal(2,_page.OutcomeSections.Count);Assert.Single(_page.OutcomeRows!.Cast<System.Data.DataRowView>());
+        _page.SelectedOutcomeSection=_page.OutcomeSections.Single(section=>section.Id=="members");
+        Assert.Empty(_page.OutcomeRows!.Cast<System.Data.DataRowView>());Assert.Contains("Collected",_page.OutcomeSectionGuidance);Assert.False(_page.CanFilterRuleCues);
+        _page.SelectedExportFormat=BuildStandard.Engine.Reports.ExportFormat.Json;await _page.ExportReportAsync();
+        Assert.Equal(_f.Workflow.EvidenceJson,File.ReadAllText(_page.LastExport));Assert.Equal(1,_f.Calls);
+        _page.Fields.Single(field=>field.Name=="GroupGuids").Value=TestData.TenantB;
+        Assert.False(_page.HasReview);Assert.Null(_page.OutcomeRows);Assert.Equal(1,_f.Calls);
+    }
+
+    [Fact]
     public async Task Calendar_selection_keeps_localised_discovery_visible_and_context_changes_invalidate_results()
     {
         _page.Selected=_page.Items.Single(item=>item.Id=="exo.calendar-permission-observations");

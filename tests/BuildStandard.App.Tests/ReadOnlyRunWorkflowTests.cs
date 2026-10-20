@@ -76,7 +76,7 @@ internal sealed class ReadRunFixture : IDisposable
         if (definition.ReportSchemaVersion == 2)
         {
             report.ReportSchemaVersion = 2; report.AdapterVersion = definition.AdapterVersion;
-            var mailbox = inputs["MailboxGuids"]!;
+            var mailbox = inputs[definition.Id=="exo-distribution-groups"?"GroupGuids":"MailboxGuids"]!;
             report.Sections =
             [
                 new() { Id = "target-reads", Status = "Collected", Rows = [new JsonObject
@@ -107,6 +107,18 @@ internal sealed class ReadRunFixture : IDisposable
             target["nativeFolderIdentity"]=ExchangeCalendarIdentity.FromReturnedPath(inputs["MailboxGuids"]!,"/Kalender");
             target["permissionReadStatus"]="Collected";report.Sections[1].Id="permissions";
         }
+        if(definition.Id=="exo-distribution-groups")
+        {
+            var group=inputs["GroupGuids"]!;
+            report.Sections[0].Rows=[ExchangeReportEvidenceSchema.Row(new ExchangeGroupTargetRow
+            {
+                Id=ExchangeObservationKey.TargetRead(definition.Id,group),Name="Synthetic group",ReadStatus="Collected",RequestedGroupGuid=group,ObservedGroupGuid=group,
+                LookupReadStatus="Collected",MembershipReadStatus="Collected",ReturnedEntries=0,ExcludedEntries=0,
+                RecipientTypeDetails=new(){State="Value",Value="MailUniversalDistributionGroup"},ManagedBy=new(){State="Value",Value=[]},
+                MemberJoinRestriction=new(){State="Value",Value="Closed"},MemberDepartRestriction=new(){State="Value",Value="Open"},
+                RequireSenderAuthenticationEnabled=new(){State="Value",Value=false},HiddenFromAddressListsEnabled=new(){State="Value",Value=false}
+            })];report.Sections[1].Id="members";
+        }
         ExchangeReportEvidenceSchema.Seal(report);
         return new(report.RunId, outcome, "Synthetic safe outcome.", report, false);
     }
@@ -130,7 +142,7 @@ public sealed class ReadOnlyRunWorkflowTests
     public async Task Verified_connection_is_default_off_and_does_not_grant_exact_run_approval()
     {
         using var f = new ReadRunFixture();
-        Assert.Equal(7, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
+        Assert.Equal(8, f.Workflow.Items.Count); Assert.False(f.Workflow.Enabled);
         Assert.Throws<SafetyViolationException>(f.Workflow.PrepareReview);
         var review = f.Review();
         await Assert.ThrowsAsync<SafetyViolationException>(() => f.Workflow.RunAsync(review, false, null, default));
