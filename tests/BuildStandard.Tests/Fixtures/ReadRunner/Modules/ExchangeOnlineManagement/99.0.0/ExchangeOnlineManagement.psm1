@@ -184,6 +184,7 @@ function Get-InboxRule {
     $row=[pscustomobject]@{RuleIdentity=[uint64]::MaxValue;Identity='raw opaque rule';Name='Synthetic';Enabled=$false;Priority=0;ForwardTo=@();ForwardAsAttachmentTo=@();RedirectTo=@();DeleteMessage=$false;MarkAsRead=$false;StopProcessingRules=$true}
     if ($script:Scenario -eq 'inbox-missing') { $row.PSObject.Properties.Remove('DeleteMessage') }
     if ($script:Scenario -eq 'inbox-missing-id') { $row.PSObject.Properties.Remove('RuleIdentity') }
+    if ($script:Scenario -eq 'inbox-raw-identity') { $row.Identity=[pscustomobject]@{RawIdentity='opaque-original';Secret='excluded unrelated'} }
     if ($script:Scenario -eq 'inbox-null') { $row.DeleteMessage=$null }
     if ($script:Scenario -eq 'inbox-unresolved') { $row.ForwardTo=@([pscustomobject]@{DisplayName='Unresolved synthetic label'}) }
     $row

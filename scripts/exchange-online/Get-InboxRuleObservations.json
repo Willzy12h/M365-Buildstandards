@@ -13,7 +13,7 @@
   ],
   "mode": "readOnly",
   "scriptPath": "exchange-online/Get-InboxRuleObservations.ps1",
-  "scriptSha256": "68940a84bd21c82fee2d001345b027c0cc19847225e672455c228e6f5c64ee36",
+  "scriptSha256": "2e8d1d3fa55600d4313dafa1c42a6710acfa1bab6abfbc561de8282b94e7fa40",
   "supportedRuntimes": [
     "5.1",
     "7"

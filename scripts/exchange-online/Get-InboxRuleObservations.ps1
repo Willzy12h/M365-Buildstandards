@@ -8,6 +8,16 @@ function TextOf($Item, [string]$Name, [bool]$AllowBlank = $false) {
     if (-not $AllowBlank -and [string]::IsNullOrWhiteSpace($p.Value)) { return $null }
     return $p.Value
 }
+function ActualIdentityOf($Item) {
+    $text = TextOf $Item 'Identity'
+    if ($null -ne $text) { return $text }
+    $property = $Item.PSObject.Properties['Identity']
+    if ($null -ne $property -and $null -ne $property.Value -and (TextOf $property.Value 'Source') -ceq 'RawIdentity') {
+        # This is the private gate's whitelisted source projection, not an arbitrary object serialisation.
+        return (TextOf $property.Value 'Value')
+    }
+    return $null
+}
 function GuidOf($Item, [string]$Name) {
     $p = $Item.PSObject.Properties[$Name]
     if ($null -eq $p -or ($p.Value -isnot [guid] -and $p.Value -isnot [string])) { return $null }
@@ -89,7 +99,7 @@ foreach ($target in $targets) {
             }
             $seen.Add($identity)
             $row = [ordered]@{ id = $null; name = (TextOf $item 'Name' $true); readStatus = 'Collected'; error = $null;
-                mailboxExchangeGuid = $id; ruleIdentity = $identity; actualIdentityRaw = (TextOf $item 'Identity');
+                mailboxExchangeGuid = $id; ruleIdentity = $identity; actualIdentityRaw = (ActualIdentityOf $item);
                 enabled = (ValueOf $item 'Enabled' 'Flag'); priority = (ValueOf $item 'Priority' 'Priority');
                 forwardTo = (ValueOf $item 'ForwardTo' 'References'); forwardAsAttachmentTo = (ValueOf $item 'ForwardAsAttachmentTo' 'References');
                 redirectTo = (ValueOf $item 'RedirectTo' 'References'); deleteMessage = (ValueOf $item 'DeleteMessage' 'Flag');

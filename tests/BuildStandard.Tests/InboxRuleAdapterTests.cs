@@ -9,7 +9,7 @@ namespace BuildStandard.Tests;
 public sealed class InboxRuleAdapterTests
 {
     public static IEnumerable<object[]> Cases() => ExchangeReportRunnerTests.Runtimes().Cast<object[]>().SelectMany(runtime =>
-        new[] { "inbox-values", "inbox-missing", "inbox-empty", "inbox-failed", "inbox-missing-id", "inbox-duplicate", "inbox-null", "inbox-unresolved", "inbox-mismatch", "inbox-actor-change", "wrong-account", "wrong-tenant" }
+        new[] { "inbox-values", "inbox-missing", "inbox-empty", "inbox-failed", "inbox-missing-id", "inbox-duplicate", "inbox-null", "inbox-unresolved", "inbox-mismatch", "inbox-actor-change", "inbox-raw-identity", "wrong-account", "wrong-tenant" }
             .Select(scenario => new object[] { runtime[0], scenario }));
 
     [Theory][MemberData(nameof(ExchangeReportRunnerTests.Runtimes), MemberType = typeof(ExchangeReportRunnerTests))]
@@ -95,6 +95,8 @@ public sealed class InboxRuleAdapterTests
             var row = Assert.Single(evidence.Sections[1].Rows);
             Assert.Equal("18446744073709551615", row["ruleIdentity"]!.GetValue<string>());
             Assert.Equal(ExchangeObservationKey.InboxRule(TestData.Office, "18446744073709551615"), row["id"]!.GetValue<string>());
+            Assert.Equal(scenario == "inbox-raw-identity" ? "opaque-original" : "raw opaque rule", row["actualIdentityRaw"]!.GetValue<string>());
+            Assert.DoesNotContain("excluded unrelated", row.ToJsonString());
             Assert.False(row["enabled"]!["value"]!.GetValue<bool>());
             if (scenario == "inbox-unresolved")
             {

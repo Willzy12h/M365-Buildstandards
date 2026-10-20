@@ -46,8 +46,8 @@
     {
       "id": "exo.inbox-rule-observations",
       "manifest": "exchange-online/Get-InboxRuleObservations.json",
-      "manifestSha256": "515f01401b51607a29105fe034a3a087a464838ab66fba503a6f9b4f293785c6",
-      "scriptSha256": "68940a84bd21c82fee2d001345b027c0cc19847225e672455c228e6f5c64ee36",
+      "manifestSha256": "9917f192f063070e5afa49d7db8f5b83390b5fb388ac8a8c17124c155c1a772d",
+      "scriptSha256": "2e8d1d3fa55600d4313dafa1c42a6710acfa1bab6abfbc561de8282b94e7fa40",
       "manifestSchemaVersion": 2
     },
     {
