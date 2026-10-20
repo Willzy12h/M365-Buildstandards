@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Automation;
 using System.Windows.Input;
+using System.Windows.Media;
 using BuildStandard.App.Infrastructure;
 using BuildStandard.App.ViewModels;
 
@@ -32,6 +33,15 @@ internal static partial class Program
             {
                 var target = Descendants(panel).OfType<TextBox>().Single(e => AutomationProperties.GetName(e) == name);
                 target.BringIntoView(); content.UpdateLayout(); Pump();
+                // TextBox BringIntoView can stop at its internal scroll host. Move each containing
+                // viewport explicitly, then prove that the requested control is actually in the image.
+                for (DependencyObject? ancestor = VisualTreeHelper.GetParent(target); ancestor is not null && ancestor != content;
+                     ancestor = VisualTreeHelper.GetParent(ancestor))
+                {
+                    if (ancestor is not ScrollViewer scroll) continue;
+                    scroll.ScrollToVerticalOffset(scroll.VerticalOffset + target.TranslatePoint(new Point(0, 0), scroll).Y - 8);
+                    content.UpdateLayout(); Pump();
+                }
                 var visible = VisibleBounds(target, content);
                 if (visible.Width < 100 || visible.Height < Math.Min(target.ActualHeight, 48) - 1)
                     throw new InvalidOperationException("Candidate " + suffix + " is outside the captured viewport.");
