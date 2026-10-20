@@ -17,8 +17,10 @@ internal static partial class Program
     {
         var columns=UsageReportRegistry.Find("email-activity").Columns;
         static string Quote(string value)=>"\""+value.Replace("\"","\"\"")+"\"";
-        var csv=Encoding.UTF8.GetBytes(string.Join(',',columns)+"\r\n"+string.Join(',',columns.Select(name=>Quote(name=="Report Refresh Date"?"2026-10-20":name=="Display Name"?"Synthetic engineer":name=="User Principal Name"?"unverified@synthetic.invalid":"")))+"\r\n");
-        var report=new UsageReviewReport{Id=Id(880),TenantId=Tenant,StartedAt=Stamp,EndedAt=Stamp,ToolkitVersion=workspace.Version,Status="Partial",
+        string DataRow(int index)=>string.Join(',',columns.Select(name=>Quote(name=="Report Refresh Date"?"2026-10-20":name=="Display Name"?"Synthetic engineer "+index:name=="User Principal Name"?"unverified"+index+"@synthetic.invalid":"")));
+        var csv=Encoding.UTF8.GetBytes(string.Join(',',columns)+"\r\n"+DataRow(1)+"\r\n"+DataRow(2)+"\r\n");
+        var now=Timestamps.Format(DateTimeOffset.UtcNow);
+        var report=new UsageReviewReport{Id=Id(880),TenantId=Tenant,StartedAt=now,EndedAt=now,ToolkitVersion=workspace.Version,Status="Partial",
             Sources=[new(){SourceId="email-activity",Period="D30",Status="Collected",OriginalCsvBase64=Convert.ToBase64String(csv),CsvSha256=Convert.ToHexStringLower(SHA256.HashData(csv))},new(){SourceId="teams-activity",Period="D30",Status="Failed",Reason="Synthetic access refusal; not a successful empty result."}]};
         UsageReviewSchema.Seal(report);SyntheticUsageFile=Path.Combine(workspace.Paths.ReportsDirectory,"synthetic-usage-source.json");
         Directory.CreateDirectory(workspace.Paths.ReportsDirectory);File.WriteAllText(SyntheticUsageFile,UsageReviewSchema.Serialise(report),new UTF8Encoding(false));
@@ -36,7 +38,7 @@ internal static partial class Program
             shell.Navigate("reports");SeedUsagePage(shell);FitNativeReportClientSize(window,content,size);var vm=shell.Page<GraphReportsViewModel>().Usage;
             var tabs=Descendants(content).OfType<TabControl>().Single(t=>t.Items.OfType<TabItem>().Any(item=>Equals(item.Header,"Read usage")));
             tabs.SelectedIndex=1;vm.SelectedSection=UsageReportRegistry.Find("email-activity").Name;content.UpdateLayout();Pump();
-            if(vm.Rows?.Count!=1||!vm.Outcome.Contains("Partial",StringComparison.Ordinal)||!vm.PrivacyNotice.Contains("Unknown",StringComparison.Ordinal))
+            if(vm.Rows?.Count!=2||!vm.Outcome.Contains("Partial",StringComparison.Ordinal)||!vm.PrivacyNotice.Contains("Unknown",StringComparison.Ordinal))
                 throw new InvalidOperationException("Usage native view lost partial source status, original row or unknown privacy.");
             var grid=Descendants(content).OfType<DataGrid>().Single(g=>AutomationProperties.GetName(g)=="Usage observations and source provenance");
             grid.BringIntoView();content.UpdateLayout();Pump();

@@ -111,6 +111,12 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                         var configuredIds=existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
                             .SelectMany(api=>(api["resourceAccess"] as JsonArray ?? []).OfType<JsonObject>())
                             .Where(permission=>Text(permission,"type")=="Scope").Select(permission=>Text(permission,"id")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        // An unresolved configured ID might be a previously approved optional permission. Without
+                        // a returned definition its removal cannot be identified/reviewed; never silently drop it.
+                        var advertisedIds=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
+                            .Select(permission=>Text(permission,"id")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        if(configuredIds.Except(advertisedIds,StringComparer.OrdinalIgnoreCase).Any())
+                            throw new ConfigurationException("A configured Graph permission definition is unavailable. Preview refused; existing permissions were retained. Review the registration separately.");
                         var usageDefinitions=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
                             .Where(permission=>Same(Text(permission,"value"),OptionalReportAccessPolicy.UsageScope)&&configuredIds.Contains(Text(permission,"id"))).ToArray();
                         if(usageDefinitions.Length>0)
