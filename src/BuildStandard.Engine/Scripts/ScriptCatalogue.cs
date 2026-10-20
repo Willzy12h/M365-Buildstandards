@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BuildStandard.Core;
+using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
@@ -183,10 +184,7 @@ public sealed class ScriptCatalogue
             if (!VersionPattern.IsMatch(module.MinimumVersion)) throw Refuse($"{at}: module {module.Name} needs a minimum version such as 3.7.0.");
         }
         if (m.LiveStatus != ScriptLiveStatus.Unverified) throw Refuse($"{at}: only William records live acceptance; new items are unverified.");
-        if (m.OutputSchemaVersion != 1) throw Refuse($"{at}: output schema version must be 1.");
-        if (m.OutputSchema.Columns.Count is 0 or > 40 || m.OutputSchema.Columns.Any(c => !ColumnPattern.IsMatch(c))
-            || m.OutputSchema.Columns.Distinct(StringComparer.OrdinalIgnoreCase).Count() != m.OutputSchema.Columns.Count)
-            throw Refuse($"{at}: output columns must be 1–40 unique names.");
+        ValidateOutputDescription(m);
         if (m.Limits.MaximumRows is < 1 or > 50_000) throw Refuse($"{at}: maximum rows must be between 1 and 50,000.");
         if (m.Limits.TimeoutSeconds is < 10 or > 3_600) throw Refuse($"{at}: the timeout must be between 10 seconds and an hour.");
 
@@ -198,7 +196,9 @@ public sealed class ScriptCatalogue
             RequireText(pat, "label", p.Label, 60);
             RequireText(pat, "help", p.Help, 300);
             if (p.Format is not null && p.Type != ScriptParameterType.String) throw Refuse($"{pat}: only string parameters have a format.");
-            if (p.MaxLength is not null && (p.Type != ScriptParameterType.String || p.MaxLength is < 1 or > 1_000)) throw Refuse($"{pat}: maxLength is 1–1000 and only for strings.");
+            var maximumText = IsExchangeTargetParameter(m, p.Name) ? ExchangeTargetSelection.MaximumTextLength : 1000;
+            if (p.MaxLength is not null && (p.Type != ScriptParameterType.String || p.MaxLength < 1 || p.MaxLength > maximumText))
+                throw Refuse($"{pat}: maxLength is 1–{maximumText} and only for strings.");
             if (p.Array != (p.MaxItems is not null)) throw Refuse($"{pat}: array parameters, and only they, set maxItems.");
             if (p.MaxItems is < 1 or > 100) throw Refuse($"{pat}: maxItems must be 1–100.");
             if (p.Array && p.Type is not (ScriptParameterType.String or ScriptParameterType.Enum)) throw Refuse($"{pat}: only text and choice fields take several values.");
@@ -249,8 +249,66 @@ public sealed class ScriptCatalogue
     public static ExchangeReportRegistry.Definition ReportFor(ScriptManifest m)
     {
         if (m.SchemaVersion != 2 || m.Execution is null) throw Refuse($"{m.Id}: only a schema 2 item can run.");
-        try { return ExchangeReportRegistry.Find(m.Execution.ReportId); }
+        try
+        {
+            var report = ExchangeReportRegistry.Find(m.Execution.ReportId);
+            if (m.Execution.ReportSchemaVersion != report.ReportSchemaVersion)
+                throw Refuse($"{m.Id}: the report version must match its exact registration.");
+            return report;
+        }
         catch (ConfigurationException) { throw Refuse($"{m.Id}: the report {m.Execution.ReportId} is not registered in this engine."); }
+    }
+
+    internal static bool IsExchangeTargetParameter(ScriptManifest manifest, string name) =>
+        name is "MailboxGuids" or "GroupGuids" or "RuleGuids" && manifest.SchemaVersion == 2
+        && manifest.Execution is { ReportSchemaVersion: 2 } execution
+        && ExchangeReportRegistry.Definitions.Any(report => report.Id == execution.ReportId
+            && report.ReportSchemaVersion == 2 && report.Adapter == execution.Adapter
+            && report.Parameters.Any(parameter => parameter.Name == name && parameter.Type == ExchangeReportParameterType.Text));
+
+    /// <summary>
+    /// A report2 description can be inspected offline before its adapter ships, but cannot become executable. Re-read
+    /// immutable embedded pins rather than trusting a caller-created entry or a modified cached manifest projection.
+    /// Old report1 admission is unchanged. This supplies no experimental opt-in or tenant/authentication authority.
+    /// </summary>
+    internal static void RequirePackagedFamily(ScriptEntry entry)
+    {
+        if (entry.Manifest.Execution?.ReportSchemaVersion != 2) return;
+        var expected = LoadEmbedded().Entries.SingleOrDefault(item => item.Manifest.Id == entry.Manifest.Id);
+        if (expected is null || expected.Manifest.Execution?.ReportSchemaVersion != 2
+            || expected.ManifestSha256 != entry.ManifestSha256 || expected.Script != entry.Script
+            || CanonicalJson.SerializeValue(expected.Manifest) != CanonicalJson.SerializeValue(entry.Manifest))
+            throw Refuse("Only the exact package-owned report2 adapter can be prepared. This description is not a runnable adapter.");
+    }
+
+    private static void ValidateOutputDescription(ScriptManifest manifest)
+    {
+        var at = manifest.Id;
+        var shape = manifest.OutputSchema;
+        if (manifest.OutputSchemaVersion == 1)
+        {
+            if (shape.Sections is not null || shape.Columns.Count is 0 or > 40
+                || shape.Columns.Any(column => !ColumnPattern.IsMatch(column))
+                || shape.Columns.Distinct(StringComparer.OrdinalIgnoreCase).Count() != shape.Columns.Count)
+                throw Refuse($"{at}: a flat description has 1–40 unique columns and no sections.");
+            if (manifest.SchemaVersion == 2 && ReportFor(manifest).ReportSchemaVersion != 1)
+                throw Refuse($"{at}: registered report2 requires the exact sectioned output description.");
+            return;
+        }
+        if (manifest.OutputSchemaVersion != 2 || manifest.SchemaVersion != 2)
+            throw Refuse($"{at}: the output description version is not supported for this manifest.");
+        var report = ReportFor(manifest);
+        if (report.ReportSchemaVersion != 2 || shape.Columns.Count != 0 || shape.Sections is not { Count: > 0 and <= 8 }
+            || shape.Sections.Count != report.Sections.Count)
+            throw Refuse($"{at}: report2 needs empty flat columns and the exact registered sections.");
+        for (var index = 0; index < report.Sections.Count; index++)
+        {
+            var section = shape.Sections[index];
+            if (section is null || section.Id != report.Sections[index].Id || section.Columns is null
+                || section.Columns.Count is 0 or > 40
+                || !section.Columns.SequenceEqual(ExchangeReportEvidenceSchema.Columns(report.Sections[index].RowType), StringComparer.Ordinal))
+                throw Refuse($"{at}: the section names, order and columns must equal the registered projection.");
+        }
     }
 
     /// <summary>
@@ -262,18 +320,18 @@ public sealed class ScriptCatalogue
         var at = m.Id;
         var e = m.Execution ?? throw Refuse($"{at}: a schema 2 manifest needs an execution member.");
         if (m.Mode != ScriptMode.ReadOnly) throw Refuse($"{at}: a copy-only change can never be run.");
-        if (m.Limits.MaximumRows > ExchangeReportRegistry.MaximumRows) throw Refuse($"{at}: a runnable item reads at most 10,000 rows per section.");
         if (m.Limits.TimeoutSeconds > ReadRunnerLimits.MaximumTimeoutSeconds) throw Refuse($"{at}: a runnable item has at most 1,800 seconds.");
         if (!string.Equals(m.Resources[0], e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the execution adapter must be the item's resource.");
         var report = ReportFor(m);
+        if (m.Limits.MaximumRows > report.RowLimit) throw Refuse($"{at}: the row limit exceeds this report's fixed bound.");
         if (!string.Equals(report.Adapter, e.Adapter, StringComparison.Ordinal)) throw Refuse($"{at}: the report belongs to another adapter.");
-        if (e.ReportSchemaVersion != 1 || e.OutputSchemaVersion != 1 || !string.Equals(e.OutputKind, ReadRunnerLimits.OutputKind, StringComparison.Ordinal))
-            throw Refuse($"{at}: the execution output must be scriptReadResult schema 1 for report schema 1.");
+        if (e.ReportSchemaVersion != report.ReportSchemaVersion || e.OutputSchemaVersion != 1 || !string.Equals(e.OutputKind, ReadRunnerLimits.OutputKind, StringComparison.Ordinal))
+            throw Refuse($"{at}: execution requires scriptReadResult schema1 and the exact registered report version.");
         if (!string.Equals(e.RunnerTemplateSha256, ReadRunnerTemplate.Sha256, StringComparison.Ordinal))
             throw Refuse($"{at}: the runner template pin does not match this engine's own runner.");
         if (m.Modules.Count != 1 || m.Modules[0].Name != "ExchangeOnlineManagement") throw Refuse($"{at}: an Exchange Online item names exactly the ExchangeOnlineManagement module.");
         // Columns are not defined by the manifest: they must equal the registered row projection, in order.
-        if (report.Sections.Count != 1 || !m.OutputSchema.Columns.SequenceEqual(ExchangeReportEvidenceSchema.Columns(report.Sections[0].RowType), StringComparer.Ordinal))
+        if (report.ReportSchemaVersion == 1 && (report.Sections.Count != 1 || !m.OutputSchema.Columns.SequenceEqual(ExchangeReportEvidenceSchema.Columns(report.Sections[0].RowType), StringComparer.Ordinal)))
             throw Refuse($"{at}: the output columns must equal the registered row projection.");
         if (m.Parameters.Count != report.Parameters.Count) throw Refuse($"{at}: the parameters must equal the registered report parameters.");
         for (var i = 0; i < m.Parameters.Count; i++)
@@ -289,6 +347,10 @@ public sealed class ScriptCatalogue
             };
             if (!string.Equals(p.Name, registered.Name, StringComparison.Ordinal) || type != registered.Type || p.Array || p.Format is not null)
                 throw Refuse($"{at}: parameter {p.Name} must equal the registered {registered.Name} ({registered.Type}).");
+            if (IsExchangeTargetParameter(m, p.Name)
+                && (p.MaxLength != ExchangeTargetSelection.MaximumTextLength || p.Default is not null
+                    || p.Required != (p.Name != "RuleGuids")))
+                throw Refuse($"{at}: target fields preserve the exact1–50 GUID bound and explicit required/optional selection.");
             // Every registered value is recorded, so an integer or date is always supplied.
             if (p.Type is ScriptParameterType.Integer or ScriptParameterType.Date && !p.Required && p.Default is null)
                 throw Refuse($"{at}: parameter {p.Name} needs a value on every run: make it required or give it a default.");
@@ -373,7 +435,17 @@ public sealed class ScriptCatalogue
     {
         try
         {
-            using (var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 16 })) RejectDuplicates(document.RootElement, path);
+            using (var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 16 }))
+            {
+                RejectDuplicates(document.RootElement, path);
+                if (typeof(T) == typeof(ScriptManifest) && document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty("outputSchema", out var shape) && shape.ValueKind == JsonValueKind.Object
+                    && shape.TryGetProperty("sections", out var sections)
+                    && (!document.RootElement.TryGetProperty("outputSchemaVersion", out var version)
+                        || version.ValueKind != JsonValueKind.Number || !version.TryGetInt32(out var revision)
+                        || revision != 2 || sections.ValueKind != JsonValueKind.Array))
+                    throw Refuse($"{path}: sections is permitted only as an explicit array in description revision2.");
+            }
             return JsonSerializer.Deserialize<T>(bytes, StrictJson) ?? throw Refuse($"{path} is empty.");
         }
         catch (JsonException ex) { throw Refuse($"{path} is not a valid library file: {ex.Message}"); }

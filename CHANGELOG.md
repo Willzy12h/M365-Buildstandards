@@ -2,6 +2,8 @@
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
+- Prepare exact registered multi-section report2 descriptors while preserving old flat manifests. Metadata alone cannot start an unshipped adapter; target forms validate all50 explicit GUIDs before preparation. No new runnable report2 item is enabled yet.
+
 - Add offline `exchange-report-evidence` HTML/CSV/Excel/original-JSON exports with strict supplied-file admission, original hashes and unverified-source notices. It performs no authentication, collection or tenant-evidence mutation.
 
 - Add strict inbox-rule/target-read report2 evidence and local-key labelling, preserving opaque rule IDs, explicit unknown values and failed parent reads. Shared native/export presentation distinguishes reported false/zero/empty lists from null, missing, failed and unresolved references; hostile text remains escaped. This reader does not yet enable a runnable inbox-rule registration.

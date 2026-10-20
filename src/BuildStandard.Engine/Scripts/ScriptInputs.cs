@@ -53,6 +53,16 @@ public static class ScriptInputs
             if (value is not null && value is not ScriptFlag { Value: false }) arguments.Add(new ScriptArgument(parameter.Name, value));
         }
 
+        foreach (var argument in arguments.Where(argument => ScriptCatalogue.IsExchangeTargetParameter(manifest, argument.Name)))
+        {
+            if (argument.Value is not ScriptText targets)
+                problems.Add($"{argument.Name}: use an exact bounded Exchange GUID selection.");
+            else
+            {
+                try { _ = BuildStandard.Core.Reporting.ExchangeTargetSelection.Parse(targets.Value); }
+                catch (BuildStandard.Core.ConfigurationException error) { problems.Add($"{argument.Name}: {error.Message}"); }
+            }
+        }
         foreach (var rule in manifest.Rules) CheckRule(manifest, rule, arguments, now, problems);
         return new ScriptBinding(arguments, problems);
     }

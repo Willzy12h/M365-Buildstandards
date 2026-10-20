@@ -30,6 +30,7 @@ public static class ScriptReadRequest
     public static IReadOnlyList<ReadRunParameter> Bind(ScriptEntry entry, ReadRunContext context, IReadOnlyDictionary<string, string?> inputs, DateTimeOffset now)
     {
         var report = ScriptCatalogue.ReportFor(entry.Manifest);
+        ScriptCatalogue.RequirePackagedFamily(entry);
         if (!ReportValues.IsCanonicalGuid(context.TenantId) || !ReportValues.IsCanonicalGuid(context.AccountObjectId))
             throw new ConfigurationException("Run needs the current verified tenant and signed-in account. Reconnect first.");
         if (!ScriptCopy.IsAcceptableAccount(context.AccountUpn) || context.AccountUpn != context.AccountUpn.Trim())
@@ -76,6 +77,7 @@ public static class ScriptReadRequest
     {
         var m = entry.Manifest;
         var report = ScriptCatalogue.ReportFor(m);
+        ScriptCatalogue.RequirePackagedFamily(entry);
         var request = new JsonObject
         {
             ["schemaVersion"] = 1,
