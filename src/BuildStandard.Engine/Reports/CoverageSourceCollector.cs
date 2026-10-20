@@ -18,8 +18,8 @@ public sealed class CoverageSourceCapture
     public string Detail {get;}
     /// <summary>Context admission at completion, not continuing authentication or authority.</summary>
     public bool IsCurrent=>State!=CoverageSourceState.ContextChanged;
-    internal CoverageSourceCapture(CoverageSourceState state,IEnumerable<JsonObject> rows,IEnumerable<byte[]> pages,string detail)
-    {State=state;_rows=rows.Select(r=>(JsonObject)r.DeepClone()).ToArray();_pages=pages.Select(p=>(byte[])p.Clone()).ToArray();Detail=detail+" This is a source-read state, not effective targeting, installation or device-specific verification.";}
+    internal CoverageSourceCapture(CoverageSourceState state,IEnumerable<JsonObject> rows,IEnumerable<byte[]> pages,string detail,bool originalDetail=false)
+    {State=state;_rows=rows.Select(r=>(JsonObject)r.DeepClone()).ToArray();_pages=pages.Select(p=>(byte[])p.Clone()).ToArray();Detail=originalDetail?detail:detail+" This is a source-read state, not effective targeting, installation or device-specific verification.";}
 }
 
 /// <summary>Shared page collection; delegates only already prepared reads. Unknown/failed sources never become empty success.</summary>

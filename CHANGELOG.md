@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Coverage originals: add bounded versioned metadata and exact-page ZIP import, immutable original-byte preservation, tenant-bound non-overwriting storage and registered opaque handover support. Imported reports stay historical/unverified and cannot become deployment before-evidence or collection authority. Add offline `buildstandard coverage` HTML/original JSON ZIP/CSV/Excel export and exact-original recovery after local save failure. Connected native coverage, modern export transport and final acceptance remain in progress.
+
 - Expansion B foundation: freeze typed CA scenarios and strictly admit hypothetical results through a fixed, bounded read-only evaluation transport. Preserve unknowns, identity/access binding, cancellation and one silent401 renewal; generic write guards are unchanged. Native/evidence/coverage journeys remain in progress.
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.

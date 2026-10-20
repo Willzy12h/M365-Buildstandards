@@ -4,7 +4,7 @@ using BuildStandard.Core.Json;
 namespace BuildStandard.Engine.Reports;
 
 /// <summary>Shared native/export tables. Configuration, membership and service observations never become effective deployment.</summary>
-public static class DeploymentCoverageDocuments
+public static partial class DeploymentCoverageDocuments
 {
     public static IReadOnlyList<Sheet> Sheets(DeploymentCoverageCapture capture)
     {
