@@ -32,6 +32,9 @@ internal static partial class Program
             {
                 var target = Descendants(panel).OfType<TextBox>().Single(e => AutomationProperties.GetName(e) == name);
                 target.BringIntoView(); content.UpdateLayout(); Pump();
+                var visible = VisibleBounds(target, content);
+                if (visible.Width < 100 || visible.Height < Math.Min(target.ActualHeight, 48) - 1)
+                    throw new InvalidOperationException("Candidate " + suffix + " is outside the captured viewport.");
                 RecordUnnamedControls(content, label + " " + suffix); RecordLowContrast(content, label + " " + suffix);
                 RecordClipping(content, label + " " + suffix);
                 SaveImage(content, size, Path.Combine(output, $"candidate-authoring-{suffix}-{(int)size.Width}x{(int)size.Height}.png"));

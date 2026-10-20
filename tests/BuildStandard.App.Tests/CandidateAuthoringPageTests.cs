@@ -6,6 +6,28 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class CandidateAuthoringPageTests
 {
+    [Theory][InlineData(false)][InlineData(true)]
+    public async Task Native_policy_import_preserves_assignment_uncertainty_and_requires_validation(bool foreign)
+    {
+        using var f = new ConnectedReportsFixture(false);
+        f.Root.WriteStandard("policy-base.json", File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.09.5.json"))));
+        f.Root.WriteManifest(); f.Workspace.SelectRelease("policy-base.json");
+        var shell = new ShellViewModel(f.Workspace); var page = shell.Page<StandardViewModel>().Authoring;
+        await page.CreateAsync(); page.SelectedControl = page.Controls.Single(c => c.Id == "CFG-WIN-002");
+        var source = page.SelectedControl.Payload!.DeepClone(); source["omaSettings"]![2]!["value"] = 22;
+        if (foreign) source["omaSettings"]![0]!["displayName"] = TestData.Office;
+        var file = Path.Combine(f.Root.Root, "policy.json"); File.WriteAllText(file, source.ToJsonString());
+        var method = typeof(CandidateAuthoringViewModel).GetMethod("ImportPolicyAsync");
+        Assert.NotNull(method);
+        await (Task)method.Invoke(page, [file, "CFG - Native candidate - Windows", null])!;
+        Assert.True(page.HasUnsavedChanges); Assert.False(page.ExportCandidateCommand.CanExecute(null));
+        await page.SaveAsync(); var draftFile = Directory.GetFiles(f.Root.Paths.ReportsDirectory).Single();
+        var draft = BuildStandard.Engine.Standards.Authoring.CandidateDraftCodec.ReadFile(draftFile);
+        Assert.Equal(foreign ? 1 : 0, draft.Unresolved.Count); Assert.Equal("Unknown", draft.AssignmentObservations.Single().Status);
+        if (foreign) await Assert.ThrowsAnyAsync<Exception>(page.ValidateAsync);
+        else { await page.ValidateAsync(); Assert.True(page.ExportCandidateCommand.CanExecute(null)); }
+        Assert.Equal("2026.09.5", f.Workspace.Standard!.Release); Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
     [Fact]public async Task Local_edit_validate_export_preserves_published_source_and_never_calls_a_tenant()
     {
         using var f = new ConnectedReportsFixture(); var shell = new ShellViewModel(f.Workspace);
