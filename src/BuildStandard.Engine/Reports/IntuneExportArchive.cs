@@ -8,6 +8,8 @@ namespace BuildStandard.Engine.Reports;
 public sealed class IntuneExportArchive
 {
     private const int MaximumCompressedBytes=5*1024*1024,MaximumExpandedBytes=20*1024*1024;
+    private static readonly uint[] CrcTable=Enumerable.Range(0,256).Select(value=>
+    {var crc=(uint)value;for(var bit=0;bit<8;bit++)crc=(crc&1)!=0?0xedb88320U^(crc>>1):crc>>1;return crc;}).ToArray();
     private readonly byte[] _archive;
     public byte[] OriginalArchiveBytes=>(byte[])_archive.Clone();
     public string OriginalArchiveSha256 {get;}
@@ -29,14 +31,17 @@ public sealed class IntuneExportArchive
             if(entry.Length is <=0 or >MaximumExpandedBytes||entry.CompressedLength is <=0 or >MaximumCompressedBytes)
                 throw Bad("Original CSV length exceeds the 20 MiB expanded bound or compressed length is unsupported.");
             if(entry.Length>entry.CompressedLength*20)throw Bad("Archive expansion exceeds the fixed 20:1 limit.");
-            using var source=entry.Open();using var output=new MemoryStream();var buffer=new byte[16*1024];
+            using var source=entry.Open();using var output=new MemoryStream();var buffer=new byte[16*1024];var crc=uint.MaxValue;
             while(true)
             {
                 var count=source.Read(buffer);if(count==0)break;
                 if(output.Length>MaximumExpandedBytes-count||output.Length>entry.Length-count)throw Bad("Actual expanded bytes exceed the admitted original length.");
+                for(var i=0;i<count;i++)crc=CrcTable[(crc^buffer[i])&0xff]^(crc>>8);
                 output.Write(buffer,0,count);
             }
             if(output.Length!=entry.Length)throw Bad("The original CSV readback is incomplete.");
+            // ZipArchive exposes the recorded CRC but does not verify it on read. This is format integrity, not authentication.
+            if(~crc!=entry.Crc32)throw Bad("Original CSV CRC differs from the archive inventory; malformed data is not admitted.");
             return new(bytes,IntuneExportCsv.Read(output.ToArray(),request));
         }
         catch(InvalidDataException){throw Bad("Malformed archive data; no original report was admitted.");}

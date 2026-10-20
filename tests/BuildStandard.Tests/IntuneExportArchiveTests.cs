@@ -26,4 +26,6 @@ public sealed class IntuneExportArchiveTests
     {foreach(var bytes in new[]{Array.Empty<byte>(),new byte[]{1,2,3},new byte[5*1024*1024+1],Zip(("report.csv",new byte[20*1024*1024+1],0))})Assert.Throws<ConfigurationException>(()=>IntuneExportArchive.Read(bytes,Request()));}
     [Fact] public void Encrypted_flag_is_not_accepted_as_an_ordinary_CSV_entry()
     {var zip=Zip(("report.csv",Csv(),0));for(var i=0;i<zip.Length-10;i++){if(zip[i]!=0x50||zip[i+1]!=0x4b)continue;if(zip[i+2]==3&&zip[i+3]==4)zip[i+6]|=1;if(zip[i+2]==1&&zip[i+3]==2)zip[i+8]|=1;}Assert.Throws<ConfigurationException>(()=>IntuneExportArchive.Read(zip,Request()));}
+    [Fact] public void An_inconsistent_archive_CRC_is_not_an_admitted_original_export()
+    {var zip=Zip(("report.csv",Csv(),0));for(var i=0;i<zip.Length-20;i++)if(zip[i]==0x50&&zip[i+1]==0x4b&&zip[i+2]==1&&zip[i+3]==2){zip[i+16]^=0x40;break;}Assert.Throws<ConfigurationException>(()=>IntuneExportArchive.Read(zip,Request()));}
 }

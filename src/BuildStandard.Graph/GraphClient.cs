@@ -85,6 +85,14 @@ public sealed class GraphClient : IGraphClient
         return new DeploymentCoverageReader(http,_tokens,TenantId,Mode,session,isCurrent);
     }
 
+    /// <summary>Fixed reporting-only modern Intune jobs; caller explicitly acknowledges existing broader access and owns disposal.</summary>
+    public IntuneExportReader ForIntuneExports(TenantSession session,Func<bool> isCurrent,bool broaderTokenAcknowledged)
+    {
+        var graph=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        var download=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new IntuneExportReader(graph,download,_tokens,TenantId,Mode,session,isCurrent,broaderTokenAcknowledged);
+    }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
