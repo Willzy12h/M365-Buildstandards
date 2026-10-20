@@ -137,3 +137,9 @@ The same classifier also checks assessment permission requests before explicit c
 ### INT-121 registered Exchange settings reports
 
 The protocol/forwarding/hold reports add no Graph permissions and require no registration/consent update. They reuse separate Exchange Online authentication and approved installed module access. Recipient reads use the existing Exchange read roles; protocol reporting additionally needs permission for the read-only organisation transport configuration. Missing RBAC/module properties remain explicit unknown/partial reads. Do not grant broader roles automatically; the listed role requirements remain live-unverified. See [Exchange/Purview](EXCHANGE-PURVIEW.md#registered-mailbox-setting-reports-int-121).
+
+### INT-127 hypothetical Conditional Access evaluation — source foundation in progress
+
+The dedicated evaluator reuses the current verified Graph account and returned Policy.Read.All; it requests no new scope, sign-in or consent and cannot switch permission mode. Its one fixed POST is Microsoft's read-only `/identity/conditionalAccess/evaluate` action, not a generic assessment-write exception. Its owned transport refuses redirects/cookies/default credentials and has a120-second total acquisition/renewal/read budget. Only one silent renewal after401 is allowed; no timeout/throttling/server-error retry. Existing generic POST/PATCH/DELETE guards remain.
+
+This evaluates the supplied hypothetical conditions against enabled/report-only policies. It neither evaluates disabled candidates nor proves actual sign-in, MFA or enforcement, and does not expand service dependencies. Unknown/invalid/incomplete responses remain explicit. Native selection, report evidence/export and coverage workflows are still in progress in #147; this foundation is not a completed engineer journey or live acceptance. Microsoft role/licence access can still refuse the read.

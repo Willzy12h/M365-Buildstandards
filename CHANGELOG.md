@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Expansion B foundation: validate/freeze one typed CA scenario, preserve omitted versus explicit conditions and reject unsupported platforms/identities. Evaluation transport, coverage collection and native journey remain in progress.
+- Expansion B foundation: freeze typed CA scenarios and strictly admit hypothetical results through a fixed, bounded read-only evaluation transport. Preserve unknowns, identity/access binding, cancellation and one silent401 renewal; generic write guards are unchanged. Native/evidence/coverage journeys remain in progress.
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 

@@ -71,6 +71,13 @@ public sealed class GraphClient : IGraphClient
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);
 
+    /// <summary>Dedicated typed evaluation; generic assessment/write routes remain unchanged. Caller owns disposal.</summary>
+    public ConditionalAccessEvaluator ForConditionalAccessEvaluation(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new ConditionalAccessEvaluator(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
