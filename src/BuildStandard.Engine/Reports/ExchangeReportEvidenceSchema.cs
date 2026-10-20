@@ -101,6 +101,17 @@ public static partial class ExchangeReportEvidenceSchema
         if (e.SourceCommands is null || !e.SourceCommands.SequenceEqual(definition.SourceCommands, StringComparer.Ordinal))
             throw Bad("Report source commands do not match the registration.");
         Strings(e.Limitations);
+        ValidateRowsAndSections(definition, e);
+        State(e.Status);
+        if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
+        if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
+            throw Bad("Exchange report evidence failed its integrity check. Digests detect change; they do not authenticate source claims.");
+    }
+
+    // Stored/imported readers never normalise IDs. Only exact actor-bound report2 child admission uses this option.
+    private static void ValidateRowsAndSections(ExchangeReportRegistry.Definition definition, ExchangeReportEvidence e,
+        bool normaliseChildKeys = false)
+    {
         if (e.Sections is null || e.Sections.Count != definition.Sections.Count || e.Sections.Any(s => s is null)
             || !e.Sections.Select(s => s.Id).SequenceEqual(definition.Sections.Select(s => s.Id), StringComparer.Ordinal))
             throw Bad("Missing, duplicated or unrelated report sections.");
@@ -122,9 +133,21 @@ public static partial class ExchangeReportEvidenceSchema
             var identities = new HashSet<string>(StringComparer.Ordinal);
             foreach (var node in section.Rows)
             {
+                if (normaliseChildKeys && (!node.ContainsKey("id") || node["id"] is not null))
+                    throw Bad("A report2 child must supply explicit-null local ID; only the parent computes observation keys.");
                 ExchangeReportRow row;
                 try { row = (ExchangeReportRow)(JsonSerializer.Deserialize(node.ToJsonString(), schema.RowType, Strict) ?? throw Bad("Empty report row.")); }
                 catch (JsonException ex) { throw Bad("Invalid registered report row: " + ex.Message); }
+                if (normaliseChildKeys)
+                {
+                    row.Id = row switch
+                    {
+                        ExchangeTargetReadRow target => ExchangeObservationKey.TargetRead(definition.Id, target.RequestedExchangeGuid),
+                        InboxRuleObservationRow rule => ExchangeObservationKey.InboxRule(rule.MailboxExchangeGuid, rule.RuleIdentity),
+                        _ => throw Bad("No parent observation-key encoder is registered for this family row.")
+                    };
+                    node["id"] = row.Id;
+                }
                 State(row.ReadStatus);
                 if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 ? ReportValues.IsCanonicalGuid(row.Id)
                     : row.Id.StartsWith("sha256:",StringComparison.Ordinal) && IsSha256(row.Id[7..])) || !identities.Add(row.Id)))
@@ -143,10 +166,6 @@ public static partial class ExchangeReportEvidenceSchema
             }
         }
         if(definition.ReportSchemaVersion == 2) ValidateFamilyReport(e);
-        State(e.Status);
-        if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
-        if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))
-            throw Bad("Exchange report evidence failed its integrity check. Digests detect change; they do not authenticate source claims.");
     }
 
     /// <summary>

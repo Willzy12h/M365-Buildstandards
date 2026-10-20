@@ -89,7 +89,7 @@ public static class ScriptReadRequest
             ["runnerTemplateSha256"] = ReadRunnerTemplate.Sha256,
             ["adapter"] = m.Execution!.Adapter,
             ["reportId"] = report.Id,
-            ["reportSchemaVersion"] = 1,
+            ["reportSchemaVersion"] = report.ReportSchemaVersion,
             ["tenantId"] = context.TenantId,
             ["expectedAccountUpn"] = context.AccountUpn,
             ["module"] = new JsonObject { ["name"] = m.Modules[0].Name, ["minimumVersion"] = m.Modules[0].MinimumVersion },
@@ -99,7 +99,7 @@ public static class ScriptReadRequest
                 ["id"] = s.Id,
                 ["columns"] = new JsonArray(ExchangeReportEvidenceSchema.Columns(s.RowType).Select(c => (JsonNode?)JsonValue.Create(c)).ToArray())
             }).ToArray()),
-            ["maximumRows"] = Math.Min(m.Limits.MaximumRows, ExchangeReportRegistry.MaximumRows),
+            ["maximumRows"] = Math.Min(m.Limits.MaximumRows, report.RowLimit),
             ["parameters"] = new JsonArray(parameters.Select(Parameter).ToArray())
         };
         var bytes = new UTF8Encoding(false).GetBytes(request.ToJsonString());

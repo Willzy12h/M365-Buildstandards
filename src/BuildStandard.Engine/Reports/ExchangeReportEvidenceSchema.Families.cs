@@ -5,6 +5,23 @@ namespace BuildStandard.Engine.Reports;
 
 public static partial class ExchangeReportEvidenceSchema
 {
+    /// <summary>
+    /// INT-131 exact child-normalisation boundary, after actor/envelope admission. Source fields remain unchanged;
+    /// generated keys are local tuple identities, not raw child IDs, Microsoft identities or execution authority.
+    /// </summary>
+    internal static void AdmitFamilyRows(ExchangeReportRegistry.Definition definition, List<ReportSection> sections,
+        IReadOnlyList<ExchangeReportParameter> parameters)
+    {
+        definition = ExchangeReportRegistry.Find(definition.Id, 2, ExchangeReportRegistry.FamilyAdapterVersion);
+        var candidate = new ExchangeReportEvidence
+        {
+            ReportId = definition.Id, ReportSchemaVersion = 2, AdapterVersion = definition.AdapterVersion,
+            Parameters = [.. parameters], Sections = sections
+        };
+        ValidateParameters(definition, candidate.Parameters);
+        ValidateRowsAndSections(definition, candidate, normaliseChildKeys: true);
+    }
+
     private static void FamilyIdentity(string? value)
     {
         if(string.IsNullOrWhiteSpace(value)||value.Length>1024||value.Any(char.IsControl))

@@ -187,10 +187,10 @@ public sealed class ExchangeReportRunner
                 { section.Status = downgradeTo; section.Error = reason; }
             var evidence = new ExchangeReportEvidence
             {
-                Id = Guid.NewGuid().ToString("D"), RunId = runId, ReportId = report.Id, TenantId = context.TenantId,
+                Id = Guid.NewGuid().ToString("D"), RunId = runId, ReportId = report.Id, ReportSchemaVersion = report.ReportSchemaVersion, TenantId = context.TenantId,
                 InitiatingAccountObjectId = context.AccountObjectId, ObservedAccountUpn = envelope.ObservedAccountUpn, Resource = report.Resource,
                 SourceMode = "live", StartedAt = envelope.StartedAt, EndedAt = envelope.EndedAt, ToolkitVersion = ToolkitVersion.Current,
-                AdapterVersion = ExchangeReportRegistry.AdapterVersion, ModuleVersion = envelope.ModuleVersion, RuntimeVersion = envelope.RuntimeVersion,
+                AdapterVersion = report.AdapterVersion, ModuleVersion = envelope.ModuleVersion, RuntimeVersion = envelope.RuntimeVersion,
                 ScriptSha256 = entry.Manifest.ScriptSha256, ManifestSha256 = entry.ManifestSha256, RunnerTemplateSha256 = ReadRunnerTemplate.Sha256,
                 Parameters = parameters.Select(p => new ExchangeReportParameter { Name = p.Name, Type = p.Type, Value = p.Value }).ToList(),
                 SourceCommands = [.. report.SourceCommands], Limitations = [report.Limitations], Sections = sections,
