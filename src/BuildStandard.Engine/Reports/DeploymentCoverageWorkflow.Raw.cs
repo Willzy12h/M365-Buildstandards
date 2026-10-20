@@ -9,6 +9,9 @@ public sealed partial class DeploymentCoverageWorkflow
     private DeploymentCoverageCapture? _pendingCapture;
     public DeploymentCoverageCapture? PendingCapture {get{lock(_gate)return _pendingCapture;}}
     public bool HasPendingOriginal {get{lock(_gate)return _pending is not null||_pendingCapture is not null;}}
+    /// <summary>Runs the internally bounded coverage producer and retains its original before late Stop/context admission.</summary>
+    /// <param name="capture">The owned DeploymentCoverageService producer, not arbitrary noncooperative extension code.
+    /// Its existing request/capture deadline remains authoritative; no second time allowance or retry is started here.</param>
     public async Task<CaptureOutcome> ReadCaptureAsync(Func<CancellationToken,Task<DeploymentCoverageCapture>> capture,string expectedContext,string expectedTenant,bool acknowledged,CancellationToken ct)
     {
         lock(_gate)
@@ -20,12 +23,10 @@ public sealed partial class DeploymentCoverageWorkflow
         {
             ct.ThrowIfCancellationRequested();RequireContext(expectedContext);
             if(!ReportValues.IsCanonicalGuid(expectedTenant)||!acknowledged)throw new SafetyViolationException("Select the exact client and acknowledge the experimental report read first; this grants no access or change approval.");
-            var task=capture(ct);DeploymentCoverageCapture raw;
-            try{raw=await task.WaitAsync(ct).ConfigureAwait(false);}
-            catch
-            {
-                _=task.ContinueWith(static t=>{_=t.Exception;},CancellationToken.None,TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);throw;
-            }
+            // The owned DeploymentCoverageService already bounds every external wait with the original linked
+            // cancellation/deadline and returns earlier originals on Stop. Do not race its partial-result handoff
+            // against that same cancellation again: exclusivity remains held until the owned producer settles.
+            var raw=await capture(ct).ConfigureAwait(false);
             if(raw.Selection.TenantId!=expectedTenant)throw new TenantMismatchException("The returned source belongs to a different original tenant; no current-client result or save was admitted.");
             foreach(var source in raw.Sources)
                 if(source.ModernExport is { } modern)

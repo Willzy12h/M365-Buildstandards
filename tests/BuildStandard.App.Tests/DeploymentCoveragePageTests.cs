@@ -19,6 +19,18 @@ public sealed class DeploymentCoveragePageTests
     {var controller=typeof(DeploymentCoverageViewModel).GetField("_controller",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(page)!;return (DeploymentCoverageWorkflow)typeof(DeploymentCoverageController).GetField("_workflow",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(controller)!;}
     [Fact] public async Task Historical_original_A_stays_visible_separately_from_prospective_control_B_without_authentication()
     {using var f=new ConnectedReportsFixture(connect:false);var page=new DeploymentCoverageViewModel(new(f.Workspace)){ControlId="prospective-control-B",SourceFile=FileFor(f)};await page.ImportAsync();Assert.Contains("Historical",page.Outcome);Assert.Equal("prospective-control-B",page.ControlId);Assert.Contains("Original historical control A",page.OriginalReportDetails);Assert.Contains("CMP-HISTORY-001",page.OriginalReportDetails);Assert.DoesNotContain("prospective-control-B",page.OriginalReportDetails);Assert.Equal(3,page.Rows!.Count);Assert.False(page.ReadCommand.CanExecute(null));Assert.False(page.ModernAcknowledged);Assert.False(page.Acknowledged);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Native_historical_projection_exposes_typed_pilot_and_candidate_observations()
+    {
+        using var f=new ConnectedReportsFixture(connect:false);var file=Path.Combine(f.Root.Root,"synthetic-pilot-original.zip");
+        var original=CoverageTestData.Original(TestData.TenantA,TestData.Operator,TestData.Emergency,TestData.Office,TestData.Emergency,includeGroup:true);
+        File.WriteAllBytes(file,DeploymentCoverageBundle.Write(original));var before=File.ReadAllBytes(file);
+        var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();
+        Assert.Contains("Candidate observation",page.OriginalReportDetails);Assert.Contains("Historical / unverified",page.OriginalReportDetails);
+        page.SelectedTable="Pilot group observations";Assert.NotNull(page.Rows);
+        Assert.Contains(page.Rows.Cast<System.Data.DataRowView>(),row=>row.Row.ItemArray.Contains("Observed present"));
+        page.SelectedTable="Service observations";Assert.Contains(page.Rows!.Cast<System.Data.DataRowView>(),row=>row.Row.ItemArray.Contains("Unknown"));
+        Assert.Equal(before,File.ReadAllBytes(file));Assert.False(page.ReadCommand.CanExecute(null));Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
     [Theory][InlineData(ExportFormat.Html)][InlineData(ExportFormat.Json)][InlineData(ExportFormat.Csv)][InlineData(ExportFormat.Xlsx)]
     public async Task Native_offline_exports_preserve_originals_and_make_no_network_call(ExportFormat format)
     {using var f=new ConnectedReportsFixture(connect:false);var file=FileFor(f);var original=File.ReadAllBytes(file);var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();await page.ExportAsync(format);Assert.True(File.Exists(page.LastExport));Assert.Equal(original,File.ReadAllBytes(file));if(format==ExportFormat.Html){var html=File.ReadAllText(page.LastExport);Assert.Contains("Historical",html);Assert.Contains("Unknown",html);Assert.Contains("not effective",html);}Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}

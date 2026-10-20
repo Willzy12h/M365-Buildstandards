@@ -9,15 +9,19 @@ internal static partial class Program
 {
     private static void PrepareCoverageImport(ShellViewModel shell)
     {
-        var original=CoverageTestData.Original(Tenant,Operator,Id(9801),Id(9802),Id(9803));
+        var original=CoverageTestData.Original(Tenant,Operator,Id(9801),Id(9802),Id(9803),includeGroup:true);
         var file=Path.Combine(shell.Workspace.Paths.ReportsDirectory,"synthetic-coverage-input.zip");File.WriteAllBytes(file,DeploymentCoverageBundle.Write(original));
         var page=shell.Page<DeploymentCoverageViewModel>();page.Refresh();page.ControlId=page.Controls.FirstOrDefault()?.Id??"";page.SourceFile=file;
     }
     private static void SeedCoveragePage(ShellViewModel shell)
     {
         PrepareCoverageImport(shell);var page=shell.Page<DeploymentCoverageViewModel>();WaitCoverage(page.ImportAsync());
-        if(page.Rows?.Count!=3||!page.Outcome.Contains("Historical",StringComparison.Ordinal)||!page.OriginalReportDetails.Contains("CMP-HISTORY-001",StringComparison.Ordinal)||page.ControlId=="CMP-HISTORY-001")
+        if(page.Rows?.Count!=5||!page.Outcome.Contains("Historical",StringComparison.Ordinal)||!page.OriginalReportDetails.Contains("CMP-HISTORY-001",StringComparison.Ordinal)||page.ControlId=="CMP-HISTORY-001")
             throw new InvalidOperationException("Coverage must show historical original A separately from prospective control B and keep source read states.");
+        page.SelectedTable="Pilot group observations";
+        if(page.Rows is null||!page.Rows.Cast<System.Data.DataRowView>().Any(row=>row.Row.ItemArray.Contains("Observed present")))
+            throw new InvalidOperationException("Native coverage lost the interpreted historical pilot observation.");
+        page.SelectedTable="Source read states";
         if(page.ReadCommand.CanExecute(null)||page.StopCommand.CanExecute(null))throw new InvalidOperationException("Synthetic import enabled a tenant read or Stop.");
     }
     private static void SeedCoverageRetainedOriginal(ShellViewModel shell)

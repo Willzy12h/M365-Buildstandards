@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using BuildStandard.Core.Json;
+using BuildStandard.Core.Reporting;
 namespace BuildStandard.Engine.Reports;
 
 /// <summary>Shared native/export tables. Configuration, membership and service observations never become effective deployment.</summary>
@@ -28,26 +29,34 @@ public static partial class DeploymentCoverageDocuments
         var objectSource=capture.Sources.FirstOrDefault(s=>s.Key=="object");
         if(objectSource is not null)foreach(var row in objectSource.Capture.Rows)foreach(var property in row)configuration.Add(property.Key,Value(property.Value),objectSource.Capture.State);
         sheets.Add(configuration);
+        sheets.AddRange(InterpretationSheets(capture.Sources,capture.Assignments,capture.Groups,capture.ComplianceObservations));
+        foreach(var source in capture.Sources)if(source.ModernExport is { } modern)
+        {sheets[0].Add("Original modern report",modern.Request.ReportName);sheets[0].Add("Original modern job ID",modern.JobId);sheets[0].Add("Modern source meaning",modern.Archive.Table.Limitations);sheets.Add(ModernRows(modern));}
+        return sheets;
+    }
+    private static IReadOnlyList<Sheet> InterpretationSheets(IReadOnlyList<CoverageCapturedSource> sources,
+        IReadOnlyList<CoverageAssignmentObservation> assignmentRows,IReadOnlyList<CoverageCapturedGroup> groupObservations,
+        IReadOnlyList<ComplianceCoverageObservation> serviceObservations)
+    {
+        var sheets=new List<Sheet>();
         var assignments=new Sheet("Assignment configuration",["Assignment row ID","Target meaning","Raw target type","Group object ID","Raw group ID","Raw intent","Raw filter type","Raw filter ID","Explicit unfiltered target","Detail"]);
-        foreach(var row in capture.Assignments)assignments.Add(row.AssignmentRowId,row.TargetMeaning,Raw(row.RawTargetType),Raw(row.GroupObjectId),Raw(row.RawGroupId),Raw(row.RawIntent),Raw(row.RawFilterType),Raw(row.RawFilterId),row.UnfilteredTargetVerified,row.Detail);
+        foreach(var row in assignmentRows)assignments.Add(row.AssignmentRowId,row.TargetMeaning,Raw(row.RawTargetType),Raw(row.GroupObjectId),Raw(row.RawGroupId),Raw(row.RawIntent),Raw(row.RawFilterType),Raw(row.RawFilterId),row.UnfilteredTargetVerified,row.Detail);
         sheets.Add(assignments);
-        var populations=new Sheet("Group populations",["Group name","Group object ID","Population read meaning"]);
+        var populations=new Sheet("Group populations",["Group name","Group object ID","Population read meaning","Population limitations"]);
         var members=new Sheet("Direct member observations",["Group name","Group object ID","Identity namespace","Object ID","Raw object type","Population read meaning","Detail"]);
         var pilotGroups=new Sheet("Pilot group observations",["Group name","Group object ID","Identity namespace","Pilot object ID","Direct membership observation","Detail"]);
-        foreach(var group in capture.Groups)
+        foreach(var group in groupObservations)
         {
-            var metadata=capture.Sources.FirstOrDefault(s=>s.Key=="group:"+group.GroupObjectId+":metadata");
+            var metadata=sources.FirstOrDefault(s=>s.Key=="group:"+group.GroupObjectId+":metadata");
             var name=metadata?.Capture.Rows.FirstOrDefault()?["displayName"] is JsonValue v&&v.TryGetValue<string>(out var text)?Raw(text):"Unknown / not returned";
-            populations.Add(name,group.GroupObjectId,group.Membership.PopulationState);
+            populations.Add(name,group.GroupObjectId,group.Membership.PopulationState,group.Membership.Limitations);
             foreach(var row in group.Membership.Members)members.Add(name,group.GroupObjectId,row.IdentityNamespace,row.ObjectId,Raw(row.RawType),group.Membership.PopulationState,row.Detail);
             foreach(var row in group.Membership.Pilots)pilotGroups.Add(name,group.GroupObjectId,row.IdentityNamespace,row.ObjectId,row.Observation,row.Detail);
         }
         sheets.Add(populations);sheets.Add(members);sheets.Add(pilotGroups);
         var results=new Sheet("Service observations",["Policy report-row ID (not a managed-device ID)","Reported display name (not a join)","Raw service status","Raw service time","Observation","Freshness","Identity limitation","Detail"]);
-        foreach(var row in capture.ComplianceObservations)results.Add(Raw(row.ReportRowId),Raw(row.DeviceDisplayName),Raw(row.RawStatus),Raw(row.RawReportedAt),row.Observation,row.Freshness,row.IdentityMeaning,row.Detail);
+        foreach(var row in serviceObservations)results.Add(Raw(row.ReportRowId),Raw(row.DeviceDisplayName),Raw(row.RawStatus),Raw(row.RawReportedAt),row.Observation,row.Freshness,row.IdentityMeaning,row.Detail);
         sheets.Add(results);
-        foreach(var source in capture.Sources)if(source.ModernExport is { } modern)
-        {sheets[0].Add("Original modern report",modern.Request.ReportName);sheets[0].Add("Original modern job ID",modern.JobId);sheets[0].Add("Modern source meaning",modern.Archive.Table.Limitations);sheets.Add(ModernRows(modern));}
         return sheets;
     }
     public static string Html(DeploymentCoverageCapture capture,string companyName)

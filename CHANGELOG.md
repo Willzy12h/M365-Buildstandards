@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Preserve collected coverage originals while the owned producer settles after Stop; expose conservative assignment, group, pilot and service interpretations in native/imported HTML/CSV/Excel views without changing original evidence or creating live authority.
+
 - Keep CA/coverage read, import and export actions disabled until background result presentation finishes, including the interval after backend busy clears.
 
 - Native deployment coverage: selected-control provenance, typed pilot IDs, offline original import, per-source states, four local export formats and exact-original recovery, including manual bounded copies when the saved-report cap is exceeded. Prevent normal close from dropping retained CA/coverage originals. Current Windows/native verification remains pending.

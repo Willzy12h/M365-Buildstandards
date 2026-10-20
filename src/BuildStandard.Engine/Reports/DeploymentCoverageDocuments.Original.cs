@@ -24,7 +24,8 @@ public static partial class DeploymentCoverageDocuments
         var raw=new Sheet("Admitted source observations",["Source","Raw row identity","Property","Original value","Read state","Meaning"]);
         var pages=new Sheet("Original source pages",["Source","File","Original SHA-256 (not a signature)","Bytes","Registered path"]);
         var modernSheets=new List<Sheet>();
-        foreach(var source in evidence.Sources())
+        var sources=evidence.Sources();
+        foreach(var source in sources)
         {
             var rows=source.Capture.Rows;
             var count=source.ModernExport?.Archive.Table.Rows.Count??rows.Count;
@@ -44,7 +45,11 @@ public static partial class DeploymentCoverageDocuments
         var pilot=new Sheet("Selected pilot",["Identity namespace","Original object ID","Meaning"]);
         foreach(var id in s.PilotUserObjectIds)pilot.Add("Directory user object ID",id,"Report scope only; not assignment approval");
         foreach(var id in s.PilotDirectoryDeviceObjectIds)pilot.Add("Directory device object ID (not an Intune managed-device ID)",id,"Report scope only; no device namespace guess");
-        return new[]{context,states,pilot,pages,raw}.Concat(modernSheets).ToArray();
+        var interpretation=RecordedInterpretation(r,sources);
+        context.Add("Candidate observation",interpretation.Candidate);
+        context.Add("Interpretation basis","Derived locally from the original admitted rows and original source intervals, not a new read or an original authority claim. Historical/imported observations remain historical/unverified.");
+        foreach(var limitation in interpretation.Limitations)context.Add("Derived interpretation limitation",limitation);
+        return new[]{context,states,pilot,pages,raw}.Concat(interpretation.Sheets).Concat(modernSheets).ToArray();
     }
     public static string Html(DeploymentCoverageEvidence evidence,string companyName)
     {
