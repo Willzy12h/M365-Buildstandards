@@ -137,3 +137,9 @@ The same classifier also checks assessment permission requests before explicit c
 ### INT-121 registered Exchange settings reports
 
 The protocol/forwarding/hold reports add no Graph permissions and require no registration/consent update. They reuse separate Exchange Online authentication and approved installed module access. Recipient reads use the existing Exchange read roles; protocol reporting additionally needs permission for the read-only organisation transport configuration. Missing RBAC/module properties remain explicit unknown/partial reads. Do not grant broader roles automatically; the listed role requirements remain live-unverified. See [Exchange/Purview](EXCHANGE-PURVIEW.md#registered-mailbox-setting-reports-int-121).
+
+### Optional usage-report access (INT-129/133)
+
+Connect and Application setup offer one fixed, default-off usage-report choice. It adds only delegated `Reports.Read.All` to the selected existing assessment/deployment registration's reviewed permission list; historical standards remain unchanged. Purpose: the four registered Office365/email/Teams/OneDrive usage CSV reads, not report privacy settings, licence changes, directory joins or application-only access. Review the affected application names/IDs, current and proposed permissions and consent impact before any separately approved setup/consent action. Reporting roles/workload licences can still refuse access.
+
+The access intent is frozen for the explicit Connect/Quick Connect/setup preview. Changing it invalidates reuse or setup approval; actual returned access is checked independently. Selecting off requests baseline access and does not silently remove previously configured usage permissions or grants. No report page silently reconnects, adds consent or falls back to a different app. Existing broker, protected cache, cancellation and account/tenant/mode separation remain. Source development does not grant permissions or perform setup writes.

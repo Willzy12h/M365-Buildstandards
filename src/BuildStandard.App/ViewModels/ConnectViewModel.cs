@@ -107,6 +107,18 @@ public sealed class ConnectViewModel : PageViewModel
     public string ExclusionReason { get => _exclusionReason; set => SetProperty(ref _exclusionReason, value); }
     public string ExclusionPurpose { get => _exclusionPurpose; set => SetProperty(ref _exclusionPurpose, value); }
     public string LookupStatus { get => _lookupStatus; private set => SetProperty(ref _lookupStatus, value); }
+    private bool _includeUsageReports;
+    public bool IncludeUsageReports
+    {
+        get=>_includeUsageReports;
+        set
+        {
+            if(value==_includeUsageReports)return;
+            if(!Workspace.Idle)throw new ToolkitException("Wait for the active operation before changing report-access intent.");
+            SetProperty(ref _includeUsageReports,value);Workspace.CancelPendingDiscovery();SetDiscovery(null);
+        }
+    }
+    private OptionalReportAccess OptionalAccess=>IncludeUsageReports?OptionalReportAccess.UsageReports:OptionalReportAccess.None;
     public bool RememberConnection { get => _rememberConnection; set => SetProperty(ref _rememberConnection, value); }
     public bool UseSystemBrowser { get => Workspace.Settings.UseSystemBrowser; set { Workspace.Settings.UseSystemBrowser = value; OnPropertyChanged(); } }
     private void OpenSetup()
@@ -118,6 +130,7 @@ public sealed class ConnectViewModel : PageViewModel
         if (assessmentId.Length == 0) assessmentId = sameTenant && setup.AssessmentClientId.Length > 0 ? setup.AssessmentClientId : Workspace.Settings.AssessmentClientId;
         if (deploymentId.Length == 0) deploymentId = sameTenant && setup.DeploymentClientId.Length > 0 ? setup.DeploymentClientId : Workspace.Settings.DeploymentClientId;
         setup.UseTenant(EditTenantId.Trim(), EditCompany);
+        setup.IncludeUsageReports=IncludeUsageReports;
         setup.AssessmentClientId = assessmentId;
         setup.DeploymentClientId = deploymentId;
         Shell.Navigate("setup");
@@ -189,7 +202,7 @@ public sealed class ConnectViewModel : PageViewModel
     private async Task DiscoverAsync()
     {
         SetDiscovery(null);
-        SetDiscovery(await Workspace.DiscoverTenantAsync());
+        SetDiscovery(await Workspace.DiscoverTenantAsync(OptionalAccess));
     }
 
     private async Task ConfirmQuickConnectAsync()
@@ -197,7 +210,7 @@ public sealed class ConnectViewModel : PageViewModel
         var identity = _discovered ?? throw new ConfigurationException("Use Quick Connect and review the discovered organisation first.");
         var profile = identity.NewProfile();
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, SessionMode.Assessment, identity.Account, identity);
+        await Workspace.ConnectAsync(profile, SessionMode.Assessment, identity.Account, identity, OptionalAccess);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Selected = null;
         LoadForm(profile);
@@ -381,7 +394,7 @@ public sealed class ConnectViewModel : PageViewModel
         var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
         LoadForm(profile);
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, SessionMode.Assessment);
+        await Workspace.ConnectAsync(profile, SessionMode.Assessment, optionalAccess: OptionalAccess);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }
@@ -403,7 +416,7 @@ public sealed class ConnectViewModel : PageViewModel
         EditId = profile.Id;
         if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null);
+        await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null, optionalAccess: OptionalAccess);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }

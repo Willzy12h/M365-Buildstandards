@@ -14,6 +14,36 @@ namespace BuildStandard.Tests;
 
 public sealed class ApplicationSetupTests
 {
+    [Fact] public async Task Optional_setup_choice_is_bound_to_the_exact_plan_and_permissions()
+    {
+        using var f=new Fixture();
+        var plan=await f.Service.PreviewAsync(f.Standard,"Test",default,optionalAccess:OptionalReportAccess.UsageReports);
+        Assert.All(plan.Rows,row=>Assert.Contains(row.Permissions,p=>p.Name=="Reports.Read.All"));
+        plan.Rows[0].Permissions.RemoveAll(permission=>permission.Name=="Reports.Read.All");
+        await Assert.ThrowsAsync<PlanValidationException>(()=>f.Execute(plan));Assert.Empty(f.Handler.Writes);
+    }
+    [Fact] public async Task Ordinary_existing_app_setup_preserves_previously_configured_optional_usage_permission()
+    {
+        using var f=new Fixture();var created=await f.Execute(await f.Preview());
+        var optional=f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().OfType<JsonObject>().Single(p=>p["value"]!.GetValue<string>()=="Reports.Read.All");
+        foreach(var app in f.Handler.Applications)
+            app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject{["id"]=optional["id"]!.DeepClone(),["type"]="Scope"});
+        var plan=await f.Service.PreviewAsync(f.Standard,"Test",default,created.Rows[0].ClientId,created.Rows[1].ClientId);
+        Assert.All(plan.Rows,row=>Assert.Contains(row.Permissions,p=>p.Name=="Reports.Read.All"));Assert.Equal(2,f.Handler.Applications.Count);
+        var validation=await f.Service.ValidateAsync(f.Standard,created.Rows[0].ClientId,created.Rows[1].ClientId,default);
+        Assert.All(validation.Rows,row=>Assert.DoesNotContain(row.Issues,issue=>issue.Contains("Configured delegated permissions differ",StringComparison.Ordinal)));
+        var optionalValidation=await f.Service.ValidateAsync(f.Standard,created.Rows[0].ClientId,created.Rows[1].ClientId,default,OptionalReportAccess.UsageReports);
+        Assert.All(optionalValidation.Rows,row=>Assert.Contains("Reports.Read.All",row.RequiredScopes));
+    }
+    [Theory][InlineData(false)][InlineData(true)] public async Task None_refuses_preview_when_existing_usage_permission_is_unavailable_instead_of_removing_it(bool removed)
+    {
+        using var f=new Fixture();var created=await f.Execute(await f.Preview());
+        var optional=f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().OfType<JsonObject>().Single(p=>p["value"]!.GetValue<string>()=="Reports.Read.All");
+        foreach(var app in f.Handler.Applications)app["requiredResourceAccess"]![0]!["resourceAccess"]!.AsArray().Add(new JsonObject{["id"]=optional["id"]!.DeepClone(),["type"]="Scope"});
+        if(removed)f.Handler.Resource["oauth2PermissionScopes"]!.AsArray().Remove(optional);else optional["isEnabled"]=false;var writes=f.Handler.Writes.Count;
+        await Assert.ThrowsAsync<ConfigurationException>(()=>f.Service.PreviewAsync(f.Standard,"Test",default,created.Rows[0].ClientId,created.Rows[1].ClientId));
+        Assert.Equal(writes,f.Handler.Writes.Count);
+    }
     private const string Tenant = "11111111-1111-1111-1111-111111111111";
     private const string Operator = "22222222-2222-2222-2222-222222222222";
     private const string GraphSp = "33333333-3333-3333-3333-333333333333";
@@ -64,7 +94,7 @@ public sealed class ApplicationSetupTests
             Resource = new JsonObject
             {
                 ["id"] = GraphSp, ["appId"] = ApplicationSetupService.GraphApplicationId,
-                ["oauth2PermissionScopes"] = new JsonArray(ApplicationSetupService.RequiredScopes(standard, SessionMode.Deployment)
+                ["oauth2PermissionScopes"] = new JsonArray(ApplicationSetupService.RequiredScopes(standard, SessionMode.Deployment, OptionalReportAccess.UsageReports)
                     .Select((scope, i) => (JsonNode)new JsonObject
                     {
                         ["id"] = Id(i + 100), ["value"] = scope, ["isEnabled"] = true,

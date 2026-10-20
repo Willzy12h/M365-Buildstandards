@@ -1,5 +1,13 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Implement the fixed usage-report download transport and engine capture service with isolated credential-free302 downloads, one silent401 renewal, exact context/scope checks, bounded original CSV and per-source failure/cancellation evidence. The approved Reports.Read.All capability is classified as read-only; no access is requested or granted by classification. Native collection and its deliberate optional-access setup are still in progress.
+
+- Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
+
+
+- Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
+
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
