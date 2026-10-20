@@ -52,6 +52,16 @@ public sealed class CollaborationReportsPageTests
         var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;await page.SearchGroupsAsync();page.SelectedGroup=page.GroupMatches.Single();
         f.ReplaceConnection();Assert.ThrowsAny<ToolkitException>(page.UseSelectedGroup);Assert.Equal("",page.CollaborationGroups);Assert.Equal(1,f.Handler.Calls);
     }
+    [Fact]public async Task Stopping_group_lookup_cannot_be_reported_as_successfully_empty()
+    {
+        using var f=new ConnectedReportsFixture();f.Workspace.Session!.Scopes.Add("Group.Read.All");
+        var page=Page(f);page.GroupQuery="Synthetic";page.Acknowledged=true;
+        f.Handler.BeforeResponse=()=>{Assert.True(page.StopCommand.CanExecute(null));page.StopCommand.Execute(null);};
+        f.Handler.Response=(_,_)=>new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent("{\"value\":[]}")};
+        await Assert.ThrowsAnyAsync<ToolkitException>(page.SearchGroupsAsync);
+        Assert.Equal(1,f.Handler.Calls);Assert.Empty(page.GroupMatches);Assert.Null(page.SelectedGroup);
+        Assert.DoesNotContain("Lookup completed",page.GroupLookupStatus);Assert.False(page.Acknowledged);
+    }
     private sealed class Source(CollaborationReadSelection selection,Action? before=null):ICollaborationReportSource
     {
         public string TenantId=>TestData.TenantA;public CollaborationReadSelection Selection=>selection;public int Reads;
