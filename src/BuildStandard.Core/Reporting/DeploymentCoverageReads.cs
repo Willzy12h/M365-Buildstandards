@@ -11,8 +11,10 @@ public sealed class PreparedCoverageRead
     public string Path {get;}
     public string Scope {get;}
     public string TargetId {get;}
-    internal PreparedCoverageRead(GraphApi api,string path,string scope,string target)
-    {Api=api;Path=path;Scope=scope;TargetId=target;}
+    public bool IsCollection {get;}
+    public bool IsGroupMembers {get;}
+    internal PreparedCoverageRead(GraphApi api,string path,string scope,string target,bool collection,bool groupMembers=false)
+    {Api=api;Path=path;Scope=scope;TargetId=target;IsCollection=collection;IsGroupMembers=groupMembers;}
 }
 public static class DeploymentCoverageReads
 {
@@ -33,13 +35,13 @@ public static class DeploymentCoverageReads
         if(kind==CoverageReadKind.ServiceResults&&family!=CoverageFamily.ClassicCompliance)
             throw new ConfigurationException("No service-result read is registered for this family. Application/classic-configuration results require the separately bounded modern export adapter; deprecated endpoints are never substituted. Conditional Access uses its separate hypothetical evaluation.");
         var suffix=kind switch{CoverageReadKind.Assignments=>"/assignments",CoverageReadKind.ServiceResults=>"/deviceStatuses",_=>""};
-        return new(api,root+id+suffix,scope,id);
+        return new(api,root+id+suffix,scope,id,kind!=CoverageReadKind.Object);
     }
     public static PreparedCoverageRead Group(string groupId,bool members)
     {
         var id=Identity(groupId);
         var suffix=members?"/members?$select=id&$top=100":"?$select=id,displayName,groupTypes,membershipRuleProcessingState,visibility";
-        return new(GraphApi.V1,"/groups/"+id+suffix,"Group.Read.All",id);
+        return new(GraphApi.V1,"/groups/"+id+suffix,"Group.Read.All",id,members,members);
     }
     private static string Identity(string value)=>ReportValues.TryGuid(value,out var id)?id
         :throw new ConfigurationException("Select an exact non-empty object GUID. URLs, paths and unverified names cannot become a coverage request.");
