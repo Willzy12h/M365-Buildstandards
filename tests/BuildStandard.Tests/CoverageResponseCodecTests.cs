@@ -35,4 +35,8 @@ public sealed class CoverageResponseCodecTests
     {var rows=string.Join(',',Enumerable.Range(0,5001).Select(i=>"{\"id\":\"row-"+i+"\"}"));Assert.Throws<ConfigurationException>(()=>CoverageResponseCodec.Read(Bytes("{\"value\":["+rows+"]}"),Request(true)));Assert.Throws<ConfigurationException>(()=>CoverageResponseCodec.Read(new byte[5*1024*1024+1],Request(true)));}
     [Fact] public void Group_member_ID_requires_directory_GUID_and_retains_returned_type()
     {var request=DeploymentCoverageReads.Group(TestData.Office,true);Assert.Throws<ConfigurationException>(()=>CoverageResponseCodec.Read(Bytes("{\"value\":[{\"id\":\"opaque-row\"}]}"),request));var result=CoverageResponseCodec.Read(Bytes("{\"value\":[{\"id\":\""+TestData.Operator+"\",\"@odata.type\":\"#microsoft.graph.user\"}]}"),request);Assert.Equal("#microsoft.graph.user",result.Rows[0]["@odata.type"]!.GetValue<string>());}
+    [Theory][InlineData(true)][InlineData(false)]
+    public void A_service_error_envelope_cannot_be_a_success_even_with_a_plausible_result(bool collection)
+    {var json=collection?"{\"value\":[],\"error\":{\"code\":\"AccessDenied\"}}":"{\"id\":\""+TestData.Office+"\",\"error\":{\"code\":\"AccessDenied\"}}";Assert.Throws<ConfigurationException>(()=>CoverageResponseCodec.Read(Bytes(json),Request(collection)));}
+
 }

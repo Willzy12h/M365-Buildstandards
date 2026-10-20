@@ -27,7 +27,9 @@ public static class CoverageResponseCodec
         {
             using var document=JsonDocument.Parse(original,new JsonDocumentOptions{MaxDepth=32});var root=document.RootElement;
             if(root.ValueKind!=JsonValueKind.Object)throw Bad("The coverage response must be an explicit object.");
-            RejectDuplicates(root);var more=false;
+            RejectDuplicates(root);
+            if(root.TryGetProperty("error",out _))throw Bad("A service error envelope is not an admitted coverage result, even when result fields are also present.");
+            var more=false;
             if(root.TryGetProperty("@odata.nextLink",out var next)&&next.ValueKind!=JsonValueKind.Null)
             {
                 if(!request.IsCollection||next.ValueKind!=JsonValueKind.String||next.GetString() is not {Length:>0 and <=4096} link||link.Any(char.IsControl))
