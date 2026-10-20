@@ -33,6 +33,28 @@ public sealed class CandidateAuthoringPageTests
         Assert.True((bool)guard.Invoke(null, [shell])!); Assert.Equal("standard", shell.ActiveRouteKey);
         page.Discard(); Assert.False((bool)guard.Invoke(null, [shell])!); Assert.Empty(Directory.GetFiles(f.Root.Paths.ReportsDirectory));
     }
+    [Theory][InlineData("load")][InlineData("import")][InlineData("select")][InlineData("command")]
+    public async Task Every_existing_baseline_replacement_preserves_unsaved_authoring(string route)
+    {
+        using var f = new ConnectedReportsFixture(false);
+        var imported = TestData.Standard(); imported.Release = "import-" + new string('a', 24); imported.Status = "Candidate";
+        var import = new BuildStandard.Engine.Standards.DevicePolicyImport(imported, new string('b', 64), []);
+        f.Workspace.UseImportedStandard(import); var filename = f.Workspace.LocalCandidates().Single();
+        f.Workspace.SelectRelease("test.json");
+        var shell = new ShellViewModel(f.Workspace); var editor = shell.Page<StandardViewModel>().Authoring;
+        await editor.CreateAsync(); var original = f.Workspace.Standard;
+        switch (route)
+        {
+            case "load": Assert.ThrowsAny<ToolkitException>(() => f.Workspace.LoadLocalCandidate(filename)); break;
+            case "import": Assert.ThrowsAny<ToolkitException>(() => f.Workspace.UseImportedStandard(import)); break;
+            case "select": Assert.False(f.Workspace.TrySelectStandard("test.json")); break;
+            case "command":
+                var automation = shell.Page<AutomationViewModel>(); automation.SavedCandidate = filename;
+                automation.LoadCandidateCommand.Execute(null); Assert.True(shell.HasError); break;
+        }
+        Assert.Same(original, f.Workspace.Standard); Assert.True(editor.HasUnsavedChanges);
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
     [Fact]public async Task Context_change_revokes_editor_validation_but_preserves_a_saveable_draft()
     {
         using var f = new ConnectedReportsFixture(false); var page = new ShellViewModel(f.Workspace).Page<StandardViewModel>().Authoring;
