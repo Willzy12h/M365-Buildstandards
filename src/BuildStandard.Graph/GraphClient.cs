@@ -78,6 +78,13 @@ public sealed class GraphClient : IGraphClient
         return new ConditionalAccessEvaluator(http,_tokens,TenantId,Mode,session,isCurrent);
     }
 
+    /// <summary>One bounded selected-control capture, using fixed descriptors and the existing provider. Caller owns disposal.</summary>
+    public DeploymentCoverageReader ForDeploymentCoverage(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new DeploymentCoverageReader(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
