@@ -12,6 +12,7 @@ public static class OperationalContextSchema
 {
     private static readonly HashSet<string> HealthStatuses=new(StringComparer.Ordinal)
     {"serviceOperational","investigating","restoringService","verifyingService","serviceRestored","postIncidentReviewPublished","serviceDegradation","serviceInterruption","extendedRecovery","falsePositive","investigationSuspended","resolved","mitigatedExternal","mitigated","resolvedExternal","confirmed","reported"};
+    internal static bool IsKnownHealthStatus(string? value) => value is not null && HealthStatuses.Contains(value);
     public static void Seal(OperationalContextReport report)
     {Validate(report,report.TenantId,false);report.IntegrityDigest=EvidenceIntegrity.Compute(report);Validate(report,report.TenantId,true);}
     public static string Serialise(OperationalContextReport report)
@@ -79,6 +80,7 @@ public static class OperationalContextSchema
                 RequireState(row.ReadStatus,row.Error);
                 if(row.ReadStatus is not (ReportReadState.Collected or ReportReadState.Partial))throw Bad("A returned service object must be an observed complete or partial row.");
                 Text(row.Name);Text(row.Error);
+                if(string.IsNullOrWhiteSpace(row.Name)&&row.ReadStatus!=ReportReadState.Partial)throw Bad("Missing service name/title must remain partial/unknown.");
                 if(row.Id is not null&&!Identity(row.Id))throw Bad("Malformed original service identity.");
                 if(row.Id is null&&row.ReadStatus!=ReportReadState.Partial)throw Bad("Missing identity must remain partial/unknown.");
                 var status=row is ServiceHealthOverviewRow overview?overview.Status:((ServiceHealthIssueRow)row).Status;
@@ -87,6 +89,7 @@ public static class OperationalContextSchema
                 if(row is ServiceHealthIssueRow issue)
                 {
                     foreach(var text in new[]{issue.Service,issue.Feature,issue.Classification,issue.ImpactSummary})Text(text);
+                    if((string.IsNullOrWhiteSpace(issue.Service)||issue.Classification is not ("advisory" or "incident"))&&row.ReadStatus!=ReportReadState.Partial)throw Bad("Missing service or unknown issue classification must remain partial.");
                     foreach(var time in new[]{issue.StartedAt,issue.EndedAt,issue.ModifiedAt})if(time is not null&&!Utc(time,out _))throw Bad("Invalid reported issue time.");
                 }
                 rows.Add(row);
