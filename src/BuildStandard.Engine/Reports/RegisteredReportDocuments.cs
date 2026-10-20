@@ -26,6 +26,14 @@ public static class RegisteredReportDocuments
         foreach(var command in report.SourceCommands)metadata.Add("Source command",command);
         metadata.Add("Started at", report.StartedAt); metadata.Add("Ended at", report.EndedAt);
         metadata.Add("Integrity digest", report.IntegrityDigest);
+        if(definition.ReportSchemaVersion==2)
+        {
+            metadata.Add("Identity meaning","sha256 keys identify local observation tuples, not Microsoft service IDs, ownership, permissions or execution targets. Source namespaces remain separate.");
+            metadata.Add("Registered limitation",definition.Limitations);
+            if(report.ReportId=="exo-inbox-rules")metadata.Add("Hidden rule scope",report.Parameters.Single(p=>p.Name=="IncludeHidden").Value=="false"
+                ?"Hidden rules omitted; no complete all-rules inventory or incident verdict is claimed."
+                :"Hidden rules requested; source/RBAC/row limits still apply and this is not an incident verdict.");
+        }
         var sheets = new List<Sheet> { metadata };
         foreach (var section in report.Sections)
         {
@@ -33,7 +41,7 @@ public static class RegisteredReportDocuments
             foreach (var limitation in report.Limitations.Concat(section.Limitations)) metadata.Add("Limitation", limitation);
             var columns = ExchangeReportEvidenceSchema.Columns(definition.Sections.Single(s => s.Id == section.Id).RowType)
                 .OrderBy(k => k == "id" ? 0 : k == "name" ? 1 : k == "readStatus" ? 2 : k == "error" ? 3 : 4).ToArray();
-            var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? "Exchange mailbox GUID" : Label(c)));
+            var sheet = new Sheet(section.Id, columns.Select(c => c == "id" ? definition.ReportSchemaVersion==2 ? "Local observation key (not a service ID)" : "Exchange mailbox GUID" : Label(c)));
             foreach (var row in section.Rows)
                 sheet.Rows.Add(columns.Select(c => ExchangeValue(row,c)).ToArray());
             sheets.Add(sheet);

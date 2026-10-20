@@ -2,6 +2,8 @@
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
+- Add strict inbox-rule/target-read report2 evidence and local-key labelling, preserving opaque rule IDs, explicit unknown values and failed parent reads. This reader does not yet enable a runnable inbox-rule registration.
+
 - Exchange report2 preparation: private bounded source projection and owned-host resource sampling preserve unknown/null/empty distinctions and stop unbounded accumulation. New report families remain unavailable until their typed registrations and gate wiring are complete; existing report1 bodies are preserved.
 
 - Exchange-report foundations: explicit per-registration schema/adapter admission and deterministic typed observation keys preserve old report semantics while preparing the approved composite-identity families. No new runnable registration is enabled by this slice.

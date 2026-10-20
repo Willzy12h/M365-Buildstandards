@@ -17,7 +17,7 @@ namespace BuildStandard.Engine.Reports;
 /// rule with Graph report evidence but is a separate kind: neither reader accepts the other's records, and neither is a
 /// configuration capture. Registered row schemas mean raw module output cannot be imported as a report.
 /// </summary>
-public static class ExchangeReportEvidenceSchema
+public static partial class ExchangeReportEvidenceSchema
 {
     public const int MaximumBytes = 32 * 1024 * 1024;
     private const int MaximumTextLength = 4096;
@@ -108,14 +108,15 @@ public static class ExchangeReportEvidenceSchema
         foreach (var section in e.Sections)
         {
             State(section.Status); Strings(section.Limitations);
-            if (section.Rows is null || section.Rows.Count > ExchangeReportRegistry.MaximumRows || section.Rows.Any(r => r is null))
+            if (section.Rows is null || section.Rows.Count > definition.RowLimit || section.Rows.Any(r => r is null))
                 throw Bad("Invalid or excessive report rows.");
             if (section.Status != ReportReadState.Collected && string.IsNullOrWhiteSpace(section.Error))
                 throw Bad("Unsuccessful or partial report sections require an explicit reason.");
             if (section.Status == ReportReadState.Collected && section.Error is not null)
                 throw Bad("A successful report section cannot conceal a read error.");
             if (section.Error is not null) Text(section.Error);
-            if (section.Status is ReportReadState.Failed or ReportReadState.NotAttempted && section.Rows.Count != 0)
+            if ((section.Status is ReportReadState.Failed or ReportReadState.NotAttempted) && section.Rows.Count != 0
+                && !(definition.ReportSchemaVersion == 2 && section.Id == "target-reads"))
                 throw Bad("Failed or unattempted sections cannot claim collected rows.");
             var schema = definition.Sections.Single(s => s.Id == section.Id);
             var identities = new HashSet<string>(StringComparer.Ordinal);
@@ -125,9 +126,10 @@ public static class ExchangeReportEvidenceSchema
                 try { row = (ExchangeReportRow)(JsonSerializer.Deserialize(node.ToJsonString(), schema.RowType, Strict) ?? throw Bad("Empty report row.")); }
                 catch (JsonException ex) { throw Bad("Invalid registered report row: " + ex.Message); }
                 State(row.ReadStatus);
-                if (row.Id is not null && (!ReportValues.IsCanonicalGuid(row.Id) || !identities.Add(row.Id)))
+                if (row.Id is not null && (!(definition.ReportSchemaVersion == 1 ? ReportValues.IsCanonicalGuid(row.Id)
+                    : row.Id.StartsWith("sha256:",StringComparison.Ordinal) && IsSha256(row.Id[7..])) || !identities.Add(row.Id)))
                     throw Bad("Duplicate, malformed or empty report identity.");
-                if (row.Name is not null) Value(row.Name);
+                if (row.Name is not null) { if(definition.ReportSchemaVersion == 1) Value(row.Name); else FamilyIdentity(row.Name); }
                 if (row.Error is not null) Text(row.Error);
                 if (row.ReadStatus == ReportReadState.Collected && (row.Id is null || row.Error is not null))
                     throw Bad("A successful row needs exact identity and no hidden error.");
@@ -135,10 +137,12 @@ public static class ExchangeReportEvidenceSchema
                     throw Bad("An unsuccessful or partial row needs a reason.");
                 if (section.Status == ReportReadState.Collected && row.ReadStatus != ReportReadState.Collected)
                     throw Bad("Incomplete rows cannot become a successful section.");
-                if (row is MailboxReportRow mailbox) ValidateMailbox(mailbox, includeArchive);
+                if (definition.ReportSchemaVersion == 2) ValidateFamilyRow(row, definition.Id);
+                else if (row is MailboxReportRow mailbox) ValidateMailbox(mailbox, includeArchive);
                 else ValidateSettings(row);
             }
         }
+        if(definition.ReportSchemaVersion == 2) ValidateFamilyReport(e);
         State(e.Status);
         if (e.Status != ReportEvidenceSchema.Overall(e.Sections.Select(s => s.Status))) throw Bad("The report cannot claim a better state than its sections.");
         if (!IsSha256(e.IntegrityDigest) || !EvidenceIntegrity.Verify(e, e.IntegrityDigest))

@@ -10,6 +10,13 @@ namespace BuildStandard.Core.Reporting;
 /// </summary>
 public static class ExchangeObservationKey
 {
+    public static string TargetRead(string reportId, string exchangeGuid)
+    {
+        if (ExchangeReportRegistry.Find(reportId).ReportSchemaVersion != 2)
+            throw new ConfigurationException("Target observation keys require an exact registered report2 family.");
+        return Hash(reportId, GuidIdentity(exchangeGuid));
+    }
+
     public static string InboxRule(string mailboxGuid, string ruleIdentity) =>
         Hash(GuidIdentity(mailboxGuid), Identity(ruleIdentity));
 

@@ -12,6 +12,7 @@ public static class ExchangeReportRegistry
     /// <summary>The contract's per-section row cap for executable reports, lower than schema 1 manifests allowed.</summary>
     public const int MaximumRows = 10000;
     public const string AdapterVersion = "registered-exchange-report/1";
+    public const string FamilyAdapterVersion = "registered-exchange-report/2";
     public const string ExchangeOnlineAdapter = "exchangeOnline";
     public const string PurviewAdapter = "purview";
     public const string ExchangeOnlineResource = "ExchangeOnline";
@@ -25,6 +26,7 @@ public static class ExchangeReportRegistry
     {
         /// <summary>The evidence resource for this adapter. Only the two exact pairs exist; anything else is refused.</summary>
         public string Resource => ResourceFor(Adapter);
+        public int RowLimit => ReportSchemaVersion == 2 ? 5000 : MaximumRows;
     }
 
     public static IReadOnlyList<Definition> Definitions { get; } = Array.AsReadOnly(new[]
@@ -57,7 +59,14 @@ public static class ExchangeReportRegistry
             Array.AsReadOnly(new[] { new Section("holds", typeof(MailboxHoldReportRow)) }),
             "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-exomailbox",
             "Observed mailbox hold flags and up to 100 exact InPlaceHolds identifiers; these do not prove legal/compliance coverage. "
-            + "Litigation Hold, retention hold and policy identifiers retain their distinct meanings. No hold changes. Live behaviour and roles remain unverified.")
+            + "Litigation Hold, retention hold and policy identifiers retain their distinct meanings. No hold changes. Live behaviour and roles remain unverified."),
+        new Definition("exo-inbox-rules", "Selected mailbox inbox-rule observations", ExchangeOnlineAdapter,
+            Array.AsReadOnly(new[] { "Get-EXOMailbox", "Get-InboxRule" }),
+            Array.AsReadOnly(new[] {new Parameter("MailboxGuids", ExchangeReportParameterType.Text), new Parameter("IncludeHidden", ExchangeReportParameterType.Boolean)}),
+            Array.AsReadOnly(new[] {new Section("target-reads", typeof(ExchangeTargetReadRow)), new Section("rules", typeof(InboxRuleObservationRow))}),
+            "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-inboxrule",
+            "One to50 explicitly selected Exchange mailbox GUIDs, not an implicit estate scan. Opaque RuleIdentity and raw recipient references remain distinct from names/Entra identities. Hidden rules are omitted unless explicitly selected. Unknown values and unsuccessful target reads are not successful empty results; no incident verdict or change authority. The typed evidence registration alone does not provide a runnable script. Live/module/RBAC behaviour is unverified.",
+            ReportSchemaVersion: 2, AdapterVersion: FamilyAdapterVersion)
     });
 
     public static Definition Find(string id) => Definitions.SingleOrDefault(d => d.Id == id)
