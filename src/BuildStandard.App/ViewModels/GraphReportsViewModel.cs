@@ -309,7 +309,7 @@ public sealed class GraphReportsViewModel : PageViewModel
         }
         Rows = table.DefaultView; NotifyPage();
     }
-    public override void Refresh() { if (_controller is null) return; EnsureCurrent(); Operational?.Refresh(); NotifyPage(); }
+    public override void Refresh() { if (_controller is null) return; EnsureCurrent(); Usage?.Refresh(); Operational?.Refresh(); NotifyPage(); }
     private void NotifyPage()
     {
         foreach (var name in new[] { nameof(RequiresDates), nameof(RequiresHorizon), nameof(HorizonDays), nameof(RowState), nameof(CanFilterReadState), nameof(ReadStateFilterGuidance), nameof(ReadAcknowledged), nameof(ReadGuidance), nameof(ScopeExplanation), nameof(Limitations), nameof(ContextSummary), nameof(StoredStatus), nameof(Outcome), nameof(Details), nameof(ProvenanceNotice), nameof(SourceSummary), nameof(Sections), nameof(SelectedSection), nameof(Rows), nameof(SectionSummary), nameof(FilterSummary), nameof(SelectedRowDetails), nameof(LastExport), nameof(ExportGuidance), nameof(SuppliedFile), nameof(SelectedStored) }) OnPropertyChanged(name);
