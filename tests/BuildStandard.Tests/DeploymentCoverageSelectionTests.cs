@@ -16,12 +16,21 @@ public sealed class DeploymentCoverageSelectionTests
         public TenantSnapshot Snapshot {get;}
         public ManagedObjectMappings Mappings {get;}
         public DeploymentRun Run {get;}
-        public Fixture()
+        public Fixture(CoverageFamily family=CoverageFamily.ClassicCompliance)
         {
             var payload=new JsonObject{["displayName"]="CMP - Core - Windows"};var after=(JsonObject)payload.DeepClone();after["id"]=TestData.Office;
             Run=new(){Id=Guid.NewGuid().ToString("D"),TenantId=TestData.TenantA,Results=[new(){ControlId="CMP-WIN-001",Collection="compliance",ObjectId=TestData.Office,PlannedAction="Create",WriteAcceptance=WriteAcceptance.Accepted,Configuration=ConfigurationVerification.Pass,WrittenPayload=payload,AfterObject=after,PayloadDigest=CanonicalJson.Sha256(payload),ReadbackDigest=CanonicalJson.Sha256(after),WrittenAt="2026-10-19T09:00:00Z"}]};Run.IntegrityDigest=EvidenceIntegrity.Compute(Run);
             Snapshot=new(){Id=Guid.NewGuid().ToString("D"),TenantId=TestData.TenantA,CapturedAt="2026-10-19T10:00:00Z",StandardRelease=Standard.Release,Collections=new(){["compliance"]=new(){Status=CaptureStatus.Collected,Api="v1.0",Path="/deviceManagement/deviceCompliancePolicies",Count=1,Items=[after]}}};Seal();
             Mappings=new(){TenantId=TestData.TenantA,ByControl=new(){["CMP-WIN-001"]=new(){ControlId="CMP-WIN-001",Collection="compliance",ObjectId=TestData.Office,RunId=Run.Id,LastApplied=payload,LastAppliedDigest=CanonicalJson.Sha256(payload)}}};
+            if(family!=CoverageFamily.ClassicCompliance)
+            {
+                var collection=family switch{CoverageFamily.Application=>"apps",CoverageFamily.ClassicConfiguration=>"configuration",_=>"conditionalAccess"};
+                var request=DeploymentCoverageReads.Prepare(family,TestData.Office,CoverageReadKind.Object);var path=request.Path[..^(TestData.Office.Length+1)];
+                var definition=Standard.Collections["compliance"];Standard.Collections.Remove("compliance");definition.Path=path;definition.Scope=request.Scope;Standard.Collections[collection]=definition;Standard.Controls[0].Collection=collection;
+                var captured=Snapshot.Collections["compliance"];Snapshot.Collections.Remove("compliance");captured.Path=path;Snapshot.Collections[collection]=captured;
+                Run.Results[0].Collection=collection;Run.IntegrityDigest=EvidenceIntegrity.Compute(Run);Mappings.ByControl["CMP-WIN-001"].Collection=collection;
+                Session.Scopes.Clear();Session.Scopes.Add(request.Scope);Seal();
+            }
         }
         public void Seal()=>Snapshot.IntegrityDigest=EvidenceIntegrity.Compute(Snapshot);
         public DeploymentCoverageSelection Prepare()=>DeploymentCoverageSelection.Prepare(Standard,Snapshot,Mappings,[Run],Session,"CMP-WIN-001",[TestData.Operator],[TestData.Mam]);
