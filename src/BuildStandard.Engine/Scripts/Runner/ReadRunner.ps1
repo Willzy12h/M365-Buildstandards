@@ -305,6 +305,83 @@ function Invoke-BditRunner {
                 $state = Test-BditConnection
                 if ($state -ne 'Usable') { $script:Failure = Get-BditConnectionFailure $state; throw 'BDIT-IDENTITY' }
             }
+            # INT-128 private bounded projection. Only fixed engine-owned callers may supply the producer/fields;
+            # this function is not exported to a library body and adds no command or parameter admission.
+            function Read-BditBoundedRows {
+                param([scriptblock]$Producer, [string[]]$Properties)
+                if ($null -eq $Producer -or $null -eq $Properties -or $Properties.Count -lt 1 -or $Properties.Count -gt 32) { throw 'BDIT-READ-SHAPE' }
+                $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+                foreach ($name in $Properties) {
+                    if ($name -cnotmatch '^[A-Za-z][A-Za-z0-9]{0,63}$' -or -not $names.Add($name)) { throw 'BDIT-READ-SHAPE' }
+                }
+                function Convert-BditProjectedValue($Value, [bool]$AllowList = $true) {
+                    if ($null -eq $Value) { return $null }
+                    if ($Value -is [string]) {
+                        if ($Value.Length -gt 1024) { throw 'BDIT-READ-LIMIT' }
+                        return $Value
+                    }
+                    if ($Value -is [bool] -or $Value -is [guid] -or $Value -is [datetime] -or $Value -is [datetimeoffset] -or
+                        $Value -is [byte] -or $Value -is [sbyte] -or $Value -is [int16] -or $Value -is [uint16] -or
+                        $Value -is [int32] -or $Value -is [uint32] -or $Value -is [int64] -or $Value -is [uint64] -or
+                        $Value -is [decimal]) { return $Value }
+                    if ($Value -is [enum]) { return Convert-BditProjectedValue ([string]$Value) $false }
+                    if ($AllowList -and $Value -is [Collections.IEnumerable] -and $Value -isnot [Collections.IDictionary]) {
+                        $values = [Collections.Generic.List[object]]::new()
+                        foreach ($entry in $Value) {
+                            if ($values.Count -ge 100) { throw 'BDIT-READ-LIMIT' }
+                            $values.Add((Convert-BditProjectedValue $entry $false))
+                        }
+                        return ,$values.ToArray()
+                    }
+                    # Some Exchange principal/reference types expose RawIdentity. Keep only that explicitly labelled
+                    # field, never arbitrary object serialisation, display-name resolution or a generic ToString call.
+                    if ($Value -isnot [Collections.IDictionary]) {
+                        $raw = $Value.PSObject.Properties['RawIdentity']
+                        if ($null -ne $raw -and $raw.Value -is [string]) {
+                            return [pscustomobject][ordered]@{ Source = 'RawIdentity'; Value = (Convert-BditProjectedValue $raw.Value $false) }
+                        }
+                        $type = $Value.PSObject.Properties['UserType']
+                        if ($null -ne $type -and ($type.Value -is [string] -or $type.Value -is [enum])) {
+                            $special = [string]$type.Value
+                            if ($special -ceq 'Default' -or $special -ceq 'Anonymous') {
+                                return [pscustomobject][ordered]@{ Source = 'SpecialPrincipal'; Value = $special }
+                            }
+                        }
+                        $distinguished = $Value.PSObject.Properties['DistinguishedName']
+                        if ($null -ne $distinguished -and $distinguished.Value -is [string]) {
+                            return [pscustomobject][ordered]@{ Source = 'DistinguishedName'; Value = (Convert-BditProjectedValue $distinguished.Value $false) }
+                        }
+                        $label = $Value.PSObject.Properties['DisplayName']
+                        if ($null -ne $label -and $label.Value -is [string]) {
+                            # A raw unresolved label is not an exact principal identity. The family adapter must keep
+                            # it explicitly unresolved/partial, never resolve it by name or assign a fabricated GUID.
+                            return [pscustomobject][ordered]@{ Source = 'UnresolvedDisplayLabel'; Value = (Convert-BditProjectedValue $label.Value $false) }
+                        }
+                    }
+                    throw 'BDIT-READ-SHAPE'
+                }
+                $rows = [Collections.Generic.List[object]]::new()
+                $budget = @{ Bytes = 2 }
+                $utf8 = [Text.UTF8Encoding]::new($false, $true)
+                & $Producer | ForEach-Object {
+                    # Detect the sentinel before projections/lookups and before another body-visible array exists.
+                    if ($rows.Count -ge 5000) { throw 'BDIT-READ-LIMIT' }
+                    Assert-BditGate
+                    if ($null -eq $_ -or $_ -is [Collections.IDictionary]) { throw 'BDIT-READ-SHAPE' }
+                    $projected = [ordered]@{}
+                    foreach ($name in $Properties) {
+                        $property = $_.PSObject.Properties[$name]
+                        if ($null -ne $property) { $projected[$name] = Convert-BditProjectedValue $property.Value }
+                    }
+                    # Only already whitelisted, bounded scalar/reference/list values reach JSON sizing. Never raw module objects.
+                    $size = $utf8.GetByteCount((ConvertTo-Json -InputObject $projected -Depth 6 -Compress)) + 1
+                    if ($size -gt (33554432 - $budget.Bytes)) { throw 'BDIT-READ-LIMIT' }
+                    $budget.Bytes += $size
+                    $rows.Add([pscustomobject]$projected)
+                }
+                Assert-BditGate
+                return ,$rows.ToArray()
+            }
             function Use-BditRead {
                 param([Parameter(Mandatory = $true)][string]$Command, [Parameter(Mandatory = $true)][hashtable]$Parameters)
                 if (-not $Readers.ContainsKey($Command)) { $script:Failure = 'Unregistered'; throw 'BDIT-UNREGISTERED' }
