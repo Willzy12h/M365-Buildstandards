@@ -13,7 +13,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
 {
     private readonly GraphReportsController _controller;
     private string _context = "", _section = "", _search = "", _message = "No operational report is open.", _export = "";
-    private bool _acknowledged, _reading, _opening, _supplied;
+    private bool _acknowledged, _reading, _opening, _supplied, _partnerDeclared;
+    private string _selectedReportId="service-health", _customerTenantId="";
     private int _generation;
     private OperationalContextReport? _report;
     private byte[] _original = [], _pending = [];
@@ -36,6 +37,10 @@ public sealed class OperationalReportsViewModel : PageViewModel
         OpenConnectionCommand = Sync(() => Shell.Navigate("connect"), () => Workspace.Idle);
         Refresh();
     }
+    public string SelectedReportId { get=>_selectedReportId; set { if(SetProperty(ref _selectedReportId,value)) SelectionChanged(); } }
+    public string CustomerTenantId { get=>_customerTenantId; set { if(SetProperty(ref _customerTenantId,value)) SelectionChanged(); } }
+    public bool PartnerDeclared { get=>_partnerDeclared; set { if(SetProperty(ref _partnerDeclared,value)) SelectionChanged(); } }
+    private void SelectionChanged() { _generation++;_acknowledged=false;ClearResult();Notify(); }
     public bool CanEdit => Workspace.Idle && !_reading && !_opening && !HasPendingOriginal;
     public bool Acknowledged { get => _acknowledged; set { EnsureContext(); if (SetProperty(ref _acknowledged, value)) Notify(); } }
     public string Notice => RegisteredReportDocuments.OperationalNotice;
@@ -79,6 +84,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     {
         var reason = ReadGuidance; if (reason.Length != 0) throw new ToolkitException(reason);
         var context = _context; var generation = ++_generation;
+        var reportId=_selectedReportId;var customer=_customerTenantId;var partnerDeclared=_partnerDeclared;
         _acknowledged = false; _reading = true; ClearResult(); Notify();
         try
         {
@@ -88,7 +94,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
                 _pending = original.ToArray(); _pendingTenant = report.TenantId; _pendingId = report.Id;
                 await SetReportAsync(report, original, false, context, generation);
                 _message = "Source reads finished with the states above. Save or export original JSON before closing or reading again. Other formats do not replace the original.";
-            });
+            },reportId,customer.Length==0?null:customer,partnerDeclared);
         }
         finally { _reading = false; Notify(); }
     }

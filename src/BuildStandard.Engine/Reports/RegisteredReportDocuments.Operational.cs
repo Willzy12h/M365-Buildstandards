@@ -15,6 +15,14 @@ public static partial class RegisteredReportDocuments
             .Add("Read status", report.Status).Add("Frozen as-of", report.AsOfUtc).Add("Started at", report.StartedAt).Add("Ended at", report.EndedAt)
             .Add("Toolkit version", report.ToolkitVersion).Add("Adapter version", report.AdapterVersion).Add("Integrity digest", report.IntegrityDigest)
             .Add("Evidence meaning", OperationalNotice);
+        if (report.ReportId == "partner-relationships")
+        {
+            var coverage=report.PartnerCoverage!;
+            metadata.Add("Selected customer tenant ID",report.CustomerTenantId!).Add("Source/customer meaning","The connected source remains the partner; selected customer is a report parameter, not a customer connection or proof of access.")
+                .Add("Parent inventory complete",coverage.ParentInventoryComplete.ToString()).Add("Bounded parent rows inspected",coverage.ParentRowsRead.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Add("Selected-customer rows",coverage.SelectedCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture)).Add("Excluded other-customer rows",coverage.ExcludedOtherCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Add("Unattributable customer rows",coverage.UnattributableCustomerRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
         if (suppliedFile) metadata.Add("Supplied-file provenance", SuppliedFileNotice);
         foreach (var source in report.Sources) metadata.Add("Registered source", source.Api + " " + source.RegisteredRoute + " · " + source.Reference);
         var sheets = new List<Sheet> { metadata };
@@ -27,11 +35,12 @@ public static partial class RegisteredReportDocuments
             var type = section.Id switch
             {
                 "health-overviews" => typeof(ServiceHealthOverviewRow), "health-issues" => typeof(ServiceHealthIssueRow),
+                "partner-relationships" => typeof(PartnerRelationshipRow), "partner-assignments" => typeof(PartnerAccessAssignmentRow),
                 _ => throw new ConfigurationException("Unsupported operational report section.")
             };
             var columns = type.GetProperties().Select(property => ToolkitJson.Options.PropertyNamingPolicy!.ConvertName(property.Name))
                 .OrderBy(key => key == "name" ? 0 : key == "id" ? 1 : key == "readStatus" ? 2 : key == "error" ? 3 : 4).ThenBy(key => key, StringComparer.Ordinal).ToArray();
-            var sheet = new Sheet(section.Id, columns.Select(key => key == "status" ? "Reported service state" : Label(key)));
+            var sheet = new Sheet(section.Id, columns.Select(key => key == "status" ? "Reported service state" : key == "roleDefinitionIds" ? "Directly advertised role IDs (not effective access)" : Label(key)));
             foreach (var row in section.Rows) sheet.Rows.Add(columns.Select(key => key == "error" && row[key] is null && row["readStatus"]?.GetValue<string>() == ReportReadState.Collected ? "No read error" : Value(row[key])).ToArray());
             sheets.Add(sheet);
         }

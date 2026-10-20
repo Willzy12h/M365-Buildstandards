@@ -131,6 +131,8 @@ public sealed class GraphReportsController(Workspace workspace)
 
     internal Func<ConnectedTenant, Action, IOperationalReportSource> OperationalSourceFactory { get; set; } =
         (connection, current) => ((GraphClient)connection.Graph).ForOperationalReports(connection.Session, "service-health", current);
+    internal Func<ConnectedTenant,string,Action,IOperationalReportSource> PartnerSourceFactory {get;set;} =
+        (_,_,_)=>throw new ConfigurationException("Partner native source is not implemented yet.");
     public string OperationalReadBlocker
     {
         get
@@ -142,8 +144,10 @@ public sealed class GraphReportsController(Workspace workspace)
         }
     }
     public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
-        Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal)
+        Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal,
+        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false)
     {
+        if(reportId!="service-health")throw new ConfigurationException("The selected native operational report is not implemented yet.");
         RequireIdle(expectedContext);
         if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental service-health read and its limitations first.");
         if (OperationalReadBlocker.Length != 0) throw new ToolkitException(OperationalReadBlocker);
