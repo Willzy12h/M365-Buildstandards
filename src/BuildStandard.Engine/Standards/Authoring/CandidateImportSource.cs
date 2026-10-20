@@ -25,7 +25,8 @@ internal sealed record CandidateImportSource(string Json, string Sha256)
             using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 48 });
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new ConfigurationException("Import one policy JSON object, not a list or envelope.");
-            ExchangeCaptureSchema.RejectDuplicates(document.RootElement, StringComparer.OrdinalIgnoreCase);
+            try { ExchangeCaptureSchema.RejectDuplicates(document.RootElement, StringComparer.OrdinalIgnoreCase); }
+            catch (ConfigurationException ex) { throw new ConfigurationException("Policy import contains duplicate JSON properties.", ex); }
             return new(json, CanonicalJson.Sha256Hex(bytes));
         }
         catch (DecoderFallbackException ex) { throw new ConfigurationException("Policy import must be valid UTF-8.", ex); }
