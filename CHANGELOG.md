@@ -513,4 +513,8 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Added per-instance transient profile/content ownership and browser-exit retirement; no command bridge, scripts, new permissions or tenant actions.
 - Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.
 
+- Proposed decision INT-136 defines bounded offline standards drafts, supported editing/comparison and validation/export while preserving historical catalogues and separate publication authority; editor implementation is not included.
+
+- Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
+
 - Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
