@@ -1,6 +1,21 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
 - Add strict original-byte external-check-results admission under INT-138; supplied outcomes remain untrusted claims, separate from native assessment and execution authority. Native reporting integration remains pending.
+- Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
+
+- G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
+
+- In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
+- Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
+
+
+- Implement the fixed usage-report download transport and engine capture service with isolated credential-free302 downloads, one silent401 renewal, exact context/scope checks, bounded original CSV and per-source failure/cancellation evidence. The approved Reports.Read.All capability is classified as read-only; no access is requested or granted by classification. Native collection and its deliberate optional-access setup are still in progress.
+
+- Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
+
+
+- Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
+
 
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
@@ -55,6 +70,8 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+
+
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
@@ -522,3 +539,4 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
 
 - Offline `external-checks` exports preserve untrusted external-source provenance in HTML, CSV, Excel or exact original JSON, with explicit client matching, fresh output files and no tenant calls. Native incident/import workflows remain pending.
+- Collaboration inventory adds deliberate bounded group-name lookup with exact name/ID selection, stale-result refusal and no automatic Team assumption; malformed partial imported user/tenant IDs are refused. Current Windows and named acceptance remain pending.

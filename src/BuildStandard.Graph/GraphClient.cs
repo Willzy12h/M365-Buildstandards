@@ -11,6 +11,7 @@ using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Graph;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
 using BuildStandard.Core.Safety;
 using BuildStandard.Graph.Auth;
 
@@ -66,6 +67,31 @@ public sealed class GraphClient : IGraphClient
 
     /// <summary>Reuse this verified identity/token provider and transport; restrict report requests to read-only routes.</summary>
     public GraphClient ForReports() => new(_http, _tokens, TenantId, Mode, GraphRouteAllowList.ForReports(), _options, _log);
+
+    /// <summary>Fixed usage302/download boundary over the same provider; creates no sign-in, grant or new cache.</summary>
+    public Reports.UsageReportTransport ForUsageReports(TenantSession session, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Usage access must match the current guarded Graph tenant and mode.");
+        return Reports.UsageReportTransport.Create(_tokens, session, requireCurrent);
+    }
+
+    /// <summary>Fixed operational GET pages over the existing verified provider; no authentication or cache is created.</summary>
+    public Reports.OperationalReportTransport ForOperationalReports(TenantSession session, string reportId, Action requireCurrent,
+        string? customerTenantId = null, bool partnerDeclared = false)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Operational access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, reportId, requireCurrent, customerTenantId, partnerDeclared);
+    }
+
+    /// <summary>Metadata-only fixed routes and frozen selection over this verified provider; no sign-in or new cache.</summary>
+    public Reports.OperationalReportTransport ForCollaborationReports(TenantSession session, CollaborationReadSelection selection, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Collaboration access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, "collaboration-inventory", requireCurrent, collaboration: selection);
+    }
 
     /// <summary>Schema/ID-pinned application metadata routes, reusing the current provider and transport.</summary>
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,

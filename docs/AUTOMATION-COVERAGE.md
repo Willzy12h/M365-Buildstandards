@@ -130,3 +130,12 @@ App assignment records do not prove installation or effective exclusions. Policy
 ## Registered mailbox reports
 
 Desktop Run now registers inventory/size/quotas, protocol settings, forwarding settings and hold settings. All are read-only, experimental/default-off and implemented/live-unverified. Each uses strict separate report evidence, not configuration/deployment before-evidence. The29 manual Copy/Save entries remain manual; Exchange mutations remain unavailable from Run. Protocol/forwarding/hold evidence does not establish mailbox capacity eligibility. Missing/partial/failed/cancelled reads are never empty-success. CLI lists these registrations but has no Run command or Microsoft authentication.
+
+## Operational context expansion — source status
+
+| Capability | Source/UI/CLI | Current automated evidence | Outstanding |
+| --- | --- | --- | --- |
+| Service-health context | Fixed bounded engine/Graph reads; native Read/Stop/results/original recovery; offline four-format CLI/shared exports | Failing-first route/identity/unknown/budget/storage/export cases; current source cross-builds and affected engine tests. Native/App/three-size/packaged fixtures authored | Exact composed Windows/native/package, named runtime review and human/live acceptance |
+| Partner relationships | Accepted INT134 contract, opaque path registry and model scaffolds; source still refuses partner collection | Decision review/CI and registry guards only | Parent/customer/child engine/transport/evidence/native journey and source-matched verification |
+
+These reports never become deployment before-evidence or proof of effective rights/availability. Optional access is default off and uses only the owner-approved fixed scopes through the existing broker/cache/registration flow. See [operational context](OPERATIONAL-CONTEXT.md). This table does not change the historical standard or claim all A–J work is complete.

@@ -84,6 +84,8 @@ internal static partial class Program
             SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
             SeedGraphReportEvidence(workspace);
+            SeedUsageEvidence(workspace,output);
+            SeedOperationalEvidence(workspace,output);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
@@ -327,6 +329,8 @@ internal static partial class Program
             {
                 CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            CheckUsageNativeFlows(shell,window,content,output);
+            CheckOperationalNativeFlows(shell,window,content,output);
                 CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }

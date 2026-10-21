@@ -22,7 +22,8 @@ public static class TokenCapabilityClassifier
     private static readonly HashSet<string> Reads = new(StringComparer.OrdinalIgnoreCase)
     {
         "User.Read", "User.Read.All", "Organization.Read.All", "RoleManagement.Read.Directory",
-        "Application.Read.All", "Group.Read.All", "Directory.Read.All", "AuditLog.Read.All",
+        "Application.Read.All", "Group.Read.All", "Directory.Read.All", "AuditLog.Read.All", "Reports.Read.All",
+        "ServiceHealth.Read.All", "DelegatedAdminRelationship.Read.All", "Sites.Read.All", "TeamMember.Read.All",
         "DeviceManagementApps.Read.All", "DeviceManagementConfiguration.Read.All",
         "DeviceManagementManagedDevices.Read.All", "DeviceManagementServiceConfig.Read.All",
         "Policy.Read.All", "Policy.Read.AuthenticationMethod", "Policy.Read.DeviceConfiguration"

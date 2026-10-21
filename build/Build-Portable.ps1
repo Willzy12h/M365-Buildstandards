@@ -77,7 +77,7 @@ Invoke-Step 'Stage package contents' {
     # source history, agent coordination, review briefs and decision logs. Copying the folder shipped all of it to
     # clients, and would ship every internal document written afterwards too, so this is an allow-list.
     $documents = @(
-        'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
+        'APPLICATION-SETUP.md', 'USAGE-REPORTS.md', 'OPERATIONAL-CONTEXT.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
         'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md', 'NATIVE-SETTINGS-AND-MOBILE.md', 'CONTROLLED-ACCEPTANCE.md',
         'LIVE-ACCEPTANCE-RUNSHEET.md', 'OPERATOR-START.md', 'WORKSPACE-CONTINUITY.md', 'INTERNAL-OPERATING-MODEL.md', 'RELEASE-AND-SERVICING.md'

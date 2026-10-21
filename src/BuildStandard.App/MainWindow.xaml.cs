@@ -63,7 +63,20 @@ public partial class MainWindow : Window
 
     private static bool ShowPendingReport(ShellViewModel shell)
     {
-        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
+        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence)
+        {
+            var reports = shell.Page<GraphReportsViewModel>();
+            if (reports.Usage.HasPendingOriginal)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 3;
+                shell.ShowError(new InvalidOperationException("An original usage report is still unsaved. Export its original JSON or deliberately discard it under Usage review → Original report before closing. No source is rerun."));
+                return true;
+            }
+            if (!reports.Operational.HasPendingOriginal) return false;
+            shell.Navigate("reports"); reports.SelectedTab = 4;
+            shell.ShowError(new InvalidOperationException("An original operational report is still unsaved. Save or export its original JSON, or explicitly discard it under Operational context → Original context before closing. No source is rerun."));
+            return true;
+        }
         shell.Navigate("run-reports");
         shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
         return true;

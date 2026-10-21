@@ -505,19 +505,19 @@ public sealed class Workspace : ObservableObject
 
     // ---- connection ----------------------------------------------------------------------------------------------
 
-    public async Task<DiscoveredTenant?> DiscoverTenantAsync()
+    public async Task<DiscoveredTenant?> DiscoverTenantAsync(OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
         DiscoveredTenant? discovered = null;
         await RunExclusiveAsync("Finding the signed-in organisation", async progress =>
         {
             progress.Report("Choose the client's own work or school account in Microsoft sign-in.");
             var discoveryScopes = Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
-                ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" };
+                ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard(), optionalAccess) : new[] { "User.Read", "Organization.Read.All" };
             await CancelPendingDiscoveryAsync();
             var result = await TenantDiscoveryService.DiscoverRetainedAsync(_http, Settings, RequireStandard(),
                 Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
-                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken,
-                ct => ReviewPermissionRequestAsync("Not selected — Microsoft will ask you to choose", ToolkitSettings.MicrosoftGraphPowerShellClientId, discoveryScopes, "Quick Connect: read-only discovery; possible Microsoft consent", ct));
+                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard(), optionalAccess) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken,
+                ct => ReviewPermissionRequestAsync("Not selected — Microsoft will ask you to choose", ToolkitSettings.MicrosoftGraphPowerShellClientId, discoveryScopes, "Quick Connect: read-only discovery; possible Microsoft consent", ct), optionalAccess);
             _pendingDiscovery = result;
             if (OperationToken.IsCancellationRequested) { await CancelPendingDiscoveryAsync(); OperationToken.ThrowIfCancellationRequested(); }
             discovered = result.Identity;
@@ -534,8 +534,9 @@ public sealed class Workspace : ObservableObject
     { await previous; await pending.DisposeAsync(); }
     public async Task CancelPendingDiscoveryAsync() { CancelPendingDiscovery(); await _pendingRelease; }
 
+    private OptionalReportAccess _connectedOptionalAccess;
     public Task ConnectAsync(TenantProfile profile, SessionMode mode, string? loginHint = null,
-        DiscoveredTenant? expectedIdentity = null) => RunExclusiveAsync(
+        DiscoveredTenant? expectedIdentity = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None) => RunExclusiveAsync(
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
             var standard = RequireStandard();
@@ -543,7 +544,7 @@ public sealed class Workspace : ObservableObject
             Connections.LoginHint = loginHint ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
             // Repeated connection buttons for the same complete profile need fresh read checks, not another
             // interactive sign-in. A changed mode, application, profile or discovery confirmation uses full verification.
-            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode))
+            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode, optionalAccess))
             {
                 progress.Report("Reusing the current verified session; checking read access without another sign-in.");
                 Access = await Connections.CheckAccessAsync(Connection!, standard, progress, OperationToken);
@@ -552,21 +553,21 @@ public sealed class Workspace : ObservableObject
             }
             ExperimentalGuard.Invalidate();
             var requestedClient = Settings.ResolveClient(mode, profile) ?? throw new ConfigurationException("No application is configured for this access mode.");
-            var requestedScopes = Connections.ScopesFor(mode, standard).ToArray();
+            var requestedScopes = Connections.ScopesFor(mode, standard, optionalAccess).ToArray();
             var requestedAccount = Connections.LoginHint;
             var approvedUntil = DateTimeOffset.MinValue;
-            if (mode == SessionMode.Deployment)
+            if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None)
             {
                 await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
-                    "Request deployment access — experimental tenant changes stay off until separately approved", OperationToken, requestedAccount);
+                    mode == SessionMode.Deployment ? "Request deployment access — experimental tenant changes stay off until separately approved" : "Optional usage-report read access — Reports.Read.All; no licence/privacy changes", OperationToken, requestedAccount);
                 approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
             }
             async Task BeforeInteractive(CancellationToken ct)
             {
                 if (!string.Equals(Settings.ResolveClient(mode, profile)?.ClientId, requestedClient.ClientId, StringComparison.OrdinalIgnoreCase)
-                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard)))
+                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard, optionalAccess)))
                     throw new SafetyViolationException("The displayed application or permissions changed. Review a new request; no sign-in request was sent.");
-                if (mode == SessionMode.Deployment)
+                if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None)
                 {
                     if (approvedUntil <= DateTimeOffset.UtcNow) throw new SafetyViolationException("Access-request approval expired. Review the request again.");
                     ct.ThrowIfCancellationRequested();
@@ -581,15 +582,16 @@ public sealed class Workspace : ObservableObject
                 var pending = _pendingDiscovery ?? throw new AuthenticationRequiredException("Quick Connect was cancelled. Start it again.");
                 if (pending.Identity != expectedIdentity) throw new TenantMismatchException("Quick Connect account changed.");
                 _pendingDiscovery = null;
-                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken, BeforeInteractive); }
+                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken, BeforeInteractive, optionalAccess); }
                 finally { await pending.DisposeAsync(); }
             }
             else
             {
                 await CancelPendingDiscoveryAsync();
-                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive);
+                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive, optionalAccess: optionalAccess);
             }
             await CompleteConnectionAsync(profile, nextConnection, standard, progress);
+            _connectedOptionalAccess=optionalAccess;
         });
 
     /// <summary>Accepts an already authenticated connection and performs the existing read-only checks.</summary>
@@ -626,7 +628,9 @@ public sealed class Workspace : ObservableObject
         await LoadLicencesCoreAsync(includeUsers: false);
     }
 
-    public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
+    public bool CanReuseConnection(TenantProfile profile, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None) => Profile is not null
+        && _connectedOptionalAccess==optionalAccess
+        && OptionalReportAccessPolicy.IsSatisfied(optionalAccess, Session?.Scopes ?? [])
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
         && DateTimeOffset.TryParse(session.TokenExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.RoundtripKind, out var expires) && expires > DateTimeOffset.UtcNow

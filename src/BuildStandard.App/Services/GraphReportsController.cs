@@ -4,6 +4,7 @@ using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
 using BuildStandard.Core.Reporting;
 using BuildStandard.Engine.Reports;
+using BuildStandard.Engine.Identity;
 using BuildStandard.Graph;
 using Envelope = BuildStandard.Engine.Reports.ReportEnvelopeDispatcher.Envelope;
 
@@ -127,6 +128,204 @@ public sealed class GraphReportsController(Workspace workspace)
         if (selectionStillCurrent?.Invoke() == false)
             throw new ToolkitException("The report selection changed after capture. Any saved record retains its original context; no result was accepted for this selection.");
         return result ?? throw new ToolkitException("No report result was accepted.");
+    }
+
+    internal Func<ConnectedTenant, Action, IOperationalReportSource> OperationalSourceFactory { get; set; } =
+        (connection, current) => ((GraphClient)connection.Graph).ForOperationalReports(connection.Session, "service-health", current);
+    internal Func<ConnectedTenant, string, Action, IOperationalReportSource> PartnerSourceFactory { get; set; } =
+        (connection, customer, current) => ((GraphClient)connection.Graph).ForOperationalReports(
+            connection.Session, "partner-relationships", current, customer, true);
+    internal Func<ConnectedTenant, CollaborationReadSelection, Action, ICollaborationReportSource> CollaborationSourceFactory { get; set; } =
+        (connection, selection, current) => ((GraphClient)connection.Graph).ForCollaborationReports(connection.Session, selection, current);
+    public string CollaborationLookupBlocker
+    {
+        get
+        {
+            var blocker = ReadBlocker;
+            if (blocker.Length != 0) return blocker;
+            var scopes = RequireLive().Session.Scopes;
+            return scopes.Contains("Group.Read.All", StringComparer.Ordinal) || scopes.Contains("https://graph.microsoft.com/Group.Read.All", StringComparer.Ordinal)
+                ? "" : "Group.Read.All was not returned. Review access in Connect; lookup never signs in or grants consent.";
+        }
+    }
+    public async Task<IReadOnlyList<ResolvedTenantObject>> FindCollaborationGroupsAsync(string query, bool acknowledged,
+        string expectedContext, Func<bool> selectionStillCurrent)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge this deliberate group-name lookup first.");
+        var blocker = CollaborationLookupBlocker;
+        if (blocker.Length != 0) throw new ToolkitException(blocker);
+        query = query.Trim();
+        if (query.Length is < 2 or > 200 || query.Any(char.IsControl))
+            throw new ConfigurationException("Enter an exact group ID or 2 to 200 name characters.");
+        IReadOnlyList<ResolvedTenantObject>? result = null;
+        await workspace.RunExclusiveAsync("Finding existing groups; no changes", async _ =>
+        {
+            RequireContext(expectedContext);
+            if (!selectionStillCurrent()) throw new TenantMismatchException("The group selection changed; search again.");
+            var connection = RequireLive();
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(workspace.OperationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(60));
+            var found = await ObjectResolver.SearchAsync(connection.Graph, connection.Session.TenantId, ObjectLookupKind.Group, query, deadline.Token);
+            deadline.Token.ThrowIfCancellationRequested();
+            RequireContext(expectedContext);
+            if (!selectionStillCurrent()) throw new TenantMismatchException("Client or search changed while finding groups; no results admitted.");
+            result = found.ToArray();
+        });
+        RequireContext(expectedContext);
+        if (!selectionStillCurrent()) throw new TenantMismatchException("The group selection changed; search again.");
+        return result ?? throw new ToolkitException("Group lookup was stopped before completion. No matching-group result was admitted; search again deliberately.");
+    }
+
+    public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
+    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared, CollaborationReadSelection? collaboration = null)
+    {
+        var blocker = ReadBlocker;
+        if (blocker.Length != 0) return blocker;
+        if (reportId == "collaboration-inventory")
+        {
+            if (collaboration is null || customerTenantId is not null || partnerDeclared) return "Select exact collaboration sources without partner/customer parameters.";
+            var actual = RequireLive().Session.Scopes;
+            var missing = collaboration.Scopes().Where(scope => !actual.Contains(scope, StringComparer.Ordinal) && !actual.Contains("https://graph.microsoft.com/" + scope, StringComparer.Ordinal)).ToArray();
+            return missing.Length == 0 ? "" : "Missing returned read access: " + string.Join(", ", missing) + ". Review optional access in Connect and reconnect deliberately; this page never consents or signs in.";
+        }
+        if (collaboration is not null) return "Collaboration selection is not valid for another report.";
+        if (reportId is not ("service-health" or "partner-relationships")) return "Select a registered operational report.";
+        var session = RequireLive().Session;
+        if (reportId == "partner-relationships")
+        {
+            if (!ReportValues.IsCanonicalGuid(customerTenantId) || customerTenantId == session.TenantId)
+                return "Enter a distinct customer's exact tenant ID. The connected partner source will not change.";
+            if (!partnerDeclared) return "Declare the current verified connection as the partner source. This does not establish customer access.";
+        }
+        else if (customerTenantId is not null || partnerDeclared) return "Service-health reads use the connected source only; clear partner parameters.";
+        var scope = reportId == "service-health" ? "ServiceHealth.Read.All" : "DelegatedAdminRelationship.Read.All";
+        return session.Scopes.Any(value => value == scope || value == "https://graph.microsoft.com/" + scope) ? ""
+            : $"No {scope} scope was returned for this connection. Review optional read access in Connect and reconnect deliberately. This page never signs in or grants consent.";
+    }
+    public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
+        Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal,
+        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false, CollaborationReadSelection? collaboration=null)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental operational read and its limitations first.");
+        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared, collaboration);
+        if (blocker.Length != 0) throw new ToolkitException(blocker);
+        var connection = RequireLive();
+        void AssertCurrent()
+        {
+            RequireContext(expectedContext);
+            if (!ReferenceEquals(workspace.Connection, connection) || !selectionStillCurrent())
+                throw new TenantMismatchException("The operational read context changed. No result was admitted for the current client.");
+            RequireLive();
+        }
+        OperationalContextReport? result = null;
+        await workspace.RunExclusiveAsync("Reading operational context", async progress =>
+        {
+            AssertCurrent();
+            progress.Report("Registered read-only routes; five minutes, 100 requests, 5,000 rows and 16 MiB. Observations do not prove availability or effective customer access.");
+            if (reportId == "collaboration-inventory")
+            {
+                var source = CollaborationSourceFactory(connection, collaboration!, AssertCurrent);
+                using var owned = source as IDisposable;
+                result = await new CollaborationReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken);
+            }
+            else
+            {
+            var source = reportId == "service-health" ? OperationalSourceFactory(connection, AssertCurrent)
+                : PartnerSourceFactory(connection, customerTenantId!, AssertCurrent);
+            using var owned = source as IDisposable;
+            result = reportId == "service-health"
+                ? await new ServiceHealthReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken)
+                : await new PartnerRelationshipReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, customerTenantId!, partnerDeclared, AssertCurrent, workspace.OperationToken);
+            }
+            // A returned admitted original belongs to the captured source. Preserve it before current-view admission,
+            // including the dispatcher transition after capture; ownership continues through serialisation/projection.
+            progress.Report("Retaining original operational evidence. Closing waits for the original; Stop does not discard already captured observations.");
+            await retainOriginal(result);
+            AssertCurrent();
+        });
+        AssertCurrent();
+        return result ?? throw new ToolkitException("No operational result was admitted.");
+    }
+    public async Task<string> ExportOperationalAsync(OperationalContextReport report, ExportFormat format, bool suppliedFile,
+        byte[] originalBytes, string expectedContext)
+    {
+        RequireIdle(expectedContext);
+        var file = await workspace.ExportAsync(() =>
+        {
+            RequireContext(expectedContext);
+            if (report.TenantId != workspace.Profile!.TenantId) throw new TenantMismatchException("The operational report belongs to another source tenant.");
+            return workspace.Exporter.ExportOperationalContext(report, format, suppliedFile, originalBytes);
+        }, "Exporting the complete operational report", "Preserving original source context and every read state; visual filters do not limit exports.");
+        RequireContext(expectedContext); return file;
+    }
+
+    internal Func<ConnectedTenant, Action, IUsageReportSource> UsageSourceFactory { get; set; } =
+        (connection, current) => ((GraphClient)connection.Graph).ForUsageReports(connection.Session, current);
+
+    public string UsageReadBlocker
+    {
+        get
+        {
+            var blocker = ReadBlocker;
+            if (blocker.Length != 0) return blocker;
+            return RequireLive().Session.Scopes.Any(scope => string.Equals(scope, "Reports.Read.All", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scope, "https://graph.microsoft.com/Reports.Read.All", StringComparison.OrdinalIgnoreCase)) ? ""
+                : "This connection has no returned Reports.Read.All access. Enable optional usage-report read access in Connect, review the registration/consent requirements, then reconnect deliberately. This page never signs in or grants access.";
+        }
+    }
+    public async Task<UsageReviewReport> ReadUsageAsync(IReadOnlyList<string> sources, string period, bool acknowledged,
+        string expectedContext, Func<bool> selectionStillCurrent, Func<UsageReviewReport,Task>? retainOriginal = null)
+    {
+        RequireIdle(expectedContext);
+        if (!acknowledged) throw new ToolkitException("Acknowledge the exact experimental usage selection and access first; this grants no consent.");
+        if (UsageReadBlocker.Length != 0) throw new ToolkitException(UsageReadBlocker);
+        var ids = sources.ToArray();
+        if (ids.Length is < 1 or > 4 || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
+            throw new ConfigurationException("Choose one to four different registered usage sources.");
+        foreach (var id in ids) _ = UsageReportRegistry.Find(id).Route(period);
+        var connection = RequireLive();
+        void AssertCurrent()
+        {
+            RequireContext(expectedContext);
+            if (!ReferenceEquals(workspace.Connection, connection) || !selectionStillCurrent())
+                throw new TenantMismatchException("The usage selection or connection changed. No result was admitted for this client.");
+            RequireLive();
+        }
+        UsageReviewReport? result = null;
+        await workspace.RunExclusiveAsync("Reading selected usage reports", async progress =>
+        {
+            AssertCurrent();
+            progress.Report("Read-only: selected fixed reports, five minutes total,10MiB per original CSV; privacy remains Unknown and no licences change.");
+            var source = UsageSourceFactory(connection, AssertCurrent);
+            using var owned = source as IDisposable;
+            result = await new UsageReportService(SystemClock.Instance, workspace.Version).CaptureAsync(
+                source, connection.Session, ids, period, AssertCurrent, workspace.OperationToken);
+            AssertCurrent();
+            // The capture remains owned while its original bytes and native projection are prepared. Normal close
+            // waits for this whole operation; a changed current view never discards an already captured original.
+            if(retainOriginal is not null)
+            {
+                progress.Report("Retaining original usage evidence. Stop does not discard sources already captured; closing waits for recovery bytes.");
+                await retainOriginal(result);
+            }
+            AssertCurrent();
+        });
+        AssertCurrent();
+        return result ?? throw new ToolkitException("No usage result was admitted.");
+    }
+    public async Task<string> ExportUsageAsync(UsageReviewReport report, ExportFormat format, bool suppliedFile,
+        byte[] originalBytes, string expectedContext)
+    {
+        RequireIdle(expectedContext);
+        _ = UsageReviewSchema.Read(UsageReviewSchema.Serialise(report), workspace.Profile!.TenantId);
+        var file = await workspace.ExportAsync(() =>
+        {
+            RequireContext(expectedContext);
+            return workspace.Exporter.ExportUsageReview(report, format, suppliedFile, originalBytes);
+        }, "Exporting complete usage evidence", "Filters do not limit exports. No usage identities are joined to licences.");
+        RequireContext(expectedContext); return file;
     }
 
     public async Task<string> ExportAsync(Envelope report, ExportFormat format, bool suppliedFile, string expectedContext)

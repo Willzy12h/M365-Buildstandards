@@ -8,7 +8,7 @@ using BuildStandard.Core.Reporting;
 namespace BuildStandard.Engine.Reports;
 
 /// <summary>Offline visibility over validated report evidence; no re-collection or current-state inference.</summary>
-public static class RegisteredReportDocuments
+public static partial class RegisteredReportDocuments
 {
     public const string SuppliedFileNotice = "Offline supplied file: source, account and live-mode claims have not been independently verified. No live reads were performed for this export. A digest detects modification; it does not authenticate the source.";
     public static IReadOnlyList<Sheet> Sheets(ExchangeReportEvidence report)

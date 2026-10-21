@@ -509,13 +509,24 @@ public sealed class ExchangeReportRunnerTests
     {
         using var run = new Run();
         using var cts = new CancellationTokenSource();
-        var watch = Stopwatch.StartNew();
+        var total = Stopwatch.StartNew();
+        Stopwatch? stopping = null;
         var result = await run.Execute(runtime, "slow-stats", ct: cts.Token,
-            onProgress: p => { if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) cts.Cancel(); });
+            onProgress: p =>
+            {
+                if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal) && stopping is null)
+                {
+                    // Measure the stop grace, not unrelated PowerShell/module startup on a shared runner.
+                    stopping = Stopwatch.StartNew();
+                    cts.Cancel();
+                }
+            });
 
         Assert.Equal(ReadRunOutcome.Cancelled, result.Outcome);
         Assert.Null(result.Evidence);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(25), "The process tree must be ended shortly after the grace period.");
+        Assert.NotNull(stopping);
+        Assert.True(stopping.Elapsed < TimeSpan.FromSeconds(25),
+            $"The process tree must be ended shortly after the grace period. Stop: {stopping.Elapsed}; total including startup: {total.Elapsed}.");
         Assert.DoesNotContain("Disconnect", run.Log);
     }
 

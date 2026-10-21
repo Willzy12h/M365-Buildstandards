@@ -64,16 +64,17 @@ public static class TenantDiscoveryService
 
     public static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
         StandardCatalogue standard, IReadOnlyList<string> readScopes, IntPtr parentWindow, IToolkitLog log, CancellationToken ct,
-        Func<CancellationToken, Task>? beforeInteractive = null) =>
+        Func<CancellationToken, Task>? beforeInteractive = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None) =>
         await DiscoverRetainedAsync(http, settings, standard, readScopes, log, ct, (timeout, token) =>
             MsalAuthenticator.DiscoverAsync(parentWindow, settings.UseSystemBrowser, timeout, log, token,
-                readScopes, beforeInteractive));
+                readScopes, beforeInteractive), optionalAccess);
 
     // The retained journey uses the same per-call seam, with no global authentication override.
     internal static async Task<PendingTenantDiscovery> DiscoverRetainedAsync(HttpClient http, ToolkitSettings settings,
         StandardCatalogue standard, IReadOnlyList<string> readScopes, IToolkitLog log, CancellationToken ct,
-        Func<TimeSpan, CancellationToken, Task<MsalAuthenticator>> discover)
+        Func<TimeSpan, CancellationToken, Task<MsalAuthenticator>> discover, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
+        OptionalReportAccessPolicy.Validate(optionalAccess);
         if (!settings.AllowMicrosoftGraphPowerShellFallback)
             throw new ConfigurationException("Quick Connect needs the enabled Microsoft Graph PowerShell assessment fallback.");
         if (TokenCapabilityClassifier.Classify(readScopes).Classification != TokenCapability.ReadOnlyVerified)
@@ -85,7 +86,7 @@ public static class TenantDiscoveryService
                 new GraphClientOptions { ReadTimeout = TimeSpan.FromSeconds(settings.GraphReadTimeoutSeconds) }, log);
             var identity = await ReadIdentityAsync(graph, auth.Outcome, ct);
             ct.ThrowIfCancellationRequested();
-            return new PendingTenantDiscovery(identity, standard.IntegrityDigest, auth);
+            return new PendingTenantDiscovery(identity, standard.IntegrityDigest, auth, optionalAccess);
         }
         catch { await auth.ReleaseAsync(); throw; }
     }
@@ -125,14 +126,21 @@ public sealed class PendingTenantDiscovery : IAsyncDisposable
     public DiscoveredTenant Identity { get; }
     public string StandardDigest { get; }
     public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
-    internal PendingTenantDiscovery(DiscoveredTenant identity, string standardDigest, MsalAuthenticator auth)
-    { Identity = identity; StandardDigest = standardDigest; _auth = auth; }
+    public OptionalReportAccess OptionalAccess {get;}
+    internal PendingTenantDiscovery(DiscoveredTenant identity, string standardDigest, MsalAuthenticator auth, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
+    { Identity = identity; StandardDigest = standardDigest; _auth = auth; OptionalReportAccessPolicy.Validate(optionalAccess); OptionalAccess=optionalAccess; }
     public static void VerifyContext(DiscoveredTenant identity, TenantProfile profile, string expectedDigest,
         string currentDigest, DateTimeOffset createdAt, DateTimeOffset now)
     {
         if (!string.Equals(identity.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase)
             || expectedDigest != currentDigest || createdAt > now.AddMinutes(1) || now - createdAt > TimeSpan.FromMinutes(5))
             throw new TenantMismatchException("Quick Connect confirmation expired or the tenant/standard changed. Start Quick Connect again.");
+    }
+    public void RequireAccess(OptionalReportAccess access)
+    {
+        OptionalReportAccessPolicy.Validate(access);
+        if(access!=OptionalAccess||_auth is null)
+            throw new AuthenticationRequiredException("Quick Connect access selection changed or was not returned. Start Quick Connect again.");
     }
     internal MsalAuthenticator Take(TenantProfile profile, StandardCatalogue standard)
     {
