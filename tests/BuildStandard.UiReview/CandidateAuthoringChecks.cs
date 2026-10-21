@@ -29,7 +29,7 @@ internal static partial class Program
             SaveImage(content, size, Path.Combine(output, $"candidate-authoring-{(int)size.Width}x{(int)size.Height}.png"));
             // The compact viewport cannot show the entire editor at once. Capture the actual working
             // value and final actions as well as the header, rather than calling an off-screen form reviewed.
-            foreach (var (name, suffix) in new[] { ("Candidate proposed setting value", "value"), ("Candidate operation result", "result") })
+            foreach (var (name, suffix) in new[] { ("Candidate proposed setting value", "value"), ("Candidate persistent change and import review", "review"), ("Candidate operation result", "result") })
             {
                 var target = Descendants(panel).OfType<TextBox>().Single(e => AutomationProperties.GetName(e) == name);
                 target.BringIntoView(); content.UpdateLayout(); Pump();

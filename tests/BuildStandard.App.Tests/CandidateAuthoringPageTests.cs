@@ -98,6 +98,7 @@ public sealed class CandidateAuthoringPageTests
         await page.CreateAsync(); await page.ValidateAsync();
         f.Workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB), save: false);
         Assert.False(page.ExportCandidateCommand.CanExecute(null)); Assert.Empty(page.Fields); Assert.True(page.HasUnsavedChanges);
+        Assert.Contains("Working context changed", page.ReviewText);
         await Assert.ThrowsAnyAsync<ToolkitException>(page.ValidateAsync); await page.SaveAsync();
         Assert.False(page.HasUnsavedChanges); Assert.Contains("Draft saved:", page.Message);
         Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);

@@ -526,3 +526,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
 
 - Expansion I foundation: bounded offline candidate drafts with exact baseline digests, strict input parsing and conflict-safe object pointers. Native editor/export validation remains in progress; no publication or tenant authority.
+
+- Candidate editing now refuses opaque foreign-reference literals through manual and saved-draft routes. Native authoring retains source/assignment/unresolved review after save/reopen, and expanded editor content participates in compact-page scrolling; Windows render verification remains required.

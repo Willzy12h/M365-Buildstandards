@@ -44,6 +44,9 @@
    <Button Content="Export candidate and comparison" Command="{Binding ExportCandidateCommand}" Style="{StaticResource PrimaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Validate the exact current draft first. Pending input or changed context blocks export."/>
    <Button Content="Discard unsaved draft" Command="{Binding DiscardDraftCommand}" Style="{StaticResource SecondaryButton}" ToolTipService.ShowOnDisabled="True" ToolTip="Open a draft first. This discards local unsaved edits only; existing files are kept."/>
   </WrapPanel>
+  <Expander Header="Review changes, import sources and assignment observations" IsExpanded="True" Margin="0,8">
+   <TextBox Text="{Binding ReviewText, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" MaxHeight="240" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Candidate persistent change and import review"/>
+  </Expander>
   <TextBox Text="{Binding Message, Mode=OneWay}" Style="{StaticResource ReadOnlyDetail}" AutomationProperties.Name="Candidate operation result"/>
  </StackPanel>
 </UserControl>

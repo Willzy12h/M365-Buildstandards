@@ -6,7 +6,14 @@
   <!-- The page fills the window down to a minimum height, then scrolls: a short window (a laptop at 150% scaling)
        would otherwise squeeze the tables and guidance below it out of reach. See PageLayout.MinimumHeight. -->
   <ScrollViewer x:Name="CataloguePageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+    <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}">
+      <Grid.Style>
+        <Style TargetType="Grid">
+          <Setter Property="Height" Value="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
+          <!-- Let the outer scroll host measure the full editor instead of clipping its last actions. -->
+          <Style.Triggers><DataTrigger Binding="{Binding Authoring.IsExpanded}" Value="True"><Setter Property="Height" Value="Auto"/></DataTrigger></Style.Triggers>
+        </Style>
+      </Grid.Style>
       <Grid Margin="28,24">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/>
@@ -81,6 +88,11 @@
           </Border>
         </StackPanel>
         <Grid Grid.Row="1">
+          <Grid.Style><Style TargetType="Grid"><Style.Triggers>
+            <DataTrigger Binding="{Binding Authoring.IsExpanded}" Value="True">
+              <Setter Property="MinHeight" Value="240"/><Setter Property="MaxHeight" Value="420"/>
+            </DataTrigger>
+          </Style.Triggers></Style></Grid.Style>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="3*"/>

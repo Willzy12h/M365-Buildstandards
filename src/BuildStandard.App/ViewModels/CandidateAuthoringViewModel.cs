@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Text;
 using System.Windows.Input;
 using Microsoft.Win32;
 using BuildStandard.App.Services;
@@ -17,6 +18,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     private readonly CandidateEditingService _editing;
     private readonly CandidateLocalOutputs _outputs;
     private bool _expanded;
+    private string _reviewDigest = "", _reviewText = "";
     private string _importName = "", _mappingFile = "";
     private ControlDefinition? _control;
     private CandidateEditableField? _field;
@@ -72,6 +74,9 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     public bool IsExpanded { get => _expanded; set => SetProperty(ref _expanded, value); }
     public string DraftTitle { get => _title; set => SetProperty(ref _title, value); }
     public string Message { get => _message; private set => SetProperty(ref _message, value); }
+    public string ReviewText => !_workflow.HasDraft ? "No local draft to review."
+        : !_workflow.ContextCurrent ? "Working context changed. Save and reopen this draft before reviewing it against the current context."
+        : _reviewText;
     public bool HasPendingInput => _value != _initialValue;
     public bool HasUnsavedChanges => HasPendingInput || _workflow.HasUnsavedChanges;
     public bool CanEdit => Workspace.Idle && _workflow.ContextCurrent;
@@ -158,9 +163,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
         }, ct));
         Fields.Clear(); SetField(null);
         var result = _workflow.Draft!;
-        Message = $"Policy imported into local draft for {control}. {result.Unresolved.Count} unresolved reference(s). Review and validate before export. Nothing was assigned or published."
-            + "\n" + string.Join("\n", result.Unresolved.Select(u => u.Path + ": " + u.Reason))
-            + "\n" + string.Join("\n", result.AssignmentObservations.Select(a => a.Status + ": " + a.Detail));
+        Message = $"Policy imported into local draft for {control}. {result.Unresolved.Count} unresolved reference(s). Inspect the retained changes, source and assignment review below, then validate. Nothing was assigned or published.";
         RaiseAll();
     }
     public async Task ValidateAsync()
@@ -189,7 +192,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     public void Discard()
     {
         if (!Workspace.Idle) throw new ConfigurationException("Wait for the current operation before discarding local edits.");
-        _workflow.Discard(); Controls.Clear(); Fields.Clear(); _control = null; SetField(null);
+        _workflow.Discard(); _reviewDigest = ""; _reviewText = ""; Controls.Clear(); Fields.Clear(); _control = null; SetField(null);
         Message = "Unsaved local draft discarded explicitly. Existing files and published standards were not deleted."; RaiseAll();
     }
     public override void Refresh()
@@ -217,9 +220,42 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     private async Task LocalAsync(string title, Func<CancellationToken, Task> work)
     {
         var completed = false;
-        await Workspace.RunExclusiveAsync(title, async _ => { await work(Workspace.OperationToken); Workspace.OperationToken.ThrowIfCancellationRequested(); completed = true; });
+        await Workspace.RunExclusiveAsync(title, async _ => { await work(Workspace.OperationToken); await RefreshReviewAsync(Workspace.OperationToken); Workspace.OperationToken.ThrowIfCancellationRequested(); completed = true; });
         if (!completed) throw new OperationCanceledException("Local authoring stopped; no new result was accepted.");
         RaiseAll();
+    }
+    private async Task RefreshReviewAsync(CancellationToken ct)
+    {
+        if (!_workflow.ContextCurrent || _reviewDigest == _workflow.DraftDigest) return;
+        var draft = _workflow.Draft!;
+        var text = await Task.Run(() => DescribeReview(draft), ct);
+        ct.ThrowIfCancellationRequested();
+        if (!_workflow.ContextCurrent || _workflow.DraftDigest != draft.ContentDigest)
+            throw new ConfigurationException("The draft or working context changed; no review text was admitted.");
+        _reviewDigest = draft.ContentDigest; _reviewText = text;
+    }
+    private static string DescribeReview(StandardCandidateDraft draft)
+    {
+        var text = new StringBuilder("CONFIGURATION CHANGES — local proposal only\n");
+        if (draft.Changes.Count == 0) text.AppendLine("No proposed setting changes.");
+        foreach (var change in draft.Changes)
+            text.AppendLine(change.ControlId + " · " + change.Path)
+                .AppendLine("Baseline: " + (change.ExpectedOriginal?.ToJsonString() ?? "null"))
+                .AppendLine("Proposed: " + (change.Proposed?.ToJsonString() ?? "null"));
+        text.AppendLine("\nIMPORT SOURCES — integrity is not authenticity");
+        if (draft.Imports.Count == 0) text.AppendLine("No policy imported.");
+        foreach (var source in draft.Imports)
+            text.AppendLine(source.ControlId + " · " + source.PolicyType).AppendLine("Original SHA-256: " + source.Sha256);
+        text.AppendLine("\nUNRESOLVED INPUTS — validation and export remain blocked");
+        if (draft.Unresolved.Count == 0) text.AppendLine("No unresolved imported references recorded.");
+        foreach (var input in draft.Unresolved)
+            text.AppendLine(input.ControlId + " · " + input.Path + ": " + input.Reason).AppendLine("Source SHA-256: " + input.SourceSha256);
+        text.AppendLine("\nASSIGNMENT OBSERVATIONS — never applied by authoring");
+        if (draft.AssignmentObservations.Count == 0) text.AppendLine("No imported assignment observations. No assignment coverage is inferred.");
+        foreach (var observation in draft.AssignmentObservations)
+            text.AppendLine(observation.ControlId + " · " + observation.Status + ": " + observation.Detail)
+                .AppendLine("Source SHA-256: " + observation.SourceSha256);
+        return text.ToString();
     }
     private void SetField(CandidateEditableField? field)
     {
