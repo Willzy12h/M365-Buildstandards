@@ -6,7 +6,14 @@
   <!-- The page fills the window down to a minimum height, then scrolls: a short window (a laptop at 150% scaling)
        would otherwise squeeze the tables and guidance below it out of reach. See PageLayout.MinimumHeight. -->
   <ScrollViewer x:Name="CataloguePageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+    <Grid MinHeight="{x:Static infra:PageLayout.MinimumHeight}">
+      <Grid.Style>
+        <Style TargetType="Grid">
+          <Setter Property="Height" Value="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
+          <!-- Let the outer scroll host measure the full editor instead of clipping its last actions. -->
+          <Style.Triggers><DataTrigger Binding="{Binding Authoring.IsExpanded}" Value="True"><Setter Property="Height" Value="Auto"/></DataTrigger></Style.Triggers>
+        </Style>
+      </Grid.Style>
       <Grid Margin="28,24">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/>
@@ -25,12 +32,17 @@
               <WrapPanel Margin="0,10,0,0">
                 <TextBlock Text="Release" VerticalAlignment="Center" Margin="0,0,6,10"/>
                 <ComboBox AutomationProperties.Name="Build Standard release" ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease, Mode=TwoWay}" DisplayMemberPath="Release" Width="180" Margin="0,0,12,10"/>
-                <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" Style="{StaticResource SecondaryButton}"/>
+                <Button Content="Use this release" Command="{Binding SelectReleaseCommand}" ToolTipService.ShowOnDisabled="True" ToolTip="Select a release, disconnect and finish current work. Save or discard unsaved candidate edits first." Style="{StaticResource SecondaryButton}"/>
                 <TextBlock Text="Category" VerticalAlignment="Center" Margin="12,0,6,10"/>
                 <ComboBox AutomationProperties.Name="Control category" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}" Width="180" Margin="0,0,12,10"/>
                 <StackPanel><TextBlock Text="Search controls" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200" AutomationProperties.Name="Search standard controls"/></StackPanel>
               </WrapPanel>
               <TextBox Text="{Binding LastExport, Mode=OneWay}" AutomationProperties.Name="Latest standard export result" Style="{StaticResource ReadOnlyDetail}" Visibility="{Binding HasExport, Converter={StaticResource BoolToVis}}"/>
+              <Expander Header="Create or edit a local candidate standard — offline" IsExpanded="{Binding Authoring.IsExpanded, Mode=TwoWay}" Margin="0,8,0,0">
+                <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <views:CandidateAuthoringPanel DataContext="{Binding Authoring}"/>
+                </ScrollViewer>
+              </Expander>
               <Expander Header="More export formats and engineer guides" IsExpanded="False" Margin="0,8,0,0"><ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
               <Expander Header="Defaults and settings — HTML, reusable JSON and document source" IsExpanded="False" Margin="0,8,0,0">
                 <StackPanel Margin="0,8,0,0">
@@ -76,6 +88,11 @@
           </Border>
         </StackPanel>
         <Grid Grid.Row="1">
+          <Grid.Style><Style TargetType="Grid"><Style.Triggers>
+            <DataTrigger Binding="{Binding Authoring.IsExpanded}" Value="True">
+              <Setter Property="MinHeight" Value="240"/><Setter Property="MaxHeight" Value="420"/>
+            </DataTrigger>
+          </Style.Triggers></Style></Grid.Style>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="3*"/>

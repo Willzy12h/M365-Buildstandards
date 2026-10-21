@@ -1,5 +1,9 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Offline candidate CLI imports now save separate supported-policy drafts with original-byte provenance, explicit unresolved references and strict mappings to existing typed parameters; no catalogue installation or tenant action.
+
+- Guard every local catalogue replacement while candidate edits or unapplied input remain unsaved; retain the current catalogue and explain save/discard. Include the nested editor and scrolled working controls in native UI verification.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
@@ -53,6 +57,8 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+
+- Offline candidate authoring preserves blocked macOS enrolment and structured settings, validates unchanged catalogue templates separately from resolved writes, and reports partial local exports without deleting replacement files.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
@@ -518,3 +524,7 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
 
 - Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
+
+- Expansion I foundation: bounded offline candidate drafts with exact baseline digests, strict input parsing and conflict-safe object pointers. Native editor/export validation remains in progress; no publication or tenant authority.
+
+- Candidate editing now refuses opaque foreign-reference literals through manual and saved-draft routes. Native authoring retains source/assignment/unresolved review after save/reopen, and expanded editor content participates in compact-page scrolling; Windows render verification remains required.

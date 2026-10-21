@@ -78,14 +78,21 @@ public static class ConditionalAccessSafety
 /// <summary>Generic payload rules that apply to every write regardless of object type.</summary>
 public static class WritePayloadGuard
 {
-    public static void Assert(CollectionDefinition definition, JsonObject payload)
+    public static void Assert(CollectionDefinition definition, JsonObject payload) => AssertCore(definition, payload, null);
+
+    /// <summary>Catalogue authoring only. This is not write admission; execution always uses Assert after resolution.</summary>
+    public static void AssertCatalogueTemplate(CollectionDefinition definition, JsonObject payload, IReadOnlySet<string> preservedInputs)
+        => AssertCore(definition, payload, preservedInputs);
+
+    private static void AssertCore(CollectionDefinition definition, JsonObject payload, IReadOnlySet<string>? preservedInputs)
     {
         SupportedDevicePlatforms.AssertSupported(definition, payload);
         if (payload.ContainsKey("assignments"))
             throw new SafetyViolationException("Assignment writes are not supported. Objects are created unassigned; assignment is an explicit post-creation engineering step.");
         if (ConditionalAccessSafety.IsConditionalAccess(definition))
             ConditionalAccessSafety.AssertSafeCandidate(payload);
-        PolicyCandidateSafety.Assert(definition, payload);
+        if (preservedInputs is null) PolicyCandidateSafety.Assert(definition, payload);
+        else PolicyCandidateSafety.AssertCatalogueTemplate(definition, payload, preservedInputs);
         DirectoryPrerequisiteSafety.Assert(definition, payload);
         if (payload["@odata.type"]?.ToString() == "#microsoft.graph.windowsDefenderAdvancedThreatProtectionConfiguration")
         {

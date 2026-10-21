@@ -14,3 +14,5 @@ public partial class JobsView : UserControl { public JobsView() => InitializeCom
 public partial class StandardView : UserControl { public StandardView() { InitializeComponent(); InitialiseReferenceReturn(); } }
 public partial class SettingsView : UserControl { public SettingsView() => InitializeComponent(); }
 public partial class ScriptsView : UserControl { public ScriptsView() => InitializeComponent(); }
+
+public partial class CandidateAuthoringPanel : UserControl { public CandidateAuthoringPanel() => InitializeComponent(); }

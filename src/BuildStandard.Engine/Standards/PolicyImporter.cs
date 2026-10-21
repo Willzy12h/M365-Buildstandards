@@ -17,7 +17,8 @@ public static class PolicyImporter
     { "id", "@odata.context", "@odata.etag", "createdDateTime", "lastModifiedDateTime", "version", "assignments", "groupAssignments",
       "targetAssignments", "_assignments", "_settings", "_toolkitAssignments", "roleScopeTagIds", "isAssigned", "settingCount", "creationSource",
       "supportsScopeTags", "uploadState", "publishingState", "dependentAppCount", "supersedingAppCount", "supersededAppCount", "description" };
-    public static DevicePolicyImport Import(StandardCatalogue baseline, string controlId, string json, string name, IReadOnlyDictionary<string, string>? replacements = null)
+    /// <summary>Shared bounded sanitisation only. Returned settings still require reference resolution and safety validation.</summary>
+    internal static (JsonObject Payload, IReadOnlyList<string> RemovedProperties) Prepare(StandardCatalogue baseline, string controlId, string json, string name)
     {
         if (Encoding.UTF8.GetByteCount(json) > 1024 * 1024) throw new ConfigurationException("Import exceeds 1 MiB.");
         if (string.IsNullOrWhiteSpace(name) || name.Length > 200 || name.Any(char.IsControl) || name.Contains("{{", StringComparison.Ordinal))
@@ -53,6 +54,12 @@ public static class PolicyImporter
         var allowed = template.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
         if (obj.Any(p => !allowed.Contains(p.Key))) throw new ConfigurationException("Export contains unsupported properties. No unknown configuration is silently discarded.");
         if (template.Any(p => !obj.ContainsKey(p.Key))) throw new ConfigurationException("Export is missing required recipe properties.");
+        return (obj, removed);
+    }
+    public static DevicePolicyImport Import(StandardCatalogue baseline, string controlId, string json, string name, IReadOnlyDictionary<string, string>? replacements = null)
+    {
+        var (obj, removed) = Prepare(baseline, controlId, json, name);
+        var def = baseline.FindCollection(baseline.FindControl(controlId)!.Collection)!;
         ReplaceReferences(obj, replacements ?? new Dictionary<string, string>());
         WritePayloadGuard.Assert(def, obj);
         var candidate = ToolkitJson.Deserialize<StandardCatalogue>(ToolkitJson.Serialize(baseline));

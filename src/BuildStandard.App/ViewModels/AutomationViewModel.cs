@@ -43,12 +43,17 @@ public sealed class AutomationViewModel : PageViewModel
     public string DeviceIds { get => _devices; set { if (SetProperty(ref _devices, value)) ClearApproval(); } }
     public AutomationViewModel(ShellViewModel shell) : base(shell, "Policy automation")
     {
+        Workspace.StandardReplacementChanged += () =>
+        {
+            OnPropertyChanged(nameof(ImportGuidance));
+            CommandManager.InvalidateRequerySuggested();
+        };
         Offices = new OfficeLocationEditor(() => { ClearApproval(); OnPropertyChanged(nameof(OfficeLocations)); });
         AddOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null) return; Offices.Add(); SelectedOffice = Offices.Rows.Last(); }, () => Workspace.Profile is not null && Workspace.Idle && Offices.Rows.Count < 100);
         RemoveOfficeCommand = Sync(() => { if (!Workspace.Idle || Workspace.Profile is null || SelectedOffice is null) return; Offices.Remove(SelectedOffice); SelectedOffice = null; }, () => Workspace.Profile is not null && Workspace.Idle && SelectedOffice is not null);
         SaveInputsCommand = Sync(SaveInputs, () => Workspace.Profile is not null && Workspace.Idle);
         ChooseImportCommand = Sync(ChooseImport, () => Workspace.Idle);
-        ImportCommand = Sync(Import, () => SelectedControl is not null && Workspace.Profile is not null && Workspace.Idle && !Workspace.IsConnected);
+        ImportCommand = Sync(Import, () => SelectedControl is not null && Workspace.Profile is not null && Workspace.Idle && !Workspace.IsConnected && !Workspace.StandardReplacementBlocked);
         PreviewCommand = Command(Preview, () => Workspace.IsConnected && Workspace.Idle);
         ExecuteCommand = Command(Execute, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && _plan is not null && Approved);
         PreviewLapsCommand = Command(PreviewLaps, () => Workspace.IsConnected && Workspace.Idle);
@@ -61,7 +66,7 @@ public sealed class AutomationViewModel : PageViewModel
         PublishPackageCommand = Command(PublishPackage, () => Workspace.IsDeploymentSession && Workspace.ExperimentalChangesEnabled && Workspace.Idle && _packagePlan is not null && Approved);
         ReverifyPackageCommand = Command(ReverifyPackage, () => Workspace.IsConnected && Workspace.Idle && _lastPackageRunId.Length > 0);
         CheckReadinessCommand = Command(CheckReadiness, () => Workspace.IsConnected && Workspace.Idle);
-        LoadCandidateCommand = Sync(() => Workspace.LoadLocalCandidate(SavedCandidate!), () => SavedCandidate is not null && Workspace.Idle && !Workspace.IsConnected);
+        LoadCandidateCommand = Sync(() => Workspace.LoadLocalCandidate(SavedCandidate!), () => SavedCandidate is not null && Workspace.Idle && !Workspace.IsConnected && !Workspace.StandardReplacementBlocked);
         Refresh();
     }
     public ObservableCollection<ControlDefinition> Controls { get; } = new();
@@ -86,6 +91,7 @@ public sealed class AutomationViewModel : PageViewModel
         : SelectedControl is null ? "Choose a control above to see its required inputs, or show all client inputs."
         : $"Inputs for {SelectedControl.Name}. Use Show all client inputs to edit other values or resolve an error outside this control. Office rows are shown for the office-location control.";
     public string ImportGuidance => !Workspace.Idle ? "Wait for the current task before changing the local candidate."
+        : Workspace.StandardReplacementBlocked ? Services.Workspace.StandardReplacementGuidance
         : Workspace.Profile is null ? "Select a client first. Imports stay in that client's local data folder."
         : Workspace.IsConnected ? "Disconnect before importing or loading a candidate; then reconnect, capture and review it."
         : "Choose a supported control and a policy JSON export, resolve foreign IDs and validate the local candidate. Nothing is deployed by importing.";
@@ -225,6 +231,7 @@ public sealed class AutomationViewModel : PageViewModel
     }
     private void Import()
     {
+        Workspace.RequireStandardReplaceable();
         if (string.IsNullOrWhiteSpace(ImportFile)) throw new ConfigurationException("Choose a policy export file first.");
         var file = new FileInfo(ImportFile);
         if (!file.Exists || file.Length > 1024 * 1024) throw new ConfigurationException("Select a policy JSON file up to 1 MiB.");

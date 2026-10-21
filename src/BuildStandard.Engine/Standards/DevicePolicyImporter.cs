@@ -18,9 +18,11 @@ public static class DevicePolicyImporter
     private static readonly string[] Metadata = { "id", "createdDateTime", "lastModifiedDateTime", "version", "@odata.context", "@odata.etag",
         "assignments", "groupAssignments", "_assignments", "isAssigned", "roleScopeTagIds", "supportsScopeTags", "description" };
 
-    public static DevicePolicyImport Import(StandardCatalogue baseline, string controlId, string json, string candidateName)
+    internal static bool SupportsControl(string controlId) => SupportedControls.Contains(controlId, StringComparer.Ordinal);
+
+    internal static (JsonObject Payload, IReadOnlyList<string> RemovedProperties) Prepare(StandardCatalogue baseline, string controlId, string json, string candidateName)
     {
-        if (!SupportedControls.Contains(controlId, StringComparer.Ordinal)) throw new ConfigurationException("Import supports the reviewed LAPS, Defender Antivirus, firewall and Defender EDR controls only.");
+        if (!SupportsControl(controlId)) throw new ConfigurationException("Import supports the reviewed LAPS, Defender Antivirus, firewall and Defender EDR controls only.");
         if (Encoding.UTF8.GetByteCount(json) > 256 * 1024) throw new ConfigurationException("Policy import exceeds 256 KiB.");
         if (string.IsNullOrWhiteSpace(candidateName) || candidateName.Length > 200 || candidateName.Any(char.IsControl) || candidateName.Contains("{{", StringComparison.Ordinal))
             throw new ConfigurationException("Provide a candidate name of 1 to 200 characters without control characters or template expressions.");
@@ -50,6 +52,12 @@ public static class DevicePolicyImporter
         WritePayloadGuard.Assert(definition, source);
         if (controlId == "SEC-WIN-002" && source["advancedThreatProtectionAutoPopulateOnboardingBlob"]?.ToString() != "true")
             throw new SafetyViolationException("EDR imports must obtain onboarding data from the target tenant. Supplied onboarding/offboarding blobs are not imported.");
+        return (source, removed.AsReadOnly());
+    }
+    public static DevicePolicyImport Import(StandardCatalogue baseline, string controlId, string json, string candidateName)
+    {
+        var (source, removed) = Prepare(baseline, controlId, json, candidateName);
+        var control = baseline.FindControl(controlId)!;
         var catalogue = ToolkitJson.Deserialize<StandardCatalogue>(ToolkitJson.Serialize(baseline));
         catalogue.Release = "import";
         catalogue.Status = "Candidate";
@@ -60,7 +68,7 @@ public static class DevicePolicyImporter
         catalogue.IntegrityDigest = "";
         catalogue.Release = "import-" + CanonicalJson.Sha256Value(catalogue)[..24];
         StandardsLoader.Validate(catalogue);
-        return new DevicePolicyImport(catalogue, CanonicalJson.Sha256Hex(json), removed.AsReadOnly());
+        return new DevicePolicyImport(catalogue, CanonicalJson.Sha256Hex(json), removed);
     }
 
     private static void AssertUniqueKeys(JsonElement element)
