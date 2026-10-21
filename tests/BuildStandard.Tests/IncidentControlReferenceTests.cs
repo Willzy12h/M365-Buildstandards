@@ -40,4 +40,22 @@ public sealed class IncidentControlReferenceTests
         if (fault == "changed-catalogue") standard.Controls[0].Name = "Changed";
         Assert.ThrowsAny<ToolkitException>(() => Invoke("Create", root.Paths, source, fault == "missing" ? "not-returned" : "123", standard, "CA-001"));
     }
+    [Fact] public void Reference_document_round_trips_exact_source_and_rejects_duplicate_or_changed_identity()
+    {
+        using var root = new TempRoot(); root.WriteStandard("test.json", TestData.StandardJson); root.WriteManifest();
+        var standard = new StandardsLoader(root.Paths, NullLog.Instance).Load("test.json");
+        var source = OperationalContextFile.Read(Encoding.UTF8.GetBytes(SecurityIncidentEvidenceTests.Seal(SecurityIncidentEvidenceTests.Fixture(true))), TestData.TenantA);
+        var link = IncidentControlReferences.Create(root.Paths, source, "123", standard, "CA-001");
+        var codec = typeof(IncidentControlReferences).Assembly.GetType("BuildStandard.Engine.Reports.IncidentControlReferenceDocument"); Assert.NotNull(codec);
+        var write = codec.GetMethod("Write")!; var read = codec.GetMethod("Read")!;
+        var bytes = (byte[])write.Invoke(null, new object[] { source, new[] { link } })!;
+        var links = (IReadOnlyList<IncidentControlReference>)read.Invoke(null, new object[] { bytes, source })!;
+        Assert.Equal(link, Assert.Single(links));
+        var duplicate = Assert.Throws<TargetInvocationException>(() => write.Invoke(null, new object[] { source, new[] { link, link } }));
+        Assert.IsAssignableFrom<ToolkitException>(duplicate.InnerException);
+        var fixture = SecurityIncidentEvidenceTests.Fixture(true); fixture["sections"]![0]!["rows"]![0]!["name"] = "Different source bytes";
+        var changed = OperationalContextFile.Read(Encoding.UTF8.GetBytes(SecurityIncidentEvidenceTests.Seal(fixture)), TestData.TenantA);
+        var mismatch = Assert.Throws<TargetInvocationException>(() => read.Invoke(null, new object[] { bytes, changed }));
+        Assert.IsAssignableFrom<ToolkitException>(mismatch.InnerException);
+    }
 }

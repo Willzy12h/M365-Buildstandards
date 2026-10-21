@@ -1,6 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
-- Add strict original-byte external-check-results admission under INT-138; supplied outcomes remain untrusted claims, separate from native assessment and execution authority. Native reporting integration remains pending.
+- Add native external-results import, copyable provenance, searchable claims, complete exports and exact catalogue reference save/open under INT-138. Original JSON and unsaved references retain their source context; supplied outcomes remain untrusted and never authorise deployment. Current native/package verification and named acceptance remain pending.
 - Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
 
 - G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.

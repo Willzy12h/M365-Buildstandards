@@ -26,17 +26,20 @@ public sealed class SecurityIncidentReportsPageTests
         Assert.Contains("SecurityIncident.Read.All", connect.OptionalAccessSummary); Assert.Contains("SecurityIncident.Read.All", setup.OptionalAccessSummary);
         Assert.Equal(0, f.Tokens.Calls); Assert.Equal(0, f.Handler.Calls);
     }
-    private sealed class Source(SecurityIncidentReadSelection selection, Action before) : ISecurityIncidentReportSource
+    private sealed class Source(SecurityIncidentReadSelection selection, Action before, bool withRow = false) : ISecurityIncidentReportSource
     {
         public string TenantId => TestData.TenantA;
         public SecurityIncidentReadSelection IncidentSelection => selection;
         public Task<OperationalReportPage> ReadIncidentsNextAsync(CancellationToken token)
-        { token.ThrowIfCancellationRequested(); before(); return Task.FromResult(new OperationalReportPage([], false)); }
+        { token.ThrowIfCancellationRequested(); before(); return Task.FromResult(new OperationalReportPage(withRow ? [new System.Text.Json.Nodes.JsonObject {
+            ["id"] = "123", ["displayName"] = "Synthetic incident", ["createdDateTime"] = "2026-10-19T09:00:00Z", ["lastUpdateDateTime"] = "2026-10-19T10:00:00Z",
+            ["severity"] = "medium", ["status"] = "active", ["classification"] = "unknown", ["determination"] = "unknown", ["priorityScore"] = null,
+            ["redirectIncidentId"] = null, ["incidentWebUrl"] = null }] : [], false)); }
     }
-    private static OperationalReportsViewModel Page(ConnectedReportsFixture f, Action before)
+    private static OperationalReportsViewModel Page(ConnectedReportsFixture f, Action before, bool withRow = false)
     {
         f.Workspace.Session!.Scopes.Add("SecurityIncident.Read.All");
-        Func<ConnectedTenant, SecurityIncidentReadSelection, Action, ISecurityIncidentReportSource> factory = (_, selection, _) => new Source(selection, before);
+        Func<ConnectedTenant, SecurityIncidentReadSelection, Action, ISecurityIncidentReportSource> factory = (_, selection, _) => new Source(selection, before, withRow);
         Set(f.Controller, "IncidentSourceFactory", factory);
         var page = new OperationalReportsViewModel(new ShellViewModel(f.Workspace), f.Controller) { SelectedReportId = "security-incidents" };
         Set(page, "IncidentStartUtc", "2026-10-19T00:00:00Z"); Set(page, "IncidentEndUtc", "2026-10-20T00:00:00Z");
@@ -61,5 +64,34 @@ public sealed class SecurityIncidentReportsPageTests
         page.Acknowledged = true; await Assert.ThrowsAnyAsync<ToolkitException>(page.ReadAsync);
         Assert.Contains("No current", page.Outcome); Assert.False(page.HasPendingOriginal);
         Assert.Equal(0, f.Tokens.Calls); Assert.Equal(0, f.Handler.Calls);
+    }
+    [Fact] public async Task Native_incident_reference_round_trips_exact_original_without_assessment_authority()
+    {
+        using var f = new ConnectedReportsFixture(); var page = Page(f, () => { }, withRow: true);
+        page.Acknowledged = true; await page.ReadAsync(); await page.SavePendingOriginalAsync();
+        var source = OperationalContextFile.ReadFile(page.LastExport, TestData.TenantA);
+        var references = Property(page, "IncidentReferences").GetValue(page)!;
+        Set(references, "SelectedIncidentId", "123"); Set(references, "SelectedControlId", f.Workspace.Standard!.Controls[0].Id);
+        var add = references.GetType().GetMethod("AddReference"); Assert.NotNull(add); add.Invoke(references,null);
+        Assert.Equal(1, Property(references,"ReferenceCount").GetValue(references));
+        var save = references.GetType().GetMethod("ExportReferencesAsync"); Assert.NotNull(save); await (Task)save.Invoke(references,null)!;
+        var file = (string)Property(references,"LastExport").GetValue(references)!;
+        var link = Assert.Single(IncidentControlReferenceDocument.ReadFile(file, source));
+        Assert.True(IncidentControlReferences.Resolve(f.Root.Paths,link,source,f.Workspace.Standard).Resolved);
+        Assert.Equal(0,f.Tokens.Calls); Assert.Equal(0,f.Handler.Calls); Assert.Null(f.Workspace.Snapshot);
+    }
+    [Fact] public async Task Client_change_blocks_new_incident_links_without_losing_unsaved_source_bound_references()
+    {
+        using var f = new ConnectedReportsFixture(); var page = Page(f, () => { }, withRow: true);
+        page.Acknowledged = true; await page.ReadAsync(); await page.SavePendingOriginalAsync();
+        var references = Property(page,"IncidentReferences").GetValue(page)!;
+        Set(references,"SelectedIncidentId","123"); Set(references,"SelectedControlId",f.Workspace.Standard!.Controls[0].Id);
+        var add = references.GetType().GetMethod("AddReference"); Assert.NotNull(add); add.Invoke(references,null);
+        f.ReplaceConnection(); page.Refresh();
+        var refused = Assert.Throws<TargetInvocationException>(() => add.Invoke(references,null)); Assert.IsAssignableFrom<ToolkitException>(refused.InnerException);
+        Assert.Equal(1,Property(references,"ReferenceCount").GetValue(references));
+        var save = references.GetType().GetMethod("ExportReferencesAsync"); Assert.NotNull(save); await (Task)save.Invoke(references,null)!;
+        Assert.True(File.Exists((string)Property(references,"LastExport").GetValue(references)!));
+        Assert.Equal(0,f.Tokens.Calls); Assert.Equal(0,f.Handler.Calls);
     }
 }

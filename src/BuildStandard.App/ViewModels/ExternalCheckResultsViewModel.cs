@@ -32,7 +32,7 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
         {
             if (!Workspace.Idle || _opening) throw new ToolkitException("Wait for the local file operation.");
             if (MessageBox.Show("Discard pending external original and unsaved references? Saved files are retained.", "Discard local pending claims", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-            _pending = null; _links = []; _referenceSource = null; _referencesDirty = false; ClearCurrent(); Notify();
+            _pending = null; _links = []; ReferenceRows = []; _referenceSource = null; _referencesDirty = false; ClearCurrent(); Notify();
         }, () => Workspace.Idle && !_opening && (HasPendingOriginal || _referencesDirty));
         AddReferenceCommand = Sync(AddReference, () => CanExport() && SelectedTestId.Length > 0 && SelectedControlId.Length > 0);
         SaveReferencesCommand = Command(ExportReferencesAsync, () => Workspace.Idle && !_opening && _referenceSource is not null && _links.Count > 0);
@@ -48,6 +48,7 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
     public string Outcome { get; private set; } = "No current external results. Choose a client, then deliberately open a neutral results file. Navigation performs no reads.";
     public string LastExport { get; private set; } = "";
     public bool HasPendingOriginal => _pending is not null;
+    public bool RequiresCloseReview => _opening || HasPendingOriginal || _referencesDirty;
     public string PendingSummary => _pending is null ? "No original awaiting export." : $"Pending untrusted original · claimed tenant {_pending.Evidence.TenantId} · SHA-256 {_pending.OriginalSha256}. Export original JSON or explicitly discard before opening another file. Forced termination can lose pending data.";
     public string Guidance => Workspace.Profile is null ? "Select the claimed client in Connect first. No sign-in is required for a local file."
         : _opening || !Workspace.Idle ? "Wait for the current operation." : HasPendingOriginal || _referencesDirty ? "Export pending original JSON and save references, or explicitly discard them before opening another file." : "Open only external-check-results version 1. Arbitrary vendor/Pester JSON requires deliberate conversion; it is never guessed.";
@@ -60,6 +61,8 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
     public string SelectedTestId { get; set; } = "";
     public string SelectedControlId { get; set; } = "";
     public int ReferenceCount => _links.Count;
+    public sealed record ReferenceDisplay(string SourceTestId, string ControlId, string StandardRelease, string StandardSha256, string Resolution);
+    public IReadOnlyList<ReferenceDisplay> ReferenceRows { get; private set; } = [];
     public string ReferenceSummary { get; private set; } = "References are engineer-entered context, never compliance, ownership or deployment evidence.";
     public ICommand OpenCommand { get; }
     public ICommand HtmlCommand { get; }
@@ -87,7 +90,7 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
             // Keep a validated original even when a late context change prevents presentation admission.
             _pending = admitted;
             _controller.RequireContext(context);
-            _source = admitted; _referenceSource = admitted; _links = []; _referencesDirty = false; _resultContext = context;
+            _source = admitted; _referenceSource = admitted; _links = []; ReferenceRows = []; _referencesDirty = false; _resultContext = context;
             Outcome = "Untrusted external claims · " + admitted.Evidence.SourceState + " · " + admitted.Evidence.Rows.Count + " source rows. No native assessment or managed evidence was changed.";
         }
         finally { _opening = false; Notify(); }
@@ -112,6 +115,7 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
         var link = ExternalControlReferences.Create(Workspace.Paths, source, SelectedTestId, standard, SelectedControlId);
         var proposed = _links.Append(link).ToArray(); _ = ExternalControlReferenceDocument.Write(source, proposed);
         _links = proposed; _referenceSource = source; _referencesDirty = true;
+        ReferenceRows = ReferenceRows.Append(new ReferenceDisplay(link.SourceTestId, link.ControlId, link.StandardRelease, link.StandardSha256, "Resolved against exact verified catalogue")).ToArray();
         ReferenceSummary = $"{_links.Count} explicit reference(s); unsaved. Source {source.OriginalSha256}. No assessment verdict was changed."; Notify();
     }
     public async Task ExportReferencesAsync()
@@ -130,10 +134,15 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
             var result = await Task.Run(() =>
             {
                 var links = ExternalControlReferenceDocument.ReadFile(file, source);
-                var resolved = links.Count(link => ExternalControlReferences.Resolve(Workspace.Paths, link, source, standard).Resolved);
-                return (links, resolved);
+                var rows = links.Select(link =>
+                {
+                    var resolution = ExternalControlReferences.Resolve(Workspace.Paths, link, source, standard);
+                    return new ReferenceDisplay(link.SourceTestId, link.ControlId, link.StandardRelease, link.StandardSha256,
+                        (resolution.Resolved ? "Resolved: " : "Unresolved: ") + resolution.Reason);
+                }).ToArray();
+                return (links, rows, resolved: rows.Count(row => row.Resolution.StartsWith("Resolved:", StringComparison.Ordinal)));
             });
-            _controller.RequireContext(context); _links = result.links; _referenceSource = source;
+            _controller.RequireContext(context); _links = result.links; ReferenceRows = result.rows; _referenceSource = source;
             ReferenceSummary = $"{_links.Count} exact references · {result.resolved} resolved · {_links.Count - result.resolved} unresolved. Unavailable historical catalogues remain unresolved; no compliance or ownership is inferred.";
         }
         finally { _opening = false; Notify(); }
