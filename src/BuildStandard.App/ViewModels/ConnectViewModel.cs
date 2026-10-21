@@ -122,6 +122,8 @@ public sealed class ConnectViewModel : PageViewModel
     public bool IncludeCollaborationSites { get => _includeCollaborationSites; set => SetOperationalAccess(ref _includeCollaborationSites, value, nameof(IncludeCollaborationSites)); }
     public bool IncludeCollaborationTeams { get => _includeCollaborationTeams; set => SetOperationalAccess(ref _includeCollaborationTeams, value, nameof(IncludeCollaborationTeams)); }
     private bool _includeServiceHealth, _includePartnerRelationships;
+    private bool _includeSecurityIncidents;
+    public bool IncludeSecurityIncidents { get => _includeSecurityIncidents; set => SetOperationalAccess(ref _includeSecurityIncidents, value, nameof(IncludeSecurityIncidents)); }
     public bool IncludeServiceHealth { get => _includeServiceHealth; set => SetOperationalAccess(ref _includeServiceHealth, value, nameof(IncludeServiceHealth)); }
     public bool IncludePartnerRelationships { get => _includePartnerRelationships; set => SetOperationalAccess(ref _includePartnerRelationships, value, nameof(IncludePartnerRelationships)); }
     private void SetOperationalAccess(ref bool field, bool value, string name)
@@ -133,6 +135,7 @@ public sealed class ConnectViewModel : PageViewModel
     public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
+        | (IncludeSecurityIncidents ? OptionalReportAccess.SecurityIncidents : OptionalReportAccess.None)
         | (IncludePartnerRelationships ? OptionalReportAccess.PartnerRelationships : OptionalReportAccess.None)
         | (IncludeCollaborationSites ? OptionalReportAccess.CollaborationSites : OptionalReportAccess.None)
         | (IncludeCollaborationTeams ? OptionalReportAccess.CollaborationTeams : OptionalReportAccess.None);
@@ -149,6 +152,7 @@ public sealed class ConnectViewModel : PageViewModel
         setup.UseTenant(EditTenantId.Trim(), EditCompany);
         setup.IncludeUsageReports=IncludeUsageReports;
         setup.IncludeServiceHealth=IncludeServiceHealth;
+        setup.IncludeSecurityIncidents=IncludeSecurityIncidents;
         setup.IncludePartnerRelationships=IncludePartnerRelationships;
         setup.IncludeCollaborationSites=IncludeCollaborationSites;
         setup.IncludeCollaborationTeams=IncludeCollaborationTeams;

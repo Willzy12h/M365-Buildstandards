@@ -6,6 +6,13 @@
    <TextBlock Text="Operational context · experimental and read-only" Style="{StaticResource H2}"/>
    <TextBlock Text="Report"/>
    <ComboBox ItemsSource="{Binding ReportChoices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedReportId}" IsEnabled="{Binding CanEdit}" Width="280" HorizontalAlignment="Left" AutomationProperties.Name="Operational report selection"/>
+   <StackPanel Margin="0,8,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsIncidentReport}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+    <TextBlock Text="Incidents created in this explicit UTC interval (maximum 31 days). Example: 2026-10-20T00:00:00Z. A completed empty result means none returned for this query, not no attacks." TextWrapping="Wrap"/>
+    <WrapPanel Margin="0,6,0,0">
+     <StackPanel Margin="0,0,12,6"><TextBlock Text="Created at or after (UTC)"/><TextBox Text="{Binding IncidentStartUtc, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="40" Width="280" AutomationProperties.Name="Incident inclusive UTC start"/></StackPanel>
+     <StackPanel Margin="0,0,0,6"><TextBlock Text="Created before (UTC)"/><TextBox Text="{Binding IncidentEndUtc, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="40" Width="280" AutomationProperties.Name="Incident exclusive UTC end"/></StackPanel>
+    </WrapPanel>
+   </StackPanel>
    <StackPanel Margin="0,8,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsPartnerReport}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
     <TextBlock Text="Selected customer tenant ID (distinct from the connected partner)" TextWrapping="Wrap"/>
     <TextBox Text="{Binding CustomerTenantId, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="36" MaxWidth="420" HorizontalAlignment="Stretch" AutomationProperties.Name="Partner report customer tenant ID"/>
