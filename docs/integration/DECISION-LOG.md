@@ -1097,3 +1097,7 @@ INT-135 evidence layout: optional `collaborationSelection` exists only on the re
 
 ### INT-135 refinement — strict imported member identity (20 October)
 GPT-E-001 supplementary review reproduced malformed partial user/tenant identifiers passing validation. Require the stored identifiers to equal the typed projector's admitted values even for Partial rows; unknown/null remains valid, malformed non-null does not. This does not add access, infer membership or change historical source bytes. Exact malformed-ID cases failed before repair; existing role/parent/source limitations remain.
+
+### J frozen incident read admission — 21 October 2026
+
+INT-138 reuses the owned operational GET transport with an immutable UTC interval and exact generated `/security/incidents` filter. This first slice offers date filtering only, no arbitrary severity/status/OData input. The source requires the actually returned approved `SecurityIncident.Read.All` scope, retains existing account/resource binding and single silent401 renewal, refuses changed/omitted filters and bounds incident pages to100. Other operational selections/cursors retain their prior semantics. Native exposure, consent previews, sanitised evidence and named runtime acceptance are separate unfinished parts; no live access is granted.

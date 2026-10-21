@@ -9,7 +9,7 @@ using BuildStandard.Graph.Auth;
 namespace BuildStandard.Graph.Reports;
 
 /// <summary>Fixed, bounded Graph GET pages. No generic URL, action or write interface.</summary>
-public sealed class OperationalReportTransport : IOperationalReportSource, ICollaborationReportSource, IDisposable
+public sealed class OperationalReportTransport : IOperationalReportSource, ICollaborationReportSource, ISecurityIncidentReportSource, IDisposable
 {
     private readonly HttpClient _client;
     private readonly IAccessTokenProvider _tokens;
@@ -23,6 +23,8 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IColl
     private int _calls, _reading, _parentRows;
     private readonly string? _customerTenantId;
     private readonly CollaborationReadSelection? _collaboration;
+    private readonly SecurityIncidentReadSelection? _incidents;
+    public SecurityIncidentReadSelection IncidentSelection => _incidents ?? throw Refuse("This source has no reviewed incident window.");
     private readonly HashSet<string> _admittedSites = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (bool Owners, bool Members)> _admittedGroups = new(StringComparer.Ordinal);
     private readonly Dictionary<string, bool> _parentCandidates = new(StringComparer.Ordinal);
@@ -34,10 +36,12 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IColl
     public string? CustomerTenantId => _customerTenantId;
     public CollaborationReadSelection Selection => _collaboration ?? throw Refuse("This source is not a collaboration selection.");
     internal OperationalReportTransport(HttpClient client, IAccessTokenProvider tokens, TenantSession session,
-        string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null)
+        string reportId, Action requireCurrent, bool ownsClient = false, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null, SecurityIncidentReadSelection? incidents = null)
     {
         _client = client; _tokens = tokens; _session = session; _requireCurrent = requireCurrent; _ownsClient = ownsClient;
         TenantId = session.TenantId; ReportId = reportId;
+        if (reportId == "security-incidents") _incidents = incidents ?? throw Refuse("Review an exact incident window first.");
+        else if (incidents is not null) throw Refuse("An incident window is not admitted for another report.");
         if (reportId == "collaboration-inventory")
             _collaboration = collaboration ?? throw Refuse("An exact frozen collaboration selection is required.");
         else
@@ -56,12 +60,14 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IColl
         RequireVerified(); _binding = Binding(session); AssertCurrent(default);
         _lifetime = new(TimeSpan.FromMinutes(5));
     }
-    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null)
+    internal static OperationalReportTransport Create(IAccessTokenProvider tokens, TenantSession session, string reportId, Action requireCurrent, string? customerTenantId = null, bool partnerDeclared = false, CollaborationReadSelection? collaboration = null, SecurityIncidentReadSelection? incidents = null)
     {
         var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true, customerTenantId: customerTenantId, partnerDeclared: partnerDeclared, collaboration: collaboration); }
+        try { return new(client, tokens, session, reportId, requireCurrent, ownsClient: true, customerTenantId: customerTenantId, partnerDeclared: partnerDeclared, collaboration: collaboration, incidents: incidents); }
         catch { client.Dispose(); throw; }
     }
+    public Task<OperationalReportPage> ReadIncidentsNextAsync(CancellationToken cancellation)
+        => ReadCoreAsync(null, IncidentSelection.RegisteredPath, null, null, cancellation);
     public Task<OperationalReportPage> ReadCollaborationNextAsync(CollaborationReadKind kind, string value, CancellationToken cancellation)
     {
         var selection = _collaboration ?? throw Refuse("This source has no collaboration selection.");
@@ -146,7 +152,7 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IColl
                 }
                 else
                 {
-                    if (!root.TryGetProperty("value", out items) || items.ValueKind != JsonValueKind.Array || items.GetArrayLength() > PageLimit(kind))
+                    if (!root.TryGetProperty("value", out items) || items.ValueKind != JsonValueKind.Array || items.GetArrayLength() > (_incidents is null ? PageLimit(kind) : 100))
                         throw Refuse("The operational source did not return a bounded collection page.");
                     foreach (var item in items.EnumerateArray())
                     {
@@ -215,12 +221,14 @@ public sealed class OperationalReportTransport : IOperationalReportSource, IColl
         {
             if (key == "$skiptoken") { if (string.IsNullOrWhiteSpace(value)) throw Refuse("The operational page cursor is empty."); }
             else if (key == "$skip") { if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var skip) || skip < 0) throw Refuse("The operational skip cursor is invalid."); }
-            else if (key == "$top") { if (!int.TryParse(value, out var top) || top < 1 || top > (first.AbsolutePath == "/v1.0/tenantRelationships/delegatedAdminRelationships" ? 300 : 1000)) throw Refuse("The operational page size exceeds its admitted bound."); }
-            else if (key is not ("$select" or "search") || !original.TryGetValue(key, out var expected) || value != expected)
+            else if (key == "$top") { if (!int.TryParse(value, out var top) || top < 1 || top > (first.AbsolutePath == "/v1.0/security/incidents" ? 100 : first.AbsolutePath == "/v1.0/tenantRelationships/delegatedAdminRelationships" ? 300 : 1000)) throw Refuse("The operational page size exceeds its admitted bound."); }
+            else if (key is not ("$select" or "search" or "$filter") || !original.TryGetValue(key, out var expected) || value != expected)
                 throw Refuse("The operational continuation changed the registered query or requested an unsupported option.");
         }
         if (original.TryGetValue("search", out var search) && (!query.TryGetValue("search", out var continuedSearch) || search != continuedSearch))
             throw Refuse("Search continuation changed or omitted the frozen search scope.");
+        if (original.TryGetValue("$filter", out var filter) && (!query.TryGetValue("$filter", out var continuedFilter) || filter != continuedFilter))
+            throw Refuse("Continuation changed or omitted the frozen incident window.");
         return next;
     }
     private static Dictionary<string, string> Query(string query)
