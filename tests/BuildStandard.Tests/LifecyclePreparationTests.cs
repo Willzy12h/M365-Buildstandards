@@ -12,7 +12,7 @@ public sealed class LifecyclePreparationTests
 {
     internal sealed class Source : ILifecycleReadSource
     {
-        public string TenantId=>TestData.TenantA;public string AccountObjectId=>TestData.Operator;public string ClientId=>TestData.ClientId;public SessionMode Mode=>SessionMode.Deployment;
+        public string TenantId=>TestData.TenantA;public string AccountObjectId=>TestData.Operator;public string ClientId=>TestData.ClientId;public SessionMode Mode {get;set;}=SessionMode.Deployment;
         public LifecycleOperation Operation=>LifecycleActionRegistry.Create("disable-account",TestData.Office);public int RequestCount{get;private set;} public Action<string>? Before;public Func<bool>? ReadEnabled;
         public Task<LifecycleReadPage> ReadNextAsync(string source,CancellationToken ct)
         {RequestCount++;Before?.Invoke(source);return Task.FromResult(new LifecycleReadPage(source=="user"?[new JsonObject { ["id"]=TestData.Office,["displayName"]="Synthetic member",["userPrincipalName"]="member@synthetic.invalid",["userType"]="Member",["accountEnabled"]=ReadEnabled?.Invoke()??true,["onPremisesSyncEnabled"]=false }]:[],false));}
