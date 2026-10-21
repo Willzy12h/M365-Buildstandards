@@ -434,6 +434,12 @@ internal static partial class Program
             foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
                 Console.WriteLine("  " + line.Replace(Environment.NewLine, " / ", StringComparison.Ordinal));
             Pump();
+            // The command walk deliberately creates untrusted originals and references. Retain them through
+            // the real export APIs before testing *idle* shutdown; never clear or bypass the product close guard.
+            var externalFixture=shell.Page<GraphReportsViewModel>().External;
+            if(externalFixture.HasPendingOriginal) AwaitReader(externalFixture.ExportPendingOriginalAsync());
+            if(externalFixture.ReferenceCount>0) AwaitReader(externalFixture.ExportReferencesAsync());
+            if(externalFixture.RequiresCloseReview) throw new InvalidOperationException("External fixture data was not retained before idle shutdown.");
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
             Set<ApplicationSetupService?>(workspace, nameof(Workspace.ApplicationSetup), null);
