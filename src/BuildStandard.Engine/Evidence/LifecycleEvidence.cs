@@ -21,7 +21,9 @@ public sealed partial class EvidenceStore
         return SaveLifecycleOriginal(copy,"run");
     }
     internal JsonObject SaveLifecycleVerification(JsonObject document)=>SaveLifecycleOriginal(document,"verification");
-    internal JsonObject RequireLifecycleOriginal(string tenant,string family,string id)
+    internal JsonObject RequireLifecycleOriginal(string tenant,string family,string id)=>ReadLifecycleRecord(tenant,family,id).GetDocument();
+    /// <summary>Historical inspection only. This cannot construct a live preview, approval or resumable write.</summary>
+    public LifecycleHistoricalRecord ReadLifecycleRecord(string tenant,string family,string id)
     {
         var file=LifecycleFile(tenant,family,id);RefuseLifecycleLinks(file);
         if(!File.Exists(file))throw new SafetyViolationException("Required lifecycle evidence is missing. Preserve history and reconcile; do not replay.");
@@ -35,11 +37,34 @@ public sealed partial class EvidenceStore
             var value=JsonNode.Parse(parsed.RootElement.GetRawText())?.AsObject()??throw new SafetyViolationException("Lifecycle evidence is not an object.");
             ValidateLifecycleEnvelope(value,tenant,family,id);
             if(Text(value,"integrityDigest")!=LifecycleDigest(value))throw new SafetyViolationException("Lifecycle evidence integrity failed.");
-            return value;
+            return new LifecycleHistoricalRecord(value,bytes.ToArray());
         }
         catch(JsonException error){throw new SafetyViolationException("Lifecycle evidence is malformed: "+error.GetType().Name);}
         catch(InvalidOperationException){throw new SafetyViolationException("Lifecycle evidence has an unsupported shape.");}
     }
+    /// <summary>Includes intent-only attempts as unknown. Invalid/capped reads are refused, never skipped into empty success.</summary>
+    public IReadOnlyList<LifecycleAttemptSummary> ListLifecycleAttempts(string tenant,int maximum=5000,CancellationToken ct=default)
+    {
+        if(maximum is <1 or >5000)throw new ConfigurationException("Inspect at most5,000 lifecycle attempts, or open an exact record ID.");
+        var directory=Path.Combine(TenantDirectory(tenant),"lifecycle");RefuseLifecycleLinks(directory);
+        if(!Directory.Exists(directory))return Array.Empty<LifecycleAttemptSummary>();
+        var rows=new List<LifecycleAttemptSummary>();
+        foreach(var file in Directory.EnumerateFiles(directory,"intent-*.json"))
+        {
+            ct.ThrowIfCancellationRequested();if(rows.Count>=maximum)throw new SafetyViolationException("Lifecycle history exceeds this inspection bound. No complete/empty result is certified; inspect a specific record ID instead.");
+            var id=Path.GetFileNameWithoutExtension(file)["intent-".Length..];
+            var intent=RequireLifecycleOriginal(tenant,"intent",id);var plan=RequireLifecycleOriginal(tenant,"plan",id);
+            if(Text(intent,"planDigest")!=Text(plan,"integrityDigest"))throw new SafetyViolationException("Lifecycle intent cites a different original plan.");
+            var runPath=LifecycleFile(tenant,"run",id);var run=File.Exists(runPath)?RequireLifecycleOriginal(tenant,"run",id):null;
+            if(run is not null && (Text(run,"intentDigest")!=Text(intent,"integrityDigest") || Text(run,"planDigest")!=Text(plan,"integrityDigest")))throw new SafetyViolationException("Lifecycle outcome does not cite its original plan and intent.");
+            rows.Add(new LifecycleAttemptSummary(id,plan["operation"]?["actionId"]?.GetValue<string>()??"Unknown action",
+                plan["before"]?["user"]?["displayName"]?.GetValue<string>()??"Unknown recorded target",plan["operation"]?["userId"]?.GetValue<string>()??"Unknown target ID",
+                run?["status"]?.GetValue<string>()??"No final outcome",run?["writeAcceptance"]?.GetValue<string>()??WriteAcceptance.Unknown,
+                run?["verification"]?.GetValue<string>()??ConfigurationVerification.Unknown,intent["startedAt"]?.GetValue<string>()??"Unknown start time",Text(run??intent,"integrityDigest")));
+        }
+        ct.ThrowIfCancellationRequested();return rows.OrderByDescending(row=>row.StartedAt,StringComparer.Ordinal).ThenBy(row=>row.Id,StringComparer.Ordinal).ToArray();
+    }
+
     /// <summary>Fail-closed across all lifecycle attempts. Read-only reconciliation never rewrites original acceptance.</summary>
     public void AssertNoUnresolvedLifecycle(string tenant)
     {
