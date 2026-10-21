@@ -156,6 +156,8 @@ public sealed class ShellViewModel : ObservableObject
         _pages["scripts"] = new ScriptsViewModel(this);
         _pages["run-reports"] = new RunReportsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
+        _pages["domain-readiness"] = new DomainReadinessViewModel(this);
+        _pages["clients"] = new ClientReviewsViewModel(this);
         _pages["mailbox-capacity"] = new MailboxCapacityViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);

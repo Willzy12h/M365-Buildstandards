@@ -25,9 +25,15 @@
 
 - Propose privacy-safe usage/licence review and bounded token-free report downloads; no runtime feature or consent is claimed.
 
+- Domain-readiness review corrections: validate complete SPF dependency coverage from original policies, distinguish deadline limits from an engineer stop, and report malformed leading-zero IPv4 SPF terms. Separate the domain/gateway inputs and verify original-report recovery plus exact test-owned package cleanup.
+
+- Expansion D: experimental domain-readiness form, bounded MX/SPF/public-cloud Windows enrolment observations, original-result recovery, HTML/CSV/JSON DNS-owner packs and offline `domain-report` CLI. No DNS/tenant writes, new Microsoft access or deployment-evidence authority; live behaviour remains unverified.
+
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
 
-- Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. Native import/save remains pending.
+- Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. The native Clients and reviews page now previews and saves explicitly selected new clients under a shared profile-write lease.
+
+- Add local client summaries, immutable history reviews and one-client engineer/client HTML and CSV packs with original-byte citations; offline `buildstandard clients` and `buildstandard review` reuse the same projection. Unknown or unreadable history cannot claim clean completion. Existing profile edit/delete refuses intervening changes. No tenant access or deployment authority is added.
 
 - Registered experimental read-only mailbox protocol, forwarding and hold reports with exact identity, per-value read states, inspectable native rows and local HTML/JSON/CSV/Excel exports. No new permissions or Exchange writes; existing Copy/Save items are preserved.
 

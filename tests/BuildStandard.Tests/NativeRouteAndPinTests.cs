@@ -7,9 +7,9 @@ public sealed class NativeRouteAndPinTests
     [Fact]
     public void Every_existing_route_is_unique_and_reachable_in_the_five_groups()
     {
-        string[] expected = ["lifecycle", "home", "overview", "recovery", "connect", "setup", "automation", "configuration", "assessment", "deviations", "plan", "deploy", "history", "jobs", "checks", "scripts", "run-reports", "reports", "mailbox-capacity", "naming", "standard", "settings"];
+        string[] expected = ["lifecycle", "home", "clients", "overview", "recovery", "connect", "setup", "automation", "configuration", "assessment", "deviations", "plan", "deploy", "history", "jobs", "checks", "scripts", "run-reports", "reports", "domain-readiness", "mailbox-capacity", "naming", "standard", "settings"];
         Assert.Equal(expected.Order(), RouteCatalog.Items.Select(r => r.Key).Order());
-        Assert.Equal(22, RouteCatalog.Items.Select(r => r.Key).Distinct().Count());
+        Assert.Equal(24, RouteCatalog.Items.Select(r => r.Key).Distinct().Count());
         Assert.Equal(new[] { "Workspace", "Build standard", "Reports", "Scripts", "Settings" }, RouteCatalog.Groups);
     }
     [Theory]

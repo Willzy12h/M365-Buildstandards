@@ -197,7 +197,7 @@ Saving or removing an exception refreshes an assessment when either full configu
 
 ## Preview a Partner Center customer list offline
 
-In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. The native bulk-import/save journey is not delivered by this command.
+In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. This CLI command remains preview-only; use the native Clients and reviews page to select and save new clients.
 
 Use the Partner Center customer-list CSV with **Microsoft ID** and **Company name** headings; **Primary domain name** is optional. UTF-8 with optional BOM, quoted commas/newlines, at most 5 MiB and 5,000 data rows are supported. Invalid/conflicting rows stay visible; existing clients are skipped. Correct malformed quoting or conflicts in the source and preview again. An unreadable/blocked local profile store is an error, never an empty client list. The CLI bounds the saved-profile file at 8 MiB and 5,000 clients, checking the count before constructing profile objects. No Graph consent or Microsoft modules are needed.
 
@@ -225,3 +225,33 @@ Use **Build standard → Existing-user actions** for one existing cloud-managed 
 CLI history is offline only: `buildstandard lifecycle --tenant <tenant-guid> --root <portable-root>` lists local attempts. Add `--record <guid> --family plan|before|intent|run|verification --format json|html` to export an exact historical record. The CLI cannot approve, resume, authenticate or execute a lifecycle action. Corrupt/incomplete history is an error, not an empty list.
 
 These capabilities are implemented source paths, with synthetic/native/package evidence recorded against each candidate. Named safety acceptance, H1/accessibility and Microsoft behaviour remain separate; source development has performed no live action or consent.
+
+
+## Saved client reviews and customer import
+
+Open **Workspace → Clients and reviews**. Navigation does not read a tenant or switch your current connection.
+
+1. Select **Read local summaries**. Each row shows the last readable stored assessment, its standard, recorded unresolved writes and job summaries. Missing history is not a current clean assessment. An unreadable section remains unknown with diagnostics; read limits are 500 records per section, 8 MiB per record and 64 MiB per client. The scan supports at most 5,000 saved clients and can be stopped from the shell.
+2. Select a row and **Review selected client**. Copyable details retain original assessment times, collection limitations and job reasons. **Open client offline** uses Configuration after you disconnect tenant/setup sessions and resolve any unsaved registered-report result. Reviewing a row alone never changes the active client shown in the header.
+3. **Export review pack** creates a fresh folder containing `engineer.html`, `client.html`, `review.csv.zip` and `manifest.json`. All use the same captured history. The manifest cites the original relative paths and byte hashes. Hashes detect changed bytes, not authenticity. Changed client details, source files, selection or working context refuse export: review again rather than silently refreshing the document. No current tenant compliance, trend across incompatible releases or permission to deploy is inferred.
+4. To add customers, **Preview customer CSV**, inspect invalid/conflicting/existing rows, tick valid new clients and **Save selected clients**. There is no automatic selection, overwrite, sign-in or consent. Existing profile fields are retained. Another window's save invalidates the preview; reopen it after refreshing. Failed saves retain the preview. Current import/edit/delete paths share a local profile-write lease; older binaries and arbitrary external editors do not participate, so avoid concurrent edits with them. The lease file is not transferred in backups; an active save refuses backup.
+
+Offline equivalents (the compatible `bdit.cmd` alias also works):
+
+```powershell
+.\buildstandard.cmd clients --root "C:\Tools\BuildStandard"
+.\buildstandard.cmd review --tenant "<saved tenant GUID>" --output "C:\Work\ClientReviews" --root "C:\Tools\BuildStandard"
+```
+
+`clients` prints JSON summaries without creating client evidence. `review` exports only one exactly matching saved client and never authenticates. Keep packs within your organisation's evidence-handling policy; they contain client identity and configuration-history details. Human usability/accessibility and live Microsoft behaviour remain separate acceptance checks.
+
+
+## Domain readiness (experimental, read-only)
+
+Open **Reports → Domain readiness**. Opening the page does not contact DNS or Microsoft. Enter the domain and select **Mail routing (MX)**, **Sender policy structure (SPF)** and/or **Windows enrolment DNS**. Optional expected gateways require their source; no Microsoft MX target is assumed. Read **Exact reads, limits and prerequisites**, tick the explicit approval and choose **Run selected checks**. This uses only the configured Windows DNS resolver through the fixed Windows PowerShell DnsClient helper. No module installation, policy bypass, server override or tenant sign-in is offered. If local policy blocks the helper, ask the security owner; do not switch hosts to bypass it.
+
+**Complete** means the selected reads finished within their limits, not that mail delivery, SPF sender authentication or enrolment works. Negative replies with an unknown owner, unavailable reads, partial output and cancellation stay explicit. SPF traversal is structural only; macros and sender-dependent paths remain unknown. The Windows reference is public-cloud only. macOS is unsupported and this feature never enrols a device or changes DNS.
+
+Choose **Save report pack** to preserve original JSON, a readable HTML DNS-owner worksheet, CSV tables and a digest manifest under `reports/`. These observations are separate from configuration/deployment evidence. A context change cannot relabel them: the original unsaved report stays in the recovery panel until explicitly exported or discarded. Closing and a replacement DNS read are blocked while it is unsaved. A failed save retains the original; retrying Save does not repeat the query. Review the output folder if a save could not be confirmed.
+
+**Open historical report…** accepts only the separate bounded domain-report schema and labels its original source/binding unverified. An offline export uses `buildstandard domain-report --input <file> --output <directory> [--root <dir>]`; it never collects DNS, changes a tenant binding or rewrites original evidence. SHA-256 detects changed bytes, not source authenticity. Live DNS/enrolment and human accessibility acceptance remain unrun for this experimental capability.

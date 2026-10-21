@@ -84,6 +84,10 @@ public sealed class JobProjection
     public int Outstanding => Subjects.Count(s => !s.Accepted);
 
     public static JobProjection Build(EvidenceStore store, string tenantId, string jobId, StandardCatalogue standard, TenantProfile profile,
+        DateTimeOffset now, TenantSnapshot? currentCapture = null) =>
+        BuildCaptured(store, tenantId, jobId, standard, profile, now, currentCapture);
+
+    internal static JobProjection BuildCaptured(IJobReviewEvidence store, string tenantId, string jobId, StandardCatalogue standard, TenantProfile profile,
         DateTimeOffset now, TenantSnapshot? currentCapture = null)
     {
         var job = store.RequireJob(tenantId, jobId);
@@ -190,7 +194,7 @@ public sealed class JobProjection
         return history.OrderBy(Depth).ThenBy(o => o.RecordedAt, StringComparer.Ordinal).ToList();
     }
 
-    private static (T? Current, IReadOnlyList<string> Reasons) Review<T>(EvidenceStore store, string tenantId, List<T> history,
+    private static (T? Current, IReadOnlyList<string> Reasons) Review<T>(IJobReviewEvidence store, string tenantId, List<T> history,
         StandardCatalogue standard, TenantProfile profile, DateTimeOffset now, TenantSnapshot? capture) where T : class, ISubjectRecord
     {
         var (current, reasons) = Graph(history);
@@ -214,7 +218,7 @@ public sealed class JobProjection
     }
 
     /// <summary>Why a cutover revision no longer stands. A stage recorded once is never assumed to still hold.</summary>
-    private static List<string> CutoverReasons(EvidenceStore store, string tenantId, CutoverRevision current, StandardCatalogue standard, TenantProfile profile,
+    private static List<string> CutoverReasons(IJobReviewEvidence store, string tenantId, CutoverRevision current, StandardCatalogue standard, TenantProfile profile,
         DateTimeOffset now, TenantSnapshot? capture)
     {
         var reasons = new List<string>();
@@ -252,7 +256,7 @@ public sealed class JobProjection
 /// <summary>Whether one current record still stands against the standard, client inputs and evidence now in use.</summary>
 internal static class SubjectReview
 {
-    public static List<string> Reasons(EvidenceStore store, string tenantId, ISubjectRecord current, StandardCatalogue standard, TenantProfile profile,
+    public static List<string> Reasons(IJobReviewEvidence store, string tenantId, ISubjectRecord current, StandardCatalogue standard, TenantProfile profile,
         DateTimeOffset now, TenantSnapshot? capture)
     {
         var reasons = new List<string>();
@@ -273,7 +277,7 @@ internal static class SubjectReview
     }
 
     /// <summary>True unless the deviation exists in this tenant, is an approved deviation for the control and is in date.</summary>
-    public static bool MissingDeviation(EvidenceStore store, string tenantId, string? deviationId, string controlId, DateTimeOffset now)
+    public static bool MissingDeviation(IJobReviewEvidence store, string tenantId, string? deviationId, string controlId, DateTimeOffset now)
     {
         try
         {
@@ -285,7 +289,7 @@ internal static class SubjectReview
     }
 
     /// <summary>True unless the disposition's cutover case is attached to its job for the same requirement instance.</summary>
-    public static bool MissingCase(EvidenceStore store, string tenantId, TenantDisposition disposition)
+    public static bool MissingCase(IJobReviewEvidence store, string tenantId, TenantDisposition disposition)
     {
         try
         {
@@ -305,7 +309,7 @@ internal static class SubjectReview
     public static bool SameClient(string profileId, string scopeDigest, TenantProfile profile) =>
         string.Equals(profileId, profile.Id, StringComparison.OrdinalIgnoreCase) && scopeDigest == ReviewedClientScope.Digest(profile);
 
-    public static bool EvidenceIntact(EvidenceStore store, string tenantId, EvidenceReference reference)
+    public static bool EvidenceIntact(IJobReviewEvidence store, string tenantId, EvidenceReference reference)
     {
         try
         {

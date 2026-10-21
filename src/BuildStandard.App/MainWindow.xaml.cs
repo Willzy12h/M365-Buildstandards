@@ -65,6 +65,12 @@ public partial class MainWindow : Window
     {
         if (!shell.Page<RunReportsViewModel>().HasPendingEvidence)
         {
+            if (shell.Page<DomainReadinessViewModel>().HasPending)
+            {
+            shell.Navigate("domain-readiness");
+            shell.ShowError(new InvalidOperationException("An original domain report is still unsaved. Save the report pack, export the original, or explicitly discard it in Domain readiness before closing. No DNS read was repeated."));
+                return true;
+            }
             var reports = shell.Page<GraphReportsViewModel>();
             if (reports.Usage.HasPendingOriginal)
             {
