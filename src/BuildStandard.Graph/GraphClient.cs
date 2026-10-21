@@ -71,6 +71,14 @@ public sealed class GraphClient : IGraphClient
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);
 
+    /// <summary>Fixed lifecycle preview reads, reusing the verified provider with an isolated, redirect-disabled HTTP lifetime.</summary>
+    public ILifecycleReadSource ForLifecycleReads(TenantSession session, LifecycleOperation operation, Action requireCurrent)
+    {
+        if (!string.Equals(session.TenantId,TenantId,StringComparison.OrdinalIgnoreCase) || session.Mode!=Mode)
+            throw new TenantMismatchException("Lifecycle source must use this connection's verified tenant and permission mode.");
+        return Lifecycle.LifecycleReadTransport.Create(_tokens,session,operation,requireCurrent);
+    }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
