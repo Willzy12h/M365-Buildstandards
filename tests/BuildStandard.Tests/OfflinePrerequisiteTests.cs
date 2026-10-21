@@ -139,11 +139,25 @@ public sealed class OfflinePrerequisiteTests
         fixture.NoProbes();
     }
 
+    [Fact]
+    public void Shipped_neutral_example_is_in_scope_and_hashed_without_admitting_arbitrary_JSON()
+    {
+        using var fixture=new OfflinePackageFixture();
+        const string relative="docs/examples/external-check-results.example.json";
+        fixture.Write(relative,"{\"synthetic\":true}");fixture.RewriteInventory();
+        Assert.Equal(OfflinePrerequisiteStatus.Ready,fixture.Service().Check(fixture.Root).Status);
+        fixture.Write(relative,"{\"synthetic\":false}");
+        Assert.Equal(OfflineFindingDisposition.Fail,Finding(fixture.Service().Check(fixture.Root),"package.integrity").Disposition);
+        fixture.NoProbes();
+    }
+
     [Theory]
     [InlineData("standards/lineage/unrelated.json")]
     [InlineData("standards/lineage/nested/lineage-2026.09.30.json")]
     [InlineData("standards/lineage/lineage-2026.09.30.txt")]
     [InlineData("extra/public.txt")]
+    [InlineData("docs/examples/tenant-export.json")]
+    [InlineData("docs/examples/external-check-results.other.json")]
     public void Safe_out_of_scope_inventory_has_a_distinct_reason_and_never_opens_its_content(string relative)
     {
         using var fixture = new OfflinePackageFixture();
