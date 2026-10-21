@@ -11,7 +11,8 @@ namespace BuildStandard.Engine.Execution;
 public sealed class LifecyclePreview
 {
     private readonly JsonObject _document;
-    internal LifecyclePreview(JsonObject document){_document=document.DeepClone().AsObject();}
+    internal LifecyclePreview(JsonObject document,Action originalContext){_document=document.DeepClone().AsObject();AssertOriginalContext=originalContext;}
+    internal Action AssertOriginalContext { get; }
     public string Id=>_document["id"]!.GetValue<string>();
     public string TenantId=>_document["tenantId"]!.GetValue<string>();
     public string IntegrityDigest=>_document["integrityDigest"]!.GetValue<string>();
@@ -55,7 +56,7 @@ public sealed class LifecyclePreparationService(EvidenceStore evidence,IClock cl
         RequireCurrent();ct.ThrowIfCancellationRequested();
         // Only local preview persistence. Existing unresolved writes are not reconciled by making this preview.
         evidence.SaveLifecyclePreview(document);
-        return new(document);
+        return new(document,assertCurrent);
         void RequireCurrent()
         {
             assertCurrent();ct.ThrowIfCancellationRequested();

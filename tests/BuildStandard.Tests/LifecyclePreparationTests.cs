@@ -10,15 +10,15 @@ using Xunit;
 namespace BuildStandard.Tests;
 public sealed class LifecyclePreparationTests
 {
-    private sealed class Source : ILifecycleReadSource
+    internal sealed class Source : ILifecycleReadSource
     {
         public string TenantId=>TestData.TenantA;public string AccountObjectId=>TestData.Operator;public string ClientId=>TestData.ClientId;public SessionMode Mode=>SessionMode.Deployment;
-        public LifecycleOperation Operation=>LifecycleActionRegistry.Create("disable-account",TestData.Office);public int RequestCount{get;private set;} public Action<string>? Before;
+        public LifecycleOperation Operation=>LifecycleActionRegistry.Create("disable-account",TestData.Office);public int RequestCount{get;private set;} public Action<string>? Before;public Func<bool>? ReadEnabled;
         public Task<LifecycleReadPage> ReadNextAsync(string source,CancellationToken ct)
-        {RequestCount++;Before?.Invoke(source);return Task.FromResult(new LifecycleReadPage(source=="user"?[new JsonObject { ["id"]=TestData.Office,["displayName"]="Synthetic member",["userPrincipalName"]="member@synthetic.invalid",["userType"]="Member",["accountEnabled"]=true,["onPremisesSyncEnabled"]=false }]:[],false));}
+        {RequestCount++;Before?.Invoke(source);return Task.FromResult(new LifecycleReadPage(source=="user"?[new JsonObject { ["id"]=TestData.Office,["displayName"]="Synthetic member",["userPrincipalName"]="member@synthetic.invalid",["userType"]="Member",["accountEnabled"]=ReadEnabled?.Invoke()??true,["onPremisesSyncEnabled"]=false }]:[],false));}
         public void Dispose(){}
     }
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         public TempRoot Root=new();public FixedClock Clock=new();public Source Source=new();public TenantSession Session=TestData.Session();public TenantProfile Profile=TestData.Profile();public StandardCatalogue Standard=TestData.Standard();public EvidenceStore Evidence;public TenantSnapshot Snapshot;
         public Fixture(){Evidence=new(Root.Paths,NullLog.Instance);Snapshot=TestData.Snapshot(Standard);Evidence.SaveSnapshot(Snapshot);Session.Scopes=["User.Read.All","Group.Read.All","RoleManagement.Read.Directory","Organization.Read.All","User.EnableDisableAccount.All"];Session.TokenExpiresAt=Timestamps.Format(Clock.UtcNow.AddMinutes(10));}
