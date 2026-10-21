@@ -1,0 +1,60 @@
+using System.Reflection;
+using System.Text.Json.Nodes;
+using System.Windows.Input;
+using BuildStandard.App.Services;
+using BuildStandard.App.ViewModels;
+using BuildStandard.Core;
+using BuildStandard.Core.Graph;
+using BuildStandard.Core.Models;
+using BuildStandard.Core.Safety;
+using BuildStandard.Graph;
+using Xunit;
+namespace BuildStandard.Tests;
+public sealed class LifecyclePageTests
+{
+    private static PropertyInfo Property(object page,string name){var result=page.GetType().GetProperty(name,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);Assert.NotNull(result);return result;}
+    private static object Page(ConnectedReportsFixture f)
+    {
+        var type=typeof(ShellViewModel).Assembly.GetType("BuildStandard.App.ViewModels.LifecycleViewModel");Assert.NotNull(type);
+        var shell=new ShellViewModel(f.Workspace);shell.Navigate("lifecycle");Assert.IsType(type,shell.CurrentPage);return shell.CurrentPage;
+    }
+    [Fact]public void Native_lifecycle_navigation_does_not_authenticate_or_read_and_default_write_is_explained()
+    {
+        using var f=new ConnectedReportsFixture();var page=Page(f);Assert.Contains(RouteCatalog.Items,item=>item.Key=="lifecycle"&&item.Group=="Build standard");
+        Assert.False((bool)Property(page,"CanApply").GetValue(page)!);Assert.False(string.IsNullOrWhiteSpace((string)Property(page,"ApplyGuidance").GetValue(page)!));
+        Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
+    [Theory][InlineData("SelectedUserId")][InlineData("SelectedGroupId")][InlineData("SelectedSkuId")]
+    public void Clearing_native_selection_is_safe_and_invalidates_explicit_reviews(string selected)
+    {
+        using var f=new ConnectedReportsFixture();var page=Page(f);
+        foreach(var name in new[]{"ProtectedReviewed","DownstreamReviewed","PreservationReviewed"})Property(page,name).SetValue(page,true);
+        Property(page,selected).SetValue(page,TestData.Office);Property(page,selected).SetValue(page,null);
+        Assert.Equal("",Property(page,selected).GetValue(page));Assert.False((bool)Property(page,"ProtectedReviewed").GetValue(page)!);
+        Assert.False((bool)Property(page,"DownstreamReviewed").GetValue(page)!);Assert.False((bool)Property(page,"PreservationReviewed").GetValue(page)!);
+        Assert.False(((ICommand)Property(page,"ApplyCommand").GetValue(page)!).CanExecute(null));Assert.Equal(0,f.Handler.Calls);
+    }
+    private sealed class Source(TenantSession session,LifecycleOperation operation,Action? before) : ILifecycleReadSource
+    {
+        public string TenantId=>session.TenantId;public string AccountObjectId=>session.AccountObjectId;public string ClientId=>session.ClientId;public SessionMode Mode=>session.Mode;public LifecycleOperation Operation=>operation;public int RequestCount{get;private set;}
+        public Task<LifecycleReadPage> ReadNextAsync(string id,CancellationToken ct){ct.ThrowIfCancellationRequested();RequestCount++;if(id=="currentRoles")before?.Invoke();return Task.FromResult(new LifecycleReadPage(id=="user"?[new JsonObject { ["id"]=TestData.Office,["displayName"]="Synthetic ordinary member",["userPrincipalName"]="member@synthetic.invalid",["userType"]="Member",["accountEnabled"]=true,["onPremisesSyncEnabled"]=false }]:[],false));}
+        public void Dispose(){}
+    }
+    [Theory][InlineData(false)][InlineData(true)]public async Task Preparation_is_explicit_and_late_client_change_never_admits_an_old_preview(bool change)
+    {
+        using var f=new ConnectedReportsFixture();var session=TestData.Session();session.TokenExpiresAt=Timestamps.Format(DateTimeOffset.UtcNow.AddMinutes(10));
+        session.Scopes=["User.Read.All","Group.Read.All","Organization.Read.All","RoleManagement.Read.Directory","User.EnableDisableAccount.All"];
+        f.Set(nameof(Workspace.Connection),new ConnectedTenant(session,new FakeGraphClient(f.Workspace.RequireStandard()),null));
+        var snapshot=TestData.Snapshot(f.Workspace.RequireStandard(),capturedAt:DateTimeOffset.UtcNow);f.Workspace.Evidence.SaveSnapshot(snapshot);
+        f.Set(nameof(Workspace.Snapshot),snapshot);f.Set(nameof(Workspace.SnapshotIsLive),true);
+        var page=Page(f);Property(page,"SelectedUserId").SetValue(page,TestData.Office);
+        Property(page,"SelectedActionId").SetValue(page,"disable-account");
+        Func<LifecycleOperation,Action,ILifecycleReadSource> source=(operation,_)=>new Source(session,operation,change?()=>f.Workspace.ApplyProfileToSession(TestData.Profile(TestData.TenantB),false):null);
+        Property(page,"SourceFactory").SetValue(page,source);
+        var prepare=page.GetType().GetMethod("PreviewAsync");Assert.NotNull(prepare);
+        var task=(Task)prepare.Invoke(page,null)!;
+        if(change)await Assert.ThrowsAnyAsync<ToolkitException>(()=>task);else await task;
+        Assert.Equal(!change,Property(page,"HasPreview").GetValue(page));Assert.False((bool)Property(page,"CanApply").GetValue(page)!);
+        Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
+}
