@@ -33,7 +33,7 @@ public sealed class SecurityIncidentReportService(IClock clock, string toolkitVe
         var started = clock.UtcNow;
         _ = new SecurityIncidentReadSelection(window.StartUtc, window.EndUtc, started);
         cancellation.ThrowIfCancellationRequested();
-        var stamp = Timestamps.Format(started);
+        var stamp = ExactUtc(started);
         var section = new ReportSection { Id = "security-incidents", Status = ReportReadState.Collected, Error = null,
             Limitations = [OperationalContextSchema.IncidentNotice] };
         var report = new OperationalContextReport
@@ -41,7 +41,7 @@ public sealed class SecurityIncidentReportService(IClock clock, string toolkitVe
             ReportId = "security-incidents", AccessIntent = "security-incidents", TenantId = tenant, AccountObjectId = account,
             ClientId = client, PermissionMode = mode.ToString(), SourceMode = "live", AsOfUtc = stamp,
             StartedAt = stamp, EndedAt = stamp, ToolkitVersion = toolkitVersion,
-            IncidentSelection = new() { StartUtc = Timestamps.Format(window.StartUtc), EndUtc = Timestamps.Format(window.EndUtc) },
+            IncidentSelection = new() { StartUtc = ExactUtc(window.StartUtc), EndUtc = ExactUtc(window.EndUtc) },
             Sources = OperationalContextSchema.SourceDeclarations("security-incidents").ToList(), Sections = [section]
         };
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -97,11 +97,12 @@ public sealed class SecurityIncidentReportService(IClock clock, string toolkitVe
             foreach (var row in group) { row["readStatus"] = ReportReadState.Partial; row["error"] = DuplicateReason; }
             Incomplete(section, DuplicateReason);
         }
-        AssertCurrent(); report.EndedAt = Timestamps.Format(clock.UtcNow);
+        AssertCurrent(); report.EndedAt = ExactUtc(clock.UtcNow);
         report.Status = ReportEvidenceSchema.Overall(report.Sections.Select(value => value.Status));
         await Task.Run(() => OperationalContextSchema.Seal(report), CancellationToken.None).ConfigureAwait(false);
         AssertCurrent(); return report;
     }
+    private static string ExactUtc(DateTimeOffset value) => value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
     private static string ScopeKey(IEnumerable<string> scopes) => string.Join('\n', scopes.OrderBy(value => value, StringComparer.Ordinal));
     private static void Incomplete(ReportSection section, string reason) { section.Status = ReportReadState.Partial; section.Error = reason; }
     private static SecurityIncidentRow Project(JsonObject raw, SecurityIncidentReadSelection window, DateTimeOffset observedAt)
@@ -132,7 +133,7 @@ public sealed class SecurityIncidentReportService(IClock clock, string toolkitVe
         var row = new SecurityIncidentRow
         {
             Id = Text("id", true, true), Name = Text("displayName", true),
-            CreatedAt = created is { } c ? Timestamps.Format(c) : null, ModifiedAt = updated is { } u ? Timestamps.Format(u) : null,
+            CreatedAt = created is { } c ? ExactUtc(c) : null, ModifiedAt = updated is { } u ? ExactUtc(u) : null,
             Severity = Text("severity", true), Status = Text("status", true), Classification = Text("classification", true),
             Determination = Text("determination", true), PriorityScore = priority,
             RedirectIncidentId = Text("redirectIncidentId", identity: true), IncidentWebUrl = Text("incidentWebUrl")

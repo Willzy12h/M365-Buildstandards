@@ -93,6 +93,14 @@ public sealed class GraphClient : IGraphClient
         return Reports.OperationalReportTransport.Create(_tokens, session, "collaboration-inventory", requireCurrent, collaboration: selection);
     }
 
+    /// <summary>Fixed incident metadata over the verified provider and frozen interval; no new sign-in or cache.</summary>
+    public Reports.OperationalReportTransport ForSecurityIncidentReports(TenantSession session, SecurityIncidentReadSelection selection, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Incident access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, "security-incidents", requireCurrent, incidents: selection);
+    }
+
     /// <summary>Schema/ID-pinned application metadata routes, reusing the current provider and transport.</summary>
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);

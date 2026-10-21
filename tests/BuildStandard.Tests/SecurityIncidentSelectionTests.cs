@@ -6,6 +6,16 @@ public sealed class SecurityIncidentSelectionTests
 {
     private static readonly DateTimeOffset End = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
     private static SecurityIncidentReadSelection Selection(DateTimeOffset start, DateTimeOffset end, DateTimeOffset asOf) => new(start, end, asOf);
+    private static SecurityIncidentReadSelection Parse(string start, string end) => SecurityIncidentReadSelection.Parse(start, end, End);
+    [Fact] public void Explicit_UTC_text_is_parsed_without_local_time_or_locale_inference()
+    {
+        var selection = Parse("2026-10-19T12:00:00Z", "2026-10-20T12:00:00.000Z");
+        Assert.Equal(End.AddDays(-1), selection.StartUtc); Assert.Equal(End, selection.EndUtc);
+    }
+    [Theory][InlineData("")][InlineData("19/10/2026")][InlineData("2026-10-19T12:00:00")]
+    [InlineData("2026-10-19T13:00:00+01:00")][InlineData("2026-10-19T12:00:00Z or true")]
+    public void Ambiguous_non_UTC_or_query_like_date_input_is_refused(string input)
+    { Assert.ThrowsAny<ToolkitException>(() => Parse(input, "2026-10-20T12:00:00Z")); }
     [Fact] public void Fixed_query_uses_only_the_frozen_inclusive_start_exclusive_end_and_bounded_page()
     {
         var selected = Selection(End.AddDays(-31), End, End);

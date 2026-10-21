@@ -2,6 +2,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using BuildStandard.Core;
+using BuildStandard.Core.Diagnostics;
+using BuildStandard.Core.Models;
+using BuildStandard.Graph;
 using BuildStandard.Core.Reporting;
 using BuildStandard.Graph.Auth;
 using BuildStandard.Graph.Reports;
@@ -65,6 +68,19 @@ public sealed class SecurityIncidentTransportTests
         var current = true; var tokens = new Tokens { After = () => current = false };
         using var source = Transport(client, tokens, current: () => { if (!current) throw new TenantMismatchException("Synthetic context changed"); });
         await Assert.ThrowsAnyAsync<ToolkitException>(() => Read(source)); Assert.Equal(0, calls);
+    }
+    [Fact] public void Existing_connection_factory_keeps_identity_and_does_not_acquire_tokens()
+    {
+        var calls = 0; var tokens = new Tokens { After = () => calls++ };
+        using var http = new HttpClient(new Handler(_ => throw new InvalidOperationException("No request expected")));
+        var graph = new GraphClient(http, tokens, TestData.TenantA, SessionMode.Assessment, GraphRouteAllowList.ForReports(), new(), NullLog.Instance);
+        var session = TestData.Session(); session.Mode = SessionMode.Assessment; session.Scopes = ["SecurityIncident.Read.All"];
+        using var source = graph.ForSecurityIncidentReports(session, Selection(), () => {});
+        Assert.Equal(TestData.TenantA, source.TenantId); Assert.Equal("security-incidents", source.ReportId); Assert.Equal(0, calls);
+        session.TenantId = TestData.TenantB;
+        Assert.Throws<TenantMismatchException>(() => graph.ForSecurityIncidentReports(session, Selection(), () => {}));
+        session.TenantId = TestData.TenantA; session.Mode = SessionMode.Deployment;
+        Assert.Throws<TenantMismatchException>(() => graph.ForSecurityIncidentReports(session, Selection(), () => {})); Assert.Equal(0, calls);
     }
     private sealed class Tokens : IAccessTokenProvider
     {

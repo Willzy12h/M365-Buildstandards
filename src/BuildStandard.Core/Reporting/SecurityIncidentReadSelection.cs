@@ -17,5 +17,17 @@ public sealed class SecurityIncidentReadSelection
         var filter = "createdDateTime ge " + Format(startUtc) + " and createdDateTime lt " + Format(endUtc);
         RegisteredPath = "/security/incidents?$filter=" + Uri.EscapeDataString(filter) + "&$top=100";
     }
+    public static SecurityIncidentReadSelection Parse(string start, string end, DateTimeOffset asOfUtc)
+    {
+        static DateTimeOffset Utc(string text)
+        {
+            string[] formats = ["yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'", "yyyy-MM-dd'T'HH:mm:sszzz", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz"];
+            if (text is null || text.Length > 40 || !DateTimeOffset.TryParseExact(text, formats, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal, out var value) || value.Offset != TimeSpan.Zero)
+                throw new ConfigurationException("Enter an explicit UTC date and time, for example 2026-10-20T00:00:00Z. Local dates and queries are not accepted.");
+            return value;
+        }
+        return new(Utc(start), Utc(end), asOfUtc);
+    }
     private static string Format(DateTimeOffset value) => value.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
 }

@@ -92,11 +92,30 @@ public sealed class SecurityIncidentReportServiceTests
         var source = new Source(_ => Task.FromResult(new OperationalReportPage([], false)));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Capture(source, token: stop.Token)); Assert.Equal(0, source.Calls);
     }
-    private sealed class Source(Func<CancellationToken, Task<OperationalReportPage>> read) : ISecurityIncidentReportSource
+    [Fact] public async Task Evidence_keeps_the_exact_requested_fractional_window_without_rounding()
+    {
+        var window = new SecurityIncidentReadSelection(Now.AddDays(-1).AddTicks(1234), Now.AddTicks(-1234), Now);
+        var source = new Source(_ => Task.FromResult(new OperationalReportPage([], false)), window);
+        var report = await Capture(source);
+        Assert.True(Timestamps.TryParse(report.IncidentSelection!.StartUtc, out var start));
+        Assert.True(Timestamps.TryParse(report.IncidentSelection.EndUtc, out var end));
+        Assert.Equal(window.StartUtc, start); Assert.Equal(window.EndUtc, end);
+        _ = OperationalContextSchema.Read(OperationalContextSchema.Serialise(report), TestData.TenantA);
+    }
+    [Fact] public async Task Capture_clock_and_observed_times_preserve_submillisecond_precision()
+    {
+        var clock = Now.AddTicks(1234); var window = new SecurityIncidentReadSelection(clock.AddDays(-1), clock, clock);
+        var row = Incident(); row["lastUpdateDateTime"] = "2026-10-20T12:00:00.0001234Z";
+        var source = new Source(_ => Task.FromResult(new OperationalReportPage([row], false)), window);
+        var report = await new SecurityIncidentReportService(new FixedClock { UtcNow = clock }, "synthetic").CaptureAsync(source, Session(), () => {}, default);
+        Assert.Equal("Collected", report.Status); Assert.Equal("2026-10-20T12:00:00.0001234Z", report.AsOfUtc);
+        Assert.Equal(report.AsOfUtc, report.Sections[0].Rows[0]["modifiedAt"]!.GetValue<string>());
+    }
+    private sealed class Source(Func<CancellationToken, Task<OperationalReportPage>> read, SecurityIncidentReadSelection? selection = null) : ISecurityIncidentReportSource
     {
         public int Calls { get; private set; }
         public string TenantId => TestData.TenantA;
-        public SecurityIncidentReadSelection IncidentSelection { get; } = new(Now.AddDays(-1), Now, Now);
+        public SecurityIncidentReadSelection IncidentSelection { get; } = selection ?? new(Now.AddDays(-1), Now, Now);
         public Task<OperationalReportPage> ReadIncidentsNextAsync(CancellationToken token) { Calls++; return read(token); }
     }
 }
