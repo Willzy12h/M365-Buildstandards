@@ -1042,3 +1042,7 @@ Proposed [J contract](SECURITY-CONTEXT-CONTRACT-2026.10.20.md): owner-approved S
 ### INT-138 implementation — neutral external-result admission
 
 Use a distinct immutable source-claim model and strict reader; never route it through the native report-evidence dispatcher as an assessment. The original byte image and its SHA-256 are retained separately from typed display rows. Canonical integrity clears only integrityDigest before hashing; unknown outcome values remain raw and display Unclassified. Required source-state labels preserve partial/failed/cancelled/unknown execution independently of individual passed rows. This first slice has no Graph route, file execution, managed evidence insertion or native/CLI exposure. Later consumers must preserve these admission and provenance boundaries.
+
+### J offline source-claim exports — 21 October 2026
+
+INT-138's admitted original bytes are revalidated against the explicit expected tenant before each local export. JSON retains exact bytes; HTML/CSV/Excel retain raw outcomes, source-declared completeness and untrusted provenance separately from native assessment. Reference strings remain inert. Unique create-new outputs are flushed and hashed; a failure after creation preserves and names the possibly incomplete output rather than deleting an unowned path. No automatic evidence insertion, authentication or consent is added.

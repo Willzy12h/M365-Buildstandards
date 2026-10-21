@@ -82,13 +82,13 @@ public static class ExternalCheckResultsSchema
     {
         if (node.Any(p => !allowed.Contains(p.Key, StringComparer.Ordinal))) throw Bad("Unknown structural fields are refused; executable or vendor-specific content is not imported.");
     }
-    private static string Text(JsonObject node, string key, int maximum)
+    private static string Text(JsonObject node, string key, int maximum, bool allowEmpty = false)
     {
-        if (node[key] is not JsonValue value || !value.TryGetValue<string>(out var text) || string.IsNullOrWhiteSpace(text)
+        if (node[key] is not JsonValue value || !value.TryGetValue<string>(out var text) || (!allowEmpty && string.IsNullOrWhiteSpace(text))
             || text.Length > maximum || text.Any(c => char.IsControl(c) && c is not ('\r' or '\n' or '\t')))
             throw Bad($"{key} must be bounded plain text (maximum {maximum} characters).");
         return text;
     }
-    private static string? Optional(JsonObject node, string key) => node[key] is null ? null : Text(node, key, 4096);
+    private static string? Optional(JsonObject node, string key) => node[key] is null ? null : Text(node, key, 4096, allowEmpty: true);
     private static ConfigurationException Bad(string message) => new("External results: " + message);
 }

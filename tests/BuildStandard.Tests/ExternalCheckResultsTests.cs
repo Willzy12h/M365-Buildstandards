@@ -8,14 +8,14 @@ namespace BuildStandard.Tests;
 
 public sealed class ExternalCheckResultsTests
 {
-    private static JsonObject Fixture() => new()
+    internal static JsonObject Fixture() => new()
     {
         ["kind"] = "external-check-results", ["schemaVersion"] = 1, ["toolName"] = "Synthetic checks", ["toolVersion"] = "1.0",
         ["sourceRunId"] = "synthetic-run", ["tenantId"] = TestData.TenantA, ["performedAt"] = "2026-10-20T09:00:00Z",
         ["sourceState"] = "Partial", ["rows"] = new JsonArray(new JsonObject { ["testId"] = "TEST-1", ["outcome"] = "Passed", ["title"] = "A claimed result" }),
         ["integrityDigest"] = ""
     };
-    private static byte[] Bytes(JsonObject source)
+    internal static byte[] Bytes(JsonObject source)
     {
         source["integrityDigest"] = ""; source["integrityDigest"] = CanonicalJson.Sha256(source);
         return Encoding.UTF8.GetBytes(source.ToJsonString());
@@ -29,6 +29,13 @@ public sealed class ExternalCheckResultsTests
         var file = Path.Combine(root.Root, "external.json"); File.WriteAllBytes(file, bytes);
         var imported = ExternalCheckResultsSchema.ReadFile(file, TestData.TenantA);
         Assert.Equal(bytes, imported.GetOriginalBytes()); Assert.Equal(bytes, File.ReadAllBytes(file));
+    }
+    [Theory][InlineData("")][InlineData(" ")]
+    public void Optional_plain_text_may_be_returned_empty_without_becoming_missing(string value)
+    {
+        var source = Fixture(); source["rows"]![0]!["reason"] = value; source["rows"]![0]!["reference"] = value;
+        var admitted = Read(Bytes(source));
+        Assert.Equal(value, admitted.Evidence.Rows.Single().Reason); Assert.Equal(value, admitted.Evidence.Rows.Single().Reference);
     }
     [Fact] public void Valid_source_preserves_original_bytes_and_partial_claim_without_native_assessment_authority()
     {
