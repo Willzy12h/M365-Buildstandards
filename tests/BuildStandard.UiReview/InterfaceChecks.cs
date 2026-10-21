@@ -859,6 +859,17 @@ internal static partial class Program
         ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
         ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("CandidateAuthoringViewModel.ImportPolicyCommand", "local file picker; shared import and native view-model admission covered with synthetic files"),
+        ("CandidateAuthoringViewModel.ChooseMappingCommand", "local file picker; strict mapping reader covered by CLI and engine regressions"),
+        ("CandidateAuthoringViewModel.NewDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.OpenDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.LoadFieldsCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ApplyCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ResetInputCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ValidateCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.SaveDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ExportCandidateCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.DiscardDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
         ("StandardViewModel.ViewReferenceCommand", "managed Runtime reader is exercised only by explicit --reader-hosted checks; ordinary native and CLI startup stay independent"),
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
@@ -1244,6 +1255,10 @@ internal static partial class Program
         owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational));
         owners.Add(("reports",shell.Page<GraphReportsViewModel>().External));
         owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational.IncidentReferences));
+
+        // Authoring is owned by the catalogue page, not registered as a second navigation page.
+        // Include its real command instances so the register still detects missing/stale entries.
+        owners.Add(("standard", shell.Page<StandardViewModel>().Authoring));
 
         var found = new List<(string Name, string Page, ICommand Command)>();
         foreach (var (key, vm) in owners)

@@ -318,6 +318,7 @@ internal static partial class Program
                     }
                     if (nav.Key == "standard")
                     {
+                        CaptureCandidateEditor(shell, content, size, output);
                         var more = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
                         more.IsExpanded = true; content.UpdateLayout(); Pump();
                         var exports = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");

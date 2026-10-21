@@ -28,7 +28,12 @@ public sealed class StandardViewModel : PageViewModel
 
     public StandardViewModel(ShellViewModel shell) : base(shell, "Build Standard")
     {
-        SelectReleaseCommand = Sync(() => { if (SelectedRelease is not null) Workspace.SelectRelease(SelectedRelease.FileName); }, () => SelectedRelease is not null && Workspace.Idle);
+        Authoring = new CandidateAuthoringViewModel(shell);
+        SelectReleaseCommand = Sync(() =>
+        {
+            if (Authoring.HasUnsavedChanges) throw new BuildStandard.Core.ConfigurationException("Keep, save or explicitly discard the local candidate draft before replacing the catalogue.");
+            if (SelectedRelease is not null) Workspace.SelectRelease(SelectedRelease.FileName);
+        }, () => SelectedRelease is not null && Workspace.Idle && !Authoring.HasUnsavedChanges);
         ExportDocumentCommand = Command(() => ExportDocument(ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
         ExportDocumentMarkdownCommand = Command(() => ExportDocument(ExportFormat.Markdown), () => Workspace.Standard is not null && Workspace.Idle);
         ExportEngineerHtmlCommand = Command(() => ExportEngineer(EngineerDocumentKind.BuildStandard, ExportFormat.Html), () => Workspace.Standard is not null && Workspace.Idle);
@@ -53,6 +58,7 @@ public sealed class StandardViewModel : PageViewModel
         Refresh();
     }
 
+    public CandidateAuthoringViewModel Authoring { get; }
     public ICommand ViewReferenceCommand { get; }
     public ICommand SelectReleaseCommand { get; }
     public ICommand ExportDocumentCommand { get; }

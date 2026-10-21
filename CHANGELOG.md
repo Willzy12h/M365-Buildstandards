@@ -31,6 +31,10 @@
 
 - Expansion B foundation: freeze typed CA scenarios and strictly admit hypothetical results through a fixed, bounded read-only evaluation transport. Preserve unknowns, identity/access binding, cancellation and one silent401 renewal; generic write guards are unchanged. Native/evidence/coverage journeys remain in progress.
 
+- Offline candidate CLI imports now save separate supported-policy drafts with original-byte provenance, explicit unresolved references and strict mappings to existing typed parameters; no catalogue installation or tenant action.
+
+- Guard every local catalogue replacement while candidate edits or unapplied input remain unsaved; retain the current catalogue and explain save/discard. Include the nested editor and scrolled working controls in native UI verification.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
@@ -94,6 +98,8 @@
 
 
 - In progress: add native experimental hypothetical CA evaluation with an exact bounded member lookup, separately labelled original scenario/context, original-byte recovery, historical import and shared exports; enforce the overall read budget even for non-cooperative response reads. Native/package acceptance and broader deployment coverage remain separate.
+
+- Offline candidate authoring preserves blocked macOS enrolment and structured settings, validates unchanged catalogue templates separately from resolved writes, and reports partial local exports without deleting replacement files.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
@@ -573,3 +579,7 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Coverage source preparation now freezes control/catalogue and original evidence identities using the existing creation/readback provenance checks. Bounded same-relation pagination preserves partial/stopped/failed/context-changed states and original pages; duplicate/error envelopes cannot become complete coverage. Native coverage delivery remains unfinished.
 - In-progress coverage engine now assembles bounded selected-control sources and shared HTML/tabular observations, retaining malformed/partial originals and distinguishing failed, stopped, deadline and not-attempted reads. Conflicting assignment observations remain unknown. Coverage save/import and native delivery are not yet complete.
 - Modern Intune export preparation now compiles only the reviewed fixed CSV requests and validates bounded exact-column UTF-8 tables without guessing status or identity meaning. Job creation/download/native integration remain unfinished and no tenant call is performed by parsing.
+
+- Expansion I foundation: bounded offline candidate drafts with exact baseline digests, strict input parsing and conflict-safe object pointers. Native editor/export validation remains in progress; no publication or tenant authority.
+
+- Candidate editing now refuses opaque foreign-reference literals through manual and saved-draft routes. Native authoring retains source/assignment/unresolved review after save/reopen, and expanded editor content participates in compact-page scrolling; Windows render verification remains required.

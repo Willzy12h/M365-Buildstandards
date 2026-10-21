@@ -6,7 +6,13 @@ namespace BuildStandard.Core.Safety;
 
 public static class PolicyCandidateSafety
 {
-    public static void Assert(CollectionDefinition def, JsonObject payload)
+    public static void Assert(CollectionDefinition def, JsonObject payload) => AssertCore(def, payload, null);
+
+    /// <summary>Authoring validation of declared unchanged inputs; never use this for a resolved write.</summary>
+    public static void AssertCatalogueTemplate(CollectionDefinition def, JsonObject payload, IReadOnlySet<string> preservedInputs)
+        => AssertCore(def, payload, preservedInputs);
+
+    private static void AssertCore(CollectionDefinition def, JsonObject payload, IReadOnlySet<string>? preservedInputs)
     {
         if (payload["@odata.type"]?.ToString() is "#microsoft.graph.iosStoreApp" or "#microsoft.graph.androidManagedStoreApp")
         {
@@ -23,7 +29,7 @@ public static class PolicyCandidateSafety
         if (payload["@odata.type"]?.ToString() == "#microsoft.graph.winGetApp")
         {
             var id = payload["packageIdentifier"]?.ToString() ?? "";
-            if (id.Length is < 8 or > 30 || !id.All(char.IsAsciiLetterOrDigit))
+            if (preservedInputs?.Contains("packageIdentifier") != true && (id.Length is < 8 or > 30 || !id.All(char.IsAsciiLetterOrDigit)))
                 throw new SafetyViolationException("Provide a Microsoft Store package identifier, not a community winget ID or URL.");
             if (def.ApiVersion != GraphApi.Beta) throw new SafetyViolationException("Microsoft Store candidates use the declared beta application route.");
         }
@@ -40,7 +46,7 @@ public static class PolicyCandidateSafety
             if (payload["platforms"]?.ToString() != "windows10" || payload["technologies"]?.ToString() != "mdm"
                 || payload["templateReference"] is not JsonObject reference || reference["templateId"]?.ToString() != "")
                 throw new SafetyViolationException("Only Windows MDM Settings Catalogue policies without an endpoint-security template are supported.");
-            AssertSettings(payload["settings"]);
+            if (preservedInputs?.Contains("settings") != true) AssertSettings(payload["settings"]);
         }
     }
     public static void AssertSettings(JsonNode? node)

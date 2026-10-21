@@ -18,3 +18,5 @@ public partial class ScriptsView : UserControl { public ScriptsView() => Initial
 public partial class ClientReviewsView : UserControl { public ClientReviewsView() => InitializeComponent(); }
 
 public partial class DomainReadinessView : UserControl { public DomainReadinessView() => InitializeComponent(); }
+
+public partial class CandidateAuthoringPanel : UserControl { public CandidateAuthoringPanel() => InitializeComponent(); }

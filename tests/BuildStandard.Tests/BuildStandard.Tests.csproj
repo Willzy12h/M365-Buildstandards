@@ -50,4 +50,5 @@
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderSessionLease.cs" Link="App\ReaderSessionLease.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderAdmission.cs" Link="App\ReaderAdmission.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\Reader\ReaderRuntimeConfiguration.cs" Link="App\ReaderRuntimeConfiguration.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\BuildStandard.App\Services\CandidateAuthoringWorkflow.cs" Link="App\CandidateAuthoringWorkflow.cs" /></ItemGroup>
 </Project>
