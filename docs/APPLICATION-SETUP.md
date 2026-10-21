@@ -137,3 +137,11 @@ The same classifier also checks assessment permission requests before explicit c
 ### INT-121 registered Exchange settings reports
 
 The protocol/forwarding/hold reports add no Graph permissions and require no registration/consent update. They reuse separate Exchange Online authentication and approved installed module access. Recipient reads use the existing Exchange read roles; protocol reporting additionally needs permission for the read-only organisation transport configuration. Missing RBAC/module properties remain explicit unknown/partial reads. Do not grant broader roles automatically; the listed role requirements remain live-unverified. See [Exchange/Purview](EXCHANGE-PURVIEW.md#registered-mailbox-setting-reports-int-121).
+
+### Controlled existing-user lifecycle purpose (INT-137; implementation in progress)
+
+Lifecycle preparation reuses returned `User.Read.All`, `Group.Read.All`, `Organization.Read.All` and `RoleManagement.Read.Directory` only for its registered dependency reads. A current and eligible directory-role read is required; unavailable eligibility or any role-assignable group blocks readiness. No `Directory.Read.All` or PIM-for-Groups permission is added as a fallback.
+
+The selected action's approved development purpose is `GroupMember.ReadWrite.All` for one direct membership, `LicenseAssignment.ReadWrite.All` for one direct SKU, `User.EnableDisableAccount.All` with `User.Read.All` for accountEnabled, or `User.RevokeSessions.All` for one session-revocation request. These delegated scopes are write-capable. They belong only to deliberately selected deployment access, not the assessment registration or a reporting-only token. Microsoft may also require corresponding administrator RBAC. A missing returned scope blocks preparation; source development neither grants consent nor establishes live RBAC.
+
+The current source adds engine preparation and a guarded Graph boundary, not a finished native lifecycle execution flow or new automatic scope request. Before future runtime acceptance, the native permission preview must identify the selected registration, exact action and consequences. No scripts, account creation, passwords, purchases, Exchange changes or additional permission purposes are included. Named execution/authentication/evidence acceptance and separately approved live consent/actions remain outstanding.

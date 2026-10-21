@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add INT-137 lifecycle foundations: fixed action/read registries, bounded immutable before-evidence, saved-snapshot preparation, conservative licence readiness and one-send Graph admission. These are shared-engine components; native approval, durable execution/reconciliation and CLI delivery are not yet complete or accepted.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.

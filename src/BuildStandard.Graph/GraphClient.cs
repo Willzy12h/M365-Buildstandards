@@ -79,6 +79,47 @@ public sealed class GraphClient : IGraphClient
         return Lifecycle.LifecycleReadTransport.Create(_tokens,session,operation,requireCurrent);
     }
 
+    /// <summary>INT-137 fixed action boundary. Engine-owned exact approval and durable intent are required before calling.
+    /// It performs no retry and cannot make a generic caller-supplied route or payload authoritative.</summary>
+    public async Task<JsonObject> ApplyLifecycleAsync(TenantSession session, LifecycleOperation operation,
+        ReviewedWriteAdmission admission, CancellationToken ct)
+    {
+        LifecycleOperation registered; string binding; DateTimeOffset originalExpiry;
+        try
+        {
+            ArgumentNullException.ThrowIfNull(admission);
+            registered=LifecycleActionRegistry.RequireRegistered(operation);
+            if(!Timestamps.TryParse(session.TokenExpiresAt,out originalExpiry))throw new WriteDeniedException("Original lifecycle authorisation expiry is unknown.");
+            binding=LifecycleBinding(session); RequireIdentity(); ct.ThrowIfCancellationRequested();
+        }
+        catch(Exception error) { throw new WriteNotSentException("Lifecycle request was not sent; its fixed action, identity or access was refused.",error); }
+        var clock=new LifecycleBoundaryClock();
+        var guard=new ReviewedWriteAdmission(clock.UtcNow,clock.UtcNow,TimeSpan.FromMinutes(5),TimeSpan.FromMinutes(5),clock,
+            () => { ct.ThrowIfCancellationRequested(); RequireIdentity(); admission.AssertAllowed(); RequireIdentity(); },()=>ct.IsCancellationRequested);
+        var route=new GraphRoute(GraphApi.V1,registered.GroupId is null?"/users":"/groups","User.Read.All",registered.WriteScope,"lifecycle");
+        try
+        {
+            return await SendWriteAsync(GraphApi.V1,new HttpMethod(registered.Method),registered.Path,
+                registered.PayloadJson is null?null:ToolkitJson.ParseObject(registered.PayloadJson),route,CancellationToken.None,guard,true).ConfigureAwait(false);
+        }
+        catch(System.Text.Json.JsonException error) { throw new AmbiguousWriteException("Lifecycle response was malformed after transport handoff. Reconcile without replay.",error); }
+        void RequireIdentity()
+        {
+            if(Mode!=SessionMode.Deployment || session.Mode!=SessionMode.Deployment
+                || !session.TenantVerified || !session.OperatorVerified
+                || !Guid.TryParseExact(session.AccountObjectId,"D",out var actor) || actor==Guid.Empty
+                || !Guid.TryParseExact(session.ClientId,"D",out var client) || client==Guid.Empty
+                || !string.Equals(session.OperatorObjectId,session.AccountObjectId,StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(session.TenantId,TenantId,StringComparison.OrdinalIgnoreCase)
+                || LifecycleBinding(session)!=binding || DateTimeOffset.UtcNow>=originalExpiry
+                || !HasScope("User.Read.All") || !HasScope(registered.WriteScope))
+                throw new WriteDeniedException("Lifecycle tenant, account, mode, original expiry or selected access changed. Prepare a fresh plan.");
+        }
+        bool HasScope(string expected)=>session.Scopes.Any(raw=>string.Equals(raw.StartsWith(Host+"/",StringComparison.OrdinalIgnoreCase)?raw[(Host.Length+1)..]:raw,expected,StringComparison.OrdinalIgnoreCase));
+    }
+    private static string LifecycleBinding(TenantSession session)=>ToolkitJson.Serialize(new { session.TenantId,session.AccountObjectId,session.OperatorObjectId,session.ClientId,session.Mode,session.TenantVerified,session.OperatorVerified,Scopes=session.Scopes.Order(StringComparer.Ordinal).ToArray() });
+    private sealed class LifecycleBoundaryClock : IClock { public DateTimeOffset UtcNow=>DateTimeOffset.UtcNow; }
+
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
         GraphRouteAllowList.ValidatePathSyntax(path);
@@ -313,7 +354,7 @@ public sealed class GraphClient : IGraphClient
         await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
-    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct, ReviewedWriteAdmission? admission = null)
+    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct, ReviewedWriteAdmission? admission = null, bool preserveBoolean = false)
     {
         var sw = Stopwatch.StartNew();
         HttpResponseMessage response;
@@ -376,7 +417,14 @@ public sealed class GraphClient : IGraphClient
             if (response.IsSuccessStatusCode)
             {
                 if (string.IsNullOrWhiteSpace(text)) return new JsonObject();
-                return ToolkitJson.ParseNode(text) as JsonObject ?? new JsonObject();
+                if(preserveBoolean && text.Length>1024*1024)throw new JsonException("Lifecycle response exceeded its evidence bound.");
+                var node=ToolkitJson.ParseNode(text);
+                if(preserveBoolean)
+                {
+                    if(node is JsonValue scalar && scalar.TryGetValue<bool>(out var value))return new JsonObject { ["value"]=value };
+                    if(node is not JsonObject)throw new JsonException("Lifecycle response is not an admitted object or boolean.");
+                }
+                return node as JsonObject ?? new JsonObject();
             }
             if (status == 408 || status >= 500)
             {
