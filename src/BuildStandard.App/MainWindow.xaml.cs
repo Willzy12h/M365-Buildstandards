@@ -72,9 +72,15 @@ public partial class MainWindow : Window
                 shell.ShowError(new InvalidOperationException("An original usage report is still unsaved. Export its original JSON or deliberately discard it under Usage review → Original report before closing. No source is rerun."));
                 return true;
             }
-            if (!reports.Operational.HasPendingOriginal) return false;
+            if (reports.External.RequiresCloseReview)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 5;
+                shell.ShowError(new InvalidOperationException("Pending external results need attention. Wait for local import, export the original JSON and save references, or explicitly discard pending data under External results before closing. No source is rerun."));
+                return true;
+            }
+            if (!reports.Operational.RequiresCloseReview) return false;
             shell.Navigate("reports"); reports.SelectedTab = 4;
-            shell.ShowError(new InvalidOperationException("An original operational report is still unsaved. Save or export its original JSON, or explicitly discard it under Operational context → Original context before closing. No source is rerun."));
+            shell.ShowError(new InvalidOperationException("Operational context needs attention. Wait for local import, save/export its original JSON and save incident references, or explicitly discard pending data before closing. No source is rerun."));
             return true;
         }
         shell.Navigate("run-reports");

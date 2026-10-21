@@ -137,6 +137,8 @@ public sealed class GraphReportsController(Workspace workspace)
             connection.Session, "partner-relationships", current, customer, true);
     internal Func<ConnectedTenant, CollaborationReadSelection, Action, ICollaborationReportSource> CollaborationSourceFactory { get; set; } =
         (connection, selection, current) => ((GraphClient)connection.Graph).ForCollaborationReports(connection.Session, selection, current);
+    internal Func<ConnectedTenant, SecurityIncidentReadSelection, Action, ISecurityIncidentReportSource> IncidentSourceFactory { get; set; } =
+        (connection, selection, current) => ((GraphClient)connection.Graph).ForSecurityIncidentReports(connection.Session, selection, current);
     public string CollaborationLookupBlocker
     {
         get
@@ -178,10 +180,20 @@ public sealed class GraphReportsController(Workspace workspace)
     }
 
     public string OperationalReadBlocker => OperationalReadBlockerFor("service-health", null, false);
-    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared, CollaborationReadSelection? collaboration = null)
+    public string OperationalReadBlockerFor(string reportId, string? customerTenantId, bool partnerDeclared, CollaborationReadSelection? collaboration = null, SecurityIncidentReadSelection? incidents = null)
     {
         var blocker = ReadBlocker;
         if (blocker.Length != 0) return blocker;
+        if (reportId == "security-incidents")
+        {
+            if (incidents is null || collaboration is not null || customerTenantId is not null || partnerDeclared)
+                return "Choose an exact UTC incident interval without partner or collaboration parameters.";
+            var actual = RequireLive().Session.Scopes;
+            return actual.Contains(OptionalReportAccessPolicy.IncidentScope, StringComparer.Ordinal)
+                || actual.Contains("https://graph.microsoft.com/" + OptionalReportAccessPolicy.IncidentScope, StringComparer.Ordinal) ? ""
+                : "No SecurityIncident.Read.All was returned. Review optional incident access in Connect and reconnect deliberately; this page never consents or signs in.";
+        }
+        if (incidents is not null) return "Incident selection is not valid for another report.";
         if (reportId == "collaboration-inventory")
         {
             if (collaboration is null || customerTenantId is not null || partnerDeclared) return "Select exact collaboration sources without partner/customer parameters.";
@@ -205,11 +217,11 @@ public sealed class GraphReportsController(Workspace workspace)
     }
     public async Task<OperationalContextReport> ReadOperationalAsync(bool acknowledged, string expectedContext,
         Func<bool> selectionStillCurrent, Func<OperationalContextReport, Task> retainOriginal,
-        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false, CollaborationReadSelection? collaboration=null)
+        string reportId="service-health",string? customerTenantId=null,bool partnerDeclared=false, CollaborationReadSelection? collaboration=null, SecurityIncidentReadSelection? incidents=null)
     {
         RequireIdle(expectedContext);
         if (!acknowledged) throw new ToolkitException("Acknowledge this exact experimental operational read and its limitations first.");
-        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared, collaboration);
+        var blocker = OperationalReadBlockerFor(reportId, customerTenantId, partnerDeclared, collaboration, incidents);
         if (blocker.Length != 0) throw new ToolkitException(blocker);
         var connection = RequireLive();
         void AssertCurrent()
@@ -224,7 +236,13 @@ public sealed class GraphReportsController(Workspace workspace)
         {
             AssertCurrent();
             progress.Report("Registered read-only routes; five minutes, 100 requests, 5,000 rows and 16 MiB. Observations do not prove availability or effective customer access.");
-            if (reportId == "collaboration-inventory")
+            if (reportId == "security-incidents")
+            {
+                var source = IncidentSourceFactory(connection, incidents!, AssertCurrent);
+                using var owned = source as IDisposable;
+                result = await new SecurityIncidentReportService(SystemClock.Instance, workspace.Version).CaptureAsync(source, connection.Session, AssertCurrent, workspace.OperationToken);
+            }
+            else if (reportId == "collaboration-inventory")
             {
                 var source = CollaborationSourceFactory(connection, collaboration!, AssertCurrent);
                 using var owned = source as IDisposable;

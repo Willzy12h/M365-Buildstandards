@@ -15,6 +15,7 @@ internal static partial class Program
     private static string SyntheticOperationalFile = "";
     private static string SyntheticPartnerFile = "";
     private static string SyntheticCollaborationFile = "";
+    private static string SyntheticIncidentFile = "";
     private static void SeedOperationalEvidence(Workspace workspace, string output)
     {
         var stamp = Timestamps.Format(DateTimeOffset.UtcNow);
@@ -79,11 +80,38 @@ internal static partial class Program
         SyntheticCollaborationFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-collaboration-source.json");
         File.WriteAllText(SyntheticCollaborationFile, OperationalContextSchema.Serialise(collaboration), new UTF8Encoding(false));
         File.Copy(SyntheticCollaborationFile, Path.Combine(output, "synthetic-collaboration-source.json"));
+        var incident = new OperationalContextReport
+        {
+            Id = Id(894), ReportId = "security-incidents", AccessIntent = "security-incidents", TenantId = Tenant,
+            AsOfUtc = stamp, StartedAt = stamp, EndedAt = stamp, ToolkitVersion = "synthetic", Status = ReportReadState.Partial,
+            IncidentSelection = new() { StartUtc = Timestamps.Format(DateTimeOffset.UtcNow.AddDays(-1)), EndUtc = stamp },
+            Sources = OperationalContextSchema.SourceDeclarations("security-incidents").ToList(),
+            Sections = [new() { Id = "security-incidents", Status = ReportReadState.Partial, Error = "Synthetic future severity remains unclassified.", Limitations = [OperationalContextSchema.IncidentNotice] }]
+        };
+        foreach (var id in new[] { "synthetic-incident-one", "synthetic-incident-two" })
+            incident.Sections[0].Rows.Add(JsonSerializer.SerializeToNode(new SecurityIncidentRow
+            {
+                Id = id, Name = "Synthetic incident metadata", CreatedAt = Timestamps.Format(DateTimeOffset.UtcNow.AddHours(-1)), ModifiedAt = stamp,
+                Severity = "unknownFutureValue", Status = "resolved", Classification = "unknown", Determination = "unknown",
+                PriorityScore = null, ReadStatus = ReportReadState.Partial, Error = "Synthetic unclassified severity; no safety inference.", IncidentWebUrl = "https://example.invalid/incident"
+            }, rowOptions)!.AsObject());
+        OperationalContextSchema.Seal(incident);
+        SyntheticIncidentFile = Path.Combine(workspace.Paths.ReportsDirectory, "synthetic-incident-source.json");
+        File.WriteAllText(SyntheticIncidentFile, OperationalContextSchema.Serialise(incident), new UTF8Encoding(false));
+        File.Copy(SyntheticIncidentFile, Path.Combine(output, "synthetic-incident-source.json"));
     }
     private static void SeedOperationalPage(ShellViewModel shell)
     {
         var parent = shell.Page<GraphReportsViewModel>(); parent.SelectedTab = 4;
         AwaitReader(parent.Operational.OpenSuppliedAsync(SyntheticOperationalFile));
+    }
+    private static void SeedIncidentReferencePage(ShellViewModel shell)
+    {
+        var parent = shell.Page<GraphReportsViewModel>(); parent.SelectedTab = 4; var vm = parent.Operational;
+        if (vm.IncidentReferences.RequiresCloseReview && vm.IncidentReferences.ReferenceCount > 0) AwaitReader(vm.IncidentReferences.ExportReferencesAsync());
+        vm.SelectedReportId = "security-incidents"; AwaitReader(vm.OpenSuppliedAsync(SyntheticIncidentFile));
+        vm.IncidentReferences.SelectedIncidentId = vm.IncidentReferences.Incidents[0].Id;
+        vm.IncidentReferences.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id;
     }
     private static void CheckOperationalNativeFlows(ShellViewModel shell, Window window, FrameworkElement content, string output)
     {
@@ -136,6 +164,30 @@ internal static partial class Program
             AssertNewPageRowViewport(content, "Operational observations and source provenance", "collaboration context " + size);
             CaptureReportState(content, output, "collaboration-site-results", size, checkPageScrolling: false);
             foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Collaboration complete export");
+            vm.SelectedReportId = "security-incidents";
+            vm.IncidentStartUtc = "2026-10-19T00:00:00Z"; vm.IncidentEndUtc = "2026-10-20T00:00:00Z";
+            tabs.SelectedIndex = 0; content.UpdateLayout(); Pump();
+            if (vm.ReadCommand.CanExecute(null) || !vm.Notice.Contains("not proof", StringComparison.Ordinal)) throw new InvalidOperationException("Incident view lost acknowledgement or coverage limits.");
+            foreach (var label in new[] { "Incident inclusive UTC start", "Incident exclusive UTC end" })
+            {
+                var input = Descendants(content).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == label);
+                input.BringIntoView(); content.UpdateLayout(); Pump();
+                if (!input.IsTabStop || !input.Focus()) throw new InvalidOperationException("Incident date input is not keyboard reachable: " + label);
+            }
+            CaptureReportState(content, output, "incident-deliberate-window", size, checkPageScrolling: false);
+            AwaitReader(vm.OpenSuppliedAsync(SyntheticIncidentFile)); tabs.SelectedIndex = 1; vm.SelectedSection = "security-incidents";
+            content.UpdateLayout(); Pump();
+            if (vm.Rows?.Count != 2 || !vm.Outcome.Contains("Partial", StringComparison.Ordinal)) throw new InvalidOperationException("Incident partial observations were lost.");
+            grid.BringIntoView(); content.UpdateLayout(); Pump();
+            AssertNewPageRowViewport(content, "Operational observations and source provenance", "incident context " + size);
+            CaptureReportState(content, output, "incident-partial-results", size, checkPageScrolling: false);
+            foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Incident complete export");
+            tabs.SelectedIndex = 3; var references = vm.IncidentReferences;
+            references.SelectedIncidentId = references.Incidents[0].Id; references.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id;
+            references.AddReference(); if (!vm.RequiresCloseReview || !vm.ReadGuidance.Contains("references",StringComparison.Ordinal)) throw new InvalidOperationException("Unsaved incident references did not block replacement/close.");
+            AwaitReader(references.ExportReferencesAsync()); AwaitReader(references.OpenReferencesAsync(references.LastExport)); content.UpdateLayout(); Pump();
+            if (references.ReferenceCount != 1 || !references.Rows[0].Resolution.StartsWith("Resolved:",StringComparison.Ordinal)) throw new InvalidOperationException("Exact incident references failed round-trip.");
+            CaptureReportState(content,output,"incident-control-references",size,checkPageScrolling:false);
             vm.SelectedReportId = "service-health";
         }
     }

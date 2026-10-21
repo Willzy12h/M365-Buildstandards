@@ -1,5 +1,6 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add native external-results import, copyable provenance, searchable claims, complete exports and exact catalogue reference save/open under INT-138. Original JSON and unsaved references retain their source context; supplied outcomes remain untrusted and never authorise deployment. Current native/package verification and named acceptance remain pending.
 - Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
 
 - G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
@@ -531,4 +532,14 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Added per-instance transient profile/content ownership and browser-exit retirement; no command bridge, scripts, new permissions or tenant actions.
 - Added pure policy/admission/ownership regressions, Windows context fixtures and explicit hosted validation mode. Native/hosted/H1 outcomes remain separate; no release or independent acceptance is claimed.
 
+- Proposed decision INT-136 defines bounded offline standards drafts, supported editing/comparison and validation/export while preserving historical catalogues and separate publication authority; editor implementation is not included.
+
+- Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
+
+- Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
+
+- Offline `external-checks` exports preserve untrusted external-source provenance in HTML, CSV, Excel or exact original JSON, with explicit client matching, fresh output files and no tenant calls. Native incident/import workflows remain pending.
 - Collaboration inventory adds deliberate bounded group-name lookup with exact name/ID selection, stale-result refusal and no automatic Team assumption; malformed partial imported user/tenant IDs are refused. Current Windows and named acceptance remain pending.
+
+- Unpublished J: strict incident-context evidence and shared HTML/CSV/Excel/original-JSON exports retain the requested UTC window, unknown priority and explicit coverage limits; connected capture remains in development.
+- Unpublished J: experimental native incident context now reuses optional Connect/setup access, exact UTC windows, read acknowledgement and original-result recovery. Incident response actions remain unavailable; actual Microsoft behaviour is live-unverified.

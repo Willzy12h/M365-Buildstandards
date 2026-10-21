@@ -11,6 +11,7 @@ public static class OperationalReportRegistry
     public static string Scope(string reportId)=>reportId switch
     {
         "service-health"=>"ServiceHealth.Read.All",
+        "security-incidents"=>"SecurityIncident.Read.All",
         "partner-relationships"=>"DelegatedAdminRelationship.Read.All",
         _=>throw new ConfigurationException("Unknown operational report. Only registered read surfaces are supported.")
     };

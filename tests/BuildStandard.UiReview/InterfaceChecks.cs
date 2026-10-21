@@ -789,6 +789,20 @@ internal static partial class Program
         ("UsageReportsViewModel.ExportOriginalCommand", Disabled),
         ("UsageReportsViewModel.DiscardOriginalCommand", Disabled),
         ("UsageReportsViewModel.OpenConnectionCommand", Press),
+        ("IncidentReferencesViewModel.AddCommand", Press),
+        ("IncidentReferencesViewModel.SaveCommand", Press),
+        ("IncidentReferencesViewModel.OpenCommand", FilePicker),
+        ("IncidentReferencesViewModel.DiscardCommand", Disabled),
+        ("ExternalCheckResultsViewModel.OpenCommand", FilePicker),
+        ("ExternalCheckResultsViewModel.HtmlCommand", Press),
+        ("ExternalCheckResultsViewModel.JsonCommand", Press),
+        ("ExternalCheckResultsViewModel.CsvCommand", Press),
+        ("ExternalCheckResultsViewModel.ExcelCommand", Press),
+        ("ExternalCheckResultsViewModel.ExportOriginalCommand", Press),
+        ("ExternalCheckResultsViewModel.DiscardCommand", Disabled),
+        ("ExternalCheckResultsViewModel.AddReferenceCommand", Press),
+        ("ExternalCheckResultsViewModel.SaveReferencesCommand", Press),
+        ("ExternalCheckResultsViewModel.OpenReferencesCommand", FilePicker),
         ("GraphReportsViewModel.ReadCommand", TenantRead),
         ("GraphReportsViewModel.StopReadCommand", Disabled),
         ("GraphReportsViewModel.RefreshStoredCommand", Press),
@@ -926,6 +940,15 @@ internal static partial class Program
         ["UsageReportsViewModel.JsonCommand"] = SeedUsagePage,
         ["UsageReportsViewModel.CsvCommand"] = SeedUsagePage,
         ["UsageReportsViewModel.ExcelCommand"] = SeedUsagePage,
+        ["IncidentReferencesViewModel.AddCommand"] = SeedIncidentReferencePage,
+        ["IncidentReferencesViewModel.SaveCommand"] = shell => { SeedIncidentReferencePage(shell); shell.Page<GraphReportsViewModel>().Operational.IncidentReferences.AddReference(); },
+        ["ExternalCheckResultsViewModel.HtmlCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.JsonCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.CsvCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.ExcelCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.ExportOriginalCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.AddReferenceCommand"] = shell => { SeedExternalPage(shell); var vm = shell.Page<GraphReportsViewModel>().External; vm.SelectedTestId = "TEST-1"; vm.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id; },
+        ["ExternalCheckResultsViewModel.SaveReferencesCommand"] = SeedExternalReference,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
         ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,
@@ -1140,6 +1163,8 @@ internal static partial class Program
         owners.AddRange(pages.Select(p => (p.Key, (object)p.Value)));
         owners.Add(("reports",shell.Page<GraphReportsViewModel>().Usage));
         owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().External));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational.IncidentReferences));
 
         var found = new List<(string Name, string Page, ICommand Command)>();
         foreach (var (key, vm) in owners)

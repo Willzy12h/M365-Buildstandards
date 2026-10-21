@@ -31,6 +31,12 @@ public static partial class RegisteredReportDocuments
             foreach (var id in choice.Groups) metadata.Add("Selected group/Team", id);
             for (var i = 0; i < report.Sections.Count; i++) metadata.Add("Returned count " + report.Sections[i].Id, choice.ReturnedCounts[i]?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "Unknown / source did not complete");
         }
+        if (report.ReportId == "security-incidents")
+        {
+            metadata.Add("Created at or after (UTC)", report.IncidentSelection!.StartUtc)
+                .Add("Created before (UTC)", report.IncidentSelection.EndUtc)
+                .Add("Incident coverage", OperationalContextSchema.IncidentNotice);
+        }
         if (suppliedFile) metadata.Add("Supplied-file provenance", SuppliedFileNotice);
         foreach (var source in report.Sources) metadata.Add("Registered source", source.Api + " " + source.RegisteredRoute + " · " + source.Reference);
         var sheets = new List<Sheet> { metadata };
@@ -45,12 +51,13 @@ public static partial class RegisteredReportDocuments
                 : section.Id switch
             {
                 "health-overviews" => typeof(ServiceHealthOverviewRow), "health-issues" => typeof(ServiceHealthIssueRow),
+                "security-incidents" => typeof(SecurityIncidentRow),
                 "partner-relationships" => typeof(PartnerRelationshipRow), "partner-assignments" => typeof(PartnerAccessAssignmentRow),
                 _ => throw new ConfigurationException("Unsupported operational report section.")
             };
             var columns = type.GetProperties().Select(property => ToolkitJson.Options.PropertyNamingPolicy!.ConvertName(property.Name))
                 .OrderBy(key => key == "name" ? 0 : key == "id" ? 1 : key == "readStatus" ? 2 : key == "error" ? 3 : 4).ThenBy(key => key, StringComparer.Ordinal).ToArray();
-            var sheet = new Sheet(section.Id, columns.Select(key => key == "status" ? "Reported service state" : key == "roleDefinitionIds" ? "Directly advertised role IDs (not effective access)" : Label(key)));
+            var sheet = new Sheet(section.Id, columns.Select(key => key == "status" ? report.ReportId == "security-incidents" ? "Reported incident workflow state" : "Reported service state" : key == "roleDefinitionIds" ? "Directly advertised role IDs (not effective access)" : Label(key)));
             foreach (var row in section.Rows) sheet.Rows.Add(columns.Select(key => key == "error" && row[key] is null && row["readStatus"]?.GetValue<string>() == ReportReadState.Collected ? "No read error" : Value(row[key])).ToArray());
             sheets.Add(sheet);
         }

@@ -72,7 +72,8 @@ internal sealed partial class OfflinePackageFiles(string root, OfflineDiagnostic
                 && (parts[2].Equals(ReleaseLineage.ManifestFile, StringComparison.OrdinalIgnoreCase)
                     || parts[2].StartsWith("lineage-", StringComparison.OrdinalIgnoreCase) && CatalogueName(parts[2]["lineage-".Length..])),
             "config" => parts.Length == 2 && parts[1].Equals("toolkit.settings.json", StringComparison.OrdinalIgnoreCase),
-            "docs" => parts.Length == 2 && parts[1].EndsWith(".md", StringComparison.OrdinalIgnoreCase),
+            "docs" => parts.Length == 2 && parts[1].EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("docs/examples/external-check-results.example.json", StringComparison.OrdinalIgnoreCase),
             "licenses" => true,
             _ => false
         };
