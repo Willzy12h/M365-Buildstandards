@@ -108,7 +108,7 @@ public static partial class RegisteredReportDocuments
         foreach(var sheet in sheets) { html.Append("<h2>").Append(E(sheet.Name)).Append("</h2>");Table(html,sheet); }
         return html.Append("</body></html>").ToString();
     }
-    private static StringBuilder StartDocument(string title,string companyName)
+    internal static StringBuilder StartDocument(string title,string companyName)
     {
         var html = new StringBuilder("<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
         html.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">");
@@ -130,7 +130,7 @@ public static partial class RegisteredReportDocuments
         : value is JsonValue scalar && scalar.TryGetValue<string>(out var text) ? text
         : value is JsonArray array && array.Count == 0 ? "No recorded values — check read status" : value.ToJsonString();
     private static string E(string? value) => WebUtility.HtmlEncode(value ?? "");
-    private static void Table(StringBuilder html, Sheet sheet)
+    internal static void Table(StringBuilder html, Sheet sheet)
     {
         html.Append("<div class=\"table\"><table><thead><tr>");
         foreach (var cell in sheet.Rows[0]) html.Append("<th>").Append(E(cell)).Append("</th>");

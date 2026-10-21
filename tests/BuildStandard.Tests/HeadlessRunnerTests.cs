@@ -25,8 +25,7 @@ public class HeadlessRunnerTests
     private static readonly string[] Forbidden =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow",
-        "LifecycleReadinessService", "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow", "LifecycleReadinessService", "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport", "ConditionalAccessEvaluator", "ConditionalAccessEvaluationService"
     };
 
     [Fact]

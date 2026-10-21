@@ -38,8 +38,7 @@ public static partial class Program
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow",
-        "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow", "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport", "ConditionalAccessEvaluator", "ConditionalAccessEvaluationService", "DeploymentCoverageService", "DeploymentCoverageReader"
     };
 
     public static int Main(string[] args)
@@ -69,7 +68,7 @@ public static partial class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "lifecycle" or "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks" or "clients" or "review" or "domain-report");
+        var options = ParseOptions(args.Skip(1), command is "lifecycle" or "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks" or "clients" or "review" or "domain-report" or "ca-evaluation" or "coverage");
 
         return command switch
         {
@@ -84,6 +83,8 @@ public static partial class Program
             "external-checks" => ExternalChecksExport(options),
             "usage-report-evidence" => UsageReportEvidenceExport(options),
             "operational-report-evidence" => OperationalReportEvidenceExport(options),
+            "ca-evaluation" => ConditionalAccessEvaluationExport(options),
+            "coverage" => DeploymentCoverageExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -151,6 +152,10 @@ public static partial class Program
                   Export a supplied domain-readiness report as HTML, CSV and original JSON.
                   Historical/unverified; preserves original bytes, status, domain and binding.
                   No DNS queries, tenant sign-in or deployment evidence. No client is required.
+              buildstandard coverage --input <original-json.zip> --tenant <guid> [--format html|json|csv|xlsx] [--root <dir>]
+              buildstandard ca-evaluation --input <original-json.zip> --tenant <guid> [--format html|json|csv|xlsx] [--root <dir>]
+                  Export supplied hypothetical CA evaluation evidence only. Imports stay historical/unverified.
+                  JSON ZIP preserves the original metadata and response. No sign-in, evaluation or tenant action.
 
               buildstandard releases
                   List the Build Standard releases available to this installation.
@@ -517,6 +522,40 @@ public static partial class Program
         var report=UsageReviewSchema.Read(json,tenant);var context=Context.Open(options);
         Console.WriteLine(context.Exporter.ExportUsageReview(report,format,suppliedFile:true,originalBytes:bytes));
         Console.WriteLine($"Offline supplied usage pack · read status {report.Status} · privacy Unknown · no live reads or writes. Export success does not prove collection success or identity provenance.");
+        return 0;
+    }
+
+    private static int ConditionalAccessEvaluationExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(k=>!allowed.Contains(k,StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("CA evaluation export accepts only --input, --tenant, --format and --root. No collection or execution is supported.");
+        var tenant=Require(options,"tenant");
+        if(!BuildStandard.Core.Reporting.ReportValues.TryGuid(tenant,out var canonicalTenant))throw new ConfigurationException("--tenant must identify the expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("CA evaluation exports as html, json, csv or xlsx only.");
+        var capture=ConditionalAccessEvaluationBundle.ReadFile(Require(options,"input"),canonicalTenant);
+        var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportConditionalAccessEvaluation(capture,format));
+        Console.WriteLine("Offline historical / unverified hypothetical evaluation · recorded read status "+capture.Metadata.Status+" · no live reads, sign-in or writes. Export success is not proof of applicability or enforcement.");
+        return 0;
+    }
+
+    private static int DeploymentCoverageExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(k=>!allowed.Contains(k,StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Coverage export accepts only --input, --tenant, --format and --root. No collection or execution is supported.");
+        if(!BuildStandard.Core.Reporting.ReportValues.TryGuid(Require(options,"tenant"),out var tenant))
+            throw new ConfigurationException("--tenant must identify the expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Coverage exports as html, original JSON ZIP, csv or xlsx only.");
+        var evidence=DeploymentCoverageBundle.ReadFile(Require(options,"input"),tenant);
+        var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportDeploymentCoverage(evidence,format));
+        Console.WriteLine("Offline historical / unverified coverage observations · no live reads, sign-in or writes. Source read completeness is not effective deployment, installation or approval.");
         return 0;
     }
 

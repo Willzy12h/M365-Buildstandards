@@ -93,7 +93,7 @@ internal static partial class Program
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients", "domain-readiness", "lifecycle" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients", "domain-readiness", "lifecycle", "ca-evaluation", "coverage" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -125,6 +125,35 @@ internal static partial class Program
                     {
                         SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
                         RecordAssessmentViewport(content,pageAtSize,size.Height<760);
+                    }
+                    if(nav.Key=="ca-evaluation")
+                    {
+                        var original=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Original evaluation scenario identity timestamps and limitations");
+                        original.BringIntoView();content.UpdateLayout();Pump();
+                        var label="ca-evaluation-original-context "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,label);RecordClipping(content,label);RecordLowContrast(content,label);
+                        SaveImage(content,size,Path.Combine(output,"ca-evaluation-original-context-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                    }
+                    if(nav.Key=="coverage")
+                    {
+                        var original=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Original coverage identity scope access and limitations");
+                        original.BringIntoView();content.UpdateLayout();Pump();
+                        var label="coverage-original-context "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,label);RecordClipping(content,label);RecordLowContrast(content,label);
+                        SaveImage(content,size,Path.Combine(output,"coverage-original-context-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                        SeedCoverageRetainedOriginal(shell);content.UpdateLayout();Pump();
+                        var pending=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Retained original coverage identity");
+                        if(pending.Parent is StackPanel recoveryPanel&&recoveryPanel.Parent is Border recoveryCard)recoveryCard.BringIntoView();else pending.BringIntoView();
+                        content.UpdateLayout();Pump();
+                        var recovery="coverage-retained-original "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,recovery);RecordClipping(content,recovery);RecordLowContrast(content,recovery);
+                        SaveImage(content,size,Path.Combine(output,"coverage-retained-original-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                        RecoverCoverageRetainedOriginal(shell);
+                        // The normal route image must show the usable starting form, not the recovery viewport left by
+                        // this additional check. Re-open the synthetic original and reset only this page's outer scroll.
+                        SeedCoveragePage(shell);content.UpdateLayout();Pump();
+                        var coverageView=Descendants(content).OfType<BuildStandard.App.Views.DeploymentCoverageView>().Single();
+                        Descendants(coverageView).OfType<ScrollViewer>().First().ScrollToTop();content.UpdateLayout();Pump();
                     }
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
@@ -646,6 +675,8 @@ internal static partial class Program
         if (key == "scripts") SeedScripts(shell);
         if (key == "run-reports") SeedReadRun(shell);
         if (key == "reports") SeedGraphReportsPage(shell);
+        if (key == "ca-evaluation") SeedConditionalAccessPage(shell);
+        if (key == "coverage") SeedCoveragePage(shell);
         if (key == "naming") SeedNamingPage(shell);
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();

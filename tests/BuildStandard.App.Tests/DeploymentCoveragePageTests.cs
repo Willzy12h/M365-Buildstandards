@@ -1,0 +1,49 @@
+using System.Reflection;
+using System.Text;
+using BuildStandard.App.Services;
+using BuildStandard.App.ViewModels;
+using BuildStandard.Core;
+using BuildStandard.Core.Json;
+using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
+using BuildStandard.Engine.Evidence;
+using BuildStandard.Engine.Reports;
+using Xunit;
+namespace BuildStandard.Tests;
+public sealed class DeploymentCoveragePageTests
+{
+    internal static DeploymentCoverageEvidence Original()=>CoverageTestData.Original(TestData.TenantA,TestData.Operator,TestData.Emergency,TestData.Office,TestData.Emergency);
+    internal static string FileFor(ConnectedReportsFixture f)
+    {var file=Path.Combine(f.Root.Root,"synthetic-coverage.zip");File.WriteAllBytes(file,DeploymentCoverageBundle.Write(Original()));return file;}
+    private static DeploymentCoverageWorkflow Flow(DeploymentCoverageViewModel page)
+    {var controller=typeof(DeploymentCoverageViewModel).GetField("_controller",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(page)!;return (DeploymentCoverageWorkflow)typeof(DeploymentCoverageController).GetField("_workflow",BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(controller)!;}
+    [Fact] public async Task Historical_original_A_stays_visible_separately_from_prospective_control_B_without_authentication()
+    {using var f=new ConnectedReportsFixture(connect:false);var page=new DeploymentCoverageViewModel(new(f.Workspace)){ControlId="prospective-control-B",SourceFile=FileFor(f)};await page.ImportAsync();Assert.Contains("Historical",page.Outcome);Assert.Equal("prospective-control-B",page.ControlId);Assert.Contains("Original historical control A",page.OriginalReportDetails);Assert.Contains("CMP-HISTORY-001",page.OriginalReportDetails);Assert.DoesNotContain("prospective-control-B",page.OriginalReportDetails);Assert.Equal(3,page.Rows!.Count);Assert.False(page.ReadCommand.CanExecute(null));Assert.False(page.ModernAcknowledged);Assert.False(page.Acknowledged);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Native_historical_projection_exposes_typed_pilot_and_candidate_observations()
+    {
+        using var f=new ConnectedReportsFixture(connect:false);var file=Path.Combine(f.Root.Root,"synthetic-pilot-original.zip");
+        var original=CoverageTestData.Original(TestData.TenantA,TestData.Operator,TestData.Emergency,TestData.Office,TestData.Emergency,includeGroup:true);
+        File.WriteAllBytes(file,DeploymentCoverageBundle.Write(original));var before=File.ReadAllBytes(file);
+        var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();
+        Assert.Contains("Candidate observation",page.OriginalReportDetails);Assert.Contains("Historical / unverified",page.OriginalReportDetails);
+        page.SelectedTable="Pilot group observations";Assert.NotNull(page.Rows);
+        Assert.Contains(page.Rows.Cast<System.Data.DataRowView>(),row=>row.Row.ItemArray.Contains("Observed present"));
+        page.SelectedTable="Service observations";Assert.Contains(page.Rows!.Cast<System.Data.DataRowView>(),row=>row.Row.ItemArray.Contains("Unknown"));
+        Assert.Equal(before,File.ReadAllBytes(file));Assert.False(page.ReadCommand.CanExecute(null));Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
+    }
+    [Theory][InlineData(ExportFormat.Html)][InlineData(ExportFormat.Json)][InlineData(ExportFormat.Csv)][InlineData(ExportFormat.Xlsx)]
+    public async Task Native_offline_exports_preserve_originals_and_make_no_network_call(ExportFormat format)
+    {using var f=new ConnectedReportsFixture(connect:false);var file=FileFor(f);var original=File.ReadAllBytes(file);var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();await page.ExportAsync(format);Assert.True(File.Exists(page.LastExport));Assert.Equal(original,File.ReadAllBytes(file));if(format==ExportFormat.Html){var html=File.ReadAllText(page.LastExport);Assert.Contains("Historical",html);Assert.Contains("Unknown",html);Assert.Contains("not effective",html);}Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Failed_repeat_import_clears_current_rows_and_exports_instead_of_showing_old_success()
+    {using var f=new ConnectedReportsFixture(connect:false);var file=FileFor(f);var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();File.WriteAllText(file,"Synthetic malformed replacement");await Assert.ThrowsAnyAsync<ToolkitException>(()=>page.ImportAsync());Assert.Null(page.Rows);Assert.False(page.ExportJsonCommand.CanExecute(null));Assert.Contains("Could not",page.Outcome);}
+    [Fact] public async Task Changed_client_context_or_inputs_invalidate_presentation_without_changing_source_files()
+    {using var f=new ConnectedReportsFixture(connect:false);var file=FileFor(f);var original=File.ReadAllBytes(file);var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=file};await page.ImportAsync();f.Workspace.Profile!.Notes="Changed source context";page.Refresh();Assert.Null(page.Rows);Assert.False(page.ExportHtmlCommand.CanExecute(null));Assert.Equal(original,File.ReadAllBytes(file));page.Acknowledged=true;page.PilotUsers=TestData.Operator;Assert.False(page.Acknowledged);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public void A_cleared_table_selection_is_safe_during_binding_collection_refresh()
+    {using var f=new ConnectedReportsFixture(connect:false);var page=new DeploymentCoverageViewModel(new(f.Workspace));page.SelectedTable=null!;Assert.Null(page.Rows);Assert.False(page.ReadCommand.CanExecute(null));}
+    [Fact] public async Task Normal_close_routes_to_coverage_original_recovery_before_shutdown()
+    {using var f=new ConnectedReportsFixture(connect:false);var shell=new ShellViewModel(f.Workspace);var page=shell.Page<DeploymentCoverageViewModel>();var imported=Original();var constructor=typeof(DeploymentCoverageEvidence).GetConstructor(BindingFlags.NonPublic|BindingFlags.Instance,null,[typeof(byte[]),typeof(IReadOnlyDictionary<string,byte[]>),typeof(bool)],null)!;var original=(DeploymentCoverageEvidence)constructor.Invoke([imported.MetadataBytes,imported.OriginalPages,false]);var directory=Path.Combine(f.Root.Paths.TenantsDirectory,TestData.TenantA);Directory.CreateDirectory(directory);File.WriteAllText(Path.Combine(directory,"coverage-reports"),"Synthetic blocked storage");var flow=Flow(page);await flow.ReadAsync(_=>Task.FromResult(original),new GraphReportsController(f.Workspace).ContextKey,TestData.TenantA,true,default);Assert.True(page.HasPending);shell.Navigate("home");var guard=typeof(BuildStandard.App.MainWindow).GetMethod("ShowPendingReport",BindingFlags.NonPublic|BindingFlags.Static)!;Assert.True((bool)guard.Invoke(null,[shell])!);Assert.Same(page,shell.CurrentPage);Assert.False(f.Workspace.ShutdownComplete);flow.DiscardPending(original.Metadata.Id,true);Assert.False((bool)guard.Invoke(null,[shell])!);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Over_cap_raw_original_is_visible_and_blocks_close_even_without_a_conforming_bundle()
+    {using var f=new ConnectedReportsFixture(connect:false);var shell=new ShellViewModel(f.Workspace);var page=shell.Page<DeploymentCoverageViewModel>();var raw=CoverageTestData.OversizeForUi(Original());var flow=Flow(page);await flow.ReadCaptureAsync(_=>Task.FromResult(raw),new GraphReportsController(f.Workspace).ContextKey,TestData.TenantA,true,default);Assert.Null(flow.Pending);Assert.True(page.HasPending);page.RecoveryAcknowledged=true;Assert.False(page.SaveOriginalCommand.CanExecute(null));Assert.False(page.ExportOriginalCommand.CanExecute(null));Assert.True(page.ExportFilesCommand.CanExecute(null));Assert.Contains("No conforming",page.PendingSummary);var guard=typeof(BuildStandard.App.MainWindow).GetMethod("ShowPendingReport",BindingFlags.NonPublic|BindingFlags.Static)!;Assert.True((bool)guard.Invoke(null,[shell])!);Assert.Same(page,shell.CurrentPage);Assert.False(f.Workspace.ShutdownComplete);flow.DiscardPending(raw.Id,true);Assert.False(page.HasPending);Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+    [Fact] public async Task Projection_in_progress_keeps_other_inputs_import_and_exports_disabled_even_after_backend_is_idle()
+    {using var f=new ConnectedReportsFixture(connect:false);var page=new DeploymentCoverageViewModel(new(f.Workspace)){SourceFile=FileFor(f)};await page.ImportAsync();Assert.True(page.ExportHtmlCommand.CanExecute(null));typeof(DeploymentCoverageViewModel).GetField("_reading",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(page,true);Assert.True(f.Workspace.Idle);Assert.False(page.CanEdit);Assert.False(page.ImportCommand.CanExecute(null));Assert.False(page.ExportHtmlCommand.CanExecute(null));Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);}
+}

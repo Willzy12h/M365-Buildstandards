@@ -39,4 +39,5 @@
     <Compile Include="..\BuildStandard.Tests\TestSupport.cs" Link="TestSupport.cs" />
     <Compile Include="..\BuildStandard.Tests\ExchangeTestData.cs" Link="ExchangeTestData.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="..\BuildStandard.Tests\CoverageTestData.cs" Link="CoverageTestData.cs" /></ItemGroup>
 </Project>

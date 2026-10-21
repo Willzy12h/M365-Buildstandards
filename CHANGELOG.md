@@ -19,6 +19,18 @@
 - Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
 
 
+- Preserve collected coverage originals while the owned producer settles after Stop; expose conservative assignment, group, pilot and service interpretations in native/imported HTML/CSV/Excel views without changing original evidence or creating live authority.
+
+- Keep CA/coverage read, import and export actions disabled until background result presentation finishes, including the interval after backend busy clears.
+
+- Native deployment coverage: selected-control provenance, typed pilot IDs, offline original import, per-source states, four local export formats and exact-original recovery, including manual bounded copies when the saved-report cap is exceeded. Prevent normal close from dropping retained CA/coverage originals. Current Windows/native verification remains pending.
+
+- Modern Intune reporting transport: fixed one-shot export jobs with explicit existing broader-access acknowledgement, bounded status polling, one silent renewal and credential-free completed-job download; no configuration-write replay or generic write exception. Validate original archive CRC and retain strict CSV/size/expansion limits. Native/evidence integration and named/live acceptance remain pending.
+
+- Coverage originals: add bounded versioned metadata and exact-page ZIP import, immutable original-byte preservation, tenant-bound non-overwriting storage and registered opaque handover support. Imported reports stay historical/unverified and cannot become deployment before-evidence or collection authority. Add offline `buildstandard coverage` HTML/original JSON ZIP/CSV/Excel export and exact-original recovery after local save failure. Connected native coverage, modern export transport and final acceptance remain in progress.
+
+- Expansion B foundation: freeze typed CA scenarios and strictly admit hypothetical results through a fixed, bounded read-only evaluation transport. Preserve unknowns, identity/access binding, cancellation and one silent401 renewal; generic write guards are unchanged. Native/evidence/coverage journeys remain in progress.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
@@ -80,6 +92,8 @@
 ### Pending source — mailbox capacity review, PR #94
 
 
+
+- In progress: add native experimental hypothetical CA evaluation with an exact bounded member lookup, separately labelled original scenario/context, original-byte recovery, historical import and shared exports; enforce the overall read budget even for non-cooperative response reads. Native/package acceptance and broader deployment coverage remain separate.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
@@ -554,3 +568,8 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 
 
 - Experimental existing-user native workflow: explicit fixed action/readiness/access, complete before-evidence and exact single-use confirmation, durable unknown-safe history and read-only reconciliation. Selected lifecycle deployment requests only its reviewed write purpose; account/group equivalent access may reuse a current verified connection. Offline history/JSON/HTML exports cannot approve or replay. Manual Exchange/preservation/device work and named/live acceptance remain separate.
+
+- Coverage preparation now refuses to infer a static direct-member population from dynamic, hidden or incomplete group metadata; exact returned identity and v1 membership limitations remain explicit. Coverage collection remains in progress and live-unverified.
+- Coverage source preparation now freezes control/catalogue and original evidence identities using the existing creation/readback provenance checks. Bounded same-relation pagination preserves partial/stopped/failed/context-changed states and original pages; duplicate/error envelopes cannot become complete coverage. Native coverage delivery remains unfinished.
+- In-progress coverage engine now assembles bounded selected-control sources and shared HTML/tabular observations, retaining malformed/partial originals and distinguishing failed, stopped, deadline and not-attempted reads. Conflicting assignment observations remain unknown. Coverage save/import and native delivery are not yet complete.
+- Modern Intune export preparation now compiles only the reviewed fixed CSV requests and validates bounded exact-column UTF-8 tables without guessing status or identity meaning. Job creation/download/native integration remain unfinished and no tenant call is performed by parsing.
