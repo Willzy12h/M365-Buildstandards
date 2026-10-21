@@ -18,6 +18,17 @@ public sealed partial class ReportExporter
         };
         ct.ThrowIfCancellationRequested();
         var file = Target("untrusted-external-results-" + Guid.NewGuid().ToString("N"), expectedTenantId, admitted.Evidence.PerformedAt, extension);
+        return WriteExternalOutput(file, content, ct);
+    }
+    public string ExportExternalControlReferences(ExternalCheckImport source, IReadOnlyList<ExternalControlReference> references, string expectedTenantId)
+    {
+        var admitted = ExternalCheckResultsSchema.Read(source.GetOriginalBytes(), expectedTenantId);
+        var content = ExternalControlReferenceDocument.Write(admitted, references);
+        var file = Target("external-control-references-" + Guid.NewGuid().ToString("N"), expectedTenantId, admitted.Evidence.PerformedAt, "json");
+        return WriteExternalOutput(file, content, CancellationToken.None);
+    }
+    private static string WriteExternalOutput(string file, byte[] content, CancellationToken ct)
+    {
         ReportEnvelopeDispatcher.RefuseLinks(file);
         var created = false;
         try

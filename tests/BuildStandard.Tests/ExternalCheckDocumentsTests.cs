@@ -48,4 +48,17 @@ public sealed class ExternalCheckDocumentsTests
             tenant: fault == "tenant" ? TestData.TenantB : TestData.TenantA));
         Assert.Empty(Directory.GetFiles(root.Paths.ReportsDirectory));
     }
+    [Fact] public void Reference_export_keeps_exact_source_and_does_not_overwrite_previous_output()
+    {
+        using var root = new TempRoot();
+        var source = ExternalCheckResultsSchema.Read(ExternalCheckResultsTests.Bytes(ExternalCheckResultsTests.Fixture()), TestData.TenantA);
+        var exporter = new ReportExporter(root.Paths, "Synthetic");
+        var method = typeof(ReportExporter).GetMethod("ExportExternalControlReferences"); Assert.NotNull(method);
+        var links = new[] { new ExternalControlReference(source.OriginalSha256, "TEST-1", "2026.10.20", new string('a',64), "CA-001") };
+        var first = (string)method.Invoke(exporter, new object[] { source, links, TestData.TenantA })!;
+        var bytes = File.ReadAllBytes(first);
+        Assert.Equal(links, ExternalControlReferenceDocument.Read(bytes, source));
+        var second = (string)method.Invoke(exporter, new object[] { source, links, TestData.TenantA })!;
+        Assert.NotEqual(first, second); Assert.Equal(bytes, File.ReadAllBytes(first));
+    }
 }
