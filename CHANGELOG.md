@@ -1,5 +1,7 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add INT-137 lifecycle foundations: fixed action/read registries, bounded immutable before-evidence, saved-snapshot preparation, conservative licence readiness and one-send Graph admission. These are shared-engine components; native access/approval delivery and CLI delivery are not yet complete or accepted; durable engine execution and read-only reconciliation are source-implemented.
+
 - Add native external-results import, copyable provenance, searchable claims, complete exports and exact catalogue reference save/open under INT-138. Original JSON and unsaved references retain their source context; supplied outcomes remain untrusted and never authorise deployment. Current native/package verification and named acceptance remain pending.
 - Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
 
@@ -543,3 +545,6 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 
 - Unpublished J: strict incident-context evidence and shared HTML/CSV/Excel/original-JSON exports retain the requested UTC window, unknown priority and explicit coverage limits; connected capture remains in development.
 - Unpublished J: experimental native incident context now reuses optional Connect/setup access, exact UTC windows, read acknowledgement and original-result recovery. Incident response actions remain unavailable; actual Microsoft behaviour is live-unverified.
+
+
+- Experimental existing-user native workflow: explicit fixed action/readiness/access, complete before-evidence and exact single-use confirmation, durable unknown-safe history and read-only reconciliation. Selected lifecycle deployment requests only its reviewed write purpose; account/group equivalent access may reuse a current verified connection. Offline history/JSON/HTML exports cannot approve or replay. Manual Exchange/preservation/device work and named/live acceptance remain separate.

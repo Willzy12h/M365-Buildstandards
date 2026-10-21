@@ -723,6 +723,17 @@ internal static partial class Program
         ("DeployViewModel.ResumeCommand", Disabled),
         ("DeployViewModel.StopCommand", Disabled),
 
+        ("LifecycleViewModel.ReadinessCommand", TenantRead),
+        ("LifecycleViewModel.PreviewCommand", TenantRead),
+        ("LifecycleViewModel.ApplyCommand", TenantWrite),
+        ("LifecycleViewModel.HistoryCommand", Press),
+        ("LifecycleViewModel.ReconcileCommand", TenantRead),
+        ("LifecycleViewModel.JsonCommand", "requires an explicit historical attempt; exercised by engine/CLI round-trip tests"),
+        ("LifecycleViewModel.HtmlCommand", "requires an explicit historical attempt; exercised by engine/CLI round-trip tests"),
+        ("LifecycleViewModel.ReceiptCommand", "requires a newly stored read-only reconciliation receipt"),
+        ("LifecycleViewModel.CaptureCommand", TenantRead),
+        ("LifecycleViewModel.AccessCommand", Press),
+
         ("RecoveryViewModel.LoadRegisterCommand", Press),
         ("RecoveryViewModel.PreviewDeleteCommand", TenantRead),
         ("RecoveryViewModel.PreviewRestoreCommand", TenantRead),

@@ -144,6 +144,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["connect"] = new ConnectViewModel(this);
         _pages["setup"] = new ApplicationSetupViewModel(this);
         _pages["automation"] = new AutomationViewModel(this);
+        _pages["lifecycle"] = new LifecycleViewModel(this);
         _pages["configuration"] = new ConfigurationViewModel(this);
         _pages["assessment"] = new AssessmentViewModel(this);
         _pages["deviations"] = new DeviationsViewModel(this);

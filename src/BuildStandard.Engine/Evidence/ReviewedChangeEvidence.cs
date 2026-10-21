@@ -44,6 +44,7 @@ public sealed partial class EvidenceStore
     }
     public void AssertNoUnresolvedReviewedChanges(string tenant, IEnumerable<string>? controls = null)
     {
+        AssertNoUnresolvedLifecycle(tenant); // shared write interlock; read-only re-verification does not call this guard
         var selected = controls?.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var run in LoadReviewedChangeRuns(tenant))
         {

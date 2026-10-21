@@ -54,6 +54,7 @@ public sealed partial class EvidenceStore
 
     public void AssertNoUnresolvedEntraLaps(string tenantId)
     {
+        AssertNoUnresolvedLifecycle(tenantId); // shared write interlock; read-only re-verification does not call this guard
         foreach (var run in LoadEntraLapsRuns(tenantId))
         {
             if (WriteAcceptance.IsUncertain(run.WriteAcceptance)) throw new SafetyViolationException("A LAPS request has unknown acceptance. Reconcile it before any further LAPS write; never retry it.");

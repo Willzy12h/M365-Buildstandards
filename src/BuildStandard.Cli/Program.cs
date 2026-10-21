@@ -32,13 +32,14 @@ namespace BuildStandard.Cli;
 /// application's for the same snapshot. Conformance tests assert the absence of every write-capable type and of every
 /// evidence mutator, so neither guarantee can be lost by accident.
 /// </summary>
-public static class Program
+public static partial class Program
 {
     /// <summary>Types that must never appear in this assembly. Kept here so the intent is readable beside the code.</summary>
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow",
+        "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport"
     };
 
     public static int Main(string[] args)
@@ -68,10 +69,11 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks");
+        var options = ParseOptions(args.Skip(1), command is "lifecycle" or "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks");
 
         return command switch
         {
+            "lifecycle" => Lifecycle(options),
             "releases" => Releases(options),
             "customers" => Customers(options),
             "report" => Report(options),
@@ -128,6 +130,11 @@ public static class Program
                   Invalid/conflicting/existing clients remain visible. No profiles are saved,
                   no tenant is contacted and relationship/tags do not prove access.
                   UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
+
+              buildstandard lifecycle --tenant <guid> [--record <guid> --family plan|before|intent|run|verification --format json|html] [--root <dir>]
+                  Inspect saved lifecycle attempts, including intent-only/unknown outcomes.
+                  A selected record exports as exact original JSON or inert HTML. No sign-in,
+                  live reads/writes, execution approval or write replay. Defaults: run, json.
 
               buildstandard releases
                   List the Build Standard releases available to this installation.
