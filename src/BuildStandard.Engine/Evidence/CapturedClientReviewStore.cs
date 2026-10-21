@@ -27,7 +27,7 @@ internal sealed class CapturedClientReviewStore : IJobReviewEvidence
         _snapshots=evidence.Records<TenantSnapshot>("snapshots"); _runs=evidence.Runs; _assessments=evidence.Assessments;
         _deviations=evidence.Records<List<Deviation>>("deviations").SelectMany(d=>d).ToList().AsReadOnly();
         _manual=evidence.Records<ManualCheckRegister>("manual-checks").SingleOrDefault() ?? new() { TenantId=evidence.TenantId };
-        WriteHistoryKnown=evidence.SourceSetComplete && !evidence.Diagnostics.Any(d => d.Section is "client" or "runs" or "recovery" or "reviewed-changes" or "entra-laps" or "verification");
+        WriteHistoryKnown=evidence.SourceSetComplete && !evidence.Diagnostics.Any(d => d.Section is "client" or "runs" or "recovery" or "reviewed-changes" or "entra-laps" or "verification" or "lifecycle");
         var verifications=evidence.Records<WriteVerification>("verification");
         var changes=evidence.Records<ReviewedChangeVerification>("reviewed-changes","verification-");
         var laps=evidence.Records<EntraLapsVerification>("entra-laps","verification-");
@@ -53,6 +53,8 @@ internal sealed class CapturedClientReviewStore : IJobReviewEvidence
             writes.Add(new("Entra LAPS",run.Id,"Entra LAPS",run.WriteAcceptance,WriteAcceptance.IsUncertain(run.WriteAcceptance)
                 || (run.WriteAcceptance==WriteAcceptance.Accepted && run.Verification!=ConfigurationVerification.Pass
                     && !laps.Any(v => v.Verification==ConfigurationVerification.Pass && v.RunId==run.Id && v.RunDigest==run.IntegrityDigest))));
+        foreach(var state in evidence.LifecycleWrites)
+            writes.Add(new("Existing-user action",state.Id,state.ActionId,state.Acceptance,state.Unresolved));
         Writes=writes.AsReadOnly();
     }
     private void RequireTenant(string tenant)

@@ -76,30 +76,17 @@ public sealed partial class EvidenceStore
     {
         var directory=Path.Combine(TenantDirectory(tenant),"lifecycle");RefuseLifecycleLinks(directory);
         if(!ReviewPathExists(directory,true))return;
-        var intents=new Dictionary<string,JsonObject>(StringComparer.Ordinal);
-        var outcomes=new Dictionary<string,JsonObject>(StringComparer.Ordinal);
-        var verifications=new List<JsonObject>();
+        var originals=new List<JsonObject>();
         foreach(var file in Directory.EnumerateFiles(directory,"*.json"))
         {
             var name=Path.GetFileNameWithoutExtension(file);var separator=name.IndexOf('-');
             if(separator<0)throw new SafetyViolationException("Unrecognised lifecycle history cannot be skipped.");
-            var family=name[..separator];var id=name[(separator+1)..];
-            var value=RequireLifecycleOriginal(tenant,family,id);
-            if(family=="intent")intents.Add(id,value);else if(family=="run")outcomes.Add(id,value);else if(family=="verification")verifications.Add(value);
+            originals.Add(RequireLifecycleOriginal(tenant,name[..separator],name[(separator+1)..]));
         }
-        foreach(var id in outcomes.Keys)if(!intents.ContainsKey(id))throw new SafetyViolationException("Lifecycle outcome has no durable intent. Reconcile before further writes.");
-        foreach(var pair in intents)
-        {
-            if(!outcomes.TryGetValue(pair.Key,out var run) || Text(run,"intentDigest")!=Text(pair.Value,"integrityDigest"))throw new SafetyViolationException("A lifecycle intent has no intact final outcome. Its request may have escaped; no replay or further write is allowed.");
-            var acceptance=run["writeAcceptance"] is JsonValue scalar && scalar.TryGetValue<string>(out var text)?text:null;
-            if(WriteAcceptance.IsUncertain(acceptance))throw new SafetyViolationException("Lifecycle write acceptance is unknown or unclassified. Observing a value cannot prove whether the original request escaped; no replay is allowed.");
-            if(acceptance!=WriteAcceptance.Accepted)continue;
-            if(run["verification"]?.GetValue<string>()==ConfigurationVerification.Pass){RequireLifecycleReadback(tenant,run);continue;}
-            var verification=verifications.FirstOrDefault(v=>v["runId"]?.GetValue<string>()==pair.Key && v["runDigest"]?.GetValue<string>()==Text(run,"integrityDigest") && v["verified"] is JsonValue verified && verified.TryGetValue<bool>(out var yes)&&yes);
-            if(verification is null)throw new SafetyViolationException("Accepted lifecycle action requires explicit read-only verification before further writes.");
-            RequireLifecycleReadback(tenant,verification);
-        }
+        var unresolved=ReviewLifecycleWrites(tenant,originals).FirstOrDefault(state=>state.Unresolved);
+        if(unresolved is not null)throw new SafetyViolationException(unresolved.Reason);
     }
+
     private JsonObject SaveLifecycleOriginal(JsonObject document,string family)
     {
         var copy=document.DeepClone().AsObject();var tenant=Text(copy,"tenantId");var id=Text(copy,"id");
@@ -136,10 +123,5 @@ public sealed partial class EvidenceStore
     private static string Text(JsonObject value,string key)=>value[key] is JsonValue scalar && scalar.TryGetValue<string>(out var text)?text:throw new SafetyViolationException("Required lifecycle evidence field is missing: "+key);
     private static void RefuseLifecycleLinks(string path)
     {for(var current=new FileInfo(Path.GetFullPath(path));current is not null;current=current.Directory is { } parent?new FileInfo(parent.FullName):null)if((File.Exists(current.FullName)||Directory.Exists(current.FullName))&&(File.GetAttributes(current.FullName)&FileAttributes.ReparsePoint)!=0)throw new SafetyViolationException("Lifecycle evidence cannot follow symbolic links or reparse points.");}
-    private void RequireLifecycleReadback(string tenant,JsonObject citation)
-    {
-        var after=RequireLifecycleOriginal(tenant,"before",Text(citation,"afterId"));
-        if(Text(after,"integrityDigest")!=Text(citation,"afterDigest") || after["complete"] is not JsonValue complete || !complete.TryGetValue<bool>(out var yes) || !yes)
-            throw new SafetyViolationException("Lifecycle result lacks its intact complete original readback. A label alone cannot resolve a write.");
-    }
+
 }

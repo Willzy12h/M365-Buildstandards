@@ -138,4 +138,63 @@ public sealed class ClientReviewProjectionTests : IDisposable
         File.AppendAllText(file," ");Assert.Throws<ConfigurationException>(()=>_store.RequireClientReviewCurrent(captured));
     }
 
+    private string AddLifecycleAttempt(bool outcome=false,string acceptance=WriteAcceptance.Unknown,bool readback=false)
+    {
+        var id=Guid.NewGuid().ToString("D");var plan=new System.Text.Json.Nodes.JsonObject
+        { ["kind"]="lifecycle-plan",["schemaVersion"]=1,["id"]=id,["tenantId"]=TestData.TenantA,
+          ["operation"]=ToolkitJson.ToNode(BuildStandard.Core.Safety.LifecycleActionRegistry.Create("disable-account",TestData.Office)),
+          ["before"]=new System.Text.Json.Nodes.JsonObject { ["user"]=new System.Text.Json.Nodes.JsonObject { ["displayName"]="Synthetic lifecycle target" } },["integrityDigest"]="" };
+        plan["integrityDigest"]=CanonicalJson.Sha256(plan);_store.SaveLifecyclePreview(plan);
+        _store.SaveLifecycleIntent(new System.Text.Json.Nodes.JsonObject { ["kind"]="lifecycle-intent",["schemaVersion"]=1,["id"]=id,["tenantId"]=TestData.TenantA,["startedAt"]=Timestamps.Format(_clock.UtcNow),["planDigest"]=plan["integrityDigest"]!.DeepClone(),["integrityDigest"]="" });
+        if(outcome)
+        {
+            var after=new System.Text.Json.Nodes.JsonObject { ["kind"]="lifecycle-before",["schemaVersion"]=1,["id"]=Guid.NewGuid().ToString("D"),["tenantId"]=TestData.TenantA,["complete"]=true,["integrityDigest"]="" };
+            after["integrityDigest"]=CanonicalJson.Sha256(after);if(readback)_store.SaveLifecycleBefore(after);
+            _store.SaveLifecycleOutcome(new System.Text.Json.Nodes.JsonObject { ["kind"]="lifecycle-run",["schemaVersion"]=1,["id"]=id,["tenantId"]=TestData.TenantA,["startedAt"]=Timestamps.Format(_clock.UtcNow),["planDigest"]=plan["integrityDigest"]!.DeepClone(),["writeAcceptance"]=acceptance,["verification"]="Pass",["status"]="Completed",["afterId"]=after["id"]!.DeepClone(),["afterDigest"]=after["integrityDigest"]!.DeepClone(),["integrityDigest"]="" });
+        }
+        return id;
+    }
+    [Fact]public void Lifecycle_intent_only_history_blocks_portfolio_job_completion_and_is_cited()
+    {
+        CompleteJob();var id=AddLifecycleAttempt();var evidence=_store.LoadClientReviewEvidence(TestData.TenantA);var review=Review(evidence);
+        Assert.True(review.WriteHistoryKnown,ToolkitJson.Serialize(review.Diagnostics));Assert.Equal(1,review.UnresolvedWrites);Assert.Equal(id,Assert.Single(review.Writes).RunId);Assert.False(Assert.Single(review.Jobs).Complete);
+        Assert.Contains(evidence.Sources,source=>source.Section=="lifecycle"&&source.RelativePath.EndsWith("intent-"+id+".json",StringComparison.Ordinal));
+    }
+    [Theory][InlineData(WriteAcceptance.Accepted,true,false)][InlineData(WriteAcceptance.Accepted,false,true)][InlineData(WriteAcceptance.Unknown,true,true)]
+    public void Lifecycle_portfolio_uses_original_acceptance_and_intact_readback_not_only_a_pass_label(string acceptance,bool readback,bool blocked)
+    {
+        CompleteJob();AddLifecycleAttempt(true,acceptance,readback);var review=Review();
+        if(readback)Assert.True(review.WriteHistoryKnown,ToolkitJson.Serialize(review.Diagnostics));
+        Assert.Equal(!blocked,Assert.Single(review.Jobs).Complete);
+        if(acceptance==WriteAcceptance.Unknown)Assert.Equal(1,review.UnresolvedWrites);
+        if(acceptance==WriteAcceptance.Accepted&&!readback)Assert.False(review.WriteHistoryKnown);
+    }
+    [Fact]public void Occupied_lifecycle_history_is_unknown_in_the_client_portfolio()
+    {CompleteJob();File.WriteAllText(Path.Combine(_store.TenantDirectory(TestData.TenantA),"lifecycle"),"Preserve marker");var review=Review();Assert.False(review.WriteHistoryKnown);Assert.False(Assert.Single(review.Jobs).Complete);Assert.Contains(review.Diagnostics,d=>d.Section=="lifecycle");}
+    [Fact]public void New_lifecycle_history_invalidates_an_old_client_review_export_capture()
+    {var captured=_store.LoadClientReviewEvidence(TestData.TenantA);AddLifecycleAttempt();Assert.ThrowsAny<ToolkitException>(()=>_store.RequireClientReviewCurrent(captured));}
+
+    [Fact]public async Task Actual_offline_clients_cli_cannot_hide_an_unresolved_lifecycle_attempt()
+    {
+        CompleteJob();_store.SaveProfiles([_profile]);AddLifecycleAttempt();
+        var result=await RegisteredReportCliTests.Run("clients","--root",_root.Root);Assert.True(result.Exit==0,result.Error+result.Output);
+        var row=System.Text.Json.Nodes.JsonNode.Parse(result.Output)!["clients"]![0]!;
+        Assert.Equal(1,row["unresolvedWrites"]!.GetValue<int>());Assert.Equal(0,row["completeJobs"]!.GetValue<int>());
+    }
+
+    [Fact]public void Lifecycle_portfolio_projection_remains_frozen_when_later_known_outcome_is_saved()
+    {
+        CompleteJob();var id=AddLifecycleAttempt();var captured=_store.LoadClientReviewEvidence(TestData.TenantA);
+        var plan=_store.ReadLifecycleRecord(TestData.TenantA,"plan",id).GetDocument();
+        _store.SaveLifecycleOutcome(new System.Text.Json.Nodes.JsonObject { ["kind"]="lifecycle-run",["schemaVersion"]=1,["id"]=id,["tenantId"]=TestData.TenantA,["startedAt"]=Timestamps.Format(_clock.UtcNow),["planDigest"]=plan["integrityDigest"]!.DeepClone(),["writeAcceptance"]=WriteAcceptance.NotAttempted,["verification"]="Unknown",["status"]="Stopped",["integrityDigest"]="" });
+        Assert.Equal(1,Review(captured).UnresolvedWrites);Assert.Equal(0,Review().UnresolvedWrites);Assert.True(Assert.Single(Review().Jobs).Complete);
+        Assert.ThrowsAny<ToolkitException>(()=>_store.RequireClientReviewCurrent(captured));
+    }
+    [Fact]public void Foreign_lifecycle_record_is_a_portfolio_diagnostic_never_an_empty_safe_history()
+    {
+        CompleteJob();var id=AddLifecycleAttempt();var path=Path.Combine(_store.TenantDirectory(TestData.TenantA),"lifecycle","intent-"+id+".json");
+        var node=ToolkitJson.ParseObject(File.ReadAllText(path));node["tenantId"]=TestData.TenantB;node["integrityDigest"]="";node["integrityDigest"]=CanonicalJson.Sha256(node);File.WriteAllText(path,node.ToJsonString());
+        var review=Review();Assert.False(review.WriteHistoryKnown);Assert.False(Assert.Single(review.Jobs).Complete);Assert.Contains(review.Diagnostics,problem=>problem.Section=="lifecycle");
+    }
+
 }

@@ -22,9 +22,11 @@ public sealed class ClientReviewEvidence
     public IReadOnlyList<ClientReviewSource> Sources { get; }
     public IReadOnlyList<ClientReviewDiagnostic> Diagnostics { get; }
     public bool SourceSetComplete { get; }
+    internal IReadOnlyList<LifecycleWriteState> LifecycleWrites { get; }
     internal ClientReviewEvidence(string root, string tenant, Dictionary<string, string> records,
-        List<ClientReviewSource> sources, List<ClientReviewDiagnostic> diagnostics, bool complete)
+        List<ClientReviewSource> sources, List<ClientReviewDiagnostic> diagnostics, bool complete, IReadOnlyList<LifecycleWriteState>? lifecycleWrites = null)
     {
+        LifecycleWrites = lifecycleWrites ?? Array.Empty<LifecycleWriteState>();
         Root = root; TenantId = tenant; _records = new Dictionary<string, string>(records, StringComparer.Ordinal);
         Sources = sources.AsReadOnly(); Diagnostics = diagnostics.AsReadOnly(); SourceSetComplete = complete;
     }
@@ -45,7 +47,7 @@ public sealed partial class EvidenceStore
     private const long ReviewAggregateBytes = 64L * 1024 * 1024;
     private const int ReviewRecordLimit = 500;
     private static readonly string[] ReviewDirectories = ["assessments", "snapshots", "runs", "jobs", "observations",
-        "dispositions", "cutovers", "recovery", "reviewed-changes", "entra-laps", "verification"];
+        "dispositions", "cutovers", "recovery", "reviewed-changes", "entra-laps", "verification", "lifecycle"];
     private static readonly string[] ReviewRegisters = ["deviations.json", "manual-checks.json"];
     private static readonly JsonSerializerOptions ReviewWorkflowOptions = new(ToolkitJson.Options)
     { RespectNullableAnnotations = true, UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
@@ -178,7 +180,11 @@ public sealed partial class EvidenceStore
         bool CapturedCatalogue(TenantJob job) => records.Any(p => p.Key.StartsWith("catalogue/", StringComparison.Ordinal)
             && sources.Any(v => v.RelativePath == p.Key && v.Sha256 == job.StandardDigest)
             && ToolkitJson.Deserialize<StandardCatalogue>(p.Value).Release == job.StandardRelease);
-        return new(_paths.Root, tenantId, records, sources, diagnostics, complete);
+        IReadOnlyList<LifecycleWriteState> lifecycleWrites=Array.Empty<LifecycleWriteState>();
+        try { lifecycleWrites=ReviewLifecycleWrites(tenantId,records.Where(pair=>pair.Key.StartsWith("lifecycle/",StringComparison.Ordinal)).Select(pair=>ToolkitJson.ParseObject(pair.Value))); }
+        catch(Exception error) when(error is ToolkitException or JsonException or InvalidOperationException or ArgumentException)
+        { Problem("lifecycle","lifecycle","Lifecycle history cannot be fully resolved from its captured original citations. "+error.Message,true); }
+        return new(_paths.Root, tenantId, records, sources, diagnostics, complete,lifecycleWrites);
     }
 
     /// <summary>Local export admission only; changed/additional/deleted files or unread byte ranges require a new review.</summary>
@@ -236,6 +242,16 @@ public sealed partial class EvidenceStore
         }
         // Force object construction to reject duplicate JSON members rather than accepting a last-value winner.
         var node = ToolkitJson.ParseObject(text); _ = node.ToJsonString();
+        if (section == "lifecycle")
+        {
+            using var strict=JsonDocument.Parse(text,new JsonDocumentOptions {MaxDepth=48,AllowDuplicateProperties=false});
+            var family=ReviewRecordKind(relative);var id=node["id"]?.GetValue<string>()??"";
+            if(!Guid.TryParseExact(id,"D",out var parsedId)||parsedId==Guid.Empty||parsedId.ToString("D")!=id||Path.GetFileName(relative)!=family+"-"+id+".json")
+                throw new ConfigurationException("Lifecycle file identity is invalid.");
+            ValidateLifecycleEnvelope(node,tenant,family,id);
+            if(Text(node,"integrityDigest")!=LifecycleDigest(node))throw new IntegrityException("Lifecycle history digest does not match.");
+            return;
+        }
         if (section == "manual-checks")
         {
             if (node["checks"] is not JsonObject checks || checks.Count > ReviewRecordLimit)
@@ -380,7 +396,8 @@ public sealed partial class EvidenceStore
     {
         var name = Path.GetFileName(relative);
         return name.StartsWith("run-", StringComparison.Ordinal) ? "run" : name.StartsWith("plan-", StringComparison.Ordinal) ? "plan"
-            : name.StartsWith("verification-", StringComparison.Ordinal) ? "verification" : "record";
+            : name.StartsWith("verification-", StringComparison.Ordinal) ? "verification"
+            : name.StartsWith("intent-", StringComparison.Ordinal) ? "intent" : name.StartsWith("before-", StringComparison.Ordinal) ? "before" : "record";
     }
 
     private static void ReviewIdentity(string? id, string? actualTenant, string tenant, string relative)
