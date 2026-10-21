@@ -76,6 +76,7 @@ public sealed class CandidateAuthoringViewModel : PageViewModel
     public string Message { get => _message; private set => SetProperty(ref _message, value); }
     public string ReviewText => !_workflow.HasDraft ? "No local draft to review."
         : !_workflow.ContextCurrent ? "Working context changed. Save and reopen this draft before reviewing it against the current context."
+        : _reviewDigest != _workflow.DraftDigest ? "Review unavailable for this draft after a stopped operation. Save, then reopen it to regenerate the review."
         : _reviewText;
     public bool HasPendingInput => _value != _initialValue;
     public bool HasUnsavedChanges => HasPendingInput || _workflow.HasUnsavedChanges;
