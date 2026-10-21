@@ -31,4 +31,13 @@ public sealed class LifecycleCliTests
         using var f=new LifecyclePreparationTests.Fixture();var result=await RegisteredReportCliTests.Run("lifecycle","--root",f.Root.Root,"--tenant",TestData.TenantA,option,"synthetic");
         Assert.Equal(2,result.Exit);Assert.Contains("Refused:",result.Error);Assert.Empty(result.Output);
     }
+    [Fact]public async Task Occupied_history_directory_is_a_cli_failure_never_complete_empty_history()
+    {
+        using var f=new LifecyclePreparationTests.Fixture();var path=Path.Combine(f.Evidence.TenantDirectory(TestData.TenantA),"lifecycle");
+        File.WriteAllText(path,"Preserve synthetic blocked history");
+        var result=await RegisteredReportCliTests.Run("lifecycle","--root",f.Root.Root,"--tenant",TestData.TenantA);
+        Assert.NotEqual(0,result.Exit);Assert.Empty(result.Output);Assert.False(string.IsNullOrWhiteSpace(result.Error));
+        Assert.Equal("Preserve synthetic blocked history",File.ReadAllText(path));
+    }
+
 }

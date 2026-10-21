@@ -42,4 +42,22 @@ public sealed class LifecycleHistoryTests
         Assert.ThrowsAny<ToolkitException>(()=>Call(f.Evidence,"ListLifecycleAttempts",TestData.TenantA,5000,CancellationToken.None));
     }
 
+    [Theory][InlineData("list")][InlineData("guard")][InlineData("reviewed")][InlineData("laps")]
+    public void An_occupied_history_path_cannot_be_treated_as_missing_or_bypass_shared_write_guards(string consumer)
+    {
+        using var f=new LifecyclePreparationTests.Fixture();var path=Path.Combine(f.Evidence.TenantDirectory(TestData.TenantA),"lifecycle");
+        File.WriteAllText(path,"Preserve synthetic inaccessible-history marker");
+        Assert.Throws<IOException>(()=>
+        {
+            switch(consumer)
+            {
+                case "list":f.Evidence.ListLifecycleAttempts(TestData.TenantA);break;
+                case "guard":f.Evidence.AssertNoUnresolvedLifecycle(TestData.TenantA);break;
+                case "reviewed":f.Evidence.AssertNoUnresolvedReviewedChanges(TestData.TenantA);break;
+                case "laps":f.Evidence.AssertNoUnresolvedEntraLaps(TestData.TenantA);break;
+            }
+        });
+        Assert.Equal("Preserve synthetic inaccessible-history marker",File.ReadAllText(path));
+    }
+
 }

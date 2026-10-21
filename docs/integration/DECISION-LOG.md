@@ -1210,3 +1210,9 @@ The CLI uses the shared original-byte importer and writes a separate draft. `--m
 ### I reference admission consistency — 21 October 2026
 
 GPT-I-011: manual authoring and imported candidate validation share the same explicit opaque-reference field registry. Changed literal notification/tenant/directory references are refused recursively, including whole-array edits; unchanged historical literals remain intact and compatible explicit existing guid/guidList parameter mappings remain available. No new execution route or live access is introduced.
+
+
+Finite A–J composition,21October/#164: preserve original feature PRs/heads and provisionally merge owned source only into `astra/bs-expansion-candidate`, not main. Resolve close-guard overlaps by retaining each pending original/candidate check; merge fixed CLI dispatch and runtime exclusions without opening authentication/execution paths. Preserve the stricter backup path validation plus root-profile lock exclusion and exact B original ZIP admissions. Native expected routes use the independent existing test fixture, extended with A/D/H, rather than deriving expectations from production. No historical catalogue changed. Supplementary H findingGPT-H-001 was reproduced3RED and repaired226lifecyclePASS with static independent recheck; it does not constitute named safety acceptance. Current composition needs its own actual Windows/package proof.
+
+
+GPT-AJ-001 repair/#164: lifecycle historical inspection and the shared unresolved-write guard now reuse INT-124's existing strict regular-directory/access check. Directory.Exists is not evidence of absence: damaged or inaccessible history must block rather than certify clean state. Existing original evidence is untouched; real absence remains valid and offline CLI retains no execution path. Five regressions failed first then322affectedPASS; this is a source repair pending current Windows and named acceptance, not a tenant reconciliation or new schema.

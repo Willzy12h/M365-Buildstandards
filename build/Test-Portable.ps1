@@ -102,6 +102,14 @@ try {
     if ($failure.Error -notmatch 'Refused:' -or $failure.Text) { throw 'CLI refusal did not preserve stderr or exit code.' }
     $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
+    $lifecycleHistory = Invoke-OwnedCli $exe '--cli lifecycle --tenant 11111111-1111-4111-8111-111111111111' 0
+    $lifecycleJson = $lifecycleHistory.Text | ConvertFrom-Json
+    if ($lifecycleJson.kind -cne 'lifecycle-history' -or $lifecycleJson.complete -ne $true -or @($lifecycleJson.records).Count -ne 0 -or
+        $lifecycleJson.assurance -notmatch 'no execution approval and no replay') { throw 'Packaged offline lifecycle history lost its empty/history/no-authority meaning.' }
+    $lifecycleDenied = Invoke-OwnedCli $exe '--cli lifecycle --tenant 11111111-1111-4111-8111-111111111111 --execute true' 2
+    if ($lifecycleDenied.Text -or $lifecycleDenied.Error -notmatch 'cannot execute, approve or resume') { throw 'Packaged lifecycle CLI did not refuse an execution option.' }
+    $lifecycleChecked = $true
+
     $usageChecked = $false
     if ($UsageFixturePath) {
         $usageInput = (Resolve-Path -LiteralPath $UsageFixturePath).Path
@@ -517,7 +525,7 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliOperationalOriginalAndTenantRefusal=$operationalChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliLifecycleOfflineAndExecutionRefusal=$lifecycleChecked; portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliOperationalOriginalAndTenantRefusal=$operationalChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
         portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true; portableCliClients=$true; portableCliClientReviewPack=$true; portableCliDomainReport=$true; portableCliDomainCollectionRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
