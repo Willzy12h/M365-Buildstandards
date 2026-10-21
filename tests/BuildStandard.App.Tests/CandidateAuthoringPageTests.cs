@@ -26,6 +26,16 @@ public sealed class CandidateAuthoringPageTests
         Assert.Equal(foreign ? 1 : 0, draft.Unresolved.Count); Assert.Equal("Unknown", draft.AssignmentObservations.Single().Status);
         if (foreign) await Assert.ThrowsAnyAsync<Exception>(page.ValidateAsync);
         else { await page.ValidateAsync(); Assert.True(page.ExportCandidateCommand.CanExecute(null)); }
+        page.Discard(); await page.OpenAsync(draftFile);
+        var reviewProperty = typeof(CandidateAuthoringViewModel).GetProperty("ReviewText");
+        Assert.NotNull(reviewProperty);
+        var review = Assert.IsType<string>(reviewProperty.GetValue(page));
+        Assert.Contains(draft.Imports.Single().Sha256, review);
+        Assert.Contains("Unknown", review); Assert.Contains(draft.AssignmentObservations.Single().Detail, review);
+        Assert.Contains("CFG-WIN-002", review);
+        foreach (var unresolved in draft.Unresolved) { Assert.Contains(unresolved.Path, review); Assert.Contains(unresolved.Reason, review); }
+        await page.SaveAsync(); Assert.Equal(review, reviewProperty.GetValue(page));
+        page.Discard(); Assert.DoesNotContain(draft.Imports.Single().Sha256, Assert.IsType<string>(reviewProperty.GetValue(page)));
         Assert.Equal("2026.09.5", f.Workspace.Standard!.Release); Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
     [Fact]public async Task Local_edit_validate_export_preserves_published_source_and_never_calls_a_tenant()

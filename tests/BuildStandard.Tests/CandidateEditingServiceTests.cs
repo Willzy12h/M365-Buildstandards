@@ -12,6 +12,25 @@ public sealed class CandidateEditingServiceTests
         var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance);
         return (new(loader, new(loader)), loader.Create("test.json", "Editor regression"));
     }
+    [Theory][InlineData(false)][InlineData(true)]
+    public void Opaque_reference_cannot_enter_through_manual_array_edit_or_saved_draft(bool directDraft)
+    {
+        using var root = new TempRoot();
+        var file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../standards/2026.09.10.json"));
+        root.WriteStandard("base.json", File.ReadAllText(file)); root.WriteManifest();
+        var loader = new CandidateBaselineLoader(root.Paths, NullLog.Instance); var service = new CandidateAuthoringService(loader);
+        var draft = loader.Create("base.json", "Opaque reference regression");
+        var original = loader.Load(draft).FindControl("CMP-WIN-001")!.Payload!["scheduledActionsForRule"]!.DeepClone();
+        var proposed = original.DeepClone();
+        proposed[0]!["scheduledActionConfigurations"]![0]!["notificationTemplateId"] = "foreign-template";
+        if (directDraft)
+        {
+            draft.Changes.Add(new("CMP-WIN-001", "/payload/scheduledActionsForRule", original, proposed)); CandidateDraftCodec.Seal(draft);
+            Assert.ThrowsAny<ToolkitException>(() => service.Validate(draft));
+        }
+        else Assert.ThrowsAny<ToolkitException>(() => new CandidateEditingService(loader, service).Set(draft,
+            "CMP-WIN-001", "/payload/scheduledActionsForRule", proposed.ToJsonString()));
+    }
     [Fact]public void Repeated_edits_keep_baseline_expectation_without_mutating_the_callers_draft()
     {
         using var root = new TempRoot(); var (editor, original) = Setup(root); var before = CandidateDraftCodec.Serialize(original);

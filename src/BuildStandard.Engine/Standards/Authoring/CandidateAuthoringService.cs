@@ -114,7 +114,7 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
             throw Bad("macOS enrolment must remain blocked; there is no authoring enable switch.");
     }
 
-    private static void RequireShape(JsonNode? original, JsonNode? proposed, StandardCatalogue standard, bool inspectForeignReferences = true)
+    private static void RequireShape(JsonNode? original, JsonNode? proposed, StandardCatalogue standard, bool inspectForeignReferences = true, string fieldKey = "")
     {
         if (proposed is JsonValue stringValue && stringValue.TryGetValue<string>(out var text))
         {
@@ -122,9 +122,12 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
             if (text != old && (text.Contains("{{", StringComparison.Ordinal) || text.Contains("}}", StringComparison.Ordinal)))
             {
                 var parameter = standard.Parameters.SingleOrDefault(p => text == "{{" + p.Key + "}}");
-                if (parameter is null || !CompatibleParameter(parameter.Type, original)) throw Bad("Use one existing parameter of the matching type, not a new expression.");
+                if (parameter is null || !CompatibleParameter(parameter.Type, original)
+                    || inspectForeignReferences && IsForeignReferenceField(fieldKey) && parameter.Type is not ("guid" or "guidList")) throw Bad("Use one existing parameter of the matching type, not a new expression.");
                 return;
             }
+            if (inspectForeignReferences && text != old && IsForeignReferenceField(fieldKey))
+                throw Bad("A changed foreign object reference needs an explicit existing typed parameter mapping.");
             if (inspectForeignReferences)
                 foreach (Match guid in GuidText.Matches(text))
                     if (!GuidText.Matches(old).Any(m => string.Equals(m.Value, guid.Value, StringComparison.OrdinalIgnoreCase)))
@@ -143,20 +146,23 @@ public sealed class CandidateAuthoringService(CandidateBaselineLoader baselines)
             {
                 if (key is "@odata.type" or "omaUri" or "settingDefinitionId"
                     && CanonicalJson.Serialize(value) != CanonicalJson.Serialize(after[key])) throw Bad("Registered types and setting routes cannot change.");
-                RequireShape(value, after[key], standard, inspectForeignReferences);
+                RequireShape(value, after[key], standard, inspectForeignReferences, key);
             }
             return;
         }
         if (original is JsonArray oldArray && proposed is JsonArray newArray)
         {
             if (oldArray.Count != newArray.Count) throw Bad("Array shape changes need a supported import adapter; edit the complete existing array.");
-            for (var i = 0; i < oldArray.Count; i++) RequireShape(oldArray[i], newArray[i], standard, inspectForeignReferences);
+            for (var i = 0; i < oldArray.Count; i++) RequireShape(oldArray[i], newArray[i], standard, inspectForeignReferences, fieldKey);
             return;
         }
         if (original.GetValueKind() != proposed.GetValueKind()
             && !(original.GetValueKind() is JsonValueKind.True or JsonValueKind.False && proposed.GetValueKind() is JsonValueKind.True or JsonValueKind.False))
             throw Bad("The setting's registered value type cannot change.");
     }
+    internal static bool IsForeignReferenceField(string key) => key is "tenantId" or "groupId" or "userId" or "directoryObjectId"
+        or "notificationTemplateId" or "notificationMessageCCList";
+
     private static bool CompatibleParameter(string type, JsonNode? node) => type switch
     {
         "string" or "mailDomain" or "guid" => node is JsonValue value && value.TryGetValue<string>(out _),

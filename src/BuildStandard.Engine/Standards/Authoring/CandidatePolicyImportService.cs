@@ -72,8 +72,7 @@ public sealed class CandidatePolicyImportService(CandidateBaselineLoader baselin
                 if (text.Contains("{{", StringComparison.Ordinal) || text.Contains("}}", StringComparison.Ordinal))
                     throw Bad("Source template expressions are not accepted. Select a declared parameter explicitly instead.");
                 if (previous is JsonValue old && old.TryGetValue<string>(out var oldText) && text == oldText) return node.DeepClone();
-                var foreign = GuidText.IsMatch(text) || key is "tenantId" or "groupId" or "userId" or "directoryObjectId"
-                    or "notificationTemplateId" or "notificationMessageCCList";
+                var foreign = GuidText.IsMatch(text) || CandidateAuthoringService.IsForeignReferenceField(key);
                 if (!foreign) return node.DeepClone();
                 if (mappings.TryGetValue(path, out var parameter))
                 {

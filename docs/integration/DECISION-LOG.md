@@ -1058,3 +1058,7 @@ I import inspection reuses the existing policy/device preparation routines and k
 ### I / INT-136 implementation: explicit offline import mapping (20 October 2026)
 
 The CLI uses the shared original-byte importer and writes a separate draft. `--map` is a bounded duplicate-free JSON pointer-to-existing-parameter object; it cannot introduce replacement tenant identifiers or new parameters. ReadyForValidation is distinct from validated. Unsupported payload shapes are refused even when foreign references remain unresolved. Native import remains a separate consumer of the same engine, not another importer. Historical standards and active catalogue selection are unchanged.
+
+### I reference admission consistency — 21 October 2026
+
+GPT-I-011: manual authoring and imported candidate validation share the same explicit opaque-reference field registry. Changed literal notification/tenant/directory references are refused recursively, including whole-array edits; unchanged historical literals remain intact and compatible explicit existing guid/guidList parameter mappings remain available. No new execution route or live access is introduced.
