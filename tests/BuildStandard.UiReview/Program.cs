@@ -367,6 +367,7 @@ internal static partial class Program
             CheckOperationalNativeFlows(shell,window,content,output);
             CheckExternalNativeFlows(shell,window,content,output);
             CheckLifecycleNativeFlows(shell,window,content,output);
+            CheckPreparedLifecycleNativeFlows(source,shell,window,content,output);
                 CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }
