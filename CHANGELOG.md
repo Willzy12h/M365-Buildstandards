@@ -540,3 +540,5 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 
 - Offline `external-checks` exports preserve untrusted external-source provenance in HTML, CSV, Excel or exact original JSON, with explicit client matching, fresh output files and no tenant calls. Native incident/import workflows remain pending.
 - Collaboration inventory adds deliberate bounded group-name lookup with exact name/ID selection, stale-result refusal and no automatic Team assumption; malformed partial imported user/tenant IDs are refused. Current Windows and named acceptance remain pending.
+
+- Unpublished J: strict incident-context evidence and shared HTML/CSV/Excel/original-JSON exports retain the requested UTC window, unknown priority and explicit coverage limits; connected capture remains in development.

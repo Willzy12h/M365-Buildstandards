@@ -50,6 +50,7 @@ public static partial class OperationalContextSchema
     }
     public static IReadOnlyList<ReportSource> SourceDeclarations(string reportId)=>reportId switch
     {
+        "security-incidents"=>new[]{Source("/security/incidents","security-list-incidents")},
         "service-health"=>new[]{Source("/admin/serviceAnnouncement/healthOverviews","serviceannouncement-list-healthoverviews"),Source("/admin/serviceAnnouncement/issues","serviceannouncement-list-issues")},
         "partner-relationships"=>new[]{Source("/tenantRelationships/delegatedAdminRelationships","tenantrelationship-list-delegatedadminrelationships"),Source("/tenantRelationships/delegatedAdminRelationships/{returnedRelationshipId}/accessAssignments","delegatedadminrelationship-list-accessassignments")},
         "collaboration-inventory"=>new[]{Source("/sites?search={boundedSearch}","site-search"),Source("/sites/{selectedSiteId}","site-get"),Source("/sites/{selectedSiteId}/drives","drive-list"),Source("/groups/{selectedGroupId}","group-get"),Source("/groups/{selectedGroupId}/owners","group-list-owners"),Source("/teams/{selectedGroupId}/members","team-list-members")},
@@ -60,12 +61,15 @@ public static partial class OperationalContextSchema
     {
         if(report.SchemaVersion!=1||report.Kind!="operationalContextReport"||report.AdapterVersion!="1.0"||!ReportValues.IsCanonicalGuid(report.Id)||!ReportValues.IsCanonicalGuid(report.TenantId))throw Bad("Unsupported operational identity/version.");
         if(!ReportValues.IsCanonicalGuid(tenant)||tenant!=report.TenantId)throw new TenantMismatchException("Operational evidence belongs to another source tenant.");
-        if(report.ReportId is not ("service-health" or "partner-relationships" or "collaboration-inventory"))throw Bad("Operational report is not implemented yet.");
+        if(report.ReportId is not ("service-health" or "partner-relationships" or "collaboration-inventory" or "security-incidents"))throw Bad("Operational report is not implemented yet.");
         if(report.AccessIntent!=report.ReportId||report.PermissionMode is not ("Assessment" or "Deployment"))throw Bad("Unsupported original access intent/mode.");
         if(report.SourceMode is not ("live" or "historical")||report.SourceMode=="live"&&(!ReportValues.IsCanonicalGuid(report.AccountObjectId)||!ReportValues.IsCanonicalGuid(report.ClientId))
             ||report.AccountObjectId is not null&&!ReportValues.IsCanonicalGuid(report.AccountObjectId)||report.ClientId is not null&&!ReportValues.IsCanonicalGuid(report.ClientId))throw Bad("Unsupported operational actor provenance.");
         if(!Utc(report.AsOfUtc,out var asOf)||!Utc(report.StartedAt,out var start)||!Utc(report.EndedAt,out var end)||asOf!=start||end<start)throw Bad("Invalid operational collection/as-of interval.");
         if(string.IsNullOrWhiteSpace(report.ToolkitVersion)||report.ToolkitVersion.Length>128||report.ToolkitVersion.Any(char.IsControl))throw Bad("Missing operational toolkit provenance.");
+        if(report.ReportId=="security-incidents")
+        { ValidateIncidents(report,asOf); ValidateFinalEnvelope(report,integrity); return; }
+        if(report.IncidentSelection is not null)throw Bad("Incident selection cannot be attached to another report family.");
         if(report.ReportId=="collaboration-inventory")
         { ValidateCollaboration(report); ValidateFinalEnvelope(report,integrity); return; }
         if(report.CollaborationSelection is not null)throw Bad("Collaboration selection cannot be attached to another report family.");
