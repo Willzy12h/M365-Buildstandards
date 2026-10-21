@@ -17,6 +17,32 @@ public sealed class LifecyclePreview
     public string TenantId=>_document["tenantId"]!.GetValue<string>();
     public string IntegrityDigest=>_document["integrityDigest"]!.GetValue<string>();
     public bool PreservationRequired=>_document["preservationRequired"]!.GetValue<bool>();
+    /// <summary>Copyable original before-values for deliberate native review; grants no approval or execution authority.</summary>
+    public string ReviewDetails
+    {
+        get
+        {
+            var operation=LifecycleActionRegistry.RequireRegistered(ToolkitJson.Deserialize<LifecycleOperation>(_document["operation"]!.ToJsonString()));
+            var before=_document["before"]!.AsObject();
+            var values=new JsonObject
+            {
+                ["action"]=LifecycleActionRegistry.Label(operation.ActionId),["permissionMode"]=_document["permissionMode"]?.DeepClone(),
+                ["selectedWriteScope"]=operation.WriteScope,["userBefore"]=before["user"]?.DeepClone()
+            };
+            foreach(var key in new[]{"group","subscribedSkus","licenseDetails"})
+                if(before.TryGetPropertyValue(key,out var value))values[key]=value?.DeepClone();
+            if(operation.GroupId is not null)
+            {
+                values["directMembershipBefore"]=before["members"] is JsonArray members
+                    ?JsonValue.Create(members.OfType<JsonObject>().Any(row=>string.Equals(row["id"]?.GetValue<string>(),operation.UserId,StringComparison.OrdinalIgnoreCase)))
+                    :null;
+            }
+            return "Captured before-values. Missing/null values remain unknown unless their documented field semantics explicitly say otherwise. "
+                +"For licence assignment states, assignedByGroup null means direct and a group ID means inherited; these sources are not interchangeable. "
+                +"Group licence effects require separate propagation/readback review. Preservation and downstream ownership remain manual.\n\n"
+                +values.ToJsonString(new System.Text.Json.JsonSerializerOptions {WriteIndented=true});
+        }
+    }
     public JsonObject GetDocument()=>_document.DeepClone().AsObject();
 }
 

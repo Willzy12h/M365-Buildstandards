@@ -54,7 +54,8 @@ public sealed class LifecyclePageTests
         var prepare=page.GetType().GetMethod("PreviewAsync");Assert.NotNull(prepare);
         var task=(Task)prepare.Invoke(page,null)!;
         if(change)await Assert.ThrowsAnyAsync<ToolkitException>(()=>task);else await task;
-        Assert.Equal(!change,Property(page,"HasPreview").GetValue(page));Assert.False((bool)Property(page,"CanApply").GetValue(page)!);
+        Assert.Equal(!change,Property(page,"HasPreview").GetValue(page));
+        if(!change){var details=(string)Property(page,"BeforeDetails").GetValue(page)!;Assert.Contains("Synthetic ordinary member",details);Assert.Contains("accountEnabled",details);Assert.Contains("User.EnableDisableAccount.All",details);}Assert.False((bool)Property(page,"CanApply").GetValue(page)!);
         Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
     }
     [Fact] public void Access_shortcut_selects_one_action_without_authenticating_or_running_it()
