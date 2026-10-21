@@ -38,6 +38,35 @@ public sealed class CandidateAuthoringPageTests
         page.Discard(); Assert.DoesNotContain(draft.Imports.Single().Sha256, Assert.IsType<string>(reviewProperty.GetValue(page)));
         Assert.Equal("2026.09.5", f.Workspace.Standard!.Release); Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
     }
+    [Fact]public async Task Cancelled_replacement_never_displays_the_previous_drafts_review()
+    {
+        using var f = new ConnectedReportsFixture(false);
+        var page = new ShellViewModel(f.Workspace).Page<StandardViewModel>().Authoring;
+        await page.CreateAsync(); page.SelectedControl = page.Controls.Single(c => c.Id == "CA-001");
+        await page.LoadFieldsAsync(); page.SelectedField = page.Fields.Single(field => field.Path == "/payload/displayName");
+        page.ValueText = "CA - Original draft A"; await page.ApplyAsync(); await page.SaveAsync();
+        Assert.Contains("CA - Original draft A", page.ReviewText);
+        var originalFile = Directory.GetFiles(f.Root.Paths.ReportsDirectory).Single();
+        var next = BuildStandard.Engine.Standards.Authoring.CandidateDraftCodec.ReadFile(originalFile);
+        next.Title = "Replacement draft B";
+        next.Changes[0] = next.Changes[0] with { Proposed = System.Text.Json.Nodes.JsonValue.Create("CA - Replacement draft B") };
+        BuildStandard.Engine.Standards.Authoring.CandidateDraftCodec.Seal(next);
+        var file = Path.Combine(f.Root.Root, "replacement.json");
+        File.WriteAllText(file, BuildStandard.Engine.Standards.Authoring.CandidateDraftCodec.Serialize(next));
+        var stopped = false;
+        page.PropertyChanged += (_, _) =>
+        {
+            if (!stopped && page.Identity.StartsWith("Replacement draft B", StringComparison.Ordinal))
+            { stopped = true; f.Workspace.CancelOperation(); }
+        };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => page.OpenAsync(file));
+        Assert.True(stopped); Assert.StartsWith("Replacement draft B", page.Identity);
+        Assert.DoesNotContain("CA - Original draft A", page.ReviewText);
+        Assert.False(page.ExportCandidateCommand.CanExecute(null));
+        await page.SaveAsync(); await page.OpenAsync(file);
+        Assert.Contains("CA - Replacement draft B", page.ReviewText);
+        Assert.Equal(0, f.Handler.Calls); Assert.Equal(0, f.Tokens.Calls);
+    }
     [Fact]public async Task Local_edit_validate_export_preserves_published_source_and_never_calls_a_tenant()
     {
         using var f = new ConnectedReportsFixture(); var shell = new ShellViewModel(f.Workspace);
