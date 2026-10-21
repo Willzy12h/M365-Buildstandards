@@ -105,6 +105,14 @@ internal static partial class Program
         var parent = shell.Page<GraphReportsViewModel>(); parent.SelectedTab = 4;
         AwaitReader(parent.Operational.OpenSuppliedAsync(SyntheticOperationalFile));
     }
+    private static void SeedIncidentReferencePage(ShellViewModel shell)
+    {
+        var parent = shell.Page<GraphReportsViewModel>(); parent.SelectedTab = 4; var vm = parent.Operational;
+        if (vm.IncidentReferences.RequiresCloseReview && vm.IncidentReferences.ReferenceCount > 0) AwaitReader(vm.IncidentReferences.ExportReferencesAsync());
+        vm.SelectedReportId = "security-incidents"; AwaitReader(vm.OpenSuppliedAsync(SyntheticIncidentFile));
+        vm.IncidentReferences.SelectedIncidentId = vm.IncidentReferences.Incidents[0].Id;
+        vm.IncidentReferences.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id;
+    }
     private static void CheckOperationalNativeFlows(ShellViewModel shell, Window window, FrameworkElement content, string output)
     {
         foreach (var size in new[] { new Size(1180,640), new Size(1180,760), new Size(1480,940) })
@@ -174,6 +182,12 @@ internal static partial class Program
             AssertNewPageRowViewport(content, "Operational observations and source provenance", "incident context " + size);
             CaptureReportState(content, output, "incident-partial-results", size, checkPageScrolling: false);
             foreach (var command in new[] { vm.HtmlCommand, vm.JsonCommand, vm.CsvCommand, vm.ExcelCommand }) PressOfflineReportCommand(shell, command, "Incident complete export");
+            tabs.SelectedIndex = 3; var references = vm.IncidentReferences;
+            references.SelectedIncidentId = references.Incidents[0].Id; references.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id;
+            references.AddReference(); if (!vm.RequiresCloseReview || !vm.ReadGuidance.Contains("references",StringComparison.Ordinal)) throw new InvalidOperationException("Unsaved incident references did not block replacement/close.");
+            AwaitReader(references.ExportReferencesAsync()); AwaitReader(references.OpenReferencesAsync(references.LastExport)); content.UpdateLayout(); Pump();
+            if (references.ReferenceCount != 1 || !references.Rows[0].Resolution.StartsWith("Resolved:",StringComparison.Ordinal)) throw new InvalidOperationException("Exact incident references failed round-trip.");
+            CaptureReportState(content,output,"incident-control-references",size,checkPageScrolling:false);
             vm.SelectedReportId = "service-health";
         }
     }

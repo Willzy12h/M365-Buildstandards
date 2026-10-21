@@ -26,6 +26,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public OperationalReportsViewModel(ShellViewModel shell, GraphReportsController controller) : base(shell, "Operational context")
     {
         _controller = controller;
+        IncidentReferences = new(shell,controller);
+        IncidentReferences.PropertyChanged += (_, _) => Notify();
         ReadCommand = Command(ReadAsync, () => ReadGuidance.Length == 0);
         StopCommand = Sync(() => { if ((!_reading && !_lookingUp) || Workspace.Idle) throw new ToolkitException("No operational read is active."); Workspace.CancelOperation(); }, () => (_reading || _lookingUp) && Workspace.Busy);
         OpenCommand = Command(ChooseAndOpenAsync, () => CanEdit && Workspace.Profile is not null);
@@ -41,6 +43,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
         UseGroupCommand = Sync(UseSelectedGroup, () => GroupSelectionGuidance.Length == 0);
         Refresh();
     }
+    public IncidentReferencesViewModel IncidentReferences { get; }
+    public bool RequiresCloseReview => HasPendingOriginal || _opening || IncidentReferences.RequiresCloseReview;
     private string _groupQuery = "", _groupLookupContext = "", _groupLookupStatus = "Search existing group names, then choose an exact returned name and ID. Team provisioning is checked during capture.", _groupLookupKey = "";
     private int _groupLookupGeneration;
     private bool _lookingUp;
@@ -125,7 +129,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public string CustomerTenantId { get=>_customerTenantId; set { if(SetProperty(ref _customerTenantId,value)) SelectionChanged(); } }
     public bool PartnerDeclared { get=>_partnerDeclared; set { if(SetProperty(ref _partnerDeclared,value)) SelectionChanged(); } }
     private void SelectionChanged() { _generation++;_acknowledged=false;ClearResult();ClearGroupLookup();Notify(); }
-    public bool CanEdit => Workspace.Idle && !_reading && !_opening && !_lookingUp && !HasPendingOriginal;
+    public bool CanEdit => Workspace.Idle && !_reading && !_opening && !_lookingUp && !HasPendingOriginal && !IncidentReferences.RequiresCloseReview;
     public bool Acknowledged { get => _acknowledged; set { EnsureContext(); if (SetProperty(ref _acknowledged, value)) Notify(); } }
     public string Notice => IsIncidentReport || _report?.ReportId == "security-incidents" ? OperationalContextSchema.IncidentNotice : IsCollaborationReport || _report?.ReportId == "collaboration-inventory" ? OperationalContextSchema.CollaborationNotice : RegisteredReportDocuments.OperationalNotice;
     public sealed record ReportChoice(string Id, string Name);
@@ -157,6 +161,7 @@ public sealed class OperationalReportsViewModel : PageViewModel
             if (_reading || !Workspace.Idle) return _reading ? "Operational capture/original retention is active. Stop keeps earlier admitted observations; closing waits for recovery bytes." : "Wait for the current operation to finish.";
             if (_opening) return "The original operational file is being checked. Wait before another open or read; no service request is made.";
             if (HasPendingOriginal) return "Save, export or explicitly discard the pending original before another read. It retains its original source tenant.";
+            if (IncidentReferences.RequiresCloseReview) return "Save or explicitly discard pending incident references before replacing their source.";
             CollaborationReadSelection? choice = null; SecurityIncidentReadSelection? incidents = null;
             try { if (IsCollaborationReport) choice = CollaborationSelection(); if (IsIncidentReport) incidents = IncidentSelection(); }
             catch (ToolkitException error) { return error.Message; }
@@ -178,7 +183,8 @@ public sealed class OperationalReportsViewModel : PageViewModel
     public ICommand SaveOriginalCommand { get; } public ICommand ExportOriginalCommand { get; } public ICommand DiscardOriginalCommand { get; } public ICommand OpenConnectionCommand { get; }
     internal Func<string, bool> ConfirmDiscard { get; set; } = summary => System.Windows.MessageBox.Show(summary + "\n\nDiscard this original without another read?", "Discard original operational report", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) == System.Windows.MessageBoxResult.Yes;
     internal Func<OperationalContextReport, Task<byte[]>> SerialiseOriginal { get; set; } = report => Task.Run(() => new UTF8Encoding(false, true).GetBytes(OperationalContextSchema.Serialise(report)));
-    private void ClearResult() { _report = null; _original = []; _sheets = []; _section = ""; _rows = null; _export = ""; }
+    private void ClearResult() {
+        IncidentReferences?.ClearCurrent(); _report = null; _original = []; _sheets = []; _section = ""; _rows = null; _export = ""; }
     private void EnsureContext()
     {
         var context = _controller.ContextKey;
@@ -212,10 +218,13 @@ public sealed class OperationalReportsViewModel : PageViewModel
     }
     private async Task SetReportAsync(OperationalContextReport report, byte[] original, bool supplied, string context, int generation)
     {
-        var sheets = await Task.Run(() => RegisteredReportDocuments.OperationalSheets(report, supplied));
+        var projection = await Task.Run(() => (sheets: RegisteredReportDocuments.OperationalSheets(report, supplied),
+            source: report.ReportId == "security-incidents" ? OperationalContextFile.Read(original,report.TenantId) : null));
         _controller.RequireContext(context);
         if (generation != _generation) throw new TenantMismatchException("Operational context changed while projecting the result.");
-        _report = report; _original = original.ToArray(); _supplied = supplied; _sheets = sheets; _section = sheets[0].Name; _search = ""; BuildRows(); Notify();
+        if (projection.source is not null) IncidentReferences.Admit(projection.source,context);
+        else IncidentReferences.ClearCurrent();
+        _report = report; _original = original.ToArray(); _supplied = supplied; _sheets = projection.sheets; _section = _sheets[0].Name; _search = ""; BuildRows(); Notify();
     }
     internal Func<string, string, Task<OperationalContextFile>> ReadOriginal { get; set; } = (file, tenant) => Task.Run(() => OperationalContextFile.ReadFile(file, tenant));
     public async Task OpenSuppliedAsync(string file)

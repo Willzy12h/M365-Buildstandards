@@ -74,6 +74,7 @@ public sealed class SecurityIncidentReportsPageTests
         Set(references, "SelectedIncidentId", "123"); Set(references, "SelectedControlId", f.Workspace.Standard!.Controls[0].Id);
         var add = references.GetType().GetMethod("AddReference"); Assert.NotNull(add); add.Invoke(references,null);
         Assert.Equal(1, Property(references,"ReferenceCount").GetValue(references));
+        Assert.True(page.RequiresCloseReview); Assert.Contains("references",page.ReadGuidance);
         var save = references.GetType().GetMethod("ExportReferencesAsync"); Assert.NotNull(save); await (Task)save.Invoke(references,null)!;
         var file = (string)Property(references,"LastExport").GetValue(references)!;
         var link = Assert.Single(IncidentControlReferenceDocument.ReadFile(file, source));

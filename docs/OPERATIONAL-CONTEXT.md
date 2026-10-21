@@ -69,3 +69,15 @@ Keep exact original JSON before replacing a result. Collaboration uses the same 
 5. Review each source and its original count/coverage in **Context results**, then Save/Export the original before replacing it. HTML/CSV/Excel include all source tables regardless of the display filter. Normal close waits for capture/original recovery; forced termination can lose an unsaved in-memory original.
 
 Site selection preserves exact IDs copied from results. Group lookup reuses the existing bounded resolver (at most1,000 matches,60-second deadline) and never guesses an identity from a name or assumes that a group has a Team. Query/client/selection changes invalidate lookup results and acknowledgement. Failed lookup is not a successful empty result. Human accessibility, workstation policy and live Microsoft behaviour remain unverified.
+
+## Security incident context and control references
+
+Choose **Security incidents** in Operational context, enter the explicit UTC created-date interval (start inclusive, end exclusive, maximum31days), review the access/coverage text and acknowledge before Read. The default-off incident choice in Connect/setup uses the separately approved `SecurityIncident.Read.All` reporting purpose. Consent, appropriate security RBAC and licensed/connected Defender workloads are distinct prerequisites; Business Premium/P1 alone proves neither incident coverage nor P2 access. No alert bodies, response action or embedded portal is provided. A completed empty response means none returned for this exact query, not that the tenant is safe. Missing priority stays Unknown and raw future values/ambiguous IDs stay Partial.
+
+Save/export the original JSON through **Original context**. All visibility formats retain the complete original report's coverage/read states; display filtering does not restrict exports. Reported resolved status is Microsoft's workflow state and does not establish verified remediation.
+
+**Incident references** links one unambiguous incident in the exact original to a control in the manifest-verified loaded catalogue. Choose the source incident and control, **Add incident reference**, then **Save incident references**. Reference files are separate from original incident evidence, and retain its byte SHA-256 plus the exact catalogue release/digest/control. Open the original before **Open references JSON**. Historical catalogue/control gaps stay unresolved; names are never substituted. The table exposes exact identities and resolution reasons.
+
+Unsaved incident references prevent replacing the source or closing without attention. Changing client hides the old current source but retains unsaved references under their original identity, allowing an explicit save. **Discard unsaved references…** asks first and preserves original evidence and saved files. References change no configuration assessment, tenant object, ownership, approval or job completion.
+
+Source implementation remains experimental/live-unverified. Windows/native/package evidence is recorded per exact PR head; named safety acceptance and human/live checks remain separate.

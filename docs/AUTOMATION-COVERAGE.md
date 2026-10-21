@@ -139,3 +139,13 @@ Desktop Run now registers inventory/size/quotas, protocol settings, forwarding s
 | Partner relationships | Accepted INT134 contract, opaque path registry and model scaffolds; source still refuses partner collection | Decision review/CI and registry guards only | Parent/customer/child engine/transport/evidence/native journey and source-matched verification |
 
 These reports never become deployment before-evidence or proof of effective rights/availability. Optional access is default off and uses only the owner-approved fixed scopes through the existing broker/cache/registration flow. See [operational context](OPERATIONAL-CONTEXT.md). This table does not change the historical standard or claim all A–J work is complete.
+
+### J security context and external claims (INT-138)
+
+| Capability | Source/UI/CLI | Evidence and authority limit |
+| --- | --- | --- |
+| Fixed incident metadata over an explicit UTC interval | Shared bounded read service; native Read/Stop, original recovery and exports; existing operational-evidence offline CLI | Incident native checkpoint b1b370c passed Windows39525454977 with retrieved package; later references require new evidence. Appropriate scope/RBAC/workload remains live-unverified. No response operation or safety verdict. |
+| Neutral external results v1 | Shared strict original-byte admission and inert documents; native source/claims/references; offline `bdit external-checks` | Native import/export/reference tests passed on254a591; pending-close correction passed on2a1cd1d. Full current native renders/package remain pending. Source claims cannot become assessment, before-evidence or completion. |
+| Explicit test/incident → control references | Exact original SHA, catalogue release/digest and control identity; separate portable reference JSON, native add/save/open and unresolved-history display | Incident-native tests observed missing-component RED on2a1cd1d before implementation. Current-source Windows verification and named acceptance pending. No verdict translation, remediation or ownership inference. |
+
+These statuses do not accept the A–J assembled candidate or any unrun human/live gate.
