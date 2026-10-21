@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using BuildStandard.Core;
 using BuildStandard.Core.Diagnostics;
+using BuildStandard.Core.Json;
 using BuildStandard.Engine.Evidence;
 using Xunit;
 namespace BuildStandard.Tests;
@@ -33,4 +34,12 @@ public sealed class LifecycleHistoryTests
         Assert.Equal("No final outcome",row.GetType().GetProperty("Status")!.GetValue(row));
         Assert.Equal("disable-account",row.GetType().GetProperty("ActionId")!.GetValue(row));
     }
+    [Fact]public void An_outcome_without_its_intent_is_unreadable_history_not_a_successful_empty_list()
+    {
+        using var f=new LifecyclePreparationTests.Fixture();var id=Guid.NewGuid().ToString("D");
+        var record=new JsonObject { ["kind"]="lifecycle-run",["schemaVersion"]=1,["id"]=id,["tenantId"]=TestData.TenantA,["writeAcceptance"]="Unknown",["integrityDigest"]="" };record["integrityDigest"]=CanonicalJson.Sha256(record);
+        var file=Path.Combine(f.Evidence.TenantDirectory(TestData.TenantA),"lifecycle","run-"+id+".json");f.Evidence.WriteJsonAtomic(file,record);
+        Assert.ThrowsAny<ToolkitException>(()=>Call(f.Evidence,"ListLifecycleAttempts",TestData.TenantA,5000,CancellationToken.None));
+    }
+
 }

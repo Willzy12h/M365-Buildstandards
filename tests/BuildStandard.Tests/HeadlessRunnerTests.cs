@@ -26,7 +26,7 @@ public class HeadlessRunnerTests
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
         "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow",
-        "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport"
+        "LifecycleReadinessService", "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport"
     };
 
     [Fact]

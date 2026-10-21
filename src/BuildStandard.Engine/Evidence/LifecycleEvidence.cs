@@ -48,6 +48,12 @@ public sealed partial class EvidenceStore
         if(maximum is <1 or >5000)throw new ConfigurationException("Inspect at most5,000 lifecycle attempts, or open an exact record ID.");
         var directory=Path.Combine(TenantDirectory(tenant),"lifecycle");RefuseLifecycleLinks(directory);
         if(!Directory.Exists(directory))return Array.Empty<LifecycleAttemptSummary>();
+        // An incomplete transfer must not turn an orphaned outcome into a successful empty history.
+        foreach(var outcome in Directory.EnumerateFiles(directory,"run-*.json"))
+        {
+            ct.ThrowIfCancellationRequested();var outcomeId=Path.GetFileNameWithoutExtension(outcome)["run-".Length..];
+            if(!File.Exists(LifecycleFile(tenant,"intent",outcomeId)))throw new SafetyViolationException("Lifecycle history has an outcome without its original intent. Preserve the files; no complete/empty history is certified.");
+        }
         var rows=new List<LifecycleAttemptSummary>();
         foreach(var file in Directory.EnumerateFiles(directory,"intent-*.json"))
         {

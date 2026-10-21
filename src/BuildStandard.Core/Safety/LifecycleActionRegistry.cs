@@ -11,6 +11,14 @@ public static class LifecycleActionRegistry
     public static IReadOnlyList<string> ActionIds { get; } = Array.AsReadOnly(new[]
     { "add-member", "remove-member", "assign-license", "remove-license", "enable-account", "disable-account", "revoke-sessions" });
 
+    public static string Label(string actionId)=>actionId switch
+    {
+        "add-member"=>"Add one direct group membership","remove-member"=>"Remove one direct group membership",
+        "assign-license"=>"Add or update one direct licence","remove-license"=>"Remove one direct licence",
+        "enable-account"=>"Enable this account","disable-account"=>"Disable this account","revoke-sessions"=>"Revoke this user's sign-in sessions",
+        _=>"Unclassified action: "+actionId
+    };
+
     public static LifecycleOperation Create(string actionId, string userId, string? groupId = null, string? skuId = null, string[]? disabledPlans = null)
     {
         if (!ActionIds.Contains(actionId, StringComparer.Ordinal)) throw Bad("Choose one registered lifecycle action.");

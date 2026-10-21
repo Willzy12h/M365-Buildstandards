@@ -26,6 +26,7 @@ public sealed class LifecycleRunService(EvidenceStore evidence,IClock clock)
         var document=RequireCurrent(preview,session,profile,standard,snapshot,assertCurrent);
         if(exactDigest!=preview.IntegrityDigest || !protectedAccountsReviewed || !downstreamReviewed || preview.PreservationRequired && !preservationReviewed)
             throw new SafetyViolationException("Review the exact preview, protected accounts, downstream ownership and any required preservation/retention/business-owner consequences before approval.");
+        LifecycleWriteInterlocks.Require(evidence,preview.TenantId,standard);
         if(File.Exists(IntentFile(preview)))throw new SafetyViolationException("This lifecycle plan already has an attempt. Reconcile it; approval cannot revive or replay a saved plan.");
         return new(preview,new JsonObject { ["planDigest"]=preview.IntegrityDigest,["accountObjectId"]=session.AccountObjectId,
             ["approvedAt"]=Timestamps.Format(clock.UtcNow),["protectedAccountsReviewed"]=true,["downstreamReviewed"]=true,
@@ -39,7 +40,7 @@ public sealed class LifecycleRunService(EvidenceStore evidence,IClock clock)
         if(graph.Mode!=SessionMode.Deployment || !string.Equals(graph.TenantId,preview.TenantId,StringComparison.OrdinalIgnoreCase))throw new TenantMismatchException("Lifecycle writer is not the verified deployment connection for this client.");
         ct.ThrowIfCancellationRequested();approval.Consume();
         using var lease=evidence.AcquireTenantWriteLease(preview.TenantId);
-        AssertOtherWritesResolved(preview.TenantId,standard);
+        LifecycleWriteInterlocks.Require(evidence,preview.TenantId,standard);
         var operation=ToolkitJson.Deserialize<LifecycleOperation>(plan["operation"]!.ToJsonString());
         _=LifecycleActionRegistry.RequireRegistered(operation);
         var intent=Record("intent",preview.Id,preview.TenantId);
@@ -163,14 +164,6 @@ public sealed class LifecycleRunService(EvidenceStore evidence,IClock clock)
             ||!Timestamps.TryParse(plan["originalTokenExpiresAt"]!.GetValue<string>(),out var expires)||clock.UtcNow<created||clock.UtcNow<at||clock.UtcNow>=expires
             ||clock.UtcNow-created>TimeSpan.FromMinutes(10)||clock.UtcNow-at>TimeSpan.FromMinutes(20))throw new SafetyViolationException("Original lifecycle approval, snapshot or authorisation expired. Renewal cannot extend it.");
         return plan;
-    }
-    private void AssertOtherWritesResolved(string tenant,StandardCatalogue standard)
-    {
-        evidence.AssertNoUnresolvedLifecycle(tenant);
-        var controls=standard.Controls.Select(c=>c.Id).Concat(evidence.RequireIntactRuns(tenant).SelectMany(run=>run.Results.Select(row=>row.ControlId)))
-            .Concat(evidence.LoadRecoveryRuns(tenant).Select(run=>run.ControlId)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        evidence.AssertCompletionWritesResolved(tenant,controls);
-        if(evidence.LoadPackageRuns(tenant).Any(run=>run.Steps.Any(step=>WriteAcceptance.IsUncertain(step.Acceptance))))throw new SafetyViolationException("An earlier package write has unknown acceptance. Reconcile before lifecycle actions.");
     }
     private string IntentFile(LifecyclePreview preview)=>Path.Combine(evidence.TenantDirectory(preview.TenantId),"lifecycle","intent-"+preview.Id+".json");
     private static JsonObject Record(string family,string id,string tenant)=>new(){["kind"]="lifecycle-"+family,["schemaVersion"]=1,["id"]=id,["tenantId"]=tenant,["integrityDigest"]=""};

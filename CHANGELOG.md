@@ -545,3 +545,6 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 
 - Unpublished J: strict incident-context evidence and shared HTML/CSV/Excel/original-JSON exports retain the requested UTC window, unknown priority and explicit coverage limits; connected capture remains in development.
 - Unpublished J: experimental native incident context now reuses optional Connect/setup access, exact UTC windows, read acknowledgement and original-result recovery. Incident response actions remain unavailable; actual Microsoft behaviour is live-unverified.
+
+
+- Experimental existing-user native workflow: explicit fixed action/readiness/access, complete before-evidence and exact single-use confirmation, durable unknown-safe history and read-only reconciliation. Selected lifecycle deployment requests only its reviewed write purpose; account/group equivalent access may reuse a current verified connection. Offline history/JSON/HTML exports cannot approve or replay. Manual Exchange/preservation/device work and named/live acceptance remain separate.

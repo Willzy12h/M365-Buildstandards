@@ -32,6 +32,8 @@ public sealed class LifecyclePreparationService(EvidenceStore evidence,IClock cl
         var originalExpiry=session.TokenExpiresAt;
         RequireCurrent();
         var stored=evidence.RequireDeploymentSnapshot(snapshot,standard);FreshSnapshot();
+        LifecycleWriteInterlocks.Require(evidence,session.TenantId,standard);
+        RequireCurrent();FreshSnapshot();
         var snapshotDigest=stored.IntegrityDigest;
         var capture=await new LifecycleBeforeCaptureService(clock).CaptureAsync(source,session,operation,RequireCurrent,ct).ConfigureAwait(false);
         evidence.SaveLifecycleBefore(capture.GetObservation());

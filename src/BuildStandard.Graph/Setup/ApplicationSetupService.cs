@@ -61,10 +61,11 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         catch { await auth.DisconnectAsync().ConfigureAwait(false); throw; }
     }
 
-    public static List<string> RequiredScopes(StandardCatalogue standard, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
+    public static List<string> RequiredScopes(StandardCatalogue standard, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null)
     {
         var scopes = TenantConnectionService.DiagnosticScopes.Concat(standard.ReadScopes()).Concat(OptionalReportAccessPolicy.Scopes(optionalAccess))
-            .Concat(mode == SessionMode.Deployment ? standard.WriteScopes() : Array.Empty<string>())
+            .Concat(LifecycleAccessPolicy.Scopes(mode,lifecycleActionId))
+            .Concat(mode == SessionMode.Deployment && LifecycleAccessPolicy.Normalise(lifecycleActionId) is null ? standard.WriteScopes() : Array.Empty<string>())
             .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.OrdinalIgnoreCase).ToList();
         if (mode == SessionMode.Assessment && TokenCapabilityClassifier.Classify(scopes).Classification != TokenCapability.ReadOnlyVerified)
             throw new ConfigurationException("The standard contains a write-capable or unclassified assessment scope. Correct and review the standard before application setup.");
@@ -72,9 +73,10 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
     }
 
     public async Task<ApplicationSetupPlan> PreviewAsync(StandardCatalogue standard, string namePrefix, CancellationToken ct,
-        string assessmentClientId = "", string deploymentClientId = "", bool assignOperator = false, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
+        string assessmentClientId = "", string deploymentClientId = "", bool assignOperator = false, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null)
     {
         OptionalReportAccessPolicy.Validate(optionalAccess);
+        _=LifecycleAccessPolicy.Normalise(lifecycleActionId);
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -93,7 +95,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
             foreach (var mode in new[] { SessionMode.Assessment, SessionMode.Deployment })
             {
                 var row = new ApplicationSetupRow { Mode = mode, DisplayName = namePrefix + (mode == SessionMode.Assessment ? " Assessment Tool" : " Deployment Tool") };
-                foreach (var scope in RequiredScopes(standard, mode, optionalAccess))
+                foreach (var scope in RequiredScopes(standard, mode, optionalAccess, lifecycleActionId))
                 {
                     if (!scopeMap.TryGetValue(scope, out var permission)) throw new ConfigurationException($"Microsoft Graph does not advertise the enabled delegated permission {scope}. Setup is blocked.");
                     row.Permissions.Add(permission);
@@ -104,8 +106,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                 {
                     if (Same(assessmentClientId.Trim(), deploymentClientId.Trim())) throw new ConfigurationException("Use different IDs for assessment and deployment.");
                     await PrepareExistingAsync(row, explicitId, ct).ConfigureAwait(false);
-                    // Selecting another read purpose or selecting off does not revoke already configured approved
-                    // optional reads. Preserve only the fixed reviewed purposes; unidentified IDs require manual review.
+                    // Purpose changes do not silently revoke previously configured reviewed capabilities.
+                    // Assessment never preserves write permissions; deployment may retain existing standard/lifecycle writes.
+                    // Token and consent requests still use only the currently selected required scopes.
                     if(row.ExistingApplication?["requiredResourceAccess"] is JsonArray existingAccess)
                     {
                         var configuredIds=existingAccess.OfType<JsonObject>().Where(api=>Text(api,"resourceAppId")==GraphApplicationId)
@@ -117,7 +120,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                             .Select(permission=>Text(permission,"id")).ToHashSet(StringComparer.OrdinalIgnoreCase);
                         if(configuredIds.Except(advertisedIds,StringComparer.OrdinalIgnoreCase).Any())
                             throw new ConfigurationException("A configured Graph permission definition is unavailable. Preview refused; existing permissions were retained. Review the registration separately.");
-                        foreach(var name in OptionalReportAccessPolicy.PreservedOptionalScopes)
+                        foreach(var name in LifecycleAccessPolicy.RetainedRegistrationScopes(standard,mode))
                         {
                             var definitions=(resource["oauth2PermissionScopes"] as JsonArray ?? []).OfType<JsonObject>()
                                 .Where(permission=>Same(Text(permission,"value"),name)&&configuredIds.Contains(Text(permission,"id"))).ToArray();
@@ -305,9 +308,10 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
         finally { _gate.Release(); }
     }
 
-    public async Task<ApplicationSetupValidation> ValidateAsync(StandardCatalogue standard, string assessmentClientId, string deploymentClientId, CancellationToken ct, OptionalReportAccess optionalAccess = OptionalReportAccess.None)
+    public async Task<ApplicationSetupValidation> ValidateAsync(StandardCatalogue standard, string assessmentClientId, string deploymentClientId, CancellationToken ct, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null)
     {
         OptionalReportAccessPolicy.Validate(optionalAccess);
+        _=LifecycleAccessPolicy.Normalise(lifecycleActionId);
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -318,7 +322,7 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
             var validation = new ApplicationSetupValidation { TenantId = Identity.TenantId, CheckedAt = DateTimeOffset.UtcNow };
             foreach (var (mode, clientId) in new[] { (SessionMode.Assessment, assessmentClientId.Trim()), (SessionMode.Deployment, deploymentClientId.Trim()) })
             {
-                var row = new ApplicationPermissionValidation { Mode = mode, ClientId = clientId, RequiredScopes = RequiredScopes(standard, mode, optionalAccess) };
+                var row = new ApplicationPermissionValidation { Mode = mode, ClientId = clientId, RequiredScopes = RequiredScopes(standard, mode, optionalAccess, lifecycleActionId) };
                 validation.Rows.Add(row);
                 try
                 {
@@ -348,8 +352,9 @@ public sealed partial class ApplicationSetupService : IAsyncDisposable
                             row.ConfiguredScopes.Add(byId.GetValueOrDefault(Text(permission, "id"), "Unknown permission " + Text(permission, "id")));
                         }
                     }
-                    var preservedOptional = OptionalReportAccessPolicy.PreservedOptionalScopes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    // Previously configured reviewed reads may remain, but an unconfigured grant is still extra access.
+                    var preservedOptional = LifecycleAccessPolicy.RetainedRegistrationScopes(standard,mode).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    // Previously configured reviewed purposes may remain; assessment still excludes writes.
+                    // An unconfigured grant is extra access, not permission inferred from a purpose label.
                     var allowedConfigured = row.RequiredScopes.Concat(row.ConfiguredScopes.Where(preservedOptional.Contains)).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     if (row.RequiredScopes.Except(row.ConfiguredScopes,StringComparer.OrdinalIgnoreCase).Any() || row.ConfiguredScopes.Except(allowedConfigured,StringComparer.OrdinalIgnoreCase).Any())
                         row.Issues.Add("Configured delegated permissions differ from the current standard: missing or extra scopes require review.");

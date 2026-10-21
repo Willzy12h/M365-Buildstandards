@@ -17,6 +17,7 @@ public static class RouteCatalog
         new("Build standard", "plan", "4", "Plan changes"),
         new("Build standard", "deploy", "5", "Deploy and outcomes"),
         new("Build standard", "automation", "6", "Policy automation"),
+        new("Build standard", "lifecycle", "", "Existing-user actions"),
         new("Build standard", "checks", "", "Manual checks"),
         new("Build standard", "jobs", "", "Jobs and completion"),
         new("Build standard", "history", "", "Evidence and drift"),

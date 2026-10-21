@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 
 namespace BuildStandard.App.Services;
 
-public enum ExperimentalOperation { Deploy, ReviewedChange, EntraLaps, PublishPackage, Recovery }
+public enum ExperimentalOperation { Deploy, ReviewedChange, EntraLaps, PublishPackage, Recovery, Lifecycle }
 
 /// <summary>Desktop-only, transient authority. It never replaces the engine's exact operation approvals.</summary>
 public sealed class ExperimentalOperationGuard

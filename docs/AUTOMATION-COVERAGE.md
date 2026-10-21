@@ -149,3 +149,10 @@ These reports never become deployment before-evidence or proof of effective righ
 | Explicit test/incident → control references | Exact original SHA, catalogue release/digest and control identity; separate portable reference JSON, native add/save/open and unresolved-history display | Incident-native tests observed missing-component RED on2a1cd1d before implementation. Current-source Windows verification and named acceptance pending. No verdict translation, remediation or ownership inference. |
 
 These statuses do not accept the A–J assembled candidate or any unrun human/live gate.
+
+
+## Experimental existing-user actions (INT-137)
+
+The native Existing-user actions page and shared lifecycle engine support one fixed action per review: direct group add/remove, direct licence assign/update/remove, account enable/disable or session revocation. Registered readiness reads, protected/privileged/synced authority refusals, complete saved before-evidence, immutable preview, original expiry, single-use native approval, durable intent, final admission and independent readback are implemented. Local original JSON/inert HTML exports and offline `buildstandard lifecycle` inspection share the same stored history. Unknown/intent-only history blocks other writes; read-only reconciliation never replays a write. These are experimental source capabilities, not live-accepted Microsoft behaviour. Named safety acceptance and human/accessibility gates remain pending.
+
+Workflow guidance separates manual preservation/Exchange/application/device work; no whole joiner/mover/leaver completion badge is provided. Existing standards jobs and immutable observations retain their original requirement-based meanings; lifecycle outcomes do not fabricate standard-control Pass observations. Unsupported account/password creation, Exchange mutations and macOS remain blocked/manual.

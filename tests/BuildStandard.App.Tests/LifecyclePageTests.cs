@@ -57,4 +57,19 @@ public sealed class LifecyclePageTests
         Assert.Equal(!change,Property(page,"HasPreview").GetValue(page));Assert.False((bool)Property(page,"CanApply").GetValue(page)!);
         Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);
     }
+    [Fact] public void Access_shortcut_selects_one_action_without_authenticating_or_running_it()
+    {
+        using var f=new ConnectedReportsFixture();var shell=new ShellViewModel(f.Workspace);var page=shell.Page<LifecycleViewModel>();
+        page.SelectedActionId="revoke-sessions";page.AccessCommand.Execute(null);
+        Assert.IsType<ConnectViewModel>(shell.CurrentPage);
+        Assert.Equal("revoke-sessions",shell.Page<ConnectViewModel>().SelectedLifecycleActionId);
+        Assert.Equal(0,f.Tokens.Calls);Assert.Equal(0,f.Handler.Calls);Assert.False(page.CanApply);
+    }
+    [Fact] public void Empty_picker_selection_does_not_erase_a_manual_exact_target()
+    {
+        using var f=new ConnectedReportsFixture();var page=(LifecycleViewModel)Page(f);
+        page.SelectedUserId=TestData.Office;page.SelectedUserChoice=null;
+        Assert.Equal(TestData.Office,page.SelectedUserId);Assert.False(page.CanApply);
+    }
+
 }

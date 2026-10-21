@@ -535,39 +535,45 @@ public sealed class Workspace : ObservableObject
     public async Task CancelPendingDiscoveryAsync() { CancelPendingDiscovery(); await _pendingRelease; }
 
     private OptionalReportAccess _connectedOptionalAccess;
+    private string? _connectedLifecycleAction;
     public Task ConnectAsync(TenantProfile profile, SessionMode mode, string? loginHint = null,
-        DiscoveredTenant? expectedIdentity = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None) => RunExclusiveAsync(
+        DiscoveredTenant? expectedIdentity = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null) => RunExclusiveAsync(
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
+            var selectedLifecycleAction=LifecycleAccessPolicy.Normalise(lifecycleActionId);
+            if(expectedIdentity is not null && selectedLifecycleAction is not null)throw new ConfigurationException("Quick Connect is initial read-only discovery. Confirm it first, then review lifecycle access deliberately.");
             var standard = RequireStandard();
             Connections.ParentWindowHandle = AuthenticationWindow();
             Connections.LoginHint = loginHint ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
             // Repeated connection buttons for the same complete profile need fresh read checks, not another
             // interactive sign-in. A changed mode, application, profile or discovery confirmation uses full verification.
-            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode, optionalAccess))
+            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode, optionalAccess, selectedLifecycleAction))
             {
                 progress.Report("Reusing the current verified session; checking read access without another sign-in.");
                 Access = await Connections.CheckAccessAsync(Connection!, standard, progress, OperationToken);
                 await LoadLicencesCoreAsync(includeUsers: false);
+                _connectedLifecycleAction=selectedLifecycleAction;
                 return;
             }
             ExperimentalGuard.Invalidate();
             var requestedClient = Settings.ResolveClient(mode, profile) ?? throw new ConfigurationException("No application is configured for this access mode.");
-            var requestedScopes = Connections.ScopesFor(mode, standard, optionalAccess).ToArray();
+            var requestedScopes = Connections.ScopesFor(mode, standard, optionalAccess, selectedLifecycleAction).ToArray();
             var requestedAccount = Connections.LoginHint;
             var approvedUntil = DateTimeOffset.MinValue;
-            if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None)
+            if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None || selectedLifecycleAction is not null)
             {
                 await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
-                    mode == SessionMode.Deployment ? "Request deployment access — experimental tenant changes stay off until separately approved" : "Optional usage-report read access — Reports.Read.All; no licence/privacy changes", OperationToken, requestedAccount);
+                    selectedLifecycleAction is not null
+                        ? (mode==SessionMode.Deployment?"Selected existing-user action deployment access: ":"Read-only existing-user readiness access: ")+LifecycleActionRegistry.Label(selectedLifecycleAction)+". Experimental writes remain off until separately approved."
+                        : mode == SessionMode.Deployment ? "Request deployment access — experimental tenant changes stay off until separately approved" : "Optional registered report read access — review every listed scope; no report-setting or licence changes", OperationToken, requestedAccount);
                 approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
             }
             async Task BeforeInteractive(CancellationToken ct)
             {
                 if (!string.Equals(Settings.ResolveClient(mode, profile)?.ClientId, requestedClient.ClientId, StringComparison.OrdinalIgnoreCase)
-                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard, optionalAccess)))
+                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard, optionalAccess, selectedLifecycleAction)))
                     throw new SafetyViolationException("The displayed application or permissions changed. Review a new request; no sign-in request was sent.");
-                if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None)
+                if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None || selectedLifecycleAction is not null)
                 {
                     if (approvedUntil <= DateTimeOffset.UtcNow) throw new SafetyViolationException("Access-request approval expired. Review the request again.");
                     ct.ThrowIfCancellationRequested();
@@ -588,10 +594,11 @@ public sealed class Workspace : ObservableObject
             else
             {
                 await CancelPendingDiscoveryAsync();
-                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive, optionalAccess: optionalAccess);
+                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive, optionalAccess: optionalAccess, lifecycleActionId: selectedLifecycleAction);
             }
             await CompleteConnectionAsync(profile, nextConnection, standard, progress);
             _connectedOptionalAccess=optionalAccess;
+            _connectedLifecycleAction=selectedLifecycleAction;
         });
 
     /// <summary>Accepts an already authenticated connection and performs the existing read-only checks.</summary>
@@ -628,7 +635,11 @@ public sealed class Workspace : ObservableObject
         await LoadLicencesCoreAsync(includeUsers: false);
     }
 
-    public bool CanReuseConnection(TenantProfile profile, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None) => Profile is not null
+    public bool CanReuseConnection(TenantProfile profile, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null) => Profile is not null
+        && Standard is { } lifecycleCatalogue
+        && Connections.ScopesFor(mode,lifecycleCatalogue,optionalAccess,_connectedLifecycleAction).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            .SetEquals(Connections.ScopesFor(mode,lifecycleCatalogue,optionalAccess,LifecycleAccessPolicy.Normalise(lifecycleActionId)))
+        && LifecycleAccessPolicy.Scopes(mode,lifecycleActionId).All(scope=>(Session?.Scopes??[]).Any(raw=>string.Equals(raw.StartsWith("https://graph.microsoft.com/",StringComparison.OrdinalIgnoreCase)?raw[28..]:raw,scope,StringComparison.OrdinalIgnoreCase)))
         && _connectedOptionalAccess==optionalAccess
         && OptionalReportAccessPolicy.IsSatisfied(optionalAccess, Session?.Scopes ?? [])
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
@@ -669,6 +680,7 @@ public sealed class Workspace : ObservableObject
         ExperimentalGuard.Invalidate();
         var connection = Connection;
         Connection = null;
+        _connectedLifecycleAction=null;
         Licences = null;
         InterruptedNotice = "";
         Access = null;

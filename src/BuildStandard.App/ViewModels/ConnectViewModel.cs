@@ -1,3 +1,4 @@
+using BuildStandard.Core.Safety;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using BuildStandard.Core;
@@ -132,6 +133,26 @@ public sealed class ConnectViewModel : PageViewModel
         if (!Workspace.Idle) throw new ToolkitException("Wait for the active operation before changing report-access intent.");
         SetProperty(ref field, value, name); Workspace.CancelPendingDiscovery(); SetDiscovery(null); OnPropertyChanged(nameof(OptionalAccessSummary));
     }
+    private string _lifecycleAction="";
+    public IReadOnlyList<LifecycleViewModel.Choice> LifecycleAccessChoices {get;}=new[]{new LifecycleViewModel.Choice("","None — default off")}.Concat(LifecycleViewModel.Actions).ToArray();
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public string SelectedLifecycleActionId
+    {
+        get=>_lifecycleAction;
+        set
+        {
+            var next=LifecycleAccessPolicy.Normalise(value)??"";if(next==_lifecycleAction)return;
+            if(!Workspace.Idle)throw new ToolkitException("Wait for the active operation before changing selected lifecycle access.");
+            SetProperty(ref _lifecycleAction,next);Workspace.CancelPendingDiscovery();SetDiscovery(null);OnPropertyChanged(nameof(LifecycleAccessSummary));
+        }
+    }
+    public string LifecycleAccessSummary=>SelectedLifecycleActionId.Length==0?"Existing-user action access: none selected (default off)":"Selected action: "+LifecycleActionRegistry.Label(SelectedLifecycleActionId)+". Read-only connection requests target-readiness reads only. Deployment requests only this lifecycle write purpose, not unrelated policy writes. Selection grants nothing; Quick Connect remains initial read-only discovery.";
+    public void SelectLifecycleAccess(string actionId)
+    {
+        if(!Workspace.Idle)throw new ToolkitException("Wait for the active operation.");
+        if(Workspace.Profile is { } profile){Selected=null;LoadForm(profile);RememberConnection=Profiles.Any(p=>p.Id==profile.Id);}
+        SelectedLifecycleActionId=actionId;
+    }
     public string OptionalAccessSummary => OptionalAccess == OptionalReportAccess.None ? "Optional read access: none selected (default off)" : "Optional read access: " + string.Join(" · ", OptionalReportAccessPolicy.Scopes(OptionalAccess));
     private OptionalReportAccess OptionalAccess => (IncludeUsageReports ? OptionalReportAccess.UsageReports : OptionalReportAccess.None)
         | (IncludeServiceHealth ? OptionalReportAccess.ServiceHealth : OptionalReportAccess.None)
@@ -153,6 +174,7 @@ public sealed class ConnectViewModel : PageViewModel
         setup.IncludeUsageReports=IncludeUsageReports;
         setup.IncludeServiceHealth=IncludeServiceHealth;
         setup.IncludeSecurityIncidents=IncludeSecurityIncidents;
+        setup.SelectedLifecycleActionId=SelectedLifecycleActionId;
         setup.IncludePartnerRelationships=IncludePartnerRelationships;
         setup.IncludeCollaborationSites=IncludeCollaborationSites;
         setup.IncludeCollaborationTeams=IncludeCollaborationTeams;
@@ -419,7 +441,7 @@ public sealed class ConnectViewModel : PageViewModel
         var profile = Selected ?? throw new ToolkitException("Select a saved client first.");
         LoadForm(profile);
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, SessionMode.Assessment, optionalAccess: OptionalAccess);
+        await Workspace.ConnectAsync(profile, SessionMode.Assessment, optionalAccess: OptionalAccess, lifecycleActionId: SelectedLifecycleActionId);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }
@@ -441,7 +463,7 @@ public sealed class ConnectViewModel : PageViewModel
         EditId = profile.Id;
         if (Workspace.Settings.ResolveClient(mode, profile) is null) { OpenSetup(); return; }
         var previous = Workspace.Connection;
-        await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null, optionalAccess: OptionalAccess);
+        await Workspace.ConnectAsync(profile, mode, loginHint: chooseAccount ? "" : null, optionalAccess: OptionalAccess, lifecycleActionId: SelectedLifecycleActionId);
         if (ReferenceEquals(previous, Workspace.Connection)) return;
         Shell.Navigate("overview");
     }

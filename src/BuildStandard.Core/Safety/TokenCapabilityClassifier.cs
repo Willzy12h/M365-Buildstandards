@@ -35,6 +35,7 @@ public static class TokenCapabilityClassifier
         "Directory.ReadWrite.All", "Application.ReadWrite.All", "Application.ReadWrite.OwnedBy",
         "AppRoleAssignment.ReadWrite.All", "DelegatedPermissionGrant.ReadWrite.All", "Group.ReadWrite.All",
         "WindowsUpdates.ReadWrite.All",
+        "GroupMember.ReadWrite.All", "LicenseAssignment.ReadWrite.All", "User.EnableDisableAccount.All", "User.RevokeSessions.All",
         "DeviceManagementApps.ReadWrite.All", "DeviceManagementConfiguration.ReadWrite.All",
         "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All",
         "Policy.ReadWrite.AuthenticationMethod", "Policy.ReadWrite.Authorization",

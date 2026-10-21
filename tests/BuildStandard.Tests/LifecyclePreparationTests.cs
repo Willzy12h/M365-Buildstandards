@@ -75,4 +75,10 @@ public sealed class LifecyclePreparationTests
         Assert.Empty(Directory.GetFiles(dir,"plan-*.json"));
     }
 
+    [Fact]public async Task An_existing_unresolved_write_blocks_a_new_preview_before_unnecessary_target_reads()
+    {
+        using var f=new Fixture();f.Evidence.SaveReviewedChangeRun(new ReviewedChangeRun {Id=Guid.NewGuid().ToString("D"),TenantId=TestData.TenantA,WriteAcceptance=WriteAcceptance.Unknown});
+        await Assert.ThrowsAnyAsync<ToolkitException>(f.Prepare);Assert.Equal(0,f.Source.RequestCount);
+    }
+
 }
