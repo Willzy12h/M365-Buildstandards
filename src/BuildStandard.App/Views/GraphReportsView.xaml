@@ -79,6 +79,7 @@
         </ScrollViewer></TabItem>
         <TabItem Header="Usage review"><views:UsageReviewPanel DataContext="{Binding Usage}"/></TabItem>
         <TabItem Header="Operational context"><views:OperationalReviewPanel DataContext="{Binding Operational}"/></TabItem>
+        <TabItem Header="External results"><views:ExternalCheckReviewPanel DataContext="{Binding External}"/></TabItem>
       </TabControl>
       </Grid>
     </Grid>

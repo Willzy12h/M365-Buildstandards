@@ -8,6 +8,14 @@ namespace BuildStandard.Engine.Reports;
 /// <summary>Portable engineer-entered references, never assessment, ownership or execution evidence.</summary>
 public static class ExternalControlReferenceDocument
 {
+    public static IReadOnlyList<ExternalControlReference> ReadFile(string file, ExternalCheckImport source)
+    {
+        ReportEnvelopeDispatcher.RefuseLinks(file);
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > ExternalCheckResultsSchema.MaximumBytes) throw Bad("Reference document exceeds 8 MiB.");
+        using var reader = new BinaryReader(stream);
+        return Read(reader.ReadBytes(ExternalCheckResultsSchema.MaximumBytes + 1), source);
+    }
     public static byte[] Write(ExternalCheckImport source, IReadOnlyList<ExternalControlReference> references)
     {
         if (references is null || references.Count > 5000) throw Bad("At most 5,000 explicit references may be retained.");

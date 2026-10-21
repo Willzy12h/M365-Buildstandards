@@ -68,4 +68,16 @@ public sealed class ExternalCheckResultsPageTests
         Assert.Equal(0, f.Tokens.Calls); Assert.Equal(0, f.Handler.Calls);
     }
 
+    [Fact] public async Task Pending_external_original_blocks_close_and_routes_to_recovery()
+    {
+        using var f = new ConnectedReportsFixture(); var shell = new ShellViewModel(f.Workspace); var parent = new GraphReportsViewModel(shell);
+        var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(shell)!;
+        pages["reports"] = parent;
+        var file = Path.Combine(f.Root.Root, "pending-external.json"); File.WriteAllBytes(file, Bytes());
+        await Call(Property(parent, "External").GetValue(parent)!, "OpenSuppliedAsync", file);
+        shell.Navigate("home");
+        var guard = typeof(BuildStandard.App.MainWindow).GetMethod("ShowPendingReport", BindingFlags.NonPublic | BindingFlags.Static)!;
+        Assert.True((bool)guard.Invoke(null, new object[] { shell })!);
+        Assert.Same(parent, shell.CurrentPage); Assert.Equal(5, parent.SelectedTab); Assert.Contains("external", shell.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -39,4 +39,15 @@ public sealed class ExternalControlReferenceDocumentTests
         }
         Assert.ThrowsAny<ToolkitException>(() => Read(document, source));
     }
+    [Fact] public void File_reader_admits_exact_references_and_refuses_oversized_input()
+    {
+        using var root = new TempRoot(); var source = Source(); var file = Path.Combine(root.Root, "references.json");
+        File.WriteAllBytes(file, Encoding.UTF8.GetBytes(Document(source).ToJsonString()));
+        var method = typeof(ExternalControlReferenceDocument).GetMethod("ReadFile"); Assert.NotNull(method);
+        var links = (IReadOnlyList<ExternalControlReference>)method.Invoke(null, new object[] { file, source })!;
+        Assert.Single(links);
+        using (var stream = new FileStream(file, FileMode.Create)) stream.SetLength(ExternalCheckResultsSchema.MaximumBytes + 1);
+        var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() => method.Invoke(null, new object[] { file, source }));
+        Assert.IsAssignableFrom<ToolkitException>(failure.InnerException);
+    }
 }
