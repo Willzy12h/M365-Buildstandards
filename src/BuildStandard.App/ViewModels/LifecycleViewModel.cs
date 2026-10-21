@@ -108,6 +108,7 @@ public sealed class LifecycleViewModel : PageViewModel
     public IReadOnlyList<LifecycleReadinessRow> ReadinessRows {get;private set;}=[];
     public string PreviewSummary {get;private set;}="No current preview. Historical records cannot be resumed or approved.";
     public string ExactRequest {get;private set;}="";
+    public string BeforeDetails {get;private set;}="";
     public string PreviewIdentity {get;private set;}="";
     public string LastExport {get;private set;}="";
     public string HistoryStatus {get;private set;}="Local attempt history has not been loaded.";
@@ -137,6 +138,7 @@ public sealed class LifecycleViewModel : PageViewModel
         using var source=SourceFactory(operation,()=>RequireInputContext(context,generation));
         var preview=await new LifecyclePreparationService(Workspace.Evidence,Clock).PreviewAsync(source,connection.Session,Workspace.Profile!,Workspace.RequireStandard(),snapshot,operation,()=>RequireInputContext(context,generation),Workspace.OperationToken);
         RequireInputContext(context,generation);_preview=preview;_previewContext=context;_previewGeneration=generation;
+        BeforeDetails=preview.ReviewDetails;
         var document=preview.GetDocument();_previewExpires=new[]{Parse(document,"originalTokenExpiresAt"),Parse(document,"createdAt").AddMinutes(10),Parse(document,"snapshotAt").AddMinutes(20)}.Min();
         PreviewSummary=$"{Actions.Single(a=>a.Id==operation.ActionId).Label} · {Text(document["before"]?["user"],"displayName")} [{operation.UserId}]\n{Text(document,"consequence")}\nOnly this action can be approved. Manual workflow steps remain separate.";
         ExactRequest=operation.Method+" "+operation.Path+"\n"+(operation.PayloadJson??"No body");
@@ -234,7 +236,7 @@ public sealed class LifecycleViewModel : PageViewModel
         foreach(var plan in plans.OfType<JsonObject>())if(Guid.TryParseExact(Text(plan,"servicePlanId"),"D",out var id)&&id!=Guid.Empty)ServicePlans.Add(new(id.ToString("D"),Text(plan,"servicePlanName")+" · "+id.ToString("D"),InputsChanged));
     }
     private void InputsChanged(){Interlocked.Increment(ref _inputGeneration);ClearPreview();ReadinessRows=[];ReadinessGuidance="Inputs changed. Check target readiness or prepare a fresh exact preview.";Outcome="Inputs changed. No action has been approved for this selection. Prior results remain in local history.";Notify();}
-    private void ClearPreview(){_preview=null;_previewContext=null;_previewExpires=default;PreviewSummary="No current preview. Historical records cannot be resumed or approved.";ExactRequest="";PreviewIdentity="";ResetAcknowledgements();}
+    private void ClearPreview(){_preview=null;_previewContext=null;_previewExpires=default;PreviewSummary="No current preview. Historical records cannot be resumed or approved.";ExactRequest="";BeforeDetails="";PreviewIdentity="";ResetAcknowledgements();}
     private void ResetAcknowledgements(){_protected=_downstream=_preservation=false;}
     private static string Text(JsonNode? node,string key)=>node?[key] is JsonValue value&&value.TryGetValue<string>(out var text)?text:"Unknown";
     private static DateTimeOffset Parse(JsonObject node,string key)=>Timestamps.TryParse(node[key]?.GetValue<string>(),out var at)?at:throw new ConfigurationException("Original lifecycle preview time is unknown.");

@@ -25,6 +25,7 @@
    </StackPanel></ScrollViewer></TabItem>
    <TabItem Header="Exact review"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="12">
     <TextBlock Text="{Binding PreviewSummary}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <TextBlock Text="Captured before-values and entitlement effects" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding BeforeDetails, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="260" AutomationProperties.Name="Captured lifecycle before-values and entitlement effects" Margin="0,0,0,12"/>
     <TextBlock Text="Exact registered request" Style="{StaticResource FieldLabel}"/><TextBox Text="{Binding ExactRequest, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="160" AutomationProperties.Name="Exact lifecycle method path and proposed values"/>
     <TextBlock Text="Original source and approval identity" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/><TextBox Text="{Binding PreviewIdentity, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="190" AutomationProperties.Name="Lifecycle tenant operator registration plan digest and expiry"/>
     <TextBlock Text="{Binding ApplyGuidance}" TextWrapping="Wrap" Margin="0,12,0,8"/>
