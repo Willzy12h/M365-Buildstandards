@@ -44,8 +44,20 @@ public sealed class IncidentReferencesViewModel : PageViewModel
     public IReadOnlyList<IncidentChoice> Incidents => _current?.Report.Sections.Single().Rows.GroupBy(row => row["id"]!.GetValue<string>(),StringComparer.Ordinal)
         .Where(group => group.Count() == 1).Select(group => new IncidentChoice(group.Key,(group.First()["name"]?.GetValue<string>() ?? "Unknown incident name") + " · " + group.Key)).ToArray() ?? [];
     public IReadOnlyList<ExternalCheckResultsViewModel.ControlChoice> Controls => Workspace.Standard?.Controls.Select(control => new ExternalCheckResultsViewModel.ControlChoice(control.Id,control.Name + " · " + control.Id)).ToArray() ?? [];
-    public string SelectedIncidentId { get; set; } = "";
-    public string SelectedControlId { get; set; } = "";
+    private string _selectedIncidentId = "";
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public string SelectedIncidentId
+    {
+        get => _selectedIncidentId;
+        set { if (SetProperty(ref _selectedIncidentId, value ?? "")) CommandManager.InvalidateRequerySuggested(); }
+    }
+    private string _selectedControlId = "";
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public string SelectedControlId
+    {
+        get => _selectedControlId;
+        set { if (SetProperty(ref _selectedControlId, value ?? "")) CommandManager.InvalidateRequerySuggested(); }
+    }
     public int ReferenceCount => _links.Count;
     public IReadOnlyList<ReferenceDisplay> Rows { get; private set; } = [];
     public ICommand AddCommand { get; }

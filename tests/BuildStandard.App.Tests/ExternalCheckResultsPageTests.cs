@@ -80,4 +80,19 @@ public sealed class ExternalCheckResultsPageTests
         Assert.True((bool)guard.Invoke(null, new object[] { shell })!);
         Assert.Same(parent, shell.CurrentPage); Assert.Equal(5, parent.SelectedTab); Assert.Contains("external", shell.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
+    [Theory][InlineData("SelectedTestId")][InlineData("SelectedControlId")]
+    public async Task Cleared_WPF_selection_refuses_reference_without_crashing_command_requery(string cleared)
+    {
+        using var f = new ConnectedReportsFixture(); var page = Page(f);
+        var file = Path.Combine(f.Root.Root,"selection-clear.json"); File.WriteAllBytes(file,Bytes());
+        await Call(page,"OpenSuppliedAsync",file);
+        Property(page,"SelectedTestId").SetValue(page,"TEST-1");
+        Property(page,"SelectedControlId").SetValue(page,f.Workspace.Standard!.Controls[0].Id);
+        var command = Get<System.Windows.Input.ICommand>(page,"AddReferenceCommand");
+        Assert.True(command.CanExecute(null));
+        Property(page,cleared).SetValue(page,null);
+        Assert.False(command.CanExecute(null)); Assert.Equal("",Get<string>(page,cleared));
+        Assert.Equal(0,Get<int>(page,"ReferenceCount")); Assert.Equal(0,f.Handler.Calls);
+    }
+
 }

@@ -95,4 +95,18 @@ public sealed class SecurityIncidentReportsPageTests
         Assert.True(File.Exists((string)Property(references,"LastExport").GetValue(references)!));
         Assert.Equal(0,f.Tokens.Calls); Assert.Equal(0,f.Handler.Calls);
     }
+    [Theory][InlineData("SelectedIncidentId")][InlineData("SelectedControlId")]
+    public async Task Cleared_WPF_incident_selection_refuses_reference_without_crashing_requery(string cleared)
+    {
+        using var f = new ConnectedReportsFixture(); var page = Page(f,() => { },withRow:true);
+        page.Acknowledged=true; await page.ReadAsync(); await page.SavePendingOriginalAsync();
+        var references=Property(page,"IncidentReferences").GetValue(page)!;
+        Set(references,"SelectedIncidentId","123"); Set(references,"SelectedControlId",f.Workspace.Standard!.Controls[0].Id);
+        var command=(System.Windows.Input.ICommand)Property(references,"AddCommand").GetValue(references)!;
+        Assert.True(command.CanExecute(null));
+        Property(references,cleared).SetValue(references,null);
+        Assert.False(command.CanExecute(null)); Assert.Equal("",Property(references,cleared).GetValue(references));
+        Assert.Equal(0,Property(references,"ReferenceCount").GetValue(references)); Assert.Equal(0,f.Handler.Calls);
+    }
+
 }

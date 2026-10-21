@@ -58,8 +58,20 @@ public sealed class ExternalCheckResultsViewModel : PageViewModel
     public IReadOnlyList<string> SourceTests => _source?.Evidence.Rows.Select(r => r.TestId).ToArray() ?? [];
     public sealed record ControlChoice(string Id, string Label);
     public IReadOnlyList<ControlChoice> Controls => Workspace.Standard?.Controls.Select(c => new ControlChoice(c.Id, c.Name + " · " + c.Id)).ToArray() ?? [];
-    public string SelectedTestId { get; set; } = "";
-    public string SelectedControlId { get; set; } = "";
+    private string _selectedTestId = "";
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public string SelectedTestId
+    {
+        get => _selectedTestId;
+        set { if (SetProperty(ref _selectedTestId, value ?? "")) CommandManager.InvalidateRequerySuggested(); }
+    }
+    private string _selectedControlId = "";
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public string SelectedControlId
+    {
+        get => _selectedControlId;
+        set { if (SetProperty(ref _selectedControlId, value ?? "")) CommandManager.InvalidateRequerySuggested(); }
+    }
     public int ReferenceCount => _links.Count;
     public sealed record ReferenceDisplay(string SourceTestId, string ControlId, string StandardRelease, string StandardSha256, string Resolution);
     public IReadOnlyList<ReferenceDisplay> ReferenceRows { get; private set; } = [];
