@@ -232,3 +232,44 @@ The approved specification/plan in PR #114 selects native WPF + preserved shared
 ## BuildStandard T1 — technical rename evidence, 12 October 2026
 
 #115 preserves the existing product rather than replacing it. Normalising namespace/technical references against accepted T0 shows changed runtime C# bodies only in ToolkitPaths (approved alias policy), OfflinePackageFiles (exact new launcher admission), and OfflinePrerequisiteService (successor package layout). All other runtime C# bodies are mechanical changes; published standards/lineage, scripts/pins, publisher/release pins and existing evidence schemas remain unchanged. Local source tests/compilation are reported in COMPLETION-REGISTER; Windows/native/package proof and named safety review are separate gates. No new UI design completion is inferred from the rename.
+
+
+### Expansion B source checkpoint — 20 October 2026 (#147, not accepted release)
+
+| Capability | Implemented / exposed | Validation / remaining limit |
+| --- | --- | --- |
+| Hypothetical CA evaluation | Shared fixed transport, original evidence and native Reports journey; default-off acknowledgement, no activation | Windows39383074250 at99434f6 passed; live Microsoft and named Graph/context/transfer acceptance unrun |
+| Selected-control coverage | Shared provenance-bound collector, assignment/group/service observations and conservative documents | b2978b4 Windows39401337055 passed3331 Engine/CLI +536 App,69 native layouts/147 commands; subsequent review repairs have806 affected local Engine passes and need fresh Windows/package proof |
+| Original coverage history | Strict metadata/exact-page ZIP, tenant-bound non-overwriting store, protected opaque handover, original save/export/discard recovery; offline `buildstandard coverage` HTML/JSON ZIP/CSV/XLSX |73af918 Windows39386913347 passed (3204 Engine/CLI +522 App); newer composed source needs fresh Windows/package proof; history cannot confer collection/deployment authority |
+| Modern Intune exports | Fixed two-report CSV request, strict archive/CSV, one-shot create/poll and credential-free download, composed original evidence and native deliberate-access form |Synthetic transport/budget/actor/archive/CRC/original/recovery checks passed; no live service verification. Current native integration checks pending |
+
+These implementation checkpoints preserve historical comparisons above. No source/report class alone establishes an end-to-end journey, source authenticity, effective deployment, human/live acceptance or final product completion.
+
+Native concurrency follow-up B-PRESENT-001: page display projection can outlive backend busy state. Windows39400276346 reproduced both failing-first App assertions (534 other App tests passed). Source repair keeps read/import/display admission busy through presentation; current repaired Windows proof is pending. Earlier Windows39393520857 reproduced unsaved-CA close/navigation defects; their source corrections are included, current Windows proof pending.
+
+Supplementary GPT review ofb2978b4 confirmed B-ENG-001 (cancelled raw handoff loses originals) and B-ENG-002 (production evidence presentation omits interpreted dimensions). Original findings and limits are attributed on #147/comment6288265504. Source fixes preserve original bytes/legacy typed-stop semantics and add shared historical-only assignment/group/pilot/service/candidate projections; no live selection is recreated. Repaired source still needs Windows/package proof and named acceptance.
+
+
+## Finite A–J assembled candidate — PR #164, 21 October 2026
+
+This table supersedes in-progress capability descriptions for this candidate only; historical validation records above remain unchanged. Every row is implemented source, not an accepted production claim. The original feature PRs remain intact. Candidate Windows/App/native/hosted/package proof must match its actual composed source; individual branch ZIPs cannot prove this composition. Named safety review, H1/accessibility/workstation acceptance, separately approved live operations/consent and publication remain outstanding.
+
+| Recommendation | Package / source surfaces | Current source behaviour / explicit boundary |
+| --- | --- | --- |
+| 1 Deployment coverage | B #147; DeploymentCoverage service, Reports page and offline `coverage` | Registered selected-control originals/results and modern Intune export observations; targeting/accepted requests never imply installation or effective protection. |
+| 2 Integrated Exchange | C #149; fixed registered adapters, Run reports and original exports | Permissions/calendar/inbox-rule/trace/group/policy families share owned runner/evidence boundaries. RBAC/retention/partial reads remain explicit. Mutations stay Copy/Save/manual. |
+| 3 Domain readiness | D #143; Domain readiness, fixed Windows resolver, offline `domain-report` | Bounded selected-domain observations and DNS-owner pack. No DNS changes, ownership proof or deployment evidence. |
+| 4 Collaboration | E #157; Operational context and offline original/export | Bounded site/group/Team metadata/direct-role observations, with unsupported OneDrive provisioning/effective-access/grant claims explicitly blocked. No content crawl or FullControl fallback. |
+| 5 Licence usage | F #152; Usage review, fixed CSV capture and offline `usage-report-evidence` | Privacy-aware usage and entitlement review; absent/obscured/unalignable identity stays unknown. Suggestions never remove licences. |
+| 6 Client portfolio / partner readiness | A #142 Clients and reviews, CSV preview and `clients`/`review`; G #156 partner context | Offline client evidence/atomic import and original review packs; separately declared partner/customer relationship/role reads do not establish effective access. |
+| 7 Joiner/mover/leaver | H #163; Existing-user actions, guarded shared services, offline `lifecycle` | Seven individual existing-member actions with exact before-values/approval/intent/readback/history. No account/password creation, unattended batch, replay or whole workflow completion; Exchange/preservation/device work manual. |
+| 8 CA scenarios | B #147; Hypothetical CA evaluation and offline `ca-evaluation` | Dedicated reviewed read-only evaluation route; evaluation is not activation, candidate equivalence or real sign-in proof. Generic assessment writes remain refused. |
+| 9 Pack authoring | I #161; catalogue-owned editor and offline `candidate` | Exact-base immutable drafts, validation/import/comparison and guarded outputs. Historical bytes/lineage unchanged; publication is separate. |
+| 10 Repeat/client reporting | A #142; portfolio and source-bound review pack | Known/unknown diagnostics, source citations and compatible-scope comparisons; corrupt/inaccessible history cannot become clean absence. |
+| 11 Service context | G #156; service-health original/results/exports | Fixed read-only advisories with source/time/coverage; not evidence of root cause, availability or remediation. |
+| 12 Security/external references | J #162; incident and external-result native tabs, original recovery and complete exports | Strict bounded external claims and exact catalogue references; incident scope default off. Business Premium/P1 never implies P2. No incident response/write authority or imported deployment evidence. |
+
+Preserved throughout: native .NET 10 WPF command centre, contained catalogue-only WebView2 reader, shared execution/evidence engine, immutable published standards, exact tenant/account/context binding, disabled CA/unassigned Intune candidates, original expiry/single-use approval and uncertain-write blocking. macOS remains unsupported, default off and blocked.
+
+
+A/H integration correctionGPT-AJ-002: the materialised client portfolio and review pack now cite original lifecycle files and reuse the shared original-acceptance/readback decision. Unknown or intent-only H history blocks completion; missing/foreign/invalid records stay unknown. Projections remain frozen until an explicit reload; adding a later record invalidates export of the older capture. The ordinary portfolio keeps its existing8MiB/file,64MiB/client and500records/section limits even though raw lifecycle records can be larger; refusal is an explicit diagnostic, not clean absence. Full current4477portablePASS/1Windows-only skip, with exact-source Windows/package still required.

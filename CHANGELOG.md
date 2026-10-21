@@ -1,14 +1,55 @@
 # 1.1.0-preview.19 — unreleased: Claude review corrections and usability
 
+- Add INT-137 lifecycle foundations: fixed action/read registries, bounded immutable before-evidence, saved-snapshot preparation, conservative licence readiness and one-send Graph admission. These are shared-engine components; native access/approval delivery and CLI delivery are not yet complete or accepted; durable engine execution and read-only reconciliation are source-implemented.
+
+- Add native external-results import, copyable provenance, searchable claims, complete exports and exact catalogue reference save/open under INT-138. Original JSON and unsaved references retain their source context; supplied outcomes remain untrusted and never authorise deployment. Current native/package verification and named acceptance remain pending.
+- Add experimental bounded site/group/Team metadata collection, native exact selection and optional read access, source-bound original recovery and complete offline exports. Failed/partial/unsupported states remain explicit; no effective-access or tenant-wide OneDrive claim. Current Windows/native/package and named acceptance remain pending.
+
+- G experimental partner context now connects the native report choice to the existing bounded relationship/assignment collector, with distinct source/customer guidance, original recovery and complete exports. Current Windows/native validation and named acceptance remain pending.
+
+- In-progress G foundation: source-bound service-health evidence and bounded fixed-GET transport retain unknown/partial/failure states and refuse foreign/replayed cursors; native and partner journeys are not yet complete.
+- Add offline `bdit operational-report-evidence` with complete HTML/CSV/Excel tables, original JSON and source-bound managed evidence/backup. This G slice supports strict service-health evidence; native and partner workflows are still incomplete.
+
+
+- Implement the fixed usage-report download transport and engine capture service with isolated credential-free302 downloads, one silent401 renewal, exact context/scope checks, bounded original CSV and per-source failure/cancellation evidence. The approved Reports.Read.All capability is classified as read-only; no access is requested or granted by classification. Native collection and its deliberate optional-access setup are still in progress.
+
+- Add offline `bdit usage-report-evidence` HTML/CSV/Excel and original-JSON exports for strict supplied usage packs. Retain unknown privacy and original bytes; no authentication, downloads or licence changes. Connected/native reporting remains in progress.
+
+
+- Begin approved usage reporting: strict four-source CSV parsing and original-data evidence packs preserve unknown privacy and missing values. Connected transport and native workflow remain in progress; no licence changes or new access.
+
+
+- Preserve collected coverage originals while the owned producer settles after Stop; expose conservative assignment, group, pilot and service interpretations in native/imported HTML/CSV/Excel views without changing original evidence or creating live authority.
+
+- Keep CA/coverage read, import and export actions disabled until background result presentation finishes, including the interval after backend busy clears.
+
+- Native deployment coverage: selected-control provenance, typed pilot IDs, offline original import, per-source states, four local export formats and exact-original recovery, including manual bounded copies when the saved-report cap is exceeded. Prevent normal close from dropping retained CA/coverage originals. Current Windows/native verification remains pending.
+
+- Modern Intune reporting transport: fixed one-shot export jobs with explicit existing broader-access acknowledgement, bounded status polling, one silent renewal and credential-free completed-job download; no configuration-write replay or generic write exception. Validate original archive CRC and retain strict CSV/size/expansion limits. Native/evidence integration and named/live acceptance remain pending.
+
+- Coverage originals: add bounded versioned metadata and exact-page ZIP import, immutable original-byte preservation, tenant-bound non-overwriting storage and registered opaque handover support. Imported reports stay historical/unverified and cannot become deployment before-evidence or collection authority. Add offline `buildstandard coverage` HTML/original JSON ZIP/CSV/Excel export and exact-original recovery after local save failure. Connected native coverage, modern export transport and final acceptance remain in progress.
+
+- Expansion B foundation: freeze typed CA scenarios and strictly admit hypothetical results through a fixed, bounded read-only evaluation transport. Preserve unknowns, identity/access binding, cancellation and one silent401 renewal; generic write guards are unchanged. Native/evidence/coverage journeys remain in progress.
+
+- Offline candidate CLI imports now save separate supported-policy drafts with original-byte provenance, explicit unresolved references and strict mappings to existing typed parameters; no catalogue installation or tenant action.
+
+- Guard every local catalogue replacement while candidate edits or unapplied input remain unsaved; retain the current catalogue and explain save/discard. Include the nested editor and scrolled working controls in native UI verification.
+
 - Propose expansion B coverage and Conditional Access evaluation contracts; no runtime capability or new access is introduced by this decision.
 
 - Propose expansion C registered Exchange report-family identities and limits; no new executable adapter or access is claimed.
 
 - Propose privacy-safe usage/licence review and bounded token-free report downloads; no runtime feature or consent is claimed.
 
+- Domain-readiness review corrections: validate complete SPF dependency coverage from original policies, distinguish deadline limits from an engineer stop, and report malformed leading-zero IPv4 SPF terms. Separate the domain/gateway inputs and verify original-report recovery plus exact test-owned package cleanup.
+
+- Expansion D: experimental domain-readiness form, bounded MX/SPF/public-cloud Windows enrolment observations, original-result recovery, HTML/CSV/JSON DNS-owner packs and offline `domain-report` CLI. No DNS/tenant writes, new Microsoft access or deployment-evidence authority; live behaviour remains unverified.
+
 - Record the approved engineering expansion and proposed offline client-review evidence contract; no new runtime capability is claimed.
 
-- Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. Native import/save remains pending.
+- Add `buildstandard customers --csv <file>` and a shared bounded offline Partner Center customer-list preview: invalid/conflicting/existing clients remain explicit; new profile preparation preserves existing values and refuses stale previews. The native Clients and reviews page now previews and saves explicitly selected new clients under a shared profile-write lease.
+
+- Add local client summaries, immutable history reviews and one-client engineer/client HTML and CSV packs with original-byte citations; offline `buildstandard clients` and `buildstandard review` reuse the same projection. Unknown or unreadable history cannot claim clean completion. Existing profile edit/delete refuses intervening changes. No tenant access or deployment authority is added.
 
 - Registered experimental read-only mailbox protocol, forwarding and hold reports with exact identity, per-value read states, inspectable native rows and local HTML/JSON/CSV/Excel exports. No new permissions or Exchange writes; existing Copy/Save items are preserved.
 
@@ -53,6 +94,12 @@
 - Verify configured sign-in timeout settings reach saved-client and both Quick Connect acquisition requests; keep production MSAL/broker/cache behaviour unchanged (CLA-20261010-101).
 
 ### Pending source — mailbox capacity review, PR #94
+
+
+
+- In progress: add native experimental hypothetical CA evaluation with an exact bounded member lookup, separately labelled original scenario/context, original-byte recovery, historical import and shared exports; enforce the overall read budget even for non-cooperative response reads. Native/package acceptance and broader deployment coverage remain separate.
+
+- Offline candidate authoring preserves blocked macOS enrolment and structured settings, validates unchanged catalogue templates separately from resolved writes, and reports partial local exports without deleting replacement files.
 - Candidate review corrections: retain invalid reader data in native failure handling, count unknown historical outcomes as uncertain, refresh expired-plan guidance, distinguish proven pre-send operator stops and recheck staged ZIPs against their reviewed pin (#125).
 - T7: separate assessment review/unknown/deviation groups, source-aware finding detail, last-built-plan validity and qualified acceptance/readback/save/protection outcomes. Preserve exact approval and historical records.
 
@@ -518,3 +565,21 @@ Replaces two earlier prototypes (Tenant Console 0.3.2-rc.1, Node/PowerShell; and
 - Proposed INT-137 defines controlled existing-user lifecycle actions and recovery, including exact approved access, privileged/unknown-target refusal and no retry after uncertain writes; implementation and named acceptance remain separate.
 
 - Proposed INT-138 defines bounded read-only security incident context and a strict untrusted external-results interchange, preserving separate assessment, licence/access and execution authority; no runtime implementation is included.
+
+- Offline `external-checks` exports preserve untrusted external-source provenance in HTML, CSV, Excel or exact original JSON, with explicit client matching, fresh output files and no tenant calls. Native incident/import workflows remain pending.
+- Collaboration inventory adds deliberate bounded group-name lookup with exact name/ID selection, stale-result refusal and no automatic Team assumption; malformed partial imported user/tenant IDs are refused. Current Windows and named acceptance remain pending.
+
+- Unpublished J: strict incident-context evidence and shared HTML/CSV/Excel/original-JSON exports retain the requested UTC window, unknown priority and explicit coverage limits; connected capture remains in development.
+- Unpublished J: experimental native incident context now reuses optional Connect/setup access, exact UTC windows, read acknowledgement and original-result recovery. Incident response actions remain unavailable; actual Microsoft behaviour is live-unverified.
+
+
+- Experimental existing-user native workflow: explicit fixed action/readiness/access, complete before-evidence and exact single-use confirmation, durable unknown-safe history and read-only reconciliation. Selected lifecycle deployment requests only its reviewed write purpose; account/group equivalent access may reuse a current verified connection. Offline history/JSON/HTML exports cannot approve or replay. Manual Exchange/preservation/device work and named/live acceptance remain separate.
+
+- Coverage preparation now refuses to infer a static direct-member population from dynamic, hidden or incomplete group metadata; exact returned identity and v1 membership limitations remain explicit. Coverage collection remains in progress and live-unverified.
+- Coverage source preparation now freezes control/catalogue and original evidence identities using the existing creation/readback provenance checks. Bounded same-relation pagination preserves partial/stopped/failed/context-changed states and original pages; duplicate/error envelopes cannot become complete coverage. Native coverage delivery remains unfinished.
+- In-progress coverage engine now assembles bounded selected-control sources and shared HTML/tabular observations, retaining malformed/partial originals and distinguishing failed, stopped, deadline and not-attempted reads. Conflicting assignment observations remain unknown. Coverage save/import and native delivery are not yet complete.
+- Modern Intune export preparation now compiles only the reviewed fixed CSV requests and validates bounded exact-column UTF-8 tables without guessing status or identity meaning. Job creation/download/native integration remain unfinished and no tenant call is performed by parsing.
+
+- Expansion I foundation: bounded offline candidate drafts with exact baseline digests, strict input parsing and conflict-safe object pointers. Native editor/export validation remains in progress; no publication or tenant authority.
+
+- Candidate editing now refuses opaque foreign-reference literals through manual and saved-draft routes. Native authoring retains source/assignment/unresolved review after save/reopen, and expanded editor content participates in compact-page scrolling; Windows render verification remains required.

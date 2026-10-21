@@ -197,6 +197,92 @@ Saving or removing an exception refreshes an assessment when either full configu
 
 ## Preview a Partner Center customer list offline
 
-In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. The native bulk-import/save journey is not delivered by this command.
+In the portable folder, run `.\buildstandard.cmd customers --csv "C:\Work\customers.csv" --root "C:\Tools\BuildStandard"` (the `bdit` alias also works). This prints JSON comparing the CSV with local saved clients. It does **not** save, overwrite, connect or verify access. Relationship/tags and domains remain unverified source text. This CLI command remains preview-only; use the native Clients and reviews page to select and save new clients.
 
 Use the Partner Center customer-list CSV with **Microsoft ID** and **Company name** headings; **Primary domain name** is optional. UTF-8 with optional BOM, quoted commas/newlines, at most 5 MiB and 5,000 data rows are supported. Invalid/conflicting rows stay visible; existing clients are skipped. Correct malformed quoting or conflicts in the source and preview again. An unreadable/blocked local profile store is an error, never an empty client list. The CLI bounds the saved-profile file at 8 MiB and 5,000 clients, checking the count before constructing profile objects. No Graph consent or Microsoft modules are needed.
+
+For optional usage CSVs, use Connect's default-off usage-report access choice and reconnect deliberately. Then Reports → Usage review offers explicit sources/period, acknowledgement, Read/Stop, source-specific results and full exports. Resolve its original JSON through Save/Export/confirmed Discard before another read or normal close. Read the packaged [usage guide](USAGE-REPORTS.md) for32MiB managed-save versus40MiB interchange, unknown privacy and unavailable identity/licence joins. This remains experimental/live-unverified.
+
+## Experimental operational context — G source branch
+
+The native **Reports → Tenant reports → Operational context** service-health workflow and offline `bdit operational-report-evidence` exports are implemented in source, awaiting current Windows/native/package and named acceptance. The default-off Connect/setup choices reuse the current account/registration flow and keep selected purposes visible in a compact summary. No report-page sign-in, automatic consent, generic URL or tenant write is added. Follow [operational context](OPERATIONAL-CONTEXT.md) for original recovery, complete exports and limits; the partner choice requires an explicitly declared source, a distinct exact customer and separate optional partner scope. Its new native journey still awaits current Windows verification. Advisories cannot prove availability, incident cause or effective customer access.
+
+For deliberately supplied third-party claims, use **Reports → Tenant reports → External results**, separately from configuration assessment. See [External check results](EXTERNAL-CHECK-RESULTS.md) for neutral input, provenance, original recovery and exact control references. Import/export performs no sign-in or tenant calls and cannot satisfy deployment before-evidence or job completion.
+
+
+## Existing-user actions (experimental)
+
+Use **Build standard → Existing-user actions** for one existing cloud-managed member. Choose Joiner, Mover or Leaver for guidance, then one registered action: direct group add/remove, direct licence add/update/remove, account enable/disable or session revocation. This is not an end-to-end offboarding or onboarding completion claim. Account creation/passwords, Exchange, preservation/retention, external privilege and device tasks remain manual. macOS remains unsupported and blocked.
+
+1. Select the exact user and, where applicable, group or licence SKU. Captured names are aids; the exact ID fields accept a target absent from the snapshot. Optional disabled service plans are reviewed individually and verified against fresh licence evidence.
+2. **Review access** opens the selected client's connection form with this action's purpose; it performs no authentication or tenant request itself. Read-only readiness and deployment access are separate. No access is granted by selection. Review application IDs and exact permissions before any separately approved consent.
+3. **Check target readiness (read-only)** displays each required source, admitted row count and unavailable/partial reads. Protected/self/synced/privileged or uncertain targets are blocked. Zero role-assignable groups is required because no PIM-for-Groups access is requested. Missing evidence is never a clean result.
+4. For a change, deliberately connect with this action's deployment access, capture/save a complete fresh configuration, then **Prepare one exact preview (no write)**. Reports and scoped checks cannot supply before-evidence. Original token expiry and complete-snapshot freshness are enforced.
+5. Under **Exact review**, inspect the exact target/request, operator, tenant, application, digest, consequences and expiry. Experimental changes default off. **Review exact action…** opens a native confirmation with protected-account/downstream checks and, when required, preservation/retention/business-owner acknowledgement. Cancel is the default. One approval permits one attempt only.
+6. Stop can prevent dispatch. Once a request may have been sent, wait for its durable outcome; never repeat an uncertain action. Accepted and verified are separate. No automatic retry, batch continuation or promised undo is offered.
+7. **History and handover → Load local attempt history** includes intent-only/unknown outcomes. Export original JSON or inert HTML for the selected record. **Re-read selected effect (read-only)** creates a separate receipt and does not repeat a write or convert unknown acceptance into certainty. Resolve any blocking uncertainty through the documented recovery process before another change.
+
+CLI history is offline only: `buildstandard lifecycle --tenant <tenant-guid> --root <portable-root>` lists local attempts. Add `--record <guid> --family plan|before|intent|run|verification --format json|html` to export an exact historical record. The CLI cannot approve, resume, authenticate or execute a lifecycle action. Corrupt/incomplete history is an error, not an empty list.
+
+These capabilities are implemented source paths, with synthetic/native/package evidence recorded against each candidate. Named safety acceptance, H1/accessibility and Microsoft behaviour remain separate; source development has performed no live action or consent.
+
+
+## Saved client reviews and customer import
+
+Open **Workspace → Clients and reviews**. Navigation does not read a tenant or switch your current connection.
+
+1. Select **Read local summaries**. Each row shows the last readable stored assessment, its standard, recorded unresolved writes and job summaries. Missing history is not a current clean assessment. An unreadable section remains unknown with diagnostics; read limits are 500 records per section, 8 MiB per record and 64 MiB per client. The scan supports at most 5,000 saved clients and can be stopped from the shell.
+2. Select a row and **Review selected client**. Copyable details retain original assessment times, collection limitations and job reasons. **Open client offline** uses Configuration after you disconnect tenant/setup sessions and resolve any unsaved registered-report result. Reviewing a row alone never changes the active client shown in the header.
+3. **Export review pack** creates a fresh folder containing `engineer.html`, `client.html`, `review.csv.zip` and `manifest.json`. All use the same captured history. The manifest cites the original relative paths and byte hashes. Hashes detect changed bytes, not authenticity. Changed client details, source files, selection or working context refuse export: review again rather than silently refreshing the document. No current tenant compliance, trend across incompatible releases or permission to deploy is inferred.
+4. To add customers, **Preview customer CSV**, inspect invalid/conflicting/existing rows, tick valid new clients and **Save selected clients**. There is no automatic selection, overwrite, sign-in or consent. Existing profile fields are retained. Another window's save invalidates the preview; reopen it after refreshing. Failed saves retain the preview. Current import/edit/delete paths share a local profile-write lease; older binaries and arbitrary external editors do not participate, so avoid concurrent edits with them. The lease file is not transferred in backups; an active save refuses backup.
+
+Offline equivalents (the compatible `bdit.cmd` alias also works):
+
+```powershell
+.\buildstandard.cmd clients --root "C:\Tools\BuildStandard"
+.\buildstandard.cmd review --tenant "<saved tenant GUID>" --output "C:\Work\ClientReviews" --root "C:\Tools\BuildStandard"
+```
+
+`clients` prints JSON summaries without creating client evidence. `review` exports only one exactly matching saved client and never authenticates. Keep packs within your organisation's evidence-handling policy; they contain client identity and configuration-history details. Human usability/accessibility and live Microsoft behaviour remain separate acceptance checks.
+
+
+## Domain readiness (experimental, read-only)
+
+Open **Reports → Domain readiness**. Opening the page does not contact DNS or Microsoft. Enter the domain and select **Mail routing (MX)**, **Sender policy structure (SPF)** and/or **Windows enrolment DNS**. Optional expected gateways require their source; no Microsoft MX target is assumed. Read **Exact reads, limits and prerequisites**, tick the explicit approval and choose **Run selected checks**. This uses only the configured Windows DNS resolver through the fixed Windows PowerShell DnsClient helper. No module installation, policy bypass, server override or tenant sign-in is offered. If local policy blocks the helper, ask the security owner; do not switch hosts to bypass it.
+
+**Complete** means the selected reads finished within their limits, not that mail delivery, SPF sender authentication or enrolment works. Negative replies with an unknown owner, unavailable reads, partial output and cancellation stay explicit. SPF traversal is structural only; macros and sender-dependent paths remain unknown. The Windows reference is public-cloud only. macOS is unsupported and this feature never enrols a device or changes DNS.
+
+Choose **Save report pack** to preserve original JSON, a readable HTML DNS-owner worksheet, CSV tables and a digest manifest under `reports/`. These observations are separate from configuration/deployment evidence. A context change cannot relabel them: the original unsaved report stays in the recovery panel until explicitly exported or discarded. Closing and a replacement DNS read are blocked while it is unsaved. A failed save retains the original; retrying Save does not repeat the query. Review the output folder if a save could not be confirmed.
+
+**Open historical report…** accepts only the separate bounded domain-report schema and labels its original source/binding unverified. An offline export uses `buildstandard domain-report --input <file> --output <directory> [--root <dir>]`; it never collects DNS, changes a tenant binding or rewrites original evidence. SHA-256 detects changed bytes, not source authenticity. Live DNS/enrolment and human accessibility acceptance remain unrun for this experimental capability.
+
+### Supplied hypothetical CA evaluation reports (in-progress expansion)
+
+`buildstandard ca-evaluation --input <original-json.zip> --tenant <expected-guid> --format html|json|csv|xlsx --root <portable-folder>` exports the explicitly supplied original report offline. JSON produces a ZIP containing original metadata, response bytes and a warning; it does not reformat or reseal them. Imports remain historical and unverified. HTML and tables distinguish unknown applicability from a returned false, and applicability from enforcement. This command never connects, evaluates, requests consent or deploys. The in-progress native Reports → Hypothetical CA evaluation page uses the same codecs and exports; Windows/native acceptance for that changed source is recorded separately in its PR, not inferred from CLI success.
+
+### Native hypothetical CA evaluation (experimental, live-unverified)
+
+Open **Reports → Hypothetical CA evaluation**. Select the client through **Client and connection** first. Enter the tenant user object ID and target application ID, choose the explicit platform/client type and leave unknown optional conditions **Omitted**. Expand the exact request to inspect omissions and its fingerprint. No navigation, typing or opening evidence signs in or contacts Microsoft.
+
+After reviewing the limitations, tick the experimental read acknowledgement and choose **Evaluate supplied scenario**. It reuses the current verified connection, checks the exact member, and evaluates within 120 seconds. **Stop evaluation** requests cancellation. A returned applicability value is hypothetical; unknowns, report-only policies, disabled candidates and missing dependencies do not establish protection.
+
+Inspect the outcome and rows. Export **HTML**, **Original JSON ZIP**, **CSV ZIP** or **Excel XLSX**. **Choose original ZIP → Open historical evidence** opens saved/supplied original bytes offline for the selected tenant; it never turns history into a new live check. A failed repeat read/import clears the current presentation instead of leaving earlier rows looking current.
+
+If saving fails, section3 displays the exact retained original tenant/account/record identity. Explicitly acknowledge that original before **Save original evidence**, **Export original JSON ZIP**, or confirmed **Discard original…**. Recovery never repeats a query, changes the original identity or overwrites a stored record. An existing ID can indicate a disk copy already exists; inspect it before choosing recovery.
+
+Workspace backups preserve the registered original evaluation ZIP as opaque evidence with its checksum, without extracting its contents. Older application builds that do not recognise this new evidence type will refuse such a backup; use the matching new package for restore/adoption and retain the original package and independent fingerprint. Existing JSON records, authentication-cache/lock exclusions, trusted-digest checks and separate restore boundaries are unchanged. These instructions describe source implementation, not completed human/live acceptance.
+
+
+### Original selected-control coverage evidence (offline)
+
+`buildstandard coverage --input <original-json.zip> --tenant <expected-tenant-guid> --format html|json|csv|xlsx` reads only supplied original coverage evidence. It never connects, refreshes, requests consent or deploys. `json` preserves the original metadata, exact JSON source pages and any admitted original modern service-results archive in one ZIP (never a signed download address); the other formats show recorded context, per-source read states, explicitly selected pilot namespaces and admitted raw source values. Unknown or failed reads are not empty success. A complete source list is not proof of effective targeting, installation, compliant devices or protection.
+
+Every output uses a new file and verified readback; an existing report is not overwritten. Import is always historical/unverified even when all fingerprints match. It cannot become collection authority, complete deployment before-evidence, a new approval, reconciliation or job completion. Fingerprints detect changed bytes; they are not Microsoft signatures. Protected workspace transfer preserves only the exact registered coverage bundle path as opaque evidence; use the matching new package for restore, because older readers refuse this additive evidence path.
+
+The shared selected-control collector, strict original evidence, local storage and offline CLI/export path are implemented in source. Connected native coverage and modern Intune export-job collection are implemented in source; current Windows/native verification remains pending; no live service, human acceptance or named safety review is claimed by these instructions. Existing assessment/deployment controls retain their meaning.
+
+
+If a captured coverage report cannot fit its strict saved-evidence limits, its exact raw originals remain separate rather than being truncated, relabelled complete or queried again. The engine supports acknowledged **original-file recovery**: a fresh folder contains exact JSON pages, any original modern archive, original identity/read-state notes and per-file fingerprints. `COPY-VERIFIED.txt` means local copies were read back; these files are **manual material, not complete report/deployment evidence**, and have no import or approval route. The5MiB saved-report bound remains unchanged. Recovery folders are report exports and are excluded from workspace backups; retain them separately under the client-evidence policy. A failed copy leaves the retained original unresolved and any partial folder has no verified-copy marker. In Reports → Deployment coverage, resolve the retained original using its separate original identity and acknowledgement. Save/JSON requires a conforming report; Export original files preserves bounded raw material when the report cannot be saved. Current Windows/native validation remains pending in #147.
+
+
+Clients and reviews includes saved lifecycle attempts in its original-source citations and write-history status. Intent-only/unknown attempts cannot produce a clean completion claim, and a recorded Pass needs intact original readback. Later records require an explicit reload before exporting an older review. The portfolio retains its8MiB/file,64MiB/client and500records/section limits; larger raw lifecycle evidence is preserved and reported incomplete, with exact historical inspection available through the lifecycle page/CLI.

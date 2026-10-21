@@ -113,7 +113,7 @@ public static class PartnerCustomerImport
         return result.AsReadOnly();
     }
 
-    private static string Fingerprint(IReadOnlyList<TenantProfile> profiles)
+    internal static string Fingerprint(IReadOnlyList<TenantProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(profiles);
         if (profiles.Any(p => p is null || !StrictTenantId(p.TenantId)) ||
@@ -127,7 +127,7 @@ public static class PartnerCustomerImport
 
     // TextFieldParser deliberately tolerates quotes inside bare fields and whitespace before quoted fields.
     // Refuse those forms before it can discard identity controls. It still owns CSV decoding/escaped quotes.
-    private static void ValidateQuotePlacement(string text)
+    internal static void ValidateQuotePlacement(string text)
     {
         var quoted = false;
         var closed = false;

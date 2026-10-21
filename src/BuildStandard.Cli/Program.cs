@@ -32,13 +32,13 @@ namespace BuildStandard.Cli;
 /// application's for the same snapshot. Conformance tests assert the absence of every write-capable type and of every
 /// evidence mutator, so neither guarantee can be lost by accident.
 /// </summary>
-public static class Program
+public static partial class Program
 {
     /// <summary>Types that must never appear in this assembly. Kept here so the intent is readable beside the code.</summary>
     public static readonly string[] ForbiddenTypes =
     {
         "DeploymentExecutor", "ReviewedChangeService", "ApplicationPackageService",
-        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow"
+        "RecoveryService", "EntraLapsService", "GraphClient", "TenantConnectionService", "JobWorkflow", "LifecycleRunService", "LifecyclePreparationService", "LifecycleBeforeCaptureService", "LifecycleApproval", "LifecyclePreview", "LifecycleReadTransport", "ConditionalAccessEvaluator", "ConditionalAccessEvaluationService", "DeploymentCoverageService", "DeploymentCoverageReader"
     };
 
     public static int Main(string[] args)
@@ -68,18 +68,28 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "lifecycle" or "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks" or "clients" or "review" or "domain-report" or "ca-evaluation" or "coverage" or "candidate");
 
         return command switch
         {
+            "lifecycle" => Lifecycle(options),
             "releases" => Releases(options),
             "customers" => Customers(options),
+            "domain-report" => DomainReport(options),
+            "clients" => ClientReviews(options),
+            "review" => ClientReviewPack(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
+            "external-checks" => ExternalChecksExport(options),
+            "usage-report-evidence" => UsageReportEvidenceExport(options),
+            "operational-report-evidence" => OperationalReportEvidenceExport(options),
+            "ca-evaluation" => ConditionalAccessEvaluationExport(options),
+            "coverage" => DeploymentCoverageExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
             "standard" => StandardDefinition(options),
+            "candidate" => CandidateCommand.Run(options),
             "verify-restore" => VerifyRestore(options),
             "upgrade-impact" => UpgradeImpact(options),
             "jobs" => Jobs(options),
@@ -103,6 +113,10 @@ public static class Program
         Console.WriteLine("""
             buildstandard — offline reports and local prerequisite diagnostics. Never connects to a tenant.
 
+              buildstandard usage-report-evidence --input <pack.json> --tenant <guid> [--format html|json|csv|xlsx] [--root <folder>]
+              buildstandard operational-report-evidence --input <report.json> --tenant <source-guid> [--format html|json|csv|xlsx] [--root <folder>]
+                  Export an admitted supplied usage pack; privacy/identity remain unverified. No tenant connection.
+
               buildstandard doctor [--root <folder>] [--format text|json]
                   Check local portable prerequisites; text is the default, JSON is a separate diagnostic result.
                   Checks package/catalogue/settings and uses temporary owned write/delete probes.
@@ -122,6 +136,28 @@ public static class Program
                   no tenant is contacted and relationship/tags do not prove access.
                   UTF-8; maximum 5 MiB and 5,000 data rows. Native import/save is separate.
 
+              buildstandard lifecycle --tenant <guid> [--record <guid> --family plan|before|intent|run|verification --format json|html] [--root <dir>]
+                  Inspect saved lifecycle attempts, including intent-only/unknown outcomes.
+                  A selected record exports as exact original JSON or inert HTML. No sign-in,
+                  live reads/writes, execution approval or write replay. Defaults: run, json.
+              buildstandard clients [--root <dir>]
+                  List saved clients with offline assessment, write-history and job summaries as JSON.
+                  Missing, unreadable and unresolved evidence remain explicit. No connection is made.
+
+              buildstandard review --tenant <guid> --output <directory> [--root <dir>]
+                  Export one saved client's engineer/client HTML, CSV tables and source-hash manifest.
+                  Rechecks the original evidence and client details before publishing the new local folder.
+                  This is a historical review pack, never deployment before-evidence or write approval.
+
+              buildstandard domain-report --input <file> --output <directory> [--root <dir>]
+                  Export a supplied domain-readiness report as HTML, CSV and original JSON.
+                  Historical/unverified; preserves original bytes, status, domain and binding.
+                  No DNS queries, tenant sign-in or deployment evidence. No client is required.
+              buildstandard coverage --input <original-json.zip> --tenant <guid> [--format html|json|csv|xlsx] [--root <dir>]
+              buildstandard ca-evaluation --input <original-json.zip> --tenant <guid> [--format html|json|csv|xlsx] [--root <dir>]
+                  Export supplied hypothetical CA evaluation evidence only. Imports stay historical/unverified.
+                  JSON ZIP preserves the original metadata and response. No sign-in, evaluation or tenant action.
+
               buildstandard releases
                   List the Build Standard releases available to this installation.
 
@@ -132,6 +168,10 @@ public static class Program
                   Formats: html, markdown, json, csv, xlsx. Default html.
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
+
+              buildstandard external-checks --input <neutral-result.json> --tenant <expected-id> [--format <f>] [--root <dir>]
+                  Export untrusted external-check-results/1 source claims as html, original json, csv or xlsx.
+                  No direct vendor-format import, source execution, native assessment or tenant evidence insertion.
 
               buildstandard report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
@@ -148,6 +188,14 @@ public static class Program
                   Export all captured configuration and collection states; no assessment or live reads.
                   Formats: html, json, csv, xlsx. Default html. No client record is required.
                   Uses the capture's recorded release; --release is not an override for observed data.
+
+              buildstandard candidate --action create --catalogue <file.json> --title "<name>" [--root <dir>]
+              buildstandard candidate --action import --input <draft.json> --control <id> --source <policy.json> --name "<name>" [--map <mapping.json>] [--root <dir>]
+              buildstandard candidate --action validate --input <draft.json> [--root <dir>]
+              buildstandard candidate --action export --input <draft.json> --reviewed-digest <sha256> [--root <dir>]
+                  Offline candidate drafts and separate configuration/assignment comparison only.
+                  Validation prints the draft digest to inspect before explicit export. No installation,
+                  publication, sign-in, assessment evidence or tenant-write authority. Ctrl+C cancels local output.
 
               buildstandard standard [--release <r>] [--format <f>] [--root <dir>]
                   Export all standard defaults/settings, with no client data.
@@ -422,6 +470,104 @@ public static class Program
         return 0;
     }
 
+    private static int ExternalChecksExport(IReadOnlyDictionary<string, string> options)
+    {
+        string[] allowed = ["input", "tenant", "format", "root"];
+        if (options.Any(p => !allowed.Contains(p.Key, StringComparer.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(p.Value)))
+            throw new ConfigurationException("External check exports accept only valued --input, --tenant, --format and --root options. No source execution or collection is supported.");
+        var format = options.TryGetValue("format", out var requested) ? requested.ToLowerInvariant() switch
+        {
+            "html" => ExportFormat.Html, "json" => ExportFormat.Json, "csv" => ExportFormat.Csv, "xlsx" => ExportFormat.Xlsx,
+            _ => throw new ConfigurationException("External check claims export as html, json, csv or xlsx.")
+        } : ExportFormat.Html;
+        var tenant = Require(options, "tenant"); var input = Require(options, "input");
+        using var stop = new CancellationTokenSource();
+        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; stop.Cancel(); };
+        Console.CancelKeyPress += cancel;
+        try
+        {
+            stop.Token.ThrowIfCancellationRequested();
+            var source = ExternalCheckResultsSchema.ReadFile(input, tenant);
+            stop.Token.ThrowIfCancellationRequested();
+            var file = Context.Open(options).Exporter.ExportExternalCheckResults(source, tenant, format, stop.Token);
+            Console.WriteLine(ToolkitJson.Serialize(new { kind = "externalCheckClaimsExport", file,
+                sourceState = source.Evidence.SourceState, originalSha256 = source.OriginalSha256, assurance = source.AssuranceNotice }));
+            return 0;
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        { Console.Error.WriteLine("Cancelled. No completed external-results export is claimed."); return 130; }
+        finally { Console.CancelKeyPress -= cancel; }
+    }
+
+    private static int OperationalReportEvidenceExport(IReadOnlyDictionary<string, string> options)
+    {
+        var allowed = new[] { "input", "tenant", "format", "root" };
+        if (options.Keys.Any(key => !allowed.Contains(key, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Operational exports accept only --input, --tenant, --format and --root. No authentication or service read is supported.");
+        var tenant = Require(options, "tenant");
+        if (!BuildStandard.Core.Reporting.ReportValues.IsCanonicalGuid(tenant)) throw new ConfigurationException("Supply the exact original source tenant GUID.");
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Operational reports export as html, json, csv or xlsx.");
+        var file = OperationalContextFile.ReadFile(Require(options, "input"), tenant);
+        var context = Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportOperationalContext(file.Report, format, suppliedFile: true, originalBytes: file.CopyOriginal()));
+        Console.WriteLine($"Offline supplied operational report · read status {file.Report.Status} · no live reads or writes. Export does not establish tenant availability, effective partner access or authenticated source claims.");
+        return 0;
+    }
+
+    private static int UsageReportEvidenceExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(key=>!allowed.Contains(key,StringComparer.OrdinalIgnoreCase)))throw new ConfigurationException("Usage exports accept only --input, --tenant, --format and --root. No authentication or download is supported.");
+        var tenant=Require(options,"tenant");
+        if(!BuildStandard.Core.Reporting.ReportValues.IsCanonicalGuid(tenant))throw new ConfigurationException("Supply the exact expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))throw new ConfigurationException("Usage reports export as html, json, csv or xlsx.");
+        var bytes=ReadPreviewInput(Require(options,"input"),UsageReviewSchema.MaximumBytes,"Usage pack exceeds40MiB.");
+        string json;
+        try{json=new UTF8Encoding(false,true).GetString(bytes).TrimStart('\uFEFF');}
+        catch(DecoderFallbackException){throw new ConfigurationException("Usage pack must be strict UTF-8.");}
+        var report=UsageReviewSchema.Read(json,tenant);var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportUsageReview(report,format,suppliedFile:true,originalBytes:bytes));
+        Console.WriteLine($"Offline supplied usage pack · read status {report.Status} · privacy Unknown · no live reads or writes. Export success does not prove collection success or identity provenance.");
+        return 0;
+    }
+
+    private static int ConditionalAccessEvaluationExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(k=>!allowed.Contains(k,StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("CA evaluation export accepts only --input, --tenant, --format and --root. No collection or execution is supported.");
+        var tenant=Require(options,"tenant");
+        if(!BuildStandard.Core.Reporting.ReportValues.TryGuid(tenant,out var canonicalTenant))throw new ConfigurationException("--tenant must identify the expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("CA evaluation exports as html, json, csv or xlsx only.");
+        var capture=ConditionalAccessEvaluationBundle.ReadFile(Require(options,"input"),canonicalTenant);
+        var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportConditionalAccessEvaluation(capture,format));
+        Console.WriteLine("Offline historical / unverified hypothetical evaluation · recorded read status "+capture.Metadata.Status+" · no live reads, sign-in or writes. Export success is not proof of applicability or enforcement.");
+        return 0;
+    }
+
+    private static int DeploymentCoverageExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(k=>!allowed.Contains(k,StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Coverage export accepts only --input, --tenant, --format and --root. No collection or execution is supported.");
+        if(!BuildStandard.Core.Reporting.ReportValues.TryGuid(Require(options,"tenant"),out var tenant))
+            throw new ConfigurationException("--tenant must identify the expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Coverage exports as html, original JSON ZIP, csv or xlsx only.");
+        var evidence=DeploymentCoverageBundle.ReadFile(Require(options,"input"),tenant);
+        var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportDeploymentCoverage(evidence,format));
+        Console.WriteLine("Offline historical / unverified coverage observations · no live reads, sign-in or writes. Source read completeness is not effective deployment, installation or approval.");
+        return 0;
+    }
+
     private static int ReportEvidenceExport(IReadOnlyDictionary<string, string> options)
     {
         var allowed = new[] { "input", "tenant", "format", "root", "historical" };
@@ -457,6 +603,59 @@ public static class Program
     }
 
     // ---- shared context -------------------------------------------------------------------------------------------
+
+    private static int DomainReport(IReadOnlyDictionary<string,string> options)
+    {
+        foreach(var key in options.Keys)
+            if(!new[]{"input","output","root"}.Contains(key,StringComparer.OrdinalIgnoreCase))
+                throw new ConfigurationException("Unsupported domain-report option --"+key+". This command imports local reports only.");
+        var input=Require(options,"input");var output=Require(options,"output");
+        var document=DomainReadinessDocument.ReadFile(input);
+        var paths=ToolkitPaths.Resolve(options.GetValueOrDefault("root"));
+        var folder=DomainReadinessDocuments.Export(document,paths,output,()=>true);
+        Console.WriteLine(folder);
+        Console.WriteLine($"Historical supplied report — unverified source · {document.Report.Domain} · read coverage {document.Report.Status} · no DNS queries or tenant operations. Export success is not readiness success.");
+        return 0;
+    }
+
+    private static int ClientReviews(IReadOnlyDictionary<string, string> options)
+    {
+        if (options.Keys.Any(k => !k.Equals("root", StringComparison.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Unsupported clients option. This command only reads local saved evidence.");
+        var context = Context.Open(options);
+        var at = DateTimeOffset.UtcNow;
+        var clients = new List<object>();
+        foreach (var profile in context.Evidence.LoadClientProfiles())
+        {
+            var review = BuildStandard.Engine.Workflow.ClientReviewProjection.Project(profile,
+                context.Evidence.LoadClientReviewEvidence(profile.TenantId), at);
+            clients.Add(new { profile.Id, profile.Company, profile.TenantId, review.LastAssessment,
+                review.WriteHistoryKnown, review.UnresolvedWrites, Jobs = review.Jobs.Count,
+                CompleteJobs = review.Jobs.Count(j => j.Complete), UnknownJobs = review.Jobs.Count(j => !j.Known),
+                DiagnosticCount = review.Diagnostics.Count });
+        }
+        Console.WriteLine(ToolkitJson.Serialize(new { Kind = "clientReviews", ReviewedAt = Timestamps.Format(at),
+            Notice = ClientReviewDocuments.Notice, Clients = clients }));
+        return 0;
+    }
+
+    private static int ClientReviewPack(IReadOnlyDictionary<string, string> options)
+    {
+        if (options.Keys.Any(k => !new[] { "root", "tenant", "output" }.Contains(k, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Unsupported review option. Choose one saved client and an output folder.");
+        var tenant = Require(options, "tenant"); var output = Require(options, "output");
+        if (tenant.Length != 36 || !Guid.TryParseExact(tenant, "D", out var id) || id == Guid.Empty)
+            throw new ConfigurationException("Choose an exact saved client tenant GUID.");
+        var context = Context.Open(options);
+        var profile = context.Evidence.LoadClientProfiles().SingleOrDefault(p => string.Equals(p.TenantId, tenant, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ConfigurationException("No saved client matches this tenant. Save its local profile before creating a review pack.");
+        var evidence = context.Evidence.LoadClientReviewEvidence(profile.TenantId);
+        var document = ClientReviewDocuments.Create(profile, evidence, DateTimeOffset.UtcNow);
+        var directory = ClientReviewDocuments.Export(document, context.Evidence, output, () => true);
+        Console.WriteLine(ToolkitJson.Serialize(new { Kind = "clientReviewPack", profile.TenantId, Directory = directory,
+            document.Review.UnresolvedWrites, document.Review.WriteHistoryKnown, Notice = ClientReviewDocuments.Notice }));
+        return 0;
+    }
 
     private static int Customers(IReadOnlyDictionary<string, string> options)
     {

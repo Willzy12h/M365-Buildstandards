@@ -9,7 +9,9 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$ZipPath,
       [Parameter(Mandatory=$true)][string]$StagePath,
-      [Parameter(Mandatory=$true)][string]$ResultPath)
+      [Parameter(Mandatory=$true)][string]$ResultPath,
+      [string]$UsageFixturePath = "",
+      [string[]]$OperationalFixturePath = @())
 $ErrorActionPreference = 'Stop'
 $zip = (Resolve-Path -LiteralPath $ZipPath).Path
 $stage = (Resolve-Path -LiteralPath $StagePath).Path.TrimEnd('\')
@@ -100,6 +102,41 @@ try {
     if ($failure.Error -notmatch 'Refused:' -or $failure.Text) { throw 'CLI refusal did not preserve stderr or exit code.' }
     $unknown = Invoke-OwnedCli $exe '--cli synthetic-unknown-command' 64
     if ($unknown.Error -notmatch 'Unknown command') { throw 'CLI unknown-command status was lost.' }
+    $lifecycleHistory = Invoke-OwnedCli $exe '--cli lifecycle --tenant 11111111-1111-4111-8111-111111111111' 0
+    $lifecycleJson = $lifecycleHistory.Text | ConvertFrom-Json
+    if ($lifecycleJson.kind -cne 'lifecycle-history' -or $lifecycleJson.complete -ne $true -or @($lifecycleJson.records).Count -ne 0 -or
+        $lifecycleJson.assurance -notmatch 'no execution approval and no replay') { throw 'Packaged offline lifecycle history lost its empty/history/no-authority meaning.' }
+    $lifecycleDenied = Invoke-OwnedCli $exe '--cli lifecycle --tenant 11111111-1111-4111-8111-111111111111 --execute true' 2
+    if ($lifecycleDenied.Text -or $lifecycleDenied.Error -notmatch 'cannot execute, approve or resume') { throw 'Packaged lifecycle CLI did not refuse an execution option.' }
+    $lifecycleChecked = $true
+
+    $usageChecked = $false
+    if ($UsageFixturePath) {
+        $usageInput = (Resolve-Path -LiteralPath $UsageFixturePath).Path
+        $usageOriginal = (Get-FileHash -LiteralPath $usageInput -Algorithm SHA256).Hash
+        $usage = Invoke-OwnedCli $exe ('--cli usage-report-evidence --input "' + $usageInput + '" --tenant 11111111-1111-1111-1111-111111111111 --format json') 0
+        if ($usage.Error -or $usage.Text -notmatch 'privacy Unknown' -or $usage.Text -notmatch 'no live reads or writes') { throw 'Packaged usage CLI lost source/privacy limitations.' }
+        $usageFile = (($usage.Text -split "`r?`n")[0]).Trim()
+        if (-not (Test-Path -LiteralPath $usageFile) -or (Get-FileHash -LiteralPath $usageFile -Algorithm SHA256).Hash -cne $usageOriginal) { throw 'Packaged usage CLI did not preserve the exact original bytes.' }
+        $usageRefused = Invoke-OwnedCli $exe ('--cli usage-report-evidence --input "' + $usageInput + '" --tenant 22222222-2222-2222-2222-222222222222 --format json') 2
+        if ($usageRefused.Error -notmatch 'Refused:') { throw 'Packaged usage CLI accepted another tenant.' }
+        if ((Get-FileHash -LiteralPath $usageInput -Algorithm SHA256).Hash -cne $usageOriginal) { throw 'Packaged usage CLI changed supplied source bytes.' }
+        $usageChecked = $true
+    }
+    $operationalChecked = $false
+    foreach ($operationalFixture in $OperationalFixturePath) {
+        $operationalInput = (Resolve-Path -LiteralPath $operationalFixture).Path
+        $operationalOriginal = (Get-FileHash -LiteralPath $operationalInput -Algorithm SHA256).Hash
+        $operationalStatus = (Get-Content -LiteralPath $operationalInput -Raw | ConvertFrom-Json).status
+        $operational = Invoke-OwnedCli $exe ('--cli operational-report-evidence --input "' + $operationalInput + '" --tenant 11111111-1111-1111-1111-111111111111 --format json') 0
+        if ($operational.Error -or [string]::IsNullOrWhiteSpace($operationalStatus) -or $operational.Text -notmatch ('read status ' + [regex]::Escape($operationalStatus) + '\b') -or $operational.Text -notmatch 'no live reads or writes') { throw 'Packaged operational CLI lost its original read status/source limitations.' }
+        $operationalFile = (($operational.Text -split "`r?`n")[0]).Trim()
+        if (-not (Test-Path -LiteralPath $operationalFile) -or (Get-FileHash -LiteralPath $operationalFile -Algorithm SHA256).Hash -cne $operationalOriginal) { throw 'Packaged operational CLI did not preserve original bytes.' }
+        $operationalRefused = Invoke-OwnedCli $exe ('--cli operational-report-evidence --input "' + $operationalInput + '" --tenant 22222222-2222-2222-2222-222222222222 --format json') 2
+        if ($operationalRefused.Error -notmatch 'Refused:') { throw 'Packaged operational CLI accepted another source tenant.' }
+        if ((Get-FileHash -LiteralPath $operationalInput -Algorithm SHA256).Hash -cne $operationalOriginal) { throw 'Packaged operational CLI changed source bytes.' }
+        $operationalChecked = $true
+    }
     $viaLauncher = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help"') 0
     if ($viaLauncher.Text -notmatch 'buildstandard inventory' -or $viaLauncher.Error) { throw 'buildstandard.cmd did not forward help and stdout.' }
     $viaLegacy = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $legacyLauncher + '" --help"') 0
@@ -171,6 +208,37 @@ public static class PortableCliStandardHandles {
     [IO.File]::WriteAllText($customerFile, "Microsoft ID,Company name`n11111111-1111-4111-8111-111111111111,broken`"quote`n", [Text.UTF8Encoding]::new($false))
     $invalidCustomers = Invoke-OwnedCli $exe ('--cli customers --csv "' + $customerFile + '"') 2
     if ($invalidCustomers.Text -or $invalidCustomers.Error -notmatch 'Refused:') { throw 'Packaged customer preview accepted malformed quoting or lost its refusal.' }
+    # Separate domain envelope: original JSON, historical provenance, HTML/CSV; no DNS command exists in CLI.
+    $domainFile = Join-Path $synthetic 'synthetic domain report.json'
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'test-fixtures\domain-readiness.json') -Destination $domainFile
+    $domainOutput = Join-Path $synthetic 'domain exports'
+    $domainRead = Invoke-OwnedCli $exe ('--cli domain-report --input "' + $domainFile + '" --output "' + $domainOutput + '"') 0
+    if ($domainRead.Error -or $domainRead.Text -notmatch 'Historical' -or $domainRead.Text -notmatch 'Partial' -or $domainRead.Text -notmatch 'no DNS queries') {
+        throw 'Packaged domain report lost historical/partial/read-only meaning.'
+    }
+    $domainPacks = @(Get-ChildItem -LiteralPath $domainOutput -Directory)
+    if ($domainPacks.Count -ne 1) { throw 'Packaged domain report did not publish exactly one new pack.' }
+    $domainPack = $domainPacks[0].FullName
+    if ((Get-FileHash -LiteralPath $domainFile -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath (Join-Path $domainPack 'report.json') -Algorithm SHA256).Hash -or
+        -not (Test-Path -LiteralPath (Join-Path $domainPack 'observations.csv.zip')) -or
+        (Get-Content -LiteralPath (Join-Path $domainPack 'readiness.html') -Raw) -notmatch 'DNS-owner worksheet') {
+        throw 'Packaged domain report did not preserve original JSON or generate the shared worksheet.'
+    }
+    $domainRefusal = Invoke-OwnedCli $exe ('--cli domain-report --input "' + $domainFile + '" --output "' + $domainOutput + '" --run') 2
+    if ($domainRefusal.Text -or $domainRefusal.Error -notmatch '--run' -or @(Get-ChildItem -LiteralPath $domainOutput -Directory).Count -ne 1) {
+        throw 'Packaged domain CLI did not refuse a collection option before exporting.'
+    }
+    # Remove the exact test-owned pack files, then their now-empty folders. Never recurse over unknown evidence.
+    $domainManifest = Get-Content -LiteralPath (Join-Path $domainPack 'manifest.json') -Raw | ConvertFrom-Json
+    foreach ($name in 'report.json','readiness.html','observations.csv.zip') {
+        $actual = (Get-FileHash -LiteralPath (Join-Path $domainPack $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $domainManifest.files.$name) { throw "Domain pack fingerprint mismatch: $name" }
+        Remove-Item -LiteralPath (Join-Path $domainPack $name) -Force
+    }
+    Remove-Item -LiteralPath (Join-Path $domainPack 'manifest.json') -Force
+    Remove-Item -LiteralPath $domainPack -Force
+    Remove-Item -LiteralPath $domainOutput -Force
+    Remove-Item -LiteralPath $domainFile -Force
     $outFile = Join-Path $synthetic 'redirected help.txt'; $errFile = Join-Path $synthetic 'redirected errors.txt'
     $fileHelp = Invoke-OwnedCli $env:ComSpec ('/d /s /c ""' + $launcher + '" --help > "' + $outFile + '" 2> "' + $errFile + '""') 0
     if ($fileHelp.Text -or $fileHelp.Error -or (Get-Content -LiteralPath $outFile -Raw) -notmatch 'buildstandard inventory' -or (Get-Item -LiteralPath $errFile).Length -ne 0) { throw 'CLI file redirection did not preserve output handles.' }
@@ -195,9 +263,26 @@ public static class PortableCliStandardHandles {
     Assert-SyntheticReport (@($inventory.Text -split "`r?`n")[0]) 'configuration-*.html' 'configuration inventory'
     $profileFile = Join-Path $extract 'data\profiles.json'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $profileFile) | Out-Null
-    [IO.File]::WriteAllText($profileFile, '[{"tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($profileFile, '[{"id":"88888888-8888-4888-8888-888888888888","tenantId":"11111111-1111-4111-8111-111111111111","company":"Synthetic CLI client","domain":"synthetic.example.invalid","parameters":{}}]', [Text.UTF8Encoding]::new($false))
     $jobs = Invoke-OwnedCli $exe '--cli jobs --tenant 11111111-1111-4111-8111-111111111111' 0
     if ($jobs.Text -notmatch 'Synthetic CLI client.*0 job\(s\)' -or $jobs.Error) { throw "Packaged CLI did not project stored synthetic client jobs cleanly. $($jobs.Error)" }
+    $clients = Invoke-OwnedCli $exe '--cli clients' 0
+    $clientRows = $clients.Text | ConvertFrom-Json
+    if ($clients.Error -or $clientRows.kind -ne 'clientReviews' -or @($clientRows.clients).Count -ne 1 -or $clientRows.clients[0].company -ne 'Synthetic CLI client') { throw 'Packaged client history command did not return the saved synthetic client.' }
+    $review = Invoke-OwnedCli $exe ('--cli review --tenant 11111111-1111-4111-8111-111111111111 --output "' + $synthetic + '"') 0
+    $reviewPack = $review.Text | ConvertFrom-Json
+    if ($review.Error -or $reviewPack.kind -ne 'clientReviewPack') { throw 'Packaged review command failed.' }
+    $reviewDirectory = [IO.Path]::GetFullPath($reviewPack.directory)
+    if ([IO.Path]::GetDirectoryName($reviewDirectory) -ine [IO.Path]::GetFullPath($synthetic)) { throw 'Packaged review output escaped its requested synthetic folder.' }
+    $reviewManifest = Get-Content -LiteralPath (Join-Path $reviewDirectory 'manifest.json') -Raw | ConvertFrom-Json
+    if ($reviewManifest.tenantId -ne '11111111-1111-4111-8111-111111111111' -or $reviewManifest.notice -notmatch 'not a live assessment') { throw 'Review manifest lost client identity or limitations.' }
+    foreach ($name in 'engineer.html','client.html','review.csv.zip') {
+        $actual = (Get-FileHash -LiteralPath (Join-Path $reviewDirectory $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $reviewManifest.files.$name) { throw "Review output fingerprint mismatch: $name" }
+        Remove-Item -LiteralPath (Join-Path $reviewDirectory $name) -Force
+    }
+    Remove-Item -LiteralPath (Join-Path $reviewDirectory 'manifest.json') -Force
+    Remove-Item -LiteralPath $reviewDirectory -Force
     $report = Invoke-OwnedCli $exe ('--cli report --snapshot "' + $snapshotFile + '" --format html') 0
     if ($report.Error) { throw "Packaged CLI report wrote to stderr: $($report.Error)" }
     $reportLine = @($report.Text -split "`r?`n" | Where-Object { $_ -match '^Report: ' })
@@ -440,8 +525,8 @@ public static class PortableTextMenu {
         zipSha256=$expectedZip; extractedFiles=$files.Count; stageBytesMatch=$true; checksumsVerified=$true;
         blankConnectionSettings=$true; emptyEvidenceFolders=$true; actualPackagedFirstLaunch=$true; gracefulShutdown=$true;
         accessibilityAssemblyVerified=$true; textBoxContextMenuOpened=$true; contextMenuCopyVerified=$true;
-        portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
-        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true;
+        portableCliLifecycleOfflineAndExecutionRefusal=$lifecycleChecked; portableCliUsageOriginalAndTenantRefusal=$usageChecked; portableCliOperationalOriginalAndTenantRefusal=$operationalChecked; portableCliHelp=$true; portableCliLauncher=$true; portableCliLegacyAlias=$true; portableCliDoctorReady=$true; portableCliDoctorRequiredChecks=$true; portableCliDoctorRejections=$true; portableCliPipedStdoutInheritedStderr=$inheritedErrorType; portableCliExitCodes=$true; portableCliInventory=$true; portableCliJobs=$true; portableCliReport=$true; portableCliRegisteredReport=$true; portableCliApplicationExpiry=$true; portableCliApplicationConsent=$true; portableCliApplicationHistorical=$true; noCliDesktopOrAuthInitialisation=$true;
+        portableCliCustomerPreview=$true; portableCliCustomerMalformedRefused=$true; portableCliClients=$true; portableCliClientReviewPack=$true; portableCliDomainReport=$true; portableCliDomainCollectionRefused=$true;
         tenantOperationsPerformed=$false; note='Offline Windows first launch only. An interactive console run of buildstandard.cmd (and legacy bdit.cmd), WAM, physical accessibility and Microsoft service/device acceptance remain unperformed.' }
     $parent = Split-Path -Parent $ResultPath
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

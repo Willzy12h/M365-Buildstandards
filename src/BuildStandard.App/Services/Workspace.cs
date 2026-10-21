@@ -67,10 +67,24 @@ public sealed class Workspace : ObservableObject
     public string StopGuidance => $"Stop cancels policy reads. An in-flight policy request waits for its {Settings.GraphWriteTimeoutSeconds}-second transport budget. Verification and after-capture each have a 60-second budget and may finish incomplete. Local evidence is saved before closing.";
 
     public ObservableCollection<TenantProfile> Profiles { get; } = new();
+    // Editing or normalising a visible profile must not change the last persisted comparison baseline.
+    private IReadOnlyList<TenantProfile> _savedProfileBaseline = Array.Empty<TenantProfile>();
     public ObservableCollection<StandardRelease> Releases { get; } = new();
     public ObservableCollection<LogEntry> Activity { get; } = new();
 
     public StandardCatalogue? Standard { get; private set; }
+    private readonly List<Func<bool>> _unsavedStandardGuards = new();
+    public bool StandardReplacementBlocked => _unsavedStandardGuards.Any(hasUnsaved => hasUnsaved());
+    public const string StandardReplacementGuidance = "Keep, save or explicitly discard the local candidate draft in Catalogue before replacing the standard. The current catalogue is retained.";
+    public event Action? StandardReplacementChanged;
+    // Editors have the same workspace lifetime as their existing StateChanged subscriptions. Register each
+    // editor, rather than allowing a later clean editor to overwrite an earlier editor's unsaved-work guard.
+    public void RegisterUnsavedStandardGuard(Func<bool> hasUnsaved) => _unsavedStandardGuards.Add(hasUnsaved);
+    public void NotifyStandardReplacementChanged() => StandardReplacementChanged?.Invoke();
+    public void RequireStandardReplaceable()
+    {
+        if (StandardReplacementBlocked) throw new ConfigurationException(StandardReplacementGuidance);
+    }
     public string? StandardError { get; private set; }
     public TenantProfile? Profile { get; private set; }
     public ConnectedTenant? Connection { get; private set; }
@@ -238,13 +252,23 @@ public sealed class Workspace : ObservableObject
 
     private void LoadProfiles()
     {
-        Profiles.Clear();
-        foreach (var p in Evidence.LoadProfiles()) Profiles.Add(p);
+        ReplaceSavedProfiles(Evidence.LoadProfiles());
         foreach (var p in Profiles)
         {
             try { Evidence.MarkInterruptedRuns(p.TenantId); }
             catch (ToolkitException ex) { Logger.Warn("App", $"Could not review previous runs for {p.Company}: {ex.Message}"); }
         }
+    }
+
+    internal void ReplaceSavedProfiles(IReadOnlyList<TenantProfile> profiles)
+    {
+        var visible = profiles.ToArray();
+        var options = new System.Text.Json.JsonSerializerOptions(ToolkitJson.Options)
+            { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
+        _savedProfileBaseline = System.Text.Json.JsonSerializer.Deserialize<List<TenantProfile>>(
+            System.Text.Json.JsonSerializer.Serialize(visible, options), options)!;
+        Profiles.Clear();
+        foreach (var profile in visible) Profiles.Add(profile);
     }
 
     /// <summary>
@@ -260,6 +284,13 @@ public sealed class Workspace : ObservableObject
 
     public bool TrySelectStandard(string fileName)
     {
+        // Refusal is not a broken catalogue load: do not enter the catch path that clears Standard.
+        if (StandardReplacementBlocked)
+        {
+            StandardError = StandardReplacementGuidance;
+            Notify();
+            return false;
+        }
         try
         {
             CancelPendingDiscovery();
@@ -344,6 +375,7 @@ public sealed class Workspace : ObservableObject
 
     public void UseImportedStandard(DevicePolicyImport import)
     {
+        RequireStandardReplaceable();
         if (Busy || IsConnected) throw new ToolkitException("Disconnect before changing the standard so the next connection requests the correct routes and permissions.");
         var tenant = Profile?.TenantId ?? throw new ToolkitException("Select the target tenant profile first.");
         var directory = Path.Combine(Paths.TenantDirectory(tenant), "catalogues");
@@ -365,6 +397,7 @@ public sealed class Workspace : ObservableObject
 
     public void LoadLocalCandidate(string fileName)
     {
+        RequireStandardReplaceable();
         if (Busy || IsConnected) throw new ToolkitException("Disconnect before loading another candidate standard.");
         if (!LocalCandidates().Contains(fileName, StringComparer.Ordinal)) throw new ConfigurationException("Select a saved candidate from this tenant.");
         var file = Path.Combine(Paths.TenantDirectory(Profile!.TenantId), "catalogues", fileName);
@@ -438,7 +471,7 @@ public sealed class Workspace : ObservableObject
             ClearClientEvidence();
             // Keep the visible saved-client entry consistent with the persisted target, using a separate edit copy.
             var index = Profiles.ToList().FindIndex(p => string.Equals(p.Id, savedProfileId, StringComparison.Ordinal));
-            var listed = ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(profile));
+            var listed = matches[0];
             if (index >= 0) Profiles[index] = listed; else Profiles.Add(listed);
             Profile = profile;
         });
@@ -456,7 +489,8 @@ public sealed class Workspace : ObservableObject
     public TenantProfile SaveProfile(TenantProfile input)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before changing a saved profile.");
-        var profile = ProfileValidator.Validate(input, DateTimeOffset.UtcNow);
+        var expected = _savedProfileBaseline;
+        var profile = ProfileValidator.Validate(ToolkitJson.Deserialize<TenantProfile>(ToolkitJson.Serialize(input)), DateTimeOffset.UtcNow);
         if (Connection is not null && Profile?.Id == profile.Id
             && !string.Equals(Connection.Session.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
             throw new TenantMismatchException("Disconnect before changing the tenant ID of the connected profile.");
@@ -473,9 +507,8 @@ public sealed class Workspace : ObservableObject
             all[index] = profile;
         }
         else all.Add(profile);
-        Evidence.SaveProfiles(all);
-        Profiles.Clear();
-        foreach (var p in all) Profiles.Add(p);
+        Evidence.UpdateProfiles(expected, _ => all);
+        ReplaceSavedProfiles(all);
         if (Profile?.Id == profile.Id)
         {
             if (!string.Equals(Profile.TenantId, profile.TenantId, StringComparison.OrdinalIgnoreCase))
@@ -492,32 +525,32 @@ public sealed class Workspace : ObservableObject
     public async Task DeleteProfileAsync(string id)
     {
         if (Busy) throw new ToolkitException("Wait for the active operation before deleting a profile.");
+        var expected = _savedProfileBaseline;
         if (Profile?.Id == id) await DisconnectAsync();
         var remaining = Profiles.Where(p => p.Id != id).ToList();
-        Evidence.SaveProfiles(remaining);
+        Evidence.UpdateProfiles(expected, _ => remaining);
         // Removing the active saved client also removes its local target and transient authority; durable evidence stays.
         if (Profile?.Id == id) { ClearClientEvidence(); Profile = null; }
-        Profiles.Clear();
-        foreach (var p in remaining) Profiles.Add(p);
+        ReplaceSavedProfiles(remaining);
         Logger.Info("Profiles", "Saved connection removed. Tenant objects and saved evidence are retained.");
         Notify();
     }
 
     // ---- connection ----------------------------------------------------------------------------------------------
 
-    public async Task<DiscoveredTenant?> DiscoverTenantAsync()
+    public async Task<DiscoveredTenant?> DiscoverTenantAsync(OptionalReportAccess optionalAccess = OptionalReportAccess.None)
     {
         DiscoveredTenant? discovered = null;
         await RunExclusiveAsync("Finding the signed-in organisation", async progress =>
         {
             progress.Report("Choose the client's own work or school account in Microsoft sign-in.");
             var discoveryScopes = Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
-                ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" };
+                ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard(), optionalAccess) : new[] { "User.Read", "Organization.Read.All" };
             await CancelPendingDiscoveryAsync();
             var result = await TenantDiscoveryService.DiscoverRetainedAsync(_http, Settings, RequireStandard(),
                 Settings.ResolveClient(SessionMode.Assessment, null)?.IsSharedFallback == true
-                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard()) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken,
-                ct => ReviewPermissionRequestAsync("Not selected — Microsoft will ask you to choose", ToolkitSettings.MicrosoftGraphPowerShellClientId, discoveryScopes, "Quick Connect: read-only discovery; possible Microsoft consent", ct));
+                    ? Connections.ScopesFor(SessionMode.Assessment, RequireStandard(), optionalAccess) : new[] { "User.Read", "Organization.Read.All" }, AuthenticationWindow(), Logger, OperationToken,
+                ct => ReviewPermissionRequestAsync("Not selected — Microsoft will ask you to choose", ToolkitSettings.MicrosoftGraphPowerShellClientId, discoveryScopes, "Quick Connect: read-only discovery; possible Microsoft consent", ct), optionalAccess);
             _pendingDiscovery = result;
             if (OperationToken.IsCancellationRequested) { await CancelPendingDiscoveryAsync(); OperationToken.ThrowIfCancellationRequested(); }
             discovered = result.Identity;
@@ -534,39 +567,46 @@ public sealed class Workspace : ObservableObject
     { await previous; await pending.DisposeAsync(); }
     public async Task CancelPendingDiscoveryAsync() { CancelPendingDiscovery(); await _pendingRelease; }
 
+    private OptionalReportAccess _connectedOptionalAccess;
+    private string? _connectedLifecycleAction;
     public Task ConnectAsync(TenantProfile profile, SessionMode mode, string? loginHint = null,
-        DiscoveredTenant? expectedIdentity = null) => RunExclusiveAsync(
+        DiscoveredTenant? expectedIdentity = null, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null) => RunExclusiveAsync(
         mode == SessionMode.Deployment ? "Connecting with deployment access" : "Connecting (read-only)", async progress =>
         {
+            var selectedLifecycleAction=LifecycleAccessPolicy.Normalise(lifecycleActionId);
+            if(expectedIdentity is not null && selectedLifecycleAction is not null)throw new ConfigurationException("Quick Connect is initial read-only discovery. Confirm it first, then review lifecycle access deliberately.");
             var standard = RequireStandard();
             Connections.ParentWindowHandle = AuthenticationWindow();
             Connections.LoginHint = loginHint ?? Session?.Account ?? ApplicationSetup?.Identity.Account ?? "";
             // Repeated connection buttons for the same complete profile need fresh read checks, not another
             // interactive sign-in. A changed mode, application, profile or discovery confirmation uses full verification.
-            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode))
+            if (expectedIdentity is null && loginHint is null && CanReuseConnection(profile, mode, optionalAccess, selectedLifecycleAction))
             {
                 progress.Report("Reusing the current verified session; checking read access without another sign-in.");
                 Access = await Connections.CheckAccessAsync(Connection!, standard, progress, OperationToken);
                 await LoadLicencesCoreAsync(includeUsers: false);
+                _connectedLifecycleAction=selectedLifecycleAction;
                 return;
             }
             ExperimentalGuard.Invalidate();
             var requestedClient = Settings.ResolveClient(mode, profile) ?? throw new ConfigurationException("No application is configured for this access mode.");
-            var requestedScopes = Connections.ScopesFor(mode, standard).ToArray();
+            var requestedScopes = Connections.ScopesFor(mode, standard, optionalAccess, selectedLifecycleAction).ToArray();
             var requestedAccount = Connections.LoginHint;
             var approvedUntil = DateTimeOffset.MinValue;
-            if (mode == SessionMode.Deployment)
+            if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None || selectedLifecycleAction is not null)
             {
                 await ReviewPermissionRequestAsync(profile.TenantId, requestedClient.ClientId, requestedScopes,
-                    "Request deployment access — experimental tenant changes stay off until separately approved", OperationToken, requestedAccount);
+                    selectedLifecycleAction is not null
+                        ? (mode==SessionMode.Deployment?"Selected existing-user action deployment access: ":"Read-only existing-user readiness access: ")+LifecycleActionRegistry.Label(selectedLifecycleAction)+". Experimental writes remain off until separately approved."
+                        : mode == SessionMode.Deployment ? "Request deployment access — experimental tenant changes stay off until separately approved" : "Optional registered report read access — review every listed scope; no report-setting or licence changes", OperationToken, requestedAccount);
                 approvedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
             }
             async Task BeforeInteractive(CancellationToken ct)
             {
                 if (!string.Equals(Settings.ResolveClient(mode, profile)?.ClientId, requestedClient.ClientId, StringComparison.OrdinalIgnoreCase)
-                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard)))
+                    || !requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(Connections.ScopesFor(mode, standard, optionalAccess, selectedLifecycleAction)))
                     throw new SafetyViolationException("The displayed application or permissions changed. Review a new request; no sign-in request was sent.");
-                if (mode == SessionMode.Deployment)
+                if (mode == SessionMode.Deployment || optionalAccess != OptionalReportAccess.None || selectedLifecycleAction is not null)
                 {
                     if (approvedUntil <= DateTimeOffset.UtcNow) throw new SafetyViolationException("Access-request approval expired. Review the request again.");
                     ct.ThrowIfCancellationRequested();
@@ -581,15 +621,17 @@ public sealed class Workspace : ObservableObject
                 var pending = _pendingDiscovery ?? throw new AuthenticationRequiredException("Quick Connect was cancelled. Start it again.");
                 if (pending.Identity != expectedIdentity) throw new TenantMismatchException("Quick Connect account changed.");
                 _pendingDiscovery = null;
-                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken, BeforeInteractive); }
+                try { nextConnection = await Connections.ConfirmDiscoveryAsync(pending, profile, standard, progress, OperationToken, BeforeInteractive, optionalAccess); }
                 finally { await pending.DisposeAsync(); }
             }
             else
             {
                 await CancelPendingDiscoveryAsync();
-                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive);
+                nextConnection = await Connections.ConnectAsync(profile, mode, standard, progress, OperationToken, beforeInteractive: BeforeInteractive, optionalAccess: optionalAccess, lifecycleActionId: selectedLifecycleAction);
             }
             await CompleteConnectionAsync(profile, nextConnection, standard, progress);
+            _connectedOptionalAccess=optionalAccess;
+            _connectedLifecycleAction=selectedLifecycleAction;
         });
 
     /// <summary>Accepts an already authenticated connection and performs the existing read-only checks.</summary>
@@ -626,7 +668,13 @@ public sealed class Workspace : ObservableObject
         await LoadLicencesCoreAsync(includeUsers: false);
     }
 
-    public bool CanReuseConnection(TenantProfile profile, SessionMode mode) => Profile is not null
+    public bool CanReuseConnection(TenantProfile profile, SessionMode mode, OptionalReportAccess optionalAccess = OptionalReportAccess.None, string? lifecycleActionId = null) => Profile is not null
+        && Standard is { } lifecycleCatalogue
+        && Connections.ScopesFor(mode,lifecycleCatalogue,optionalAccess,_connectedLifecycleAction).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            .SetEquals(Connections.ScopesFor(mode,lifecycleCatalogue,optionalAccess,LifecycleAccessPolicy.Normalise(lifecycleActionId)))
+        && LifecycleAccessPolicy.Scopes(mode,lifecycleActionId).All(scope=>(Session?.Scopes??[]).Any(raw=>string.Equals(raw.StartsWith("https://graph.microsoft.com/",StringComparison.OrdinalIgnoreCase)?raw[28..]:raw,scope,StringComparison.OrdinalIgnoreCase)))
+        && _connectedOptionalAccess==optionalAccess
+        && OptionalReportAccessPolicy.IsSatisfied(optionalAccess, Session?.Scopes ?? [])
         && Session is { TenantVerified: true, OperatorVerified: true } session && session.Mode == mode
         && DateTimeOffset.TryParse(session.TokenExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.RoundtripKind, out var expires) && expires > DateTimeOffset.UtcNow
@@ -665,6 +713,7 @@ public sealed class Workspace : ObservableObject
         ExperimentalGuard.Invalidate();
         var connection = Connection;
         Connection = null;
+        _connectedLifecycleAction=null;
         Licences = null;
         InterruptedNotice = "";
         Access = null;

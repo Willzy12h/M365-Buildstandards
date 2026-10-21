@@ -174,6 +174,20 @@ internal static partial class Program
         }
     }
 
+    private static void RecordDomainInputs(FrameworkElement content,string where)
+    {
+        var fields=new[]{"Domain to check","Expected mail gateways","Expected mail gateway source"}
+            .Select(name=>Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)==name)).ToArray();
+        var bounds=fields.Select(t=>t.TransformToAncestor(content).TransformBounds(new Rect(t.RenderSize))).ToArray();
+        for(var i=0;i<fields.Length;i++)
+        {
+            ClippingInspected++;
+            if(bounds[i].Width<200||bounds[i].Height<24)ClippedElements.Add(where+" · Domain input has no usable edit area.");
+            for(var j=i+1;j<fields.Length;j++)
+                if(bounds[i].IntersectsWith(bounds[j]))ClippedElements.Add(where+" · Independently editable domain/gateway inputs overlap.");
+        }
+    }
+
     // ---- page scrolling ------------------------------------------------------------------------------------------
 
     private static readonly List<string> UnneededScrolling = new();
@@ -628,6 +642,20 @@ internal static partial class Program
         ("ShellViewModel.DisconnectCommand", "ends the session the other checks depend on; not exercised offline"),
         ("ShellViewModel.CancelOperationCommand", Disabled),
 
+        ("DomainReadinessViewModel.RunCommand", "explicit public DNS read; never invoked by the offline harness; injected App tests cover admission/recovery"),
+        ("DomainReadinessViewModel.StopCommand", Disabled),
+        ("DomainReadinessViewModel.ImportCommand", FilePicker),
+        ("DomainReadinessViewModel.SaveCommand", Press),
+        ("DomainReadinessViewModel.RecoverCommand", FilePicker),
+        ("DomainReadinessViewModel.DiscardCommand", Disabled),
+        ("DomainReadinessViewModel.CopyCommand", Clipboard),
+        ("ClientReviewsViewModel.ScanCommand", Press),
+        ("ClientReviewsViewModel.ReviewCommand", Press),
+        ("ClientReviewsViewModel.SaveImportCommand", Press),
+        ("ClientReviewsViewModel.PreviewImportCommand", FilePicker),
+        ("ClientReviewsViewModel.ExportCommand", FilePicker),
+        ("ClientReviewsViewModel.CopyDetailsCommand", Clipboard),
+        ("ClientReviewsViewModel.OpenCommand", "active connection refusal and offline selection covered by App tests; preserves shared render fixture connection"),
         ("OverviewViewModel.ConnectCommand", Press),
         ("OverviewViewModel.RefreshLicencesCommand", TenantRead),
         ("OverviewViewModel.LoadAssignmentsCommand", TenantRead),
@@ -723,6 +751,17 @@ internal static partial class Program
         ("DeployViewModel.ResumeCommand", Disabled),
         ("DeployViewModel.StopCommand", Disabled),
 
+        ("LifecycleViewModel.ReadinessCommand", TenantRead),
+        ("LifecycleViewModel.PreviewCommand", TenantRead),
+        ("LifecycleViewModel.ApplyCommand", TenantWrite),
+        ("LifecycleViewModel.HistoryCommand", Press),
+        ("LifecycleViewModel.ReconcileCommand", TenantRead),
+        ("LifecycleViewModel.JsonCommand", "requires an explicit historical attempt; exercised by engine/CLI round-trip tests"),
+        ("LifecycleViewModel.HtmlCommand", "requires an explicit historical attempt; exercised by engine/CLI round-trip tests"),
+        ("LifecycleViewModel.ReceiptCommand", "requires a newly stored read-only reconciliation receipt"),
+        ("LifecycleViewModel.CaptureCommand", TenantRead),
+        ("LifecycleViewModel.AccessCommand", Press),
+
         ("RecoveryViewModel.LoadRegisterCommand", Press),
         ("RecoveryViewModel.PreviewDeleteCommand", TenantRead),
         ("RecoveryViewModel.PreviewRestoreCommand", TenantRead),
@@ -765,6 +804,44 @@ internal static partial class Program
         ("MailboxCapacityViewModel.CopyRowCommand", Clipboard),
         ("MailboxCapacityViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("OperationalReportsViewModel.ReadCommand", TenantRead),
+        ("OperationalReportsViewModel.SearchGroupsCommand", TenantRead),
+        ("OperationalReportsViewModel.UseGroupCommand", Disabled),
+        ("OperationalReportsViewModel.StopCommand", Disabled),
+        ("OperationalReportsViewModel.OpenCommand", FilePicker),
+        ("OperationalReportsViewModel.HtmlCommand", Press),
+        ("OperationalReportsViewModel.JsonCommand", Press),
+        ("OperationalReportsViewModel.CsvCommand", Press),
+        ("OperationalReportsViewModel.ExcelCommand", Press),
+        ("OperationalReportsViewModel.SaveOriginalCommand", Disabled),
+        ("OperationalReportsViewModel.ExportOriginalCommand", Disabled),
+        ("OperationalReportsViewModel.DiscardOriginalCommand", Disabled),
+        ("OperationalReportsViewModel.OpenConnectionCommand", Press),
+        ("UsageReportsViewModel.ReadCommand", TenantRead),
+        ("UsageReportsViewModel.StopCommand", Disabled),
+        ("UsageReportsViewModel.OpenCommand", FilePicker),
+        ("UsageReportsViewModel.HtmlCommand", Press),
+        ("UsageReportsViewModel.JsonCommand", Press),
+        ("UsageReportsViewModel.CsvCommand", Press),
+        ("UsageReportsViewModel.ExcelCommand", Press),
+        ("UsageReportsViewModel.SaveOriginalCommand", Disabled),
+        ("UsageReportsViewModel.ExportOriginalCommand", Disabled),
+        ("UsageReportsViewModel.DiscardOriginalCommand", Disabled),
+        ("UsageReportsViewModel.OpenConnectionCommand", Press),
+        ("IncidentReferencesViewModel.AddCommand", Press),
+        ("IncidentReferencesViewModel.SaveCommand", Press),
+        ("IncidentReferencesViewModel.OpenCommand", FilePicker),
+        ("IncidentReferencesViewModel.DiscardCommand", Disabled),
+        ("ExternalCheckResultsViewModel.OpenCommand", FilePicker),
+        ("ExternalCheckResultsViewModel.HtmlCommand", Press),
+        ("ExternalCheckResultsViewModel.JsonCommand", Press),
+        ("ExternalCheckResultsViewModel.CsvCommand", Press),
+        ("ExternalCheckResultsViewModel.ExcelCommand", Press),
+        ("ExternalCheckResultsViewModel.ExportOriginalCommand", Press),
+        ("ExternalCheckResultsViewModel.DiscardCommand", Disabled),
+        ("ExternalCheckResultsViewModel.AddReferenceCommand", Press),
+        ("ExternalCheckResultsViewModel.SaveReferencesCommand", Press),
+        ("ExternalCheckResultsViewModel.OpenReferencesCommand", FilePicker),
         ("GraphReportsViewModel.ReadCommand", TenantRead),
         ("GraphReportsViewModel.StopReadCommand", Disabled),
         ("GraphReportsViewModel.RefreshStoredCommand", Press),
@@ -782,6 +859,17 @@ internal static partial class Program
         ("NamingAuditViewModel.CopyDetailsCommand", Clipboard),
         ("NamingAuditViewModel.CopyProvenanceCommand", Clipboard),
 
+        ("CandidateAuthoringViewModel.ImportPolicyCommand", "local file picker; shared import and native view-model admission covered with synthetic files"),
+        ("CandidateAuthoringViewModel.ChooseMappingCommand", "local file picker; strict mapping reader covered by CLI and engine regressions"),
+        ("CandidateAuthoringViewModel.NewDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.OpenDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.LoadFieldsCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ApplyCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ResetInputCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ValidateCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.SaveDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.ExportCandidateCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
+        ("CandidateAuthoringViewModel.DiscardDraftCommand", "local candidate lifecycle is exercised by dedicated offline authoring checks"),
         ("StandardViewModel.ViewReferenceCommand", "managed Runtime reader is exercised only by explicit --reader-hosted checks; ordinary native and CLI startup stay independent"),
         ("StandardViewModel.SelectReleaseCommand", Press),
         ("StandardViewModel.ExportDocumentCommand", Press),
@@ -832,6 +920,29 @@ internal static partial class Program
         ("SettingsViewModel.RunOfflineDiagnosticCommand", Press),
         ("SettingsViewModel.CancelOfflineDiagnosticCommand", Disabled),
         ("SettingsViewModel.CopyOfflineDiagnosticCommand", Clipboard),
+        ("DeploymentCoverageViewModel.ReadCommand", TenantRead),
+        ("DeploymentCoverageViewModel.StopCommand", Disabled),
+        ("DeploymentCoverageViewModel.ChooseCommand", FilePicker),
+        ("DeploymentCoverageViewModel.ImportCommand", Press),
+        ("DeploymentCoverageViewModel.ExportHtmlCommand", Press),
+        ("DeploymentCoverageViewModel.ExportJsonCommand", Press),
+        ("DeploymentCoverageViewModel.ExportCsvCommand", Press),
+        ("DeploymentCoverageViewModel.ExportXlsxCommand", Press),
+        ("DeploymentCoverageViewModel.SaveOriginalCommand", Disabled),
+        ("DeploymentCoverageViewModel.ExportOriginalCommand", Disabled),
+        ("DeploymentCoverageViewModel.ExportFilesCommand", Disabled),
+        ("DeploymentCoverageViewModel.DiscardOriginalCommand", Disabled),
+        ("ConditionalAccessEvaluationViewModel.ReadCommand", TenantRead),
+        ("ConditionalAccessEvaluationViewModel.StopCommand", Disabled),
+        ("ConditionalAccessEvaluationViewModel.ChooseCommand", FilePicker),
+        ("ConditionalAccessEvaluationViewModel.ImportCommand", Press),
+        ("ConditionalAccessEvaluationViewModel.ExportHtmlCommand", Press),
+        ("ConditionalAccessEvaluationViewModel.ExportJsonCommand", Press),
+        ("ConditionalAccessEvaluationViewModel.ExportCsvCommand", Press),
+        ("ConditionalAccessEvaluationViewModel.ExportXlsxCommand", Press),
+        ("ConditionalAccessEvaluationViewModel.SaveOriginalCommand", Disabled),
+        ("ConditionalAccessEvaluationViewModel.ExportOriginalCommand", Disabled),
+        ("ConditionalAccessEvaluationViewModel.DiscardOriginalCommand", Disabled),
         ("RunReportsViewModel.ReviewCommand", Press),
         ("RunReportsViewModel.OpenMailboxCapacityCommand", Press),
         ("RunReportsViewModel.RunCommand", SignIn),
@@ -876,6 +987,13 @@ internal static partial class Program
     /// </summary>
     private static readonly Dictionary<string, Action<ShellViewModel>> PressSetup = new(StringComparer.Ordinal)
     {
+        ["ClientReviewsViewModel.ReviewCommand"] = shell => SeedPage(shell,"clients"),
+        ["ClientReviewsViewModel.SaveImportCommand"] = shell =>
+        {
+            SeedPage(shell,"clients");
+            var page=shell.Page<ClientReviewsViewModel>();
+            page.ImportRows.Single(r=>r.CanSelect).IsSelected=true;
+        },
         ["MailboxCapacityViewModel.RefreshSourcesCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ReviewCommand"] = SeedMailboxCapacityPage,
         ["MailboxCapacityViewModel.ExportHtmlCommand"] = SeedMailboxCapacityPage,
@@ -894,6 +1012,33 @@ internal static partial class Program
                 && workspace.RequireStandard().FindCollection(c.Collection)?.Writable == true);
         },
         ["RunReportsViewModel.ReviewCommand"] = SeedReadRun,
+        ["OperationalReportsViewModel.HtmlCommand"] = SeedOperationalPage,
+        ["OperationalReportsViewModel.JsonCommand"] = SeedOperationalPage,
+        ["OperationalReportsViewModel.CsvCommand"] = SeedOperationalPage,
+        ["OperationalReportsViewModel.ExcelCommand"] = SeedOperationalPage,
+        ["UsageReportsViewModel.HtmlCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.JsonCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.CsvCommand"] = SeedUsagePage,
+        ["UsageReportsViewModel.ExcelCommand"] = SeedUsagePage,
+        ["IncidentReferencesViewModel.AddCommand"] = SeedIncidentReferencePage,
+        ["IncidentReferencesViewModel.SaveCommand"] = shell => { SeedIncidentReferencePage(shell); shell.Page<GraphReportsViewModel>().Operational.IncidentReferences.AddReference(); },
+        ["ExternalCheckResultsViewModel.HtmlCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.JsonCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.CsvCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.ExcelCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.ExportOriginalCommand"] = SeedExternalPage,
+        ["ExternalCheckResultsViewModel.AddReferenceCommand"] = shell => { SeedExternalPage(shell); var vm = shell.Page<GraphReportsViewModel>().External; vm.SelectedTestId = "TEST-1"; vm.SelectedControlId = shell.Workspace.Standard!.Controls[0].Id; },
+        ["ExternalCheckResultsViewModel.SaveReferencesCommand"] = SeedExternalReference,
+        ["DeploymentCoverageViewModel.ImportCommand"] = PrepareCoverageImport,
+        ["DeploymentCoverageViewModel.ExportHtmlCommand"] = SeedCoveragePage,
+        ["DeploymentCoverageViewModel.ExportJsonCommand"] = SeedCoveragePage,
+        ["DeploymentCoverageViewModel.ExportCsvCommand"] = SeedCoveragePage,
+        ["DeploymentCoverageViewModel.ExportXlsxCommand"] = SeedCoveragePage,
+        ["ConditionalAccessEvaluationViewModel.ImportCommand"] = PrepareConditionalAccessImport,
+        ["ConditionalAccessEvaluationViewModel.ExportHtmlCommand"] = SeedConditionalAccessPage,
+        ["ConditionalAccessEvaluationViewModel.ExportJsonCommand"] = SeedConditionalAccessPage,
+        ["ConditionalAccessEvaluationViewModel.ExportCsvCommand"] = SeedConditionalAccessPage,
+        ["ConditionalAccessEvaluationViewModel.ExportXlsxCommand"] = SeedConditionalAccessPage,
         ["GraphReportsViewModel.RefreshStoredCommand"] = SeedGraphReportsPage,
         ["GraphReportsViewModel.OpenStoredCommand"] = PrepareStoredGraphReport,
         ["GraphReportsViewModel.OpenSuppliedCommand"] = SeedGraphReportsPage,
@@ -1106,6 +1251,14 @@ internal static partial class Program
         var pages = (IDictionary<string, PageViewModel>)typeof(ShellViewModel).GetField("_pages", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(shell)!;
         var owners = new List<(string Key, object ViewModel)> { ("overview", shell) };
         owners.AddRange(pages.Select(p => (p.Key, (object)p.Value)));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().Usage));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().External));
+        owners.Add(("reports",shell.Page<GraphReportsViewModel>().Operational.IncidentReferences));
+
+        // Authoring is owned by the catalogue page, not registered as a second navigation page.
+        // Include its real command instances so the register still detects missing/stale entries.
+        owners.Add(("standard", shell.Page<StandardViewModel>().Authoring));
 
         var found = new List<(string Name, string Page, ICommand Command)>();
         foreach (var (key, vm) in owners)

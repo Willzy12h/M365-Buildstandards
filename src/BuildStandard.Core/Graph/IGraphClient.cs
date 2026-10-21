@@ -40,6 +40,11 @@ public interface IGraphClient
     Task<JsonObject> WriteReviewedAsync(GraphApi api, GraphWriteMethod method, string path, JsonObject payload,
         Safety.ReviewedWriteAdmission admission, CancellationToken ct);
 
+    /// <summary>Fixed existing-user action with mandatory final admission. No generic or default unguarded forwarder.</summary>
+    Task<JsonObject> ApplyLifecycleAsync(TenantSession session, Safety.LifecycleOperation operation,
+        Safety.ReviewedWriteAdmission admission, CancellationToken ct) =>
+        throw new WriteDeniedException("This Graph implementation does not support controlled lifecycle actions.");
+
     /// <summary>Dedicated full PUT preserving a reviewed device registration policy. Never retries or disables LAPS.</summary>
     Task EnableEntraLapsAsync(JsonObject reviewedBefore, CancellationToken ct) =>
         throw new WriteDeniedException("This Graph implementation does not support Entra LAPS enablement.");

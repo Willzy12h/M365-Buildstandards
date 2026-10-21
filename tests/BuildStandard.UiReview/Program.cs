@@ -74,6 +74,7 @@ internal static partial class Program
             using var logger = new ToolkitLogger(paths.LogsDirectory, LogLevel.Debug);
             var workspace = new Workspace(paths, ToolkitSettings.Load(paths.SettingsFile), logger, diagnostics: true);
             workspace.Initialise();
+            File.Copy(Path.Combine(source,"build","test-fixtures","domain-readiness.json"),Path.Combine(workspace.Paths.ReportsDirectory,"synthetic-domain-report.json"));
             if (workspace.Standard is null) throw new InvalidOperationException("Synthetic standards did not load: " + workspace.StandardError);
             var shell = new ShellViewModel(workspace);
             var window = new BuildStandard.App.MainWindow { DataContext = shell };
@@ -84,12 +85,15 @@ internal static partial class Program
             SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
             SeedGraphReportEvidence(workspace);
+            SeedUsageEvidence(workspace,output);
+            SeedOperationalEvidence(workspace,output);
+            SeedExternalEvidence(workspace,output);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
             // below; these are the ones a reviewer is asked to look at, so the set includes the pages where an engineer
             // enters client inputs and reads the build standard.
-            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming" }, StringComparer.Ordinal);
+            var focus = new HashSet<string>(new[] { "home", "overview", "recovery", "connect", "setup", "configuration", "assessment", "plan", "deploy", "history", "automation", "standard", "settings", "deviations", "jobs", "checks", "scripts", "run-reports", "mailbox-capacity", "reports", "naming", "clients", "domain-readiness", "lifecycle", "ca-evaluation", "coverage" }, StringComparer.Ordinal);
             foreach (var size in PageSizes)
             {
                 foreach (var nav in shell.NavItems)
@@ -116,10 +120,40 @@ internal static partial class Program
                     RecordCollapsedColumns(content, pageAtSize);
                     RecordLowContrast(content, pageAtSize);
                     RecordClipping(content, pageAtSize);
+                    if (nav.Key == "domain-readiness") RecordDomainInputs(content, pageAtSize);
                     if (nav.Key == "assessment")
                     {
                         SaveImage(content,size,Path.Combine(output,$"assessment-working-area-{(int)size.Width}x{(int)size.Height}.png"));
                         RecordAssessmentViewport(content,pageAtSize,size.Height<760);
+                    }
+                    if(nav.Key=="ca-evaluation")
+                    {
+                        var original=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Original evaluation scenario identity timestamps and limitations");
+                        original.BringIntoView();content.UpdateLayout();Pump();
+                        var label="ca-evaluation-original-context "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,label);RecordClipping(content,label);RecordLowContrast(content,label);
+                        SaveImage(content,size,Path.Combine(output,"ca-evaluation-original-context-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                    }
+                    if(nav.Key=="coverage")
+                    {
+                        var original=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Original coverage identity scope access and limitations");
+                        original.BringIntoView();content.UpdateLayout();Pump();
+                        var label="coverage-original-context "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,label);RecordClipping(content,label);RecordLowContrast(content,label);
+                        SaveImage(content,size,Path.Combine(output,"coverage-original-context-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                        SeedCoverageRetainedOriginal(shell);content.UpdateLayout();Pump();
+                        var pending=Descendants(content).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="Retained original coverage identity");
+                        if(pending.Parent is StackPanel recoveryPanel&&recoveryPanel.Parent is Border recoveryCard)recoveryCard.BringIntoView();else pending.BringIntoView();
+                        content.UpdateLayout();Pump();
+                        var recovery="coverage-retained-original "+(int)size.Width+"x"+(int)size.Height;
+                        RecordUnnamedControls(content,recovery);RecordClipping(content,recovery);RecordLowContrast(content,recovery);
+                        SaveImage(content,size,Path.Combine(output,"coverage-retained-original-"+(int)size.Width+"x"+(int)size.Height+".png"));
+                        RecoverCoverageRetainedOriginal(shell);
+                        // The normal route image must show the usable starting form, not the recovery viewport left by
+                        // this additional check. Re-open the synthetic original and reset only this page's outer scroll.
+                        SeedCoveragePage(shell);content.UpdateLayout();Pump();
+                        var coverageView=Descendants(content).OfType<BuildStandard.App.Views.DeploymentCoverageView>().Single();
+                        Descendants(coverageView).OfType<ScrollViewer>().First().ScrollToTop();content.UpdateLayout();Pump();
                     }
                     if (nav.Key == "jobs") RecordJobRequirementViewport(content, pageAtSize);
                     if (nav.Key == "configuration") RecordConfigurationViewport(content, pageAtSize);
@@ -167,7 +201,7 @@ internal static partial class Program
                         SaveImage(content, size, Path.Combine(output, $"setup-writes-{(int)size.Width}x{(int)size.Height}.png"));
                     }
                     records.Add(new { page = nav.Key, size = new { width = size.Width, height = size.Height }, visualCount, viewTypes = controls.Select(c => c.GetType().Name).Distinct().ToArray() });
-                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings")
+                    if (nav.Key is "connect" or "setup" or "overview" or "recovery" or "settings" or "clients" or "domain-readiness")
                     {
                         var scroller = Descendants(controls[0]).OfType<ScrollViewer>().First();
                         scroller.ScrollToEnd(); content.UpdateLayout(); Pump();
@@ -180,6 +214,7 @@ internal static partial class Program
                             scroller.ScrollToTop(); content.UpdateLayout(); Pump();
                         }
                     }
+                    if (nav.Key == "domain-readiness") CaptureDomainRecovery(shell, content, size, output);
                     if (nav.Key == "settings")
                     {
                         // The hand-off journey after a backup was made, and the receive journey with a pasted checksum line.
@@ -283,6 +318,7 @@ internal static partial class Program
                     }
                     if (nav.Key == "standard")
                     {
+                        CaptureCandidateEditor(shell, content, size, output);
                         var more = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "More export formats and engineer guides");
                         more.IsExpanded = true; content.UpdateLayout(); Pump();
                         var exports = Descendants(controls[0]).OfType<Expander>().Single(e => e.Header?.ToString() == "Export engineer standards and manual guide");
@@ -327,6 +363,11 @@ internal static partial class Program
             {
                 CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            CheckUsageNativeFlows(shell,window,content,output);
+            CheckOperationalNativeFlows(shell,window,content,output);
+            CheckExternalNativeFlows(shell,window,content,output);
+            CheckLifecycleNativeFlows(shell,window,content,output);
+            CheckPreparedLifecycleNativeFlows(source,shell,window,content,output);
                 CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }
@@ -428,6 +469,12 @@ internal static partial class Program
             foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
                 Console.WriteLine("  " + line.Replace(Environment.NewLine, " / ", StringComparison.Ordinal));
             Pump();
+            // The command walk deliberately creates untrusted originals and references. Retain them through
+            // the real export APIs before testing *idle* shutdown; never clear or bypass the product close guard.
+            var externalFixture=shell.Page<GraphReportsViewModel>().External;
+            if(externalFixture.HasPendingOriginal) AwaitReader(externalFixture.ExportPendingOriginalAsync());
+            if(externalFixture.ReferenceCount>0) AwaitReader(externalFixture.ExportReferencesAsync());
+            if(externalFixture.RequiresCloseReview) throw new InvalidOperationException("External fixture data was not retained before idle shutdown.");
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
             Set<ApplicationSetupService?>(workspace, nameof(Workspace.ApplicationSetup), null);
@@ -609,9 +656,29 @@ internal static partial class Program
             vm.SelectedJob ??= vm.Jobs.FirstOrDefault();
             vm.SelectedRequirement ??= vm.Requirements.FirstOrDefault();
         }
+        if (key == "clients")
+        {
+            var page=shell.Page<ClientReviewsViewModel>();
+            if(shell.Workspace.Evidence.LoadClientProfiles().Count==0) shell.Workspace.Evidence.SaveProfiles([shell.Workspace.Profile!]);
+            AwaitReader(page.ScanAsync());
+            shell.Page<ConnectViewModel>().Selected=shell.Workspace.Profiles.First(p=>p.TenantId==Tenant);
+            page.Selected=page.Clients.FirstOrDefault();
+            if(page.Selected is not null) AwaitReader(page.ReviewSelectedAsync());
+            AwaitReader(page.PreviewImportAsync(System.Text.Encoding.UTF8.GetBytes("Microsoft ID,Company name\n33333333-3333-4333-8333-333333333333,Synthetic additional client\ninvalid,Invalid customer\n")));
+            if(page.ImportRows.Count!=2 || page.ImportRows.Any(r=>r.IsSelected)) throw new InvalidOperationException("CSV preview must not select or save customers automatically.");
+        }
+        if (key == "domain-readiness")
+        {
+            var page=shell.Page<DomainReadinessViewModel>();
+            AwaitReader(page.ImportAsync(Path.Combine(shell.Workspace.Paths.ReportsDirectory,"synthetic-domain-report.json")));
+            if(page.Acknowledged||page.CanRun||!page.CurrentSummary.Contains("Historical",StringComparison.Ordinal)||page.Results.Count!=1)
+                throw new InvalidOperationException("Domain report must remain historical with DNS Run closed by default.");
+        }
         if (key == "scripts") SeedScripts(shell);
         if (key == "run-reports") SeedReadRun(shell);
         if (key == "reports") SeedGraphReportsPage(shell);
+        if (key == "ca-evaluation") SeedConditionalAccessPage(shell);
+        if (key == "coverage") SeedCoveragePage(shell);
         if (key == "naming") SeedNamingPage(shell);
         if (key == "deploy")
             shell.Page<DeployViewModel>().SelectedResult = shell.Page<DeployViewModel>().Results.FirstOrDefault();

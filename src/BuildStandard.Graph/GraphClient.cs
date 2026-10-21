@@ -11,6 +11,7 @@ using BuildStandard.Core.Diagnostics;
 using BuildStandard.Core.Graph;
 using BuildStandard.Core.Json;
 using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
 using BuildStandard.Core.Safety;
 using BuildStandard.Graph.Auth;
 
@@ -67,9 +68,112 @@ public sealed class GraphClient : IGraphClient
     /// <summary>Reuse this verified identity/token provider and transport; restrict report requests to read-only routes.</summary>
     public GraphClient ForReports() => new(_http, _tokens, TenantId, Mode, GraphRouteAllowList.ForReports(), _options, _log);
 
+    /// <summary>Fixed usage302/download boundary over the same provider; creates no sign-in, grant or new cache.</summary>
+    public Reports.UsageReportTransport ForUsageReports(TenantSession session, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Usage access must match the current guarded Graph tenant and mode.");
+        return Reports.UsageReportTransport.Create(_tokens, session, requireCurrent);
+    }
+
+    /// <summary>Fixed operational GET pages over the existing verified provider; no authentication or cache is created.</summary>
+    public Reports.OperationalReportTransport ForOperationalReports(TenantSession session, string reportId, Action requireCurrent,
+        string? customerTenantId = null, bool partnerDeclared = false)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Operational access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, reportId, requireCurrent, customerTenantId, partnerDeclared);
+    }
+
+    /// <summary>Metadata-only fixed routes and frozen selection over this verified provider; no sign-in or new cache.</summary>
+    public Reports.OperationalReportTransport ForCollaborationReports(TenantSession session, CollaborationReadSelection selection, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Collaboration access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, "collaboration-inventory", requireCurrent, collaboration: selection);
+    }
+
+    /// <summary>Fixed incident metadata over the verified provider and frozen interval; no new sign-in or cache.</summary>
+    public Reports.OperationalReportTransport ForSecurityIncidentReports(TenantSession session, SecurityIncidentReadSelection selection, Action requireCurrent)
+    {
+        if (session.TenantId != TenantId || session.Mode != Mode)
+            throw new TenantMismatchException("Incident access must match the current guarded Graph tenant and mode.");
+        return Reports.OperationalReportTransport.Create(_tokens, session, "security-incidents", requireCurrent, incidents: selection);
+    }
+
     /// <summary>Schema/ID-pinned application metadata routes, reusing the current provider and transport.</summary>
     public GraphClient ForApplicationReports(int schemaVersion, string reportId) => new(_http, _tokens, TenantId, Mode,
         GraphRouteAllowList.ForApplicationReports(schemaVersion, reportId), _options, _log);
+
+    /// <summary>Fixed lifecycle preview reads, reusing the verified provider with an isolated, redirect-disabled HTTP lifetime.</summary>
+    public ILifecycleReadSource ForLifecycleReads(TenantSession session, LifecycleOperation operation, Action requireCurrent)
+    {
+        if (!string.Equals(session.TenantId,TenantId,StringComparison.OrdinalIgnoreCase) || session.Mode!=Mode)
+            throw new TenantMismatchException("Lifecycle source must use this connection's verified tenant and permission mode.");
+        return Lifecycle.LifecycleReadTransport.Create(_tokens,session,operation,requireCurrent);
+    }
+
+    /// <summary>INT-137 fixed action boundary. Engine-owned exact approval and durable intent are required before calling.
+    /// It performs no retry and cannot make a generic caller-supplied route or payload authoritative.</summary>
+    public async Task<JsonObject> ApplyLifecycleAsync(TenantSession session, LifecycleOperation operation,
+        ReviewedWriteAdmission admission, CancellationToken ct)
+    {
+        LifecycleOperation registered; string binding; DateTimeOffset originalExpiry;
+        try
+        {
+            ArgumentNullException.ThrowIfNull(admission);
+            registered=LifecycleActionRegistry.RequireRegistered(operation);
+            if(!Timestamps.TryParse(session.TokenExpiresAt,out originalExpiry))throw new WriteDeniedException("Original lifecycle authorisation expiry is unknown.");
+            binding=LifecycleBinding(session); RequireIdentity(); ct.ThrowIfCancellationRequested();
+        }
+        catch(Exception error) { throw new WriteNotSentException("Lifecycle request was not sent; its fixed action, identity or access was refused.",error); }
+        var clock=new LifecycleBoundaryClock();
+        var guard=new ReviewedWriteAdmission(clock.UtcNow,clock.UtcNow,TimeSpan.FromMinutes(5),TimeSpan.FromMinutes(5),clock,
+            () => { ct.ThrowIfCancellationRequested(); RequireIdentity(); admission.AssertAllowed(); RequireIdentity(); },()=>ct.IsCancellationRequested);
+        var route=new GraphRoute(GraphApi.V1,registered.GroupId is null?"/users":"/groups","User.Read.All",registered.WriteScope,"lifecycle");
+        try
+        {
+            return await SendWriteAsync(GraphApi.V1,new HttpMethod(registered.Method),registered.Path,
+                registered.PayloadJson is null?null:ToolkitJson.ParseObject(registered.PayloadJson),route,CancellationToken.None,guard,true).ConfigureAwait(false);
+        }
+        catch(System.Text.Json.JsonException error) { throw new AmbiguousWriteException("Lifecycle response was malformed after transport handoff. Reconcile without replay.",error); }
+        void RequireIdentity()
+        {
+            if(Mode!=SessionMode.Deployment || session.Mode!=SessionMode.Deployment
+                || !session.TenantVerified || !session.OperatorVerified
+                || !Guid.TryParseExact(session.AccountObjectId,"D",out var actor) || actor==Guid.Empty
+                || !Guid.TryParseExact(session.ClientId,"D",out var client) || client==Guid.Empty
+                || !string.Equals(session.OperatorObjectId,session.AccountObjectId,StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(session.TenantId,TenantId,StringComparison.OrdinalIgnoreCase)
+                || LifecycleBinding(session)!=binding || DateTimeOffset.UtcNow>=originalExpiry
+                || !HasScope("User.Read.All") || !HasScope(registered.WriteScope))
+                throw new WriteDeniedException("Lifecycle tenant, account, mode, original expiry or selected access changed. Prepare a fresh plan.");
+        }
+        bool HasScope(string expected)=>session.Scopes.Any(raw=>string.Equals(raw.StartsWith(Host+"/",StringComparison.OrdinalIgnoreCase)?raw[(Host.Length+1)..]:raw,expected,StringComparison.OrdinalIgnoreCase));
+    }
+    private static string LifecycleBinding(TenantSession session)=>ToolkitJson.Serialize(new { session.TenantId,session.AccountObjectId,session.OperatorObjectId,session.ClientId,session.Mode,session.TenantVerified,session.OperatorVerified,Scopes=session.Scopes.Order(StringComparer.Ordinal).ToArray() });
+    private sealed class LifecycleBoundaryClock : IClock { public DateTimeOffset UtcNow=>DateTimeOffset.UtcNow; }
+    /// <summary>Dedicated typed evaluation; generic assessment/write routes remain unchanged. Caller owns disposal.</summary>
+    public ConditionalAccessEvaluator ForConditionalAccessEvaluation(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new ConditionalAccessEvaluator(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
+    /// <summary>One bounded selected-control capture, using fixed descriptors and the existing provider. Caller owns disposal.</summary>
+    public DeploymentCoverageReader ForDeploymentCoverage(TenantSession session,Func<bool> isCurrent)
+    {
+        var http=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new DeploymentCoverageReader(http,_tokens,TenantId,Mode,session,isCurrent);
+    }
+
+    /// <summary>Fixed reporting-only modern Intune jobs; caller explicitly acknowledges existing broader access and owns disposal.</summary>
+    public IntuneExportReader ForIntuneExports(TenantSession session,Func<bool> isCurrent,bool broaderTokenAcknowledged,int remainingRequests=100)
+    {
+        var graph=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        var download=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false,UseDefaultCredentials=false}){Timeout=Timeout.InfiniteTimeSpan};
+        return new IntuneExportReader(graph,download,_tokens,TenantId,Mode,session,isCurrent,broaderTokenAcknowledged,maximumRequests:remainingRequests);
+    }
 
     public async Task<JsonObject> GetAsync(GraphApi api, string path, CancellationToken ct)
     {
@@ -305,7 +409,7 @@ public sealed class GraphClient : IGraphClient
         await SendWriteAsync(plan.Api, plan.Method == "POST" ? HttpMethod.Post : plan.Method == "PUT" ? HttpMethod.Put : HttpMethod.Patch, plan.Path, plan.Payload, route, CancellationToken.None);
     }
 
-    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct, ReviewedWriteAdmission? admission = null)
+    private async Task<JsonObject> SendWriteAsync(GraphApi api, HttpMethod httpMethod, string path, JsonObject? payload, GraphRoute route, CancellationToken ct, ReviewedWriteAdmission? admission = null, bool preserveBoolean = false)
     {
         var sw = Stopwatch.StartNew();
         HttpResponseMessage response;
@@ -368,7 +472,14 @@ public sealed class GraphClient : IGraphClient
             if (response.IsSuccessStatusCode)
             {
                 if (string.IsNullOrWhiteSpace(text)) return new JsonObject();
-                return ToolkitJson.ParseNode(text) as JsonObject ?? new JsonObject();
+                if(preserveBoolean && text.Length>1024*1024)throw new JsonException("Lifecycle response exceeded its evidence bound.");
+                var node=ToolkitJson.ParseNode(text);
+                if(preserveBoolean)
+                {
+                    if(node is JsonValue scalar && scalar.TryGetValue<bool>(out var value))return new JsonObject { ["value"]=value };
+                    if(node is not JsonObject)throw new JsonException("Lifecycle response is not an admitted object or boolean.");
+                }
+                return node as JsonObject ?? new JsonObject();
             }
             if (status == 408 || status >= 500)
             {

@@ -144,6 +144,7 @@ public sealed class ShellViewModel : ObservableObject
         _pages["connect"] = new ConnectViewModel(this);
         _pages["setup"] = new ApplicationSetupViewModel(this);
         _pages["automation"] = new AutomationViewModel(this);
+        _pages["lifecycle"] = new LifecycleViewModel(this);
         _pages["configuration"] = new ConfigurationViewModel(this);
         _pages["assessment"] = new AssessmentViewModel(this);
         _pages["deviations"] = new DeviationsViewModel(this);
@@ -155,6 +156,10 @@ public sealed class ShellViewModel : ObservableObject
         _pages["scripts"] = new ScriptsViewModel(this);
         _pages["run-reports"] = new RunReportsViewModel(this);
         _pages["reports"] = new GraphReportsViewModel(this);
+        _pages["domain-readiness"] = new DomainReadinessViewModel(this);
+        _pages["clients"] = new ClientReviewsViewModel(this);
+        _pages["ca-evaluation"] = new ConditionalAccessEvaluationViewModel(this);
+        _pages["coverage"] = new DeploymentCoverageViewModel(this);
         _pages["mailbox-capacity"] = new MailboxCapacityViewModel(this);
         _pages["naming"] = new NamingAuditViewModel(this);
         _pages["standard"] = new StandardViewModel(this);

@@ -61,9 +61,55 @@ public partial class MainWindow : Window
         Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
     }
 
+    private static bool ShowPendingCandidate(ShellViewModel shell)
+    {
+        if (!shell.Page<StandardViewModel>().Authoring.HasUnsavedChanges) return false;
+        shell.Page<StandardViewModel>().Authoring.IsExpanded = true;
+        shell.Navigate("standard");
+        shell.ShowError(new InvalidOperationException("A local candidate draft has unsaved edits. Open the offline candidate editor: keep working, save the draft, or explicitly discard it before closing. No standard or tenant was changed."));
+        return true;
+    }
+
     private static bool ShowPendingReport(ShellViewModel shell)
     {
-        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
+        if (shell.Page<ConditionalAccessEvaluationViewModel>().HasPending)
+        {
+            shell.Navigate("ca-evaluation");
+            shell.ShowError(new InvalidOperationException("An original CA evaluation is still unsaved. Save, export or explicitly discard its exact original in Hypothetical CA evaluation before closing. No report is repeated."));
+            return true;
+        }
+        if (shell.Page<DeploymentCoverageViewModel>().HasPending)
+        {
+            shell.Navigate("coverage");
+            shell.ShowError(new InvalidOperationException("Original coverage is still unsaved. Recover its exact original report/files or explicitly discard it in Deployment coverage before closing. No query is repeated."));
+            return true;
+        }
+        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence)
+        {
+            if (shell.Page<DomainReadinessViewModel>().HasPending)
+            {
+            shell.Navigate("domain-readiness");
+            shell.ShowError(new InvalidOperationException("An original domain report is still unsaved. Save the report pack, export the original, or explicitly discard it in Domain readiness before closing. No DNS read was repeated."));
+                return true;
+            }
+            var reports = shell.Page<GraphReportsViewModel>();
+            if (reports.Usage.HasPendingOriginal)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 3;
+                shell.ShowError(new InvalidOperationException("An original usage report is still unsaved. Export its original JSON or deliberately discard it under Usage review → Original report before closing. No source is rerun."));
+                return true;
+            }
+            if (reports.External.RequiresCloseReview)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 5;
+                shell.ShowError(new InvalidOperationException("Pending external results need attention. Wait for local import, export the original JSON and save references, or explicitly discard pending data under External results before closing. No source is rerun."));
+                return true;
+            }
+            if (!reports.Operational.RequiresCloseReview) return false;
+            shell.Navigate("reports"); reports.SelectedTab = 4;
+            shell.ShowError(new InvalidOperationException("Operational context needs attention. Wait for local import, save/export its original JSON and save incident references, or explicitly discard pending data before closing. No source is rerun."));
+            return true;
+        }
         shell.Navigate("run-reports");
         shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
         return true;
@@ -80,7 +126,7 @@ public partial class MainWindow : Window
             if (shell is null) return;
             e.Cancel = true;
             if (_closing) return;
-            if (ShowPendingReport(shell)) return;
+            if (ShowPendingReport(shell) || ShowPendingCandidate(shell)) return;
             if (shell.Workspace.Busy)
             {
                 var message = "An operation is in progress.\n\n" + shell.Workspace.StopGuidance + "\n\nStop and close?";
@@ -92,7 +138,7 @@ public partial class MainWindow : Window
             await shell.Workspace.StopAndWaitForEvidenceAsync();
             // A stopped runner may return truthful partial evidence whose local save failed.
             // Keep the workspace open for recovery before committing to shutdown/disconnect.
-            if (ShowPendingReport(shell))
+            if (ShowPendingReport(shell) || ShowPendingCandidate(shell))
             {
                 _closing = false; IsEnabled = true; Title = shell.WindowTitle;
                 return;

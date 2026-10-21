@@ -22,7 +22,8 @@ public static class TokenCapabilityClassifier
     private static readonly HashSet<string> Reads = new(StringComparer.OrdinalIgnoreCase)
     {
         "User.Read", "User.Read.All", "Organization.Read.All", "RoleManagement.Read.Directory",
-        "Application.Read.All", "Group.Read.All", "Directory.Read.All", "AuditLog.Read.All",
+        "Application.Read.All", "Group.Read.All", "Directory.Read.All", "AuditLog.Read.All", "Reports.Read.All",
+        "SecurityIncident.Read.All", "ServiceHealth.Read.All", "DelegatedAdminRelationship.Read.All", "Sites.Read.All", "TeamMember.Read.All",
         "DeviceManagementApps.Read.All", "DeviceManagementConfiguration.Read.All",
         "DeviceManagementManagedDevices.Read.All", "DeviceManagementServiceConfig.Read.All",
         "Policy.Read.All", "Policy.Read.AuthenticationMethod", "Policy.Read.DeviceConfiguration"
@@ -34,6 +35,7 @@ public static class TokenCapabilityClassifier
         "Directory.ReadWrite.All", "Application.ReadWrite.All", "Application.ReadWrite.OwnedBy",
         "AppRoleAssignment.ReadWrite.All", "DelegatedPermissionGrant.ReadWrite.All", "Group.ReadWrite.All",
         "WindowsUpdates.ReadWrite.All",
+        "GroupMember.ReadWrite.All", "LicenseAssignment.ReadWrite.All", "User.EnableDisableAccount.All", "User.RevokeSessions.All",
         "DeviceManagementApps.ReadWrite.All", "DeviceManagementConfiguration.ReadWrite.All",
         "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementServiceConfig.ReadWrite.All",
         "Policy.ReadWrite.AuthenticationMethod", "Policy.ReadWrite.Authorization",

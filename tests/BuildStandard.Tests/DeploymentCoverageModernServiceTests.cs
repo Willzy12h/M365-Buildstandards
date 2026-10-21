@@ -1,0 +1,28 @@
+using BuildStandard.Core;
+using BuildStandard.Core.Models;
+using BuildStandard.Core.Reporting;
+using BuildStandard.Engine.Reports;
+using BuildStandard.Graph;
+using Xunit;
+namespace BuildStandard.Tests;
+public sealed class DeploymentCoverageModernServiceTests
+{
+    private static DeploymentCoverageServiceTests.Fixture Fixture(CoverageFamily family=CoverageFamily.Application)
+    {var f=new DeploymentCoverageServiceTests.Fixture(family);f.Data.Session.Mode=SessionMode.Deployment;f.Data.Session.Scopes.Add(IntuneExportRequest.Prepare(family,TestData.Office).RequiredScope);return f;}
+    [Theory][InlineData(CoverageFamily.Application)][InlineData(CoverageFamily.ClassicConfiguration)]
+    public async Task One_modern_export_is_bound_preserved_and_projected_without_deprecated_status_reads(CoverageFamily family)
+    {var f=Fixture(family);var selection=f.Data.Prepare();var calls=0;var result=await new DeploymentCoverageService().CaptureAsync(selection,f.Data.Session,f.Read,()=>f.Current,default,_=>{calls++;return Task.FromResult(IntuneExportObservationTests.Receipt(selection));});Assert.Equal(1,calls);var source=result.Sources.Single(s=>s.Key=="service-results");Assert.Equal(CoverageSourceState.Complete,source.Capture.State);Assert.NotNull(source.ModernExport);Assert.Empty(source.Capture.Rows);Assert.Single(source.ModernExport.Archive.Table.Rows);Assert.True(result.SupportedReadsComplete);Assert.DoesNotContain(f.Reads,r=>r.Contains("installStatuses")||r.Contains("deviceStatuses"));var evidence=DeploymentCoverageEvidence.Create(result);var imported=DeploymentCoverageBundle.Read(DeploymentCoverageBundle.Write(evidence),TestData.TenantA);Assert.True(imported.IsHistorical);}
+    [Theory][InlineData("assessment")][InlineData("scope")]
+    public async Task Missing_deliberate_mode_or_purpose_scope_refuses_before_any_source_read(string defect)
+    {var f=Fixture();if(defect=="assessment")f.Data.Session.Mode=SessionMode.Assessment;else f.Data.Session.Scopes.Remove(IntuneExportRequest.Prepare(CoverageFamily.Application,TestData.Office).RequiredScope);var calls=0;await Assert.ThrowsAsync<SafetyViolationException>(()=>new DeploymentCoverageService().CaptureAsync(f.Data.Prepare(),f.Data.Session,f.Read,()=>true,default,_=>{calls++;throw new InvalidOperationException();}));Assert.Equal(0,calls);Assert.Empty(f.Reads);}
+    [Fact] public async Task A_late_context_change_keeps_the_valid_original_separate_from_current_client_coverage()
+    {var f=Fixture();var selection=f.Data.Prepare();var result=await new DeploymentCoverageService().CaptureAsync(selection,f.Data.Session,f.Read,()=>f.Current,default,_=>{var receipt=IntuneExportObservationTests.Receipt(selection);f.Current=false;return Task.FromResult(receipt);});var source=result.Sources.Single(s=>s.Key=="service-results");Assert.Equal(CoverageSourceState.ContextChanged,source.Capture.State);Assert.NotNull(source.ModernExport);Assert.False(result.IsCurrentAtCompletion);Assert.False(result.SupportedReadsComplete);Assert.Contains("Original",source.Capture.Detail);var evidence=DeploymentCoverageEvidence.Create(result);Assert.False(evidence.Metadata.WasCurrentAtCompletion);}
+    [Fact] public async Task Failed_export_does_not_hide_earlier_configuration_or_become_an_empty_success()
+    {var f=Fixture();var result=await new DeploymentCoverageService().CaptureAsync(f.Data.Prepare(),f.Data.Session,f.Read,()=>true,default,_=>Task.FromException<IntuneExportReceipt>(new HttpRequestException("https://synthetic.blob.core.windows.net/source?sig=private-synthetic")));var source=result.Sources.Single(s=>s.Key=="service-results");Assert.Equal(CoverageSourceState.Failed,source.Capture.State);Assert.Null(source.ModernExport);Assert.False(result.SupportedReadsComplete);Assert.DoesNotContain("private-synthetic",source.Capture.Detail);Assert.NotEmpty(result.Sources.First(s=>s.Key=="object").Capture.OriginalPages);Assert.NotEmpty(DeploymentCoverageBundle.Write(DeploymentCoverageEvidence.Create(result)));}
+    [Fact] public async Task Malformed_download_is_a_failed_source_not_a_successful_empty_inventory()
+    {var f=Fixture();var selection=f.Data.Prepare();var result=await new DeploymentCoverageService().CaptureAsync(selection,f.Data.Session,f.Read,()=>true,default,_=>Task.FromResult(IntuneExportObservationTests.Receipt(selection,archive:[1,2,3])));Assert.Equal(CoverageSourceState.Failed,result.Sources.Single(s=>s.Key=="service-results").Capture.State);Assert.False(result.SupportedReadsComplete);}
+    [Fact] public async Task Missing_acknowledged_modern_adapter_keeps_manual_read_state_and_does_not_create_a_job()
+    {var f=Fixture();var result=await f.Capture();var source=result.Sources.Single(s=>s.Key=="service-results");Assert.Equal(CoverageSourceState.NotAttempted,source.Capture.State);Assert.Contains("acknowledg",source.Capture.Detail,StringComparison.OrdinalIgnoreCase);Assert.DoesNotContain(f.Reads,r=>r.Contains("exportJobs"));}
+    [Fact] public async Task Stop_waiting_for_a_noncooperative_modern_adapter_is_bounded_and_retains_prior_originals()
+    {var f=Fixture();using var stop=new CancellationTokenSource();var late=new TaskCompletionSource<IntuneExportReceipt>(TaskCreationOptions.RunContinuationsAsynchronously);var selection=f.Data.Prepare();var result=await new DeploymentCoverageService().CaptureAsync(selection,f.Data.Session,f.Read,()=>true,stop.Token,_=>{stop.Cancel();return late.Task;}).WaitAsync(TimeSpan.FromSeconds(1));late.SetResult(IntuneExportObservationTests.Receipt(selection));Assert.Equal(CoverageSourceState.Stopped,result.Sources.Single(s=>s.Key=="service-results").Capture.State);Assert.NotEmpty(result.Sources.First(s=>s.Key=="object").Capture.OriginalPages);Assert.False(result.SupportedReadsComplete);}
+}

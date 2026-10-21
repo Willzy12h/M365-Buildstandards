@@ -1,0 +1,18 @@
+using BuildStandard.Core;
+using BuildStandard.Engine.Reports;
+using Xunit;
+namespace BuildStandard.Tests;
+public sealed class DeploymentCoverageExportTests
+{
+    [Theory][InlineData(ExportFormat.Html)][InlineData(ExportFormat.Csv)][InlineData(ExportFormat.Json)][InlineData(ExportFormat.Xlsx)]
+    public async Task Exports_preserve_originals_and_use_new_nonoverwriting_paths(ExportFormat format)
+    {using var root=new TempRoot();var e=await DeploymentCoverageEvidenceTests.Evidence();var metadata=e.MetadataBytes;var export=new ReportExporter(root.Paths,"Synthetic");var first=export.ExportDeploymentCoverage(e,format);var original=File.ReadAllBytes(first);var second=export.ExportDeploymentCoverage(e,format);Assert.NotEqual(first,second);Assert.Equal(original,File.ReadAllBytes(first));Assert.Equal(metadata,e.MetadataBytes);Assert.Empty(Directory.EnumerateFiles(root.Paths.TenantsDirectory,"*",SearchOption.AllDirectories));if(format==ExportFormat.Json)Assert.Equal(metadata,DeploymentCoverageBundle.ReadFile(first,TestData.TenantA).MetadataBytes);if(format==ExportFormat.Html){var html=File.ReadAllText(first);Assert.Contains("default-src 'none'",html);Assert.Contains("not effective",html);Assert.Contains("Original context",html);Assert.Contains(e.Metadata.Selection.SourceSnapshotDigest,html);}}
+    [Theory][InlineData("html")][InlineData("csv")][InlineData("json")][InlineData("xlsx")]
+    public async Task Actual_CLI_exports_only_supplied_historical_originals(string format)
+    {using var root=new TempRoot();var e=await DeploymentCoverageEvidenceTests.Evidence();var input=Path.Combine(root.Root,"original coverage.zip");var bytes=DeploymentCoverageBundle.Write(e);File.WriteAllBytes(input,bytes);var result=await RegisteredReportCliTests.Run("coverage","--input",input,"--tenant",TestData.TenantA,"--format",format,"--root",root.Root);Assert.True(result.Exit==0,result.Error+result.Output);Assert.Contains("historical",result.Output,StringComparison.OrdinalIgnoreCase);Assert.Contains("no live",result.Output,StringComparison.OrdinalIgnoreCase);Assert.Equal(bytes,File.ReadAllBytes(input));Assert.Single(Directory.EnumerateFiles(root.Paths.ReportsDirectory));}
+    [Theory][InlineData("wrong-tenant")][InlineData("bad-format")][InlineData("unknown-option")][InlineData("duplicate")][InlineData("missing-tenant")]
+    public async Task Actual_CLI_refuses_invalid_inputs_without_writing_evidence_or_exports(string defect)
+    {using var root=new TempRoot();var e=await DeploymentCoverageEvidenceTests.Evidence();var input=Path.Combine(root.Root,"original.zip");File.WriteAllBytes(input,DeploymentCoverageBundle.Write(e));var args=new List<string>{"coverage","--input",input,"--root",root.Root};if(defect!="missing-tenant")args.AddRange(["--tenant",defect=="wrong-tenant"?TestData.TenantB:TestData.TenantA]);if(defect=="bad-format")args.AddRange(["--format","markdown"]);if(defect=="unknown-option")args.AddRange(["--run","yes"]);if(defect=="duplicate")args.AddRange(["--input",input]);var result=await RegisteredReportCliTests.Run(args.ToArray());Assert.True(result.Exit==2,result.Output+result.Error);Assert.Empty(Directory.EnumerateFiles(root.Paths.ReportsDirectory));Assert.Empty(Directory.EnumerateFiles(root.Paths.TenantsDirectory,"*",SearchOption.AllDirectories));}
+    [Fact] public async Task Unsupported_format_is_refused_before_output_creation()
+    {using var root=new TempRoot();var e=await DeploymentCoverageEvidenceTests.Evidence();Assert.Throws<ConfigurationException>(()=>new ReportExporter(root.Paths,"").ExportDeploymentCoverage(e,ExportFormat.Markdown));Assert.Empty(Directory.EnumerateFiles(root.Paths.ReportsDirectory));}
+}

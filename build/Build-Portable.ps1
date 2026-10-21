@@ -77,7 +77,7 @@ Invoke-Step 'Stage package contents' {
     # source history, agent coordination, review briefs and decision logs. Copying the folder shipped all of it to
     # clients, and would ship every internal document written afterwards too, so this is an allow-list.
     $documents = @(
-        'APPLICATION-SETUP.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
+        'APPLICATION-SETUP.md', 'EXTERNAL-CHECK-RESULTS.md', 'examples/external-check-results.example.json', 'USAGE-REPORTS.md', 'OPERATIONAL-CONTEXT.md', 'AUTOMATION-COVERAGE.md', 'BUILD-STANDARD-SUMMARY.md', 'DEVICE-AUTOMATION.md',
         'EQUIVALENCE-SIGNALS.md', 'LICENSING.md', 'LIVE-VALIDATION.md', 'POLICY-AUTOMATION-CODE.md',
         'RECOVERY.md', 'TESTING-THIS-BUILD.md', 'UNRESOLVED-WRITES.md', 'ENGINEER-DOCUMENTS.md', 'EXCHANGE-PURVIEW.md', 'NATIVE-SETTINGS-AND-MOBILE.md', 'CONTROLLED-ACCEPTANCE.md',
         'LIVE-ACCEPTANCE-RUNSHEET.md', 'OPERATOR-START.md', 'WORKSPACE-CONTINUITY.md', 'INTERNAL-OPERATING-MODEL.md', 'RELEASE-AND-SERVICING.md'
@@ -87,7 +87,9 @@ Invoke-Step 'Stage package contents' {
         $source = Join-Path $root (Join-Path 'docs' $document)
         # A renamed or deleted document fails the build rather than disappearing from the package unnoticed.
         if (-not (Test-Path -LiteralPath $source)) { throw "Packaged document not found: docs\$document. Update the list in build\Build-Portable.ps1." }
-        Copy-Item -LiteralPath $source -Destination (Join-Path $stage 'docs') -Force
+        $destination = Join-Path $stage (Join-Path 'docs' $document)
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+        Copy-Item -LiteralPath $source -Destination $destination -Force
     }
 
     foreach ($dir in 'data', 'logs', 'reports') { New-Item -ItemType Directory -Force -Path (Join-Path $stage $dir) | Out-Null }

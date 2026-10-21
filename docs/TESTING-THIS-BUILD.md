@@ -106,3 +106,10 @@ Do it in this order, because everything else depends on the first step:
 - Group membership is never written. The toolkit creates groups empty and reports who is in them.
 - Exchange/Purview use [read-only capture import and inert manual proposals](EXCHANGE-PURVIEW.md). Module retries prevent automatic write execution; SPF trust/alignment must be established before activating the disabled bypass candidate. DMARC and audit retention remain report-only.
 - Native-setting gaps, licence/edition conditions, app installation, authentication effects and device behaviour are explicitly unverified. Inspect the generated after-checks. A green build proves the recorded offline checks, not Microsoft service acceptance.
+
+
+## Finite A–J candidate acceptance limits
+
+The assembled candidate's exact source, original ZIP, SHA-256 and Windows validation run belong to PR #164 and its delivery packet. Source implementation and synthetic/native checks do not complete H1, Narrator/physical scaling, workstation application-control or live Microsoft acceptance. No live activity is performed during engineering verification.
+
+For later separately arranged human acceptance, use only the pinned extracted package: complete an offline saved-client/import/review-pack handover; inspect selected-control coverage and partial/unknown reports; open the catalogue reference and confirm a clear Runtime-unavailable route if applicable; review one local candidate draft without publishing; inspect lifecycle readiness, exact before-values/confirmation and unknown-history guidance without approving a write. Verify keyboard, small-window scrolling, copyable identity/evidence and safe close/recovery. Record source/package identity, expected versus observed results and unrun steps. Actual sign-in, consent, tenant/DNS/device reads and all writes require their separate approval and controlled run sheet. No test automatically purchases access, activates policies or replays uncertain writes.

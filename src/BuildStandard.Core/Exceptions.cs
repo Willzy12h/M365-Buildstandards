@@ -108,3 +108,9 @@ public sealed class AmbiguousWriteException : ToolkitException
 {
     public AmbiguousWriteException(string message, Exception? inner) : base(message, inner) { }
 }
+
+/// <summary>A shared operational read budget ended; later sources must remain unattempted, not empty successes.</summary>
+public sealed class OperationalReadLimitException : ToolkitException
+{
+    public OperationalReadLimitException(string message) : base(message) { }
+}
