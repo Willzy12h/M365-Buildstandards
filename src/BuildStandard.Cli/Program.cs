@@ -68,7 +68,7 @@ public static class Program
     private static int Run(string[] args)
     {
         var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "help";
-        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "customers");
+        var options = ParseOptions(args.Skip(1), command is "report-evidence" or "usage-report-evidence" or "operational-report-evidence" or "customers" or "external-checks");
 
         return command switch
         {
@@ -76,6 +76,9 @@ public static class Program
             "customers" => Customers(options),
             "report" => Report(options),
             "report-evidence" => ReportEvidenceExport(options),
+            "external-checks" => ExternalChecksExport(options),
+            "usage-report-evidence" => UsageReportEvidenceExport(options),
+            "operational-report-evidence" => OperationalReportEvidenceExport(options),
             "inventory" => Inventory(options),
             "check" => Check(options),
             "document" => Document(options),
@@ -102,6 +105,10 @@ public static class Program
     {
         Console.WriteLine("""
             buildstandard — offline reports and local prerequisite diagnostics. Never connects to a tenant.
+
+              buildstandard usage-report-evidence --input <pack.json> --tenant <guid> [--format html|json|csv|xlsx] [--root <folder>]
+              buildstandard operational-report-evidence --input <report.json> --tenant <source-guid> [--format html|json|csv|xlsx] [--root <folder>]
+                  Export an admitted supplied usage pack; privacy/identity remain unverified. No tenant connection.
 
               buildstandard doctor [--root <folder>] [--format text|json]
                   Check local portable prerequisites; text is the default, JSON is a separate diagnostic result.
@@ -132,6 +139,10 @@ public static class Program
                   Formats: html, markdown, json, csv, xlsx. Default html.
                   Optional Exchange evidence uses the existing raw capture or exported snapshot format.
                   It must belong to the same tenant; missing or invalid supplied evidence is refused.
+
+              buildstandard external-checks --input <neutral-result.json> --tenant <expected-id> [--format <f>] [--root <dir>]
+                  Export untrusted external-check-results/1 source claims as html, original json, csv or xlsx.
+                  No direct vendor-format import, source execution, native assessment or tenant evidence insertion.
 
               buildstandard report-evidence --input <file> --tenant <id> [--format <f>] [--root <dir>] [--historical]
                   Export a registered Graph report already captured by the tool; no live reads.
@@ -419,6 +430,70 @@ public static class Program
         var context = Context.Open(options);
         Console.WriteLine(context.Exporter.ExportSnapshot(capture, null, format));
         Console.WriteLine($"Captured configuration · {capture.CapturedAt} · {(capture.Complete ? "Review collection status" : "INCOMPLETE — unknown reads remain explicit")} · no live reads or writes.");
+        return 0;
+    }
+
+    private static int ExternalChecksExport(IReadOnlyDictionary<string, string> options)
+    {
+        string[] allowed = ["input", "tenant", "format", "root"];
+        if (options.Any(p => !allowed.Contains(p.Key, StringComparer.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(p.Value)))
+            throw new ConfigurationException("External check exports accept only valued --input, --tenant, --format and --root options. No source execution or collection is supported.");
+        var format = options.TryGetValue("format", out var requested) ? requested.ToLowerInvariant() switch
+        {
+            "html" => ExportFormat.Html, "json" => ExportFormat.Json, "csv" => ExportFormat.Csv, "xlsx" => ExportFormat.Xlsx,
+            _ => throw new ConfigurationException("External check claims export as html, json, csv or xlsx.")
+        } : ExportFormat.Html;
+        var tenant = Require(options, "tenant"); var input = Require(options, "input");
+        using var stop = new CancellationTokenSource();
+        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; stop.Cancel(); };
+        Console.CancelKeyPress += cancel;
+        try
+        {
+            stop.Token.ThrowIfCancellationRequested();
+            var source = ExternalCheckResultsSchema.ReadFile(input, tenant);
+            stop.Token.ThrowIfCancellationRequested();
+            var file = Context.Open(options).Exporter.ExportExternalCheckResults(source, tenant, format, stop.Token);
+            Console.WriteLine(ToolkitJson.Serialize(new { kind = "externalCheckClaimsExport", file,
+                sourceState = source.Evidence.SourceState, originalSha256 = source.OriginalSha256, assurance = source.AssuranceNotice }));
+            return 0;
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        { Console.Error.WriteLine("Cancelled. No completed external-results export is claimed."); return 130; }
+        finally { Console.CancelKeyPress -= cancel; }
+    }
+
+    private static int OperationalReportEvidenceExport(IReadOnlyDictionary<string, string> options)
+    {
+        var allowed = new[] { "input", "tenant", "format", "root" };
+        if (options.Keys.Any(key => !allowed.Contains(key, StringComparer.OrdinalIgnoreCase)))
+            throw new ConfigurationException("Operational exports accept only --input, --tenant, --format and --root. No authentication or service read is supported.");
+        var tenant = Require(options, "tenant");
+        if (!BuildStandard.Core.Reporting.ReportValues.IsCanonicalGuid(tenant)) throw new ConfigurationException("Supply the exact original source tenant GUID.");
+        var format = Format(options, ExportFormat.Html);
+        if (format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))
+            throw new ConfigurationException("Operational reports export as html, json, csv or xlsx.");
+        var file = OperationalContextFile.ReadFile(Require(options, "input"), tenant);
+        var context = Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportOperationalContext(file.Report, format, suppliedFile: true, originalBytes: file.CopyOriginal()));
+        Console.WriteLine($"Offline supplied operational report · read status {file.Report.Status} · no live reads or writes. Export does not establish tenant availability, effective partner access or authenticated source claims.");
+        return 0;
+    }
+
+    private static int UsageReportEvidenceExport(IReadOnlyDictionary<string,string> options)
+    {
+        var allowed=new[]{"input","tenant","format","root"};
+        if(options.Keys.Any(key=>!allowed.Contains(key,StringComparer.OrdinalIgnoreCase)))throw new ConfigurationException("Usage exports accept only --input, --tenant, --format and --root. No authentication or download is supported.");
+        var tenant=Require(options,"tenant");
+        if(!BuildStandard.Core.Reporting.ReportValues.IsCanonicalGuid(tenant))throw new ConfigurationException("Supply the exact expected tenant GUID.");
+        var format=Format(options,ExportFormat.Html);
+        if(format is not (ExportFormat.Html or ExportFormat.Json or ExportFormat.Csv or ExportFormat.Xlsx))throw new ConfigurationException("Usage reports export as html, json, csv or xlsx.");
+        var bytes=ReadPreviewInput(Require(options,"input"),UsageReviewSchema.MaximumBytes,"Usage pack exceeds40MiB.");
+        string json;
+        try{json=new UTF8Encoding(false,true).GetString(bytes).TrimStart('\uFEFF');}
+        catch(DecoderFallbackException){throw new ConfigurationException("Usage pack must be strict UTF-8.");}
+        var report=UsageReviewSchema.Read(json,tenant);var context=Context.Open(options);
+        Console.WriteLine(context.Exporter.ExportUsageReview(report,format,suppliedFile:true,originalBytes:bytes));
+        Console.WriteLine($"Offline supplied usage pack · read status {report.Status} · privacy Unknown · no live reads or writes. Export success does not prove collection success or identity provenance.");
         return 0;
     }
 

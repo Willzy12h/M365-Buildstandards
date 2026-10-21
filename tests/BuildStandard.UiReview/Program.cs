@@ -84,6 +84,9 @@ internal static partial class Program
             SeedMailboxCapacityEvidence(workspace, source);
             SeedStoredEvidence(workspace, fixtureRoot);
             SeedGraphReportEvidence(workspace);
+            SeedUsageEvidence(workspace,output);
+            SeedOperationalEvidence(workspace,output);
+            SeedExternalEvidence(workspace,output);
             SeedConnect(shell.Page<ConnectViewModel>());
             VerifyInputRefresh(shell);
             // Pages that are captured as images for human review. Every page is still materialised and binding-checked
@@ -327,6 +330,9 @@ internal static partial class Program
             {
                 CheckOfflineClientNativeJourney(source, output, shell, window, content, traces);
                 CheckConnectedReportNativeFlows(shell, window, content, output, traces);
+            CheckUsageNativeFlows(shell,window,content,output);
+            CheckOperationalNativeFlows(shell,window,content,output);
+            CheckExternalNativeFlows(shell,window,content,output);
                 CheckMailboxCapacityNativeFlows(shell, window, content, output, traces);
                 CheckHomeNativeJourneys(source, output, shell, window, content, traces);
             }
@@ -428,6 +434,12 @@ internal static partial class Program
             foreach (var line in CommandLog.Where(l => l.Contains(": refused - ", StringComparison.Ordinal)))
                 Console.WriteLine("  " + line.Replace(Environment.NewLine, " / ", StringComparison.Ordinal));
             Pump();
+            // The command walk deliberately creates untrusted originals and references. Retain them through
+            // the real export APIs before testing *idle* shutdown; never clear or bypass the product close guard.
+            var externalFixture=shell.Page<GraphReportsViewModel>().External;
+            if(externalFixture.HasPendingOriginal) AwaitReader(externalFixture.ExportPendingOriginalAsync());
+            if(externalFixture.ReferenceCount>0) AwaitReader(externalFixture.ExportReferencesAsync());
+            if(externalFixture.RequiresCloseReview) throw new InvalidOperationException("External fixture data was not retained before idle shutdown.");
             // Exercise synchronous idle shutdown on a real off-screen window; direct Close from Closing is illegal in WPF.
             Set<ConnectedTenant?>(workspace, nameof(Workspace.Connection), null);
             Set<ApplicationSetupService?>(workspace, nameof(Workspace.ApplicationSetup), null);

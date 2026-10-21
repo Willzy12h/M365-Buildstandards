@@ -90,8 +90,8 @@ public sealed class ExchangeReportRunnerTests
         }
         else
         {
-            // Reuse the owned Exchange branch's test-only discovery for the already provisioned Linux runtime.
-            // Production runtime admission and Windows host selection remain fixed and unchanged.
+            // Test-only host injection can use an already provisioned Linux runtime outside system folders. This runs
+            // the same synthetic module/assertions; production DefaultRuntime remains fixed Windows locations only.
             var candidates = new[] { "/opt/microsoft/powershell/7/pwsh", "/usr/bin/pwsh", "/usr/local/bin/pwsh" }
                 .Concat((Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
                     .Where(directory => directory.Length > 0).Select(directory => Path.Combine(directory, "pwsh")));
@@ -509,13 +509,24 @@ public sealed class ExchangeReportRunnerTests
     {
         using var run = new Run();
         using var cts = new CancellationTokenSource();
-        var watch = Stopwatch.StartNew();
+        var total = Stopwatch.StartNew();
+        Stopwatch? stopping = null;
         var result = await run.Execute(runtime, "slow-stats", ct: cts.Token,
-            onProgress: p => { if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal)) cts.Cancel(); });
+            onProgress: p =>
+            {
+                if (p.StartsWith("Reading Get-EXOMailboxStatistics", StringComparison.Ordinal) && stopping is null)
+                {
+                    // Measure the stop grace, not unrelated PowerShell/module startup on a shared runner.
+                    stopping = Stopwatch.StartNew();
+                    cts.Cancel();
+                }
+            });
 
         Assert.Equal(ReadRunOutcome.Cancelled, result.Outcome);
         Assert.Null(result.Evidence);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(25), "The process tree must be ended shortly after the grace period.");
+        Assert.NotNull(stopping);
+        Assert.True(stopping.Elapsed < TimeSpan.FromSeconds(25),
+            $"The process tree must be ended shortly after the grace period. Stop: {stopping.Elapsed}; total including startup: {total.Elapsed}.");
         Assert.DoesNotContain("Disconnect", run.Log);
     }
 

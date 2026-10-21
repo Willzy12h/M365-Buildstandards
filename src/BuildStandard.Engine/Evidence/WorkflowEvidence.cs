@@ -123,7 +123,7 @@ public sealed partial class EvidenceStore
     // ---- shared ----------------------------------------------------------------------------------------------
 
     /// <summary>Atomic create: the record appears whole or not at all, and an existing ID is never replaced.</summary>
-    private void CreateRecordFile<T>(string file, T value, string what)
+    private void CreateRecordFile<T>(string file, T value, string what, byte[]? originalBytes = null)
     {
         lock (_gate)
         {
@@ -133,10 +133,13 @@ public sealed partial class EvidenceStore
             try
             {
                 using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                using (var writer = new StreamWriter(stream))
                 {
-                    writer.Write(ToolkitJson.Serialize(value));
-                    writer.Flush();
+                    if(originalBytes is not null)stream.Write(originalBytes);
+                    else
+                    {
+                        using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false), leaveOpen: true);
+                        writer.Write(ToolkitJson.Serialize(value));writer.Flush();
+                    }
                     stream.Flush(true);
                 }
                 try { File.Move(temp, file, overwrite: false); }

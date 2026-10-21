@@ -63,7 +63,26 @@ public partial class MainWindow : Window
 
     private static bool ShowPendingReport(ShellViewModel shell)
     {
-        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence) return false;
+        if (!shell.Page<RunReportsViewModel>().HasPendingEvidence)
+        {
+            var reports = shell.Page<GraphReportsViewModel>();
+            if (reports.Usage.HasPendingOriginal)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 3;
+                shell.ShowError(new InvalidOperationException("An original usage report is still unsaved. Export its original JSON or deliberately discard it under Usage review → Original report before closing. No source is rerun."));
+                return true;
+            }
+            if (reports.External.RequiresCloseReview)
+            {
+                shell.Navigate("reports"); reports.SelectedTab = 5;
+                shell.ShowError(new InvalidOperationException("Pending external results need attention. Wait for local import, export the original JSON and save references, or explicitly discard pending data under External results before closing. No source is rerun."));
+                return true;
+            }
+            if (!reports.Operational.RequiresCloseReview) return false;
+            shell.Navigate("reports"); reports.SelectedTab = 4;
+            shell.ShowError(new InvalidOperationException("Operational context needs attention. Wait for local import, save/export its original JSON and save incident references, or explicitly discard pending data before closing. No source is rerun."));
+            return true;
+        }
         shell.Navigate("run-reports");
         shell.ShowError(new InvalidOperationException("An original report is still unsaved. Save it to its original client, export it, or explicitly discard it in Run reports before closing. No report was run again."));
         return true;
